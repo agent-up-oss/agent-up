@@ -73,6 +73,27 @@ AgentUp.Desktop/
 AgentUp.Mobile/
   package.json
 
+AgentUp.Mobile.E2E/
+  package.json
+
+AgentUp.Mobile.E2E.App/
+  package.json
+
+AgentUp.Chat/
+  package.json
+
+AgentUp.AgentAuth/
+  package.json
+
+AgentUp.ServerClient/
+  package.json
+
+AgentUp.TestAgents/
+  AgentUp.TestAgents.csproj
+
+AgentUp.TestAgents.Tests/
+  AgentUp.TestAgents.Tests.csproj
+
 AgentUp.DesignSystem/
   package.json
 
@@ -537,7 +558,11 @@ Mobile renders `desktopApplications` through the same session-ticketed Server vi
 
 Mobile's Git changes panel reads and displays the Server-owned proposal queue. It must not reconstruct queue ancestry or infer verification state locally.
 
-Developer guide: `docs/developer-guide/mobile.md`.
+Agent sign-in on every client goes through `AgentUp.AgentAuth` (`@agent-up/agent-auth`). It branches on the transport the Server reports - `poll`, `code`, or `redirect` - and never on which agent is signing in, so the real Claude, Codex, and Cursor CLIs and the test agents drive one code path rather than parallel ones. Platform behavior lives in an adapter behind a port; the state machine stays free of React and React Native imports so it is tested under plain Node.
+
+The `redirect` transport must open an in-app WebView, not the system browser. The agent CLI's callback is bound to loopback on the Server host, so a client only completes that sign-in by observing the navigation and posting it to `POST agent/login/callback`; `Linking.openURL` hands the URL to Safari or Chrome and nothing comes back. A client must not open a sign-in link the user did not ask it to open.
+
+Developer guides: `docs/developer-guide/mobile.md`, and `docs/developer-guide/agent-sign-in.md` for the sign-in transports.
 
 ## MCP
 
@@ -661,6 +686,7 @@ This applies to every production/test project pair once created:
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
 | `AgentUp.AUDebug` | `AgentUp.AUDebug.Tests` |
 | `AgentUp.Verification` | `AgentUp.Verification.Tests` |
+| `AgentUp.TestAgents` | `AgentUp.TestAgents.Tests` |
 | `LocalInstaller.Core` | `LocalInstaller.Core.Tests` |
 | `LocalInstaller.App` | `LocalInstaller.App.Tests` |
 | `LocalInstaller.Packaging` | `LocalInstaller.Packaging.Tests` |
@@ -679,6 +705,38 @@ After every task that touches any production project, run the architecture tests
 ```
 
 All architecture rules must pass. Fix any violation before considering the task done. Do not move on, commit, or report success while architecture tests are failing.
+
+`AgentUp.Mobile.E2E` is the mobile end-to-end project. It drives agent sign-in on a real iOS simulator (Detox, `macos-latest`), a real Android emulator (Detox, `ubuntu-latest` with KVM), and the installable web export (Playwright), against a real Agent-Up Server process, the real test agent CLIs from `AgentUp.TestAgents`, and the real identity provider behind them. Nothing in it is in-process, headless-only, or faked.
+
+The app it drives is `AgentUp.Mobile.E2E.App`: the real `AgentUp.Chat` and `AgentUp.AgentAuth` modules mounted with nothing around them. It exists so the suite tests sign-in rather than navigation - reaching the chat in the full client took four taps through the sidebar, a workspace list and a dashboard, every one of them a way for an unrelated change to fail this suite - and so the app it compiles is small enough to build often. The code under test is the same module the shipping client mounts; only the shell around it is missing.
+
+`AgentUp.Chat` is that module: the transcript, the permission prompts and the subscription sign-in, with no import from any app. Which workspace, which Server, and what sits behind the Changes tab all arrive as props, which is what lets the client and the harness run one implementation instead of two. It reaches a Server through `AgentUp.ServerClient`, the transport the client's own slices use.
+
+Both modules are consumed as `file:` dependencies and ship TypeScript sources, so every app that mounts them needs the `metro.config.js` dedupe they come with: Metro resolves a symlinked package's imports from its own `node_modules` first, and a second copy of `react` there means the module's hooks read a different dispatcher than the app rendered with and throw on mount. `AgentUp.Mobile.E2E/pwa/mounts.spec.mjs` is what catches that, because it happened.
+
+`plugins/withoutReleaseLint.js` turns off lint's release checks there. `assembleRelease` runs lintVital, which reads every proguard file the variant declares and, on a hosted runner, walks into `/home/packer` - the image builder's home directory, not readable by the runner - so the task cannot succeed. This app is never shipped, so lint has nothing to protect in it; the real client keeps its own lint untouched.
+
+Its androidTest manifest comes from `AgentUp.Mobile.E2E.App/plugins/withDetoxAndroidTestManifest.js`. androidx.test's `InstrumentationActivityInvoker` declares three activities with intent filters and no `android:exported`, which anything targeting Android 12 or higher must state explicitly, so the merge fails and the test APK is never assembled. The androidTest source set's manifest is the highest-priority one for that APK, so stating it there settles the merge whatever version of androidx.test is resolved - and the version arrives transitively through Detox, so it is not ours to pin.
+
+Detox synchronises on the app being idle, and the chat holds an event stream open for its whole life, so `detox/signIn.test.js` excludes that stream from synchronisation with `device.setURLBlacklist`. Without it the tap that mounts the chat never reports back and every native scenario dies on the hook timeout: the action reaches the app, the app opens the stream, and Detox waits for an idle that cannot come. Nothing else relies on that heuristic here - every wait in these suites is a condition on Server state or on an element being visible.
+
+The harness app carries `@config-plugins/detox`, and Android does not run without it. `expo prebuild` generates a plain Android project with no instrumentation: no `androidTest` source set, no `testInstrumentationRunner`, no Detox dependency - so `assembleAndroidTest` produces nothing and every run dies with "Failed to find the app binary". The plugin injects exactly those, plus a maven repo pointing at the npm-pinned copy of Detox so `com.wix:detox:+` resolves to the version the lockfile names. Its peer range still says expo ^53, which is stale metadata rather than a real incompatibility, so the app's `.npmrc` sets `legacy-peer-deps`; what it generates is verified by prebuilding and reading the project, not assumed.
+
+Sign-in runs in its own workflow, `.github/workflows/mobile-agent-auth-ci.yml`, scoped by path to the things it tests. That filter is the whole correctness argument for the gate, and it includes `AgentUp.Server` and `AgentUp.TestAgents` alongside the client modules: the Server drives every one of these sign-ins and the test agents implement them, so a change to either is exactly what this suite exists to catch. A nightly run covers whatever the filter misses.
+
+`AgentUp.TestAgents` publishes one binary launched through a per-agent shim: `test-agent1` (loopback redirect, the `codex login` shape), `test-agent2` (device code, `codex login --device-auth`), `test-agent3` (pasted code with an unterminated prompt, `claude setup-token`), `test-agent4` (silent polling, `cursor-agent login`), and `test-idp`. Each speaks real ACP v1 over stdio and refuses `session/new` until it holds a credential. There are four sign-in shapes but only three agent kinds, so the loopback-redirect and device-code agents share the Codex slot and the stack starts twice rather than letting them collide.
+
+Every process the harness starts is watched by `AgentUp.Mobile.E2E/harness/supervise.mjs`, because a stack that fails to come up has to say why. Without it a process that dies on startup looks exactly like a slow one: the wait runs its full minute and reports `fetch failed`, which is true and useless - and that is precisely how one run lost the identity provider and left nothing behind to explain it. What each process said is kept and reported, and its death ends the wait at once instead of a minute later.
+
+These tests must not be flaky, and that is enforced rather than hoped for. No fixed delays: `AgentUp.Mobile.E2E/scripts/forbid-sleep.mjs` fails the build on `setTimeout`, `device.sleep`, or `page.waitForTimeout` outside the wait helper, and every wait is a condition plus a deadline that names what it was waiting for. Approval is a control-plane call to the test identity provider at a moment the test chooses, never a wait on a polling interval and never a click driven into a browser's DOM. Ports are ephemeral, versions are pinned (simulator runtime, system image, API level, Detox, Playwright), app state is reset per case, and there are no retries: a retry hides a flake instead of surfacing it.
+
+The mobile CI jobs sit at the same dependency tier as `docs` and `jetbrains-plugin`, and each publishes the Server and test agents itself instead of taking an artifact from the .NET chain. That publish runs while the job is already provisioning an emulator or an Xcode toolchain; an artifact dependency would serialise the mobile suite behind the slowest jobs in the pipeline.
+
+The three end-to-end jobs hold a runner for tens of minutes, one of them macOS. They run on every push regardless: a suite that decides for itself when to run cannot be used to gain confidence in a change, because a green pipeline stops distinguishing "passed" from "never ran". What bounds them instead is the cache - an unchanged client reuses the app it already built - and a per-job `concurrency` group with `cancel-in-progress`, because the workflow-level group deliberately never cancels a branch run and without that a full set survived every push until the runners were saturated.
+
+`AgentUp.AgentAuth/dist` is committed, as `AgentUp.WebAudit/dist` and `AgentUp.DesignSystem/dist` already are: Cloudflare Pages builds the web client through `build:cloudflare` in its own Node image and cannot build sibling packages first. The `mobile` job rebuilds it and fails on any diff, so the committed output cannot drift from its source.
+
+Expo generates `AgentUp.Mobile/ios/` and `AgentUp.Mobile/android/` during those jobs and they stay uncommitted. `.github/scripts/install-mobile-deps.sh` installs mobile dependencies for CI without the `nix-shell` wrapper the repository npm scripts use: those runners have no Nix and do have Xcode and Android toolchains that the wrapper's replaced `PATH` would break. It runs the same underlying commands; only the shell wrapper is skipped. This is the second documented exception alongside `build:cloudflare`.
 
 Changes under `AgentUp.Mobile/` must run `./au-debug test mobile` (typecheck, tests, and web export). Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
 

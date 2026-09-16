@@ -2,11 +2,15 @@ name: Agent-Up CI
 
 on: [push]
 
+# Runs on main share one group and never cancel, so every commit that can release is built.
+# Everywhere else the newest push wins: a branch run that a later push has already superseded
+# only holds runners that the push it belongs to is waiting for.
 concurrency:
   group: >-
     ${{ github.ref == 'refs/heads/main'
       && format('{0}-main-release', github.workflow)
-      || format('{0}-{1}-{2}', github.workflow, github.ref, github.run_id) }}
+      || format('{0}-{1}', github.workflow, github.ref) }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -227,7 +231,7 @@ jobs:
         run: ./.github/scripts/locate-coverage-reports.sh AgentUp.Tests
 
       - name: Upload AgentUp.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -262,6 +266,18 @@ jobs:
         shell: bash
         run: ./.github/scripts/run-dotnet-tests.sh
 
+      # The eighteen uploads below push the failure out of the retrievable tail of this job's log,
+      # so a failing run keeps its results where they can still be read afterwards. The step
+      # summary names the tests; this keeps the full TRX for anything the summary does not say.
+      - name: Keep test results on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-coverage-test-results
+          path: "**/*.trx"
+          retention-days: 7
+          if-no-files-found: warn
+
       - name: Locate module coverage reports
         id: coverage-reports
         if: ${{ !cancelled() }}
@@ -283,11 +299,12 @@ jobs:
             AgentUp.AUDebug.Tests \
             AgentUp.InstallerConfig.Tests \
             AgentUp.Server.Tests \
+            AgentUp.TestAgents.Tests \
             AgentUp.Tray.Tests \
             AgentUp.Verification.Tests
 
       - name: Upload AgentUp.Architecture.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -299,7 +316,7 @@ jobs:
           verbose: true
 
       - name: Upload AgentUp.CLI.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -310,7 +327,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Abstractions.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -321,7 +338,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Common.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -332,7 +349,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Claude.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -343,7 +360,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Codex.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -354,7 +371,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Cursor.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -365,7 +382,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Docker.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -376,7 +393,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Dotnet.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -387,7 +404,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.CommitPolicy.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -398,7 +415,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Desktop.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -409,7 +426,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.AUDebug.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -420,7 +437,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Server.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -430,8 +447,19 @@ jobs:
           fail_ci_if_error: true
           disable_search: true
 
+      - name: Upload AgentUp.TestAgents.Tests coverage
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_test_agents_tests }}
+          flags: agentup-test-agents-tests
+          name: AgentUp.TestAgents.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
       - name: Upload AgentUp.Verification.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -442,7 +470,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Browser.Streaming.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -453,7 +481,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Tray.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -464,7 +492,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.InstallerConfig.Tests coverage
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -761,6 +789,58 @@ jobs:
           path: release-artifacts/*
           if-no-files-found: error
           retention-days: 1
+
+  mobile:
+    name: Mobile
+    runs-on: ubuntu-latest
+    needs: version
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Install mobile dependencies
+        run: ./.github/scripts/install-mobile-deps.sh
+
+      - name: Typecheck and unit test
+        working-directory: AgentUp.Mobile
+        run: |
+          npm --prefix ../AgentUp.AgentAuth test
+          npx tsc --noEmit -p tsconfig.test.json
+          npx tsc --noEmit -p ../AgentUp.ServerClient/tsconfig.json
+          npx tsx --test ../AgentUp.ServerClient/src/*.test.ts
+          npx tsx --test ../AgentUp.Chat/src/providers/*.test.ts
+          npx tsx --test src/features/**/providers/*.test.ts
+          node --test scripts/*.test.mjs
+
+      - name: Typecheck the chat module and the app that harnesses it
+        run: |
+          npm --prefix AgentUp.Chat run typecheck
+          npm --prefix AgentUp.Mobile.E2E.App install --no-audit --no-fund
+          npx --prefix AgentUp.Mobile.E2E.App tsc --noEmit -p AgentUp.Mobile.E2E.App/tsconfig.json
+
+      - name: Check the shared sign-in module's committed build is current
+        shell: bash
+        run: |
+          # Cloudflare Pages builds the web client with one script and cannot build sibling
+          # packages, so their dist/ is committed. That only works while it is in step with src.
+          npm --prefix AgentUp.AgentAuth run build
+          git diff --exit-code -- AgentUp.AgentAuth/dist
+
+      - name: Check the end-to-end suite for fixed delays
+        working-directory: AgentUp.Mobile.E2E
+        run: node scripts/forbid-sleep.mjs
+
+      # The sign-in jobs run these on a macOS runner, whose bash is 3.2. A construct newer than
+      # that fails there and nowhere else, at the first step that uses it.
+      - name: Check the CI shell scripts run on the macOS runner's bash
+        run: node .github/scripts/check-shell-portability.mjs
+
+      - name: Test the end-to-end harness
+        working-directory: AgentUp.Mobile.E2E
+        run: node --test test/*.test.mjs
 
   docs:
     name: Docs

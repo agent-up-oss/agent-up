@@ -1,0 +1,24 @@
+{
+  "name": "@agent-up/agent-auth",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Client-side agent sign-in for Agent-Up: one transport state machine for the real agent CLIs and the test agents alike",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "default": "./dist/index.js" },
+    "./native": { "types": "./dist/adapters/native.d.ts", "import": "./dist/adapters/native.js", "default": "./dist/adapters/native.js" },
+    "./web": { "types": "./dist/adapters/web.d.ts", "import": "./dist/adapters/web.js", "default": "./dist/adapters/web.js" }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.json && node --test test/*.test.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "typescript": "~6.0.3"
+  }
+}

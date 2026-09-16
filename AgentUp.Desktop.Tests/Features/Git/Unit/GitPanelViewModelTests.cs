@@ -630,6 +630,20 @@ public sealed class GitPanelViewModelTests
         });
     }
 
+    [Test]
+    public async Task LoadAsync_stopsWhenQueueLoadIsCanceled()
+    {
+        var api = new FakeGitApiProvider { Tree = SampleTree() };
+        var panel = CreatePanel(api);
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+
+        await panel.LoadAsync("ws-1", canceled.Token);
+
+        Assert.That(panel.HasQueuedProposals, Is.False);
+        Assert.That(panel.ErrorMessage, Is.Null);
+    }
+
     private static GitChangeTreeDto OtherWorkspaceTree()
         => new(
             "ws-2",
@@ -682,6 +696,8 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
 
     public Task<CommitQueueDto?> GetCommitQueueAsync(string workspaceId, CancellationToken cancellationToken = default)
     {
+        if (cancellationToken.IsCancellationRequested)
+            return Task.FromException<CommitQueueDto?>(new TaskCanceledException());
         if (QueueException is not null)
             return Task.FromException<CommitQueueDto?>(QueueException);
         if (QueueFailure is not null)

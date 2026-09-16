@@ -3,6 +3,13 @@ using AgentUp.Server.Features.Commits.DTOs;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Models;
 using AgentUp.Server.Features.Commits.Services;
+using AgentUp.Server.Features.Verification.Controllers;
+using AgentUp.Server.Features.Verification.Services;
+using AgentUp.Server.Tests.Fake;
+using AgentUp.Verification.Features.Verification.Models;
+using AgentUp.Verification.Features.Verification.Providers;
+using AgentUp.Verification.Features.Verification.Services;
+using AgentUp.Verification.Shared.Providers;
 
 namespace AgentUp.Server.Tests.Features.Commits.Unit;
 
@@ -77,6 +84,32 @@ public sealed class CommitsServiceTests
             Assert.That(queue.Stored.Commits.Single().ProposalCommit, Is.EqualTo("proposal"));
             Assert.That(queue.Stored.Commits.Single().State, Is.EqualTo("unverified"));
         });
+    }
+
+    [Test]
+    public async Task EnqueueAsync_rejectsWhenVerificationGateFails()
+    {
+        var plans = new VerificationPlanService(
+            new StubVerificationConfigurationLoader(VerificationConfiguration.Empty),
+            new CheckPlanProvider(new PathGlobProvider(), new FakePlatformCapabilityProvider("linux")),
+            [new StaticChangedContentSource(new Dictionary<string, string> { ["a.cs"] = "sha256:a" })]);
+        var ledger = new InMemoryReceiptLedgerStore();
+        var verification = new VerificationController(
+            new VerificationQueueGateService(
+                plans,
+                new VerificationRunService(plans, ledger, new ScriptedCheckRunner(), new FakeVerificationClock()),
+                new VerificationGuardService(plans, ledger)));
+        var service = new CommitsService(
+            new FakeCommitsQueueProvider(),
+            new FakeCommitsGitProvider(),
+            new CommitPolicyProvider(),
+            new FakeProposalStackGitProvider(),
+            new EnabledConfigurationProvider(),
+            verification);
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"]));
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Does.Contain("requires a configured verification section"));
     }
 
     [Test]

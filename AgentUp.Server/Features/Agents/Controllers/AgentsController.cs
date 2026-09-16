@@ -10,6 +10,8 @@ public sealed class AgentsController(AgentSchedulingService scheduling, AgentEve
     public Task<AgentScheduleResult> ScheduleAsync(string workspaceId, AgentKind kind, CancellationToken cancellationToken) => scheduling.ScheduleAsync(workspaceId, kind, cancellationToken);
     public Task<AgentActionResult> PromptAsync(string workspaceId, string message, CancellationToken cancellationToken) => scheduling.PromptAsync(workspaceId, message, cancellationToken);
     public AgentActionResult Authenticate(string workspaceId, string methodId) => scheduling.Authenticate(workspaceId, methodId);
+    public AgentActionResult SubmitLoginCode(string workspaceId, string code) => scheduling.SubmitLoginCode(workspaceId, code);
+    public AgentActionResult SubmitLoginCallback(string workspaceId, string url) => scheduling.SubmitLoginCallback(workspaceId, url);
     public Task<AgentActionResult> CancelAsync(string workspaceId, CancellationToken cancellationToken) => scheduling.CancelAsync(workspaceId, cancellationToken);
     public Task<AgentActionResult> StopAsync(string workspaceId, CancellationToken cancellationToken) => scheduling.StopAsync(workspaceId, cancellationToken);
     public bool Decide(string workspaceId, AgentPermissionResponse response) => scheduling.Decide(workspaceId, response);
