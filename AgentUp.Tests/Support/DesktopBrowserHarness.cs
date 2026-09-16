@@ -23,6 +23,10 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
     private const string NavigationTokenScript = "(function(){return window.__nav || 'none';})()";
 
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
+    // Showing the window attaches the platform WebView through a native control host on the UI
+    // thread. A backend that never finishes initializing never returns, and the dispatcher call
+    // below has nothing of its own to time out on, so bound it here rather than hang the run.
+    private static readonly TimeSpan LaunchTimeout = TimeSpan.FromSeconds(90);
     private static readonly TimeSpan NavigationAttemptTimeout = TimeSpan.FromSeconds(8);
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
 
@@ -48,12 +52,11 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
     internal static async Task<DesktopBrowserHarness> LaunchAsync(int applicationPort)
     {
         var webViews = new List<NativeWebView>();
-        var window = await Dispatcher.UIThread.InvokeAsync(async () =>
-            await CreateWindowAsync(
-                new Uri("http://localhost:5000"),
-                webViews,
-                selectHttpPort: true,
-                new DesktopServerStub(WorkspaceId, applicationPort)));
+        var window = await ShowWindowAsync(() => CreateWindowAsync(
+            new Uri("http://localhost:5000"),
+            webViews,
+            selectHttpPort: true,
+            new DesktopServerStub(WorkspaceId, applicationPort)));
 
         return new DesktopBrowserHarness(window, webViews);
     }
@@ -63,14 +66,29 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
         string? desktopApplication = null)
     {
         var webViews = new List<NativeWebView>();
-        var window = await Dispatcher.UIThread.InvokeAsync(async () =>
-            await CreateWindowAsync(serverUrl, webViews, selectHttpPort: false));
+        var window = await ShowWindowAsync(() => CreateWindowAsync(serverUrl, webViews, selectHttpPort: false));
 
         var harness = new DesktopBrowserHarness(window, webViews);
         if (desktopApplication is not null)
             await harness.SelectDesktopApplicationAsync(desktopApplication);
         await harness.WaitForWorkspaceWebViewAsync();
         return harness;
+    }
+
+    // A local async function so this is a real Task whatever InvokeAsync hands back, and so the
+    // deadline applies to the whole UI-thread operation rather than to any one await inside it.
+    private static async Task<MainWindow> ShowWindowAsync(Func<Task<MainWindow>> create)
+    {
+        async Task<MainWindow> OnUiThread() => await Dispatcher.UIThread.InvokeAsync(create);
+
+        var launch = OnUiThread();
+        if (await Task.WhenAny(launch, Task.Delay(LaunchTimeout)) != launch)
+            throw new TimeoutException(
+                $"Desktop never finished showing its MainWindow within {LaunchTimeout.TotalSeconds:0} seconds. "
+                + "The platform WebView attaches through a native control host on the Avalonia UI thread, so a "
+                + "WebView backend that never finishes initializing stops the run here with no test having started.");
+
+        return await launch;
     }
 
     private static async Task<MainWindow> CreateWindowAsync(

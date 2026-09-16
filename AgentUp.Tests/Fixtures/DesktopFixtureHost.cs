@@ -13,6 +13,7 @@ namespace AgentUp.Tests;
 public sealed class DesktopFixtureHost
 {
     private static readonly ManualResetEventSlim AvaloniaReady = new(false);
+    private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(30);
     private IDesktopFixtureAdapter? _adapter;
 
     [OneTimeSetUp]
@@ -77,15 +78,21 @@ public sealed class DesktopFixtureHost
         {
             try
             {
-                Dispatcher.UIThread.InvokeAsync(() =>
+                async Task ShutdownAsync() => await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime lt)
                         lt.Shutdown();
-                }).GetAwaiter().GetResult();
+                });
+
+                // Bounded: a UI thread wedged inside a native control host would otherwise turn a
+                // reported test failure into a hung process that only the job timeout ends.
+                if (!ShutdownAsync().Wait(ShutdownTimeout))
+                    TestContext.Progress.WriteLine(
+                        $"Avalonia did not shut down within {ShutdownTimeout.TotalSeconds:0} seconds; leaving it to process exit.");
             }
-            catch (TaskCanceledException ex)
+            catch (AggregateException ex)
             {
-                // Shutdown may race with Avalonia dispatcher teardown.
+                // Wait surfaces whatever the dispatcher threw; shutdown races with its teardown.
                 Trace.TraceWarning(ex.Message);
             }
             catch (InvalidOperationException ex)
