@@ -19,8 +19,17 @@ internal static class WebViewFilePickerProvider
         "window.__agentUpFilePickerRequests=new Map();" +
         "document.addEventListener('click',function(e){" +
         "var input=e.target&&e.target.closest?e.target.closest('input[type=file]'):null;" +
-        "if(!e.isTrusted||!input||input.disabled||input.webkitdirectory)return;" +
-        "e.preventDefault();e.stopImmediatePropagation();" +
+        "if(!input||input.disabled||input.webkitdirectory)return;" +
+        // Suppress the engine's own chooser for every click on an input Desktop owns, before
+        // asking whether the click was trusted. WebKitGTK and WKWebView refuse to open a
+        // chooser for a scripted click, but Chromium honours it, so leaving the default in
+        // place let a page call input.click() and pop a native modal chooser on Windows with
+        // the user touching nothing -- the exact thing the trust check exists to prevent.
+        // The page's own click listeners still run for an untrusted click; only the default
+        // action is taken away.
+        "e.preventDefault();" +
+        "if(!e.isTrusted)return;" +
+        "e.stopImmediatePropagation();" +
         "var id=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random());" +
         "window.__agentUpFilePickerRequests.set(id,input);" +
         "window.invokeCSharpAction(JSON.stringify({type:'agent-up:file-picker',requestId:id,multiple:input.multiple}));" +
