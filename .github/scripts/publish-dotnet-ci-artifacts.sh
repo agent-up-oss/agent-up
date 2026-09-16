@@ -50,6 +50,26 @@ publish_project() {
     -o "$destination"
 }
 
+publish_test_runner() {
+  local project="$1"
+  local rid="$2"
+  local destination="$3"
+
+  # Keep the native E2E host as a normal self-contained directory. Avalonia and the
+  # platform WebView load native/runtime assets by path, which is not reliable after
+  # single-file extraction on hosted Windows runners.
+  dotnet publish "$project" \
+    --configuration "$configuration" \
+    --runtime "$rid" \
+    --no-restore \
+    --self-contained true \
+    -p:PublishSingleFile=false \
+    -p:DebugType=none \
+    -p:DebugSymbols=false \
+    -p:Version="$version" \
+    -o "$destination"
+}
+
 rm -rf "$output_dir"
 mkdir -p "$output_dir/tools" "$output_dir/payloads"
 
@@ -57,7 +77,7 @@ for rid in "${rids[@]}"; do
   restore_runtime "$rid"
   publish_project "$root/AgentUp.Packaging/AgentUp.Packaging.csproj" "$rid" "$output_dir/tools/$rid/packaging"
   publish_project "$root/AgentUp.PackageSmoke/AgentUp.PackageSmoke.csproj" "$rid" "$output_dir/tools/$rid/package-smoke"
-  publish_project "$root/AgentUp.Tests/AgentUp.Tests.csproj" "$rid" "$output_dir/tools/$rid/agent-up-tests"
+  publish_test_runner "$root/AgentUp.Tests/AgentUp.Tests.csproj" "$rid" "$output_dir/tools/$rid/agent-up-tests"
   publish_project "$root/AgentUp.InstallerApp/AgentUp.InstallerApp.csproj" "$rid" "$output_dir/payloads/$rid/installer"
   publish_project "$root/AgentUp.Desktop/AgentUp.Desktop.csproj" "$rid" "$output_dir/payloads/$rid/desktop"
   publish_project "$root/AgentUp.Server/AgentUp.Server.csproj" "$rid" "$output_dir/payloads/$rid/server"

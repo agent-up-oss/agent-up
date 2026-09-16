@@ -58,7 +58,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: azure/setup-helm@v4
+      - uses: azure/setup-helm@v5
         with:
           version: latest
 
@@ -229,7 +229,7 @@ jobs:
 
       - name: Upload AgentUp.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_tests }}
@@ -289,7 +289,7 @@ jobs:
 
       - name: Upload AgentUp.Architecture.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_architecture_tests }}
@@ -301,7 +301,7 @@ jobs:
 
       - name: Upload AgentUp.CLI.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_cli_tests }}
@@ -312,7 +312,7 @@ jobs:
 
       - name: Upload AgentUp.Capabilities.Abstractions.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_abstractions_tests }}
@@ -323,7 +323,7 @@ jobs:
 
       - name: Upload AgentUp.Capabilities.Common.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_common_tests }}
@@ -334,7 +334,7 @@ jobs:
 
       - name: Upload AgentUp.Capabilities.Claude.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_claude_tests }}
@@ -345,7 +345,7 @@ jobs:
 
       - name: Upload AgentUp.Capabilities.Codex.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_codex_tests }}
@@ -356,7 +356,7 @@ jobs:
 
       - name: Upload AgentUp.Capabilities.Cursor.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_cursor_tests }}
@@ -367,7 +367,7 @@ jobs:
 
       - name: Upload AgentUp.Capabilities.Docker.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_docker_tests }}
@@ -378,7 +378,7 @@ jobs:
 
       - name: Upload AgentUp.Capabilities.Dotnet.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_dotnet_tests }}
@@ -389,7 +389,7 @@ jobs:
 
       - name: Upload AgentUp.CommitPolicy.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_commit_policy_tests }}
@@ -400,7 +400,7 @@ jobs:
 
       - name: Upload AgentUp.Desktop.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_desktop_tests }}
@@ -411,7 +411,7 @@ jobs:
 
       - name: Upload AgentUp.AUDebug.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_audebug_tests }}
@@ -422,7 +422,7 @@ jobs:
 
       - name: Upload AgentUp.Server.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_server_tests }}
@@ -433,7 +433,7 @@ jobs:
 
       - name: Upload AgentUp.Verification.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_verification_tests }}
@@ -444,7 +444,7 @@ jobs:
 
       - name: Upload AgentUp.Browser.Streaming.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_browser_streaming_tests }}
@@ -455,7 +455,7 @@ jobs:
 
       - name: Upload AgentUp.Tray.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_tray_tests }}
@@ -466,7 +466,7 @@ jobs:
 
       - name: Upload AgentUp.InstallerConfig.Tests coverage
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.coverage-reports.outputs.agentup_installer_config_tests }}
@@ -576,7 +576,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: DeterminateSystems/nix-installer-action@v22
+      - uses: DeterminateSystems/nix-installer-action@v23
         if: ${{ matrix.use-nix }}
 
       - uses: actions/download-artifact@v8
@@ -617,7 +617,8 @@ jobs:
           ./dotnet-ci/tools/${{ matrix.rid }}/agent-up-tests/AgentUp.Tests \
             --workers=0 \
             --where="cat == E2E" \
-            --result="artifacts/platform-tests/agent-up-tests-${{ matrix.rid }}.xml;format=nunit3"
+            --result="artifacts/platform-tests/agent-up-tests-${{ matrix.rid }}.xml;format=nunit3" \
+            2>&1 | tee "artifacts/platform-tests/agent-up-tests-${{ matrix.rid }}.log"
 
       - name: Run Windows native E2E tests
         if: ${{ matrix.platform == 'windows' }}
@@ -625,18 +626,29 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path artifacts/platform-tests | Out-Null
           & "dotnet-ci/tools/${{ matrix.rid }}/agent-up-tests/AgentUp.Tests.exe" `
-            --workers=0 `
-            "--where=cat == E2E" `
-            "--result=artifacts/platform-tests/agent-up-tests-${{ matrix.rid }}.xml;format=nunit3"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+              --workers=0 `
+              "--where=cat == E2E" `
+              "--result=artifacts/platform-tests/agent-up-tests-${{ matrix.rid }}.xml;format=nunit3" `
+              2>&1 | Tee-Object "artifacts/platform-tests/agent-up-tests-${{ matrix.rid }}.log"
+          $testExitCode = $LASTEXITCODE
+          if ($testExitCode -ne 0) { exit $testExitCode }
 
       - name: Native platform E2E test report
         uses: dorny/test-reporter@v3
-        if: ${{ !cancelled() && (matrix.platform == 'macos' || matrix.platform == 'windows') }}
+        if: ${{ !cancelled() && (matrix.platform == 'macos' || matrix.platform == 'windows') && hashFiles('artifacts/platform-tests/*.xml') != '' }}
         with:
           name: Native E2E Tests (${{ matrix.rid }})
           path: artifacts/platform-tests/*.xml
           reporter: dotnet-nunit
+
+      - name: Upload native platform E2E diagnostics
+        uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() && (matrix.platform == 'macos' || matrix.platform == 'windows') }}
+        with:
+          name: native-e2e-${{ matrix.rid }}
+          path: artifacts/platform-tests
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Sign macOS payload binaries
         if: ${{ matrix.platform == 'macos' && (vars.MACOS_SIGNING_ENABLED == 'true' || vars.SIGNING_SMOKE_TEST == 'true') }}
@@ -833,7 +845,7 @@ jobs:
       - name: Install release tooling
         run: npm install
 
-      - uses: azure/setup-helm@v4
+      - uses: azure/setup-helm@v5
         with:
           version: latest
 
