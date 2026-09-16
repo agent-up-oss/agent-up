@@ -200,14 +200,15 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
 
     // Runs script inside the live workspace page and returns its result as the Desktop
     // browser controller sees it.
-    internal Task<string?> EvalAsync(string script) => Window.EvalAsync(WorkspaceId, script);
+    internal Task<string?> EvalAsync(string script) => EvalWithinAsync(script, EvaluationTimeout);
 
-    // The platform engine can accept an evaluation and never answer it -- a WebView2 browser
-    // process that has stopped responding does exactly that. Bound each evaluation so the
-    // caller's poll loop stays a poll loop and its own deadline remains the failure signal.
+    // The platform engine can accept an evaluation and never answer it: a scripted click that
+    // reaches a native modal chooser takes the UI thread's message pump with it, and nothing
+    // queued behind it -- including this harness's own dispatcher calls -- runs again. Bound
+    // every evaluation so that surfaces as a failure naming the script instead of a dead run.
     private async Task<string?> EvalWithinAsync(string script, TimeSpan timeout)
     {
-        var evaluation = EvalAsync(script);
+        var evaluation = Window.EvalAsync(WorkspaceId, script);
         if (await Task.WhenAny(evaluation, Task.Delay(timeout)) != evaluation)
             throw new TimeoutException(
                 $"The Desktop WebView accepted '{script}' but did not answer within {timeout.TotalSeconds:0} seconds.");

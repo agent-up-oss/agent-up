@@ -31,11 +31,18 @@ public static class E2ETestRunner
         var watchdog = new Thread(() =>
         {
             Thread.Sleep(WatchdogTimeout);
-            Console.Out.WriteLine(
+            var notice =
                 $"E2E watchdog: no result after {WatchdogTimeout.TotalMinutes:0} minutes. The run is wedged "
                 + "-- a platform engine call has not returned and the test thread cannot run its own "
-                + "timeouts. Forcing exit so the log survives.");
+                + "timeouts. Forcing exit so the log survives.";
+            Console.Out.WriteLine(notice);
+            Console.Error.WriteLine(notice);
             Console.Out.Flush();
+            Console.Error.Flush();
+
+            // The first run of this watchdog exited so promptly that the notice never reached the
+            // log through the runner's pipe. Give it a moment to drain before killing the process.
+            Thread.Sleep(TimeSpan.FromSeconds(3));
             Environment.Exit(99);
         })
         {
