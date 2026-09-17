@@ -16,6 +16,6 @@
     "@playwright/test": "1.58.1",
     "detox": "20.42.0",
     "jest": "30.2.0",
-    "jest-junit": "16.0.0"
+    "jest-junit": "17.0.0"
   }
 }
