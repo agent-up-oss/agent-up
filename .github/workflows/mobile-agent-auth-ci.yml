@@ -29,6 +29,7 @@ on:
       - ".github/workflows/mobile-agent-auth-ci.yml"
       - ".github/scripts/install-mobile-deps.sh"
       - ".github/scripts/install-android-ndk.sh"
+      - ".github/scripts/install-android-emulator.sh"
       - ".github/scripts/wake-android-emulator.sh"
       - ".github/scripts/build-mobile-e2e-stack.sh"
       - ".github/scripts/mobile-app-key.sh"
@@ -237,6 +238,12 @@ jobs:
             echo "MISSING: the agent_up_e2e emulator image; creating it."
             echo "usable=false" >> "$GITHUB_OUTPUT"
           fi
+
+      # Same truncated-zip failure as the NDK: android-emulator-runner installs "latest emulator"
+      # once and fails the job when Google's archive is not an archive. Retry here first so the
+      # action's own install is a no-op.
+      - name: Install the Android emulator
+        run: ./.github/scripts/install-android-emulator.sh
 
       - name: Create the emulator
         if: ${{ steps.emulator.outputs.usable != 'true' }}

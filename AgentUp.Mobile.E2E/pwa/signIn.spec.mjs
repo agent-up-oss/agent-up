@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { startStack } from '../harness/stack.mjs';
-import { hasTransport, SIGN_IN_FLOWS, waitForAgentState, waitForChallenge } from '../harness/signInFlows.mjs';
+import { isUsableChallenge, SIGN_IN_FLOWS, waitForAgentState, waitForChallenge } from '../harness/signInFlows.mjs';
 import { startStaticServer } from '../harness/staticServer.mjs';
 
 /**
@@ -63,7 +63,7 @@ for (const scenario of SCENARIOS) {
       const session = await waitForChallenge(
         stack.serverUrl,
         stack.workspace.id,
-        challenge => challenge.url !== null && hasTransport(challenge, scenario.transport),
+        challenge => isUsableChallenge(challenge, scenario),
       );
 
       // The sign-in opens in a new tab. For the redirect shape the browser cannot hand the
