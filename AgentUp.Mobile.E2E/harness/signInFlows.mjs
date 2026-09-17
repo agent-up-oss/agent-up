@@ -74,6 +74,20 @@ export function hasTransport(challenge, transport) {
   return (challenge?.transport ?? '').toLowerCase() === transport;
 }
 
+/**
+ * True when a challenge is complete enough for this scenario to act on it.
+ *
+ * Device-code CLIs print the sign-in URL before the user code. Waiting only on the URL made the
+ * installable-web suite approve a challenge that had no code, while slower native runs polled
+ * again after the code arrived. A pasted-code shape is usable from the URL: the value comes back
+ * from the provider page, not from the challenge.
+ */
+export function isUsableChallenge(challenge, scenario) {
+  if (!challenge?.url || !hasTransport(challenge, scenario.transport)) return false;
+  if (scenario.flow === 'device') return Boolean(challenge.code);
+  return true;
+}
+
 /** Reads an agent session off the Server. */
 export async function readSession(serverUrl, workspaceId) {
   const response = await fetch(`${serverUrl}/api/workspaces/${encodeURIComponent(workspaceId)}/agent`);

@@ -4,6 +4,7 @@ using AgentUp.Server.Features.Commits.DTOs;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Models;
 using AgentUp.Server.Features.Commits.Services;
+using AgentUp.Server.Shared.Interfaces;
 
 namespace AgentUp.Server.Tests.Features.Commits.Controller;
 
@@ -36,6 +37,7 @@ public sealed class CommitQueueMcpToolsTests
         Assert.That(result.Succeeded, Is.True);
         Assert.That(result.Message, Does.Contain("The tracked files have been restored to their pre-change state"));
         Assert.That(result.Message, Does.Contain("Do NOT re-apply or modify those files"));
+        Assert.That(result.Data, Is.TypeOf<CommitsEnqueueResult>());
         Assert.That(_queue.Stored!.Commits, Has.Count.EqualTo(1));
     }
 
@@ -50,6 +52,26 @@ public sealed class CommitQueueMcpToolsTests
         Assert.That(result.Message, Does.Contain("blocked starting new work"));
         var guard = (CommitGuardResult)result.Data!;
         Assert.That(guard.Blockers.Single(), Does.Contain("still queued"));
+    }
+
+    [Test]
+    public async Task GuardCommits_DirectsDependentWorkToManagedQueueTip()
+    {
+        var queue = new FakeCommitsQueueProvider(new CommitsQueue(
+            3,
+            [new CommitEntry("Commits", "feat(commits): queued", ["a.cs"], "entry", "patch", ParentCommit: "base", ProposalCommit: "tip", State: "ready")],
+            QueueWorktreePath: "/managed/queue",
+            BaseCommit: "base",
+            TipCommit: "tip",
+            Generation: 1));
+        var commits = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
+        var tools = new CommitQueueMcpTools(new CommitQueueMcpService(new CommitsController(commits)));
+
+        var result = await tools.GuardCommits("/repos/app", CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(result.Message, Does.Contain("Continue dependent work"));
+        Assert.That(((CommitGuardResult)result.Data!).ContinueWorktreePath, Is.EqualTo("/managed/queue"));
     }
 
     [Test]
@@ -171,6 +193,39 @@ public sealed class CommitQueueMcpToolsTests
         Assert.That(description, Does.Contain("style is CSS/HTML only"));
         Assert.That(description, Does.Contain("docs is documentation only"));
         Assert.That(description, Does.Contain("prompts.commitPolicy"));
+        Assert.That(description, Does.Contain("structured queueWorktreePath"));
+    }
+
+    [Test]
+    public async Task MockAcpAgent_usesMcpQueuePathAndBuildsOnItsPreviousProposal()
+    {
+        var queue = new FakeCommitsQueueProvider();
+        var proposals = new MockProposalStack();
+        var commits = new CommitsService(
+            queue,
+            new FakeCommitsGitProvider(),
+            new CommitPolicyProvider(),
+            proposals,
+            new EnabledQueueConfiguration(),
+            null);
+        var tools = new CommitQueueMcpTools(new CommitQueueMcpService(new CommitsController(commits)));
+        var mcp = new MockCommitQueueMcpClient(tools);
+        var acp = new MockAcpAgent(mcp, "/repos/app");
+
+        await acp.CompleteTaskAsync("feat/queue", "feat(queue): add base", "shared.cs");
+        await acp.StartNextTaskAsync();
+        await acp.CompleteTaskAsync("feat/queue", "feat(queue): extend base", "shared.cs");
+        var status = await mcp.StatusAsync(acp.WorktreePath);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(acp.WorktreePath, Is.EqualTo("/managed/queue"));
+            Assert.That(proposals.ReceivedWorktrees, Is.EqualTo(new[] { "/repos/app", "/managed/queue" }));
+            Assert.That(status.Generation, Is.EqualTo(2));
+            Assert.That(status.Entries, Has.Count.EqualTo(2));
+            Assert.That(status.Entries[1].ParentCommit, Is.EqualTo(status.Entries[0].ProposalCommit));
+            Assert.That(status.Entries[0].Files, Is.EqualTo(status.Entries[1].Files));
+        });
     }
 
     private sealed class FakeCommitsQueueProvider(CommitsQueue? initial = null) : ICommitsQueueProvider
@@ -204,6 +259,64 @@ public sealed class CommitQueueMcpToolsTests
 
         public Task<T> WithLockAsync<T>(string worktreePath, Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default)
             => operation(cancellationToken);
+    }
+
+    private sealed class EnabledQueueConfiguration : ICommitQueueConfigurationProvider
+    {
+        public bool IsGitQueueEnabled(string worktreePath) => true;
+    }
+
+    private sealed class MockProposalStack : IProposalStackGitProvider
+    {
+        public List<string> ReceivedWorktrees { get; } = [];
+
+        public Task<ProposalCommitResult> EnqueueAsync(
+            string worktreePath,
+            CommitsQueue current,
+            string queueId,
+            string message,
+            IReadOnlyList<string> files,
+            CancellationToken cancellationToken = default)
+        {
+            ReceivedWorktrees.Add(worktreePath);
+            var parent = current.TipCommit ?? "base";
+            var commit = $"proposal-{current.Generation + 1}";
+            return Task.FromResult(new ProposalCommitResult("base", parent, commit, "/managed/queue", $"refs/agent-up/queues/{queueId}/tip", "patch"));
+        }
+    }
+
+    private sealed class MockCommitQueueMcpClient(CommitQueueMcpTools tools)
+    {
+        public Task<McpToolResult> EnqueueAsync(string worktree, string slice, string message, string file)
+            => tools.EnqueueCommit(worktree, slice, message, [file], CancellationToken.None);
+
+        public Task<McpToolResult> GuardAsync(string worktree)
+            => tools.GuardCommits(worktree, CancellationToken.None);
+
+        public async Task<CommitsStatusResult> StatusAsync(string worktree)
+        {
+            var result = await tools.GetCommitsStatus(worktree, CancellationToken.None);
+            return (CommitsStatusResult)result.Data!;
+        }
+    }
+
+    private sealed class MockAcpAgent(MockCommitQueueMcpClient mcp, string worktreePath)
+    {
+        public string WorktreePath { get; private set; } = worktreePath;
+
+        public async Task CompleteTaskAsync(string slice, string message, string file)
+        {
+            var result = await mcp.EnqueueAsync(WorktreePath, slice, message, file);
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            WorktreePath = ((CommitsEnqueueResult)result.Data!).QueueWorktreePath ?? WorktreePath;
+        }
+
+        public async Task StartNextTaskAsync()
+        {
+            var result = await mcp.GuardAsync(WorktreePath);
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            WorktreePath = ((CommitGuardResult)result.Data!).ContinueWorktreePath ?? WorktreePath;
+        }
     }
 
     private sealed class FakeCommitsGitProvider : ICommitsGitProvider

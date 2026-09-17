@@ -3,6 +3,13 @@ using AgentUp.Server.Features.Commits.DTOs;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Models;
 using AgentUp.Server.Features.Commits.Services;
+using AgentUp.Server.Features.Verification.Controllers;
+using AgentUp.Server.Features.Verification.Services;
+using AgentUp.Server.Tests.Fake;
+using AgentUp.Verification.Features.Verification.Models;
+using AgentUp.Verification.Features.Verification.Providers;
+using AgentUp.Verification.Features.Verification.Services;
+using AgentUp.Verification.Shared.Providers;
 
 namespace AgentUp.Server.Tests.Features.Commits.Unit;
 
@@ -49,6 +56,93 @@ public sealed class CommitsServiceTests
         var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"]));
 
         Assert.That(result.QueueSize, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task EnqueueAsync_recordsGitProposalMetadataWhenEnabled()
+    {
+        var queue = new FakeCommitsQueueProvider();
+        var proposals = new FakeProposalStackGitProvider();
+        var service = new CommitsService(
+            queue,
+            new FakeCommitsGitProvider(),
+            new CommitPolicyProvider(),
+            proposals,
+            new EnabledConfigurationProvider(),
+            null);
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"]));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(result.QueueWorktreePath, Is.EqualTo("/managed/queue"));
+            Assert.That(result.Generation, Is.EqualTo(1));
+            Assert.That(queue.Stored!.BaseCommit, Is.EqualTo("base"));
+            Assert.That(queue.Stored.TipCommit, Is.EqualTo("proposal"));
+            Assert.That(queue.Stored.Commits.Single().ParentCommit, Is.EqualTo("base"));
+            Assert.That(queue.Stored.Commits.Single().ProposalCommit, Is.EqualTo("proposal"));
+            Assert.That(queue.Stored.Commits.Single().State, Is.EqualTo("unverified"));
+        });
+    }
+
+    [Test]
+    public async Task EnqueueAsync_rejectsWhenVerificationGateFails()
+    {
+        var plans = new VerificationPlanService(
+            new StubVerificationConfigurationLoader(VerificationConfiguration.Empty),
+            new CheckPlanProvider(new PathGlobProvider(), new FakePlatformCapabilityProvider("linux")),
+            [new StaticChangedContentSource(new Dictionary<string, string> { ["a.cs"] = "sha256:a" })]);
+        var ledger = new InMemoryReceiptLedgerStore();
+        var verification = new VerificationController(
+            new VerificationQueueGateService(
+                plans,
+                new VerificationRunService(plans, ledger, new ScriptedCheckRunner(), new FakeVerificationClock()),
+                new VerificationGuardService(plans, ledger)));
+        var service = new CommitsService(
+            new FakeCommitsQueueProvider(),
+            new FakeCommitsGitProvider(),
+            new CommitPolicyProvider(),
+            new FakeProposalStackGitProvider(),
+            new EnabledConfigurationProvider(),
+            verification);
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"]));
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Does.Contain("requires a configured verification section"));
+    }
+
+    [Test]
+    public async Task EnqueueAsync_keepsProposalModeAfterTheFlagIsDisabled()
+    {
+        var existing = new CommitsQueue(
+            3,
+            [new CommitEntry("S", "refactor(S): first", ["a.cs"], "entry-1", "entry-1", ProposalCommit: "proposal")],
+            QueueId: "queue-1",
+            BaseCommit: "base",
+            TipCommit: "proposal",
+            QueueWorktreePath: "/managed/queue",
+            Generation: 1);
+        var queue = new FakeCommitsQueueProvider(existing);
+        var proposals = new FakeProposalStackGitProvider();
+        var service = new CommitsService(
+            queue,
+            new FakeCommitsGitProvider(),
+            new CommitPolicyProvider(),
+            proposals,
+            new DisabledConfigurationProvider(),
+            null);
+
+        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): second", ["b.cs"]));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(queue.Stored!.Commits, Has.Count.EqualTo(2));
+            Assert.That(queue.Stored.QueueId, Is.EqualTo("queue-1"));
+            Assert.That(queue.Stored.Commits[1].ParentCommit, Is.EqualTo("proposal"));
+            Assert.That(queue.Stored.Commits[1].ProposalCommit, Is.EqualTo("proposal-2"));
+        });
     }
 
     [Test]
@@ -491,6 +585,32 @@ public sealed class CommitsServiceTests
 
             FilesRestored = true;
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class EnabledConfigurationProvider : ICommitQueueConfigurationProvider
+    {
+        public bool IsGitQueueEnabled(string worktreePath) => true;
+    }
+
+    private sealed class DisabledConfigurationProvider : ICommitQueueConfigurationProvider
+    {
+        public bool IsGitQueueEnabled(string worktreePath) => false;
+    }
+
+    private sealed class FakeProposalStackGitProvider : IProposalStackGitProvider
+    {
+        public Task<ProposalCommitResult> EnqueueAsync(
+            string worktreePath,
+            CommitsQueue current,
+            string queueId,
+            string message,
+            IReadOnlyList<string> files,
+            CancellationToken cancellationToken = default)
+        {
+            var parent = current.TipCommit ?? "base";
+            var commit = current.Generation == 0 ? "proposal" : $"proposal-{current.Generation + 1}";
+            return Task.FromResult(new ProposalCommitResult("base", parent, commit, "/managed/queue", $"refs/agent-up/queues/{queueId}/tip", "patch"));
         }
     }
 }

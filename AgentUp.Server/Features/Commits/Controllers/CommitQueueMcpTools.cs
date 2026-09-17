@@ -9,7 +9,7 @@ namespace AgentUp.Server.Features.Commits.Controllers;
 public sealed class CommitQueueMcpTools(CommitQueueMcpService service)
 {
     [McpServerTool(Name = "enqueue_commit", Title = "Enqueue Commit")]
-    [Description("Use at the end of a task to declare a vertical-slice commit for developer review. Enqueues files and a commit message into the commit queue; the files are saved as a patch and restored to their pre-change state. Conventional commit messages must be scoped to the queued slice, such as fix(Commits): validate queue metadata. Prefixes must be correct: feat is a user-facing addition, fix is a user-facing fix, test is a test-only or smoke-validation change, chore is maintenance/packaging/CI/tooling with no customer runtime effect, refactor is an internal no-behavior source change, style is CSS/HTML only, and docs is documentation only. Follow any prompts.commitPolicy guidance in agent-up.json. The developer then runs 'agentup commits next' to stage each entry. Do NOT call git add, git commit, or git stash directly.")]
+    [Description("Use at the end of a task to declare a vertical-slice proposal for developer review. When commits.enabled is true, required verification runs and the proposal becomes a commit in the Server-managed dependent queue; use the structured queueWorktreePath in this tool's result for all later work. Legacy queues save and restore an independent patch. Conventional messages must be scoped to the queued slice, such as fix(Commits): validate queue metadata. Prefixes must be correct: feat is a user-facing addition, fix is a user-facing fix, test is a test-only or smoke-validation change, chore is maintenance/packaging/CI/tooling with no customer runtime effect, refactor is an internal no-behavior source change, style is CSS/HTML only, and docs is documentation only. Follow prompts.commitPolicy in agent-up.json. Do NOT call git add, git commit, or git stash directly.")]
     public Task<McpToolResult> EnqueueCommit(
         [Description("Absolute path to the repository worktree.")] string worktreePath,
         [Description("Short slice label identifying the logical unit of change, e.g. 'Commits' or 'UbuntuInstallation'.")] string slice,
@@ -37,7 +37,7 @@ public sealed class CommitQueueMcpTools(CommitQueueMcpService service)
         => service.GetCommitsStatus(worktreePath, cancellationToken);
 
     [McpServerTool(Name = "guard_commits", Title = "Guard Commit Queue")]
-    [Description("Use before starting a new coding task and before publishing work. Fails when queued entries, active edit sessions, staged changes, or unassigned modified files exist. If it fails at task start, stop unless the user asked to inspect, debug, or continue existing queued or working-tree changes.")]
+    [Description("Use before starting a new coding task and before publishing work. A dependent proposal queue does not block later tasks: success returns continueWorktreePath and the agent must switch to that managed queue tip. Legacy queued entries, active edit sessions, staged changes, unassigned modified files, and active Git operations still block work.")]
     public Task<McpToolResult> GuardCommits(
         [Description("Absolute path to the repository worktree.")] string worktreePath,
         CancellationToken cancellationToken)

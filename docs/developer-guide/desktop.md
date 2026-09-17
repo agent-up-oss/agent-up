@@ -64,6 +64,8 @@ Selecting a file name opens its diff in a modal over the window. Selecting a dir
 
 `GitPanelViewModel` owns selection propagation between directory and file rows; the flattened rows keep the Avalonia list simple while the Server keeps the tree shape. The panel reloads whenever the selected workspace changes, after a successful commit or discard, and on a short poll while it is open. Checkboxes for files that are still present are kept across those reloads. The same view-model also drives the workspace branch dropdown and create-branch field.
 
+The same refresh requests `/api/workspaces/{workspaceId}/commit-queue` and displays the ordered Server-owned proposal entries with their messages and verification states. Desktop treats the returned generation, ancestry, and managed-worktree path as authoritative and does not reconstruct queue state from the working tree.
+
 ## First-Run Tutorial
 
 On first start, the Desktop shows a required setup tutorial over the normal application shell unless the user has already completed or skipped it. Tutorial progress is stored in the Desktop user settings file under the user's local application data directory.

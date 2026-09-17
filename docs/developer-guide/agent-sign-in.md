@@ -72,7 +72,10 @@ A client must not open a sign-in link the user did not ask it to open.
 `AgentUp.TestAgents` publishes real CLIs implementing each shape, with a real OAuth identity
 provider behind them, so the whole path is exercised without signing in to a real vendor.
 `AgentUp.Mobile.E2E` drives them through the real mobile client on an iOS simulator, an Android
-emulator, and the installable web build. See the Testing section of `AGENTS.md`.
+emulator, and the installable web build. Device-code scenarios wait until the challenge carries
+the user code, not only the sign-in URL: the CLI prints the URL first, and treating that as ready
+is how the installable-web suite approved a challenge with no code. See the Testing section of
+`AGENTS.md`.
 
 The disposable native harness enables cleartext transport because its simulator and emulator must
 reach Server and identity-provider processes on ephemeral CI-host ports. That exception is applied
@@ -95,3 +98,7 @@ The pods and their object files are cached separately, under the dependency set 
 to the client relinks rather than recompiling every dependency. Both are saved immediately after
 the build rather than at the end of the job, because a run whose tests fail would otherwise throw
 the build away - which is exactly when the next push is about to need it.
+
+Android installs the emulator package with retries before `android-emulator-runner` asks for it.
+Google's emulator zip is occasionally not an archive, and that action treats a single failed
+download as a failed job. The NDK step already retries the same class of truncated download.

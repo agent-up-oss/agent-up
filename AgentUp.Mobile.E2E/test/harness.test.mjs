@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createIdpControl, loginIdFrom } from '../harness/idpControl.mjs';
-import { hasTransport } from '../harness/signInFlows.mjs';
+import { hasTransport, isUsableChallenge } from '../harness/signInFlows.mjs';
 import { shimScript } from '../harness/shims.mjs';
 import { AGENT_PROFILES, hostOriginFor, profilesFor, serverEnvironment } from '../harness/stackConfig.mjs';
 import { freePort, portWindow } from '../harness/stack.mjs';
@@ -154,6 +154,33 @@ test('a challenge matches its transport whichever way the Server spelled it', ()
   assert.equal(hasTransport({ transport: 'Poll' }, 'code'), false);
   assert.equal(hasTransport({ transport: null }, 'code'), false);
   assert.equal(hasTransport(null, 'code'), false);
+});
+
+// Device-code CLIs print the URL first. Treating that as ready is how the installable-web
+// device-code scenario failed while pasted-code, poll, and redirect on the same run passed.
+test('a device-code challenge is not usable until the user code arrives', () => {
+  const device = { flow: 'device', transport: 'code' };
+  assert.equal(
+    isUsableChallenge({ url: 'https://auth.openai.com/codex/device', transport: 'Code' }, device),
+    false,
+  );
+  assert.equal(
+    isUsableChallenge(
+      { url: 'https://auth.openai.com/codex/device', transport: 'Code', code: 'ABCD-EFGH' },
+      device,
+    ),
+    true,
+  );
+});
+
+test('a pasted-code challenge is usable from the URL, because the code comes from the provider page', () => {
+  assert.equal(
+    isUsableChallenge(
+      { url: 'https://claude.ai/oauth/authorize', transport: 'Code' },
+      { flow: 'paste', transport: 'code' },
+    ),
+    true,
+  );
 });
 
 // Scenarios run side by side, so two stacks asking for a port at the same moment must not be

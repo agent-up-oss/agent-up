@@ -11,6 +11,13 @@ public sealed partial class CommitsGitProvider : ICommitsGitProvider
     public Task<string> GetRepoRootAsync(string worktreePath, CancellationToken cancellationToken = default)
         => RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
 
+    public async Task<string> GetRepositoryIdentityAsync(string worktreePath, CancellationToken cancellationToken = default)
+    {
+        var root = await GetRepoRootAsync(worktreePath, cancellationToken);
+        var common = await RunGitAsync(worktreePath, ["rev-parse", "--git-common-dir"], cancellationToken);
+        return Path.GetFullPath(Path.IsPathRooted(common) ? common : Path.Join(root, common));
+    }
+
     public async Task<IReadOnlyList<string>> GetModifiedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
     {
         try

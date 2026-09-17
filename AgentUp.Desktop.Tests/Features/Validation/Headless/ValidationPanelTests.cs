@@ -15,6 +15,9 @@ public sealed class ValidationPanelTests
 
         await HeadlessExtensions.FlushAsync();
 
+        Assert.That(() => viewModel.Git.IsLoading, Is.False.After(1000).PollEvery(20));
+        Assert.That(viewModel.Git.ErrorMessage, Is.Null);
+
         Assert.Multiple(() =>
         {
             Assert.That(viewModel.IsValidationOpen, Is.True);

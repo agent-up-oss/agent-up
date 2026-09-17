@@ -4,7 +4,7 @@ title: CI Configuration
 
 # CI Configuration
 
-The Agent-Up CI workflow runs on every push. This page documents the repository secrets and variables that control CI behavior. Signing and release steps degrade gracefully when their credentials are absent; the Codecov upload token is required for the .NET coverage job.
+The Agent-Up CI workflow runs on every push. This page documents the repository secrets and variables that control CI behavior. Signing and release steps degrade gracefully when their credentials are absent. Codecov uploads also skip when `CODECOV_TOKEN` is unavailable, which is how GitHub withholds repository secrets from Dependabot and fork pull requests. Patch coverage and the slice floor still run locally in the coverage job.
 
 Secrets are set under **Settings → Secrets and variables → Actions → Secrets**. Variables are set under the **Variables** tab in the same location.
 
@@ -12,7 +12,7 @@ Secrets are set under **Settings → Secrets and variables → Actions → Secre
 
 | Secret | Value |
 |---|---|
-| `CODECOV_TOKEN` | Repository upload token from Codecov |
+| `CODECOV_TOKEN` | Repository upload token from Codecov. Mapped onto the coverage jobs as `env.CODECOV_TOKEN` because GitHub Actions cannot read `secrets` in `if` conditions. Uploads skip when that env is empty, which is how GitHub withholds the secret from Dependabot and fork runs. |
 
 The .NET coverage job uploads each test project's Cobertura output separately. Each
 upload has a test-project-specific Codecov flag, such as

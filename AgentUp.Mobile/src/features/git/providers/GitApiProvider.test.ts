@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { commitFiles, discardFiles, getChanges, getFileDiff, getHeadState, switchBranch } from './GitApiProvider';
+import { commitFiles, discardFiles, getChanges, getCommitQueue, getFileDiff, getHeadState, switchBranch } from './GitApiProvider';
 
 type Recorded = { url: string; init: RequestInit };
 
@@ -30,6 +30,20 @@ test('getChanges returns null for an unknown workspace', async () => {
   const tree = await getChanges({ url: 'http://localhost:5000' }, 'missing', fakeFetch(404, '', []));
 
   assert.equal(tree, null);
+});
+
+test('getCommitQueue exposes dependent proposals from the server', async () => {
+  const recorded: Recorded[] = [];
+  const body = JSON.stringify({
+    entries: [{ slice: 'Commits', message: 'feat(Commits): queue', files: ['a.cs'], id: 'entry-1', parentCommit: 'base', proposalCommit: 'tip', state: 'ready' }],
+    unassignedFiles: [], queueWorktreePath: '/managed/queue', baseCommit: 'base', tipCommit: 'tip', generation: 2,
+  });
+
+  const queue = await getCommitQueue({ url: 'http://localhost:5000' }, 'ws 1', fakeFetch(200, body, recorded));
+
+  assert.equal(queue?.entries[0].state, 'ready');
+  assert.equal(queue?.generation, 2);
+  assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws%201/commit-queue');
 });
 
 test('getHeadState requests the workspace scoped head route', async () => {
