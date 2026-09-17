@@ -105,10 +105,10 @@ public sealed class BenchmarkCoverage
         var releaseNeeds = GetSequenceValues(GetMapping(jobs, "release"), "needs");
         var missing = new[]
         {
-            (performanceRuns.Any(run => run.Contains("./scripts/run-benchmark-gate.sh browser", StringComparison.Ordinal)), "browser performance command"),
-            (performanceRuns.Any(run => run.Contains("./scripts/run-benchmark-gate.sh server", StringComparison.Ordinal)), "server performance command"),
-            (performanceRuns.Any(run => run.Contains("MobilePerformanceGate.ts", StringComparison.Ordinal)), "mobile performance command"),
-            (watchdogRuns.Any(run => run.Contains("./.github/scripts/run-test-kind-watchdog.sh", StringComparison.Ordinal)), "test-kind watchdog command"),
+            (HasUnconditionalCommand(performanceRuns, "./scripts/run-benchmark-gate.sh browser"), "browser performance command"),
+            (HasUnconditionalCommand(performanceRuns, "./scripts/run-benchmark-gate.sh server"), "server performance command"),
+            (HasUnconditionalCommand(performanceRuns, "npx tsx src/features/agents/benchmark/MobilePerformanceGate.ts"), "mobile performance command"),
+            (HasUnconditionalCommand(watchdogRuns, "./.github/scripts/run-test-kind-watchdog.sh"), "test-kind watchdog command"),
             (releaseNeeds.Contains("performance-gates", StringComparer.Ordinal), "release performance-gates dependency"),
             (releaseNeeds.Contains("test-kind-watchdog", StringComparer.Ordinal), "release test-kind-watchdog dependency")
         }.Where(requirement => !requirement.Item1).Select(requirement => requirement.Item2).ToArray();
@@ -212,6 +212,19 @@ public sealed class BenchmarkCoverage
             .OfType<YamlScalarNode>()
             .Select(value => value.Value ?? string.Empty)
             .ToArray();
+
+    private static bool HasUnconditionalCommand(IEnumerable<string> scripts, string requiredCommand)
+        => scripts.Any(script =>
+        {
+            var commands = script.Split(['\r', '\n'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Where(line => !line.StartsWith('#'))
+                .ToArray();
+            var hasControlFlow = commands.Any(line => Regex.IsMatch(
+                line,
+                @"^(if|then|elif|else|fi|case|esac|for|while|until|do|done|function)\b|[;&|]{2}",
+                RegexOptions.CultureInvariant));
+            return !hasControlFlow && commands.Contains(requiredCommand, StringComparer.Ordinal);
+        });
 
     private static bool RuleSelectsPath(System.Text.Json.JsonElement rule, string path, string checkId)
         => path.StartsWith((rule.GetProperty("match").GetString() ?? string.Empty).TrimEnd('*'), StringComparison.Ordinal)

@@ -716,6 +716,8 @@ The app it drives is `AgentUp.Mobile.E2E.App`: the real `AgentUp.Chat` and `Agen
 
 `AgentUp.Chat` is that module: the transcript, the permission prompts and the subscription sign-in, with no import from any app. Which workspace, which Server, and what sits behind the Changes tab all arrive as props, which is what lets the client and the harness run one implementation instead of two. It reaches a Server through `AgentUp.ServerClient`, the transport the client's own slices use.
 
+The disposable native sign-in harness permits cleartext traffic only so its Android emulator and iOS simulator can reach ephemeral Server and identity-provider processes on the CI host. Production Mobile transport policy must not inherit that exception.
+
 Both modules are consumed as `file:` dependencies and ship TypeScript sources, so every app that mounts them needs the `metro.config.js` dedupe they come with: Metro resolves a symlinked package's imports from its own `node_modules` first, and a second copy of `react` there means the module's hooks read a different dispatcher than the app rendered with and throw on mount. `AgentUp.Mobile.E2E/pwa/mounts.spec.mjs` is what catches that, because it happened.
 
 `plugins/withoutReleaseLint.js` turns off lint's release checks there. `assembleRelease` runs lintVital, which reads every proguard file the variant declares and, on a hosted runner, walks into `/home/packer` - the image builder's home directory, not readable by the runner - so the task cannot succeed. This app is never shipped, so lint has nothing to protect in it; the real client keeps its own lint untouched.

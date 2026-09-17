@@ -74,6 +74,10 @@ provider behind them, so the whole path is exercised without signing in to a rea
 `AgentUp.Mobile.E2E` drives them through the real mobile client on an iOS simulator, an Android
 emulator, and the installable web build. See the Testing section of `AGENTS.md`.
 
+The disposable native harness enables cleartext transport because its simulator and emulator must
+reach Server and identity-provider processes on ephemeral CI-host ports. That exception is applied
+by the harness config plugin only; it must not be copied into the production Mobile application.
+
 ### Keeping the suites quick
 
 Compiling the client is nearly all of what those jobs cost, and most pushes do not change the
