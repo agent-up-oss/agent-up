@@ -1,0 +1,6 @@
+{
+  "benchmarks": {
+    "groupTranscript1000": { "meanMicroseconds": 25, "maxTimeRatio": 2.0 },
+    "flattenGitTree1000": { "meanMicroseconds": 45, "maxTimeRatio": 2.0 }
+  }
+}

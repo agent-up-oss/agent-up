@@ -124,6 +124,12 @@ AgentUp.Server.Tests/
 AgentUp.Browser.Streaming.Tests/
   AgentUp.Browser.Streaming.Tests.csproj
 
+AgentUp.Browser.Streaming.Benchmarks/
+  AgentUp.Browser.Streaming.Benchmarks.csproj
+
+AgentUp.Server.Benchmarks/
+  AgentUp.Server.Benchmarks.csproj
+
 AgentUp.Capabilities.Abstractions.Tests/
   AgentUp.Capabilities.Abstractions.Tests.csproj
 
@@ -172,6 +178,8 @@ The exact project list may evolve, but ownership must not drift:
 |---|---|
 | `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, process lifecycle, ports, authenticated HTTPS forwarding of allocated HTTP application ports, Docker, browser lifecycle, hosted Linux desktop application sessions, one authenticated ACP agent session per workspace, diagnostics, event recording, MCP, REST API |
 | `AgentUp.Browser.Streaming` | Reusable remote-display viewer and bounded multi-subscriber frame/input transport for Server-owned graphical sessions |
+| `AgentUp.Browser.Streaming.Benchmarks` | BenchmarkDotNet measurements for designated performance-sensitive browser streaming paths; runs as a receipt-backed slow verification check |
+| `AgentUp.Server.Benchmarks` | BenchmarkDotNet measurements and stored regression baseline for live agent event framing |
 | `AgentUp.Capabilities.Abstractions` | Stable capability adapter interfaces, manifest DTOs, installed-version inventory contracts, validation results, and launch plans |
 | `AgentUp.Capabilities.Common` | Shared capability catalog parsing, checksum validation, Agent-Up tool-cache layout, install planning, capability inventory, and CLI executable discovery used by first-party and future external capabilities |
 | `AgentUp.Capabilities.Dotnet` | First-party .NET ecosystem adapter, SDK discovery, version reconciliation, and `dotnet` launch planning |
@@ -708,6 +716,8 @@ The app it drives is `AgentUp.Mobile.E2E.App`: the real `AgentUp.Chat` and `Agen
 
 `AgentUp.Chat` is that module: the transcript, the permission prompts and the subscription sign-in, with no import from any app. Which workspace, which Server, and what sits behind the Changes tab all arrive as props, which is what lets the client and the harness run one implementation instead of two. It reaches a Server through `AgentUp.ServerClient`, the transport the client's own slices use.
 
+The disposable native sign-in harness permits cleartext traffic only so its Android emulator and iOS simulator can reach ephemeral Server and identity-provider processes on the CI host. Production Mobile transport policy must not inherit that exception.
+
 Both modules are consumed as `file:` dependencies and ship TypeScript sources, so every app that mounts them needs the `metro.config.js` dedupe they come with: Metro resolves a symlinked package's imports from its own `node_modules` first, and a second copy of `react` there means the module's hooks read a different dispatcher than the app rendered with and throw on mount. `AgentUp.Mobile.E2E/pwa/mounts.spec.mjs` is what catches that, because it happened.
 
 `plugins/withoutReleaseLint.js` turns off lint's release checks there. `assembleRelease` runs lintVital, which reads every proguard file the variant declares and, on a hosted runner, walks into `/home/packer` - the image builder's home directory, not readable by the runner - so the task cannot succeed. This app is never shipped, so lint has nothing to protect in it; the real client keeps its own lint untouched.
@@ -753,7 +763,7 @@ Forbidden:
 
 Tests should follow the same feature/slice layout as production code.
 
-Architecture rules belong in `AgentUp.Architecture.Tests`. Use ArchUnitNET for assembly/type dependency rules and focused filesystem/source checks for physical layout rules ArchUnitNET cannot observe. Root-level test support folders are limited to documented support areas such as `Support/`, `Fixtures/`, `Fake/`, `Architecture/`, or root `E2E/`; test-kind folders such as `Controller/` must stay under `Features/<Slice>/`.
+Architecture rules belong in `AgentUp.Architecture.Tests`. Use ArchUnitNET for assembly/type dependency rules and focused filesystem/source checks for physical layout rules ArchUnitNET cannot observe. Root-level test support folders are limited to documented support areas such as `Support/`, `Fixtures/`, `Fake/`, `Architecture/`, or root `E2E/`; test-kind folders such as `Controller/` and `Benchmark/` must stay under `Features/<Slice>/`.
 
 Feature slices with `Controllers/`, `Services/` or `Models/`, and `Providers/` should have matching `Controller/`, `Unit/`, and `Provider/` test-kind coverage. Existing gaps are tracked as explicit architecture-test debt; new or expanded slices must not add to that baseline.
 
@@ -815,6 +825,7 @@ Use layered tests with clear ownership:
 - HTTP tests verify REST routing, model binding, validation, status codes, and response shapes.
 - Repository/infrastructure tests verify persistence behavior with realistic storage dependencies when practical.
 - Provider tests verify low-level external behavior in isolation, including filesystem providers, command/tool providers, environment providers, platform adapters, package writers/stagers, probes, generated directory state, and process-style command shapes. Temp directories are allowed when the provider boundary requires them. Codex, Cursor, and Claude Provider smoke tests discover the ACP CLIs declared in capability inventory and present on the machine, and assert both the installed and missing outcomes; Server Agents HTTP smoke uses those same live adapters and asserts the workspace agent picker matches that discovery. These tests must not skip based on whether a CLI is present.
+- Performance gates cover only repeated hot paths with stored numeric baselines: streamed pointer-input decoding, live agent-event framing, and Mobile transcript/Git-tree projection. .NET gates compare BenchmarkDotNet mean time and allocation against versioned baselines; Mobile compares trimmed timing samples against its versioned baseline. A gate fails above its declared relative tolerance. Exact-file path rules select the relevant `slow` check, and CI runs every gate. Do not add one-shot, constant-return, OS-counter, no-op-provider, or external-I/O microbenchmarks; profile or soak-test those workloads instead.
 - Headless tests verify Avalonia UI behavior without native display dependencies.
 - End-to-end workspace lifecycle tests should be few and prove full integration across Server, process management, ports, diagnostics, and browser state.
 
@@ -823,6 +834,8 @@ Use layered tests with clear ownership:
 Avoid duplicate tests that assert the same rule through multiple layers.
 
 NUnit tests default to a 30-second per-test timeout from `coverlet.runsettings`. Tests that must run longer, such as capability CLI smoke and native-display E2E, set `[Timeout]` / `[CancelAfter]` on the fixture or method. A 1-minute testhost hang dump aborts a stuck session so a single hung test cannot run forever; it is not a 1-minute budget for a full project run.
+
+CI additionally enforces Linux Release wall-clock budgets in an independent watchdog job: 60 seconds for the combined Server/Desktop `Unit` tier, 75 seconds for `Provider`, and 180 seconds for cross-product `E2E`. The watchdog gives a background Chromium installation at most 120 seconds, runs display-dependent Provider and E2E tests under Xvfb, rejects filters that execute zero tests, and uploads TRX diagnostics. Update a budget only from a recorded CI baseline and explain the changed workload; never raise it merely to make a regression green.
 
 # Verification
 

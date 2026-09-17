@@ -179,6 +179,14 @@
           "AgentUp.Browser.Streaming.Tests"
         ]
       },
+      "browser-streaming-benchmarks": {
+        "command": "./scripts/run-benchmark-gate.sh browser",
+        "tier": "slow",
+        "inputs": [
+          "AgentUp.Browser.Streaming",
+          "AgentUp.Browser.Streaming.Benchmarks"
+        ]
+      },
       "capabilities-codex": {
         "command": "dotnet test AgentUp.Capabilities.Codex.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-codex",
         "tier": "fast",
@@ -226,6 +234,14 @@
           "AgentUp.Capabilities.Codex",
           "AgentUp.Capabilities.Cursor",
           "AgentUp.Capabilities.Claude"
+        ]
+      },
+      "server-benchmarks": {
+        "command": "./scripts/run-benchmark-gate.sh server",
+        "tier": "slow",
+        "inputs": [
+          "AgentUp.Server",
+          "AgentUp.Server.Benchmarks"
         ]
       },
       "tray": {
@@ -282,6 +298,15 @@
         "tier": "fast",
         "inputs": [
           "AgentUp.Mobile"
+        ]
+      },
+      "mobile-benchmarks": {
+        "command": "npm run benchmark",
+        "workingDirectory": "AgentUp.Mobile",
+        "tier": "slow",
+        "inputs": [
+          "AgentUp.Mobile",
+          "AgentUp.Chat"
         ]
       },
       "web-audit": {
@@ -387,6 +412,82 @@
       }
     },
     "paths": [
+      {
+        "match": "AgentUp.Browser.Streaming/BrowserInputParser.cs",
+        "checks": [
+          "browser-streaming-benchmarks"
+        ]
+      },
+      {
+        "match": "AgentUp.Browser.Streaming.Benchmarks/**",
+        "checks": [
+          "browser-streaming-benchmarks",
+          "architecture"
+        ]
+      },
+      {
+        "match": "AgentUp.Server/Features/Agents/Providers/AgentEventFrameProvider.cs",
+        "checks": [
+          "server-benchmarks"
+        ]
+      },
+      {
+        "match": "AgentUp.Server.Benchmarks/**",
+        "checks": [
+          "server-benchmarks",
+          "architecture"
+        ]
+      },
+      {
+        "match": "AgentUp.Chat/src/providers/AgentEventPresentationProvider.ts",
+        "checks": [
+          "mobile-benchmarks"
+        ]
+      },
+      {
+        "match": "AgentUp.Mobile/src/features/git/providers/GitChangeTreeProvider.ts",
+        "checks": [
+          "mobile-benchmarks"
+        ]
+      },
+      {
+        "match": "AgentUp.Mobile/src/features/agents/benchmark/**",
+        "checks": [
+          "mobile-benchmarks"
+        ]
+      },
+      {
+        "match": "benchmarks/baselines/browser-streaming.json",
+        "checks": [
+          "browser-streaming-benchmarks"
+        ]
+      },
+      {
+        "match": "benchmarks/baselines/server-agents.json",
+        "checks": [
+          "server-benchmarks"
+        ]
+      },
+      {
+        "match": "benchmarks/baselines/mobile.json",
+        "checks": [
+          "mobile-benchmarks"
+        ]
+      },
+      {
+        "match": "scripts/run-benchmark-gate.sh",
+        "checks": [
+          "browser-streaming-benchmarks",
+          "server-benchmarks"
+        ]
+      },
+      {
+        "match": "scripts/check-benchmark-baseline.py",
+        "checks": [
+          "browser-streaming-benchmarks",
+          "server-benchmarks"
+        ]
+      },
       {
         "match": "AgentUp.Verification/**",
         "checks": [
@@ -545,6 +646,12 @@
         ]
       },
       {
+        "match": "AgentUp.Server.Benchmarks/**",
+        "checks": [
+          "architecture"
+        ]
+      },
+      {
         "match": "AgentUp.Server.Tests/**",
         "checks": [
           "server",
@@ -613,6 +720,12 @@
           "browser-streaming",
           "server",
           "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Browser.Streaming.Benchmarks/**",
+        "checks": [
+          "architecture"
         ]
       },
       {

@@ -21,6 +21,7 @@
     "plugins": [
       "./plugins/withExactDetoxVersion",
       "@config-plugins/detox",
+      "./plugins/withLocalHttpTransport",
       "./plugins/withDetoxAndroidTestManifest",
       "./plugins/withoutReleaseLint"
     ]

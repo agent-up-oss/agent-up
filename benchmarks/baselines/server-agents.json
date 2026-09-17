@@ -1,0 +1,10 @@
+{
+  "benchmarks": {
+    "AgentUp.Server.Benchmarks.Features.Agents.Benchmark.AgentEventFrameBenchmarks.SerializeFourKilobyteAgentEvent": {
+      "meanNanoseconds": 3000,
+      "allocatedBytes": 17112,
+      "maxTimeRatio": 2.0,
+      "maxAllocationRatio": 1.1
+    }
+  }
+}

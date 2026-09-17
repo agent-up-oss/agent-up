@@ -39,6 +39,7 @@
   "devDependencies": {
     "@types/node": "^26.2.0",
     "@types/react": "~19.2.2",
+    "mitata": "^1.0.34",
     "tsx": "^4.23.12",
     "typescript": "~6.0.3"
   },
