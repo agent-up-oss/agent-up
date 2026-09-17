@@ -201,6 +201,8 @@ jobs:
     permissions:
       contents: read
       checks: write
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
       - uses: actions/checkout@v7
 
@@ -231,7 +233,7 @@ jobs:
         run: ./.github/scripts/locate-coverage-reports.sh AgentUp.Tests
 
       - name: Upload AgentUp.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -247,6 +249,8 @@ jobs:
     needs: version
     permissions:
       contents: read
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -304,7 +308,7 @@ jobs:
             AgentUp.Verification.Tests
 
       - name: Upload AgentUp.Architecture.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -316,7 +320,7 @@ jobs:
           verbose: true
 
       - name: Upload AgentUp.CLI.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -327,7 +331,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Abstractions.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -338,7 +342,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Common.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -349,7 +353,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Claude.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -360,7 +364,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Codex.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -371,7 +375,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Cursor.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -382,7 +386,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Docker.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -393,7 +397,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Capabilities.Dotnet.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -404,7 +408,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.CommitPolicy.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -415,7 +419,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Desktop.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -426,7 +430,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.AUDebug.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -437,7 +441,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Server.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -448,7 +452,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.TestAgents.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -459,7 +463,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Verification.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -470,7 +474,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Browser.Streaming.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -481,7 +485,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.Tray.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -492,7 +496,7 @@ jobs:
           disable_search: true
 
       - name: Upload AgentUp.InstallerConfig.Tests coverage
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

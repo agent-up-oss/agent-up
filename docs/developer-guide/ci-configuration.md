@@ -12,7 +12,7 @@ Secrets are set under **Settings → Secrets and variables → Actions → Secre
 
 | Secret | Value |
 |---|---|
-| `CODECOV_TOKEN` | Repository upload token from Codecov. Required to upload from `main` and from branches in this repository. GitHub does not expose it to Dependabot or fork PRs, so those runs skip Codecov instead of failing with token length 0. |
+| `CODECOV_TOKEN` | Repository upload token from Codecov. Mapped onto the coverage jobs as `env.CODECOV_TOKEN` because GitHub Actions cannot read `secrets` in `if` conditions. Uploads skip when that env is empty, which is how GitHub withholds the secret from Dependabot and fork runs. |
 
 The .NET coverage job uploads each test project's Cobertura output separately. Each
 upload has a test-project-specific Codecov flag, such as
