@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using AgentUp.Architecture.Tests.Fixtures;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -78,21 +79,49 @@ public sealed class TestDataBuilders
     }
 
     /// <summary>
-    /// Types of the production project this test project is paired with, declared under a
-    /// feature's DTOs or Models folder, whose constructor is too wide to read positionally.
+    /// Types of the production projects this test project covers, declared under a feature's
+    /// DTOs or Models folder, whose constructor is too wide to read positionally.
     /// </summary>
     private static HashSet<string> CandidateTypes(string root, string testProject)
-    {
-        var production = testProject[..^".Tests".Length];
-        var directory = Path.Join(root, production);
-        if (!Directory.Exists(directory))
-            return [];
-
-        return ArchitectureFixture.ProjectSourceFiles(root, production)
+        => CoveredProjects(root, testProject)
+            .SelectMany(production => ArchitectureFixture.ProjectSourceFiles(root, production))
             .Where(path => IsDataFolder(root, path))
             .SelectMany(WideTypeNames)
             .ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The production projects a test project covers: its same-named sibling where one
+    /// exists, and otherwise the production projects it references.
+    /// </summary>
+    /// <remarks>
+    /// The sibling is the normal case and the one AGENTS.md names - tests belong with the
+    /// project that owns the type. <c>AgentUp.Tests</c> is the exception: it is a
+    /// cross-product suite driving the Server and the Desktop against each other, with no
+    /// production project of its own, and reading its references is what keeps it inside
+    /// this rule rather than exempt from it by an accident of naming.
+    /// </remarks>
+    private static IEnumerable<string> CoveredProjects(string root, string testProject)
+    {
+        var sibling = testProject[..^".Tests".Length];
+        if (Directory.Exists(Path.Join(root, sibling)))
+            return [sibling];
+
+        var project = Path.Join(root, testProject, $"{testProject}.csproj");
+        if (!File.Exists(project))
+            return [];
+
+        return ReferencedProjects(project)
+            .Where(referenced => ArchitectureFixture.ProductionProjects.Contains(referenced, StringComparer.Ordinal));
     }
+
+    private static IEnumerable<string> ReferencedProjects(string projectFile)
+        => ProjectReference
+            .Matches(File.ReadAllText(projectFile))
+            .Select(match => match.Groups["name"].Value);
+
+    /// <summary>A ProjectReference's target project name, taken from its csproj file name.</summary>
+    private static readonly Regex ProjectReference =
+        new(@"<ProjectReference\s+Include=""[^""]*?(?<name>[^""\\/]+)\.csproj""", RegexOptions.Compiled);
 
     private static bool IsDataFolder(string root, string path)
     {

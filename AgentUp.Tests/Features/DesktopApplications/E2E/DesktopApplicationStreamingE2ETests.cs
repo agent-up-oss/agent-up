@@ -55,18 +55,16 @@ public sealed class DesktopApplicationStreamingE2ETests
 
         using var created = await Server.Client.PostAsJsonAsync(
             "/api/workspaces",
-            new RegisterWorkspaceRequest("desktop-e2e", example, example, "main", "e2ec0de")
-            {
-                DesktopApplications =
-                [
-                    new DesktopApplicationDefinition(
-                        ApplicationName,
-                        "dotnet run --project LinuxDesktop.csproj --no-launch-profile",
-                        ".",
-                        new DesktopWindowDefinition(800, 600),
-                        Install: "dotnet build LinuxDesktop.csproj --nologo --no-incremental")
-                ]
-            });
+            ProductDomain.Workspace()
+                .Named("desktop-e2e")
+                .At(example)
+                .WithDesktopApplication(new DesktopApplicationDefinition(
+                    ApplicationName,
+                    "dotnet run --project LinuxDesktop.csproj --no-launch-profile",
+                    ".",
+                    new DesktopWindowDefinition(800, 600),
+                    Install: "dotnet build LinuxDesktop.csproj --nologo --no-incremental"))
+                .Build());
         if (!created.IsSuccessStatusCode)
             Assert.Fail($"Register workspace failed ({(int)created.StatusCode}): {await created.Content.ReadAsStringAsync()}");
         using var body = JsonDocument.Parse(await created.Content.ReadAsStringAsync());
