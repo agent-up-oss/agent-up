@@ -19,4 +19,16 @@ public class AuthenticationOutputServiceTests
             Assert.That(output.ToString().Trim(), Is.EqualTo(AuthenticationMessages.LoginHint));
         });
     }
+
+    [Test]
+    public void WriteResult_returns_success_and_writes_the_confirmation()
+    {
+        using var output = new StringWriter();
+
+        var exitCode = new AuthenticationOutputService(output)
+            .WriteResult(AuthenticationCommandResult.Success("Logged in."));
+
+        Assert.That(exitCode, Is.Zero);
+        Assert.That(output.ToString().Trim(), Is.EqualTo("Logged in."));
+    }
 }

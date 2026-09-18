@@ -17,4 +17,13 @@ public sealed class ProcessMetricsSamplerTests
             Assert.That(metrics.ContainsKey("process.gcHeapBytes"), Is.True);
         });
     }
+
+    [Test]
+    public async Task SampleAsync_returns_non_negative_process_measurements()
+    {
+        var metrics = await ProcessMetricsSampler.SampleAsync(TimeSpan.Zero, CancellationToken.None);
+
+        Assert.That(metrics.Values.Select(value => double.Parse(value, System.Globalization.CultureInfo.InvariantCulture)),
+            Has.All.GreaterThanOrEqualTo(0));
+    }
 }
