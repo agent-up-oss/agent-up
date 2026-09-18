@@ -1,6 +1,7 @@
 using AgentUp.AUDebug.Features.Host.DTOs;
 using AgentUp.AUDebug.Features.Mobile.Services;
 using AgentUp.AUDebug.Tests.Fake;
+using AgentUp.AUDebug.Tests.Support;
 
 namespace AgentUp.AUDebug.Tests.Features.Mobile.Unit;
 
@@ -46,7 +47,9 @@ public sealed class MobileCommandServiceTests
         var surface = new FakeMobileSurfaceDriver();
         var shots = new FakeWebScreenshotDriver();
         var result = await new MobileCommandService(shots, surface, new FakeWorkspaceClient(), new FakeSessionStore(), new FakeEnvironment())
-            .ScreenshotAsync(new DebugCommandDto("mobile", "mobile", "screenshot", null, null, TimeSpan.FromSeconds(30), false), CancellationToken.None);
+            .ScreenshotAsync(DebugDomain.Command(DebugDomain.MobileSurface)
+                .Doing(DebugDomain.ScreenshotAction)
+                .Build(), CancellationToken.None);
 
         Assert.Multiple(() =>
         {
@@ -66,7 +69,11 @@ public sealed class MobileCommandServiceTests
             new FakeWorkspaceClient(),
             new FakeSessionStore(),
             new FakeEnvironment()).LoginAsync(
-            new DebugCommandDto("mobile", "mobile", "login", null, "test", TimeSpan.FromMilliseconds(30), false),
+            DebugDomain.Command(DebugDomain.MobileSurface)
+                .Doing(DebugDomain.LoginAction)
+                .WithPassword(DebugDomain.Password)
+                .TimingOutAfter(TimeSpan.FromMilliseconds(30))
+                .Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));
@@ -83,7 +90,9 @@ public sealed class MobileCommandServiceTests
             new FakeWorkspaceClient(),
             new FakeSessionStore(),
             new FakeEnvironment()).ScreenshotAsync(
-            new DebugCommandDto("mobile", "mobile", "screenshot", null, null, TimeSpan.FromSeconds(30), false),
+            DebugDomain.Command(DebugDomain.MobileSurface)
+                .Doing(DebugDomain.ScreenshotAction)
+                .Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));
@@ -115,7 +124,11 @@ public sealed class MobileCommandServiceTests
             workspaces,
             new FakeSessionStore(),
             new FakeEnvironment()).OpenAgentAsync(
-            new DebugCommandDto("mobile", "mobile", "open-agent", "Agent-Up", "test", TimeSpan.FromSeconds(30), false),
+            DebugDomain.Command(DebugDomain.MobileSurface)
+                .Doing(DebugDomain.OpenAgentAction)
+                .ForWorkspace(DebugDomain.WorkspaceName)
+                .WithPassword(DebugDomain.Password)
+                .Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));
@@ -133,7 +146,11 @@ public sealed class MobileCommandServiceTests
             workspaces,
             new FakeSessionStore(),
             new FakeEnvironment()).OpenAgentAsync(
-            new DebugCommandDto("mobile", "mobile", "open-agent", "Agent-Up", "test", TimeSpan.FromSeconds(30), false),
+            DebugDomain.Command(DebugDomain.MobileSurface)
+                .Doing(DebugDomain.OpenAgentAction)
+                .ForWorkspace(DebugDomain.WorkspaceName)
+                .WithPassword(DebugDomain.Password)
+                .Build(),
             CancellationToken.None);
 
         Assert.Multiple(() =>
@@ -155,7 +172,11 @@ public sealed class MobileCommandServiceTests
             workspaces,
             new FakeSessionStore(),
             new FakeEnvironment()).OpenAgentAsync(
-            new DebugCommandDto("mobile", "mobile", "open-agent", "Agent-Up", "test", TimeSpan.FromSeconds(30), false),
+            DebugDomain.Command(DebugDomain.MobileSurface)
+                .Doing(DebugDomain.OpenAgentAction)
+                .ForWorkspace(DebugDomain.WorkspaceName)
+                .WithPassword(DebugDomain.Password)
+                .Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));
@@ -172,7 +193,10 @@ public sealed class MobileCommandServiceTests
             new FakeWorkspaceClient(),
             new FakeSessionStore(),
             environment).OpenAgentAsync(
-            new DebugCommandDto("mobile", "mobile", "open-agent", "Agent-Up", null, TimeSpan.FromSeconds(30), false),
+            DebugDomain.Command(DebugDomain.MobileSurface)
+                .Doing(DebugDomain.OpenAgentAction)
+                .ForWorkspace(DebugDomain.WorkspaceName)
+                .Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));
@@ -188,7 +212,10 @@ public sealed class MobileCommandServiceTests
             new FakeWorkspaceClient(),
             new FakeSessionStore(),
             new FakeEnvironment()).OpenAgentAsync(
-            new DebugCommandDto("mobile", "mobile", "open-agent", null, "test", TimeSpan.FromSeconds(30), false),
+            DebugDomain.Command(DebugDomain.MobileSurface)
+                .Doing(DebugDomain.OpenAgentAction)
+                .WithPassword(DebugDomain.Password)
+                .Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));

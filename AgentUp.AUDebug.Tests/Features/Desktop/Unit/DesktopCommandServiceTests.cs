@@ -1,6 +1,7 @@
 using AgentUp.AUDebug.Features.Desktop.Services;
 using AgentUp.AUDebug.Features.Host.DTOs;
 using AgentUp.AUDebug.Tests.Fake;
+using AgentUp.AUDebug.Tests.Support;
 
 namespace AgentUp.AUDebug.Tests.Features.Desktop.Unit;
 
@@ -81,7 +82,10 @@ public sealed class DesktopCommandServiceTests
     public async Task StartWorkspace_requiresName()
     {
         var result = await Service(new FakeDesktopWindowDriver(), new FakeWorkspaceClient(), new FakeEnvironment())
-            .StartWorkspaceAsync(new DebugCommandDto("desktop", "desktop", "start-workspace", null, "test", TimeSpan.FromSeconds(30), false), CancellationToken.None);
+            .StartWorkspaceAsync(DebugDomain.Command(DebugDomain.DesktopSurface)
+                .Doing(DebugDomain.StartWorkspaceAction)
+                .WithPassword(DebugDomain.Password)
+                .Build(), CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));
         Assert.That(result.Message, Does.Contain("requires a workspace name"));
