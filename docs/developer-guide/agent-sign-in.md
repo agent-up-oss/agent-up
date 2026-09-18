@@ -77,10 +77,6 @@ the user code, not only the sign-in URL: the CLI prints the URL first, and treat
 is how the installable-web suite approved a challenge with no code. See the Testing section of
 `AGENTS.md`.
 
-The Android job remains enabled but is an advisory check while Detox's intermittent loss of
-emulator window focus is under investigation. Its failures retain artifacts and remain visible in
-the workflow, but do not block `main`; the iOS and installable-web jobs remain required.
-
 The disposable native harness enables cleartext transport because its simulator and emulator must
 reach Server and identity-provider processes on ephemeral CI-host ports. That exception is applied
 by the harness config plugin only; it must not be copied into the production Mobile application.
@@ -106,3 +102,7 @@ the build away - which is exactly when the next push is about to need it.
 Android installs the emulator package with retries before `android-emulator-runner` asks for it.
 Google's emulator zip is occasionally not an archive, and that action treats a single failed
 download as a failed job. The NDK step already retries the same class of truncated download.
+Before Detox starts, the workflow also configures the emulator to stay awake while powered and
+disables its screen timeout. Merely finding a focused window at boot is insufficient because the
+screen can otherwise lock while the harness starts its Server and test-agent processes, leaving
+Espresso with a visible application root that no longer has window focus.

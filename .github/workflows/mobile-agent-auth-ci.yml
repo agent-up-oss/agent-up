@@ -113,12 +113,8 @@ jobs:
           retention-days: 7
 
   mobile-e2e-android:
-    # Detox intermittently loses Android window focus before the first element lookup, even after
-    # the emulator reports a focused window. Keep running and publishing this coverage while it is
-    # quarantined, but do not let emulator infrastructure failures block main.
-    name: Mobile E2E (Android, advisory)
+    name: Mobile E2E (Android)
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
 
