@@ -32,7 +32,7 @@ public sealed class AuditMcpToolsTests
     public async Task Query_FiltersByScope()
     {
         var events = new InMemoryAuditEventRepository();
-        var controller = ServerTestComposition.CreateAuditController(events: events);
+        var controller = ServerTestComposition.CreateAuditController(ServerTestComposition.CreateRegistry(), events);
         var tools = new AuditMcpTools(controller);
         await controller.RecordAsync(
             ServerDomain.AuditRecord()
@@ -70,7 +70,7 @@ public sealed class AuditMcpToolsTests
     public async Task Query_DefaultsToWorkspaceScope_WhenScopeOmitted()
     {
         var events = new InMemoryAuditEventRepository();
-        var controller = ServerTestComposition.CreateAuditController(events: events);
+        var controller = ServerTestComposition.CreateAuditController(ServerTestComposition.CreateRegistry(), events);
         var tools = new AuditMcpTools(controller);
         await controller.RecordAsync(
             ServerDomain.AuditRecord()
@@ -108,7 +108,7 @@ public sealed class AuditMcpToolsTests
     public async Task Query_ReturnsMatchingAuditEvents()
     {
         var events = new InMemoryAuditEventRepository();
-        var controller = ServerTestComposition.CreateAuditController(events: events);
+        var controller = ServerTestComposition.CreateAuditController(ServerTestComposition.CreateRegistry(), events);
         var tools = new AuditMcpTools(controller);
         await controller.RecordAsync(
             ServerDomain.AuditRecord()
@@ -146,7 +146,8 @@ public sealed class AuditMcpToolsTests
     public async Task LoadArtifact_ReturnsInlineImage_WhenRequested()
     {
         var artifacts = new InMemoryAuditArtifactRepository();
-        var controller = ServerTestComposition.CreateAuditController(artifacts: artifacts);
+        var controller = ServerTestComposition.CreateAuditController(
+            ServerTestComposition.CreateRegistry(), new InMemoryAuditEventRepository(), artifacts);
         var tools = new AuditMcpTools(controller);
         var saved = await artifacts.SaveAsync("evt", "browser-screenshot", "image/png", [1, 2, 3], CancellationToken.None);
 

@@ -13,7 +13,7 @@ public sealed class ApplicationMetricsServiceTests
     public async Task GetTimelineAsync_BuildsSummaryAndSeries_FromAuditSamples()
     {
         var events = new InMemoryAuditEventRepository();
-        var audit = ServerTestComposition.CreateAuditController(events: events);
+        var audit = ServerTestComposition.CreateAuditController(ServerTestComposition.CreateRegistry(), events);
         await audit.RecordAsync(ServerDomain.AuditRecord()
             .OfKind("metrics")
             .From("server")
@@ -69,7 +69,7 @@ public sealed class ApplicationMetricsServiceTests
     public async Task GetTimelineAsync_FormatsZeroValues_WithSensibleDefaults()
     {
         var events = new InMemoryAuditEventRepository();
-        var audit = ServerTestComposition.CreateAuditController(events: events);
+        var audit = ServerTestComposition.CreateAuditController(ServerTestComposition.CreateRegistry(), events);
         await audit.RecordAsync(ServerDomain.AuditRecord()
             .OfKind("metrics")
             .From("server")

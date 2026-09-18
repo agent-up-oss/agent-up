@@ -475,7 +475,7 @@ public class WorkspaceRegistryTests
     }
 
     private static WorkspaceRegistry CreateRegistry(IReadOnlyList<ICapabilityAdapter> adapters) =>
-        ServerTestComposition.CreateRegistry(adapters);
+        ServerTestComposition.CreateRegistry(adapters, new WorkspaceEventBus());
 
     private sealed class FakeCapabilityAdapter(string capabilityId) : ICapabilityAdapter
     {
