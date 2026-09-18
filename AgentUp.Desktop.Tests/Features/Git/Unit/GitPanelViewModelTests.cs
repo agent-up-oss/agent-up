@@ -70,6 +70,40 @@ public sealed class GitPanelViewModelTests
     }
 
     [Test]
+    public async Task CollapsingADirectoryHidesNestedRowsAndStillSelectsThem()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
+        await panel.LoadAsync("ws-1");
+
+        await panel.Nodes[1].ToggleExpandCommand.Execute().FirstAsync();
+        panel.Nodes[1].IsSelected = true;
+
+        Assert.That(panel.Nodes[1].IsExpanded, Is.False);
+        Assert.That(panel.Nodes[1].ToggleGlyph, Is.EqualTo("▸"));
+        Assert.That(panel.Nodes[1].IsRowVisible, Is.True);
+        Assert.That(panel.Nodes[2].IsRowVisible, Is.False);
+        Assert.That(panel.Nodes[3].IsRowVisible, Is.False);
+        Assert.That(panel.Nodes[4].IsRowVisible, Is.False);
+        Assert.That(panel.Nodes[5].IsRowVisible, Is.True);
+        Assert.That(panel.Nodes[3].IsSelected, Is.True);
+        Assert.That(panel.Nodes[4].IsSelected, Is.True);
+        Assert.That(panel.SelectedFileCount, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task ExpandingADirectoryShowsNestedRowsAgain()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
+        await panel.LoadAsync("ws-1");
+        await panel.Nodes[1].ToggleExpandCommand.Execute().FirstAsync();
+
+        await panel.Nodes[1].ToggleExpandCommand.Execute().FirstAsync();
+
+        Assert.That(panel.Nodes.All(node => node.IsRowVisible), Is.True);
+        Assert.That(panel.Nodes[1].ToggleGlyph, Is.EqualTo("▾"));
+    }
+
+    [Test]
     public async Task DeselectingASingleFileDeselectsItsAncestorDirectories()
     {
         var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });

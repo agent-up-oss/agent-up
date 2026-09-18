@@ -624,7 +624,7 @@
         {
           "id": "git-change-list",
           "title": "Change list",
-          "note": "The tree sits on a pane, not a full-bleed slab. Review counts use insertions and deletions, never a decorative green outline.",
+          "note": "The tree sits on a pane, not a full-bleed slab. Directory depth uses catalog guides. Collapse chevrons hide nested rows; a collapsed directory checkbox still selects every file beneath it.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -640,19 +640,66 @@
             "au-git-row",
             "au-checkbox",
             "au-checkbox--checked",
-            "au-git-status",
-            "au-git-status--directory",
+            "au-git-tree-toggle",
+            "au-git-tree-toggle--expanded",
             "au-git-change-name",
             "au-git-change-name--directory",
+            "au-git-tree-guide",
             "au-git-row--selected",
+            "au-git-status",
             "au-git-status--modified",
             "au-git-status--added",
             "au-git-status--untracked",
+            "au-git-tree-toggle--collapsed",
             "au-git-status--deleted",
             "au-git-status--renamed",
             "au-git-status--conflicted"
           ],
-          "html": "<div class=\"au-git-change-list\" style=\"padding: 0.5rem;\">\n        <div class=\"au-cluster\" style=\"margin-bottom: 0.5rem;\">\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Review <span class=\"au-git-insertions\">+12</span> <span class=\"au-git-deletions\">−4</span></button>\n          <button class=\"au-button au-button--compact\" type=\"button\">Commit</button>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-status au-git-status--directory\">▸</span>\n          <span class=\"au-git-change-name au-git-change-name--directory\">Changes</span>\n        </div>\n        <div class=\"au-git-row\" style=\"padding-left: 1.25rem;\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-status au-git-status--directory\">▸</span>\n          <span class=\"au-git-change-name au-git-change-name--directory\">src</span>\n        </div>\n        <div class=\"au-git-row au-git-row--selected\" style=\"padding-left: 2.125rem;\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-change-name\">AgentChatScreen.tsx</span>\n          <span class=\"au-git-status au-git-status--modified\">M</span>\n        </div>\n        <div class=\"au-git-row\" style=\"padding-left: 2.125rem;\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-change-name\">new-view.ts</span>\n          <span class=\"au-git-status au-git-status--added\">+</span>\n        </div>\n        <div class=\"au-git-row\" style=\"padding-left: 2.125rem;\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-change-name\">scratch.md</span>\n          <span class=\"au-git-status au-git-status--untracked\">?</span>\n        </div>\n        <div class=\"au-git-row\" style=\"padding-left: 2.125rem;\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-change-name\">obsolete.css</span>\n          <span class=\"au-git-status au-git-status--deleted\">−</span>\n        </div>\n        <div class=\"au-git-row\" style=\"padding-left: 2.125rem;\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-change-name\">storefront.tsx</span>\n          <span class=\"au-git-status au-git-status--renamed\">→</span>\n        </div>\n        <div class=\"au-git-row\" style=\"padding-left: 2.125rem;\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-change-name\">agent-up.json</span>\n          <span class=\"au-git-status au-git-status--conflicted\">!</span>\n        </div>\n      </div>"
+          "html": "<div class=\"au-git-change-list\" style=\"padding: 0.5rem;\">\n        <div class=\"au-cluster\" style=\"margin-bottom: 0.5rem;\">\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Review <span class=\"au-git-insertions\">+12</span> <span class=\"au-git-deletions\">−4</span></button>\n          <button class=\"au-button au-button--compact\" type=\"button\">Commit</button>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">Changes</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">src</span>\n        </div>\n        <div class=\"au-git-row au-git-row--selected\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">AgentChatScreen.tsx</span>\n          <span class=\"au-git-status au-git-status--modified\">M</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">new-view.ts</span>\n          <span class=\"au-git-status au-git-status--added\">+</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">scratch.md</span>\n          <span class=\"au-git-status au-git-status--untracked\">?</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--collapsed\" type=\"button\">▸</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">legacy</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">obsolete.css</span>\n          <span class=\"au-git-status au-git-status--deleted\">−</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">storefront.tsx</span>\n          <span class=\"au-git-status au-git-status--renamed\">→</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">agent-up.json</span>\n          <span class=\"au-git-status au-git-status--conflicted\">!</span>\n        </div>\n      </div>"
+        },
+        {
+          "id": "git-tree-guide",
+          "title": "Tree guide",
+          "note": "Vertical guides mark directory depth. Use the catalog hairline, never a painted hex. Checkboxes stay left of the indent.",
+          "avalonia": "Border",
+          "desktopClass": "gitTreeGuide",
+          "desktopHost": "",
+          "rootClass": "au-git-tree-guide",
+          "classes": [
+            "au-git-row",
+            "au-checkbox",
+            "au-git-tree-guide",
+            "au-git-change-name"
+          ],
+          "html": "<div class=\"au-git-row\">\n        <span class=\"au-checkbox\"></span>\n        <span class=\"au-git-tree-guide\"></span>\n        <span class=\"au-git-tree-guide\"></span>\n        <span class=\"au-git-change-name\">AgentChatScreen.tsx</span>\n      </div>"
+        },
+        {
+          "id": "git-tree-toggle",
+          "title": "Expanded directory",
+          "note": "An expanded chevron shows nested files. The triangle is the collapse control; the checkbox still selects every file beneath the directory.",
+          "avalonia": "Button",
+          "desktopClass": "gitTreeToggle",
+          "desktopHost": "",
+          "rootClass": "au-git-tree-toggle",
+          "classes": [
+            "au-git-tree-toggle",
+            "au-git-tree-toggle--expanded"
+          ],
+          "html": "<button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>"
+        },
+        {
+          "id": "git-tree-toggle-collapsed",
+          "title": "Collapsed directory",
+          "note": "A collapsed directory uses the dropdown chevron and hides nested rows. Checking it still selects every file under it.",
+          "avalonia": "Button",
+          "desktopClass": "gitTreeToggleCollapsed",
+          "desktopHost": "",
+          "rootClass": "au-git-tree-toggle--collapsed",
+          "classes": [
+            "au-git-tree-toggle",
+            "au-git-tree-toggle--collapsed"
+          ],
+          "html": "<button class=\"au-git-tree-toggle au-git-tree-toggle--collapsed\" type=\"button\">▸</button>"
         },
         {
           "id": "git-row",
@@ -1344,9 +1391,10 @@
             "au-file-viewer-line--current",
             "au-file-viewer-prefix--added",
             "au-syntax-property",
+            "au-syntax-plain",
             "au-syntax-comment"
           ],
-          "html": "<div class=\"au-overlay-panel au-file-viewer\" style=\"max-width: 42rem;\">\n        <div class=\"au-file-viewer-header\">\n          <span class=\"au-file-viewer-path\">AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx</span>\n          <span class=\"au-file-viewer-status\">Modified</span>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Close</button>\n        </div>\n        <div class=\"au-file-viewer-nav\">\n          <button class=\"au-file-viewer-jump\" type=\"button\">@@ −48,6 +48,18 @@</button>\n          <button class=\"au-file-viewer-jump\" type=\"button\">@@ −265,12 +277,40 @@</button>\n          <input class=\"au-file-viewer-goto\" value=\"52\" readonly aria-label=\"Go to line\" />\n        </div>\n        <div class=\"au-file-viewer-body\">\n          <div class=\"au-file-viewer-line au-file-viewer-line--meta\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">diff --git a/GitChangesPanel.tsx b/GitChangesPanel.tsx</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--hunk\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">@@ −48,6 +48,18 @@ export function GitChangesPanel</span>\n          </div>\n          <div class=\"au-file-viewer-line\">\n            <span class=\"au-file-viewer-gutter\">48</span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">const</span> [diff, setDiff] = <span class=\"au-syntax-function\">useState</span>(<span class=\"au-syntax-keyword\">null</span>);</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--deleted\">\n            <span class=\"au-file-viewer-gutter\">49</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--deleted\">−</span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">return</span> &lt;<span class=\"au-syntax-type\">Text</span>&gt;{diffText(diff)}&lt;/<span class=\"au-syntax-type\">Text</span>&gt;;</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--added au-file-viewer-line--current\">\n            <span class=\"au-file-viewer-gutter\">52</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--added\">+</span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">return</span> &lt;<span class=\"au-syntax-type\">GitFileViewer</span> diff={diff} <span class=\"au-syntax-property\">onClose</span>={close} /&gt;;</span>\n          </div>\n          <div class=\"au-file-viewer-line\">\n            <span class=\"au-file-viewer-gutter\">53</span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-comment\">// Filename opens inspection. Checkbox stays selection.</span></span>\n          </div>\n        </div>\n      </div>"
+          "html": "<div class=\"au-overlay-panel au-file-viewer\" style=\"max-width: 42rem;\">\n        <div class=\"au-file-viewer-header\">\n          <span class=\"au-file-viewer-path\">AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx</span>\n          <span class=\"au-file-viewer-status\">Modified</span>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Close</button>\n        </div>\n        <div class=\"au-file-viewer-nav\">\n          <button class=\"au-file-viewer-jump\" type=\"button\">@@ −48,6 +48,18 @@</button>\n          <button class=\"au-file-viewer-jump\" type=\"button\">@@ −265,12 +277,40 @@</button>\n          <input class=\"au-file-viewer-goto\" value=\"52\" readonly aria-label=\"Go to line\" />\n        </div>\n        <div class=\"au-file-viewer-body\">\n          <div class=\"au-file-viewer-line au-file-viewer-line--meta\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">diff --git a/GitChangesPanel.tsx b/GitChangesPanel.tsx</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--hunk\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">@@ −48,6 +48,18 @@ export function GitChangesPanel</span>\n          </div>\n          <div class=\"au-file-viewer-line\">\n            <span class=\"au-file-viewer-gutter\">48</span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">const</span> [diff, setDiff] = <span class=\"au-syntax-function\">useState</span>(<span class=\"au-syntax-keyword\">null</span>);</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--deleted\">\n            <span class=\"au-file-viewer-gutter\">49</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--deleted\">−</span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">return</span> &lt;<span class=\"au-syntax-type\">Text</span>&gt;{diffText(diff)}&lt;/<span class=\"au-syntax-type\">Text</span>&gt;;</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--added au-file-viewer-line--current\">\n            <span class=\"au-file-viewer-gutter\">52</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--added\">+</span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">return</span> &lt;<span class=\"au-syntax-type\">GitFileViewer</span> diff={diff} <span class=\"au-syntax-property\">onClose</span>={close} /&gt;;</span>\n          </div>\n          <div class=\"au-file-viewer-line\">\n            <span class=\"au-file-viewer-gutter\">53</span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-plain\">    </span><span class=\"au-syntax-keyword\">return</span> foo;</span>\n          </div>\n          <div class=\"au-file-viewer-line\">\n            <span class=\"au-file-viewer-gutter\">54</span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-comment\">// Filename opens inspection. Checkbox stays selection.</span></span>\n          </div>\n        </div>\n      </div>"
         },
         {
           "id": "file-viewer-header",
@@ -1574,8 +1622,54 @@
     {
       "id": "git-log",
       "title": "Git history",
-      "intro": "The commit graph is a selectable log: colored lanes, merge curves, branch ref pills, subject, author, and relative time. Green is selection, not decoration.",
+      "intro": "Mobile history is graph-first: a pinned timestamp column and a horizontally scrollable graph. Selecting a row puts subject, author, branches, and tags in a sticky header. Checkout lives in that header, not on the row. Green is selection, not decoration.",
       "components": [
+        {
+          "id": "git-log-detail",
+          "title": "Selected commit",
+          "note": "The sticky header is the only place for commit message, author, refs, and checkout. Rows stay timestamp plus graph.",
+          "avalonia": "Border",
+          "desktopClass": "gitLogDetail",
+          "desktopHost": "",
+          "rootClass": "au-git-log-detail",
+          "classes": [
+            "au-git-log-detail",
+            "au-git-log-subject",
+            "au-git-log-author",
+            "au-cluster",
+            "au-git-log-ref",
+            "au-git-log-ref--head",
+            "au-git-log-ref--remote",
+            "au-git-log-ref--tag"
+          ],
+          "html": "<div class=\"au-git-log-detail\">\n        <span class=\"au-git-log-subject\">fix(packaging): seal platform verification gaps</span>\n        <span class=\"au-git-log-author\">Daniel Mass</span>\n        <div class=\"au-cluster\">\n          <button class=\"au-git-log-ref au-git-log-ref--head\" type=\"button\">HEAD</button>\n          <button class=\"au-git-log-ref\" type=\"button\">369-mobile</button>\n          <button class=\"au-git-log-ref au-git-log-ref--remote\" type=\"button\">origin/main</button>\n          <span class=\"au-git-log-ref au-git-log-ref--tag\">v3.47.0</span>\n        </div>\n      </div>"
+        },
+        {
+          "id": "git-log-row",
+          "title": "History row",
+          "note": "Every row is a fixed-width timestamp plus the graph. Selection is an accent tint plus a 2px leading accent rule. Hover stays a neutral state layer. When the graph is wider than the pane, only the graph region scrolls horizontally.",
+          "avalonia": "Border",
+          "desktopClass": "gitLogRow",
+          "desktopHost": "ListBoxItem",
+          "rootClass": "au-git-log-row",
+          "classes": [
+            "au-git-log",
+            "au-git-log-track",
+            "au-git-log-row",
+            "au-git-log-row--selected",
+            "au-git-log-time",
+            "au-git-log-graph-scroll",
+            "au-git-log-graph",
+            "au-git-log-lane-0",
+            "au-git-log-graph-edge",
+            "au-git-log-graph-node",
+            "au-git-log-graph-node--filled",
+            "au-git-log-lane-1",
+            "au-git-log-lane-2",
+            "au-git-log-lane-3"
+          ],
+          "html": "<div class=\"au-git-log\">\n        <div class=\"au-git-log-track\">\n          <div>\n            <div class=\"au-git-log-row au-git-log-row--selected\">\n              <span class=\"au-git-log-time\">16.09.26 05:16</span>\n            </div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">16.09.26 05:14</span>\n            </div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">16.09.26 05:10</span>\n            </div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">15.09.26 18:26</span>\n            </div>\n          </div>\n          <div class=\"au-git-log-graph-scroll\">\n            <div class=\"au-git-log-row au-git-log-row--selected\">\n              <svg class=\"au-git-log-graph\" width=\"70\" height=\"28\" viewBox=\"0 0 70 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n                <g class=\"au-git-log-lane-1\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 0 L 21 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 14 L 21 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-2\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 0 L 35 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 14 L 35 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-3\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 49 0 L 49 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 49 14 C 49 21, 63 21, 63 28\"></path>\n                </g>\n              </svg>\n            </div>\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"70\" height=\"28\" viewBox=\"0 0 70 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n                <g class=\"au-git-log-lane-1\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 0 L 21 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 14 L 21 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-2\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 0 L 35 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 14 L 35 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-3\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 0 L 63 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 14 L 63 28\"></path>\n                </g>\n              </svg>\n            </div>\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"70\" height=\"28\" viewBox=\"0 0 70 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-1\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 0 L 21 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 14 L 21 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"21\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n                <g class=\"au-git-log-lane-2\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 0 L 35 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 14 L 35 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-3\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 0 L 63 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 14 L 63 28\"></path>\n                </g>\n              </svg>\n            </div>\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"70\" height=\"28\" viewBox=\"0 0 70 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-1\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 0 L 21 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 14 L 21 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-2\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 0 L 35 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 14 L 35 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"35\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n                <g class=\"au-git-log-lane-3\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 0 L 63 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 14 L 63 28\"></path>\n                </g>\n              </svg>\n            </div>\n          </div>\n        </div>\n      </div>"
+        },
         {
           "id": "git-log-graph",
           "title": "Commit graph",
@@ -1595,35 +1689,9 @@
           "html": "<svg class=\"au-git-log-graph\" width=\"42\" height=\"112\" viewBox=\"0 0 42 112\" aria-hidden=\"true\">\n        <g class=\"au-git-log-lane-0\">\n          <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n          <path class=\"au-git-log-graph-edge\" d=\"M 7 28 L 7 42\"></path>\n          <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n          <circle class=\"au-git-log-graph-node\" cx=\"7\" cy=\"42\" r=\"3.5\"></circle>\n        </g>\n        <g class=\"au-git-log-lane-1\">\n          <path class=\"au-git-log-graph-edge\" d=\"M 7 14 C 7 21, 21 21, 21 28\"></path>\n          <path class=\"au-git-log-graph-edge\" d=\"M 21 28 L 21 42\"></path>\n          <path class=\"au-git-log-graph-edge\" d=\"M 21 42 L 21 56\"></path>\n          <path class=\"au-git-log-graph-edge\" d=\"M 7 42 C 7 49, 21 49, 21 56\"></path>\n          <path class=\"au-git-log-graph-edge\" d=\"M 21 56 L 21 70\"></path>\n          <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"21\" cy=\"70\" r=\"3.5\"></circle>\n        </g>\n      </svg>"
         },
         {
-          "id": "git-log-row",
-          "title": "History row",
-          "note": "Selection is an accent tint plus a 2px leading accent rule. Hover stays a neutral state layer.",
-          "avalonia": "Border",
-          "desktopClass": "gitLogRow",
-          "desktopHost": "ListBoxItem",
-          "rootClass": "au-git-log-row",
-          "classes": [
-            "au-git-log",
-            "au-git-log-row",
-            "au-git-log-row--selected",
-            "au-git-log-graph",
-            "au-git-log-lane-0",
-            "au-git-log-graph-edge",
-            "au-git-log-graph-node",
-            "au-git-log-graph-node--filled",
-            "au-git-log-body",
-            "au-git-log-ref",
-            "au-git-log-ref--head",
-            "au-git-log-subject",
-            "au-git-log-author",
-            "au-git-log-time"
-          ],
-          "html": "<div class=\"au-git-log\">\n        <div class=\"au-git-log-row au-git-log-row--selected\">\n          <svg class=\"au-git-log-graph\" width=\"28\" height=\"28\" viewBox=\"0 0 28 28\" aria-hidden=\"true\">\n            <g class=\"au-git-log-lane-0\">\n              <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n              <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n              <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n            </g>\n          </svg>\n          <span class=\"au-git-log-body\">\n            <span class=\"au-git-log-ref au-git-log-ref--head\">HEAD</span>\n            <span class=\"au-git-log-ref\">main</span>\n            <span class=\"au-git-log-subject\">feat(Git): show the commit graph</span>\n            <span class=\"au-git-log-author\">Daniel Mass</span>\n            <span class=\"au-git-log-time\">24 minutes ago</span>\n          </span>\n        </div>\n        <div class=\"au-git-log-row\">\n          <svg class=\"au-git-log-graph\" width=\"28\" height=\"28\" viewBox=\"0 0 28 28\" aria-hidden=\"true\">\n            <g class=\"au-git-log-lane-0\">\n              <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n              <path class=\"au-git-log-graph-edge\" d=\"M 7 14 C 7 21, 21 21, 21 28\"></path>\n              <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n            </g>\n          </svg>\n          <span class=\"au-git-log-body\">\n            <span class=\"au-git-log-subject\">Merge pull request</span>\n            <span class=\"au-git-log-author\">Daniel Mass</span>\n            <span class=\"au-git-log-time\">Yesterday 21:05</span>\n          </span>\n        </div>\n      </div>"
-        },
-        {
           "id": "git-log-ref",
           "title": "Ref chips",
-          "note": "Local branches, remotes, and HEAD are pills. Checkout stays on labeled branch refs, not detached HEAD.",
+          "note": "Local branches, remotes, tags, and HEAD are pills in the sticky header. Checkout stays on labeled branch refs, not detached HEAD or tags.",
           "avalonia": "Button",
           "desktopClass": "gitLogRef",
           "desktopHost": "",
@@ -1632,9 +1700,10 @@
             "au-cluster",
             "au-git-log-ref",
             "au-git-log-ref--head",
-            "au-git-log-ref--remote"
+            "au-git-log-ref--remote",
+            "au-git-log-ref--tag"
           ],
-          "html": "<div class=\"au-cluster\">\n        <button class=\"au-git-log-ref au-git-log-ref--head\" type=\"button\">HEAD</button>\n        <button class=\"au-git-log-ref\" type=\"button\">369-mobile</button>\n        <button class=\"au-git-log-ref au-git-log-ref--remote\" type=\"button\">origin/main</button>\n      </div>"
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-git-log-ref au-git-log-ref--head\" type=\"button\">HEAD</button>\n        <button class=\"au-git-log-ref\" type=\"button\">369-mobile</button>\n        <button class=\"au-git-log-ref au-git-log-ref--remote\" type=\"button\">origin/main</button>\n        <span class=\"au-git-log-ref au-git-log-ref--tag\">v3.47.0</span>\n      </div>"
         }
       ]
     }

@@ -86,9 +86,10 @@ export type GitLogCommit = {
 
 export type GitLog = {
   commits: GitLogCommit[];
+  hasMore?: boolean;
 };
 
-export type GitLogRefKind = 'head' | 'local' | 'remote';
+export type GitLogRefKind = 'head' | 'local' | 'remote' | 'tag';
 
 export type GitLogRef = {
   name: string;

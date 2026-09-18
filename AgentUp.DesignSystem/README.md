@@ -12,7 +12,7 @@ and marketing presentation. The canonical format is HTML and CSS:
   fragments (Git history in `catalog-git-log.html`) are concatenated at build
   time. Avalonia infers control types, class names, and Desktop aliases from the
   combined catalog instead of restating the same UI in XAML.
-- `src/git-log.css` defines the commit graph, history row, and ref chips.
+- `src/git-log.css` defines the commit graph, pinned timestamp column, sticky selected detail, and ref chips.
 - `src/marketing.css` defines reusable marketing compositions that keep the real
   product UI as the visual reference.
 - `src/docs.css` defines documentation attention components used by User Docs

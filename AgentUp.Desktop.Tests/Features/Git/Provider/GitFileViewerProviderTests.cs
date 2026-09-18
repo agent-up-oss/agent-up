@@ -42,4 +42,17 @@ public sealed class GitFileViewerProviderTests
         Assert.That(tokens.Any(token => token is { Kind: "keyword", Text: "class" }), Is.True);
         Assert.That(GitFileViewerProvider.JumpIndex(lines, "2"), Is.EqualTo(added.Index).Or.EqualTo(lines.Single(line => line.Kind == "deleted").Index));
     }
+
+    [Test]
+    public void Tokenize_keepsLeadingSpacesAndTabsInDisplayedTokens()
+    {
+        var spaces = GitFileViewerProvider.Tokenize("    return foo;", "csharp");
+        Assert.That(string.Concat(spaces.Select(token => token.Text)), Is.EqualTo("    return foo;"));
+        Assert.That(spaces[0].Text, Is.EqualTo("    "));
+        Assert.That(spaces.Any(token => token is { Kind: "keyword", Text: "return" }), Is.True);
+
+        var tabbed = GitFileViewerProvider.Tokenize("\treturn foo;", "csharp");
+        Assert.That(string.Concat(tabbed.Select(token => token.Text)), Is.EqualTo("\treturn foo;"));
+        Assert.That(tabbed[0].Text, Is.EqualTo("\t"));
+    }
 }

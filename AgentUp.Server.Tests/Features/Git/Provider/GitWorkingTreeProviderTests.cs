@@ -575,6 +575,40 @@ public sealed class GitWorkingTreeProviderTests
     }
 
     [Test]
+    public async Task GetLogAsync_pagesOlderCommitsFromSkipAndUntil()
+    {
+        await File.WriteAllTextAsync(Path.Join(_repository, "second.md"), "second\n");
+        await TestGitRepository.CommitAllAsync(_repository, "second");
+        await File.WriteAllTextAsync(Path.Join(_repository, "third.md"), "third\n");
+        await TestGitRepository.CommitAllAsync(_repository, "third");
+        var provider = new GitWorkingTreeProvider();
+
+        var newest = await provider.GetLogAsync(_repository, 1);
+        var skipped = await provider.GetLogAsync(_repository, 1, skip: 1);
+        var older = await provider.GetLogAsync(_repository, 1, until: newest.Commits[0].Id);
+        var last = await provider.GetLogAsync(_repository, 1, skip: 2);
+
+        Assert.That(newest.Commits[0].Subject, Is.EqualTo("third"));
+        Assert.That(newest.HasMore, Is.True);
+        Assert.That(skipped.Commits[0].Subject, Is.EqualTo("second"));
+        Assert.That(skipped.HasMore, Is.True);
+        Assert.That(older.Commits[0].Subject, Is.EqualTo("second"));
+        Assert.That(last.Commits[0].Subject, Is.EqualTo("initial"));
+        Assert.That(last.HasMore, Is.False);
+    }
+
+    [Test]
+    public void GetLogAsync_rejectsAnUnsafeUntilCursor()
+    {
+        var provider = new GitWorkingTreeProvider();
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await provider.GetLogAsync(_repository, 1, until: "-n"));
+
+        Assert.That(exception!.Message, Does.Contain("Log cursor must be a Git commit object name"));
+    }
+
+    [Test]
     public void FetchAsync_rejectsAnUnsafeRemoteName()
     {
         var provider = new GitWorkingTreeProvider();

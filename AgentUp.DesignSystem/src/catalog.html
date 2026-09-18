@@ -269,7 +269,7 @@ ready in 842 ms</pre>
   </section>
 
   <section data-au-surface="git" data-au-title="Git changes" data-au-intro="The Git panel is the human review surface for the working tree. The change list is a directory tree: checkbox selects, the filename opens the file, and the status glyph carries the kind color. Coding agents still use the commit queue.">
-    <article data-au-component="git-change-list" data-au-title="Change list" data-au-note="The tree sits on a pane, not a full-bleed slab. Review counts use insertions and deletions, never a decorative green outline." data-au-avalonia="Border" data-au-class="au-git-change-list">
+    <article data-au-component="git-change-list" data-au-title="Change list" data-au-note="The tree sits on a pane, not a full-bleed slab. Directory depth uses catalog guides. Collapse chevrons hide nested rows; a collapsed directory checkbox still selects every file beneath it." data-au-avalonia="Border" data-au-class="au-git-change-list">
       <div class="au-git-change-list" style="padding: 0.5rem;">
         <div class="au-cluster" style="margin-bottom: 0.5rem;">
           <button class="au-button au-button--secondary au-button--compact" type="button">Review <span class="au-git-insertions">+12</span> <span class="au-git-deletions">−4</span></button>
@@ -277,45 +277,77 @@ ready in 842 ms</pre>
         </div>
         <div class="au-git-row">
           <span class="au-checkbox au-checkbox--checked"></span>
-          <span class="au-git-status au-git-status--directory">▸</span>
+          <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
           <span class="au-git-change-name au-git-change-name--directory">Changes</span>
         </div>
-        <div class="au-git-row" style="padding-left: 1.25rem;">
+        <div class="au-git-row">
           <span class="au-checkbox au-checkbox--checked"></span>
-          <span class="au-git-status au-git-status--directory">▸</span>
+          <span class="au-git-tree-guide"></span>
+          <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
           <span class="au-git-change-name au-git-change-name--directory">src</span>
         </div>
-        <div class="au-git-row au-git-row--selected" style="padding-left: 2.125rem;">
+        <div class="au-git-row au-git-row--selected">
           <span class="au-checkbox au-checkbox--checked"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
           <span class="au-git-change-name">AgentChatScreen.tsx</span>
           <span class="au-git-status au-git-status--modified">M</span>
         </div>
-        <div class="au-git-row" style="padding-left: 2.125rem;">
+        <div class="au-git-row">
           <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
           <span class="au-git-change-name">new-view.ts</span>
           <span class="au-git-status au-git-status--added">+</span>
         </div>
-        <div class="au-git-row" style="padding-left: 2.125rem;">
+        <div class="au-git-row">
           <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
           <span class="au-git-change-name">scratch.md</span>
           <span class="au-git-status au-git-status--untracked">?</span>
         </div>
-        <div class="au-git-row" style="padding-left: 2.125rem;">
+        <div class="au-git-row">
           <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
+          <button class="au-git-tree-toggle au-git-tree-toggle--collapsed" type="button">▸</button>
+          <span class="au-git-change-name au-git-change-name--directory">legacy</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
           <span class="au-git-change-name">obsolete.css</span>
           <span class="au-git-status au-git-status--deleted">−</span>
         </div>
-        <div class="au-git-row" style="padding-left: 2.125rem;">
+        <div class="au-git-row">
           <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
           <span class="au-git-change-name">storefront.tsx</span>
           <span class="au-git-status au-git-status--renamed">→</span>
         </div>
-        <div class="au-git-row" style="padding-left: 2.125rem;">
+        <div class="au-git-row">
           <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
           <span class="au-git-change-name">agent-up.json</span>
           <span class="au-git-status au-git-status--conflicted">!</span>
         </div>
       </div>
+    </article>
+    <article data-au-component="git-tree-guide" data-au-title="Tree guide" data-au-note="Vertical guides mark directory depth. Use the catalog hairline, never a painted hex. Checkboxes stay left of the indent." data-au-avalonia="Border" data-au-class="au-git-tree-guide" data-au-desktop-class="gitTreeGuide">
+      <div class="au-git-row">
+        <span class="au-checkbox"></span>
+        <span class="au-git-tree-guide"></span>
+        <span class="au-git-tree-guide"></span>
+        <span class="au-git-change-name">AgentChatScreen.tsx</span>
+      </div>
+    </article>
+    <article data-au-component="git-tree-toggle" data-au-title="Expanded directory" data-au-note="An expanded chevron shows nested files. The triangle is the collapse control; the checkbox still selects every file beneath the directory." data-au-avalonia="Button" data-au-class="au-git-tree-toggle" data-au-desktop-class="gitTreeToggle">
+      <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
+    </article>
+    <article data-au-component="git-tree-toggle-collapsed" data-au-title="Collapsed directory" data-au-note="A collapsed directory uses the dropdown chevron and hides nested rows. Checking it still selects every file under it." data-au-avalonia="Button" data-au-class="au-git-tree-toggle--collapsed" data-au-desktop-class="gitTreeToggleCollapsed">
+      <button class="au-git-tree-toggle au-git-tree-toggle--collapsed" type="button">▸</button>
     </article>
     <article data-au-component="git-row" data-au-title="Change row" data-au-note="Checkbox and filename are separate hit targets. Hover is the neutral state layer. The open file takes the selected tint plus a 2px accent rule; checked boxes do not." data-au-avalonia="Border" data-au-class="au-git-row" data-au-desktop-class="gitNodeRow">
       <div class="au-git-row au-git-row--selected">

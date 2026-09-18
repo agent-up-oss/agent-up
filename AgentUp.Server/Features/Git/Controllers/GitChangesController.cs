@@ -79,9 +79,13 @@ public sealed class GitChangesController(GitChangeTreeService changes) : Control
     }
 
     [HttpGet("log")]
-    public async Task<IActionResult> GetLog(string workspaceId, [FromQuery] int? max)
+    public async Task<IActionResult> GetLog(
+        string workspaceId,
+        [FromQuery] int? max,
+        [FromQuery] int? skip = null,
+        [FromQuery] string? until = null)
     {
-        var log = await changes.GetLogAsync(workspaceId, max, HttpContext.RequestAborted);
+        var log = await changes.GetLogAsync(workspaceId, max, HttpContext.RequestAborted, skip, until);
         return FoundResult(this, log);
     }
 

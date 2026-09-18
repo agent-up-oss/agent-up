@@ -24,5 +24,10 @@ public interface IGitWorkingTreeProvider
 
     Task PushAsync(string worktreePath, bool forceWithLease, bool setUpstream, CancellationToken cancellationToken = default);
 
-    Task<GitLog> GetLogAsync(string worktreePath, int? max, CancellationToken cancellationToken = default);
+    Task<GitLog> GetLogAsync(
+        string worktreePath,
+        int? max,
+        CancellationToken cancellationToken = default,
+        int? skip = null,
+        string? until = null);
 }

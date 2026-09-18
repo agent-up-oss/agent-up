@@ -356,6 +356,22 @@ public sealed class GitChangeTreeServiceTests
     }
 
     [Test]
+    public async Task GetLogAsync_forwardsSkipAndUntil()
+    {
+        var git = new FakeGitWorkingTreeProvider
+        {
+            Log = new GitLog([new GitLogCommit("def", "def", [], "older", "Agent Up", "2026-01-01T00:00:00Z", [])], HasMore: true)
+        };
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var log = await service.GetLogAsync(workspaceId, 200, CancellationToken.None, 200, "def");
+
+        Assert.That(log!.HasMore, Is.True);
+        Assert.That(git.LogSkip, Is.EqualTo(200));
+        Assert.That(git.LogUntil, Is.EqualTo("def"));
+    }
+
+    [Test]
     public async Task SwitchBranchAsync_waitsUntilAnInFlightDiscardCompletes()
     {
         var git = new FakeGitWorkingTreeProvider

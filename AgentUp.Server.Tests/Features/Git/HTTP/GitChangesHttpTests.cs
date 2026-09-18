@@ -267,6 +267,32 @@ public sealed class GitChangesHttpTests
     }
 
     [Test]
+    public async Task Log_pagesOlderHistoryFromSkipAndUntil()
+    {
+        await File.WriteAllTextAsync(Path.Join(_repository, "second.md"), "second\n");
+        await TestGitRepository.CommitAllAsync(_repository, "second");
+        await File.WriteAllTextAsync(Path.Join(_repository, "third.md"), "third\n");
+        await TestGitRepository.CommitAllAsync(_repository, "third");
+        using var client = _factory.CreateClient();
+        var workspaceId = await RegisterAsync(client);
+
+        var newest = await client.GetFromJsonAsync<GitLog>($"/api/workspaces/{workspaceId}/git/log?max=1", Json);
+        var skipped = await client.GetFromJsonAsync<GitLog>(
+            $"/api/workspaces/{workspaceId}/git/log?max=1&skip=1", Json);
+        var older = await client.GetFromJsonAsync<GitLog>(
+            $"/api/workspaces/{workspaceId}/git/log?max=1&until={newest!.Commits[0].Id}", Json);
+        var last = await client.GetFromJsonAsync<GitLog>(
+            $"/api/workspaces/{workspaceId}/git/log?max=1&skip=2", Json);
+
+        Assert.That(newest.Commits[0].Subject, Is.EqualTo("third"));
+        Assert.That(newest.HasMore, Is.True);
+        Assert.That(skipped!.Commits[0].Subject, Is.EqualTo("second"));
+        Assert.That(older!.Commits[0].Subject, Is.EqualTo("second"));
+        Assert.That(last!.Commits[0].Subject, Is.EqualTo("initial"));
+        Assert.That(last.HasMore, Is.False);
+    }
+
+    [Test]
     public async Task Fetch_updatesRemoteTrackingBranches()
     {
         var origin = Path.Join(_dataDirectory, "origin-fetch");

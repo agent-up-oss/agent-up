@@ -243,17 +243,55 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
     public async Task<GitLog> GetLogAsync(
         string worktreePath,
         int? max,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        int? skip = null,
+        string? until = null)
     {
         var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
         var limit = Math.Clamp(max ?? 100, 1, 200);
+        var arguments = new List<string>
+        {
+            "log",
+            "--decorate=full",
+            "--pretty=format:%H%x1f%h%x1f%P%x1f%s%x1f%an%x1f%aI%x1f%D",
+            "-n",
+            (limit + 1).ToString(),
+        };
+        AppendLogCursor(arguments, skip, until);
         var output = await RunGitAsync(
             repoRoot,
-            ["log", "--decorate=full", "--pretty=format:%H%x1f%h%x1f%P%x1f%s%x1f%an%x1f%aI%x1f%D", "-n", limit.ToString()],
+            arguments,
             cancellationToken,
             allowedExitCodes: [0, 128],
             trimOutput: false);
-        return new GitLog(ParseLog(output));
+        var commits = ParseLog(output);
+        var hasMore = commits.Count > limit;
+        if (hasMore)
+            commits = commits.Take(limit).ToList();
+        return new GitLog(commits, hasMore);
+    }
+
+    private static void AppendLogCursor(List<string> arguments, int? skip, string? until)
+    {
+        if (!string.IsNullOrWhiteSpace(until))
+        {
+            arguments.Add("--skip=1");
+            arguments.Add(NormalizeLogCursor(until));
+            return;
+        }
+
+        var offset = Math.Clamp(skip ?? 0, 0, 100_000);
+        if (offset > 0)
+            arguments.Add($"--skip={offset}");
+    }
+
+    private static string NormalizeLogCursor(string until)
+    {
+        var trimmed = until.Trim();
+        if (!GitCommitCursor().IsMatch(trimmed))
+            throw new InvalidOperationException("Log cursor must be a Git commit object name.");
+
+        return trimmed;
     }
 
     private static string NormalizeSeparators(string path)
@@ -678,4 +716,7 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
 
     [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9._-]*$")]
     private static partial Regex RemoteNameArgument();
+
+    [GeneratedRegex("^[0-9a-fA-F]{7,40}$")]
+    private static partial Regex GitCommitCursor();
 }

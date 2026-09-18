@@ -53,6 +53,10 @@ internal sealed class FakeGitWorkingTreeProvider : IGitWorkingTreeProvider
 
     public int? LogMax { get; private set; }
 
+    public int? LogSkip { get; private set; }
+
+    public string? LogUntil { get; private set; }
+
     public string? LastWorktreePath { get; private set; }
 
     public Task<IReadOnlyList<GitChangeEntry>> GetChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
@@ -141,10 +145,17 @@ internal sealed class FakeGitWorkingTreeProvider : IGitWorkingTreeProvider
         return Failure is null ? Task.CompletedTask : Task.FromException(new InvalidOperationException(Failure));
     }
 
-    public Task<GitLog> GetLogAsync(string worktreePath, int? max, CancellationToken cancellationToken = default)
+    public Task<GitLog> GetLogAsync(
+        string worktreePath,
+        int? max,
+        CancellationToken cancellationToken = default,
+        int? skip = null,
+        string? until = null)
     {
         LastWorktreePath = worktreePath;
         LogMax = max;
+        LogSkip = skip;
+        LogUntil = until;
         return Failure is null
             ? Task.FromResult(Log)
             : Task.FromException<GitLog>(new InvalidOperationException(Failure));

@@ -643,7 +643,7 @@
 }
 .au-git-row {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: var(--au-space-2);
   min-height: var(--au-control-height-compact);
   padding: 0.125rem 0.5rem 0.125rem 0.375rem;
@@ -653,6 +653,26 @@
   border-left: 2px solid var(--au-color-transparent);
   border-radius: var(--au-radius-md);
 }
+.au-git-tree-guide {
+  width: var(--au-space-5);
+  min-height: var(--au-control-height-compact);
+  color: var(--au-color-text-muted);
+  background: var(--au-color-transparent);
+  border-left: 1px solid var(--au-color-border-subtle);
+}
+.au-git-tree-toggle {
+  width: 0.875rem;
+  min-height: var(--au-control-height-compact);
+  padding: 0;
+  color: var(--au-color-text-muted);
+  background: var(--au-color-transparent);
+  border: 0;
+  font-size: var(--au-font-size-ui-sm);
+  font-weight: var(--au-weight-ui-strong);
+}
+.au-git-tree-toggle:hover { background: var(--au-color-state-hover); }
+.au-git-tree-toggle--expanded { color: var(--au-color-text-muted); }
+.au-git-tree-toggle--collapsed { color: var(--au-color-text-muted); }
 .au-git-row:hover { background: var(--au-color-state-hover); }
 .au-git-row--selected {
   color: var(--au-color-text-primary);
@@ -1105,9 +1125,10 @@
   color: var(--au-color-text-secondary);
   font-family: var(--au-font-mono);
   font-size: var(--au-font-size-ui-xs);
+  white-space: pre;
 }
 
-.au-syntax-plain { color: var(--au-color-text-secondary); }
+.au-syntax-plain { color: var(--au-color-text-secondary); white-space: pre; }
 .au-syntax-keyword { color: var(--au-color-text-info); }
 .au-syntax-type { color: var(--au-color-status-info); }
 .au-syntax-string { color: var(--au-color-text-warning); }
@@ -1126,6 +1147,30 @@
   background: var(--au-color-canvas);
   border: 1px solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-lg);
+}
+
+.au-git-log-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--au-space-2);
+  padding: var(--au-space-3);
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-raised);
+  border-bottom: 1px solid var(--au-color-border-subtle);
+}
+
+.au-git-log-track {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.au-git-log-graph-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .au-git-log-row {
@@ -1206,7 +1251,8 @@
 }
 
 .au-git-log-time {
-  flex: 0 0 auto;
+  flex: 0 0 6.75rem;
+  width: 6.75rem;
   color: var(--au-color-text-faint);
   font-size: var(--au-font-size-ui-xs);
   font-variant-numeric: tabular-nums;
@@ -1236,6 +1282,9 @@
 }
 .au-git-log-ref--remote {
   color: var(--au-color-text-info);
+}
+.au-git-log-ref--tag {
+  color: var(--au-color-text-muted);
 }
 .au-git-log-node {
   width: 0.5rem;

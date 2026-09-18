@@ -155,11 +155,16 @@ export async function getLog(
   server: ServerSession,
   workspaceId: string,
   max = 100,
+  skip = 0,
+  until?: string,
   request: typeof fetch = fetch,
 ): Promise<GitLog | null> {
+  const query = new URLSearchParams({ max: String(max) });
+  if (skip > 0) query.set('skip', String(skip));
+  if (until) query.set('until', until);
   return readOrNull<GitLog>(
     server,
-    `/api/workspaces/${encodeURIComponent(workspaceId)}/git/log?max=${max}`,
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/git/log?${query}`,
     request,
   );
 }

@@ -5,22 +5,23 @@ namespace AgentUp.Desktop.Features.Git.ViewModels;
 
 public sealed class GitChangeNodeViewModel : ReactiveObject
 {
-    private const double IndentPerLevel = 12;
-
     private readonly List<GitChangeNodeViewModel> _files = [];
     private IGitChangeNodeHost? _host;
     private bool _isSelected;
     private bool _isOpen;
+    private bool _isExpanded = true;
+    private bool _isRowVisible = true;
 
     public string Name { get; }
     public string Path { get; }
     public int Depth { get; }
     public bool IsDirectory { get; }
     public string Status { get; }
+    public IReadOnlyList<int> Guides { get; }
 
     public bool IsFile => !IsDirectory;
-    public double IndentWidth => Depth * IndentPerLevel;
-    public string Glyph => IsDirectory ? "▸" : StatusGlyph(Status);
+    public string Glyph => IsDirectory ? ToggleGlyph : StatusGlyph(Status);
+    public string ToggleGlyph => IsExpanded ? "▾" : "▸";
     public string ToolTip => IsDirectory ? Path : $"{Path} — {Status}";
 
     public bool IsAdded => Status == "Added";
@@ -29,6 +30,7 @@ public sealed class GitChangeNodeViewModel : ReactiveObject
     public bool IsRenamed => Status == "Renamed";
     public bool IsConflicted => Status == "Conflicted";
     public bool IsModified => IsFile && !IsAdded && !IsUntracked && !IsDeleted && !IsRenamed && !IsConflicted;
+    public bool IsCollapsed => IsDirectory && !IsExpanded;
 
     public bool IsSelected
     {
@@ -49,7 +51,29 @@ public sealed class GitChangeNodeViewModel : ReactiveObject
         private set => this.RaiseAndSetIfChanged(ref _isOpen, value);
     }
 
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        private set
+        {
+            if (_isExpanded == value)
+                return;
+
+            this.RaiseAndSetIfChanged(ref _isExpanded, value);
+            this.RaisePropertyChanged(nameof(IsCollapsed));
+            this.RaisePropertyChanged(nameof(ToggleGlyph));
+            this.RaisePropertyChanged(nameof(Glyph));
+        }
+    }
+
+    public bool IsRowVisible
+    {
+        get => _isRowVisible;
+        private set => this.RaiseAndSetIfChanged(ref _isRowVisible, value);
+    }
+
     public ReactiveCommand<Unit, Unit> OpenCommand { get; }
+    public ReactiveCommand<Unit, Unit> ToggleExpandCommand { get; }
 
     public GitChangeNodeViewModel(string name, string path, int depth, bool isDirectory, string status)
     {
@@ -58,7 +82,9 @@ public sealed class GitChangeNodeViewModel : ReactiveObject
         Depth = depth;
         IsDirectory = isDirectory;
         Status = status;
+        Guides = depth > 0 ? [.. Enumerable.Range(0, depth)] : [];
         OpenCommand = ReactiveCommand.CreateFromTask(OpenAsync);
+        ToggleExpandCommand = ReactiveCommand.Create(ToggleExpand);
     }
 
     // Files owned by this node: a file owns itself, a directory owns every file beneath it.
@@ -80,6 +106,19 @@ public sealed class GitChangeNodeViewModel : ReactiveObject
     }
 
     internal void SetOpenSilently(bool open) => IsOpen = open;
+
+    internal void SetExpandedSilently(bool expanded) => IsExpanded = expanded;
+
+    internal void SetRowVisibleSilently(bool visible) => IsRowVisible = visible;
+
+    private void ToggleExpand()
+    {
+        if (!IsDirectory)
+            return;
+
+        IsExpanded = !IsExpanded;
+        _host?.NodeExpansionChanged(this);
+    }
 
     private Task OpenAsync()
         => _host is null || IsDirectory ? Task.CompletedTask : _host.OpenFileAsync(this);

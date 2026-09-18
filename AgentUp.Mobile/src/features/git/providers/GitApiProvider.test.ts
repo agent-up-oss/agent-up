@@ -152,12 +152,26 @@ test('getLog requests the bounded history route', async () => {
   const recorded: Recorded[] = [];
   const body = JSON.stringify({
     commits: [{ id: 'abc', shortId: 'abc', parents: [], subject: 'initial', author: 'A', timestamp: '2026-01-01T00:00:00Z', refs: ['main'] }],
+    hasMore: true,
   });
 
-  const log = await getLog({ url: 'http://localhost:5000' }, 'ws 1', 20, fakeFetch(200, body, recorded));
+  const log = await getLog({ url: 'http://localhost:5000' }, 'ws 1', 20, 0, undefined, fakeFetch(200, body, recorded));
 
   assert.equal(log?.commits[0].subject, 'initial');
+  assert.equal(log?.hasMore, true);
   assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws%201/git/log?max=20');
+});
+
+test('getLog pages older history with skip and until', async () => {
+  const recorded: Recorded[] = [];
+  const body = JSON.stringify({ commits: [], hasMore: false });
+
+  await getLog({ url: 'http://localhost:5000' }, 'ws-1', 200, 200, 'abc', fakeFetch(200, body, recorded));
+
+  assert.equal(
+    recorded[0].url,
+    'http://localhost:5000/api/workspaces/ws-1/git/log?max=200&skip=200&until=abc',
+  );
 });
 
 test('commitFiles surfaces the server problem detail', async () => {

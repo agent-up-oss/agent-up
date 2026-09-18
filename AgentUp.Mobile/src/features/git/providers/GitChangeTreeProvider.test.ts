@@ -7,15 +7,21 @@ import {
   canCommitSelection,
   canDiscardSelection,
   changeStatusCounts,
+  directoryToggleClass,
+  directoryToggleGlyph,
+  gitCommitConfirmCopy,
   filePathsUnder,
   flattenChangeTree,
   isDirectorySelected,
   nameClass,
+  retainCollapsedPaths,
   retainSelectedPaths,
   selectedFilePaths,
   statusClass,
   statusGlyph,
+  toggleDirectoryCollapsed,
   toggleNodeSelection,
+  visibleChangeNodes,
 } from './GitChangeTreeProvider';
 
 function sampleTree(): GitChangeTree {
@@ -178,6 +184,14 @@ test('commit is offered only for a selection with a non-blank message', () => {
   assert.equal(canCommitSelection(0, ''), false);
 });
 
+test('gitCommitConfirmCopy names the message and selected paths', () => {
+  assert.deepEqual(gitCommitConfirmCopy('fix(App): correct the probe', ['src/app/main.cs', 'README.md']), {
+    title: 'Commit selected files?',
+    message: 'This commits 2 file(s) with this message:\n\nfix(App): correct the probe\n\nsrc/app/main.cs\nREADME.md',
+    confirm: 'Commit',
+  });
+});
+
 test('status glyphs and catalog classes distinguish the change kinds', () => {
   assert.equal(statusGlyph('Added'), '+');
   assert.equal(statusGlyph('Untracked'), '?');
@@ -198,4 +212,33 @@ test('status glyphs and catalog classes distinguish the change kinds', () => {
   assert.equal(agentUpTheme.components[statusClass('Added')].color, agentUpTheme.colors.accentSoft);
   assert.equal(agentUpTheme.components[statusClass('Deleted')].color, agentUpTheme.colors.statusDanger);
   assert.equal(agentUpTheme.components[statusClass(null)].color, agentUpTheme.colors.textMuted);
+});
+
+test('collapsed directories hide nested rows and keep selecting every file beneath them', () => {
+  const nodes = flattenChangeTree(sampleTree());
+  const src = nodes.find(node => node.path === 'src')!;
+  const app = nodes.find(node => node.path === 'src/app')!;
+  const main = nodes.find(node => node.path === 'src/app/main.cs')!;
+  const readme = nodes.find(node => node.path === 'README.md')!;
+
+  assert.deepEqual(visibleChangeNodes(nodes, []).map(node => node.name), nodes.map(node => node.name));
+
+  const collapsedSrc = toggleDirectoryCollapsed([], src.path);
+  assert.deepEqual(visibleChangeNodes(nodes, collapsedSrc).map(node => node.name), ['Changes', 'src', 'README.md']);
+  assert.equal(directoryToggleGlyph(false), '▸');
+  assert.equal(directoryToggleGlyph(true), '▾');
+  assert.equal(directoryToggleClass(false), 'gitTreeToggleCollapsed');
+  assert.equal(directoryToggleClass(true), 'gitTreeToggleExpanded');
+
+  const selected = toggleNodeSelection(nodes, src, []);
+  assert.deepEqual(selected.sort(), ['src/app/main.cs', 'src/app/util.cs']);
+  assert.equal(isDirectorySelected(nodes, src, selected), true);
+  assert.equal(isDirectorySelected(nodes, app, selected), true);
+
+  const collapsedApp = toggleDirectoryCollapsed([], app.path);
+  assert.ok(visibleChangeNodes(nodes, collapsedApp).includes(src));
+  assert.ok(!visibleChangeNodes(nodes, collapsedApp).includes(main));
+  assert.ok(visibleChangeNodes(nodes, collapsedApp).includes(readme));
+  assert.deepEqual(retainCollapsedPaths(nodes, ['src', 'gone', '']), ['src', '']);
+  assert.deepEqual(toggleDirectoryCollapsed(collapsedSrc, src.path), []);
 });

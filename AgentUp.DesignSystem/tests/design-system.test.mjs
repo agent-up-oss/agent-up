@@ -205,7 +205,7 @@ test('agent transcript uses catalog user bubbles, work logs, and thought hairlin
   assert.match(axaml, /Classes="au-chat-user"/);
   assert.match(axaml, /Classes="au-chat-run"/);
   assert.match(axaml, /Classes="au-chat-work"/);
-  const mobile = await readFile(resolve(repository, 'AgentUp.Mobile/src/features/agents/components/AgentChatScreen.tsx'), 'utf8');
+  const mobile = await readFile(resolve(repository, 'AgentUp.Chat/src/components/AgentChatScreen.tsx'), 'utf8');
   assert.match(mobile, /auBox\('chatThought'\)/);
   assert.match(mobile, /auText\('chatThoughtBody'\)/);
   assert.match(mobile, /auBox\('chatUser'\)/);
@@ -225,16 +225,28 @@ test('Git change list uses catalog status glyphs instead of restyled rows', asyn
   assert.equal(agentUpTheme.components.gitChangeNameDirectory.color, agentUpTheme.colors.textMuted);
   assert.equal(agentUpTheme.components.gitRowSelected.backgroundColor, agentUpTheme.colors.surfaceSelected);
   assert.equal(agentUpTheme.components.gitRowSelected.borderLeftColor, agentUpTheme.colors.accentLine);
+  assert.equal(agentUpTheme.components.gitTreeGuide.borderLeftColor, agentUpTheme.colors.borderSubtle);
+  assert.equal(agentUpTheme.components.gitTreeGuide.width, agentUpTheme.spacing[5]);
+  assert.equal(agentUpTheme.components.gitTreeToggleExpanded.color, agentUpTheme.colors.textMuted);
+  assert.equal(agentUpTheme.components.gitTreeToggleCollapsed.color, agentUpTheme.colors.textMuted);
   assert.match(avaloniaStyles, /Selector="Border\.gitNodeRow"/);
   assert.match(avaloniaStyles, /Selector="Border\.gitNodeRowSelected"/);
+  assert.match(avaloniaStyles, /Selector="Border\.gitTreeGuide"/);
+  assert.match(avaloniaStyles, /Selector="Button\.gitTreeToggle"/);
   const axaml = await readFile(resolve(repository, 'AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml'), 'utf8');
   assert.match(axaml, /Classes="gitNodeRow"/);
   assert.match(axaml, /Classes="gitChangeName"/);
   assert.match(axaml, /Classes="au-git-status"/);
+  assert.match(axaml, /Classes="au-git-tree-guide"/);
+  assert.match(axaml, /Classes="au-git-tree-toggle"/);
   const mobile = await readFile(resolve(repository, 'AgentUp.Mobile/src/features/git/components/GitChangeRow.tsx'), 'utf8');
   assert.match(mobile, /auBox\('gitRow'\)/);
+  assert.match(mobile, /auBox\('gitTreeGuide'\)/);
   assert.match(mobile, /auText\(nameClass/);
   assert.match(mobile, /auText\(statusClass/);
+  const list = catalog.surfaces.find(item => item.id === 'git')?.components.find(item => item.id === 'git-change-list');
+  assert.ok(list?.html.includes('au-git-tree-guide'));
+  assert.ok(list?.html.includes('au-git-tree-toggle--collapsed'));
 });
 
 test('tappable cards are catalog buttons instead of local picker chrome', async () => {
@@ -246,7 +258,7 @@ test('tappable cards are catalog buttons instead of local picker chrome', async 
   const axaml = await readFile(resolve(repository, 'AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml'), 'utf8');
   assert.match(axaml, /Classes="au-choice"/);
   assert.doesNotMatch(axaml, /agentPickerButton/);
-  const mobile = await readFile(resolve(repository, 'AgentUp.Mobile/src/features/agents/components/AgentChatScreen.tsx'), 'utf8');
+  const mobile = await readFile(resolve(repository, 'AgentUp.Chat/src/components/AgentChatScreen.tsx'), 'utf8');
   assert.match(mobile, /auBox\('choice'\)/);
 });
 

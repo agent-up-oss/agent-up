@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   formatGitLogTime,
+  formatGitLogTimestamp,
   gitLogGraphEdges,
   gitLogLaneX,
   layoutGitLog,
+  classifyGitLogRef,
 } from './GitLogLayoutProvider';
 
 const root = { id: 'aaa', shortId: 'aaa', parents: [], subject: 'root', author: 'A', timestamp: '2026-01-01T00:00:00Z', refs: ['main'] };
@@ -49,4 +51,21 @@ test('formatGitLogTime uses relative and calendar buckets', () => {
   assert.equal(formatGitLogTime(new Date(2026, 0, 3, 11, 36, 0).toISOString(), now), '24 minutes ago');
   assert.equal(formatGitLogTime(new Date(2026, 0, 3, 8, 5, 0).toISOString(), now), 'Today 08:05');
   assert.equal(formatGitLogTime(new Date(2026, 0, 2, 21, 5, 0).toISOString(), now), 'Yesterday 21:05');
+});
+
+test('formatGitLogTimestamp uses a fixed-width calendar clock', () => {
+  assert.equal(formatGitLogTimestamp(new Date(2026, 8, 16, 16, 28, 0).toISOString()), '16.09.26 16:28');
+});
+
+test('classifyGitLogRef treats names absent from local branches as tags', () => {
+  assert.equal(classifyGitLogRef('v3.47.0', ['main']).kind, 'tag');
+  assert.equal(classifyGitLogRef('main', ['main']).kind, 'local');
+  assert.equal(classifyGitLogRef('origin/main').kind, 'remote');
+});
+
+test('layoutGitLog classifies tags when local branches are provided', () => {
+  const tagged = { ...root, refs: ['HEAD', 'main', 'v1.0.0'] };
+  const rows = layoutGitLog([tagged], ['main']);
+  assert.deepEqual(rows[0].refs.map(ref => ref.kind), ['head', 'local', 'tag']);
+  assert.equal(rows[0].checkoutName, 'main');
 });

@@ -486,6 +486,14 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         CancelDiscardConfirm();
     }
 
+    void IGitChangeNodeHost.NodeExpansionChanged(GitChangeNodeViewModel node)
+    {
+        if (!node.IsDirectory)
+            return;
+
+        RefreshRowVisibility();
+    }
+
     private void ApplySelection(GitChangeNodeViewModel node)
     {
         foreach (var file in node.Files)
@@ -768,6 +776,9 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         var selected = preserveSelection
             ? Nodes.Where(node => node.IsFile && node.IsSelected).Select(node => node.Path).ToHashSet(StringComparer.Ordinal)
             : [];
+        var collapsed = preserveSelection
+            ? Nodes.Where(node => node.IsDirectory && !node.IsExpanded).Select(node => node.Path).ToHashSet(StringComparer.Ordinal)
+            : [];
         Nodes.Clear();
         SelectedFileCount = 0;
         ApplyHead(tree);
@@ -801,6 +812,13 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
             SelectedFileCount = Nodes.Count(node => node.IsFile && node.IsSelected);
         }
 
+        if (collapsed.Count > 0)
+        {
+            foreach (var directory in Nodes.Where(candidate => candidate.IsDirectory && collapsed.Contains(candidate.Path)))
+                directory.SetExpandedSilently(false);
+        }
+
+        RefreshRowVisibility();
         MarkOpenFile(Diff.IsVisible ? Diff.Path : null);
     }
 
@@ -922,6 +940,34 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     {
         foreach (var node in Nodes)
             node.SetOpenSilently(node.IsFile && path is not null && string.Equals(node.Path, path, StringComparison.Ordinal));
+    }
+
+    private void RefreshRowVisibility()
+    {
+        var collapsed = Nodes
+            .Where(node => node.IsDirectory && !node.IsExpanded)
+            .Select(node => node.Path)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (var node in Nodes)
+            node.SetRowVisibleSilently(!IsHiddenByCollapse(node, collapsed));
+    }
+
+    private static bool IsHiddenByCollapse(GitChangeNodeViewModel node, HashSet<string> collapsed)
+    {
+        if (node.Path.Length > 0 && collapsed.Contains(string.Empty))
+            return true;
+
+        var parts = node.Path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var limit = node.IsDirectory ? parts.Length - 1 : parts.Length;
+        var prefix = string.Empty;
+        for (var index = 0; index < limit; index++)
+        {
+            prefix = prefix.Length == 0 ? parts[index] : $"{prefix}/{parts[index]}";
+            if (collapsed.Contains(prefix))
+                return true;
+        }
+
+        return false;
     }
 
     private void RaiseListProperties()

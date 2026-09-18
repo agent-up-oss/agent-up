@@ -60,3 +60,19 @@ test('highlightLine uses the shared design-system grammar for the file path', ()
   assert.ok(tokens.some(token => token.kind === 'keyword' && token.text === 'class'));
   assert.deepEqual(lineBoxNames('added', true), ['fileViewerLine', 'fileViewerLineAdded', 'fileViewerLineCurrent']);
 });
+
+test('highlightLine keeps leading spaces and tabs in displayed tokens', () => {
+  const spaced = parseFileDiff('@@ -1 +1 @@\n+    return foo;\n')
+    .find(line => line.kind === 'added')!;
+  assert.equal(spaced.text, '    return foo;');
+  const tokens = highlightLine('src/app/main.ts', spaced);
+  assert.equal(tokens.map(token => token.text).join(''), '    return foo;');
+  assert.equal(tokens[0].text, '    ');
+
+  const tabbed = parseFileDiff('@@ -1 +1 @@\n+\treturn foo;\n')
+    .find(line => line.kind === 'added')!;
+  assert.equal(tabbed.text, '\treturn foo;');
+  const tabTokens = highlightLine('src/app/main.ts', tabbed);
+  assert.equal(tabTokens.map(token => token.text).join(''), '\treturn foo;');
+  assert.equal(tabTokens[0].text, '\t');
+});

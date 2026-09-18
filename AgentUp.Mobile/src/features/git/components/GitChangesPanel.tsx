@@ -13,10 +13,14 @@ import {
   canDiscardSelection,
   changeStatusCounts,
   flattenChangeTree,
+  gitCommitConfirmCopy,
   isDirectorySelected,
+  retainCollapsedPaths,
   retainSelectedPaths,
   selectedFilePaths,
+  toggleDirectoryCollapsed,
   toggleNodeSelection,
+  visibleChangeNodes,
 } from '../providers/GitChangeTreeProvider';
 import { GitChangeRow } from './GitChangeRow';
 import { GitFileViewer } from './GitFileViewer';
@@ -26,12 +30,10 @@ const POLL_MS = 2500;
 export function GitChangesPanel({
   workspaceId: workspaceIdProp,
   mode = 'review',
-  onReview,
   onOpenFile,
 }: {
   workspaceId?: string;
   mode?: 'overview' | 'review';
-  onReview?: () => void;
   onOpenFile?: (path: string) => void;
 } = {}) {
   const { expireActiveCredential } = useServers();
@@ -42,6 +44,7 @@ export function GitChangesPanel({
   const [tree, setTree] = useState<GitChangeTree | null>(null);
   const [queue, setQueue] = useState<CommitQueue | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
+  const [collapsed, setCollapsed] = useState<string[]>([]);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -52,6 +55,7 @@ export function GitChangesPanel({
   const [diffLoading, setDiffLoading] = useState(false);
 
   const nodes = useMemo(() => flattenChangeTree(tree), [tree]);
+  const visible = useMemo(() => visibleChangeNodes(nodes, collapsed), [nodes, collapsed]);
 
   const gates = useRef<{ tree: RequestGate; diff: RequestGate; mutate: RequestGate } | null>(null);
   gates.current ??= { tree: createRequestGate(), diff: createRequestGate(), mutate: createRequestGate() };
@@ -75,6 +79,7 @@ export function GitChangesPanel({
       setTree(null);
       setQueue(null);
       setSelected([]);
+      setCollapsed([]);
       return;
     }
     if (!silent) { setLoading(true); setError(null); }
@@ -83,11 +88,13 @@ export function GitChangesPanel({
       const changes = await getChanges(server, workspaceId);
       if (!treeGate.isCurrent(ticket)) return;
       setTree(changes);
+      const flattened = flattenChangeTree(changes);
       setSelected(current => {
         const keep = selectionWorkspace.current === workspaceId ? current : [];
         selectionWorkspace.current = workspaceId;
-        return retainSelectedPaths(flattenChangeTree(changes), keep);
+        return retainSelectedPaths(flattened, keep);
       });
+      setCollapsed(current => retainCollapsedPaths(flattened, current));
       if (silent) setError(null);
       if (overview) return;
       try {
@@ -177,48 +184,58 @@ export function GitChangesPanel({
     return result;
   }, result => `Committed ${files.length} file(s) as ${(result.commit ?? 'HEAD').slice(0, 8)}.`);
 
+  const confirmCommit = () => {
+    if (!canCommit) return;
+    const copy = gitCommitConfirmCopy(message, files);
+    Alert.alert(copy.title, copy.message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: copy.confirm, onPress: commitSelection },
+    ]);
+  };
+
+  const countLabel = [
+    counts.added > 0 ? `+${counts.added}` : null,
+    counts.deleted > 0 ? `−${counts.deleted}` : null,
+  ].filter(Boolean).join(' ');
+
   const commitButton = (
-    <Pressable accessibilityRole="button" accessibilityLabel="Commit" disabled={!canCommit}
-      onPress={commitSelection}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={countLabel ? `Commit ${countLabel}` : 'Commit'}
+      disabled={!canCommit}
+      onPress={confirmCommit}
       style={[styles.button, !canCommit && styles.disabled]}>
       <Text style={styles.buttonText}>Commit</Text>
+      {counts.added > 0 && <Text style={styles.insertions}>+{counts.added}</Text>}
+      {counts.deleted > 0 && <Text style={styles.deletions}>−{counts.deleted}</Text>}
     </Pressable>
   );
 
   return (
     <View style={styles.panel}>
-      {overview
-        ? <View style={styles.overviewToolbar}>
-            {onReview &&
-              <Pressable testID="open-git-review" accessibilityRole="button" accessibilityLabel="Review changes" onPress={onReview} style={styles.reviewButton}>
-                <Text style={styles.reviewText}>Review</Text>
-                {counts.added > 0 && <Text style={styles.insertions}>+{counts.added}</Text>}
-                {counts.deleted > 0 && <Text style={styles.deletions}>−{counts.deleted}</Text>}
-              </Pressable>}
-            {commitButton}
+      {!overview &&
+        <View style={styles.header}>
+          <View style={styles.titleRow}>
+            <Text style={styles.summary}>{selectedCount} of {fileCount} file(s) selected</Text>
+            <Pressable disabled={!canDiscard} onPress={() => {
+              Alert.alert(
+                'Discard selected files?',
+                files.join('\n'),
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Discard',
+                    style: 'destructive',
+                    onPress: () => void runMutation(() => discardFiles(server!, workspaceId!, files), () => `Discarded ${files.length} file(s).`),
+                  },
+                ],
+              );
+            }}
+              style={[styles.discardButton, !canDiscard && styles.disabled]}>
+              <Text style={styles.discardText}>Discard</Text>
+            </Pressable>
           </View>
-        : <View style={styles.header}>
-            <View style={styles.titleRow}>
-              <Text style={styles.summary}>{selectedCount} of {fileCount} file(s) selected</Text>
-              <Pressable disabled={!canDiscard} onPress={() => {
-                Alert.alert(
-                  'Discard selected files?',
-                  files.join('\n'),
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Discard',
-                      style: 'destructive',
-                      onPress: () => void runMutation(() => discardFiles(server!, workspaceId!, files), () => `Discarded ${files.length} file(s).`),
-                    },
-                  ],
-                );
-              }}
-                style={[styles.discardButton, !canDiscard && styles.disabled]}>
-                <Text style={styles.discardText}>Discard</Text>
-              </Pressable>
-            </View>
-          </View>}
+        </View>}
 
       {!overview && !!queue?.entries.length &&
         <View accessibilityLabel="Agent proposal queue" style={styles.queue}>
@@ -237,7 +254,7 @@ export function GitChangesPanel({
       <ScrollView style={overview ? styles.overviewTree : styles.tree} contentContainerStyle={styles.treeContent} keyboardShouldPersistTaps="handled">
         {!loading && !error && nodes.length === 0 && selectedWorkspace &&
           <Text style={styles.empty}>No uncommitted changes.</Text>}
-        {nodes.map(node => {
+        {visible.map(node => {
           const checked = node.isDirectory
             ? isDirectorySelected(nodes, node, selected)
             : selected.includes(node.path);
@@ -247,7 +264,9 @@ export function GitChangesPanel({
               node={node}
               checked={checked}
               open={!node.isDirectory && diffPath === node.path}
+              expanded={!collapsed.includes(node.path)}
               onToggle={() => setSelected(current => toggleNodeSelection(nodes, node, current))}
+              onToggleExpand={() => setCollapsed(current => toggleDirectoryCollapsed(current, node.path))}
               onOpenFile={() => void openDiff(node)}
             />
           );
@@ -259,7 +278,7 @@ export function GitChangesPanel({
         <TextInput accessibilityLabel="Commit message" multiline value={message} onChangeText={setMessage}
           editable={!busy} placeholder="fix(App): correct the port probe" placeholderTextColor={agentUpTheme.colors.textFaint}
           style={overview ? styles.overviewMessage : styles.messageInput} />
-        {!overview && <View style={styles.actions}>{commitButton}</View>}
+        <View style={styles.actions}>{commitButton}</View>
       </View>
 
       <Modal visible={diffPath !== null} transparent animationType="fade" onRequestClose={() => setDiffPath(null)}>
@@ -298,14 +317,11 @@ const styles = StyleSheet.create({
   treeContent: { paddingVertical: 6, flexGrow: 1 },
   footer: { gap: 12 },
   actions: { flexDirection: 'row', gap: 8 },
-  overviewToolbar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   label: auText('fieldLabel'),
   messageInput: { minHeight: 90, ...auBox('input'), ...auText('input'), textAlignVertical: 'top' },
   overviewMessage: { minHeight: 72, ...auBox('input'), ...auText('input'), textAlignVertical: 'top' },
-  button: { ...auBox('button'), flex: 1, alignItems: 'center', justifyContent: 'center' },
+  button: { ...auBox('button'), flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   buttonText: auText('button'),
-  reviewButton: { ...auBox('button', 'buttonSecondary'), flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  reviewText: auText('buttonSecondary'),
   insertions: auText('gitInsertions'),
   deletions: auText('gitDeletions'),
   disabled: { opacity: 0.38 },

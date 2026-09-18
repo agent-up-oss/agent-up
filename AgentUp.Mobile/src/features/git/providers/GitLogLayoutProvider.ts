@@ -4,10 +4,13 @@ export const GIT_LOG_LANE_PALETTE = 8;
 export const GIT_LOG_LANE_WIDTH = 14;
 export const GIT_LOG_ROW_HEIGHT = 28;
 export const GIT_LOG_NODE_RADIUS = 3.5;
+export const GIT_LOG_PAGE_SIZE = 200;
+export const GIT_LOG_TIME_WIDTH = 108;
 
-export function classifyGitLogRef(name: string): GitLogRef {
+export function classifyGitLogRef(name: string, localBranches: readonly string[] = []): GitLogRef {
   if (name === 'HEAD') return { name, kind: 'head' };
   if (name.includes('/')) return { name, kind: 'remote' };
+  if (localBranches.length > 0 && !localBranches.includes(name)) return { name, kind: 'tag' };
   return { name, kind: 'local' };
 }
 
@@ -23,14 +26,17 @@ export function gitLogGraphWidth(laneCount: number, laneWidth = GIT_LOG_LANE_WID
   return Math.max(1, laneCount) * laneWidth;
 }
 
-export function layoutGitLog(commits: GitLogCommit[] | null | undefined): GitLogRow[] {
+export function layoutGitLog(
+  commits: GitLogCommit[] | null | undefined,
+  localBranches: readonly string[] = [],
+): GitLogRow[] {
   const list = commits ?? [];
   const occupied: Array<string | null> = [];
   const rows: GitLogRow[] = [];
 
   for (const commit of list) {
     const parents = commit.parents ?? [];
-    const refs = (commit.refs ?? []).map(classifyGitLogRef);
+    const refs = (commit.refs ?? []).map(name => classifyGitLogRef(name, localBranches));
     const incomingLanes = occupied.flatMap((id, index) => (id == null ? [] : [index]));
     let lane = occupied.indexOf(commit.id);
     if (lane < 0) {
@@ -144,7 +150,13 @@ export function formatGitLogTime(iso: string, nowMs = Date.now()): string {
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
   if (then.toDateString() === yesterday.toDateString()) return `Yesterday ${time}`;
-  return `${pad(then.getDate())}.${pad(then.getMonth() + 1)}.${String(then.getFullYear()).slice(2)} ${time}`;
+  return formatGitLogTimestamp(iso);
+}
+
+export function formatGitLogTimestamp(iso: string): string {
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) return iso;
+  return `${pad(then.getDate())}.${pad(then.getMonth() + 1)}.${String(then.getFullYear()).slice(2)} ${pad(then.getHours())}:${pad(then.getMinutes())}`;
 }
 
 function pad(value: number): string {

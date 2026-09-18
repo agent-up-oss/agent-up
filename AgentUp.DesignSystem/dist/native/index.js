@@ -308,6 +308,7 @@ export const agentUpTheme = Object.freeze({
       fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
       fontSize: 13,
       fontWeight: '500',
+      whiteSpace: 'nowrap',
     }),
     tabSelected: Object.freeze({
       color: "#f5fbf7",
@@ -438,6 +439,7 @@ export const agentUpTheme = Object.freeze({
       color: "#f5fbf7",
       fontSize: 13,
       fontWeight: '600',
+      whiteSpace: 'nowrap',
     }),
     workspaceBranch: Object.freeze({
       color: "#8a9a92",
@@ -574,6 +576,7 @@ export const agentUpTheme = Object.freeze({
       backgroundColor: "#0a0b0c",
       fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 11,
+      whiteSpace: 'pre',
     }),
     gitChangeList: Object.freeze({
       color: "#f5fbf7",
@@ -596,6 +599,32 @@ export const agentUpTheme = Object.freeze({
       borderLeftColor: "#00000000",
       borderRadius: 8,
     }),
+    gitTreeGuide: Object.freeze({
+      width: 20,
+      minHeight: 32,
+      color: "#8a9a92",
+      backgroundColor: "#00000000",
+      borderLeftWidth: 1,
+      borderLeftColor: "#ffffff14",
+    }),
+    gitTreeToggle: Object.freeze({
+      width: 14,
+      minHeight: 32,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      color: "#8a9a92",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    gitTreeToggleExpanded: Object.freeze({
+      color: "#8a9a92",
+    }),
+    gitTreeToggleCollapsed: Object.freeze({
+      color: "#8a9a92",
+    }),
     gitRowSelected: Object.freeze({
       color: "#f5fbf7",
       backgroundColor: "#10281d",
@@ -607,6 +636,7 @@ export const agentUpTheme = Object.freeze({
       color: "#f5fbf7",
       fontSize: 13,
       fontWeight: '500',
+      whiteSpace: 'nowrap',
     }),
     gitChangeNameDirectory: Object.freeze({
       color: "#8a9a92",
@@ -937,6 +967,7 @@ export const agentUpTheme = Object.freeze({
       fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 13,
       fontWeight: '600',
+      whiteSpace: 'nowrap',
     }),
     fileViewerStatus: Object.freeze({
       color: "#8a9a92",
@@ -995,6 +1026,7 @@ export const agentUpTheme = Object.freeze({
       borderLeftColor: "#00000000",
       fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 11,
+      whiteSpace: 'pre',
     }),
     fileViewerLineAdded: Object.freeze({
       color: "#f5fbf7",
@@ -1040,9 +1072,11 @@ export const agentUpTheme = Object.freeze({
       color: "#c2d2ca",
       fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 11,
+      whiteSpace: 'pre',
     }),
     syntaxPlain: Object.freeze({
       color: "#c2d2ca",
+      whiteSpace: 'pre',
     }),
     syntaxKeyword: Object.freeze({
       color: "#8bb7ff",
@@ -1077,6 +1111,20 @@ export const agentUpTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 12,
+    }),
+    gitLogDetail: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+    }),
+    gitLogTrack: Object.freeze({
+      minWidth: 0,
+    }),
+    gitLogGraphScroll: Object.freeze({
+      minWidth: 0,
     }),
     gitLogRow: Object.freeze({
       minHeight: 28,
@@ -1131,15 +1179,19 @@ export const agentUpTheme = Object.freeze({
       color: "#f5fbf7",
       fontSize: 12,
       fontWeight: '500',
+      whiteSpace: 'nowrap',
     }),
     gitLogAuthor: Object.freeze({
       color: "#8a9a92",
       fontSize: 11,
       fontWeight: '500',
+      whiteSpace: 'nowrap',
     }),
     gitLogTime: Object.freeze({
+      width: 108,
       color: "#718077",
       fontSize: 11,
+      whiteSpace: 'nowrap',
     }),
     gitLogRef: Object.freeze({
       maxWidth: 176,
@@ -1153,6 +1205,7 @@ export const agentUpTheme = Object.freeze({
       borderRadius: 999,
       fontSize: 11,
       fontWeight: '500',
+      whiteSpace: 'nowrap',
     }),
     gitLogRefHead: Object.freeze({
       color: "#2bf27a",
@@ -1160,6 +1213,9 @@ export const agentUpTheme = Object.freeze({
     }),
     gitLogRefRemote: Object.freeze({
       color: "#8bb7ff",
+    }),
+    gitLogRefTag: Object.freeze({
+      color: "#8a9a92",
     }),
     gitLogNode: Object.freeze({
       width: 8,
@@ -1203,7 +1259,7 @@ export const agentUpTheme = Object.freeze({
   }),
 });
 const auBoxKeys = new Set(["backgroundColor","borderWidth","borderColor","borderRadius","borderTopWidth","borderTopColor","borderRightWidth","borderRightColor","borderBottomWidth","borderBottomColor","borderLeftWidth","borderLeftColor","width","height","minHeight","minWidth","maxWidth","marginLeft","paddingHorizontal","paddingVertical","opacity","color"]);
-const auTextKeys = new Set(["color","fontSize","fontWeight","opacity","fontFamily","fontStyle","textTransform","letterSpacing"]);
+const auTextKeys = new Set(["color","fontSize","fontWeight","opacity","fontFamily","fontStyle","textTransform","letterSpacing","whiteSpace"]);
 function auPick(names, keys) {
   const out = {};
   for (const name of names) {

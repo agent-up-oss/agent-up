@@ -1,3 +1,4 @@
+using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Git.ViewModels;
 
 namespace AgentUp.Desktop.Tests.Features.Git.Unit;
@@ -12,11 +13,27 @@ public sealed class GitChangeNodeViewModelTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(node.Glyph, Is.EqualTo("▸"));
+            Assert.That(node.ToggleGlyph, Is.EqualTo("▾"));
             Assert.That(node.IsDirectory, Is.True);
             Assert.That(node.IsFile, Is.False);
             Assert.That(node.IsModified, Is.False);
-            Assert.That(node.IndentWidth, Is.EqualTo(12));
+            Assert.That(node.IsExpanded, Is.True);
+            Assert.That(node.Guides, Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task Directory_toggleSwitchesToTheCollapsedChevron()
+    {
+        var node = new GitChangeNodeViewModel("src", "src", 1, true, string.Empty);
+
+        await node.ToggleExpandCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(node.IsExpanded, Is.False);
+            Assert.That(node.IsCollapsed, Is.True);
+            Assert.That(node.ToggleGlyph, Is.EqualTo("▸"));
         });
     }
 

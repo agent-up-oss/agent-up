@@ -151,9 +151,10 @@
   color: var(--au-color-text-secondary);
   font-family: var(--au-font-mono);
   font-size: var(--au-font-size-ui-xs);
+  white-space: pre;
 }
 
-.au-syntax-plain { color: var(--au-color-text-secondary); }
+.au-syntax-plain { color: var(--au-color-text-secondary); white-space: pre; }
 .au-syntax-keyword { color: var(--au-color-text-info); }
 .au-syntax-type { color: var(--au-color-status-info); }
 .au-syntax-string { color: var(--au-color-text-warning); }

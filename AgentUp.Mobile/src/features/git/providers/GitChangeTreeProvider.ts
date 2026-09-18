@@ -83,6 +83,18 @@ export function canCommitSelection(selectedCount: number, message: string): bool
   return selectedCount > 0 && message.trim().length > 0;
 }
 
+export function gitCommitConfirmCopy(message: string, files: string[]): {
+  title: string;
+  message: string;
+  confirm: string;
+} {
+  return {
+    title: 'Commit selected files?',
+    message: `This commits ${files.length} file(s) with this message:\n\n${message.trim()}\n\n${files.join('\n')}`,
+    confirm: 'Commit',
+  };
+}
+
 export function statusGlyph(status: GitChangeNode['status']): string {
   switch (status) {
     case 'Added':
@@ -132,6 +144,44 @@ export function statusClass(status: GitChangeNode['status']): GitStatusClass {
 
 export function nameClass(isDirectory: boolean): 'gitChangeNameDirectory' | 'gitChangeName' {
   return isDirectory ? 'gitChangeNameDirectory' : 'gitChangeName';
+}
+
+export function directoryToggleGlyph(expanded: boolean): string {
+  return expanded ? '▾' : '▸';
+}
+
+export function directoryToggleClass(expanded: boolean): 'gitTreeToggleExpanded' | 'gitTreeToggleCollapsed' {
+  return expanded ? 'gitTreeToggleExpanded' : 'gitTreeToggleCollapsed';
+}
+
+export function ancestorDirectoryPaths(node: GitChangeNode): string[] {
+  const ancestors: string[] = [];
+  if (node.path.length > 0) ancestors.push('');
+  const parts = node.path.split('/').filter(Boolean);
+  const limit = node.isDirectory ? parts.length - 1 : parts.length;
+  let prefix = '';
+  for (let index = 0; index < limit; index += 1) {
+    prefix = prefix ? `${prefix}/${parts[index]}` : parts[index];
+    ancestors.push(prefix);
+  }
+  return ancestors;
+}
+
+export function visibleChangeNodes(nodes: GitChangeNode[], collapsed: readonly string[]): GitChangeNode[] {
+  if (collapsed.length === 0) return nodes;
+  const hidden = new Set(collapsed);
+  return nodes.filter(node => ancestorDirectoryPaths(node).every(path => !hidden.has(path)));
+}
+
+export function toggleDirectoryCollapsed(collapsed: readonly string[], path: string): string[] {
+  return collapsed.includes(path)
+    ? collapsed.filter(item => item !== path)
+    : [...collapsed, path];
+}
+
+export function retainCollapsedPaths(nodes: GitChangeNode[], collapsed: readonly string[]): string[] {
+  const directories = new Set(nodes.filter(node => node.isDirectory).map(node => node.path));
+  return collapsed.filter(path => directories.has(path));
 }
 
 function flattenDirectory(directory: GitChangeDirectory, depth: number, isRoot: boolean): GitChangeNode[] {

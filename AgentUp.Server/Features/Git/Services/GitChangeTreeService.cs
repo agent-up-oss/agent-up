@@ -197,7 +197,12 @@ public sealed class GitChangeTreeService
             refreshIdentity: false,
             cancellationToken);
 
-    public async Task<GitLog?> GetLogAsync(string workspaceId, int? max, CancellationToken cancellationToken = default)
+    public async Task<GitLog?> GetLogAsync(
+        string workspaceId,
+        int? max,
+        CancellationToken cancellationToken = default,
+        int? skip = null,
+        string? until = null)
     {
         var workspace = _workspaces.GetById(workspaceId);
         if (workspace is null)
@@ -205,7 +210,7 @@ public sealed class GitChangeTreeService
 
         try
         {
-            return await _git.GetLogAsync(workspace.WorktreePath, max, cancellationToken);
+            return await _git.GetLogAsync(workspace.WorktreePath, max, cancellationToken, skip, until);
         }
         catch (InvalidOperationException)
         {

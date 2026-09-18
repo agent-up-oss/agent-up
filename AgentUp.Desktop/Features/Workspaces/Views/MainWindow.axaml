@@ -1896,7 +1896,8 @@
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate DataType="gitVm:GitChangeNodeViewModel">
                                                         <Border Classes="gitNodeRow"
-                                                                Classes.gitNodeRowSelected="{Binding IsOpen}">
+                                                                Classes.gitNodeRowSelected="{Binding IsOpen}"
+                                                                IsVisible="{Binding IsRowVisible}">
                                                             <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
                                                                 <CheckBox Grid.Column="0"
                                                                           IsChecked="{Binding IsSelected}"
@@ -1904,14 +1905,30 @@
                                                                           Padding="0"
                                                                           Margin="0,0,6,0"
                                                                           VerticalAlignment="Center"/>
-                                                                <Border Grid.Column="1"
-                                                                        Width="{Binding IndentWidth}"/>
-                                                                <TextBlock Grid.Column="2"
-                                                                           Classes="au-git-status au-git-status--directory"
-                                                                           Text="{Binding Glyph}"
-                                                                           IsVisible="{Binding IsDirectory}"
-                                                                           VerticalAlignment="Center"
-                                                                           Margin="0,0,6,0"/>
+                                                                <ItemsControl Grid.Column="1"
+                                                                              ItemsSource="{Binding Guides}">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <StackPanel Orientation="Horizontal"/>
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Border Classes="au-git-tree-guide"/>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                                <Button Grid.Column="2"
+                                                                        Classes="au-git-tree-toggle"
+                                                                        Classes.au-git-tree-toggle--expanded="{Binding IsExpanded}"
+                                                                        Classes.au-git-tree-toggle--collapsed="{Binding IsCollapsed}"
+                                                                        Command="{Binding ToggleExpandCommand}"
+                                                                        IsVisible="{Binding IsDirectory}"
+                                                                        Content="{Binding ToggleGlyph}"
+                                                                        Padding="0"
+                                                                        MinWidth="0"
+                                                                        VerticalAlignment="Center"
+                                                                        Margin="0,0,6,0"/>
                                                                 <Button Grid.Column="3"
                                                                         Classes="gitNodeName"
                                                                         Command="{Binding OpenCommand}"
@@ -2760,7 +2777,7 @@
                                                     </ItemsControl.ItemsPanel>
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate DataType="gitVm:GitFileDiffTokenViewModel">
-                                                            <TextBlock Classes="au-syntax-plain"
+                                                            <TextBlock Classes="au-file-viewer-code au-syntax-plain"
                                                                        Classes.au-syntax-keyword="{Binding IsKeyword}"
                                                                        Classes.au-syntax-type="{Binding IsType}"
                                                                        Classes.au-syntax-string="{Binding IsString}"
@@ -2770,6 +2787,7 @@
                                                                        Classes.au-syntax-property="{Binding IsProperty}"
                                                                        Classes.au-syntax-punctuation="{Binding IsPunctuation}"
                                                                        Classes.au-syntax-operator="{Binding IsOperator}"
+                                                                       xml:space="preserve"
                                                                        Text="{Binding Text}"/>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>

@@ -191,6 +191,23 @@ public sealed class GitChangesControllerTests
         Assert.That(OkValue<GitLog>(result).Commits[0].Subject, Is.EqualTo("initial"));
     }
 
+    [Test]
+    public async Task GetLog_forwardsSkipAndUntilCursors()
+    {
+        var git = new FakeGitWorkingTreeProvider
+        {
+            Log = new GitLog([new GitLogCommit("abc", "abc", [], "older", "Agent Up", "2026-01-01T00:00:00Z", ["main"])], HasMore: true)
+        };
+        var (controller, workspaceId) = await CreateControllerAsync(git);
+
+        var result = await controller.GetLog(workspaceId, 200, 200, "abc");
+
+        Assert.That(OkValue<GitLog>(result).HasMore, Is.True);
+        Assert.That(git.LogMax, Is.EqualTo(200));
+        Assert.That(git.LogSkip, Is.EqualTo(200));
+        Assert.That(git.LogUntil, Is.EqualTo("abc"));
+    }
+
     private static T OkValue<T>(IActionResult result) where T : class
         => (result as OkObjectResult)?.Value as T
            ?? throw new AssertionException($"Expected a 200 OK result carrying {typeof(T).Name}, got {result.GetType().Name}.");

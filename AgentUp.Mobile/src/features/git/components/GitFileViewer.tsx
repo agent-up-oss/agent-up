@@ -66,7 +66,11 @@ export function GitFileViewer({
         <Text style={auText(prefixClassName(item.kind))}>{item.prefix}</Text>
         <Text style={[styles.code, auText('fileViewerCode')]} numberOfLines={1}>
           {tokens.map((token, tokenIndex) => (
-            <Text key={`${item.index}:${tokenIndex}`} style={auText(syntaxClassName(token.kind))}>{token.text}</Text>
+            <Text
+              key={`${item.index}:${tokenIndex}`}
+              style={[auText('fileViewerCode'), auText(syntaxClassName(token.kind))]}>
+              {token.text}
+            </Text>
           ))}
         </Text>
       </Pressable>

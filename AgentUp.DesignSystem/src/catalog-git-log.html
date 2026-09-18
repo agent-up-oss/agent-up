@@ -1,4 +1,122 @@
-  <section data-au-surface="git-log" data-au-title="Git history" data-au-intro="The commit graph is a selectable log: colored lanes, merge curves, branch ref pills, subject, author, and relative time. Green is selection, not decoration.">
+  <section data-au-surface="git-log" data-au-title="Git history" data-au-intro="Mobile history is graph-first: a pinned timestamp column and a horizontally scrollable graph. Selecting a row puts subject, author, branches, and tags in a sticky header. Checkout lives in that header, not on the row. Green is selection, not decoration.">
+    <article data-au-component="git-log-detail" data-au-title="Selected commit" data-au-note="The sticky header is the only place for commit message, author, refs, and checkout. Rows stay timestamp plus graph." data-au-avalonia="Border" data-au-class="au-git-log-detail" data-au-desktop-class="gitLogDetail">
+      <div class="au-git-log-detail">
+        <span class="au-git-log-subject">fix(packaging): seal platform verification gaps</span>
+        <span class="au-git-log-author">Daniel Mass</span>
+        <div class="au-cluster">
+          <button class="au-git-log-ref au-git-log-ref--head" type="button">HEAD</button>
+          <button class="au-git-log-ref" type="button">369-mobile</button>
+          <button class="au-git-log-ref au-git-log-ref--remote" type="button">origin/main</button>
+          <span class="au-git-log-ref au-git-log-ref--tag">v3.47.0</span>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="git-log-row" data-au-title="History row" data-au-note="Every row is a fixed-width timestamp plus the graph. Selection is an accent tint plus a 2px leading accent rule. Hover stays a neutral state layer. When the graph is wider than the pane, only the graph region scrolls horizontally." data-au-avalonia="Border" data-au-class="au-git-log-row" data-au-desktop-class="gitLogRow" data-au-desktop-host="ListBoxItem">
+      <div class="au-git-log">
+        <div class="au-git-log-track">
+          <div>
+            <div class="au-git-log-row au-git-log-row--selected">
+              <span class="au-git-log-time">16.09.26 05:16</span>
+            </div>
+            <div class="au-git-log-row">
+              <span class="au-git-log-time">16.09.26 05:14</span>
+            </div>
+            <div class="au-git-log-row">
+              <span class="au-git-log-time">16.09.26 05:10</span>
+            </div>
+            <div class="au-git-log-row">
+              <span class="au-git-log-time">15.09.26 18:26</span>
+            </div>
+          </div>
+          <div class="au-git-log-graph-scroll">
+            <div class="au-git-log-row au-git-log-row--selected">
+              <svg class="au-git-log-graph" width="70" height="28" viewBox="0 0 70 28" aria-hidden="true">
+                <g class="au-git-log-lane-0">
+                  <path class="au-git-log-graph-edge" d="M 7 0 L 7 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 7 14 L 7 28"></path>
+                  <circle class="au-git-log-graph-node au-git-log-graph-node--filled" cx="7" cy="14" r="3.5"></circle>
+                </g>
+                <g class="au-git-log-lane-1">
+                  <path class="au-git-log-graph-edge" d="M 21 0 L 21 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 21 14 L 21 28"></path>
+                </g>
+                <g class="au-git-log-lane-2">
+                  <path class="au-git-log-graph-edge" d="M 35 0 L 35 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 35 14 L 35 28"></path>
+                </g>
+                <g class="au-git-log-lane-3">
+                  <path class="au-git-log-graph-edge" d="M 49 0 L 49 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 49 14 C 49 21, 63 21, 63 28"></path>
+                </g>
+              </svg>
+            </div>
+            <div class="au-git-log-row">
+              <svg class="au-git-log-graph" width="70" height="28" viewBox="0 0 70 28" aria-hidden="true">
+                <g class="au-git-log-lane-0">
+                  <path class="au-git-log-graph-edge" d="M 7 0 L 7 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 7 14 L 7 28"></path>
+                  <circle class="au-git-log-graph-node au-git-log-graph-node--filled" cx="7" cy="14" r="3.5"></circle>
+                </g>
+                <g class="au-git-log-lane-1">
+                  <path class="au-git-log-graph-edge" d="M 21 0 L 21 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 21 14 L 21 28"></path>
+                </g>
+                <g class="au-git-log-lane-2">
+                  <path class="au-git-log-graph-edge" d="M 35 0 L 35 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 35 14 L 35 28"></path>
+                </g>
+                <g class="au-git-log-lane-3">
+                  <path class="au-git-log-graph-edge" d="M 63 0 L 63 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 63 14 L 63 28"></path>
+                </g>
+              </svg>
+            </div>
+            <div class="au-git-log-row">
+              <svg class="au-git-log-graph" width="70" height="28" viewBox="0 0 70 28" aria-hidden="true">
+                <g class="au-git-log-lane-0">
+                  <path class="au-git-log-graph-edge" d="M 7 0 L 7 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 7 14 L 7 28"></path>
+                </g>
+                <g class="au-git-log-lane-1">
+                  <path class="au-git-log-graph-edge" d="M 21 0 L 21 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 21 14 L 21 28"></path>
+                  <circle class="au-git-log-graph-node au-git-log-graph-node--filled" cx="21" cy="14" r="3.5"></circle>
+                </g>
+                <g class="au-git-log-lane-2">
+                  <path class="au-git-log-graph-edge" d="M 35 0 L 35 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 35 14 L 35 28"></path>
+                </g>
+                <g class="au-git-log-lane-3">
+                  <path class="au-git-log-graph-edge" d="M 63 0 L 63 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 63 14 L 63 28"></path>
+                </g>
+              </svg>
+            </div>
+            <div class="au-git-log-row">
+              <svg class="au-git-log-graph" width="70" height="28" viewBox="0 0 70 28" aria-hidden="true">
+                <g class="au-git-log-lane-0">
+                  <path class="au-git-log-graph-edge" d="M 7 0 L 7 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 7 14 L 7 28"></path>
+                </g>
+                <g class="au-git-log-lane-1">
+                  <path class="au-git-log-graph-edge" d="M 21 0 L 21 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 21 14 L 21 28"></path>
+                </g>
+                <g class="au-git-log-lane-2">
+                  <path class="au-git-log-graph-edge" d="M 35 0 L 35 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 35 14 L 35 28"></path>
+                  <circle class="au-git-log-graph-node au-git-log-graph-node--filled" cx="35" cy="14" r="3.5"></circle>
+                </g>
+                <g class="au-git-log-lane-3">
+                  <path class="au-git-log-graph-edge" d="M 63 0 L 63 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 63 14 L 63 28"></path>
+                </g>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
     <article data-au-component="git-log-graph" data-au-title="Commit graph" data-au-note="Lanes are a closed design-system palette. First parents continue; additional parents curve into a new lane. Do not draw ASCII | * | glyphs." data-au-avalonia="Border" data-au-class="au-git-log-graph" data-au-desktop-class="gitLogGraph">
       <svg class="au-git-log-graph" width="42" height="112" viewBox="0 0 42 112" aria-hidden="true">
         <g class="au-git-log-lane-0">
@@ -17,45 +135,12 @@
         </g>
       </svg>
     </article>
-    <article data-au-component="git-log-row" data-au-title="History row" data-au-note="Selection is an accent tint plus a 2px leading accent rule. Hover stays a neutral state layer." data-au-avalonia="Border" data-au-class="au-git-log-row" data-au-desktop-class="gitLogRow" data-au-desktop-host="ListBoxItem">
-      <div class="au-git-log">
-        <div class="au-git-log-row au-git-log-row--selected">
-          <svg class="au-git-log-graph" width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
-            <g class="au-git-log-lane-0">
-              <path class="au-git-log-graph-edge" d="M 7 0 L 7 14"></path>
-              <path class="au-git-log-graph-edge" d="M 7 14 L 7 28"></path>
-              <circle class="au-git-log-graph-node au-git-log-graph-node--filled" cx="7" cy="14" r="3.5"></circle>
-            </g>
-          </svg>
-          <span class="au-git-log-body">
-            <span class="au-git-log-ref au-git-log-ref--head">HEAD</span>
-            <span class="au-git-log-ref">main</span>
-            <span class="au-git-log-subject">feat(Git): show the commit graph</span>
-            <span class="au-git-log-author">Daniel Mass</span>
-            <span class="au-git-log-time">24 minutes ago</span>
-          </span>
-        </div>
-        <div class="au-git-log-row">
-          <svg class="au-git-log-graph" width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
-            <g class="au-git-log-lane-0">
-              <path class="au-git-log-graph-edge" d="M 7 0 L 7 14"></path>
-              <path class="au-git-log-graph-edge" d="M 7 14 C 7 21, 21 21, 21 28"></path>
-              <circle class="au-git-log-graph-node au-git-log-graph-node--filled" cx="7" cy="14" r="3.5"></circle>
-            </g>
-          </svg>
-          <span class="au-git-log-body">
-            <span class="au-git-log-subject">Merge pull request</span>
-            <span class="au-git-log-author">Daniel Mass</span>
-            <span class="au-git-log-time">Yesterday 21:05</span>
-          </span>
-        </div>
-      </div>
-    </article>
-    <article data-au-component="git-log-ref" data-au-title="Ref chips" data-au-note="Local branches, remotes, and HEAD are pills. Checkout stays on labeled branch refs, not detached HEAD." data-au-avalonia="Button" data-au-class="au-git-log-ref" data-au-desktop-class="gitLogRef">
+    <article data-au-component="git-log-ref" data-au-title="Ref chips" data-au-note="Local branches, remotes, tags, and HEAD are pills in the sticky header. Checkout stays on labeled branch refs, not detached HEAD or tags." data-au-avalonia="Button" data-au-class="au-git-log-ref" data-au-desktop-class="gitLogRef">
       <div class="au-cluster">
         <button class="au-git-log-ref au-git-log-ref--head" type="button">HEAD</button>
         <button class="au-git-log-ref" type="button">369-mobile</button>
         <button class="au-git-log-ref au-git-log-ref--remote" type="button">origin/main</button>
+        <span class="au-git-log-ref au-git-log-ref--tag">v3.47.0</span>
       </div>
     </article>
   </section>

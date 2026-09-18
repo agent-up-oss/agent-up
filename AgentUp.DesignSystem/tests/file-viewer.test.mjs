@@ -25,6 +25,8 @@ test('file viewer catalog owns inspection chrome, line kinds, and syntax tokens'
   assert.equal(agentUpTheme.components.syntaxComment.color, agentUpTheme.colors.textMuted);
   assert.equal(auText('syntaxComment').fontStyle, 'italic');
   assert.equal(auBox('fileViewerLineCurrent').backgroundColor, agentUpTheme.colors.surfaceSelected);
+  assert.equal(auText('fileViewerCode').whiteSpace, 'pre');
+  assert.equal(auText('syntaxPlain').whiteSpace, 'pre');
 });
 
 test('Mobile and Desktop bind the file viewer instead of a plain text dump', async () => {
@@ -58,4 +60,18 @@ test('shared highlighter maps extensions and tokenizes keywords without a second
   assert.ok(csharp.some(token => token.kind === 'keyword' && token.text === 'class'));
   assert.ok(csharp.some(token => token.kind === 'keyword' && token.text === 'public'));
   assert.ok(csharp.map(token => token.text).join('').includes('GitFileDiff'));
+});
+
+test('tokenizeLine keeps leading spaces and tabs on a typical indented line', () => {
+  const spaces = tokenizeLine('    return foo;', 'typescript');
+  assert.equal(spaces.map(token => token.text).join(''), '    return foo;');
+  assert.equal(spaces[0].text, '    ');
+  assert.ok(spaces.some(token => token.kind === 'keyword' && token.text === 'return'));
+
+  const tabbed = tokenizeLine('\treturn foo;', 'typescript');
+  assert.equal(tabbed.map(token => token.text).join(''), '\treturn foo;');
+  assert.equal(tabbed[0].text, '\t');
+
+  const inspection = catalog.surfaces.find(item => item.id === 'file-viewer')?.components.find(item => item.id === 'file-viewer');
+  assert.ok(inspection?.html.includes('au-syntax-plain">    </span>'), 'catalog file viewer must keep four leading spaces');
 });

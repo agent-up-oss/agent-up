@@ -85,7 +85,7 @@ public sealed class DocumentationConsistency
             .ToArray();
         Assert.That(missing, Is.Empty, "docs/docusaurus.config.js footer must list every frozen slice.");
         var forbidden = ForbiddenTopLevelNames
-            .Where(name => Regex.IsMatch(footer, $@"label:\s*'{Regex.Escape(name)}'", RegexOptions.Ordinal))
+            .Where(name => Regex.IsMatch(footer, $@"label:\s*'{Regex.Escape(name)}'"))
             .ToArray();
         Assert.That(forbidden, Is.Empty,
             "Footer items cannot be named Desktop, Mobile, Server, CLI, Packaging, or CI.");
@@ -119,20 +119,17 @@ public sealed class DocumentationConsistency
 
         var forbiddenFolders = Directory.GetDirectories(docsRoot)
             .Select(Path.GetFileName)
-            .Where(name => ForbiddenTopLevelNames.Contains(name, StringComparer.OrdinalIgnoreCase)
-                || ForbiddenTopLevelNames.Contains(ToTitle(name), StringComparer.OrdinalIgnoreCase))
+            .Where(name => name is not null
+                && ForbiddenTopLevelNames.Contains(name, StringComparer.OrdinalIgnoreCase))
             .ToArray();
         Assert.That(forbiddenFolders, Is.Empty,
             "Top-level docs folders cannot be named Desktop, Mobile, Server, CLI, Packaging, or CI.");
     }
 
     private static string[] CategoryLabels(string source)
-        => Regex.Matches(source, @"type:\s*'category',\s*label:\s*'([^']+)'", RegexOptions.Multiline)
+        => Regex.Matches(source, @"type:\s*'category',\s*label:\s*'([^']+)'")
             .Select(match => match.Groups[1].Value)
             .ToArray();
-
-    private static string ToTitle(string name)
-        => string.IsNullOrEmpty(name) ? name : char.ToUpperInvariant(name[0]) + name[1..];
 
     private static IEnumerable<string> EnumerateDefinitionFiles(string root)
     {
