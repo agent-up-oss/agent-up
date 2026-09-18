@@ -47,7 +47,7 @@ export default function Home() {
           <h1 className="au-display">Run every branch. Review the right one.</h1>
           <p className="au-lede">{voice.promise}</p>
           <div className="au-cluster">
-            <Link className="au-button" to="/docs/downloads">Download</Link>
+            <Link className="au-button" to="/docs/start/downloads">Download</Link>
             <Link className="au-button au-button--secondary" to="/docs/">Read the docs</Link>
           </div>
           <p className={styles.preview}>Development preview · APIs and workflows may change.</p>
@@ -75,7 +75,7 @@ export default function Home() {
 
       <section className={`au-section ${styles.finalCta}`}><div className="au-container au-stack">
         <p className="au-eyebrow">Start with one repository</p><h2 className="au-title">Make parallel runtime review trustworthy.</h2>
-        <div className="au-cluster"><Link className="au-button" to="/docs/setup">Set up Agent-Up</Link><Link className="au-button au-button--secondary" to="/developer-guide/architecture">See the architecture</Link></div>
+        <div className="au-cluster"><Link className="au-button" to="/docs/start/setup">Set up Agent-Up</Link><Link className="au-button au-button--secondary" to="/developer-guide/repo/architecture">See the architecture</Link></div>
       </div></section>
     </main>
   </Layout>;

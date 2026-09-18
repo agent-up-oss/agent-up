@@ -31,7 +31,7 @@ Agent-Up is built to make those parallel workspaces reviewable without process, 
 
 ## What Currently Works
 
-See [User docs](docs/user-docs/index.md) for the product map and [Current Limitations](docs/user-docs/limitations.md) for status labels. Shipped surfaces include Server-owned workspaces, Desktop, Mobile, CLI, Git review, ACP agents, five MCP servers, and development-preview packages.
+See [User docs](docs/user-docs/index.md) for the product map and [Current Limitations](docs/user-docs/start/limitations.md) for status labels. Shipped surfaces include Server-owned workspaces, Desktop, Mobile, CLI, Git review, ACP agents, five MCP servers, and development-preview packages.
 
 ## Current Limitations
 
@@ -41,7 +41,7 @@ Agent-Up is a development preview: packages exist, but they are not a stable upd
 
 `AgentUp.Server` is the single source of truth. Desktop, CLI, MCP clients, and future integrations are clients of the Server: they may display state and request actions, but they must not own runtime state or duplicate orchestration logic.
 
-Contributor architecture details live in the [Developer Guide](docs/developer-guide/index.md), especially [Architecture](docs/developer-guide/architecture.md), [Server](docs/developer-guide/server.md), [Desktop](docs/developer-guide/desktop.md), and [Packaging And Installers](docs/developer-guide/packaging.md).
+Contributor architecture details live in the [Developer Guide](docs/developer-guide/index.md), especially [Architecture](docs/developer-guide/repo/architecture.md), [Workspaces](docs/developer-guide/workspaces/index.md), and [Packaging](docs/developer-guide/repo/packaging.md).
 
 ## Requirements
 
@@ -111,18 +111,21 @@ dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:500
 ## Documentation
 
 - [User docs](docs/user-docs/index.md)
-- [Setup](docs/user-docs/setup.md)
-- [Downloads](docs/user-docs/downloads.md)
-- [Workspace](docs/user-docs/workspace.md)
-- [Configuration](docs/user-docs/configuration.md)
-- [Browser](docs/user-docs/browser.md)
-- [Git changes](docs/user-docs/git-changes.md)
-- [Mobile](docs/user-docs/mobile.md)
-- [CLI](docs/user-docs/cli.md)
-- [Current limitations](docs/user-docs/limitations.md)
-- [Roadmap](docs/user-docs/roadmap.md)
+- [Setup](docs/user-docs/start/setup.md)
+- [Downloads](docs/user-docs/start/downloads.md)
+- [Workspaces](docs/user-docs/workspaces/index.md)
+- [Applications](docs/user-docs/applications/index.md)
+- [Git](docs/user-docs/git/index.md)
+- [Commits](docs/user-docs/commits/index.md)
+- [Agents](docs/user-docs/agents/index.md)
+- [Browser](docs/user-docs/browser/index.md)
+- [Diagnostics](docs/user-docs/diagnostics/index.md)
+- [Verification](docs/user-docs/verification/index.md)
+- [Configuration](docs/user-docs/configuration/index.md)
+- [Current limitations](docs/user-docs/start/limitations.md)
+- [Roadmap](docs/user-docs/start/roadmap.md)
 - [Developer guide](docs/developer-guide/index.md)
-- [Design system](docs/developer-guide/design-system.md)
+- [Design system](docs/developer-guide/repo/design-system.md)
 
 ## Design And Marketing
 
@@ -131,7 +134,7 @@ documentation, screenshots, and marketing presentation. Its canonical HTML/CSS
 catalog compiles to React Native objects and Avalonia resources and styles
 consumed by Mobile and Desktop. The public responsive showcase is linked from the
 documentation navbar at `/design-system`; implementation and external-repository
-usage are defined in the [design-system developer guide](docs/developer-guide/design-system.md).
+usage are defined in the [design-system developer guide](docs/developer-guide/repo/design-system.md).
 
 Build the docs locally:
 

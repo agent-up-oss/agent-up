@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import '@agent-up/design-system/styles.css';
 @import '@agent-up/design-system/marketing.css';
+@import '@agent-up/design-system/docs.css';
 
 :root,
 [data-theme='dark'] {
@@ -59,7 +60,13 @@ body, .main-wrapper { color: var(--au-color-text-primary); background: var(--au-
 
 .theme-doc-markdown { color: var(--au-color-text-secondary); font-size: 1.02rem; }
 .theme-doc-markdown h1, .theme-doc-markdown h2, .theme-doc-markdown h3 { color: var(--au-color-text-primary); letter-spacing: -0.02em; }
-.theme-doc-markdown h1 { font-size: clamp(2.4rem, 6vw, 4.25rem); line-height: 1; margin-bottom: 2rem; }
+.theme-doc-markdown h1 {
+  margin-bottom: 1.5rem;
+  font-size: var(--au-font-size-ui-xl);
+  line-height: 1.25;
+  font-weight: var(--au-weight-ui-strong);
+  letter-spacing: -0.02em;
+}
 .theme-doc-markdown h2 { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--au-color-border-subtle); }
 .theme-doc-markdown p, .theme-doc-markdown li { color: var(--au-color-text-secondary); line-height: var(--au-line-relaxed); }
 .theme-doc-markdown a { font-weight: var(--au-weight-bold); }
@@ -111,5 +118,5 @@ body, .main-wrapper { color: var(--au-color-text-primary); background: var(--au-
   .footer .container { padding-top: 3rem; }
   .footer__links { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .footer__col:first-child { grid-column: 1 / -1; }
-  .theme-doc-markdown h1 { font-size: 2.45rem; }
+  .theme-doc-markdown h1 { font-size: var(--au-font-size-ui-xl); }
 }

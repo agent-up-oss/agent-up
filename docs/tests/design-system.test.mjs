@@ -6,7 +6,8 @@ import catalog from '@agent-up/design-system/catalog' with { type: 'json' };
 const requiredSurfaces = [
   'foundations', 'primitives', 'chrome', 'workspaces', 'applications', 'browser',
   'console', 'git', 'diagnostics', 'metrics', 'validation', 'auth', 'database',
-  'mobile', 'marketing', 'voice', 'brand', 'governance',
+  'mobile', 'documentation', 'marketing', 'voice', 'brand', 'governance',
+  'file-viewer',
 ];
 
 test('the design-system showcase is linked from primary navigation and the footer', async () => {
@@ -22,6 +23,7 @@ test('the docs import canonical product and marketing styles', async () => {
   const css = await readFile(new URL('../src/css/custom.css', import.meta.url), 'utf8');
   assert.match(css, /@agent-up\/design-system\/styles\.css/);
   assert.match(css, /@agent-up\/design-system\/marketing\.css/);
+  assert.match(css, /@agent-up\/design-system\/docs\.css/);
 });
 
 test('the showcase is a tabbed catalog of every public design-system surface', async () => {

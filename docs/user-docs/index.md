@@ -57,7 +57,7 @@ The Server is the single source of truth. Desktop, Mobile, CLI, and MCP clients 
 
 ## Getting Started
 
-See [Current Limitations](./limitations.md) for the current implementation status of each major area.
+See [Current Limitations](/docs/start/limitations) for the current implementation status of each major area.
 
 ### 1. Start the server
 
@@ -106,21 +106,21 @@ export AGENTUP_SERVER_URL=http://localhost:5001
 dotnet run --project /path/to/AgentUp.CLI -- start
 ```
 
-This reads `agent-up.json`, captures the current git branch and commit, and pushes the workspace and application definitions to the server. The server then exposes them at `GET /api/workspaces/{id}/applications` for the desktop app to consume.
+This reads `agent-up.json`, captures the current git branch and commit, and pushes the workspace and application definitions to the server.
 
-## Documentation Map
+## Documentation map
 
-- [Downloads](./downloads.md) lists current development-preview packages.
-- [Setup](./setup.md) describes packaged and source-first development workflows.
-- [Workspace](./workspace.md) defines the workspace model.
-- [Mobile](./mobile.md) covers the Expo client for Android, iOS, and the PWA.
-- [Git changes](./git-changes.md) is the human working-tree review surface.
-- [CLI](./cli.md) covers the `agent-up` command wrapper.
-- [Browser](./browser.md) covers Desktop, Mobile, and Server browser surfaces.
-- [Browser Profiles](./browser-profiles.md) explains per-workspace headless isolation.
-- [Configuration](./configuration.md) and [agent-up.json](./agent-up-json.md) describe declarative application setup.
-- [Releases](./releases.md) describes packaged artifacts and update behavior.
-- [Current Limitations](./limitations.md) explains what is implemented, Preview, Experimental, and Planned.
-- [Roadmap](./roadmap.md) captures the long-term direction.
+Docs are grouped by product slice, not by client.
+
+- [Start](/docs/start/setup) covers downloads, setup, releases, limitations, and the roadmap.
+- [Workspaces](/docs/workspaces) is identity, connect, start/stop, and clones.
+- [Applications](/docs/applications) is processes, ports, console, and hosted GUI apps.
+- [Git](/docs/git) is working-tree review, history, and remotes.
+- [Commits](/docs/commits) is the agent proposal queue.
+- [Agents](/docs/agents) is the ACP session and subscription sign-in.
+- [Browser](/docs/browser) is isolated surfaces and validation.
+- [Diagnostics](/docs/diagnostics) is console, health, and audit history.
+- [Verification](/docs/verification) is path-rule checks and receipts.
+- [Configuration](/docs/configuration) is `agent-up.json`.
 
 Implementation details live in the [Developer Guide](/developer-guide/).

@@ -32,7 +32,7 @@ can review the diff and commit manually inside the IDE.
 This plugin stages the **legacy local** `agent-up commits` queue. When
 `commits.enabled` is true, the Server-owned proposal queue is reviewed in the
 Desktop **Commit** tab and Mobile **Git Review** page, not here. See
-[Git changes](../../docs/user-docs/git-changes.md).
+[Git](../../docs/user-docs/git/index.md).
 
 The plugin searches upward from the IDE project directory for `agent-up.json`
 and runs queue commands from the directory containing it. This supports opening
