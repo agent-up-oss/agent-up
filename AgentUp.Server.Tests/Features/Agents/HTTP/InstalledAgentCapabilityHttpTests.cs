@@ -1,7 +1,3 @@
-using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Capabilities.Claude.Features.ClaudeCapability.Interfaces;
@@ -28,8 +24,13 @@ using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Interfaces;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net.Http.Json;
+using System.Net;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace AgentUp.Server.Tests.Features.Agents.HTTP;
 
@@ -145,7 +146,7 @@ public sealed class InstalledAgentCapabilityHttpTests
     }
 
     private Task<Workspace> RegisterAsync() => _app.Services.GetRequiredService<WorkspaceQueryController>().RegisterAsync(
-        new RegisterWorkspaceRequest("Workspace", "/repo", "/repo", "main", "abc"));
+        ServerDomain.Workspace().Named("Workspace").At("/repo").AtCommit("abc").Build());
 
     private static string CapabilityId(AgentKind kind) => kind switch
     {

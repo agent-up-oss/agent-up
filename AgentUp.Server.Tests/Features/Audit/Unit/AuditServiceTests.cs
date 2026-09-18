@@ -3,6 +3,7 @@ using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Features.Audit.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Audit.Unit;
 
@@ -33,7 +34,13 @@ public sealed class AuditServiceTests
             new AuditEventBus());
 
         var recorded = await service.RecordAsync(
-            new AuditRecordRequest("browser", "mcp", "browser_click", "success", workspace.Id),
+            ServerDomain.AuditRecord()
+                .OfKind("browser")
+                .From("mcp")
+                .Doing("browser_click")
+                .Outcome("success")
+                .ForWorkspace(workspace.Id)
+                .Build(),
             CancellationToken.None);
 
         Assert.Multiple(() =>
@@ -92,19 +99,20 @@ public sealed class AuditServiceTests
             new AuditEventBus());
 
         await service.RecordAsync(
-            new AuditRecordRequest(
-                "browser",
-                "mcp",
-                "browser_click",
-                "success",
-                "workspace",
-                new Dictionary<string, string>
+            ServerDomain.AuditRecord()
+                .OfKind("browser")
+                .From("mcp")
+                .Doing("browser_click")
+                .Outcome("success")
+                .ForWorkspace("workspace")
+                .WithDetails(new Dictionary<string, string>
                 {
                     ["Password"] = "hidden",
                     ["apiToken"] = "hidden",
                     ["clientSecret"] = "hidden",
                     ["safe"] = new string('x', 1001)
-                }),
+                })
+                .Build(),
             CancellationToken.None);
 
         var details = events.Events.Single().Details;

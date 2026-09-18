@@ -1,7 +1,8 @@
-using System.Net.Http.Json;
 using AgentUp.Server.Features.Audit.Models;
+using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using System.Net.Http.Json;
 
 namespace AgentUp.Server.Tests.Features.Audit.HTTP;
 
@@ -66,13 +67,14 @@ public sealed class ApplicationAuditStreamHttpTests
 
     private static async Task RecordAsync(HttpClient client, string application, string kind, string action)
     {
-        using var response = await client.PostAsJsonAsync("/api/audit/record", new AuditRecordRequest(
-            kind,
-            kind == "health" ? "server" : "web",
-            action,
-            "failure",
-            "ws-1",
-            new Dictionary<string, string> { ["application"] = application, ["applicationName"] = application }));
+        using var response = await client.PostAsJsonAsync("/api/audit/record", ServerDomain.AuditRecord()
+            .OfKind(kind)
+            .From(kind == "health" ? "server" : "web")
+            .Doing(action)
+            .Outcome("failure")
+            .ForWorkspace("ws-1")
+            .WithDetails(new Dictionary<string, string> { ["application"] = application, ["applicationName"] = application })
+            .Build());
         response.EnsureSuccessStatusCode();
     }
 }

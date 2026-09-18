@@ -5,6 +5,7 @@ using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Models;
 using AgentUp.Server.Features.Commits.Services;
 using AgentUp.Server.Shared.Interfaces;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Commits.Controller;
 
@@ -57,13 +58,23 @@ public sealed class CommitQueueMcpToolsTests
     [Test]
     public async Task GuardCommits_DirectsDependentWorkToManagedQueueTip()
     {
-        var queue = new FakeCommitsQueueProvider(new CommitsQueue(
-            3,
-            [new CommitEntry("Commits", "feat(commits): queued", ["a.cs"], "entry", "patch", ParentCommit: "base", ProposalCommit: "tip", State: "ready")],
-            QueueWorktreePath: "/managed/queue",
-            BaseCommit: "base",
-            TipCommit: "tip",
-            Generation: 1));
+        var queue = new FakeCommitsQueueProvider(ServerDomain.Queue()
+            .AtVersion(3)
+            .With(ServerDomain.CommitEntry()
+                .For("Commits")
+                .Saying("feat(commits): queued")
+                .Touching(["a.cs"])
+                .WithId("entry")
+                .WithPatchId("patch")
+                .WithParentCommit("base")
+                .WithProposalCommit("tip")
+                .InState("ready")
+                .Build())
+            .WithBaseCommit("base")
+            .WithTipCommit("tip")
+            .InWorktree("/managed/queue")
+            .AtGeneration(1)
+            .Build());
         var commits = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
         var tools = new CommitQueueMcpTools(new CommitQueueMcpService(new CommitsController(commits)));
 

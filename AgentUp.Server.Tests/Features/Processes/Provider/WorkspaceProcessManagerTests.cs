@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Capabilities.Services;
@@ -12,8 +11,10 @@ using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Diagnostics;
 
 namespace AgentUp.Server.Tests.Features.Processes.Provider;
 
@@ -41,10 +42,9 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task LaunchDockerService_WritesStderr_ToOutputRepository_OnStartupFailure()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-        {
-            Services = [new DockerServiceDefinition("Db", "agent-up-nonexistent-image-xyz:latest")]
-        });
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithService(new DockerServiceDefinition("Db", "agent-up-nonexistent-image-xyz:latest"))
+            .Build());
 
         Assert.ThrowsAsync<InvalidOperationException>(() =>
             _manager.LaunchApplicationAsync(workspace, "Db"));
@@ -63,22 +63,17 @@ public class WorkspaceProcessManagerTests
 
         try
         {
-            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
-            {
-                Applications =
-                [
-                    new ApplicationDefinition(
-                        "Web",
-                        "npm run dev",
-                        "web",
-                        [new PortDeclaration("WEB_PORT", 5173)]),
-                    new ApplicationDefinition(
-                        "Api",
-                        "dotnet run",
-                        "api",
-                        [new PortDeclaration("API_PORT", 3001)])
-                ]
-            });
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand)
+                        .At(ServerDomain.WebPath)
+                        .WithPort(ServerDomain.Port().Named("WEB_PORT").On(5173))
+                        .Build())
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.ApiName, ServerDomain.ApiCommand)
+                        .At(ServerDomain.ApiPath)
+                        .WithPort(ServerDomain.Port().Named("API_PORT").On(3001))
+                        .Build())
+                .Build());
 
             var web = workspace.Applications.Single(app => app.Name == "Web");
             var api = workspace.Applications.Single(app => app.Name == "Api");
@@ -110,22 +105,17 @@ public class WorkspaceProcessManagerTests
 
         try
         {
-            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
-            {
-                Applications =
-                [
-                    new ApplicationDefinition(
-                        "Mobile",
-                        "npm run web",
-                        "mobile",
-                        [new PortDeclaration("WEB_PORT", 8081)]),
-                    new ApplicationDefinition(
-                        "Example Web",
-                        "npm run dev",
-                        "web",
-                        [new PortDeclaration("WEB_PORT", 5600)])
-                ]
-            });
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder("Mobile", "npm run web")
+                        .At("mobile")
+                        .WithPort(ServerDomain.Port().Named("WEB_PORT").On(8081))
+                        .Build())
+                .WithApplication(new ApplicationDefinitionBuilder("Example Web", ServerDomain.WebCommand)
+                        .At(ServerDomain.WebPath)
+                        .WithPort(ServerDomain.Port().Named("WEB_PORT").On(5600))
+                        .Build())
+                .Build());
 
             var mobile = workspace.Applications.Single(app => app.Name == "Mobile");
             var exampleWeb = workspace.Applications.Single(app => app.Name == "Example Web");
@@ -158,24 +148,19 @@ public class WorkspaceProcessManagerTests
 
         try
         {
-            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
-            {
-                Applications =
-                [
-                    new ApplicationDefinition(
-                        "Web",
-                        "printenv",
-                        null,
-                        [new PortDeclaration("WEB_PORT", 5173)],
-                        new Dictionary<string, string>
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "printenv")
+                        .WithPort(ServerDomain.Port().Named("WEB_PORT").On(5173))
+                        .WithEnvironment(new Dictionary<string, string>
                         {
                             ["SHARED_VALUE"] = "from-inline",
                             ["INLINE_ONLY"] = "true",
                             ["WEB_PORT"] = "from-inline"
-                        },
-                        [".env"])
-                ]
-            });
+                        })
+                        .WithEnvironmentFile(".env")
+                        .Build())
+                .Build());
 
             var app = workspace.Applications.Single();
             var startInfo = new LocalProcessProvider().CreateStartInfo(workspace, app);
@@ -202,13 +187,11 @@ public class WorkspaceProcessManagerTests
 
         try
         {
-            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
-            {
-                Applications =
-                [
-                    new ApplicationDefinition("Web", "node marketing-site/server.mjs", null)
-                ]
-            });
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "node marketing-site/server.mjs")
+                        .Build())
+                .Build());
 
             var startInfo = new LocalProcessProvider().CreateStartInfo(workspace, workspace.Applications.Single());
 
@@ -228,13 +211,9 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task CreateLocalProcessStartInfo_UsesValidatedExecutableAndArgumentList()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
-        {
-            Applications =
-            [
-                new ApplicationDefinition("Web", "npm run \"dev server\"", null)
-            ]
-        });
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "npm run \"dev server\"").Build())
+            .Build());
 
         var startInfo = new LocalProcessProvider().CreateStartInfo(workspace, workspace.Applications.Single());
 
@@ -248,13 +227,10 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task CreateLocalProcessStartInfo_QualifiesDotnetProjectPathWithoutWorkspaceWorkingDirectory()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
-        {
-            Applications =
-            [
-                new ApplicationDefinition("Api", "dotnet run --project src/Api/Api.csproj --no-launch-profile", null)
-            ]
-        });
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.ApiName, "dotnet run --project src/Api/Api.csproj --no-launch-profile")
+                    .Build())
+            .Build());
 
         var startInfo = new LocalProcessProvider().CreateStartInfo(workspace, workspace.Applications.Single());
 
@@ -273,17 +249,11 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task CreateInstallStartInfo_QualifiesDotnetBuildProjectPathWithoutWorkspaceWorkingDirectory()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
-        {
-            Applications =
-            [
-                new ApplicationDefinition(
-                    "Api",
-                    "dotnet run --project src/Api/Api.csproj --no-launch-profile",
-                    null,
-                    Install: "dotnet build src/Api/Api.csproj --nologo --no-incremental")
-            ]
-        });
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.ApiName, "dotnet run --project src/Api/Api.csproj --no-launch-profile")
+                    .WithInstall("dotnet build src/Api/Api.csproj --nologo --no-incremental")
+                    .Build())
+            .Build());
 
         var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
 
@@ -303,17 +273,11 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task CreateInstallStartInfo_KeepsARootedDotnetBuildProjectPath()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
-        {
-            Applications =
-            [
-                new ApplicationDefinition(
-                    "Api",
-                    "dotnet run",
-                    null,
-                    Install: "dotnet build /tmp/App.csproj --nologo")
-            ]
-        });
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.ApiName, ServerDomain.ApiCommand)
+                    .WithInstall("dotnet build /tmp/App.csproj --nologo")
+                    .Build())
+            .Build());
 
         var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
 
@@ -323,17 +287,11 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task CreateInstallStartInfo_AppendsTheWorkingDirectoryWhenDotnetBuildHasNoProject()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
-        {
-            Applications =
-            [
-                new ApplicationDefinition(
-                    "Api",
-                    "dotnet run",
-                    null,
-                    Install: "dotnet build --nologo")
-            ]
-        });
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.ApiName, ServerDomain.ApiCommand)
+                    .WithInstall("dotnet build --nologo")
+                    .Build())
+            .Build());
 
         var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
 
@@ -364,17 +322,12 @@ public class WorkspaceProcessManagerTests
 
         try
         {
-            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
-            {
-                Applications =
-                [
-                    new ApplicationDefinition(
-                        "App",
-                        "dotnet run --project app/App.csproj --no-launch-profile",
-                        null,
-                        Install: "dotnet build app/App.csproj --nologo --no-incremental")
-                ]
-            });
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder("App", "dotnet run --project app/App.csproj --no-launch-profile")
+                        .WithInstall("dotnet build app/App.csproj --nologo --no-incremental")
+                        .Build())
+                .Build());
             var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
             Assert.That(startInfo, Is.Not.Null);
 
@@ -399,17 +352,11 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task CreateInstallStartInfo_QualifiesDotnetRestoreProjectPathWithoutWorkspaceWorkingDirectory()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
-        {
-            Applications =
-            [
-                new ApplicationDefinition(
-                    "Api",
-                    "dotnet run --project src/Api/Api.csproj --no-launch-profile",
-                    null,
-                    Install: "dotnet restore src/Api/Api.csproj --nologo")
-            ]
-        });
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.ApiName, "dotnet run --project src/Api/Api.csproj --no-launch-profile")
+                    .WithInstall("dotnet restore src/Api/Api.csproj --nologo")
+                    .Build())
+            .Build());
 
         var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
 
@@ -437,10 +384,9 @@ public class WorkspaceProcessManagerTests
             Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", "wayland-0");
             Environment.SetEnvironmentVariable("XDG_RUNTIME_DIR", "/run/user/1000");
 
-            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
-            {
-                Applications = [new ApplicationDefinition("Editor", "printenv", null)]
-            });
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .WithApplication(new ApplicationDefinitionBuilder("Editor", "printenv").Build())
+                .Build());
             var app = workspace.Applications.Single();
             app.RuntimeEnvironment = new Dictionary<string, string>
             {
@@ -471,10 +417,9 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task CreateInstallStartInfo_ReturnsNull_WhenInstallNotConfigured()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
-        {
-            Applications = [new ApplicationDefinition("Web", "npm run dev", null)]
-        });
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand).Build())
+            .Build());
 
         var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
 
@@ -484,10 +429,12 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task CreateInstallStartInfo_UsesSameWorkingDirectoryAndAllowlistAsCommand()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
-        {
-            Applications = [new ApplicationDefinition("Web", "npm run dev", "web", Install: "npm install")]
-        });
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand)
+                .At(ServerDomain.WebPath)
+                .WithInstall("npm install")
+                .Build())
+            .Build());
 
         var startInfo = new LocalProcessProvider().CreateInstallStartInfo(workspace, workspace.Applications.Single());
 
@@ -506,17 +453,12 @@ public class WorkspaceProcessManagerTests
 
         try
         {
-            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
-            {
-                Applications =
-                [
-                    new ApplicationDefinition(
-                        "Web",
-                        "printenv",
-                        null,
-                        Install: "printenv")
-                ]
-            });
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "printenv")
+                        .WithInstall("printenv")
+                        .Build())
+                .Build());
 
             await _manager.LaunchApplicationAsync(workspace, "Web");
 
@@ -554,19 +496,15 @@ public class WorkspaceProcessManagerTests
 
         try
         {
-            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
-            {
-                Applications =
-                [
-                    new ApplicationDefinition(
-                        "Web",
-                        "printenv",
-                        null,
-                        // A missing module reliably exits 1 without needing shell metacharacters
-                        // (parentheses, semicolons, ...) that the command allowlist rejects.
-                        Install: "python3 -m agentup_test_nonexistent_module")
-                ]
-            });
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                // A missing module reliably exits 1 without needing shell metacharacters
+                // (parentheses, semicolons, ...) that the command allowlist rejects.
+                .WithApplication(
+                    new ApplicationDefinitionBuilder(ServerDomain.WebName, "printenv")
+                        .WithInstall("python3 -m agentup_test_nonexistent_module")
+                        .Build())
+                .Build());
 
             Assert.ThrowsAsync<InvalidOperationException>(() => _manager.LaunchApplicationAsync(workspace, "Web"));
 
@@ -588,17 +526,11 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task LaunchApplicationAsync_MarksApplicationFailed_WhenInstallCommandIsInvalid()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
-        {
-            Applications =
-            [
-                new ApplicationDefinition(
-                    "Web",
-                    "printenv",
-                    null,
-                    Install: "npm install; rm -rf /")
-            ]
-        });
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "printenv")
+                    .WithInstall("npm install; rm -rf /")
+                    .Build())
+            .Build());
 
         Assert.ThrowsAsync<InvalidOperationException>(() => _manager.LaunchApplicationAsync(workspace, "Web"));
 
@@ -617,19 +549,15 @@ public class WorkspaceProcessManagerTests
 
         try
         {
-            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
-            {
-                Applications =
-                [
-                    new ApplicationDefinition(
-                        "Web",
-                        "printenv",
-                        null,
-                        // Never exits on its own, so it is still running (and killable) when
-                        // KillApplicationAsync fires below.
-                        Install: "python3 -m http.server 0 --bind 127.0.0.1")
-                ]
-            });
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                // Never exits on its own, so it is still running (and killable) when
+                // KillApplicationAsync fires below.
+                .WithApplication(
+                    new ApplicationDefinitionBuilder(ServerDomain.WebName, "printenv")
+                        .WithInstall("python3 -m http.server 0 --bind 127.0.0.1")
+                        .Build())
+                .Build());
 
             var launchTask = _manager.LaunchApplicationAsync(workspace, "Web");
             await Task.Delay(500);
@@ -656,13 +584,9 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task CreateLocalProcessStartInfo_RejectsShellExpressions()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
-        {
-            Applications =
-            [
-                new ApplicationDefinition("Web", "npm run dev; rm -rf /", null)
-            ]
-        });
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "npm run dev; rm -rf /").Build())
+            .Build());
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
             new LocalProcessProvider().CreateStartInfo(workspace, workspace.Applications.Single()));
@@ -680,19 +604,12 @@ public class WorkspaceProcessManagerTests
 
         try
         {
-            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
-            {
-                Applications =
-                [
-                    new ApplicationDefinition(
-                        "Web",
-                        "printenv",
-                        null,
-                        null,
-                        null,
-                        ["config/.env.local"])
-                ]
-            });
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "printenv")
+                        .WithEnvironmentFile("config/.env.local")
+                        .Build())
+                .Build());
 
             var startInfo = new LocalProcessProvider().CreateStartInfo(workspace, workspace.Applications.Single());
 
@@ -709,19 +626,11 @@ public class WorkspaceProcessManagerTests
     public void Register_RejectsEnvironmentFilesOutsideWorkspaceRoot()
     {
         var ex = Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
-            {
-                Applications =
-                [
-                    new ApplicationDefinition(
-                        "Web",
-                        "printenv",
-                        null,
-                        null,
-                        null,
-                        ["../.env"])
-                ]
-            }));
+            _registry.RegisterAsync(ServerDomain.Workspace()
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "printenv")
+                        .WithEnvironmentFile("../.env")
+                        .Build())
+                .Build()));
 
         Assert.That(ex!.Message, Does.Contain("must stay under the workspace root"));
     }
@@ -772,13 +681,11 @@ public class WorkspaceProcessManagerTests
 
         try
         {
-            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
-            {
-                Applications =
-                [
-                    new ApplicationDefinition("Web", "python3 -m http.server 0 --bind 127.0.0.1", null)
-                ]
-            });
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "python3 -m http.server 0 --bind 127.0.0.1")
+                        .Build())
+                .Build());
 
             await _manager.LaunchApplicationAsync(workspace, "Web");
             await _registry.UpdateApplicationStateAsync(workspace.Id, "Web", ApplicationState.Running);
@@ -803,13 +710,11 @@ public class WorkspaceProcessManagerTests
 
         try
         {
-            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
-            {
-                Applications =
-                [
-                    new ApplicationDefinition("Web", "python3 -c \"raise Exception\"", null)
-                ]
-            });
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "python3 -c \"raise Exception\"")
+                        .Build())
+                .Build());
 
             await _manager.LaunchApplicationAsync(workspace, "Web");
 
@@ -832,17 +737,14 @@ public class WorkspaceProcessManagerTests
 
         try
         {
-            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
-            {
-                Services =
-                [
-                    new DockerServiceDefinition(
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithService(new DockerServiceDefinition(
                         "Database",
                         "postgres:17",
                         Environment: new Dictionary<string, string> { ["POSTGRES_USER"] = "user" },
-                        EnvironmentFiles: [".env.database"])
-                ]
-            });
+                        EnvironmentFiles: [".env.database"]))
+                .Build());
 
             var args = new DockerProcessProvider().CreateRunArguments("agentup-test-db", workspace, workspace.Applications.Single());
 
@@ -864,30 +766,21 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task CreateDockerRunArguments_AddsHostGatewayAliasAndInterpolatesWorkspacePorts()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
-        {
-            Applications =
-            [
-                new ApplicationDefinition(
-                    "Roommate",
-                    "./gradlew bootRun",
-                    null,
-                    [new PortDeclaration("SERVER_PORT", 8080)])
-            ],
-            Services =
-            [
-                new DockerServiceDefinition(
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder("Roommate", "./gradlew bootRun")
+                    .WithPort(ServerDomain.Port().Named("SERVER_PORT").On(8080))
+                    .Build())
+            .WithService(new DockerServiceDefinition(
                     "Keymaster",
                     "team-propra/keymaster:v1",
-                    [new PortDeclaration("KEYMASTER_PORT", 3000)],
+                    [ServerDomain.Port().Named("KEYMASTER_PORT").On(3000).Build()],
                     new Dictionary<string, string>
                     {
                         ["ROOMMATE_URL"] = "http://host.agent-up:${SERVER_PORT}",
                         ["ROOMMATE_ENDPOINT"] = "/api/access",
                         ["UNRESOLVED"] = "${MISSING_PORT}"
-                    })
-            ]
-        });
+                    }))
+            .Build());
         var keymaster = workspace.Applications.Single(app => app.Name == "Keymaster");
         var roommatePort = workspace.Applications
             .Single(app => app.Name == "Roommate")
@@ -906,16 +799,12 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task CreateDockerRunArguments_AppendsCommandArgumentsAfterTheImage()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/repo", "/repo/worktree", "main", "c1")
-        {
-            Services =
-            [
-                new DockerServiceDefinition(
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithService(new DockerServiceDefinition(
                     "Redpanda",
                     "docker.redpanda.com/redpandadata/redpanda:v24.2.4",
-                    Command: ["redpanda", "start", "--smp", "1"])
-            ]
-        });
+                    Command: ["redpanda", "start", "--smp", "1"]))
+            .Build());
 
         var args = new DockerProcessProvider().CreateRunArguments("agentup-test-redpanda", workspace, workspace.Applications.Single());
 
@@ -933,10 +822,9 @@ public class WorkspaceProcessManagerTests
             new DockerProcessProvider(),
             NullLogger<WorkspaceProcessManager>.Instance,
             isLinux: () => false);
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-        {
-            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
-        });
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithDesktopApplication(new DesktopApplicationDefinition("Editor", "dotnet run", "."))
+            .Build());
 
         await manager.LaunchApplicationAsync(workspace, "Editor");
 
@@ -971,10 +859,10 @@ public class WorkspaceProcessManagerTests
 
         try
         {
-            var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", worktreePath, worktreePath, "main", "c1")
-            {
-                DesktopApplications = [new DesktopApplicationDefinition("Editor", "printenv", ".")]
-            });
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithDesktopApplication(new DesktopApplicationDefinition("Editor", "printenv", "."))
+                .Build());
             var app = workspace.Applications.Single();
             app.RuntimeEnvironment = await desktop.PrepareAsync(workspace, app, CancellationToken.None);
 

@@ -1,10 +1,11 @@
-using System.Net;
-using System.Net.Sockets;
 using AgentUp.Server.Features.ServiceControl.Controllers;
 using AgentUp.Server.Features.ServiceControl.Interfaces;
+using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Net.Sockets;
+using System.Net;
 
 namespace AgentUp.Server.Tests.Features.ServiceControl.Controller;
 

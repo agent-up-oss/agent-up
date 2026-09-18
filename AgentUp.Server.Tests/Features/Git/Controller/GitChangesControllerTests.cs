@@ -4,6 +4,7 @@ using AgentUp.Server.Features.Git.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -136,12 +137,7 @@ public sealed class GitChangesControllerTests
         FakeGitWorkingTreeProvider git)
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
-        var workspace = await workspaces.RegisterAsync(new RegisterWorkspaceRequest(
-            DisplayName: "widgets",
-            RepositoryPath: "/clones/widgets",
-            WorktreePath: "/clones/widgets",
-            Branch: "main",
-            Commit: "abc123"));
+        var workspace = await workspaces.RegisterAsync(ServerDomain.Workspace().Named("widgets").At("/clones/widgets").AtCommit("abc123").Build());
 
         var controller = new GitChangesController(new GitChangeTreeService(workspaces, git, new FakeWorkspacePromptGuard()))
         {

@@ -1,10 +1,11 @@
-using System.Net;
-using System.Net.Http.Json;
 using AgentUp.Server.Features.Audit.DTOs;
 using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Features.Audit.Repositories;
+using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using System.Net.Http.Json;
+using System.Net;
 
 namespace AgentUp.Server.Tests.Features.Audit.HTTP;
 
@@ -110,23 +111,33 @@ public sealed class ApplicationAuditHttpTests
 
     private static async Task RecordConsoleAsync(HttpClient client, string application, string stream, string message)
     {
-        using var response = await client.PostAsJsonAsync("/api/audit/record", new AuditRecordRequest(
-            "application", "process", "application_console_line", "success", "ws-1",
-            new Dictionary<string, string>
+        using var response = await client.PostAsJsonAsync("/api/audit/record", ServerDomain.AuditRecord()
+            .OfKind("application")
+            .From("process")
+            .Doing("application_console_line")
+            .Outcome("success")
+            .ForWorkspace("ws-1")
+            .WithDetails(new Dictionary<string, string>
             {
                 ["application"] = application,
                 ["applicationName"] = application,
                 ["stream"] = stream,
                 ["message"] = message
-            }));
+            })
+            .Build());
         response.EnsureSuccessStatusCode();
     }
 
     private static async Task RecordAsync(HttpClient client, string application, string kind, string action)
     {
-        using var response = await client.PostAsJsonAsync("/api/audit/record", new AuditRecordRequest(
-            kind, kind == "health" ? "server" : kind == "application" ? "process" : "web", action, "failure", "ws-1",
-            new Dictionary<string, string> { ["application"] = application, ["applicationName"] = application }));
+        using var response = await client.PostAsJsonAsync("/api/audit/record", ServerDomain.AuditRecord()
+            .OfKind(kind)
+            .From(kind == "health" ? "server" : kind == "application" ? "process" : "web")
+            .Doing(action)
+            .Outcome("failure")
+            .ForWorkspace("ws-1")
+            .WithDetails(new Dictionary<string, string> { ["application"] = application, ["applicationName"] = application })
+            .Build());
         response.EnsureSuccessStatusCode();
     }
 }

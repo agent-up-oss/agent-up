@@ -1,15 +1,12 @@
-using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json.Serialization;
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Capabilities.Controllers;
+using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Database.Controllers;
 using AgentUp.Server.Features.Database.DTOs;
 using AgentUp.Server.Features.Database.Interfaces;
 using AgentUp.Server.Features.Database.Models;
 using AgentUp.Server.Features.Database.Providers;
 using AgentUp.Server.Features.Database.Services;
-using AgentUp.Server.Features.Capabilities.Controllers;
-using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Ports.Controllers;
 using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Ports.Interfaces;
@@ -20,8 +17,12 @@ using AgentUp.Server.Features.Workspaces.Interfaces;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net.Http.Json;
+using System.Net;
+using System.Text.Json.Serialization;
 
 namespace AgentUp.Server.Tests.Features.Database.Controller;
 
@@ -66,18 +67,17 @@ public class DatabaseHttpTests
         _client = new HttpClient { BaseAddress = new Uri($"http://localhost:{port}") };
 
         var registry = _app.Services.GetRequiredService<WorkspaceRegistry>();
-        var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest("Demo", "/repo", "/repo", "main", "abc")
-        {
-            Services =
-            [
-                new DockerServiceDefinition(
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Demo")
+            .At("/repo")
+            .AtCommit("abc")
+            .WithService(new DockerServiceDefinition(
                     "Database",
                     "postgres:16",
-                    [new PortDeclaration("POSTGRES_PORT", 5432, "tcp")],
+                    [ServerDomain.Port().Named("POSTGRES_PORT").On(5432).WithProtocol("tcp").Build()],
                     new Dictionary<string, string> { ["POSTGRES_PASSWORD"] = "secret" },
-                    Database: true)
-            ]
-        });
+                    Database: true))
+            .Build());
         _workspaceId = workspace.Id;
     }
 

@@ -11,9 +11,10 @@ using AgentUp.Server.Features.Processes.Models;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
-using AgentUp.Server.Tests.Fake;
 using AgentUp.Server.Shared.Interfaces;
 using AgentUp.Server.Shared.Providers;
+using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Server.Tests.Features.Orchestration.Controller;
@@ -61,11 +62,10 @@ public sealed class OrchestrationMcpToolsTests
         _configuration.Configuration = new AgentUpConfiguration(
             "Inventory",
             [
-                new ApplicationDefinition(
-                    "Frontend",
-                    "npm run dev",
-                    "/",
-                    [new PortDeclaration("WEB_PORT", 5173)])
+                new ApplicationDefinitionBuilder("Frontend", ServerDomain.WebCommand)
+                    .At("/")
+                    .WithPort(ServerDomain.Port().Named("WEB_PORT").On(5173))
+                    .Build()
             ]);
 
         var result = await _tools.StartWorkspace("/repos/inventory", CancellationToken.None);
@@ -201,7 +201,7 @@ public sealed class OrchestrationMcpToolsTests
     {
         _configuration.Configuration = new AgentUpConfiguration(
             "App",
-            [new ApplicationDefinition("App", "dotnet run", "/", [])]);
+            [new ApplicationDefinitionBuilder("App", ServerDomain.ApiCommand).At("/").Build()]);
         await _tools.StartWorkspace("/repos/app", CancellationToken.None);
         var workspace = _registry.GetAll().Single();
         var tools = new OrchestrationMcpTools(
@@ -229,7 +229,7 @@ public sealed class OrchestrationMcpToolsTests
     {
         _configuration.Configuration = new AgentUpConfiguration(
             "App",
-            [new ApplicationDefinition("Web", "dotnet run", "/", [])]);
+            [new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.ApiCommand).At("/").Build()]);
         await _tools.StartWorkspace("/repos/app", CancellationToken.None);
         var workspace = _registry.GetAll().Single();
 
@@ -258,7 +258,7 @@ public sealed class OrchestrationMcpToolsTests
     {
         _configuration.Configuration = new AgentUpConfiguration(
             "App",
-            [new ApplicationDefinition("Web", "dotnet run", "/", [])]);
+            [new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.ApiCommand).At("/").Build()]);
         await _tools.StartWorkspace("/repos/app", CancellationToken.None);
         var workspace = _registry.GetAll().Single();
 

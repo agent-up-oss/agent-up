@@ -1,12 +1,13 @@
-using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Features.Diagnostics.DTOs;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using System.Net.Http.Json;
+using System.Net;
+using System.Text.Json;
 
 namespace AgentUp.Server.Tests.Features.Diagnostics.HTTP;
 
@@ -41,11 +42,12 @@ public sealed class WorkspaceDiagnosticsHttpTests
     public async Task Get_ReturnsOnlyRequestedWorkspaceAndApplicationDiagnostics()
     {
         using var client = _factory.CreateClient();
-        using var registrationResponse = await client.PostAsJsonAsync("/api/workspaces", new RegisterWorkspaceRequest(
-            "Shop", "/repo", "/repo", "main", "abc")
-        {
-            Applications = [new ApplicationDefinition("web", "npm start", ".", [])]
-        });
+        using var registrationResponse = await client.PostAsJsonAsync("/api/workspaces", ServerDomain.Workspace()
+            .Named("Shop")
+            .At("/repo")
+            .AtCommit("abc")
+            .WithApplication(new ApplicationDefinitionBuilder("web", "npm start").At(".").Build())
+            .Build());
         registrationResponse.EnsureSuccessStatusCode();
         using var registration = await JsonDocument.ParseAsync(await registrationResponse.Content.ReadAsStreamAsync());
         var workspaceId = registration.RootElement.GetProperty("id").GetString()!;
@@ -77,11 +79,12 @@ public sealed class WorkspaceDiagnosticsHttpTests
     public async Task Get_ReturnsBadRequestForOutOfRangeLimits()
     {
         using var client = _factory.CreateClient();
-        using var registrationResponse = await client.PostAsJsonAsync("/api/workspaces", new RegisterWorkspaceRequest(
-            "Shop", "/repo", "/repo", "main", "abc")
-        {
-            Applications = [new ApplicationDefinition("web", "npm start", ".", [])]
-        });
+        using var registrationResponse = await client.PostAsJsonAsync("/api/workspaces", ServerDomain.Workspace()
+            .Named("Shop")
+            .At("/repo")
+            .AtCommit("abc")
+            .WithApplication(new ApplicationDefinitionBuilder("web", "npm start").At(".").Build())
+            .Build());
         registrationResponse.EnsureSuccessStatusCode();
         using var registration = await JsonDocument.ParseAsync(await registrationResponse.Content.ReadAsStreamAsync());
         var workspaceId = registration.RootElement.GetProperty("id").GetString()!;
@@ -100,9 +103,14 @@ public sealed class WorkspaceDiagnosticsHttpTests
 
     private static async Task RecordAsync(HttpClient client, string workspaceId, string application, string action)
     {
-        using var response = await client.PostAsJsonAsync("/api/audit/record", new AuditRecordRequest(
-            "frontend", "web", action, "failure", workspaceId,
-            new Dictionary<string, string> { ["application"] = application, ["message"] = action }));
+        using var response = await client.PostAsJsonAsync("/api/audit/record", ServerDomain.AuditRecord()
+            .OfKind("frontend")
+            .From("web")
+            .Doing(action)
+            .Outcome("failure")
+            .ForWorkspace(workspaceId)
+            .WithDetails(new Dictionary<string, string> { ["application"] = application, ["message"] = action })
+            .Build());
         response.EnsureSuccessStatusCode();
     }
 }

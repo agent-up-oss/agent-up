@@ -241,12 +241,7 @@ public sealed class GitChangesHttpTests
 
     private async Task<string> RegisterAsync(HttpClient client)
     {
-        using var response = await client.PostAsJsonAsync("/api/workspaces", new RegisterWorkspaceRequest(
-            DisplayName: "widgets",
-            RepositoryPath: _repository,
-            WorktreePath: _repository,
-            Branch: "main",
-            Commit: "abc123"));
+        using var response = await client.PostAsJsonAsync("/api/workspaces", ServerDomain.Workspace().Named("widgets").At(_repository).AtCommit("abc123").Build());
         response.EnsureSuccessStatusCode();
         var workspace = await response.Content.ReadFromJsonAsync<Workspace>(Json);
         return workspace!.Id;

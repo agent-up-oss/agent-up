@@ -2,6 +2,7 @@ using AgentUp.Server.Features.Authentication.Controllers;
 using AgentUp.Server.Features.Authentication.DTOs;
 using AgentUp.Server.Features.Authentication.Providers;
 using AgentUp.Server.Features.Authentication.Services;
+using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 

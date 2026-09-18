@@ -52,10 +52,24 @@ internal sealed class ApplicationDefinitionBuilder(
     public ApplicationDefinitionBuilder WithPort(int defaultPort)
         => WithPort(new PortDeclarationBuilder().Named(null).On(defaultPort));
 
+    public ApplicationDefinitionBuilder WithPort(PortDeclaration port)
+    {
+        _ports.Add(port);
+        return this;
+    }
+
     public ApplicationDefinitionBuilder WithEnvironment(string key, string value)
     {
         _environment ??= [];
         _environment[key] = value;
+        return this;
+    }
+
+    public ApplicationDefinitionBuilder WithEnvironment(IReadOnlyDictionary<string, string> environment)
+    {
+        _environment ??= [];
+        foreach (var (key, value) in environment)
+            _environment[key] = value;
         return this;
     }
 

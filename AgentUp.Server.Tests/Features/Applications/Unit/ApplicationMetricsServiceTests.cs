@@ -2,6 +2,7 @@ using AgentUp.Server.Features.Applications.Services;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Applications.Unit;
 
@@ -13,36 +14,38 @@ public sealed class ApplicationMetricsServiceTests
     {
         var events = new InMemoryAuditEventRepository();
         var audit = ServerTestComposition.CreateAuditController(events: events);
-        await audit.RecordAsync(new AuditRecordRequest(
-            Kind: "metrics",
-            Source: "server",
-            Action: "app_metrics_pull",
-            Outcome: "success",
-            WorkspaceId: "ws-1",
-            Details: new Dictionary<string, string>
+        await audit.RecordAsync(ServerDomain.AuditRecord()
+            .OfKind("metrics")
+            .From("server")
+            .Doing("app_metrics_pull")
+            .Outcome("success")
+            .ForWorkspace("ws-1")
+            .WithDetails(new Dictionary<string, string>
             {
                 ["appName"] = "Web",
                 ["application"] = "Web",
                 ["metric.latency_ms"] = "120",
                 ["metric.requests_per_minute"] = "900",
                 ["metric.errors_total"] = "0"
-            },
-            Scope: AuditScope.Application), CancellationToken.None);
-        await audit.RecordAsync(new AuditRecordRequest(
-            Kind: "metrics",
-            Source: "server",
-            Action: "app_metrics_pull",
-            Outcome: "success",
-            WorkspaceId: "ws-1",
-            Details: new Dictionary<string, string>
+            })
+            .InScope(AuditScope.Application)
+            .Build(), CancellationToken.None);
+        await audit.RecordAsync(ServerDomain.AuditRecord()
+            .OfKind("metrics")
+            .From("server")
+            .Doing("app_metrics_pull")
+            .Outcome("success")
+            .ForWorkspace("ws-1")
+            .WithDetails(new Dictionary<string, string>
             {
                 ["appName"] = "Web",
                 ["application"] = "Web",
                 ["metric.latency_ms"] = "142",
                 ["metric.requests_per_minute"] = "1200",
                 ["metric.errors_total"] = "0"
-            },
-            Scope: AuditScope.Application), CancellationToken.None);
+            })
+            .InScope(AuditScope.Application)
+            .Build(), CancellationToken.None);
 
         var service = new ApplicationMetricsService(audit);
         var timeline = await service.GetTimelineAsync("ws-1", "Web", 60, CancellationToken.None);
@@ -67,21 +70,22 @@ public sealed class ApplicationMetricsServiceTests
     {
         var events = new InMemoryAuditEventRepository();
         var audit = ServerTestComposition.CreateAuditController(events: events);
-        await audit.RecordAsync(new AuditRecordRequest(
-            Kind: "metrics",
-            Source: "server",
-            Action: "app_metrics_pull",
-            Outcome: "success",
-            WorkspaceId: "ws-1",
-            Details: new Dictionary<string, string>
+        await audit.RecordAsync(ServerDomain.AuditRecord()
+            .OfKind("metrics")
+            .From("server")
+            .Doing("app_metrics_pull")
+            .Outcome("success")
+            .ForWorkspace("ws-1")
+            .WithDetails(new Dictionary<string, string>
             {
                 ["appName"] = "Web",
                 ["application"] = "Web",
                 ["metric.latency_ms"] = "0",
                 ["metric.requests_per_minute"] = "0",
                 ["metric.errors_total"] = "0"
-            },
-            Scope: AuditScope.Application), CancellationToken.None);
+            })
+            .InScope(AuditScope.Application)
+            .Build(), CancellationToken.None);
 
         var service = new ApplicationMetricsService(audit);
         var timeline = await service.GetTimelineAsync("ws-1", "Web", 60, CancellationToken.None);

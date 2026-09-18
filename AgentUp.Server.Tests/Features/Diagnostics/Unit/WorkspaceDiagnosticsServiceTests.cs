@@ -8,8 +8,9 @@ using AgentUp.Server.Features.Processes.Models;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
-using AgentUp.Server.Tests.Fake;
 using AgentUp.Server.Shared.Providers;
+using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Server.Tests.Features.Diagnostics.Unit;
@@ -22,21 +23,40 @@ public sealed class WorkspaceDiagnosticsServiceTests
     {
         var registry = ServerTestComposition.CreateRegistry();
         await registry.StartAsync(CancellationToken.None);
-        var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest(
-            "Shop", "/repo", "/repo", "main", "abc")
-        {
-            Applications = [new ApplicationDefinition("web", "npm start", ".", [])]
-        });
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Shop")
+            .At("/repo")
+            .AtCommit("abc")
+            .WithApplication(new ApplicationDefinitionBuilder("web", "npm start").At(".").Build())
+            .Build());
         workspace.State = WorkspaceState.Running;
         workspace.Applications.Single().State = ApplicationState.Unhealthy;
         var events = new InMemoryAuditEventRepository();
         var audit = ServerTestComposition.CreateAuditController(registry, events);
-        await audit.RecordAsync(new AuditRecordRequest("frontend", "web", "javascript_exception", "failure", workspace.Id,
-            new Dictionary<string, string> { ["application"] = "web", ["browserSessionId"] = "browser-7", ["message"] = "boom" }), CancellationToken.None);
-        await audit.RecordAsync(new AuditRecordRequest("frontend", "web", "network_request_failed", "resolved", workspace.Id,
-            new Dictionary<string, string> { ["application"] = "web", ["url"] = "/api/cart" }), CancellationToken.None);
-        await audit.RecordAsync(new AuditRecordRequest("frontend", "web", "javascript_exception", "failure", "another-workspace",
-            new Dictionary<string, string> { ["application"] = "web" }), CancellationToken.None);
+        await audit.RecordAsync(ServerDomain.AuditRecord()
+            .OfKind("frontend")
+            .From("web")
+            .Doing("javascript_exception")
+            .Outcome("failure")
+            .ForWorkspace(workspace.Id)
+            .WithDetails(new Dictionary<string, string> { ["application"] = "web", ["browserSessionId"] = "browser-7", ["message"] = "boom" })
+            .Build(), CancellationToken.None);
+        await audit.RecordAsync(ServerDomain.AuditRecord()
+            .OfKind("frontend")
+            .From("web")
+            .Doing("network_request_failed")
+            .Outcome("resolved")
+            .ForWorkspace(workspace.Id)
+            .WithDetails(new Dictionary<string, string> { ["application"] = "web", ["url"] = "/api/cart" })
+            .Build(), CancellationToken.None);
+        await audit.RecordAsync(ServerDomain.AuditRecord()
+            .OfKind("frontend")
+            .From("web")
+            .Doing("javascript_exception")
+            .Outcome("failure")
+            .ForWorkspace("another-workspace")
+            .WithDetails(new Dictionary<string, string> { ["application"] = "web" })
+            .Build(), CancellationToken.None);
         var output = new InMemoryOutputRepository();
         var processOutput = new ProcessOutputService(output, audit, NullLogger<ProcessOutputService>.Instance);
         await processOutput.AppendAsync(workspace.Id, "web", "ready");

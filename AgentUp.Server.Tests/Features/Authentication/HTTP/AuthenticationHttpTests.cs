@@ -1,10 +1,11 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using AgentUp.Server;
 using AgentUp.Server.Features.Authentication.DTOs;
+using AgentUp.Server.Tests.Support;
+using AgentUp.Server;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Net;
 
 namespace AgentUp.Server.Tests.Features.Authentication.HTTP;
 

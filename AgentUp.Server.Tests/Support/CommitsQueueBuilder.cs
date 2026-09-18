@@ -58,7 +58,8 @@ internal sealed class CommitsQueueBuilder
 
     public CommitsQueueBuilder WithArchived(params ArchivedCommitEntry[] archived)
     {
-        _archive = [.. archived];
+        _archive ??= [];
+        _archive.AddRange(archived);
         return this;
     }
 
@@ -71,6 +72,18 @@ internal sealed class CommitsQueueBuilder
     public CommitsQueueBuilder OnStack(string? baseCommit, string? tipCommit)
     {
         _baseCommit = baseCommit;
+        _tipCommit = tipCommit;
+        return this;
+    }
+
+    public CommitsQueueBuilder WithBaseCommit(string? baseCommit)
+    {
+        _baseCommit = baseCommit;
+        return this;
+    }
+
+    public CommitsQueueBuilder WithTipCommit(string? tipCommit)
+    {
         _tipCommit = tipCommit;
         return this;
     }

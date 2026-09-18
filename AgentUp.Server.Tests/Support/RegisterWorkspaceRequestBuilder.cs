@@ -75,6 +75,12 @@ internal sealed class RegisterWorkspaceRequestBuilder
         return this;
     }
 
+    public RegisterWorkspaceRequestBuilder WithApplications(IEnumerable<ApplicationDefinition> applications)
+    {
+        _applications.AddRange(applications);
+        return this;
+    }
+
     public RegisterWorkspaceRequestBuilder WithDesktopApplication(DesktopApplicationDefinition application)
     {
         _desktopApplications.Add(application);

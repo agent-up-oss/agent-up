@@ -59,9 +59,18 @@ internal sealed class AuditRecordRequestBuilder
         return this;
     }
 
+    public AuditRecordRequestBuilder WithDetails(IReadOnlyDictionary<string, string> details)
+    {
+        _details ??= [];
+        foreach (var (key, value) in details)
+            _details[key] = value;
+        return this;
+    }
+
     public AuditRecordRequestBuilder WithArtifacts(params string[] artifactIds)
     {
-        _artifactIds = [.. artifactIds];
+        _artifactIds ??= [];
+        _artifactIds.AddRange(artifactIds);
         return this;
     }
 

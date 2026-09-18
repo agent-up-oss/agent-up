@@ -1,12 +1,13 @@
-using System.Net;
-using System.Security.Cryptography.X509Certificates;
 using AgentUp.Server.Features.ApplicationProxy.Interfaces;
 using AgentUp.Server.Features.ApplicationProxy.Models;
 using AgentUp.Server.Features.ApplicationProxy.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.Services;
-using Microsoft.AspNetCore.Http;
+using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Http;
+using System.Net;
+using System.Security.Cryptography.X509Certificates;
 
 namespace AgentUp.Server.Tests.Fake;
 
@@ -71,18 +72,12 @@ internal static class ApplicationProxyHarness
         bool portOpen = true)
     {
         var registry = ServerTestComposition.CreateRegistry();
-        var workspace = await registry.RegisterAsync(new AgentUp.Server.Features.Workspaces.DTOs.RegisterWorkspaceRequest(
-            "Proxy", "/r", $"/r/{Guid.NewGuid():N}", "main", "c1")
-        {
-            Applications =
-            [
-                new AgentUp.Server.Features.Applications.DTOs.ApplicationDefinition(
-                    "web",
-                    "echo",
-                    null,
-                    [new AgentUp.Server.Features.Ports.DTOs.PortDeclaration("WEB_PORT", 5173, protocol)])
-            ]
-        });
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Proxy")
+            .WithWorktreePath($"{ServerDomain.RepositoryPath}/{Guid.NewGuid():N}")
+            .WithApplication(new ApplicationDefinitionBuilder("web", "echo")
+                .WithPort(ServerDomain.Port().Named("WEB_PORT").On(5173).WithProtocol(protocol)))
+            .Build());
         var port = workspace.Applications[0].AllocatedPorts[0].AllocatedPort;
         var probe = new FakeLoopbackHttpPortProbe();
         if (portOpen)

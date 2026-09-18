@@ -1,9 +1,3 @@
-using System.Net;
-using System.Net.Http.Json;
-using System.Net.Sockets;
-using System.Net.WebSockets;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Applications.DTOs;
@@ -30,9 +24,16 @@ using AgentUp.Server.Features.Workspaces.Interfaces;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Net.Http.Json;
+using System.Net.Sockets;
+using System.Net.WebSockets;
+using System.Net;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace AgentUp.Server.Tests.Features.DesktopApplications.HTTP;
 
@@ -182,10 +183,9 @@ public sealed class DesktopApplicationsHttpTests
     private async Task<Workspace> RegisterAndStartDesktopAsync()
     {
         var created = (await (await _client.PostAsJsonAsync("/api/workspaces",
-            new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-            {
-                DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
-            })).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
+            ServerDomain.Workspace()
+                .WithDesktopApplication(new DesktopApplicationDefinition("Editor", "dotnet run", "."))
+                .Build())).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
         var start = await _client.PostAsync($"/api/workspaces/{created.Id}/applications/Editor/start", null);
         Assert.That(start.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
         return created;

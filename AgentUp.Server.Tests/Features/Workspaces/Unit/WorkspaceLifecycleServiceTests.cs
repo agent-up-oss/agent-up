@@ -2,6 +2,7 @@ using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Workspaces.Unit;
 
@@ -12,7 +13,7 @@ public sealed class WorkspaceLifecycleServiceTests
     public async Task StartAndStop_ForSameWorkspace_DoNotInterleave()
     {
         var registry = ServerTestComposition.CreateRegistry();
-        var created = await registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var created = await registry.RegisterAsync(ServerDomain.Workspace().Build());
         var processes = new BlockingLaunchWorkspaceProcessManager();
         var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(registry, processes);
 
@@ -43,7 +44,7 @@ public sealed class WorkspaceLifecycleServiceTests
     public async Task Start_OnRunningWorkspace_RecreatesWorkspace()
     {
         var registry = ServerTestComposition.CreateRegistry();
-        var created = await registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var created = await registry.RegisterAsync(ServerDomain.Workspace().Build());
         var processes = new CountingWorkspaceProcessManager();
         var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(registry, processes);
 
@@ -62,10 +63,9 @@ public sealed class WorkspaceLifecycleServiceTests
     public async Task Start_marksDesktopApplicationsFailedOffLinuxWithoutFailingTheWorkspace()
     {
         var registry = ServerTestComposition.CreateRegistry();
-        var created = await registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-        {
-            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
-        });
+        var created = await registry.RegisterAsync(ServerDomain.Workspace()
+            .WithDesktopApplication(new DesktopApplicationDefinition("Editor", "dotnet run", "."))
+            .Build());
         var processes = new CountingWorkspaceProcessManager();
         var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(registry, processes, isLinux: () => false);
 
@@ -85,10 +85,9 @@ public sealed class WorkspaceLifecycleServiceTests
     public async Task Start_preparesDesktopApplicationsOnLinux()
     {
         var registry = ServerTestComposition.CreateRegistry();
-        var created = await registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-        {
-            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
-        });
+        var created = await registry.RegisterAsync(ServerDomain.Workspace()
+            .WithDesktopApplication(new DesktopApplicationDefinition("Editor", "dotnet run", "."))
+            .Build());
         var processes = new CountingWorkspaceProcessManager();
         var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(registry, processes, isLinux: () => true);
 
@@ -112,10 +111,9 @@ public sealed class WorkspaceLifecycleServiceTests
     public async Task Start_stopsDesktopSessionsWhenLaunchFails()
     {
         var registry = ServerTestComposition.CreateRegistry();
-        var created = await registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-        {
-            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
-        });
+        var created = await registry.RegisterAsync(ServerDomain.Workspace()
+            .WithDesktopApplication(new DesktopApplicationDefinition("Editor", "dotnet run", "."))
+            .Build());
         var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(
             registry,
             new ThrowingLaunchWorkspaceProcessManager(),

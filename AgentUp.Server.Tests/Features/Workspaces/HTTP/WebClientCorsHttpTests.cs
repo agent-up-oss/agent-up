@@ -1,6 +1,7 @@
-using System.Net;
+using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using System.Net;
 
 namespace AgentUp.Server.Tests.Features.Workspaces.HTTP;
 

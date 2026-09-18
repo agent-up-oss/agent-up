@@ -1,14 +1,10 @@
-using System.Net;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using AgentUp.Server;
 using AgentUp.Server.Features.ApplicationProxy.DTOs;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Authentication.DTOs;
 using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Tests.Support;
+using AgentUp.Server;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -16,6 +12,11 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Net.Http.Json;
+using System.Net.Http;
+using System.Net;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace AgentUp.Server.Tests.Features.ApplicationProxy.HTTP;
 
@@ -144,7 +145,7 @@ public sealed class ApplicationProxyHttpTests
     {
         using var client = _factory.CreateClient();
         var httpWorkspace = await RegisterHttpWorkspaceAsync(client);
-        var tcpWorkspace = await RegisterWorkspaceAsync(client, "tcp", new PortDeclaration("DB_PORT", 5432, "tcp"));
+        var tcpWorkspace = await RegisterWorkspaceAsync(client, "tcp", ServerDomain.Port().Named("DB_PORT").On(5432).WithProtocol("tcp").Build());
         var httpPort = httpWorkspace.Applications[0].AllocatedPorts[0].AllocatedPort;
         var tcpPort = tcpWorkspace.Applications[0].AllocatedPorts[0].AllocatedPort;
 
@@ -199,16 +200,16 @@ public sealed class ApplicationProxyHttpTests
     }
 
     private static async Task<Workspace> RegisterHttpWorkspaceAsync(HttpClient client)
-        => await RegisterWorkspaceAsync(client, "http", new PortDeclaration("WEB_PORT", 5173));
+        => await RegisterWorkspaceAsync(client, "http", ServerDomain.Port().Named("WEB_PORT").On(5173).Build());
 
     private static async Task<Workspace> RegisterWorkspaceAsync(HttpClient client, string name, PortDeclaration port)
     {
         var worktree = $"/tmp/agent-up-proxy-{name}-{Guid.NewGuid():N}";
-        using var response = await client.PostAsJsonAsync("/api/workspaces", new RegisterWorkspaceRequest(
-            $"proxy-{name}", worktree, worktree, "main", "c1")
-        {
-            Applications = [new ApplicationDefinition(name, "echo", null, [port])]
-        });
+        using var response = await client.PostAsJsonAsync("/api/workspaces", ServerDomain.Workspace()
+            .Named($"proxy-{name}")
+            .At(worktree)
+            .WithApplication(new ApplicationDefinitionBuilder(name, "echo").WithPort(port).Build())
+            .Build());
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
     }

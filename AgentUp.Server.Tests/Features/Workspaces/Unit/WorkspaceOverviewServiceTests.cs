@@ -5,6 +5,7 @@ using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Interfaces;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Workspaces.Unit;
 
@@ -23,12 +24,12 @@ public sealed class WorkspaceOverviewServiceTests
     public async Task Get_combinesIdentityDiskAndProcessRuntime()
     {
         var registry = ServerTestComposition.CreateRegistry();
-        var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest(
-            "Demo",
-            "/repos/app",
-            "/repos/app/.worktrees/demo",
-            "main",
-            "abc123"));
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Demo")
+            .WithRepositoryPath("/repos/app")
+            .WithWorktreePath("/repos/app/.worktrees/demo")
+            .AtCommit("abc123")
+            .Build());
         var service = CreateService(registry, new FixedRuntimeProcessManager(), 4096);
 
         var overview = service.Get(workspace.Id);
@@ -40,7 +41,7 @@ public sealed class WorkspaceOverviewServiceTests
             Assert.That(overview.DisplayName, Is.EqualTo("Demo"));
             Assert.That(overview.RepositoryPath, Is.EqualTo("/repos/app"));
             Assert.That(overview.WorktreePath, Is.EqualTo("/repos/app/.worktrees/demo"));
-            Assert.That(overview.Branch, Is.EqualTo("main"));
+            Assert.That(overview.Branch, Is.EqualTo(ServerDomain.Branch));
             Assert.That(overview.Commit, Is.EqualTo("abc123"));
             Assert.That(overview.State, Is.EqualTo("Stopped"));
             Assert.That(overview.CpuPercent, Is.EqualTo(12.5));

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Interfaces;
 using AgentUp.Server.Features.Agents.Models;
@@ -11,8 +10,10 @@ using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Text.Json;
 
 namespace AgentUp.Server.Tests.Features.Agents.Unit;
 
@@ -37,7 +38,7 @@ public sealed class AgentSchedulingServiceTests
             new CapabilitiesController(new CapabilityReconciliationService([])),
             new WorkspaceEventBus());
         await _registry.StartAsync(CancellationToken.None);
-        _workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("Workspace", "/repo", "/repo", "main", "abc"));
+        _workspace = await _registry.RegisterAsync(ServerDomain.Workspace().Named("Workspace").At("/repo").AtCommit("abc").Build());
         _process = new FakeAgentProcessProvider();
         _payloads = new AgentEventFrameProvider();
         var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
