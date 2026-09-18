@@ -14,7 +14,7 @@ public sealed class DesktopApplicationTabTests
     [AvaloniaTest]
     public async Task SubNavBar_showsDesktopLabel_insteadOfTypeName()
     {
-        var workspace = WorkspaceFixtures.WithHttpAndDesktop();
+        var workspace = DesktopDomain.WorkspaceServingWithDesktop().Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(workspace, () => new NativeWebView());
 
         await app.Content.SelectApplicationTabAsync();
@@ -33,7 +33,7 @@ public sealed class DesktopApplicationTabTests
     [AvaloniaTest]
     public async Task SwitchingToDesktop_hidesHttpWebView_andShowsConnecting()
     {
-        var workspace = WorkspaceFixtures.WithHttpAndDesktop();
+        var workspace = DesktopDomain.WorkspaceServingWithDesktop().Build();
         var (app, handler) = await AppDriver.LaunchWithFakeHttpAsync(workspace, () => new NativeWebView());
         var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         handler.ViewerTicket = async _ =>
@@ -72,7 +72,7 @@ public sealed class DesktopApplicationTabTests
     [AvaloniaTest]
     public async Task DesktopViewerTicket_retriesUntilTheServerReturnsAViewer()
     {
-        var workspace = WorkspaceFixtures.WithHttpAndDesktop();
+        var workspace = DesktopDomain.WorkspaceServingWithDesktop().Build();
         var (app, handler) = await AppDriver.LaunchWithFakeHttpAsync(workspace, () => new NativeWebView());
         handler.ViewerTicket = attempt => Task.FromResult(
             attempt < 3
@@ -94,7 +94,7 @@ public sealed class DesktopApplicationTabTests
     [AvaloniaTest]
     public async Task DesktopViewerTicket_showsError_whenTheApplicationHasFailed()
     {
-        var workspace = WorkspaceFixtures.WithHttpAndDesktop(desktopState: "Failed");
+        var workspace = DesktopDomain.WorkspaceServingWithDesktop(desktopState: "Failed").Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(workspace, () => new NativeWebView());
 
         await app.Content.SelectApplicationTabAsync();
@@ -116,7 +116,7 @@ public sealed class DesktopApplicationTabTests
     [AvaloniaTest]
     public async Task DesktopViewerTicket_retriesHttpFailuresUntilTheServerReturnsAViewer()
     {
-        var workspace = WorkspaceFixtures.WithHttpAndDesktop();
+        var workspace = DesktopDomain.WorkspaceServingWithDesktop().Build();
         var (app, handler) = await AppDriver.LaunchWithFakeHttpAsync(workspace, () => new NativeWebView());
         handler.ViewerTicket = attempt =>
         {
@@ -135,7 +135,7 @@ public sealed class DesktopApplicationTabTests
     [AvaloniaTest]
     public async Task DesktopViewerTicket_showsError_whenTheServerReturnsAnInvalidViewer()
     {
-        var workspace = WorkspaceFixtures.WithHttpAndDesktop();
+        var workspace = DesktopDomain.WorkspaceServingWithDesktop().Build();
         var (app, handler) = await AppDriver.LaunchWithFakeHttpAsync(workspace, () => new NativeWebView());
         handler.ViewerTicket = _ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
         {
@@ -152,7 +152,7 @@ public sealed class DesktopApplicationTabTests
     [AvaloniaTest]
     public async Task SwitchingAwayFromDesktop_cancelsAnInFlightTicketWait()
     {
-        var workspace = WorkspaceFixtures.WithHttpAndDesktop();
+        var workspace = DesktopDomain.WorkspaceServingWithDesktop().Build();
         var (app, handler) = await AppDriver.LaunchWithFakeHttpAsync(workspace, () => new NativeWebView());
         var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         handler.ViewerTicket = async _ =>

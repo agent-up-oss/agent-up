@@ -74,7 +74,15 @@ public class MainViewModelTests
     [Test]
     public async Task InitializeAsync_populatesWorkspaces_onSuccess()
     {
-        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "feat/x", "abc123", "Stopped");
+        var dto = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("My App")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/worktree")
+            .OnBranch("feat/x")
+            .AtCommit("abc123")
+            .InState("Stopped")
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
@@ -88,7 +96,15 @@ public class MainViewModelTests
     [Test]
     public async Task InitializeAsync_selectsFirstWorkspace_automaticallyOnFirstLoad()
     {
-        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "feat/x", "abc123", "Stopped");
+        var dto = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("My App")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/worktree")
+            .OnBranch("feat/x")
+            .AtCommit("abc123")
+            .InState("Stopped")
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
@@ -100,7 +116,7 @@ public class MainViewModelTests
     [Test]
     public async Task ResetLocalSession_clearsWorkspaceAndBrowserLocalState()
     {
-        var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var dto = DesktopDomain.WorkspaceServing(3000).Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
         await vm.InitializeAsync();
         vm.SelectedApplicationTab = vm.Applications.SelectedApplication;
@@ -162,7 +178,15 @@ public class MainViewModelTests
         using var http = new DisposableTestHttpClient(_ =>
             HttpTestResponses.Json(new { authenticationRequired = false }));
         var login = new LoginViewModel(AuthenticationTestController.Create(http));
-        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "feat/x", "abc123", "Stopped");
+        var dto = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("My App")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/worktree")
+            .OnBranch("feat/x")
+            .AtCommit("abc123")
+            .InState("Stopped")
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]), login: login);
         await vm.InitializeAsync();
         login.Show();
@@ -187,7 +211,15 @@ public class MainViewModelTests
                 ? HttpTestResponses.Json(new { authenticationRequired = true, accessToken = "token-1" })
                 : HttpTestResponses.Json(new { authenticationRequired = true }));
         var login = new LoginViewModel(AuthenticationTestController.Create(http));
-        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "feat/x", "abc123", "Stopped");
+        var dto = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("My App")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/worktree")
+            .OnBranch("feat/x")
+            .AtCommit("abc123")
+            .InState("Stopped")
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]), login: login);
         await vm.InitializeAsync();
         login.ShowExpired();
@@ -225,7 +257,7 @@ public class MainViewModelTests
     [Test]
     public async Task InitializeAsync_landsOnOverview_insteadOfTheFirstApplication()
     {
-        var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var dto = DesktopDomain.WorkspaceServing(3000).Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
@@ -243,7 +275,7 @@ public class MainViewModelTests
     [Test]
     public async Task SelectingAnApplicationTab_showsApplicationContentWithoutClearingSelectionOnShellTabs()
     {
-        var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var dto = DesktopDomain.WorkspaceServing(3000).Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
         await vm.InitializeAsync();
         var selectedApp = vm.Applications.SelectedApplication;
@@ -267,7 +299,7 @@ public class MainViewModelTests
     [Test]
     public async Task InitializeAsync_opensValidationSidebar_forTheSelectedApplication()
     {
-        var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var dto = DesktopDomain.WorkspaceServing(3000).Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
@@ -283,20 +315,19 @@ public class MainViewModelTests
     [Test]
     public async Task InitializeAsync_selectsFirstConfiguredPortSubTab_whenApplicationHasPorts()
     {
-        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
-        {
-            Applications =
-            [
-                new ApplicationDto("App", "cmd", null, "Running")
-                {
-                    AllocatedPorts =
-                    [
-                        new PortMappingDto("WEB_PORT", 3000, 5100),
-                        new PortMappingDto("API_PORT", 5000, 5101)
-                    ]
-                }
-            ]
-        };
+        var dto = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("My App")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/worktree")
+            .OnBranch("main")
+            .AtCommit("abc123")
+            .InState("Running")
+            .WithApplication(new ApplicationDtoBuilder("App", "cmd")
+                    .WithPort(DesktopDomain.Port().Named("WEB_PORT").Declaring(3000).AllocatedTo(5100).Build())
+                    .WithPort(DesktopDomain.Port().Named("API_PORT").Declaring(5000).AllocatedTo(5101).Build())
+                    .Build())
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
@@ -316,16 +347,18 @@ public class MainViewModelTests
     public async Task InitializeAsync_setsAddressBarToFirstHttpPortUrl_whenApplicationHasPorts()
     {
         const int port = 5100;
-        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
-        {
-            Applications =
-            [
-                new ApplicationDto("App", "cmd", null, "Running")
-                {
-                    AllocatedPorts = [new PortMappingDto("WEB_PORT", 3000, port)]
-                }
-            ]
-        };
+        var dto = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("My App")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/worktree")
+            .OnBranch("main")
+            .AtCommit("abc123")
+            .InState("Running")
+            .WithApplication(new ApplicationDtoBuilder("App", "cmd")
+                    .WithPort(DesktopDomain.Port().Named("WEB_PORT").Declaring(3000).AllocatedTo(port).Build())
+                    .Build())
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
@@ -336,7 +369,7 @@ public class MainViewModelTests
     [Test]
     public async Task NavigateAddressCommand_emitsEditedAddress_whenHttpPortTabSelected()
     {
-        var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var dto = DesktopDomain.WorkspaceServing(3000).Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
@@ -352,7 +385,7 @@ public class MainViewModelTests
     [Test]
     public async Task NavigateAddressCommand_prefixesHttpScheme_whenEditedAddressHasNoScheme()
     {
-        var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var dto = DesktopDomain.WorkspaceServing(3000).Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(e => emissions.Add(e));
@@ -369,7 +402,7 @@ public class MainViewModelTests
     [Test]
     public async Task UpdateAddressFromBrowser_updatesAddressBar_whenSelectedHttpPortNavigates()
     {
-        var dto = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var dto = DesktopDomain.WorkspaceServing(3000).Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
@@ -399,8 +432,8 @@ public class MainViewModelTests
         // LoadAsync merges workspace state in-place so SelectedWorkspace keeps the same
         // reference. This prevents the reactive chain from firing and resetting active
         // browser sessions mid-reload.
-        var initial = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
-        var refreshed = WorkspaceFixtures.WithHttpPort("ws-1", 3000) with { State = "Running" };
+        var initial = DesktopDomain.WorkspaceServing(3000).Build();
+        var refreshed = DesktopDomain.WorkspaceServing(3000).InState("Running").Build();
         var handler = new MutableFakeHttpMessageHandler([initial]);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var vm = CreateVm(new WorkspaceApiClient(http));
@@ -421,8 +454,8 @@ public class MainViewModelTests
     [Test]
     public async Task SidebarReload_rebuildsSelectedPortTabAndNavigates_whenAllocatedPortChanges()
     {
-        var initial = WorkspaceFixtures.WithHttpPort("ws-1", 10000);
-        var refreshed = WorkspaceFixtures.WithHttpPort("ws-1", 10200) with { State = "Running" };
+        var initial = DesktopDomain.WorkspaceServing(10000).Build();
+        var refreshed = DesktopDomain.WorkspaceServing(10200).InState("Running").Build();
         var handler = new MutableFakeHttpMessageHandler([initial]);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var vm = CreateVm(new WorkspaceApiClient(http));
@@ -444,9 +477,9 @@ public class MainViewModelTests
     [Test]
     public async Task ScopedWorkspaceRefresh_fetchesOnlyChangedWorkspaceAndNavigates_whenSelectedPortChanges()
     {
-        var initialWs1 = WorkspaceFixtures.WithHttpPort("ws-1", 10200);
-        var initialWs2 = WorkspaceFixtures.WithHttpPort("ws-2", 20200);
-        var refreshedWs1 = WorkspaceFixtures.WithHttpPort("ws-1", 10300) with { State = "Running" };
+        var initialWs1 = DesktopDomain.WorkspaceServing(10200).Build();
+        var initialWs2 = DesktopDomain.WorkspaceServing(20200, "ws-2").Build();
+        var refreshedWs1 = DesktopDomain.WorkspaceServing(10300).InState("Running").Build();
         var handler = new MutableFakeHttpMessageHandler([initialWs1, initialWs2]);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var vm = CreateVm(new WorkspaceApiClient(http));
@@ -470,9 +503,9 @@ public class MainViewModelTests
     [Test]
     public async Task ScopedWorkspaceRefresh_doesNotNavigateActiveBrowser_whenNonSelectedWorkspacePortChanges()
     {
-        var initialWs1 = WorkspaceFixtures.WithHttpPort("ws-1", 10200);
-        var initialWs2 = WorkspaceFixtures.WithHttpPort("ws-2", 20200);
-        var refreshedWs2 = WorkspaceFixtures.WithHttpPort("ws-2", 20300) with { State = "Running" };
+        var initialWs1 = DesktopDomain.WorkspaceServing(10200).Build();
+        var initialWs2 = DesktopDomain.WorkspaceServing(20200, "ws-2").Build();
+        var refreshedWs2 = DesktopDomain.WorkspaceServing(20300, "ws-2").InState("Running").Build();
         var handler = new MutableFakeHttpMessageHandler([initialWs1, initialWs2]);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var vm = CreateVm(new WorkspaceApiClient(http));
@@ -497,8 +530,8 @@ public class MainViewModelTests
     [Test]
     public async Task ScopedWorkspaceRefresh_clearsPreviousErrorMessage_whenRefreshSucceeds()
     {
-        var initial = WorkspaceFixtures.WithHttpPort("ws-1", 10200);
-        var refreshed = WorkspaceFixtures.WithHttpPort("ws-1", 10300);
+        var initial = DesktopDomain.WorkspaceServing(10200).Build();
+        var refreshed = DesktopDomain.WorkspaceServing(10300).Build();
         var handler = new MutableFakeHttpMessageHandler([initial]);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var vm = CreateVm(new WorkspaceApiClient(http));
@@ -515,7 +548,7 @@ public class MainViewModelTests
     [Test]
     public async Task ScopedWorkspaceRefresh_doesNotSetErrorMessage_whenCallerCancels()
     {
-        var initial = WorkspaceFixtures.WithHttpPort("ws-1", 10200);
+        var initial = DesktopDomain.WorkspaceServing(10200).Build();
         var handler = new MutableFakeHttpMessageHandler([initial]);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var vm = CreateVm(new WorkspaceApiClient(http));
@@ -531,7 +564,7 @@ public class MainViewModelTests
     [Test]
     public async Task TutorialStepTransition_reloadsWorkspaceListBehindOverlay()
     {
-        var initial = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var initial = DesktopDomain.WorkspaceServing(3000).Build();
         var handler = new MutableFakeHttpMessageHandler([initial]);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var tutorial = new FirstRunTutorialViewModel(
@@ -555,10 +588,16 @@ public class MainViewModelTests
     [Test]
     public async Task InitializeAsync_selectsConsoleSubTab_whenApplicationHasNoPorts()
     {
-        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
-        {
-            Applications = [new ApplicationDto("Worker", "cmd", null, "Running")]
-        };
+        var dto = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("My App")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/worktree")
+            .OnBranch("main")
+            .AtCommit("abc123")
+            .InState("Running")
+            .WithApplication(new ApplicationDtoBuilder("Worker", "cmd").Build())
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
@@ -577,16 +616,18 @@ public class MainViewModelTests
     public async Task BrowserTabNavigation_emitsPortUrl_whenPortSubTabSelected()
     {
         const int port = 3000;
-        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
-        {
-            Applications =
-            [
-                new ApplicationDto("App", "cmd", null, "Running")
-                {
-                    AllocatedPorts = [new PortMappingDto(null, port, port)]
-                }
-            ]
-        };
+        var dto = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("My App")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/worktree")
+            .OnBranch("main")
+            .AtCommit("abc123")
+            .InState("Running")
+            .WithApplication(new ApplicationDtoBuilder("App", "cmd")
+                    .WithPort(DesktopDomain.Port().Declaring(port).AllocatedTo(port).Build())
+                    .Build())
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         var emissions = new List<(string? WorkspaceId, string? Url)>();
@@ -607,16 +648,18 @@ public class MainViewModelTests
     public async Task BrowserTabNavigation_fallsBackToPortUrl_whenAddressBarShowsChromeError()
     {
         const int port = 3000;
-        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
-        {
-            Applications =
-            [
-                new ApplicationDto("App", "cmd", null, "Running")
-                {
-                    AllocatedPorts = [new PortMappingDto(null, port, port)]
-                }
-            ]
-        };
+        var dto = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("My App")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/worktree")
+            .OnBranch("main")
+            .AtCommit("abc123")
+            .InState("Running")
+            .WithApplication(new ApplicationDtoBuilder("App", "cmd")
+                    .WithPort(DesktopDomain.Port().Declaring(port).AllocatedTo(port).Build())
+                    .Build())
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserTabNavigation.Subscribe(e => emissions.Add(e));
@@ -646,16 +689,18 @@ public class MainViewModelTests
     public async Task BrowserTabNavigation_doesNotReemitPortUrl_whenReturningFromConsoleToSamePort()
     {
         const int port = 3000;
-        var dto = new WorkspaceDto("ws-1", "My App", "/repo", "/worktree", "main", "abc123", "Running")
-        {
-            Applications =
-            [
-                new ApplicationDto("App", "cmd", null, "Running")
-                {
-                    AllocatedPorts = [new PortMappingDto(null, port, port)]
-                }
-            ]
-        };
+        var dto = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("My App")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/worktree")
+            .OnBranch("main")
+            .AtCommit("abc123")
+            .InState("Running")
+            .WithApplication(new ApplicationDtoBuilder("App", "cmd")
+                    .WithPort(DesktopDomain.Port().Declaring(port).AllocatedTo(port).Build())
+                    .Build())
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserTabNavigation.Subscribe(e => emissions.Add(e));
@@ -676,10 +721,16 @@ public class MainViewModelTests
     [Test]
     public async Task SelectedWorkspaceApplicationStateChange_refreshesApplicationPanel()
     {
-        var dto = new WorkspaceDto("ws-1", "Workspace", "/repo", "/worktree", "main", "abc", "Starting")
-        {
-            Applications = [new ApplicationDto("Web", "npm run dev", null, "Starting")]
-        };
+        var dto = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("Workspace")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/worktree")
+            .OnBranch("main")
+            .AtCommit("abc")
+            .InState("Starting")
+            .WithApplication(new ApplicationDtoBuilder("Web", "npm run dev").InState("Starting").Build())
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
 
         await vm.InitializeAsync();
@@ -691,16 +742,19 @@ public class MainViewModelTests
     [Test]
     public async Task SelectedWorkspaceApplicationStateChange_emitsActiveBrowserNavigation()
     {
-        var dto = new WorkspaceDto("ws-1", "Workspace", "/repo", "/worktree", "main", "abc", "Starting")
-        {
-            Applications =
-            [
-                new ApplicationDto("Web", "npm run dev", null, "Starting")
-                {
-                    AllocatedPorts = [new PortMappingDto(null, 3000, 10400)]
-                }
-            ]
-        };
+        var dto = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("Workspace")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/worktree")
+            .OnBranch("main")
+            .AtCommit("abc")
+            .InState("Starting")
+            .WithApplication(new ApplicationDtoBuilder("Web", "npm run dev")
+                    .InState("Starting")
+                    .WithPort(DesktopDomain.Port().Declaring(3000).AllocatedTo(10400).Build())
+                    .Build())
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(emissions.Add);
@@ -717,16 +771,19 @@ public class MainViewModelTests
     [Test]
     public async Task SelectedWorkspaceApplicationStateChange_emitsActiveBrowserNavigation_whenConsoleTabSelected()
     {
-        var dto = new WorkspaceDto("ws-1", "Workspace", "/repo", "/worktree", "main", "abc", "Starting")
-        {
-            Applications =
-            [
-                new ApplicationDto("Web", "npm run dev", null, "Starting")
-                {
-                    AllocatedPorts = [new PortMappingDto(null, 3000, 10400)]
-                }
-            ]
-        };
+        var dto = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("Workspace")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/worktree")
+            .OnBranch("main")
+            .AtCommit("abc")
+            .InState("Starting")
+            .WithApplication(new ApplicationDtoBuilder("Web", "npm run dev")
+                    .InState("Starting")
+                    .WithPort(DesktopDomain.Port().Declaring(3000).AllocatedTo(10400).Build())
+                    .Build())
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
         var emissions = new List<(string? WorkspaceId, string? Url)>();
         vm.BrowserNavigation.Subscribe(emissions.Add);
@@ -745,34 +802,36 @@ public class MainViewModelTests
     [Test]
     public async Task SelectApplicationForUrl_doesNotSwitchWorkspaceForBrowserActivityInAnotherWorkspace()
     {
-        var first = new WorkspaceDto("ws-1", "First", "/repo/first", "/worktrees/first", "main", "abc", "Running")
-        {
-            Applications =
-            [
-                new ApplicationDto("Web", "cmd", null, "Running")
-                {
-                    AllocatedPorts = [new PortMappingDto(null, 5101, 5101)]
-                },
-                new ApplicationDto("Api", "cmd", null, "Running")
-                {
-                    AllocatedPorts = [new PortMappingDto(null, 5102, 5102)]
-                }
-            ]
-        };
-        var second = new WorkspaceDto("ws-2", "Second", "/repo/second", "/worktrees/second", "main", "abc", "Running")
-        {
-            Applications =
-            [
-                new ApplicationDto("Docs", "cmd", null, "Running")
-                {
-                    AllocatedPorts = [new PortMappingDto(null, 5201, 5201)]
-                },
-                new ApplicationDto("Admin", "cmd", null, "Running")
-                {
-                    AllocatedPorts = [new PortMappingDto(null, 5202, 5202)]
-                }
-            ]
-        };
+        var first = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("First")
+            .WithRepositoryPath("/repo/first")
+            .WithWorktreePath("/worktrees/first")
+            .OnBranch("main")
+            .AtCommit("abc")
+            .InState("Running")
+            .WithApplication(new ApplicationDtoBuilder("Web", "cmd")
+                    .WithPort(DesktopDomain.Port().Declaring(5101).AllocatedTo(5101).Build())
+                    .Build())
+            .WithApplication(new ApplicationDtoBuilder("Api", "cmd")
+                    .WithPort(DesktopDomain.Port().Declaring(5102).AllocatedTo(5102).Build())
+                    .Build())
+            .Build();
+        var second = DesktopDomain.Workspace()
+            .WithId("ws-2")
+            .Named("Second")
+            .WithRepositoryPath("/repo/second")
+            .WithWorktreePath("/worktrees/second")
+            .OnBranch("main")
+            .AtCommit("abc")
+            .InState("Running")
+            .WithApplication(new ApplicationDtoBuilder("Docs", "cmd")
+                    .WithPort(DesktopDomain.Port().Declaring(5201).AllocatedTo(5201).Build())
+                    .Build())
+            .WithApplication(new ApplicationDtoBuilder("Admin", "cmd")
+                    .WithPort(DesktopDomain.Port().Declaring(5202).AllocatedTo(5202).Build())
+                    .Build())
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([first, second]));
 
         await vm.InitializeAsync();
@@ -792,20 +851,21 @@ public class MainViewModelTests
     [Test]
     public async Task SelectApplicationForUrl_switchesApplicationOnlyInsideSelectedWorkspace()
     {
-        var workspace = new WorkspaceDto("ws-1", "Workspace", "/repo/first", "/worktrees/first", "main", "abc", "Running")
-        {
-            Applications =
-            [
-                new ApplicationDto("Web", "cmd", null, "Running")
-                {
-                    AllocatedPorts = [new PortMappingDto(null, 5101, 5101)]
-                },
-                new ApplicationDto("Api", "cmd", null, "Running")
-                {
-                    AllocatedPorts = [new PortMappingDto(null, 5102, 5102)]
-                }
-            ]
-        };
+        var workspace = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("Workspace")
+            .WithRepositoryPath("/repo/first")
+            .WithWorktreePath("/worktrees/first")
+            .OnBranch("main")
+            .AtCommit("abc")
+            .InState("Running")
+            .WithApplication(new ApplicationDtoBuilder("Web", "cmd")
+                    .WithPort(DesktopDomain.Port().Declaring(5101).AllocatedTo(5101).Build())
+                    .Build())
+            .WithApplication(new ApplicationDtoBuilder("Api", "cmd")
+                    .WithPort(DesktopDomain.Port().Declaring(5102).AllocatedTo(5102).Build())
+                    .Build())
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([workspace]));
 
         await vm.InitializeAsync();
@@ -825,26 +885,30 @@ public class MainViewModelTests
     [Test]
     public async Task SelectApplicationForUrl_keepsSelectedWorkspace_WhenTargetPortIsUnknown()
     {
-        var first = new WorkspaceDto("ws-1", "First", "/repo/first", "/worktrees/first", "main", "abc", "Running")
-        {
-            Applications =
-            [
-                new ApplicationDto("Web", "cmd", null, "Running")
-                {
-                    AllocatedPorts = [new PortMappingDto(null, 5101, 5101)]
-                }
-            ]
-        };
-        var second = new WorkspaceDto("ws-2", "Second", "/repo/second", "/worktrees/second", "main", "abc", "Running")
-        {
-            Applications =
-            [
-                new ApplicationDto("Docs", "cmd", null, "Running")
-                {
-                    AllocatedPorts = [new PortMappingDto(null, 5201, 5201)]
-                }
-            ]
-        };
+        var first = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("First")
+            .WithRepositoryPath("/repo/first")
+            .WithWorktreePath("/worktrees/first")
+            .OnBranch("main")
+            .AtCommit("abc")
+            .InState("Running")
+            .WithApplication(new ApplicationDtoBuilder("Web", "cmd")
+                    .WithPort(DesktopDomain.Port().Declaring(5101).AllocatedTo(5101).Build())
+                    .Build())
+            .Build();
+        var second = DesktopDomain.Workspace()
+            .WithId("ws-2")
+            .Named("Second")
+            .WithRepositoryPath("/repo/second")
+            .WithWorktreePath("/worktrees/second")
+            .OnBranch("main")
+            .AtCommit("abc")
+            .InState("Running")
+            .WithApplication(new ApplicationDtoBuilder("Docs", "cmd")
+                    .WithPort(DesktopDomain.Port().Declaring(5201).AllocatedTo(5201).Build())
+                    .Build())
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([first, second]));
 
         await vm.InitializeAsync();
@@ -862,17 +926,24 @@ public class MainViewModelTests
     [Test]
     public async Task RebuildSubTabs_AddsDatabaseTabFirst_WhenApplicationHasDatabaseFlag()
     {
-        var workspace = new WorkspaceDto("ws-1", "Demo", "/repo", "/repo", "main", "abc", "Running")
-        {
-            Applications =
-            [
-                new ApplicationDto("Database", "docker", null, "Running")
-                {
-                    Database = true,
-                    AllocatedPorts = [new PortMappingDto("POSTGRES_PORT", 5432, 10602, "tcp")]
-                }
-            ]
-        };
+        var workspace = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("Demo")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/repo")
+            .OnBranch("main")
+            .AtCommit("abc")
+            .InState("Running")
+            .WithApplication(new ApplicationDtoBuilder("Database", "docker")
+                    .AsDatabase()
+                    .WithPort(DesktopDomain.Port()
+                        .Named("POSTGRES_PORT")
+                        .Declaring(5432)
+                        .AllocatedTo(10602)
+                        .WithProtocol("tcp")
+                        .Build())
+                    .Build())
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([workspace]));
 
         await vm.InitializeAsync();
@@ -892,13 +963,16 @@ public class MainViewModelTests
     [Test]
     public async Task RebuildSubTabs_AddsDesktopTabFirst_WhenApplicationKindIsDesktop()
     {
-        var workspace = new WorkspaceDto("ws-1", "Demo", "/repo", "/repo", "main", "abc", "Running")
-        {
-            Applications =
-            [
-                new ApplicationDto("Sample Desktop", "dotnet run", null, "Running", Kind: "Desktop")
-            ]
-        };
+        var workspace = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("Demo")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/repo")
+            .OnBranch("main")
+            .AtCommit("abc")
+            .InState("Running")
+            .WithApplication(new ApplicationDtoBuilder("Sample Desktop", "dotnet run").OfKind("Desktop").Build())
+            .Build();
         var vm = CreateVm(FakeWorkspaceClient([workspace]));
 
         await vm.InitializeAsync();

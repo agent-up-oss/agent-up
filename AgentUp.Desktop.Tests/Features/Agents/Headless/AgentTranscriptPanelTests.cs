@@ -13,7 +13,7 @@ public sealed class AgentTranscriptPanelTests
     [AvaloniaTest]
     public async Task Transcript_usesCatalogThoughtAndCardSurfaces()
     {
-        var app = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
+        var app = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var viewModel = (MainViewModel)app.Window.DataContext!;
         viewModel.SelectedShellTab = WorkspaceShellTab.Agent;
         viewModel.Agent.Transcript.Add(new AgentChatItemViewModel("You", "test"));
@@ -51,7 +51,7 @@ public sealed class AgentTranscriptPanelTests
     [AvaloniaTest]
     public async Task Transcript_collapsesSealedRunsBehindAWorkedHeader()
     {
-        var app = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
+        var app = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var viewModel = (MainViewModel)app.Window.DataContext!;
         viewModel.SelectedShellTab = WorkspaceShellTab.Agent;
         var run = new AgentRunViewModel();

@@ -22,7 +22,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task Content_showsWorkspaceDetail_whenWorkspaceIsSelected()
     {
-        var workspace = WorkspaceFixtures.Single();
+        var workspace = DesktopDomain.Workspace().Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(workspace);
 
         Assert.That(app.Content.ShowsWorkspaceDetail, Is.True);
@@ -33,7 +33,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task Content_displaysCorrectWorkspaceName_inDetailPanel()
     {
-        var workspace = WorkspaceFixtures.Single();
+        var workspace = DesktopDomain.Workspace().Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(workspace);
 
         Assert.That(app.Content.DisplayedWorkspaceName, Is.EqualTo(workspace.DisplayName));
@@ -42,7 +42,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task Content_updatesDetail_whenDifferentWorkspaceSelected()
     {
-        var workspaces = WorkspaceFixtures.Multiple();
+        var workspaces = DesktopDomain.Workspaces();
         var app = await AppDriver.LaunchWithWorkspacesAsync(workspaces);
 
         // Sidebar order after load is Running-first then alphabetical: API Gateway, My App, Auth Service.
@@ -65,7 +65,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task Content_autoSelectsFirstWorkspace_whenMultipleLoaded()
     {
-        var workspaces = WorkspaceFixtures.Multiple();
+        var workspaces = DesktopDomain.Workspaces();
         var app = await AppDriver.LaunchWithWorkspacesAsync(workspaces);
 
         // Sidebar order after load is Running-first then alphabetical: API Gateway, My App, Auth Service.
@@ -76,7 +76,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task Content_showsOverviewBranchPicker_whenWorkspaceIsSelected()
     {
-        var workspace = WorkspaceFixtures.Single();
+        var workspace = DesktopDomain.Workspace().Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(workspace);
         var viewModel = (MainViewModel)app.Window.DataContext!;
         for (var i = 0; i < 40 && viewModel.Overview.IsLoading; i++)
@@ -103,7 +103,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task Content_showsAddressNavBar_withDefaultUrl_whenHttpPortTabSelected()
     {
-        var workspace = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var workspace = DesktopDomain.WorkspaceServing(3000).Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(
             workspace,
             () => throw new InvalidOperationException("no WebKit"));
@@ -116,7 +116,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task Content_showsNavButtons_forHttpPortTabs()
     {
-        var workspace = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var workspace = DesktopDomain.WorkspaceServing(3000).Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(
             workspace,
             () => throw new InvalidOperationException("no WebKit"));
@@ -130,7 +130,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task Content_blursAddressBar_whenClickingOutsideIt()
     {
-        var workspace = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var workspace = DesktopDomain.WorkspaceServing(3000).Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(
             workspace,
             () => throw new InvalidOperationException("no WebKit"));
@@ -147,7 +147,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task ApplicationSubTabs_keepHoverOnTheRoundedBorder_notTheLabel()
     {
-        var workspace = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var workspace = DesktopDomain.WorkspaceServing(3000).Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(
             workspace,
             () => throw new InvalidOperationException("no WebKit"));

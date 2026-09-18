@@ -46,7 +46,7 @@ public sealed class WebViewErrorBannerTests
     [AvaloniaTest]
     public async Task PortPane_showsErrorBanner_whenWebViewCreationFails()
     {
-        var ws = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var ws = DesktopDomain.WorkspaceServing(3000).Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(
             ws,
             () => throw new InvalidOperationException("no WebKit installed"));
@@ -61,8 +61,8 @@ public sealed class WebViewErrorBannerTests
     [AvaloniaTest]
     public async Task PortPane_hidesBanner_whenSwitchingToWorkspaceWithoutError()
     {
-        var ws1 = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
-        var ws2 = WorkspaceFixtures.WithHttpPort("ws-2", 4000);
+        var ws1 = DesktopDomain.WorkspaceServing(3000).Build();
+        var ws2 = DesktopDomain.WorkspaceServing(4000, "ws-2").Build();
         var app = await AppDriver.LaunchWithWorkspacesAsync(
             [ws1, ws2],
             () => throw new InvalidOperationException("no WebKit"));
@@ -81,8 +81,8 @@ public sealed class WebViewErrorBannerTests
     [AvaloniaTest]
     public async Task PortPane_reShowsBanner_whenSwitchingBackToFailedWorkspace()
     {
-        var ws1 = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
-        var ws2 = WorkspaceFixtures.WithHttpPort("ws-2", 4000);
+        var ws1 = DesktopDomain.WorkspaceServing(3000).Build();
+        var ws2 = DesktopDomain.WorkspaceServing(4000, "ws-2").Build();
         var app = await AppDriver.LaunchWithWorkspacesAsync(
             [ws1, ws2],
             () => throw new InvalidOperationException("no WebKit"));
@@ -102,7 +102,7 @@ public sealed class WebViewErrorBannerTests
     [AvaloniaTest]
     public async Task PortPane_hidesBrowserErrorBanner_whileFirstRunTutorialIsVisible()
     {
-        var ws = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var ws = DesktopDomain.WorkspaceServing(3000).Build();
         var tutorial = new FirstRunTutorialViewModel(
             new InMemoryTutorialSettingsStore(new FirstRunTutorialSettings(false, false, 0)),
             new PassingTutorialChecks());
@@ -121,7 +121,7 @@ public sealed class WebViewErrorBannerTests
     [AvaloniaTest]
     public async Task MainWindow_close_clearsBrowserStateAfterWebViewFailure()
     {
-        var ws = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var ws = DesktopDomain.WorkspaceServing(3000).Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(
             ws,
             () => throw new InvalidOperationException("no WebKit installed"));

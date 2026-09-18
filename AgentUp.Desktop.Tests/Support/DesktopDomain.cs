@@ -42,6 +42,9 @@ internal static class DesktopDomain
     public const string DocsName = "Docs";
     public const string DocsCommand = "npm run start";
     public const string DocsPath = "docs";
+    public const string ServingName = "App";
+    public const string ServingCommand = "cmd";
+    public const string ExampleApiName = "Example API";
     public const string DesktopName = "Sample Desktop";
     public const string DesktopCommand = "dotnet run";
     public const string DesktopKind = "Desktop";
@@ -94,6 +97,40 @@ internal static class DesktopDomain
 
     /// <summary>The canonical allocated port: an HTTP port mapped to itself.</summary>
     public static PortMappingDtoBuilder Port() => new();
+
+    /// <summary>
+    /// The canonical workspace running one application on an allocated HTTP port - the
+    /// shape the browser, console and application panels are all tested against.
+    /// </summary>
+    /// <remarks>
+    /// This returns a builder rather than a finished workspace, so "the same workspace but
+    /// stopped" is <c>.InState(StoppedState)</c> at the call site.
+    /// </remarks>
+    public static WorkspaceDtoBuilder WorkspaceServing(int port = HttpPort, string id = WorkspaceId)
+        => new WorkspaceDtoBuilder()
+            .Identified(id)
+            .OnBranch(ThirdBranch)
+            .WithApplication(new ApplicationDtoBuilder(ServingName, ServingCommand).WithPort(port));
+
+    /// <summary>
+    /// The canonical workspace running both a web application on a port and a hosted
+    /// desktop application, which the desktop tab and viewer tests need side by side.
+    /// </summary>
+    public static WorkspaceDtoBuilder WorkspaceServingWithDesktop(
+        int port = HttpPort,
+        string desktopState = RunningState,
+        string id = WorkspaceId)
+        => new WorkspaceDtoBuilder()
+            .Identified(id)
+            .OnBranch(ThirdBranch)
+            .WithApplication(new ApplicationDtoBuilder(ExampleApiName, ServingCommand).WithPort(port))
+            .WithApplication(DesktopApplication().InState(desktopState));
+
+    /// <summary>The canonical workspace with two running applications and no ports.</summary>
+    public static WorkspaceDtoBuilder WorkspaceWithApplications()
+        => Workspace()
+            .WithApplication(Application())
+            .WithApplication(DocsApplication());
 
     /// <summary>Console output keyed the way the Desktop output panel reads it.</summary>
     public static Dictionary<string, List<string>> OutputFor(

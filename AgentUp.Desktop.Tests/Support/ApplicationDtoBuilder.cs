@@ -20,7 +20,7 @@ internal sealed class ApplicationDtoBuilder(
     private string? _path;
     private string _state = DesktopDomain.RunningState;
     private string _kind = DesktopDomain.ProcessKind;
-    private readonly List<PortMappingDto> _allocatedPorts = [];
+    private List<PortMappingDto> _ports = [];
     private bool _database;
 
     public ApplicationDtoBuilder Named(string value)
@@ -57,12 +57,28 @@ internal sealed class ApplicationDtoBuilder(
 
     public ApplicationDtoBuilder WithPort(PortMappingDtoBuilder port)
     {
-        _allocatedPorts.Add(port.Build());
+        _ports.Add(port.Build());
+        return this;
+    }
+
+    public ApplicationDtoBuilder WithPort(PortMappingDto port)
+    {
+        _ports.Add(port);
         return this;
     }
 
     public ApplicationDtoBuilder WithPort(int port)
         => WithPort(new PortMappingDtoBuilder().On(port));
+
+    /// <summary>
+    /// Sets the whole allocated-port list, including to null, so the tests that cover a
+    /// payload with no "allocatedPorts" member can still say so.
+    /// </summary>
+    public ApplicationDtoBuilder WithPorts(List<PortMappingDto> ports)
+    {
+        _ports = ports;
+        return this;
+    }
 
     public ApplicationDtoBuilder AsDatabase()
     {
@@ -73,7 +89,7 @@ internal sealed class ApplicationDtoBuilder(
     public ApplicationDto Build()
         => new(_name, _command, _path, _state, _kind)
         {
-            AllocatedPorts = _allocatedPorts,
+            AllocatedPorts = _ports,
             Database = _database
         };
 }

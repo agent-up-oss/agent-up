@@ -278,22 +278,30 @@ public class FirstRunTutorialChecksTests
     }
 
     private static WorkspaceDto SampleWorkspace(string path, int webPort, int apiPort, int postgresPort)
-        => new("ws-" + Path.GetFileName(path), "Sample", path, path, "main", "abc123", "Running")
-        {
-            Applications =
-            [
-                new ApplicationDto("React SPA", "npm run dev", "web", "Running")
-                {
-                    AllocatedPorts = [new PortMappingDto("WEB_PORT", 5173, webPort)]
-                },
-                new ApplicationDto("Express API", "npm run dev", "api", "Running")
-                {
-                    AllocatedPorts = [new PortMappingDto("API_PORT", 3001, apiPort)]
-                },
-                new ApplicationDto("Postgres", "", null, "Running")
-                {
-                    AllocatedPorts = [new PortMappingDto("POSTGRES_PORT", 5432, postgresPort, "tcp")]
-                }
-            ]
-        };
+        => DesktopDomain.Workspace()
+            .WithId("ws-" + Path.GetFileName(path))
+            .Named("Sample")
+            .WithRepositoryPath(path)
+            .WithWorktreePath(path)
+            .OnBranch(DesktopDomain.ThirdBranch)
+            .WithApplication(
+                new ApplicationDtoBuilder("React SPA", "npm run dev")
+                    .At("web")
+                    .WithPort(DesktopDomain.Port().Named("WEB_PORT").Declaring(5173).AllocatedTo(webPort).Build())
+                    .Build())
+            .WithApplication(
+                new ApplicationDtoBuilder("Express API", "npm run dev")
+                    .At("api")
+                    .WithPort(DesktopDomain.Port().Named("API_PORT").Declaring(3001).AllocatedTo(apiPort).Build())
+                    .Build())
+            .WithApplication(
+                new ApplicationDtoBuilder("Postgres", "")
+                    .WithPort(DesktopDomain.Port()
+                        .Named("POSTGRES_PORT")
+                        .Declaring(5432)
+                        .AllocatedTo(postgresPort)
+                        .WithProtocol("tcp")
+                        .Build())
+                    .Build())
+            .Build();
 }

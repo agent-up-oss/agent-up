@@ -13,7 +13,7 @@ public sealed class ApplicationAuditPanelTests
     [AvaloniaTest]
     public async Task AuditTab_ShowsStreamingControlsAndPagination()
     {
-        var app = await AppDriver.LaunchWithWorkspacesAsync([WorkspaceFixtures.WithApplications()]);
+        var app = await AppDriver.LaunchWithWorkspacesAsync([DesktopDomain.WorkspaceWithApplications().Build()]);
         var viewModel = (MainViewModel)app.Window.DataContext!;
         var auditTab = viewModel.SubTabs.OfType<AuditSubTabViewModel>().Single();
         Assert.That(auditTab.Label, Is.EqualTo("Diagnostics"));
