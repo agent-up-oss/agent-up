@@ -227,23 +227,32 @@ public class WorkspacesHttpTests
     }
 
     [Test]
-    public async Task GetOverview_ReturnsWorkspaceResources_AfterRegistration()
+    public async Task GetOverview_ReturnsTheRegisteredWorkspaceIdentity()
     {
-        var created = (await (await _client.PostAsJsonAsync("/api/workspaces",
-            ServerDomain.Workspace().Build())).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
+        var created = await RegisterAsync();
 
-        var response = await _client.GetAsync($"/api/workspaces/{created.Id}/overview");
+        var overview = await GetOverviewAsync(created.Id);
 
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var overview = await response.Content.ReadFromJsonAsync<WorkspaceOverviewDto>(JsonOptions);
         Assert.Multiple(() =>
         {
-            Assert.That(overview!.Id, Is.EqualTo(created.Id));
+            Assert.That(overview.Id, Is.EqualTo(created.Id));
             Assert.That(overview.DisplayName, Is.EqualTo(ServerDomain.WorkspaceName));
             Assert.That(overview.RepositoryPath, Is.EqualTo(ServerDomain.RepositoryPath));
             Assert.That(overview.WorktreePath, Is.EqualTo(ServerDomain.WorktreePath));
             Assert.That(overview.Branch, Is.EqualTo(ServerDomain.Branch));
             Assert.That(overview.Commit, Is.EqualTo(ServerDomain.Commit));
+        });
+    }
+
+    [Test]
+    public async Task GetOverview_ReportsNoRuntimeForAWorkspaceThatHasNotStarted()
+    {
+        var created = await RegisterAsync();
+
+        var overview = await GetOverviewAsync(created.Id);
+
+        Assert.Multiple(() =>
+        {
             Assert.That(overview.State, Is.EqualTo("Stopped"));
             Assert.That(overview.CpuPercent, Is.EqualTo(0));
             Assert.That(overview.MemoryBytes, Is.EqualTo(0));
@@ -251,6 +260,17 @@ public class WorkspacesHttpTests
             Assert.That(overview.ProcessCount, Is.EqualTo(0));
             Assert.That(overview.ApplicationCount, Is.EqualTo(0));
         });
+    }
+
+    private async Task<Workspace> RegisterAsync()
+        => (await (await _client.PostAsJsonAsync("/api/workspaces",
+            ServerDomain.Workspace().Build())).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
+
+    private async Task<WorkspaceOverviewDto> GetOverviewAsync(string workspaceId)
+    {
+        using var response = await _client.GetAsync($"/api/workspaces/{workspaceId}/overview");
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        return (await response.Content.ReadFromJsonAsync<WorkspaceOverviewDto>(JsonOptions))!;
     }
 
     [Test]

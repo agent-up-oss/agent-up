@@ -184,28 +184,35 @@ public sealed class CommitQueueMcpToolsTests
         Assert.That(_queue.Stored!.ActiveSession, Is.Null);
     }
 
+    // The tool description is the only instruction an agent reads before enqueueing, so each
+    // rule it states is asserted on its own.
+    [TestCase("Do NOT call git add")]
+    [TestCase("git commit")]
+    [TestCase("git stash")]
+    public void EnqueueCommitDescription_tellsAgentsNotToUseGitDirectly(string instruction)
+        => Assert.That(EnqueueCommitDescription(), Does.Contain(instruction));
+
+    [TestCase("scoped to the queued slice")]
+    [TestCase("feat is a user-facing addition")]
+    [TestCase("test is a test-only or smoke-validation change")]
+    [TestCase("chore is maintenance/packaging/CI/tooling")]
+    [TestCase("style is CSS/HTML only")]
+    [TestCase("docs is documentation only")]
+    [TestCase("prompts.commitPolicy")]
+    public void EnqueueCommitDescription_statesTheCommitMessageContract(string rule)
+        => Assert.That(EnqueueCommitDescription(), Does.Contain(rule));
+
     [Test]
-    public void EnqueueCommitDescription_TellsAgentsNotToUseGitDirectly()
-    {
-        var description = typeof(CommitQueueMcpTools)
+    public void EnqueueCommitDescription_pointsAgentsAtTheStructuredQueueWorktreePath()
+        => Assert.That(EnqueueCommitDescription(), Does.Contain("structured queueWorktreePath"));
+
+    private static string EnqueueCommitDescription()
+        => typeof(CommitQueueMcpTools)
             .GetMethod(nameof(CommitQueueMcpTools.EnqueueCommit))!
             .GetCustomAttributes(typeof(System.ComponentModel.DescriptionAttribute), false)
             .Cast<System.ComponentModel.DescriptionAttribute>()
             .Single()
             .Description;
-
-        Assert.That(description, Does.Contain("Do NOT call git add"));
-        Assert.That(description, Does.Contain("git commit"));
-        Assert.That(description, Does.Contain("git stash"));
-        Assert.That(description, Does.Contain("scoped to the queued slice"));
-        Assert.That(description, Does.Contain("feat is a user-facing addition"));
-        Assert.That(description, Does.Contain("test is a test-only or smoke-validation change"));
-        Assert.That(description, Does.Contain("chore is maintenance/packaging/CI/tooling"));
-        Assert.That(description, Does.Contain("style is CSS/HTML only"));
-        Assert.That(description, Does.Contain("docs is documentation only"));
-        Assert.That(description, Does.Contain("prompts.commitPolicy"));
-        Assert.That(description, Does.Contain("structured queueWorktreePath"));
-    }
 
     [Test]
     public async Task MockAcpAgent_usesMcpQueuePathAndBuildsOnItsPreviousProposal()

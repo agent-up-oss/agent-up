@@ -109,8 +109,29 @@ public sealed class OrchestrationMcpHostingTests
         Assert.That(payload, Does.Contain("Continue dependent work"));
     }
 
+    // Every MCP server gets its own route prefix with both transports under it, rather than
+    // one shared "/mcp" that would expose every slice's tools to every client.
+    [TestCase("/mcp/commits")]
+    [TestCase("/mcp/orchestration")]
+    [TestCase("/mcp/browser")]
+    [TestCase("/mcp/audit")]
+    public void MapMcp_MapsStreamableHttpAndLegacySseUnderEachServerPrefix(string prefix)
+    {
+        var endpoints = MappedEndpoints();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(endpoints, Does.Contain(prefix));
+            Assert.That(endpoints, Does.Contain($"{prefix}/sse"));
+            Assert.That(endpoints, Does.Contain($"{prefix}/message"));
+        });
+    }
+
     [Test]
-    public void MapMcp_MapsSeparateStreamableHttpAndLegacySseEndpoints()
+    public void MapMcp_DoesNotMapASharedRootEndpoint()
+        => Assert.That(MappedEndpoints(), Does.Not.Contain("/mcp"));
+
+    private static string[] MappedEndpoints()
     {
         using var app = BuildMcpApp();
         app.MapMcp("/mcp/commits");
@@ -118,22 +139,10 @@ public sealed class OrchestrationMcpHostingTests
         app.MapMcp("/mcp/browser");
         app.MapMcp("/mcp/audit");
 
-        var endpoints = ((IEndpointRouteBuilder)app).DataSources.SelectMany(source => source.Endpoints)
+        return ((IEndpointRouteBuilder)app).DataSources.SelectMany(source => source.Endpoints)
             .OfType<RouteEndpoint>()
             .Select(endpoint => NormalizeRoutePattern(endpoint.RoutePattern.RawText))
             .ToArray();
-
-        Assert.That(endpoints, Does.Not.Contain("/mcp"));
-        Assert.That(endpoints, Does.Contain("/mcp/commits"));
-        Assert.That(endpoints, Does.Contain("/mcp/commits/sse"));
-        Assert.That(endpoints, Does.Contain("/mcp/commits/message"));
-        Assert.That(endpoints, Does.Contain("/mcp/orchestration"));
-        Assert.That(endpoints, Does.Contain("/mcp/orchestration/sse"));
-        Assert.That(endpoints, Does.Contain("/mcp/orchestration/message"));
-        Assert.That(endpoints, Does.Contain("/mcp/browser"));
-        Assert.That(endpoints, Does.Contain("/mcp/audit"));
-        Assert.That(endpoints, Does.Contain("/mcp/audit/sse"));
-        Assert.That(endpoints, Does.Contain("/mcp/audit/message"));
     }
 
     [Test]

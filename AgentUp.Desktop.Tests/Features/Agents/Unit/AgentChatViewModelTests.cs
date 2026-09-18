@@ -159,66 +159,136 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
-    public void Run_staysOpenUntilTheNextQuestionSealsIt()
+    public void Run_thatIsStillLive_showsItsWorkExpandedWithoutAHeader()
     {
-        var run = new AgentRunViewModel();
-        run.Items.Add(new AgentChatItemViewModel("Thought", "Looking"));
-        run.Items.Add(new AgentChatItemViewModel("Tool", "Search", "completed", "t1"));
-        run.Items.Add(new AgentChatItemViewModel("Agent", "Done", displayRole: "Codex"));
+        var run = LiveRun();
 
         Assert.Multiple(() =>
         {
             Assert.That(run.IsLive, Is.True);
             Assert.That(run.ShowHeader, Is.False);
             Assert.That(run.IsExpanded, Is.True);
-            Assert.That(run.HasReply, Is.True);
-            Assert.That(run.Reply!.Text, Is.EqualTo("Done"));
-            Assert.That(run.WorkItems, Has.Count.EqualTo(2));
-            Assert.That(run.Summary, Is.EqualTo("Worked · 1 tool · Thought"));
             Assert.That(run.Chevron, Is.EqualTo("▾"));
         });
+    }
 
-        run.Seal();
-        Assert.That(run.ShowHeader, Is.True);
-        Assert.That(run.IsExpanded, Is.False);
+    [Test]
+    public void Run_summarisesTheWorkItThoughtAndTheToolsItRan()
+    {
+        var run = LiveRun();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(run.WorkItems, Has.Count.EqualTo(2));
+            Assert.That(run.Summary, Is.EqualTo("Worked · 1 tool · Thought"));
+        });
+    }
+
+    [Test]
+    public void Run_treatsTheAgentsLastMessageAsItsReply()
+    {
+        var run = LiveRun();
+
         Assert.That(run.HasReply, Is.True);
         Assert.That(run.Reply!.Text, Is.EqualTo("Done"));
-        Assert.That(run.Chevron, Is.EqualTo("▸"));
+    }
+
+    // The first seal is the next question arriving: the run collapses behind a header but
+    // keeps its reply, because that is what the transcript shows above the new question.
+    [Test]
+    public void Run_collapsesBehindAHeaderWhenTheNextQuestionSealsIt()
+    {
+        var run = LiveRun();
 
         run.Seal();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(run.ShowHeader, Is.True);
+            Assert.That(run.IsExpanded, Is.False);
+            Assert.That(run.Chevron, Is.EqualTo("▸"));
+            Assert.That(run.Reply!.Text, Is.EqualTo("Done"));
+        });
+    }
+
+    [Test]
+    public void Run_stopsBeingLiveOnTheSecondSeal()
+    {
+        var run = LiveRun();
+        run.Seal();
+
+        run.Seal();
+
         Assert.That(run.IsLive, Is.False);
         Assert.That(run.ShowHeader, Is.True);
     }
 
-    [Test]
-    public async Task ChatItem_collapsesThoughtsUntilToggled()
+    /// <summary>A run that thought, ran one tool, and replied - still open.</summary>
+    private static AgentRunViewModel LiveRun()
     {
-        var thought = new AgentChatItemViewModel("Thought", "**Clarifying test meaning**");
+        var run = new AgentRunViewModel();
+        run.Items.Add(new AgentChatItemViewModel("Thought", "Looking"));
+        run.Items.Add(new AgentChatItemViewModel("Tool", "Search", "completed", "t1"));
+        run.Items.Add(new AgentChatItemViewModel("Agent", "Done", displayRole: "Codex"));
+        return run;
+    }
+
+    [Test]
+    public void ChatItem_readsAThoughtAsThoughtRatherThanWork()
+    {
+        var thought = Thought();
 
         Assert.Multiple(() =>
         {
             Assert.That(thought.IsThought, Is.True);
             Assert.That(thought.IsWork, Is.False);
             Assert.That(thought.VisibleText, Is.EqualTo("Clarifying test meaning"));
-            Assert.That(thought.IsThoughtExpanded, Is.False);
-            Assert.That(thought.Label, Is.EqualTo("Thought"));
         });
+    }
 
-        thought.Text = thought.Text;
+    [Test]
+    public void ChatItem_startsAThoughtCollapsed()
+    {
+        var thought = Thought();
+
+        Assert.That(thought.IsThoughtExpanded, Is.False);
+        Assert.That(thought.Label, Is.EqualTo("Thought"));
+    }
+
+    // A thought arriving while the agent is still working opens on its own, and is labelled
+    // in the present tense for as long as that is true.
+    [Test]
+    public async Task ChatItem_expandsALiveThoughtAndLetsTheReaderCollapseIt()
+    {
+        var thought = Thought();
+
         thought.SetLive(true);
+
         Assert.That(thought.IsThoughtExpanded, Is.True);
         Assert.That(thought.Label, Is.EqualTo("Thinking"));
 
         await thought.ToggleCommand.Execute().FirstAsync();
+
         Assert.That(thought.IsThoughtExpanded, Is.False);
         Assert.That(thought.Label, Is.EqualTo("Thinking"));
+    }
+
+    [Test]
+    public async Task ChatItem_keepsAFinishedThoughtToggleable()
+    {
+        var thought = Thought();
+        thought.SetLive(true);
+        await thought.ToggleCommand.Execute().FirstAsync();
 
         thought.SetLive(false);
-        Assert.That(thought.Label, Is.EqualTo("Thought"));
         await thought.ToggleCommand.Execute().FirstAsync();
+
         Assert.That(thought.IsThoughtExpanded, Is.True);
         Assert.That(thought.Label, Is.EqualTo("Thought"));
     }
+
+    private static AgentChatItemViewModel Thought() =>
+        new("Thought", "**Clarifying test meaning**");
 
     [Test]
     public void AgentSessionDto_preservesASubscriptionLoginChallenge()

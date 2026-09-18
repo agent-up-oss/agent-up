@@ -80,7 +80,7 @@ public class FirstRunTutorialChecksTests
     }
 
     [Test]
-    public async Task CreateJavaScriptSampleAsync_writesReactAndExpressSampleFiles()
+    public async Task CreateJavaScriptSampleAsync_reportsTheDirectoryItWroteInto()
     {
         var checks = CreateChecks([]);
 
@@ -88,40 +88,115 @@ public class FirstRunTutorialChecksTests
 
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.ProjectDirectory, Is.EqualTo(_testRoot));
-        Assert.That(File.Exists(Path.Join(_testRoot, "web", "package.json")), Is.True);
-        var packageJson = File.ReadAllText(Path.Join(_testRoot, "web", "package.json"));
-        Assert.That(packageJson, Does.Contain("\"vite\": \"5.4.11\""));
-        Assert.That(packageJson, Does.Not.Contain("\"latest\""));
-        Assert.That(File.Exists(Path.Join(_testRoot, "web", "index.html")), Is.True);
-        Assert.That(File.Exists(Path.Join(_testRoot, "web", "src-App.jsx")), Is.True);
-        var appJsx = File.ReadAllText(Path.Join(_testRoot, "web", "src-App.jsx"));
+    }
+
+    [Test]
+    public async Task CreateJavaScriptSampleAsync_writesEveryFileTheSampleNeedsToRun()
+    {
+        var checks = CreateChecks([]);
+
+        await checks.CreateJavaScriptSampleAsync(_testRoot);
+
+        string[] expected =
+        [
+            Path.Join("web", "package.json"),
+            Path.Join("web", "index.html"),
+            Path.Join("web", "src-App.jsx"),
+            Path.Join("web", "vite.config.mjs"),
+            Path.Join("api", "package.json"),
+            Path.Join("api", "server.js"),
+            Path.Join("api", "products.json"),
+            "docker-compose.yaml"
+        ];
+
+        var missing = expected.Where(file => !File.Exists(Path.Join(_testRoot, file))).ToArray();
+        Assert.That(missing, Is.Empty);
+    }
+
+    // The sample is the first thing a new user runs, so an unpinned dependency turns a
+    // tutorial into whatever npm published this morning.
+    [TestCase("web", "package.json", "\"vite\": \"5.4.11\"")]
+    [TestCase("api", "package.json", "\"express\": \"4.18.3\"")]
+    [TestCase("api", "package.json", "\"pg\": \"8.12.0\"")]
+    public async Task CreateJavaScriptSampleAsync_pinsSampleDependencies(
+        string directory, string file, string expected)
+    {
+        var checks = CreateChecks([]);
+
+        await checks.CreateJavaScriptSampleAsync(_testRoot);
+
+        var contents = await File.ReadAllTextAsync(Path.Join(_testRoot, directory, file));
+        Assert.That(contents, Does.Contain(expected));
+        Assert.That(contents, Does.Not.Contain("\"latest\""));
+    }
+
+    [Test]
+    public async Task CreateJavaScriptSampleAsync_writesAReactAppThatReadsTheProductApi()
+    {
+        var checks = CreateChecks([]);
+
+        await checks.CreateJavaScriptSampleAsync(_testRoot);
+
+        var appJsx = await File.ReadAllTextAsync(Path.Join(_testRoot, "web", "src-App.jsx"));
         Assert.That(appJsx, Does.Contain("Product Operations Dashboard"));
         Assert.That(appJsx, Does.Contain("/api/products"));
         Assert.That(appJsx, Does.Contain("Unit Price"));
-        Assert.That(File.Exists(Path.Join(_testRoot, "web", "vite.config.mjs")), Is.True);
-        var viteConfig = File.ReadAllText(Path.Join(_testRoot, "web", "vite.config.mjs"));
+    }
+
+    // Both ports are allocated by the Server, so the sample has to take them from the
+    // environment rather than hard-coding them.
+    [Test]
+    public async Task CreateJavaScriptSampleAsync_takesBothPortsFromTheEnvironment()
+    {
+        var checks = CreateChecks([]);
+
+        await checks.CreateJavaScriptSampleAsync(_testRoot);
+
+        var viteConfig = await File.ReadAllTextAsync(Path.Join(_testRoot, "web", "vite.config.mjs"));
         Assert.That(viteConfig, Does.Contain("process.env.WEB_PORT"));
         Assert.That(viteConfig, Does.Contain("process.env.API_PORT"));
         Assert.That(viteConfig, Does.Contain("__API_PORT__"));
-        Assert.That(File.Exists(Path.Join(_testRoot, "api", "package.json")), Is.True);
-        var apiPackageJson = File.ReadAllText(Path.Join(_testRoot, "api", "package.json"));
-        Assert.That(apiPackageJson, Does.Contain("\"express\": \"4.18.3\""));
-        Assert.That(apiPackageJson, Does.Contain("\"pg\": \"8.12.0\""));
-        Assert.That(apiPackageJson, Does.Not.Contain("\"latest\""));
-        Assert.That(File.Exists(Path.Join(_testRoot, "api", "server.js")), Is.True);
-        var serverJs = File.ReadAllText(Path.Join(_testRoot, "api", "server.js"));
+    }
+
+    [Test]
+    public async Task CreateJavaScriptSampleAsync_writesAnApiThatSeedsAndQueriesPostgres()
+    {
+        var checks = CreateChecks([]);
+
+        await checks.CreateJavaScriptSampleAsync(_testRoot);
+
+        var serverJs = await File.ReadAllTextAsync(Path.Join(_testRoot, "api", "server.js"));
+        Assert.That(serverJs, Does.Contain("create table if not exists products"));
+        Assert.That(serverJs, Does.Contain(
+            "select sku, name, category, status, region, inventory, unit_price, margin, updated_at"));
+        Assert.That(serverJs, Does.Contain("app.get('/api/products'"));
+        Assert.That(serverJs, Does.Contain("Seeded ${products.length} product row(s) into Postgres."));
+    }
+
+    [Test]
+    public async Task CreateJavaScriptSampleAsync_writesAnApiThatDocumentsItself()
+    {
+        var checks = CreateChecks([]);
+
+        await checks.CreateJavaScriptSampleAsync(_testRoot);
+
+        var serverJs = await File.ReadAllTextAsync(Path.Join(_testRoot, "api", "server.js"));
         Assert.That(serverJs, Does.Contain("openapi: '3.0.3'"));
         Assert.That(serverJs, Does.Contain("Product API Explorer"));
         Assert.That(serverJs, Does.Contain("app.get('/openapi.json'"));
         Assert.That(serverJs, Does.Contain("app.get('/',"));
-        Assert.That(serverJs, Does.Contain("create table if not exists products"));
-        Assert.That(serverJs, Does.Contain("select sku, name, category, status, region, inventory, unit_price, margin, updated_at"));
-        Assert.That(serverJs, Does.Contain("app.get('/api/products'"));
         Assert.That(serverJs, Does.Contain("Express API querying Postgres"));
-        Assert.That(serverJs, Does.Contain("Seeded ${products.length} product row(s) into Postgres."));
-        Assert.That(File.Exists(Path.Join(_testRoot, "api", "products.json")), Is.True);
-        Assert.That(File.ReadAllText(Path.Join(_testRoot, "api", "products.json")), Does.Contain("Atlas Analytics Seat"));
-        Assert.That(File.Exists(Path.Join(_testRoot, "docker-compose.yaml")), Is.True);
+    }
+
+    [Test]
+    public async Task CreateJavaScriptSampleAsync_seedsTheProductCatalogue()
+    {
+        var checks = CreateChecks([]);
+
+        await checks.CreateJavaScriptSampleAsync(_testRoot);
+
+        var products = await File.ReadAllTextAsync(Path.Join(_testRoot, "api", "products.json"));
+        Assert.That(products, Does.Contain("Atlas Analytics Seat"));
     }
 
     [Test]
