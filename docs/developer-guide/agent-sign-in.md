@@ -77,6 +77,10 @@ the user code, not only the sign-in URL: the CLI prints the URL first, and treat
 is how the installable-web suite approved a challenge with no code. See the Testing section of
 `AGENTS.md`.
 
+The Android job remains enabled but is an advisory check while Detox's intermittent loss of
+emulator window focus is under investigation. Its failures retain artifacts and remain visible in
+the workflow, but do not block `main`; the iOS and installable-web jobs remain required.
+
 The disposable native harness enables cleartext transport because its simulator and emulator must
 reach Server and identity-provider processes on ephemeral CI-host ports. That exception is applied
 by the harness config plugin only; it must not be copied into the production Mobile application.
