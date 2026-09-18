@@ -71,9 +71,9 @@ internal sealed class WorkspaceDtoBuilder
         return this;
     }
 
-    public WorkspaceDtoBuilder WithApplication(ApplicationDefinitionBuilder application)
+    public WorkspaceDtoBuilder WithApplication(ApplicationDefinition application)
     {
-        _applications.Add(application.Build());
+        _applications.Add(application);
         return this;
     }
 

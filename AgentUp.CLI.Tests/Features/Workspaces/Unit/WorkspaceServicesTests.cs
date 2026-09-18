@@ -1,6 +1,7 @@
 using AgentUp.CLI.Features.Workspaces.DTOs;
 using AgentUp.CLI.Features.Workspaces.Models;
 using AgentUp.CLI.Features.Workspaces.Services;
+using AgentUp.CLI.Tests.Support;
 
 namespace AgentUp.CLI.Tests.Features.Workspaces.Unit;
 
@@ -30,7 +31,15 @@ public sealed class WorkspaceServicesTests
     [Test]
     public void Resolution_distinguishes_found_workspaces_from_failures()
     {
-        var workspace = new WorkspaceDto("one", "One", "/repo", "/repo", "main", "abc", "running");
+        var workspace = CliDomain.Workspace()
+            .WithId("one")
+            .Named("One")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/repo")
+            .OnBranch("main")
+            .AtCommit("abc")
+            .InState("running")
+            .Build();
 
         var found = WorkspaceResolution.Found(workspace);
         var failed = WorkspaceResolution.Failed("not registered");

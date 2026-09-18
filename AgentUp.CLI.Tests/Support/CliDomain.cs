@@ -28,14 +28,8 @@ internal static class CliDomain
     public const string CommitFile = "AgentUp.CLI/Features/Workspaces/Services/WorkspaceService.cs";
     public const string SecondCommitFile = "AgentUp.CLI/Features/Commits/Services/CommitsService.cs";
 
-    public const string ApiName = "Api";
-    public const string ApiCommand = "dotnet run";
-
     /// <summary>The canonical workspace as the CLI sees it.</summary>
     public static WorkspaceDtoBuilder Workspace() => new();
-
-    /// <summary>The canonical application declaration.</summary>
-    public static ApplicationDefinitionBuilder Application() => new(ApiName, ApiCommand);
 
     /// <summary>The canonical queued commit.</summary>
     public static CommitEntryBuilder CommitEntry() => new();

@@ -1,3 +1,7 @@
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Text;
 using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.DesktopApplications.Controllers;
@@ -7,10 +11,6 @@ using AgentUp.Server.Features.Processes.Providers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace AgentUp.Server.Tests.Features.DesktopApplications.Provider;
 

@@ -1,8 +1,8 @@
+using System.Diagnostics;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Models;
 using AgentUp.Server.Features.Commits.Providers;
 using AgentUp.Server.Tests.Support;
-using System.Diagnostics;
 
 namespace AgentUp.Server.Tests.Features.Commits.Provider;
 

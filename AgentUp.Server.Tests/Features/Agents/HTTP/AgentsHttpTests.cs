@@ -1,8 +1,12 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 using AgentUp.Server.Features.Agents.Controllers;
 using AgentUp.Server.Features.Agents.DTOs;
-using AgentUp.Server.Features.Agents.Interfaces;
 using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Features.Agents.Services;
+using AgentUp.Server.Features.Agents.Interfaces;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Ports.Controllers;
@@ -16,10 +20,6 @@ using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Net.Http.Json;
-using System.Net;
-using System.Text.Json.Serialization;
-using System.Text.Json;
 
 namespace AgentUp.Server.Tests.Features.Agents.HTTP;
 

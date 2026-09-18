@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Interfaces;
 using AgentUp.Server.Features.Agents.Models;
@@ -13,7 +14,6 @@ using AgentUp.Server.Tests.Fake;
 using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Text.Json;
 
 namespace AgentUp.Server.Tests.Features.Agents.Unit;
 

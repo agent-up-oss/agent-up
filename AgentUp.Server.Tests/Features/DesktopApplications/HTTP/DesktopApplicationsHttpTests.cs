@@ -1,3 +1,9 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Net.Sockets;
+using System.Net.WebSockets;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Applications.DTOs;
@@ -28,12 +34,6 @@ using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Net.Http.Json;
-using System.Net.Sockets;
-using System.Net.WebSockets;
-using System.Net;
-using System.Text.Json.Serialization;
-using System.Text.Json;
 
 namespace AgentUp.Server.Tests.Features.DesktopApplications.HTTP;
 

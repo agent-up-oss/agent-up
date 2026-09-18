@@ -1,11 +1,11 @@
+using System.Net;
+using System.Net.Http.Json;
 using AgentUp.Server.Features.Audit.DTOs;
 using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Features.Audit.Repositories;
 using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using System.Net.Http.Json;
-using System.Net;
 
 namespace AgentUp.Server.Tests.Features.Audit.HTTP;
 

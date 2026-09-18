@@ -8,8 +8,8 @@ using AgentUp.Server.Features.Processes.Models;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
-using AgentUp.Server.Shared.Providers;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Shared.Providers;
 using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 

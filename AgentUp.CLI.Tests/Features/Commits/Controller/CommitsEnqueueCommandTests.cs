@@ -1,3 +1,4 @@
+using AgentUp.CLI.Tests.Support;
 using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.CLI.Features.Commits.Controllers;
 using AgentUp.CLI.Features.Commits.DTOs;
@@ -89,7 +90,10 @@ public sealed class CommitsEnqueueCommandTests
     public async Task RunAsync_validArgs_outputIncludesTotalCount()
     {
         using var output = new StringWriter();
-        var existing = new CommitsQueue(1, [new CommitEntry("First", "fix(First): first", ["x.cs"])]);
+        var existing = CliDomain.Queue()
+            .AtVersion(1)
+            .With(CliDomain.CommitEntry().For("First").Saying("fix(First): first").Touching(["x.cs"]).Build())
+            .Build();
         var command = BuildCommand(output, new FakeCommitsQueueProvider(existing));
 
         await command.RunAsync(["--slice", "Second", "--message", "feat(Second): second", "--files", "y.cs"]);

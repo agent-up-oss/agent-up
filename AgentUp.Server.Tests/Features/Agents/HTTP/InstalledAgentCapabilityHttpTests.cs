@@ -1,3 +1,7 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Capabilities.Claude.Features.ClaudeCapability.Interfaces;
@@ -27,10 +31,6 @@ using AgentUp.Server.Tests.Fake;
 using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using System.Net.Http.Json;
-using System.Net;
-using System.Text.Json.Serialization;
-using System.Text.Json;
 
 namespace AgentUp.Server.Tests.Features.Agents.HTTP;
 

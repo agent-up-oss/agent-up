@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Capabilities.Services;
@@ -14,7 +15,6 @@ using AgentUp.Server.Tests.Fake;
 using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Diagnostics;
 
 namespace AgentUp.Server.Tests.Features.Processes.Provider;
 

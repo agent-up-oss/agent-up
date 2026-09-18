@@ -1,10 +1,15 @@
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using AgentUp.Server.Tests.Support;
+using AgentUp.Server;
 using AgentUp.Server.Features.ApplicationProxy.DTOs;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Authentication.DTOs;
 using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Workspaces.DTOs;
-using AgentUp.Server.Tests.Support;
-using AgentUp.Server;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -12,11 +17,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Net.Http.Json;
-using System.Net.Http;
-using System.Net;
-using System.Text.Json.Serialization;
-using System.Text.Json;
 
 namespace AgentUp.Server.Tests.Features.ApplicationProxy.HTTP;
 
