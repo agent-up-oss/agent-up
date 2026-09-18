@@ -224,6 +224,113 @@ public sealed class GitChangesHttpTests
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         var tree = await client.GetFromJsonAsync<GitChangeTree>($"/api/workspaces/{workspaceId}/git/changes", Json);
         Assert.That(tree!.Branch, Is.EqualTo("topic"));
+        var workspace = await client.GetFromJsonAsync<Workspace>($"/api/workspaces/{workspaceId}", Json);
+        Assert.That(workspace!.Branch, Is.EqualTo("topic"));
+    }
+
+    [Test]
+    public async Task Checkout_createsALocalBranchFromTheRemote()
+    {
+        var origin = Path.Join(_dataDirectory, "origin");
+        await TestGitRepository.InitializeAsync(origin);
+        await File.WriteAllTextAsync(Path.Join(origin, "ORIGIN.md"), "origin\n");
+        await TestGitRepository.CommitAllAsync(origin, "origin");
+        await TestGitRepository.RunAsync(origin, "switch", "-c", "topic");
+        await File.WriteAllTextAsync(Path.Join(origin, "TOPIC.md"), "topic\n");
+        await TestGitRepository.CommitAllAsync(origin, "topic");
+        await TestGitRepository.RunAsync(origin, "switch", "main");
+        await TestGitRepository.RunAsync(_repository, "remote", "add", "origin", origin);
+        await TestGitRepository.RunAsync(_repository, "fetch", "origin");
+        using var client = _factory.CreateClient();
+        var workspaceId = await RegisterAsync(client);
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/workspaces/{workspaceId}/git/checkout",
+            new GitCheckoutRequest("topic"));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var head = await client.GetFromJsonAsync<GitHeadState>($"/api/workspaces/{workspaceId}/git/head", Json);
+        Assert.That(head!.Branch, Is.EqualTo("topic"));
+        Assert.That(head.RemoteBranches.Select(branch => branch.Name), Does.Contain("topic"));
+    }
+
+    [Test]
+    public async Task Log_returnsDecoratedHistory()
+    {
+        using var client = _factory.CreateClient();
+        var workspaceId = await RegisterAsync(client);
+
+        var log = await client.GetFromJsonAsync<GitLog>($"/api/workspaces/{workspaceId}/git/log?max=10", Json);
+
+        Assert.That(log!.Commits, Is.Not.Empty);
+        Assert.That(log.Commits[0].Subject, Is.EqualTo("initial"));
+    }
+
+    [Test]
+    public async Task Fetch_updatesRemoteTrackingBranches()
+    {
+        var origin = Path.Join(_dataDirectory, "origin-fetch");
+        await TestGitRepository.InitializeAsync(origin);
+        await File.WriteAllTextAsync(Path.Join(origin, "ORIGIN.md"), "origin\n");
+        await TestGitRepository.CommitAllAsync(origin, "origin");
+        await TestGitRepository.RunAsync(_repository, "remote", "add", "origin", origin);
+        using var client = _factory.CreateClient();
+        var workspaceId = await RegisterAsync(client);
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/workspaces/{workspaceId}/git/fetch",
+            new GitFetchRequest("origin"));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var result = await response.Content.ReadFromJsonAsync<GitSyncResult>(Json);
+        Assert.That(result!.Succeeded, Is.True);
+        Assert.That(result.Head!.RemoteBranches.Select(branch => branch.Name), Does.Contain("main"));
+    }
+
+    [Test]
+    public async Task Pull_fastForwardsFromTheRemote()
+    {
+        var origin = Path.Join(_dataDirectory, "origin-pull");
+        await TestGitRepository.RunAsync(_dataDirectory, "clone", _repository, origin);
+        await TestGitRepository.RunAsync(_repository, "remote", "add", "origin", origin);
+        await TestGitRepository.RunAsync(_repository, "fetch", "origin");
+        await TestGitRepository.RunAsync(_repository, "branch", "--set-upstream-to", "origin/main", "main");
+        await File.WriteAllTextAsync(Path.Join(origin, "later.md"), "later\n");
+        await TestGitRepository.CommitAllAsync(origin, "later");
+        using var client = _factory.CreateClient();
+        var workspaceId = await RegisterAsync(client);
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/workspaces/{workspaceId}/git/pull",
+            new GitPullRequest(false));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var result = await response.Content.ReadFromJsonAsync<GitSyncResult>(Json);
+        Assert.That(result!.Succeeded, Is.True);
+        Assert.That(File.Exists(Path.Join(_repository, "later.md")), Is.True);
+    }
+
+    [Test]
+    public async Task Push_publishesTheCurrentBranch()
+    {
+        var origin = Path.Join(_dataDirectory, "origin-push.git");
+        await TestGitRepository.RunAsync(_dataDirectory, "clone", "--bare", _repository, origin);
+        await TestGitRepository.RunAsync(_repository, "remote", "add", "origin", origin);
+        await TestGitRepository.RunAsync(_repository, "fetch", "origin");
+        await TestGitRepository.RunAsync(_repository, "branch", "--set-upstream-to", "origin/main", "main");
+        await File.WriteAllTextAsync(Path.Join(_repository, "from-workspace.md"), "push\n");
+        await TestGitRepository.CommitAllAsync(_repository, "from workspace");
+        using var client = _factory.CreateClient();
+        var workspaceId = await RegisterAsync(client);
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/workspaces/{workspaceId}/git/push",
+            new GitPushRequest(false, false));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var result = await response.Content.ReadFromJsonAsync<GitSyncResult>(Json);
+        Assert.That(result!.Succeeded, Is.True);
+        Assert.That(await TestGitRepository.ReadAsync(origin, "log", "-1", "--pretty=%s"), Is.EqualTo("from workspace"));
     }
 
     [Test]

@@ -315,6 +315,110 @@ public sealed class GitPanelViewModelTests
     }
 
     [Test]
+    public async Task LoadAsync_groupsRemoteBranchesInThePicker()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Tree = SampleTree() with
+            {
+                LocalBranches = ["main"],
+                RemoteBranches = [new GitRemoteBranchDto("origin", "topic")],
+                Ahead = 1,
+                Behind = 2
+            }
+        });
+
+        await panel.LoadAsync("ws-1");
+
+        Assert.That(panel.BranchItems.Select(item => item.Label),
+            Is.EqualTo(new[] { "Local", "main", "Remote", "origin/topic" }));
+        Assert.That(panel.SyncSummary, Is.EqualTo("↑1 ↓2"));
+    }
+
+    [Test]
+    public async Task SelectedBranchItem_checksOutARemoteBranch()
+    {
+        var client = new FakeGitApiProvider
+        {
+            Tree = SampleTree() with
+            {
+                LocalBranches = ["main"],
+                RemoteBranches = [new GitRemoteBranchDto("origin", "topic")]
+            }
+        };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+
+        panel.SelectedBranchItem = panel.BranchItems.Single(item => item.Kind == "remote");
+        await Task.Delay(50);
+
+        Assert.That(client.CheckoutRequest!.Name, Is.EqualTo("origin/topic"));
+    }
+
+    [Test]
+    public async Task FetchCommand_postsFetch()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree() };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+
+        await panel.FetchCommand.Execute().FirstAsync();
+
+        Assert.That(client.FetchRequest, Is.Not.Null);
+        Assert.That(panel.StatusMessage, Is.EqualTo("Fetched."));
+    }
+
+    [Test]
+    public async Task LoadAsync_rendersLogRowsFromTheServerHistory()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            Log = new GitLogDto([
+                new GitLogCommitDto("bbb", "bbb", ["aaa"], "child", "A", "2026-01-02T00:00:00Z", ["HEAD", "main"]),
+                new GitLogCommitDto("aaa", "aaa", [], "root", "A", "2026-01-01T00:00:00Z", ["main"])
+            ])
+        });
+
+        await panel.LoadAsync("ws-1");
+
+        Assert.That(panel.LogRows, Has.Count.EqualTo(2));
+        Assert.That(panel.LogRows[0].CheckoutName, Is.EqualTo("main"));
+        Assert.That(panel.LogRows[0].Graph, Does.Contain("*"));
+    }
+
+    [Test]
+    public async Task CheckoutLogRefCommand_switchesALocalBranchRef()
+    {
+        var client = new FakeGitApiProvider
+        {
+            Tree = SampleTree() with { LocalBranches = ["main", "topic"] }
+        };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+
+        await panel.CheckoutLogRefCommand.Execute("topic").FirstAsync();
+
+        Assert.That(client.BranchRequest!.Name, Is.EqualTo("topic"));
+        Assert.That(client.CheckoutRequest, Is.Null);
+    }
+
+    [Test]
+    public async Task ConfirmForcePushCommand_sendsForceWithLease()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree() };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+
+        await panel.RequestForcePushCommand.Execute().FirstAsync();
+        Assert.That(panel.IsConfirmingForcePush, Is.True);
+        await panel.ConfirmForcePushCommand.Execute().FirstAsync();
+
+        Assert.That(client.PushRequest!.ForceWithLease, Is.True);
+        Assert.That(panel.IsConfirmingForcePush, Is.False);
+    }
+
+    [Test]
     public async Task BranchAssignment_ignoresBlankAndUnchangedNames()
     {
         var client = new FakeGitApiProvider { Tree = SampleTree() };
@@ -729,6 +833,18 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
 
     public GitBranchRequestDto? BranchRequest { get; private set; }
 
+    public GitCheckoutRequestDto? CheckoutRequest { get; private set; }
+
+    public GitFetchRequestDto? FetchRequest { get; private set; }
+
+    public GitPullRequestDto? PullRequest { get; private set; }
+
+    public GitPushRequestDto? PushRequest { get; private set; }
+
+    public GitLogDto Log { get; set; } = new([]);
+
+    public GitSyncResultDto SyncResult { get; set; } = new(true, true, null, null);
+
     public GitMutationResultDto MutationResult { get; set; } = new(true, true, null);
 
     public Exception? DiscardFailure { get; set; }
@@ -784,4 +900,33 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
         BranchRequest = request;
         return Task.FromResult(MutationResult);
     }
+
+    public Task<GitMutationResultDto> CheckoutRemoteAsync(string workspaceId, GitCheckoutRequestDto request, CancellationToken cancellationToken = default)
+    {
+        if (SwitchFailure is not null)
+            return Task.FromException<GitMutationResultDto>(SwitchFailure);
+        CheckoutRequest = request;
+        return Task.FromResult(MutationResult);
+    }
+
+    public Task<GitSyncResultDto> FetchAsync(string workspaceId, GitFetchRequestDto request, CancellationToken cancellationToken = default)
+    {
+        FetchRequest = request;
+        return Task.FromResult(SyncResult);
+    }
+
+    public Task<GitSyncResultDto> PullAsync(string workspaceId, GitPullRequestDto request, CancellationToken cancellationToken = default)
+    {
+        PullRequest = request;
+        return Task.FromResult(SyncResult);
+    }
+
+    public Task<GitSyncResultDto> PushAsync(string workspaceId, GitPushRequestDto request, CancellationToken cancellationToken = default)
+    {
+        PushRequest = request;
+        return Task.FromResult(SyncResult);
+    }
+
+    public Task<GitLogDto?> GetLogAsync(string workspaceId, int max = 100, CancellationToken cancellationToken = default)
+        => Task.FromResult<GitLogDto?>(Log);
 }

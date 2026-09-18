@@ -50,6 +50,41 @@ public sealed class GitChangesController(GitChangeTreeService changes) : Control
         return MutationResult(this, result, "Branch switch failed");
     }
 
+    [HttpPost("checkout")]
+    public async Task<IActionResult> Checkout(string workspaceId, GitCheckoutRequest request)
+    {
+        var result = await changes.CheckoutRemoteAsync(workspaceId, request, HttpContext.RequestAborted);
+        return MutationResult(this, result, "Checkout failed");
+    }
+
+    [HttpPost("fetch")]
+    public async Task<IActionResult> Fetch(string workspaceId, GitFetchRequest? request)
+    {
+        var result = await changes.FetchAsync(workspaceId, request ?? new GitFetchRequest(null), HttpContext.RequestAborted);
+        return SyncResult(this, result, "Fetch failed");
+    }
+
+    [HttpPost("pull")]
+    public async Task<IActionResult> Pull(string workspaceId, GitPullRequest? request)
+    {
+        var result = await changes.PullAsync(workspaceId, request ?? new GitPullRequest(false), HttpContext.RequestAborted);
+        return SyncResult(this, result, "Pull failed");
+    }
+
+    [HttpPost("push")]
+    public async Task<IActionResult> Push(string workspaceId, GitPushRequest? request)
+    {
+        var result = await changes.PushAsync(workspaceId, request ?? new GitPushRequest(false, false), HttpContext.RequestAborted);
+        return SyncResult(this, result, "Push failed");
+    }
+
+    [HttpGet("log")]
+    public async Task<IActionResult> GetLog(string workspaceId, [FromQuery] int? max)
+    {
+        var log = await changes.GetLogAsync(workspaceId, max, HttpContext.RequestAborted);
+        return FoundResult(this, log);
+    }
+
     private static IActionResult FoundResult<T>(ControllerBase controller, T? value) where T : class
         => value is null ? controller.NotFound() : controller.Ok(value);
 
@@ -64,6 +99,16 @@ public sealed class GitChangesController(GitChangeTreeService changes) : Control
     }
 
     private static IActionResult MutationResult(ControllerBase controller, GitMutationResult result, string title)
+    {
+        if (!result.Found)
+            return controller.NotFound();
+
+        return result.Succeeded
+            ? controller.Ok(result)
+            : controller.Problem(detail: result.Error, statusCode: 400, title: title);
+    }
+
+    private static IActionResult SyncResult(ControllerBase controller, GitSyncResult result, string title)
     {
         if (!result.Found)
             return controller.NotFound();

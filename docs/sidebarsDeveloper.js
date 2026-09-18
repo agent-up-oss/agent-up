@@ -11,9 +11,13 @@ const sidebars = {
         'server',
         'agent-sign-in',
         'desktop',
+        'mobile',
+        'design-system',
         'desktop-app-hosting-assessment',
+        'commit-merge-queue-assessment',
         'au-debug',
         'packaging',
+        'telemetry',
       ],
     },
     {
@@ -21,6 +25,7 @@ const sidebars = {
       label: 'Automation Runtime',
       items: [
         'mcp',
+        'verification',
         'event-recording',
         'playwright',
         'diagnostics',

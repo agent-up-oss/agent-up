@@ -29,7 +29,7 @@ function ProductFrame() {
         <div className={styles.workspace}><span className="au-status-dot"/><span><b>main</b><small>main</small></span></div>
       </aside>
       <div className={styles.runtime}>
-        <div className="au-tabs"><button className="au-tab" aria-selected="true">Storefront</button><button className="au-tab">API</button><button className="au-tab">Database</button></div>
+        <div className="au-tabs"><button className="au-tab" aria-selected="true">Overview</button><button className="au-tab">Agent</button><button className="au-tab">Commit</button><button className="au-tab">Storefront</button></div>
         <div className={styles.subnav}><span className="au-badge au-badge--healthy"><span className="au-status-dot au-status-dot--healthy"/>3000:11200</span><b>Console</b><b>Metrics</b><b>Diagnostics</b></div>
         <div className={styles.browserBar}>‹ &nbsp; › &nbsp; ↻ <span className="au-mono">http://localhost:11200/</span></div>
         <div className={styles.browser}><p className="au-eyebrow">checkout-fix / storefront</p><h2>Review the runtime that belongs to this change.</h2><p>Applications, ports, diagnostics, and browser automation stay attached to the workspace Agent-Up Server owns.</p></div>

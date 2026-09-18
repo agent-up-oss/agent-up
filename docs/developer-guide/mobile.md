@@ -92,45 +92,48 @@ customization requires an intentional prebuild.
 
 ## Navigation
 
-The mobile client is a gated stack, not a bottom-tab shell.
+The mobile client is a gated stack with a workspace-local bottom bar.
 
 - `/connect` is the entry screen until a Server URL is saved successfully. It
   also lists saved servers so the user can switch or add another.
 - After connect, `/(main)` renders a persistent top nav bar and a collapsible
   sidebar. Screen content renders below the nav bar. Each screen sets the nav
-  title, optional right action, and optional custom sidebar content through
-  `useShellConfig`.
+  title, optional right action, optional back action, and optional custom
+  sidebar content through `useShellConfig`.
 - The default sidebar lists workspaces for the active Server, lets the user
   switch workspaces, and lists saved Servers so the user can switch the
   client target. The first workspace is selected automatically when the list
   loads.
-- Workspace routes live under `/(main)/workspace/[workspaceId]/`. The dashboard
-  is the workspace home page. Agent chat and application spaces are deeper stack
-  routes.
-- Only the workspace agent screen uses a bottom bar. It switches between the
-  agent chat and the existing Git changes panel.
+- Workspace routes live under `/(main)/workspace/[workspaceId]/`. Each
+  workspace has a local bottom bar with Apps, Git, and Agents overview tabs.
+  Application spaces, Git Review, Git History, and agent chat are inner stack
+  routes. Inner pages replace the sidebar control with a back button on the
+  left of the nav bar.
 
 ## Workspaces and Git slices
 
 The applications slice renders Server DTOs with kind `Desktop` through the ticketed remote-display viewer. Android and iOS use `react-native-webview`; the installable web build uses an iframe. Opening a desktop application shows a connecting state immediately and retries viewer-ticket requests while the Server reports `Starting` or `Running`, instead of leaving a non-running status placeholder on screen. Ticket acquisition uses the selected Server's bearer credential, but the viewer URL contains only a random credential scoped to that desktop session and revoked when it stops. Ordinary HTTP application entries load through the authenticated Server proxy described above.
 
 `src/features/workspaces/` owns workspace selection, refresh, clone, and the
-workspace dashboard. Selection lives in `WorkspacesProvider`, which is mounted in
-the root layout so every authenticated screen reads the same selection. The
-dashboard hosts a compact Git branch dropdown above the application list.
+workspace Apps overview. Selection lives in `WorkspacesProvider`, which is mounted in
+the root layout so every authenticated screen reads the same selection. The Apps
+tab lists the workspace's applications.
 
-`src/features/git/` owns the Git changes panel used by the agent Changes tab and
-the workspace branch picker. The changes panel renders the Server's change tree
-as indented rows with a Changes checkbox at the root, opens a file's diff in a
-modal, and commits or discards the selected paths after discard confirmation. The panel polls the Server
-while it is open and keeps checkboxes for files that are still present. Tree
-flattening and directory/file selection are pure functions in
-`providers/GitChangeTreeProvider.ts` so they are covered by node tests without a
-renderer.
+`src/features/git/` owns the Git overview tab, Review page, History page, and
+the workspace branch picker. The Git tab shows branch selection and remote
+operations, a compact working-tree commit section, and a History summary.
+Review opens the change tree, file diffs, discard, and commit surface. History
+opens the bounded Server-owned commit graph. Tree flattening, directory/file
+selection, and log-lane layout stay pure functions in `providers/` so they are
+covered by node tests without a renderer.
 
-Each poll also requests the selected workspace's Server-owned proposal queue. The panel displays its ordered messages, generation, and verification states; Mobile never derives ancestry or readiness locally.
+`src/features/agents/` owns the Agents overview tab. It lists Server-discovered
+ACP agents so the user can continue the current session or start a new one, then
+opens the existing chat module as an inner page.
 
-Both slices reach the Server through
+Each poll also requests the selected workspace's Server-owned proposal queue. The Review page displays its ordered messages, generation, and verification states; Mobile never derives ancestry or readiness locally.
+
+Feature slices reach the Server through
 `src/features/servers/providers/ServerRequestProvider.ts`. The servers slice
 owns connectivity to a configured Server, so feature slices do not reimplement
 timeout, problem-detail, and unreachable-server handling.

@@ -47,7 +47,7 @@
             "au-muted",
             "au-mono"
           ],
-          "html": "<p class=\"au-eyebrow\">AI-assisted development workspaces</p>\n      <h1 class=\"au-page-title\">Workspaces</h1>\n      <h2 class=\"au-heading\">See the runtime. Trust the review.</h2>\n      <p class=\"au-muted\">Product screens use page title, not the marketing display size. Monospace is reserved for commands, paths, ports, logs, and diffs.</p>\n      <code class=\"au-mono\">agentup start · localhost:11200 · feat/checkout</code>"
+          "html": "<p class=\"au-eyebrow\">AI-assisted development workspaces</p>\n      <h1 class=\"au-page-title\">Workspaces</h1>\n      <h2 class=\"au-heading\">See the runtime. Trust the review.</h2>\n      <p class=\"au-muted\">Product screens use page title, not the marketing display size. Monospace is reserved for commands, paths, ports, logs, and diffs.</p>\n      <code class=\"au-mono\">agent-up start · localhost:11200 · feat/checkout</code>"
         }
       ]
     },
@@ -303,7 +303,7 @@
           "classes": [
             "au-code"
           ],
-          "html": "<pre class=\"au-code\">agentup start --worktree /srv/checkout-fix</pre>"
+          "html": "<pre class=\"au-code\">agent-up start --worktree /srv/checkout-fix</pre>"
         }
       ]
     },

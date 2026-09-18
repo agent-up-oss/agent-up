@@ -40,4 +40,26 @@ public sealed class GitChangeListService
         bool create,
         CancellationToken cancellationToken = default)
         => _client.SwitchBranchAsync(workspaceId, new GitBranchRequestDto(name, create), cancellationToken);
+
+    public Task<GitMutationResultDto> CheckoutRemoteAsync(
+        string workspaceId,
+        string name,
+        CancellationToken cancellationToken = default)
+        => _client.CheckoutRemoteAsync(workspaceId, new GitCheckoutRequestDto(name), cancellationToken);
+
+    public Task<GitSyncResultDto> FetchAsync(string workspaceId, string? remote = null, CancellationToken cancellationToken = default)
+        => _client.FetchAsync(workspaceId, new GitFetchRequestDto(remote), cancellationToken);
+
+    public Task<GitSyncResultDto> PullAsync(string workspaceId, bool rebase = false, CancellationToken cancellationToken = default)
+        => _client.PullAsync(workspaceId, new GitPullRequestDto(rebase), cancellationToken);
+
+    public Task<GitSyncResultDto> PushAsync(
+        string workspaceId,
+        bool forceWithLease = false,
+        bool setUpstream = false,
+        CancellationToken cancellationToken = default)
+        => _client.PushAsync(workspaceId, new GitPushRequestDto(forceWithLease, setUpstream), cancellationToken);
+
+    public Task<GitLogDto?> GetLogAsync(string workspaceId, int max = 100, CancellationToken cancellationToken = default)
+        => _client.GetLogAsync(workspaceId, max, cancellationToken);
 }

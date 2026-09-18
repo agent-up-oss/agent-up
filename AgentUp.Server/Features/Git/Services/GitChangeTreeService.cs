@@ -37,7 +37,12 @@ public sealed class GitChangeTreeService
             head.Branch.Length > 0 ? head.Branch : workspace.Branch,
             changes.Count,
             BuildTree(changes),
-            head.LocalBranches);
+            head.LocalBranches,
+            head.RemoteBranches,
+            head.Upstream,
+            head.Ahead,
+            head.Behind,
+            head.Commit.Length > 0 ? head.Commit : workspace.Commit);
     }
 
     public async Task<GitHeadState?> GetHeadAsync(string workspaceId, CancellationToken cancellationToken = default)
@@ -127,6 +132,7 @@ public sealed class GitChangeTreeService
                 try
                 {
                     await _git.SwitchBranchAsync(workspace.WorktreePath, request.Name ?? string.Empty, request.Create, cancellationToken);
+                    await RefreshIdentityAsync(workspace, cancellationToken);
                     return GitMutationResult.Success();
                 }
                 catch (InvalidOperationException ex)
@@ -137,6 +143,75 @@ public sealed class GitChangeTreeService
             GitMutationResult.NotFound,
             GitMutationResult.Failed,
             cancellationToken);
+
+    public Task<GitMutationResult> CheckoutRemoteAsync(
+        string workspaceId,
+        GitCheckoutRequest request,
+        CancellationToken cancellationToken = default) =>
+        MutateAsync(
+            workspaceId,
+            async workspace =>
+            {
+                try
+                {
+                    await _git.CheckoutRemoteAsync(workspace.WorktreePath, request.Name ?? string.Empty, cancellationToken);
+                    await RefreshIdentityAsync(workspace, cancellationToken);
+                    return GitMutationResult.Success();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return GitMutationResult.Failed(ex.Message);
+                }
+            },
+            GitMutationResult.NotFound,
+            GitMutationResult.Failed,
+            cancellationToken);
+
+    public Task<GitSyncResult> FetchAsync(
+        string workspaceId,
+        GitFetchRequest request,
+        CancellationToken cancellationToken = default) =>
+        MutateSyncAsync(
+            workspaceId,
+            workspace => _git.FetchAsync(workspace.WorktreePath, request.Remote, cancellationToken),
+            refreshIdentity: false,
+            cancellationToken);
+
+    public Task<GitSyncResult> PullAsync(
+        string workspaceId,
+        GitPullRequest request,
+        CancellationToken cancellationToken = default) =>
+        MutateSyncAsync(
+            workspaceId,
+            workspace => _git.PullAsync(workspace.WorktreePath, request.Rebase, cancellationToken),
+            refreshIdentity: true,
+            cancellationToken);
+
+    public Task<GitSyncResult> PushAsync(
+        string workspaceId,
+        GitPushRequest request,
+        CancellationToken cancellationToken = default) =>
+        MutateSyncAsync(
+            workspaceId,
+            workspace => _git.PushAsync(workspace.WorktreePath, request.ForceWithLease, request.SetUpstream, cancellationToken),
+            refreshIdentity: false,
+            cancellationToken);
+
+    public async Task<GitLog?> GetLogAsync(string workspaceId, int? max, CancellationToken cancellationToken = default)
+    {
+        var workspace = _workspaces.GetById(workspaceId);
+        if (workspace is null)
+            return null;
+
+        try
+        {
+            return await _git.GetLogAsync(workspace.WorktreePath, max, cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            return new GitLog([]);
+        }
+    }
 
     private async Task<T> MutateAsync<T>(
         string workspaceId,
@@ -166,6 +241,39 @@ public sealed class GitChangeTreeService
         }
     }
 
+    private Task<GitSyncResult> MutateSyncAsync(
+        string workspaceId,
+        Func<Workspace, Task> action,
+        bool refreshIdentity,
+        CancellationToken cancellationToken) =>
+        MutateAsync(
+            workspaceId,
+            async workspace =>
+            {
+                try
+                {
+                    await action(workspace);
+                    if (refreshIdentity)
+                        await RefreshIdentityAsync(workspace, cancellationToken);
+                    return GitSyncResult.Success(await ReadHeadAsync(workspace, cancellationToken));
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return GitSyncResult.Failed(ex.Message);
+                }
+            },
+            GitSyncResult.NotFound,
+            GitSyncResult.Failed,
+            cancellationToken);
+
+    private async Task RefreshIdentityAsync(Workspace workspace, CancellationToken cancellationToken)
+    {
+        var head = await ReadHeadAsync(workspace, cancellationToken);
+        var branch = head.Branch.Length > 0 ? head.Branch : workspace.Branch;
+        var commit = head.Commit.Length > 0 ? head.Commit : workspace.Commit;
+        await _workspaces.UpdateGitIdentityAsync(workspace.Id, branch, commit);
+    }
+
     private async Task<IReadOnlyList<GitChangeEntry>> ReadChangesAsync(
         Workspace workspace,
         CancellationToken cancellationToken)
@@ -188,7 +296,7 @@ public sealed class GitChangeTreeService
         }
         catch (InvalidOperationException)
         {
-            return new GitHeadState(workspace.Branch, []);
+            return GitHeadState.Empty(workspace.Branch, workspace.Commit);
         }
     }
 

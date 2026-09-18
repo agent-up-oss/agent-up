@@ -11,6 +11,7 @@ import { createRequestGate, type RequestGate } from '../providers/RequestGatePro
 import {
   canCommitSelection,
   canDiscardSelection,
+  changeStatusCounts,
   flattenChangeTree,
   isDirectorySelected,
   retainSelectedPaths,
@@ -22,10 +23,19 @@ import {
 
 const POLL_MS = 2500;
 
-export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?: string } = {}) {
+export function GitChangesPanel({
+  workspaceId: workspaceIdProp,
+  mode = 'review',
+  onReview,
+}: {
+  workspaceId?: string;
+  mode?: 'overview' | 'review';
+  onReview?: () => void;
+} = {}) {
   const { expireActiveCredential } = useServers();
   const { server, selectedWorkspace } = useWorkspaces();
   const workspaceId = workspaceIdProp ?? selectedWorkspace?.id ?? null;
+  const overview = mode === 'overview';
 
   const [tree, setTree] = useState<GitChangeTree | null>(null);
   const [queue, setQueue] = useState<CommitQueue | null>(null);
@@ -77,6 +87,7 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
         return retainSelectedPaths(flattenChangeTree(changes), keep);
       });
       if (silent) setError(null);
+      if (overview) return;
       try {
         const proposals = await getCommitQueue(server, workspaceId);
         if (!treeGate.isCurrent(ticket)) return;
@@ -103,7 +114,7 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
       inflightLoads.current = Math.max(0, inflightLoads.current - 1);
       if (treeGate.isCurrent(ticket) && !silent) setLoading(false);
     }
-  }, [server, workspaceId, treeGate, expireActiveCredential]);
+  }, [server, workspaceId, treeGate, expireActiveCredential, overview]);
 
   useEffect(() => { void load(false); }, [load]);
   useEffect(() => {
@@ -153,35 +164,60 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
   const selectedCount = selectedFilePaths(nodes, selected).length;
   const fileCount = nodes.filter(node => !node.isDirectory).length;
   const files = selectedFilePaths(nodes, selected);
+  const counts = changeStatusCounts(nodes);
   const canCommit = !busy && canCommitSelection(selectedCount, message);
-  const canDiscard = canDiscardSelection(selectedCount, busy);
+  const canDiscard = !overview && canDiscardSelection(selectedCount, busy);
+
+  const commitSelection = () => void runMutation(async () => {
+    const result = await commitFiles(server!, workspaceId!, files, message.trim());
+    if (result.succeeded) setMessage('');
+    return result;
+  }, result => `Committed ${files.length} file(s) as ${(result.commit ?? 'HEAD').slice(0, 8)}.`);
+
+  const commitButton = (
+    <Pressable accessibilityRole="button" accessibilityLabel="Commit" disabled={!canCommit}
+      onPress={commitSelection}
+      style={[styles.button, !canCommit && styles.disabled]}>
+      <Text style={styles.buttonText}>Commit</Text>
+    </Pressable>
+  );
 
   return (
     <View style={styles.panel}>
-      <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <Text style={styles.summary}>{selectedCount} of {fileCount} file(s) selected</Text>
-          <Pressable disabled={!canDiscard} onPress={() => {
-            Alert.alert(
-              'Discard selected files?',
-              files.join('\n'),
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Discard',
-                  style: 'destructive',
-                  onPress: () => void runMutation(() => discardFiles(server!, workspaceId!, files), () => `Discarded ${files.length} file(s).`),
-                },
-              ],
-            );
-          }}
-            style={[styles.discardButton, !canDiscard && styles.disabled]}>
-            <Text style={styles.discardText}>Discard</Text>
-          </Pressable>
-        </View>
-      </View>
+      {overview
+        ? <View style={styles.overviewToolbar}>
+            {onReview &&
+              <Pressable testID="open-git-review" accessibilityRole="button" accessibilityLabel="Review changes" onPress={onReview} style={styles.reviewButton}>
+                <Text style={styles.reviewText}>Review</Text>
+                {counts.added > 0 && <Text style={styles.insertions}>+{counts.added}</Text>}
+                {counts.deleted > 0 && <Text style={styles.deletions}>−{counts.deleted}</Text>}
+              </Pressable>}
+            {commitButton}
+          </View>
+        : <View style={styles.header}>
+            <View style={styles.titleRow}>
+              <Text style={styles.summary}>{selectedCount} of {fileCount} file(s) selected</Text>
+              <Pressable disabled={!canDiscard} onPress={() => {
+                Alert.alert(
+                  'Discard selected files?',
+                  files.join('\n'),
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Discard',
+                      style: 'destructive',
+                      onPress: () => void runMutation(() => discardFiles(server!, workspaceId!, files), () => `Discarded ${files.length} file(s).`),
+                    },
+                  ],
+                );
+              }}
+                style={[styles.discardButton, !canDiscard && styles.disabled]}>
+                <Text style={styles.discardText}>Discard</Text>
+              </Pressable>
+            </View>
+          </View>}
 
-      {!!queue?.entries.length &&
+      {!overview && !!queue?.entries.length &&
         <View accessibilityLabel="Agent proposal queue" style={styles.queue}>
           <Text style={styles.queueTitle}>Agent proposal queue · generation {queue.generation}</Text>
           {queue.entries.map((entry, index) =>
@@ -195,7 +231,7 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
       {!!status && <Text style={styles.status}>{status}</Text>}
 
-      <ScrollView style={styles.tree} contentContainerStyle={styles.treeContent} keyboardShouldPersistTaps="handled">
+      <ScrollView style={overview ? styles.overviewTree : styles.tree} contentContainerStyle={styles.treeContent} keyboardShouldPersistTaps="handled">
         {!loading && !error && nodes.length === 0 && selectedWorkspace &&
           <Text style={styles.empty}>No uncommitted changes.</Text>}
         {nodes.map(node => {
@@ -212,7 +248,7 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
               </Pressable>
               <Text style={[styles.glyph, { color: statusColor(node.status) }]}>{statusGlyph(node.status)}</Text>
               <Pressable accessibilityRole="button" accessibilityLabel={`Open ${node.path}`}
-                disabled={node.isDirectory} onPress={() => void openDiff(node)} style={styles.nameButton}>
+                disabled={node.isDirectory || overview} onPress={() => void openDiff(node)} style={styles.nameButton}>
                 <Text numberOfLines={1} style={node.isDirectory ? styles.directoryName : styles.fileName}>{node.name}</Text>
               </Pressable>
             </View>
@@ -221,16 +257,11 @@ export function GitChangesPanel({ workspaceId: workspaceIdProp }: { workspaceId?
       </ScrollView>
 
       <View style={styles.footer}>
-      <Text style={styles.label}>Commit message</Text>
-      <TextInput accessibilityLabel="Commit message" multiline value={message} onChangeText={setMessage}
-        editable={!busy} placeholder="fix(App): correct the port probe" placeholderTextColor={agentUpTheme.colors.textFaint}
-        style={styles.messageInput} />
-
-      <Pressable accessibilityRole="button" accessibilityLabel="Commit" disabled={!canCommit}
-        onPress={() => void runMutation(async () => { const result = await commitFiles(server!, workspaceId!, files, message.trim()); if (result.succeeded) setMessage(''); return result; }, result => `Committed ${files.length} file(s) as ${(result.commit ?? 'HEAD').slice(0, 8)}.`)}
-        style={[styles.button, !canCommit && styles.disabled]}>
-        <Text style={styles.buttonText}>Commit</Text>
-      </Pressable>
+        <Text style={styles.label}>Commit message</Text>
+        <TextInput accessibilityLabel="Commit message" multiline value={message} onChangeText={setMessage}
+          editable={!busy} placeholder="fix(App): correct the port probe" placeholderTextColor={agentUpTheme.colors.textFaint}
+          style={overview ? styles.overviewMessage : styles.messageInput} />
+        {!overview && <View style={styles.actions}>{commitButton}</View>}
       </View>
 
       <Modal visible={diffPath !== null} transparent animationType="fade" onRequestClose={() => setDiffPath(null)}>
@@ -277,8 +308,11 @@ const styles = StyleSheet.create({
   error: { ...auText('badgeDanger'), lineHeight: 21 },
   status: { ...auText('accent'), lineHeight: 21 },
   tree: { flex: 1, minHeight: 80, ...auBox('card') },
+  overviewTree: { flex: 1, minHeight: 120, ...auBox('card') },
   treeContent: { paddingVertical: 6, flexGrow: 1 },
   footer: { gap: 12 },
+  actions: { flexDirection: 'row', gap: 8 },
+  overviewToolbar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 10, paddingVertical: 5 },
   checkbox: { ...auBox('checkbox'), alignItems: 'center', justifyContent: 'center' },
   checkboxChecked: auBox('checkboxChecked'),
@@ -289,8 +323,13 @@ const styles = StyleSheet.create({
   fileName: auText('workspaceName'),
   label: auText('fieldLabel'),
   messageInput: { minHeight: 90, ...auBox('input'), ...auText('input'), textAlignVertical: 'top' },
-  button: { ...auBox('button'), alignItems: 'center', justifyContent: 'center' },
+  overviewMessage: { minHeight: 72, ...auBox('input'), ...auText('input'), textAlignVertical: 'top' },
+  button: { ...auBox('button'), flex: 1, alignItems: 'center', justifyContent: 'center' },
   buttonText: auText('button'),
+  reviewButton: { ...auBox('button', 'buttonSecondary'), flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  reviewText: auText('buttonSecondary'),
+  insertions: { ...auText('accent'), fontSize: 12, fontWeight: '700' },
+  deletions: { ...auText('badgeDanger'), fontSize: 12, fontWeight: '700' },
   secondaryButton: { ...auBox('button', 'buttonSecondary'), alignItems: 'center', justifyContent: 'center' },
   secondaryButtonText: auText('buttonSecondary'),
   disabled: { opacity: 0.38 },

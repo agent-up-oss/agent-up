@@ -4,7 +4,7 @@ title: MCP
 
 # MCP
 
-The Server exposes separate MCP servers at `/mcp/orchestration`, `/mcp/browser`, `/mcp/audit`, and `/mcp/commits`. MCP is the primary automation interface for AI agents.
+The Server exposes separate MCP servers at `/mcp/orchestration`, `/mcp/browser`, `/mcp/audit`, `/mcp/commits`, and `/mcp/verification`. MCP is the primary automation interface for AI agents.
 
 The CLI exists for human convenience. AI agents should use MCP directly.
 
@@ -60,13 +60,16 @@ Initial `/mcp/commits` tools:
 - `guard_commits`: returns the managed `continueWorktreePath` when a dependent proposal queue already exists, allowing later tasks to build on its tip. Legacy queued entries, active edit sessions, staged changes, unassigned modified files, and active Git merge/rebase/cherry-pick/revert/bisect operations block work.
 - `get_commit_changes`: returns working-tree files with queue assignment information.
 - `inspect_commit`: returns one queued entry, optionally including the saved patch.
-- `update_commit_message`, `update_commit_tests`, `add_commit_files`, `remove_commit_files`: update queued entry metadata and file assignment.
+- `update_commit_message`, `add_commit_files`, `remove_commit_files`: update queued entry metadata and file assignment.
 - `remove_commit`, `restore_commit`, `clear_commits`: archive, restore, or clear queued entries.
 - `begin_commit_edit`, `save_commit_edit`, `abort_commit_edit`: safely edit an existing queued patch.
 
 Initial `/mcp/browser` tools:
 
 - `browser_navigate`, `browser_inspect`, `browser_click`, `browser_fill`, `browser_press`, `browser_wait_for_selector`, `browser_wait_for_text`, `browser_wait_for_navigation`, and `browser_screenshot`.
+- Validation flows on the same Browser MCP server: `save_validation_flow`, `list_validation_flows`, `play_validation_flow`, `export_validation_flow`, and `delete_validation_flow`.
+
+The Verification MCP server exposes Streamable HTTP at `/mcp/verification` and legacy SSE compatibility at `/mcp/verification/sse` plus `/mcp/verification/message`. It owns only verification tools: `plan_verification`, `run_verification`, `run_verification_check`, and `guard_verification`. Loopback-only MCP access applies here the same as the other servers. The JSON contract is in the [agent-up.json reference](../user-docs/agent-up-json-reference.md#verification-object). See [Verification](./verification.md).
 
 `browser_navigate` is restricted to loopback URLs whose port matches one of the workspace's allocated HTTP application ports. Future external redirects, such as OAuth providers, must be represented by explicit allowlist rules rather than arbitrary agent-supplied domains.
 
@@ -99,7 +102,7 @@ MCP has no server-side lifecycle callback for when an agent finishes a turn. The
 
 Agents should call `guard_commits` before starting a new coding task. A successful response with `continueWorktreePath` directs the ACP task to the managed proposal tip. If the guard fails, agents should stop unless the user explicitly asked to continue existing changes.
 
-Claude Code installations can surface commit queue reminders with a client-side `Stop` hook. Configure the hook to run `agentup commits guard` and print a reminder when tracked files are dirty but not assigned to a queued entry:
+Claude Code installations can surface commit queue reminders with a client-side `Stop` hook. Configure the hook to run `agent-up commits guard` and print a reminder when tracked files are dirty but not assigned to a queued entry:
 
 ```json
 "hooks": {
@@ -109,7 +112,7 @@ Claude Code installations can surface commit queue reminders with a client-side 
       "hooks": [
         {
           "type": "command",
-          "command": "agentup commits guard 2>/dev/null | grep -q 'modified file(s) are not assigned' && echo '[agent-up] Unqueued changes detected - run: agentup commits enqueue' || true"
+          "command": "agent-up commits guard 2>/dev/null | grep -q 'modified file(s) are not assigned' && echo '[agent-up] Unqueued changes detected - run: agent-up commits enqueue' || true"
         }
       ]
     }

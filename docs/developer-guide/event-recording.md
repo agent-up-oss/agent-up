@@ -4,26 +4,11 @@ title: Event Recording
 
 # Event Recording
 
-Every browser interaction becomes an event.
+Shipped today: Browser MCP actions, screenshots, workspace and application state changes, captured application console lines, source revision context, and action-relevant health/probe state are written to the Server audit store. Agents query that history through Audit MCP.
 
-Examples:
+## Direction
 
-- Navigation.
-- Click.
-- Keyboard.
-- Text entry.
-- DOM mutation.
-- Console message.
-- Network request.
-- Screenshot.
-- Dialog.
-- Notification.
-
-## Canonical Interaction History
-
-The event stream is the canonical representation of user and agent interactions.
-
-Playwright tests, diagnostics, workflow summaries, and future automation features should be derived from this event stream rather than from ad hoc command logs.
+Every browser interaction and relevant runtime signal should become an event so Playwright tests, diagnostics, workflow summaries, and future automation can be derived from one history rather than ad hoc command logs. Intent inference from that stream is not built yet.
 
 ## Audit History
 

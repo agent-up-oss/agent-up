@@ -62,14 +62,14 @@ public sealed class CommitsService(ICommitsQueueProvider queue, ICommitsGitProvi
             return null;
 
         if (current.ActiveSession is not null)
-            return CommitsStagingResult.Blocked("A commit queue edit session is active. Save or abort it before running 'agentup commits next'.");
+            return CommitsStagingResult.Blocked("A commit queue edit session is active. Save or abort it before running 'agent-up commits next'.");
 
         var operation = await git.GetOperationStateAsync(cancellationToken);
         if (operation.Blocking)
             return CommitsStagingResult.Blocked($"A Git {operation.Kind} is in progress. Finish or abort it before using the commit queue.");
 
         if (await git.HasStagedChangesAsync(cancellationToken))
-            return CommitsStagingResult.Blocked("Staged changes are not yet committed. Commit them first, then run 'agentup commits next'.");
+            return CommitsStagingResult.Blocked("Staged changes are not yet committed. Commit them first, then run 'agent-up commits next'.");
 
         var head = current.Commits[0];
         await git.ResetStagingAsync(cancellationToken);

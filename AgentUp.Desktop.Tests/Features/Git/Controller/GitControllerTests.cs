@@ -76,6 +76,42 @@ public sealed class GitControllerTests
         Assert.That(client.BranchRequest.Create, Is.True);
     }
 
+    [Test]
+    public async Task CheckoutRemoteAsync_mapsTheBranchName()
+    {
+        var client = new FakeGitApiProvider();
+        var controller = CreateController(client);
+
+        var result = await controller.CheckoutRemoteAsync("ws-1", "origin/topic");
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(client.CheckoutRequest!.Name, Is.EqualTo("origin/topic"));
+    }
+
+    [Test]
+    public async Task FetchAsync_mapsToTheFetchRoute()
+    {
+        var client = new FakeGitApiProvider();
+        var controller = CreateController(client);
+
+        var result = await controller.FetchAsync("ws-1");
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(client.FetchRequest, Is.Not.Null);
+    }
+
+    [Test]
+    public async Task PushAsync_mapsForceWithLease()
+    {
+        var client = new FakeGitApiProvider();
+        var controller = CreateController(client);
+
+        var result = await controller.PushAsync("ws-1", forceWithLease: true);
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(client.PushRequest!.ForceWithLease, Is.True);
+    }
+
     private static GitController CreateController(FakeGitApiProvider client)
         => new(new GitChangeListService(client));
 }

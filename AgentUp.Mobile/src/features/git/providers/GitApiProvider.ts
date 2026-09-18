@@ -1,5 +1,5 @@
 import { jsonBody, requestServerJson, ServerRequestError, type ServerSession } from '@/features/servers/providers/ServerRequestProvider';
-import type { GitChangeTree, GitCommitResult, GitFileDiff, GitHeadState, GitMutationResult } from '../models/GitChanges';
+import type { GitChangeTree, GitCommitResult, GitFileDiff, GitHeadState, GitLog, GitMutationResult, GitSyncResult } from '../models/GitChanges';
 import type { CommitQueue } from '../models/CommitQueue';
 
 const COMMIT_TIMEOUT_MS = 60000;
@@ -103,6 +103,82 @@ export async function switchBranch(
     request,
   );
   if (!result) throw new Error('The server returned an empty branch result.');
+  return result;
+}
+
+export async function checkoutRemote(
+  server: ServerSession,
+  workspaceId: string,
+  name: string,
+  request: typeof fetch = fetch,
+): Promise<GitMutationResult> {
+  const result = await requestServerJson<GitMutationResult>(
+    server,
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/git/checkout`,
+    jsonBody({ name }),
+    COMMIT_TIMEOUT_MS,
+    request,
+  );
+  if (!result) throw new Error('The server returned an empty checkout result.');
+  return result;
+}
+
+export async function fetchRemote(
+  server: ServerSession,
+  workspaceId: string,
+  remote: string | null = null,
+  request: typeof fetch = fetch,
+): Promise<GitSyncResult> {
+  return postSync(server, workspaceId, 'fetch', { remote }, request);
+}
+
+export async function pullRemote(
+  server: ServerSession,
+  workspaceId: string,
+  rebase = false,
+  request: typeof fetch = fetch,
+): Promise<GitSyncResult> {
+  return postSync(server, workspaceId, 'pull', { rebase }, request);
+}
+
+export async function pushRemote(
+  server: ServerSession,
+  workspaceId: string,
+  forceWithLease = false,
+  setUpstream = false,
+  request: typeof fetch = fetch,
+): Promise<GitSyncResult> {
+  return postSync(server, workspaceId, 'push', { forceWithLease, setUpstream }, request);
+}
+
+export async function getLog(
+  server: ServerSession,
+  workspaceId: string,
+  max = 100,
+  request: typeof fetch = fetch,
+): Promise<GitLog | null> {
+  return readOrNull<GitLog>(
+    server,
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/git/log?max=${max}`,
+    request,
+  );
+}
+
+async function postSync(
+  server: ServerSession,
+  workspaceId: string,
+  action: string,
+  body: object,
+  request: typeof fetch,
+): Promise<GitSyncResult> {
+  const result = await requestServerJson<GitSyncResult>(
+    server,
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/git/${action}`,
+    jsonBody(body),
+    COMMIT_TIMEOUT_MS,
+    request,
+  );
+  if (!result) throw new Error(`The server returned an empty ${action} result.`);
   return result;
 }
 

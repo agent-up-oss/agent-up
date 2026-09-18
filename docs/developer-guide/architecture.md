@@ -10,6 +10,12 @@ Agent-Up has core runtime component areas plus product-specific installer entryp
 - `AgentUp.Browser.Streaming`
 - `AgentUp.Desktop`
 - `AgentUp.Mobile`
+- `AgentUp.Chat`
+- `AgentUp.AgentAuth`
+- `AgentUp.Verification`
+- `AgentUp.Tray`
+- `AgentUp.InstallerConfig`
+- `AgentUp.CommitPolicy`
 - `AgentUp.DesignSystem`
 - `AgentUp.WebAudit`
 - `AgentUp.CLI`
@@ -58,7 +64,25 @@ AgentUp.Capabilities.Claude/
 AgentUp.Desktop/
   AgentUp.Desktop.csproj
 
+AgentUp.Chat/
+  package.json
+
+AgentUp.AgentAuth/
+  package.json
+
+AgentUp.ServerClient/
+  package.json
+
+AgentUp.TestAgents/
+  AgentUp.TestAgents.csproj
+
+AgentUp.TestAgents.Tests/
+  AgentUp.TestAgents.Tests.csproj
+
 AgentUp.DesignSystem/
+  package.json
+
+AgentUp.WebAudit/
   package.json
 
 AgentUp.CLI/
@@ -66,6 +90,18 @@ AgentUp.CLI/
 
 AgentUp.AUDebug/
   AgentUp.AUDebug.csproj
+
+AgentUp.CommitPolicy/
+  AgentUp.CommitPolicy.csproj
+
+AgentUp.Verification/
+  AgentUp.Verification.csproj
+
+AgentUp.Tray/
+  AgentUp.Tray.csproj
+
+AgentUp.InstallerConfig/
+  AgentUp.InstallerConfig.csproj
 
 AgentUp.InstallerApp/
   AgentUp.InstallerApp.csproj
@@ -81,6 +117,12 @@ AgentUp.Server.Tests/
 
 AgentUp.Browser.Streaming.Tests/
   AgentUp.Browser.Streaming.Tests.csproj
+
+AgentUp.Browser.Streaming.Benchmarks/
+  AgentUp.Browser.Streaming.Benchmarks.csproj
+
+AgentUp.Server.Benchmarks/
+  AgentUp.Server.Benchmarks.csproj
 
 AgentUp.Capabilities.Abstractions.Tests/
   AgentUp.Capabilities.Abstractions.Tests.csproj
@@ -111,6 +153,18 @@ AgentUp.CLI.Tests/
 
 AgentUp.AUDebug.Tests/
   AgentUp.AUDebug.Tests.csproj
+
+AgentUp.CommitPolicy.Tests/
+  AgentUp.CommitPolicy.Tests.csproj
+
+AgentUp.Verification.Tests/
+  AgentUp.Verification.Tests.csproj
+
+AgentUp.Tray.Tests/
+  AgentUp.Tray.Tests.csproj
+
+AgentUp.InstallerConfig.Tests/
+  AgentUp.InstallerConfig.Tests.csproj
 
 AgentUp.Architecture.Tests/
   AgentUp.Architecture.Tests.csproj
@@ -206,9 +260,13 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 `AgentUp.Server` performs orchestration:
 
 - Workspace registry.
+- Managed source clones.
+- Git working-tree change trees, per-file diffs, selective commits, remotes, fetch/pull/push, and a bounded commit log.
+- Optional Git-backed dependent proposal queue and its managed worktree.
 - Process lifecycle.
 - Port allocation.
 - Authenticated HTTPS forwarding of allocated HTTP application ports.
+- Hosted Linux desktop application sessions.
 - Docker lifecycle.
 - Capability reconciliation and status.
 - Browser lifecycle.
@@ -217,7 +275,7 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 - Diagnostics and health monitoring.
 - Playwright generation.
 - ACP agent scheduling, with at most one agent process and session per workspace.
-- MCP server.
+- MCP servers.
 - REST API.
 
 `AgentUp.Desktop` displays state and browser sessions. It does not own runtime state.
@@ -235,7 +293,7 @@ Expo Router entrypoints live under `AgentUp.Mobile/src/app/`. Product UI and cli
 
 Mobile development environment and platform commands are documented in [Mobile development](mobile.md).
 
-`AgentUp.CLI` is a developer convenience wrapper. It forwards commands to the Server and owns no state.
+`AgentUp.CLI` is a developer convenience wrapper. It forwards commands to the Server and owns no runtime or orchestration state. The legacy local commit queue file is the documented exception until `commits.enabled` migration finishes.
 
 `AgentUp.AUDebug` (`au-debug`) is a maintainer visual-debug CLI. It hosts the repository Desktop, Mobile web export, and docs site for screenshot and UI-flow inspection. It is not packaged and does not own Server orchestration. See [AUDebug](au-debug.md).
 

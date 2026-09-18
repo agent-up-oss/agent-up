@@ -5,7 +5,12 @@ public sealed record GitChangeTree(
     string Branch,
     int FileCount,
     GitChangeDirectory Root,
-    IReadOnlyList<string> LocalBranches);
+    IReadOnlyList<string> LocalBranches,
+    IReadOnlyList<GitRemoteBranch> RemoteBranches,
+    string? Upstream,
+    int Ahead,
+    int Behind,
+    string Commit);
 
 public sealed record GitChangeDirectory(
     string Name,

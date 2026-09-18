@@ -12,7 +12,7 @@ If the service starts and stops repeatedly or consumes CPU while failing to beco
 
 ## Requirements
 
-- .NET SDK 10.0 preview or compatible SDK for the current target framework.
+- .NET SDK 10.0 or a compatible SDK for the current target framework.
 - Git.
 - Docker and Docker Compose when managed repositories declare Docker services.
 - Node.js and npm for the documentation site.
@@ -26,6 +26,8 @@ cd agent-up
 dotnet restore agent-up.sln
 dotnet build agent-up.sln
 ```
+
+Packaged installers and GitHub Release assets are published from `https://github.com/agent-up-oss/agent-up`. Clone and contribute against `themassiveone/agent-up`.
 
 ## Start the Server
 
@@ -82,7 +84,7 @@ dotnet run --project AgentUp.Server
 The development launch profile currently listens on:
 
 ```text
-http://localhost:5000
+http://localhost:5001
 ```
 
 ## Start the Desktop
@@ -100,6 +102,10 @@ On NixOS:
 ```
 
 The script runs the desktop inside `shell.nix`, which provides the native libraries needed by Avalonia, SkiaSharp, and WebKitGTK.
+
+On first launch, Desktop shows a setup tutorial that can create two sample workspaces. Skip persists, so the overlay does not return on the next start. Native tests set `AGENTUP_SKIP_FIRST_RUN_TUTORIAL=1`; users do not need that variable.
+
+See [Mobile](./mobile.md) for the Expo client.
 
 ## Release Artifacts
 
@@ -132,7 +138,7 @@ Applications should read ports from environment variables supplied by Agent-Up i
 From the managed repository:
 
 ```bash
-dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:5000
+dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:5001
 ```
 
 This reads `agent-up.json`, captures the current Git branch and commit, and registers the workspace with the server.
@@ -144,6 +150,6 @@ Contributor testing and documentation builds are covered in the [Developer Guide
 ## Troubleshooting
 
 - If the desktop fails to start on Linux, use `./run-desktop.sh` or install the native libraries listed in `shell.nix`.
-- If the CLI cannot reach the server, pass `--server http://localhost:5000` explicitly or set `AGENTUP_SERVER_URL`.
+- If the CLI cannot reach the server, pass `--server` explicitly (`http://localhost:5001` for the repository launch profile, `http://localhost:5000` for a packaged service) or set `AGENTUP_SERVER_URL`.
 - If an application does not bind correctly, confirm it reads the configured port environment variable.
 - If Docker services fail, verify Docker and Docker Compose work outside Agent-Up first.

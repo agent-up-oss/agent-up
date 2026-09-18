@@ -36,7 +36,7 @@ AI agents should use the Server's MCP capabilities to inspect, navigate, interac
 
 ## Shared Human and Agent Context
 
-Because humans and AI agents share the same browser session inside a workspace, validation can reuse authentication and application state instead of recreating it in a separate test browser.
+Because humans and AI agents share the same workspace, validation can reuse running applications and allocated ports. Desktop WebViews, Mobile WebViews, and the Server headless profile do not share cookies, storage, or navigation state. Replay of a validation flow uses the Desktop application WebView so a person can watch it.
 
 ## Continuous Integration
 

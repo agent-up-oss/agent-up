@@ -146,7 +146,7 @@ public sealed class CommitsService
     private static string EnqueuedMessage(string slice, int queueSize) =>
         $"""
         Enqueued '{slice}'. Queue size: {queueSize}.
-        The tracked files have been restored to their pre-change state so the patch can be applied cleanly by 'agentup commits next'. Do NOT re-apply or modify those files - the queue owns them now.
+        The tracked files have been restored to their pre-change state so the patch can be applied cleanly by 'agent-up commits next'. Do NOT re-apply or modify those files - the queue owns them now.
         """;
 
     public async Task<CommitsStatusResult> GetStatusAsync(string worktreePath, CancellationToken cancellationToken = default)

@@ -29,6 +29,7 @@ const sidebars = {
       label: 'Using Workspaces',
       items: [
         'cli',
+        'mobile',
         'git-changes',
         'browser',
         'browser-profiles',

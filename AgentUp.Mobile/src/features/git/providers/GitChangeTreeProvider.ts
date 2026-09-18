@@ -64,6 +64,17 @@ export function retainSelectedPaths(nodes: GitChangeNode[], selected: string[]):
   return selected.filter(path => files.has(path));
 }
 
+export function changeStatusCounts(nodes: GitChangeNode[]): { added: number; deleted: number } {
+  let added = 0;
+  let deleted = 0;
+  for (const node of nodes) {
+    if (node.isDirectory) continue;
+    if (node.status === 'Added' || node.status === 'Untracked') added += 1;
+    else if (node.status === 'Deleted') deleted += 1;
+  }
+  return { added, deleted };
+}
+
 export function canDiscardSelection(selectedCount: number, busy: boolean): boolean {
   return selectedCount > 0 && !busy;
 }

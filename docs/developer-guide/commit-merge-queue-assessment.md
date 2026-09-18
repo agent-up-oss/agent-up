@@ -4,6 +4,8 @@ title: Commit Merge Queue Assessment
 
 # Commit Merge Queue Assessment
 
+> **Assessment, not current contract.** This page records a design investigation. The first-phase Server-owned proposal queue behind `commits.enabled` is shipped; later phases below (rebase/repair, review apply, tree-bound receipts) are still backlog. For current behavior see [Server](./server.md), [Git changes](../user-docs/git-changes.md), and `AGENTS.md`.
+
 ## Decision
 
 The idea is feasible and addresses the main mismatch in the current commit queue: agents naturally produce dependent, incremental states, while the current queue stores independent patches against one unchanged working-tree base. A Git-backed linear queue gives every proposal an exact parent, makes intermediate states reproducible, and creates the right place to attach verification evidence.

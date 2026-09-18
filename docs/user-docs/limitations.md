@@ -8,10 +8,9 @@ Agent-Up is an experimental development preview. It is intended for early techni
 
 ## Release Status
 
-- Source-only execution.
-- No stable desktop download.
-- Cross-platform installers are preliminary and are being moved into testable installer projects.
-- No automatic updater.
+- Development-preview packages exist for Windows, macOS, Ubuntu, and NixOS. See [Downloads](./downloads.md).
+- Those packages are not a stable update channel.
+- There is no automatic updater.
 - No `v1.0` release.
 - Public contracts may break without notice.
 
@@ -27,20 +26,21 @@ Agent-Up is an experimental development preview. It is intended for early techni
 |---|---|
 | Workspace registration | Implemented |
 | Server-owned workspace state | Implemented |
-| Application process launch | Experimental |
-| Docker service definitions | Experimental |
+| Application process launch | Preview |
+| Docker service definitions | Preview |
 | Port allocation | Implemented |
 | Desktop workspace list | Implemented |
 | Desktop application tabs | Implemented |
 | Console/log display | Implemented |
-| Browser profile isolation | Experimental |
-| Diagnostics | Experimental |
-| Event recording | Planned |
-| Playwright generation | Planned |
-| MCP tools | In progress |
-| CLI | Experimental |
-| Cross-platform packaging | In progress |
-| Health monitoring | Planned |
+| Git review and history | Implemented |
+| Browser profile isolation | Preview |
+| Diagnostics | Preview |
+| Health monitoring | Preview |
+| Event recording | Experimental |
+| Validation flows and Playwright export | Preview |
+| MCP tools | Preview (contracts may change) |
+| CLI | Preview |
+| Cross-platform packaging | Preview |
 
 ## API and Configuration Stability
 

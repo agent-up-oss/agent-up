@@ -38,6 +38,14 @@ dotnet run --project AgentUp.CLI -- start --server http://localhost:5001
 
 The workspace identity is the directory containing `agent-up.json`. Git metadata is optional: when that directory is not a Git repository, the workspace is still registered and its branch is shown as `not on a git branch`.
 
+### stop
+
+Stops the workspace whose `agent-up.json` is found from the current directory.
+
+```bash
+dotnet run --project AgentUp.CLI -- stop --server http://localhost:5001
+```
+
 ### list
 
 Lists all workspaces currently known to the server.
@@ -92,18 +100,18 @@ Omit `--password` to enter the admin password interactively. Use `auth status` t
 
 ### commits
 
-Manages a local vertical-slice commit staging queue. The `commits` subcommand has no Server dependency — it operates entirely on the local working tree and a queue file stored in the platform config directory, scoped to the current Git repository.
+Manages the commit staging queue. When `commits.enabled` is absent, this is a **legacy local queue**: no Server dependency, a queue file in the platform config directory, scoped to the current Git repository. When `commits.enabled` is true, enqueue records a Server-owned **proposal queue** in a managed worktree; Desktop Commit and Mobile Git Review display that queue as read-only. Humans review proposals there; agents still enqueue through MCP.
 
 Mutating queue commands are blocked while Git has an active merge, rebase, cherry-pick, revert, or bisect in progress. Finish or abort that Git operation before enqueueing, editing, clearing, or staging queued entries.
 
-The queue file is never edited directly. Agents and developers interact with it exclusively through the CLI.
+Do not edit the queue file directly. Agents and developers interact with it through the CLI or MCP.
 
 #### commits enqueue
 
 Adds a proposed commit entry to the queue. Intended for coding agents that modify multiple vertical slices in a single task.
 
 ```bash
-agentup commits enqueue \
+agent-up commits enqueue \
   --slice UbuntuInstallation \
   --message "fix(UbuntuInstallation): cover tray autostart boundary" \
   --files AgentUp.Installers.Tests/Features/UbuntuInstallation/Provider/UbuntuInstallerPlatformAdapterTests.cs \
@@ -124,18 +132,18 @@ agentup commits enqueue \
 Shows the current queue. Warns about modified files in the working tree that are not assigned to any queued entry.
 
 ```bash
-agentup commits status
+agent-up commits status
 ```
 
-Use `agentup commits status --format json` for integrations that need the queued entry count or active Git operation state.
+Use `agent-up commits status --format json` for integrations that need the queued entry count or active Git operation state.
 
 #### commits changes
 
 Shows working-tree files with queue assignment information. Use this instead of scripting around `git status`, `git ls-files`, or `find`.
 
 ```bash
-agentup commits changes
-agentup commits changes --format json
+agent-up commits changes
+agent-up commits changes --format json
 ```
 
 #### commits inspect
@@ -143,8 +151,8 @@ agentup commits changes --format json
 Shows one queued entry by index or ID.
 
 ```bash
-agentup commits inspect 1
-agentup commits inspect 1 --patch
+agent-up commits inspect 1
+agent-up commits inspect 1 --patch
 ```
 
 #### commits edit
@@ -152,27 +160,27 @@ agentup commits inspect 1 --patch
 Temporarily applies one queued entry back into the working tree so it can be changed safely.
 
 ```bash
-agentup commits edit begin 1
+agent-up commits edit begin 1
 # modify files
-agentup commits edit save
+agent-up commits edit save
 ```
 
 The working tree must be clean before `edit begin`. `edit save` rejects changes outside that entry's file list. Add same-slice files explicitly before saving:
 
 ```bash
-agentup commits files 1 --add path/to/new-file.cs
+agent-up commits files 1 --add path/to/new-file.cs
 ```
 
-Use `agentup commits edit abort` to restore the working tree and keep the original queued patch.
+Use `agent-up commits edit abort` to restore the working tree and keep the original queued patch.
 
 #### commits message, tests, files
 
 Updates queued entry metadata without editing the queue file directly.
 
 ```bash
-agentup commits message 1 --message "fix(cli): harden commit queue editing"
-agentup commits tests 1 --set "dotnet test AgentUp.CLI.Tests"
-agentup commits files 1 --remove old-file.cs
+agent-up commits message 1 --message "fix(cli): harden commit queue editing"
+agent-up commits tests 1 --set "dotnet test AgentUp.CLI.Tests"
+agent-up commits files 1 --remove old-file.cs
 ```
 
 Files can only belong to one queued entry at a time.
@@ -182,8 +190,8 @@ Files can only belong to one queued entry at a time.
 Archives a queued entry without staging it. Archived entries can be restored by ID.
 
 ```bash
-agentup commits remove 1
-agentup commits restore <entry-id>
+agent-up commits remove 1
+agent-up commits restore <entry-id>
 ```
 
 #### commits guard
@@ -191,8 +199,8 @@ agentup commits restore <entry-id>
 Fails while queued entries, active edit sessions, staged changes, or unassigned working-tree changes remain.
 
 ```bash
-agentup commits guard
-agentup commits guard --format json
+agent-up commits guard
+agent-up commits guard --format json
 ```
 
 #### commits next
@@ -202,23 +210,46 @@ agentup commits guard --format json
 Stages the files for the first queued entry using `git add`, pops that entry from the queue, and prints the suggested `git commit` command. Run after reviewing the staged changes.
 
 ```bash
-agentup commits next
+agent-up commits next
 # then: git commit -m "<message from output>"
 ```
 
-Use `agentup commits next --format json` for integrations that need the staged entry's commit message. Blocked results use structured JSON with `staged: false`, `blocked: true`, and a human-readable `message`.
+Use `agent-up commits next --format json` for integrations that need the staged entry's commit message. Blocked results use structured JSON with `staged: false`, `blocked: true`, and a human-readable `message`.
 
 #### commits clear
 
 Archives all entries from the queue without staging anything.
 
 ```bash
-agentup commits clear
+agent-up commits clear
+```
+
+### verify
+
+Plans and runs the checks `agent-up.json` `verification` path rules require. See [Verification](../developer-guide/verification.md) and the [agent-up.json reference](agent-up-json-reference.md#verification-object).
+
+```bash
+agent-up verify plan
+agent-up verify run
+agent-up verify run architecture
+agent-up verify guard
+agent-up verify coverage
+agent-up verify slices
+```
+
+`coverage` and `slices` read Cobertura reports written by prior test checks; they do not run the suites themselves.
+
+### version
+
+Prints the CLI version.
+
+```bash
+agent-up version
 ```
 
 ## State Ownership
 
-The CLI owns no state. It should not perform orchestration, port allocation, process management, browser control, or diagnostics collection itself.
+The CLI owns no runtime or orchestration state. The legacy local commit queue file is the documented exception until `commits.enabled` migration finishes.
 
 ## Relationship to MCP
 

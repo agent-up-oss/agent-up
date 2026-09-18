@@ -6,7 +6,7 @@ title: Configuration
 
 Every repository root contains an `agent-up.json` file.
 
-Configuration is declarative. Capability-aware sections describe ecosystem requirements, launch inputs, and port variables. Legacy applications can still describe opaque shell commands.
+Configuration is declarative. Capability-aware sections describe ecosystem requirements, launch inputs, and port variables. Legacy applications still describe executable-plus-arguments commands. Path-rule checks belong in the root `verification` object; see the [agent-up.json reference](./agent-up-json-reference.md#verification-object).
 
 ```json
 {

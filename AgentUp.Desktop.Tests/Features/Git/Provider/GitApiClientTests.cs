@@ -166,6 +166,79 @@ public sealed class GitApiClientTests
     }
 
     [Test]
+    public async Task CheckoutRemoteAsync_postsTheBranchName()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK,
+            """{"found":true,"succeeded":true,"error":null}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var result = await client.CheckoutRemoteAsync("ws-1", new GitCheckoutRequestDto("origin/topic"));
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws-1/git/checkout"));
+        Assert.That(handler.LastRequestBody, Does.Contain("origin/topic"));
+    }
+
+    [Test]
+    public async Task FetchAsync_postsTheRemoteName()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK,
+            """{"found":true,"succeeded":true,"error":null,"head":{"branch":"main","localBranches":["main"]}}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var result = await client.FetchAsync("ws-1", new GitFetchRequestDto("origin"));
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws-1/git/fetch"));
+    }
+
+    [Test]
+    public async Task PullAsync_postsTheRebaseFlag()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK,
+            """{"found":true,"succeeded":true,"error":null,"head":{"branch":"main","localBranches":["main"]}}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var result = await client.PullAsync("ws-1", new GitPullRequestDto(true));
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws-1/git/pull"));
+        Assert.That(handler.LastRequestBody, Does.Contain("rebase"));
+    }
+
+    [Test]
+    public async Task PushAsync_postsForceWithLease()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK,
+            """{"found":true,"succeeded":true,"error":null,"head":{"branch":"main","localBranches":["main"]}}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var result = await client.PushAsync("ws-1", new GitPushRequestDto(true, false));
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws-1/git/push"));
+        Assert.That(handler.LastRequestBody, Does.Contain("forceWithLease"));
+    }
+
+    [Test]
+    public async Task GetLogAsync_requestsTheBoundedLogRoute()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK,
+            """{"commits":[{"id":"abc","shortId":"abc","parents":[],"subject":"initial","author":"A","timestamp":"2026-01-01T00:00:00Z","refs":["main"]}]}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var log = await client.GetLogAsync("ws-1", 20);
+
+        Assert.That(log!.Commits[0].Subject, Is.EqualTo("initial"));
+        Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws-1/git/log?max=20"));
+    }
+
+    [Test]
     public async Task SwitchBranchAsync_returnsNotRegisteredWhenTheWorkspaceIsUnknown()
     {
         using var handler = new RecordingGitHandler(HttpStatusCode.NotFound, "");

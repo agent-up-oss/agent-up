@@ -20,7 +20,9 @@ Property names are shown in the JSON form Agent-Up examples use. Existing config
 | `dotnet` | array of [.NET Application](#net-application-object) | No | `[]` | .NET applications launched through the Agent-Up .NET capability. |
 | `docker` | array of [Docker Capability](#docker-capability-object) | No | `[]` | Docker containers launched through the Agent-Up Docker capability. |
 | `prompts` | [Prompts](#prompts-object) | No | default Agent-Up guidance | Optional repository-specific guidance for AI agents. |
-| `commits` | [Commits](#commits-object) | No | no build/test enforcement | Optional build and test commands the commit queue resolves and attaches to queued entries. |
+| `commits` | [Commits](#commits-object) | No | legacy local queue | Optional `enabled` Server proposal queue, plus legacy local-queue test commands. |
+| `verification` | [Verification](#verification-object) | No | unset (no required checks) | Path-rule check selection and receipts for `agent-up verify` and `/mcp/verification`. |
+| `coverage` | [Coverage](#coverage-object) | No | unset | Patch and slice coverage floors consumed after test checks write Cobertura reports. |
 
 ## Display Object
 
@@ -43,7 +45,7 @@ Default commit policy: scope commit messages to the queued slice; use `feat` for
 
 ## Commits Object
 
-Used at the root to declare build and test commands the local commit queue (`agentup commits enqueue` and the equivalent Server MCP `enqueue_commit` tool) resolves for a queued entry's changed files. When present, resolved commands are merged into the entry's `tests`, alongside anything passed explicitly with `--tests`. Omitting `commits`, or any of its properties, keeps the previous behavior: no commands are resolved automatically.
+Used at the root to opt a repository into the Server-owned Git proposal queue (`enabled`) and, for the legacy local queue, to declare build and test commands (`agent-up commits enqueue` and MCP `enqueue_commit`) resolved for a queued entry's changed files. When `enabled` is true, enqueue records dependent proposals in a Server-managed worktree; Verification path rules own required checks. `build`, `test`, and `projects` remain compatibility fields for the legacy local queue. Omitting `commits` keeps the legacy independent-patch queue with no automatic test resolution.
 
 | Property | Type | Required | Default | Description |
 |---|---:|---:|---:|---|
@@ -85,7 +87,50 @@ Example:
 }
 ```
 
-With this configuration, an entry touching only `AgentUp.CommitPolicy/...` files resolves the general `build` and `test` commands plus `AgentUp.CommitPolicy`'s own tests and `AgentUp.Server`'s tests, because `AgentUp.Server` depends on `AgentUp.CommitPolicy`. An entry touching only documentation files resolves just the general `build` and `test` commands. `AgentUp.Mobile` is declared with no test commands yet, ready for a test command to be added once mobile tests exist, without any change to the resolution logic.
+With this configuration, an entry touching only `AgentUp.CommitPolicy/...` files resolves the general `build` and `test` commands plus `AgentUp.CommitPolicy`'s own tests and `AgentUp.Server`'s tests, because `AgentUp.Server` depends on `AgentUp.CommitPolicy`. Prefer `verification` path rules for new repositories. `commits.projects` remains for the legacy local queue.
+
+## Verification Object
+
+Used at the root so `agent-up verify` and `/mcp/verification` can select checks from changed paths. Omitting `verification` means no required checks. A present but invalid section fails closed. See [Verification](../developer-guide/verification.md).
+
+| Property | Type | Required | Default | Description |
+|---|---:|---:|---:|---|
+| `enforcement` | `warn` or `block` | No | `warn` | Whether `guard` fails a run when receipts are missing. |
+| `always` | array of check ids | No | `[]` | Checks required for any change, in run order. |
+| `checks` | object of [Verification Check](#verification-check-object) | No | `{}` | Named commands keyed by check id. |
+| `paths` | array of [Verification Path](#verification-path-object) | No | `[]` | Globs evaluated in order; every match contributes its check ids. |
+
+## Verification Check Object
+
+| Property | Type | Required | Default | Description |
+|---|---:|---:|---:|---|
+| `command` | string | Yes | none | Command run from `workingDirectory` or the repository root. |
+| `workingDirectory` | string | No | repository root | Repo-relative working directory. |
+| `tier` | `fast`, `slow`, or `platform` | No | `fast` | Cost class. |
+| `platforms` | array of `linux`, `macos`, `windows` | No | all | Platforms that can run the check. |
+| `ciOnly` | boolean | No | `false` | Required in CI, skipped locally. |
+| `order` | number | No | `0` | Sort key among selected checks; ties break by id. |
+| `inputs` | array of strings | No | `[]` | Path prefixes whose changed files belong in this check's covered map. |
+
+## Verification Path Object
+
+| Property | Type | Required | Default | Description |
+|---|---:|---:|---:|---|
+| `glob` | string | Yes | none | Path glob. A file matching no rule is a map error unless some rule lists `"checks": []`. |
+| `checks` | array of check ids | Yes | none | Check ids this glob adds. Empty means the path requires nothing. |
+
+## Coverage Object
+
+Used at the root by `agent-up verify coverage` and `agent-up verify slices` after test checks write Cobertura reports. See `AGENTS.md` Verification for the gate rules.
+
+| Property | Type | Required | Default | Description |
+|---|---:|---:|---:|---|
+| `minimum` | number | No | `90` | Patch-coverage floor for changed coverable lines. |
+| `sliceMinimum` | number | No | `70` | Per-slice total line-coverage floor in CI. |
+| `reportDirectory` | string | No | `artifacts/coverage` | Directory of Cobertura reports. |
+| `include` | array of globs | No | none | Production paths the gate measures. |
+| `exclude` | array of globs | No | `[]` | Paths whose coverage number carries no information. |
+| `sliceExemptions` | array of `<Project>/Features/<Slice>` | No | `[]` | Slices allowed below `sliceMinimum` until they reach the floor. |
 
 ## Application Object
 

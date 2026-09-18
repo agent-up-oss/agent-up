@@ -17,7 +17,7 @@ Developers and AI agents collaborate inside the same live workspace.
 
 ## Direction
 
-Future work should deepen the Server-owned runtime model, improve workflow inference, enrich diagnostics, strengthen browser session sharing, and make MCP the primary path for AI automation.
+Future work should deepen the Server-owned runtime model, improve workflow inference from recorded events, enrich diagnostics, and keep MCP as the primary path for AI automation. Desktop WebViews, Mobile WebViews, and the Server headless profile stay isolated; they share a workspace, not a browser session.
 
 ## Status Labels
 
@@ -25,18 +25,21 @@ Future work should deepen the Server-owned runtime model, improve workflow infer
 |---|---|
 | Server-owned workspace registry | Implemented |
 | Feature-sliced Server, Desktop, and CLI projects | Implemented |
-| Source-first CLI workflow | Experimental |
+| Source-first CLI workflow | Preview |
 | Desktop workspace and application views | Implemented |
+| Git review and history | Implemented |
 | Per-workspace port allocation | Implemented |
-| Docker lifecycle management | Experimental |
-| Browser profile persistence | Experimental |
-| Diagnostics | Experimental |
-| MCP automation interface | In progress |
-| Event recording | Planned |
-| Playwright generation | Planned |
-| Cross-platform packaging | Experimental |
-| Stable installers | In progress |
-| Broad platform support | In progress |
+| Docker lifecycle management | Preview |
+| Browser profile persistence | Preview |
+| Diagnostics | Preview |
+| Health monitoring | Preview |
+| MCP automation interface | Preview (contracts may change) |
+| Event recording | Experimental |
+| Validation flows and Playwright export | Preview |
+| Cross-platform packaging | Preview |
+| Stable installers | Preview |
+| Broad platform support | Preview |
+| Workflow inference from events | Planned |
 | Service-aware updates | Planned |
 
 See [Current Limitations](./limitations.md) for the practical release status.

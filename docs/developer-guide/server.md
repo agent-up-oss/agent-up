@@ -207,18 +207,35 @@ Registration prefers the repository's own `agent-up.json` through the `Orchestra
 
 ## Git Working Tree
 
-The `Git` slice is the Server-side capability behind the Desktop Git panel and the Mobile Git tab. It resolves the selected workspace's worktree path and exposes these routes:
+The `Git` slice is the Server-side capability behind the Desktop Commit tab Git changes surface and the Mobile Git tab. It resolves the selected workspace's worktree path and exposes these routes:
 
-- `GET /api/workspaces/{workspaceId}/git/changes` returns the uncommitted changes as a directory tree with per-file status, the live branch name, and local branch names.
-- `GET /api/workspaces/{workspaceId}/git/head` returns the live branch name and local branch names without the change tree.
+- `GET /api/workspaces/{workspaceId}/git/changes` returns the uncommitted changes as a directory tree with per-file status, the live branch name, local and remote-tracking branch names, upstream, and ahead/behind counts.
+- `GET /api/workspaces/{workspaceId}/git/head` returns the live branch, local and remote-tracking branches, upstream, ahead/behind, and HEAD commit without the change tree.
 - `GET /api/workspaces/{workspaceId}/git/file?path=` returns one file's diff, including untracked files.
+- `GET /api/workspaces/{workspaceId}/git/log?max=` returns a bounded newest-first commit history with parents, subject, author, timestamp, and ref decorations.
 - `POST /api/workspaces/{workspaceId}/git/commit` stages and commits only the requested paths with the supplied message and returns the new commit.
 - `POST /api/workspaces/{workspaceId}/git/discard` restores selected tracked files from HEAD and deletes selected untracked files.
 - `POST /api/workspaces/{workspaceId}/git/branch` switches to a local branch or creates a new branch from the current HEAD.
+- `POST /api/workspaces/{workspaceId}/git/checkout` creates a local tracking branch from a unique remote-tracking ref, or switches to the local branch when it already exists.
+- `POST /api/workspaces/{workspaceId}/git/fetch` runs `git fetch --prune`, optionally for one remote, with `GIT_TERMINAL_PROMPT=0`.
+- `POST /api/workspaces/{workspaceId}/git/pull` runs `git pull --ff-only`, or `git pull --rebase` when requested.
+- `POST /api/workspaces/{workspaceId}/git/push` runs `git push`, optionally `--force-with-lease` and `-u`.
+
+Successful branch switch, remote checkout, and pull refresh the workspace registry's live branch and commit so sidebar and overview identity match HEAD. Remote mutations reuse the same per-workspace lock and reject while an ACP prompt is running.
 
 The provider runs Git through an allowlisted operation set with `ProcessStartInfo.ArgumentList`, rejects pathspec magic, option-shaped paths, and paths that resolve outside the repository root, and always passes `--` before user-supplied paths. Commit uses `git commit --only` after staging the selected files that still exist. New files that vanished after they were staged are unstaged instead of failing the whole commit. Because the commit passes explicit pathspecs, changes to files the caller did not select stay in the worktree.
 
 This slice is separate from the `Commits` slice. `Commits` owns the agent-facing commit queue, which stages vertical slices for a developer to review. `Git` owns the human review-and-commit surface in Desktop and Mobile.
+
+## Database explorer
+
+When an application sets `database: true`, Desktop can open a Postgres explorer. The Server owns those queries at `GET/POST /api/workspaces/{workspaceId}/applications/{applicationName}/database/...`.
+
+## Tray and service control
+
+`AgentUp.Tray` is the installed Server companion. It keeps a login autostart entry and heartbeats `POST /api/tray/heartbeat` so the Server knows a workstation session is present.
+
+`POST /api/service/restart` and `POST /api/service/shutdown` are authenticated service-control routes for the packaged `agent-up-server` process. They are not workspace orchestration.
 
 ## Tutorial Cleanup
 

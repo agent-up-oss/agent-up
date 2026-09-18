@@ -15,6 +15,8 @@ public class ContentPanelBehaviorTests
         var app = await AppDriver.LaunchEmptyAsync();
 
         Assert.That(app.Content.ShowsEmptyState, Is.True);
+        Assert.That(app.Content.EmptyStateHint, Does.Contain("agent-up start"));
+        Assert.That(app.Content.EmptyStateHint, Does.Not.Contain("register"));
         Assert.That(app.Content.ShowsWorkspaceDetail, Is.False);
         Assert.That(app.Content.ShowsError, Is.False);
     }
@@ -86,6 +88,9 @@ public class ContentPanelBehaviorTests
         }
 
         Assert.That(app.Window.FindControl<ComboBox>("WorkspaceBranchCombo")!.IsVisible, Is.True);
+        Assert.That(app.Window.FindControl<Button>("GitFetchButton")!.IsVisible, Is.True);
+        Assert.That(app.Window.FindControl<Button>("GitPullButton")!.IsVisible, Is.True);
+        Assert.That(app.Window.FindControl<Button>("GitPushButton")!.IsVisible, Is.True);
         Assert.That(viewModel.Git.Branch, Is.EqualTo(workspace.Branch));
         Assert.That(app.Window.FindControl<Grid>("OverviewMetrics")!.IsVisible, Is.True);
         Assert.That(

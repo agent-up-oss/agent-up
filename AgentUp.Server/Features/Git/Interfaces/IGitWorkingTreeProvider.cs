@@ -15,4 +15,14 @@ public interface IGitWorkingTreeProvider
     Task DiscardAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default);
 
     Task SwitchBranchAsync(string worktreePath, string name, bool create, CancellationToken cancellationToken = default);
+
+    Task CheckoutRemoteAsync(string worktreePath, string name, CancellationToken cancellationToken = default);
+
+    Task FetchAsync(string worktreePath, string? remote, CancellationToken cancellationToken = default);
+
+    Task PullAsync(string worktreePath, bool rebase, CancellationToken cancellationToken = default);
+
+    Task PushAsync(string worktreePath, bool forceWithLease, bool setUpstream, CancellationToken cancellationToken = default);
+
+    Task<GitLog> GetLogAsync(string worktreePath, int? max, CancellationToken cancellationToken = default);
 }

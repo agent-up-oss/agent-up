@@ -36,6 +36,7 @@ public sealed class GitPanelBehaviorTests
         Assert.That(driver.Window.FindControl<TextBox>("GitCommitMessage")!.IsVisible, Is.True);
         Assert.That(driver.Window.FindControl<Button>("GitCommitButton")!.IsVisible, Is.True);
         Assert.That(driver.Window.FindControl<Button>("GitDiscardButton")!.IsVisible, Is.True);
+        Assert.That(driver.Window.FindControl<ItemsControl>("GitLog")!.IsVisible, Is.True);
     }
 
     [AvaloniaTest]

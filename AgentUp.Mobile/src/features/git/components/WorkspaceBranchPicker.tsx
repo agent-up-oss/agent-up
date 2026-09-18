@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
-import type { GitHeadState } from '../models/GitChanges';
-import { getHeadState, switchBranch } from '../providers/GitApiProvider';
+import type { GitHeadState, GitRemoteBranch } from '../models/GitChanges';
+import { checkoutRemote, fetchRemote, getHeadState, pullRemote, pushRemote, switchBranch } from '../providers/GitApiProvider';
 
 type WorkspaceBranchPickerProps = {
   workspaceId: string;
@@ -48,7 +48,15 @@ export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProp
     void load();
   }, [load]);
 
-  const run = async (next: string, create: boolean) => {
+  const afterSuccess = async () => {
+    setCreating(false);
+    setOpen(false);
+    setName('');
+    await load();
+    await refresh();
+  };
+
+  const runSwitch = async (next: string, create: boolean) => {
     if (!server || busy || next.length === 0 || next === head?.branch) return;
     setBusy(true);
     setError(null);
@@ -58,11 +66,7 @@ export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProp
         setError(result.error ?? 'The branch switch failed.');
         return;
       }
-      setCreating(false);
-      setOpen(false);
-      setName('');
-      await load();
-      await refresh();
+      await afterSuccess();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'The branch switch failed.');
     } finally {
@@ -70,8 +74,63 @@ export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProp
     }
   };
 
+  const runCheckout = async (next: string) => {
+    if (!server || busy || next.length === 0) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await checkoutRemote(server, workspaceId, next);
+      if (!result.succeeded) {
+        setError(result.error ?? 'The checkout failed.');
+        return;
+      }
+      await afterSuccess();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'The checkout failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runSync = async (label: string, action: () => Promise<{ succeeded: boolean; error?: string | null }>) => {
+    if (!server || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await action();
+      if (!result.succeeded) {
+        setError(result.error ?? `The ${label} failed.`);
+        return;
+      }
+      await afterSuccess();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : `The ${label} failed.`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmForcePush = () => {
+    Alert.alert(
+      'Force-push with lease?',
+      'This updates the remote branch only if nobody else has pushed since your last fetch.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Force push',
+          style: 'destructive',
+          onPress: () => void runSync('force push', () => pushRemote(server!, workspaceId, true, false)),
+        },
+      ],
+    );
+  };
+
   const branch = head?.branch || 'not on a git branch';
   const branches = head?.localBranches ?? [];
+  const remotes = head?.remoteBranches ?? [];
+  const ahead = head?.ahead ?? 0;
+  const behind = head?.behind ?? 0;
+  const sync = ahead === 0 && behind === 0 ? '' : `↑${ahead} ↓${behind}`;
 
   return (
     <View style={styles.wrap}>
@@ -79,7 +138,7 @@ export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProp
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Current branch ${branch}`}
-          disabled={busy || branches.length === 0}
+          disabled={busy || (branches.length === 0 && remotes.length === 0)}
           onPress={() => { setCreating(false); setOpen(value => !value); }}
           style={styles.dropdown}>
           <Text numberOfLines={1} style={styles.branch}>{branch}</Text>
@@ -94,15 +153,41 @@ export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProp
           <Text style={styles.plusText}>+</Text>
         </Pressable>
       </View>
-      {open && branches.length > 0 && (
+      {!!sync && <Text style={styles.sync}>{sync}</Text>}
+      <View style={styles.actions}>
+        <Pressable disabled={busy} onPress={() => void runSync('fetch', () => fetchRemote(server!, workspaceId, null))} style={styles.action}>
+          <Text style={styles.actionText}>Fetch</Text>
+        </Pressable>
+        <Pressable disabled={busy} onPress={() => void runSync('pull', () => pullRemote(server!, workspaceId, false))} style={styles.action}>
+          <Text style={styles.actionText}>Pull</Text>
+        </Pressable>
+        <Pressable disabled={busy} onPress={() => void runSync('push', () => pushRemote(server!, workspaceId, false, false))} style={styles.actionPrimary}>
+          <Text style={styles.actionPrimaryText}>Push</Text>
+        </Pressable>
+        <Pressable disabled={busy} onPress={confirmForcePush} style={styles.actionDanger}>
+          <Text style={styles.actionDangerText}>Force push</Text>
+        </Pressable>
+      </View>
+      {open && (branches.length > 0 || remotes.length > 0) && (
         <View style={styles.menu}>
+          {branches.length > 0 && <Text style={styles.section}>Local</Text>}
           {branches.map(item => (
             <Pressable
-              key={item}
+              key={`local:${item}`}
               disabled={busy || item === head?.branch}
-              onPress={() => void run(item, false)}
+              onPress={() => void runSwitch(item, false)}
               style={[styles.option, item === head?.branch && styles.optionActive]}>
               <Text style={[styles.optionText, item === head?.branch && styles.optionTextActive]}>{item}</Text>
+            </Pressable>
+          ))}
+          {remotes.length > 0 && <Text style={styles.section}>Remote</Text>}
+          {remotes.map(item => (
+            <Pressable
+              key={`remote:${item.remote}/${item.name}`}
+              disabled={busy}
+              onPress={() => void runCheckout(`${item.remote}/${item.name}`)}
+              style={styles.option}>
+              <Text style={styles.optionText}>{formatRemote(item)}</Text>
             </Pressable>
           ))}
         </View>
@@ -119,7 +204,7 @@ export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProp
           />
           <Pressable
             disabled={busy || !name.trim()}
-            onPress={() => void run(name.trim(), true)}
+            onPress={() => void runSwitch(name.trim(), true)}
             style={[styles.createButton, (!name.trim() || busy) && styles.disabled]}>
             <Text style={styles.createButtonText}>Create</Text>
           </Pressable>
@@ -131,6 +216,10 @@ export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProp
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
     </View>
   );
+}
+
+function formatRemote(item: GitRemoteBranch): string {
+  return `${item.remote}/${item.name}`;
 }
 
 const styles = StyleSheet.create({
@@ -156,7 +245,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   plusText: { ...auText('accent'), fontSize: 20, fontWeight: '700', lineHeight: 22 },
+  sync: auText('muted'),
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  action: { ...auBox('button', 'buttonSecondary', 'buttonCompact'), minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  actionText: auText('buttonSecondary', 'buttonCompact'),
+  actionPrimary: { ...auBox('button', 'buttonCompact'), minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  actionPrimaryText: auText('button', 'buttonCompact'),
+  actionDanger: { ...auBox('button', 'buttonDanger', 'buttonCompact'), minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  actionDangerText: auText('button', 'buttonCompact'),
   menu: { ...auBox('card'), overflow: 'hidden', paddingHorizontal: 0, paddingVertical: 0 },
+  section: { ...auText('fieldLabel'), paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },
   option: { paddingHorizontal: 12, paddingVertical: 10 },
   optionActive: auBox('cardSelected'),
   optionText: auText('muted'),

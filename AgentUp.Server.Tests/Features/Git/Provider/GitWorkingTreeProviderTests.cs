@@ -297,6 +297,8 @@ public sealed class GitWorkingTreeProviderTests
         Assert.That(head.Branch, Is.EqualTo("topic"));
         Assert.That(head.LocalBranches, Does.Contain("main"));
         Assert.That(head.LocalBranches, Does.Contain("topic"));
+        Assert.That(head.RemoteBranches, Is.Empty);
+        Assert.That(head.Commit, Has.Length.EqualTo(40));
     }
 
     [Test]
@@ -461,5 +463,138 @@ public sealed class GitWorkingTreeProviderTests
             async () => await provider.GetChangesAsync(path));
 
         Assert.That(exception!.Message, Does.Contain("worktree path"));
+    }
+
+    [Test]
+    public async Task GetHeadStateAsync_listsRemoteTrackingBranchesAndAheadBehind()
+    {
+        var origin = await CreateOriginWithTopicAsync();
+        await TestGitRepository.RunAsync(_repository, "remote", "add", "origin", origin);
+        await TestGitRepository.RunAsync(_repository, "fetch", "origin");
+        await TestGitRepository.RunAsync(_repository, "branch", "--set-upstream-to", "origin/main", "main");
+        var provider = new GitWorkingTreeProvider();
+
+        var head = await provider.GetHeadStateAsync(_repository);
+
+        Assert.That(head.RemoteBranches.Select(branch => $"{branch.Remote}/{branch.Name}"),
+            Does.Contain("origin/main").And.Contain("origin/topic"));
+        Assert.That(head.Upstream, Is.EqualTo("origin/main"));
+        Assert.That(head.Ahead, Is.GreaterThanOrEqualTo(0));
+        Assert.That(head.Behind, Is.GreaterThanOrEqualTo(0));
+    }
+
+    [Test]
+    public async Task CheckoutRemoteAsync_createsALocalTrackingBranch()
+    {
+        var origin = await CreateOriginWithTopicAsync();
+        await TestGitRepository.RunAsync(_repository, "remote", "add", "origin", origin);
+        await TestGitRepository.RunAsync(_repository, "fetch", "origin");
+        var provider = new GitWorkingTreeProvider();
+
+        await provider.CheckoutRemoteAsync(_repository, "topic");
+
+        var head = await provider.GetHeadStateAsync(_repository);
+        Assert.That(head.Branch, Is.EqualTo("topic"));
+        Assert.That(head.LocalBranches, Does.Contain("topic"));
+        Assert.That(head.Upstream, Is.EqualTo("origin/topic"));
+    }
+
+    [Test]
+    public async Task CheckoutRemoteAsync_rejectsANameThatIsNotOnAnyRemote()
+    {
+        var provider = new GitWorkingTreeProvider();
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await provider.CheckoutRemoteAsync(_repository, "missing"));
+
+        Assert.That(exception!.Message, Does.Contain("No remote-tracking branch"));
+    }
+
+    [Test]
+    public async Task FetchAsync_updatesRemoteTrackingBranches()
+    {
+        var origin = await CreateOriginWithTopicAsync();
+        await TestGitRepository.RunAsync(_repository, "remote", "add", "origin", origin);
+        var provider = new GitWorkingTreeProvider();
+
+        await provider.FetchAsync(_repository, "origin");
+
+        var head = await provider.GetHeadStateAsync(_repository);
+        Assert.That(head.RemoteBranches.Select(branch => branch.Name), Does.Contain("topic"));
+    }
+
+    [Test]
+    public async Task PullAsync_fastForwardsFromUpstream()
+    {
+        var origin = await CreateOriginWithTopicAsync();
+        var clone = Path.Join(TestContext.CurrentContext.WorkDirectory, $"git-clone-{Guid.NewGuid():N}");
+        await TestGitRepository.RunAsync(Path.GetDirectoryName(clone)!, "clone", origin, clone);
+        await File.WriteAllTextAsync(Path.Join(origin, "later.md"), "later\n");
+        await TestGitRepository.CommitAllAsync(origin, "later");
+        var provider = new GitWorkingTreeProvider();
+
+        await provider.PullAsync(clone, rebase: false);
+
+        Assert.That(File.Exists(Path.Join(clone, "later.md")), Is.True);
+        if (Directory.Exists(clone))
+            Directory.Delete(clone, recursive: true);
+    }
+
+    [Test]
+    public async Task PushAsync_publishesTheCurrentBranch()
+    {
+        var originWork = await CreateOriginWithTopicAsync();
+        var origin = Path.Join(TestContext.CurrentContext.WorkDirectory, $"git-origin-bare-{Guid.NewGuid():N}.git");
+        await TestGitRepository.RunAsync(Path.GetDirectoryName(origin)!, "clone", "--bare", originWork, origin);
+        var clone = Path.Join(TestContext.CurrentContext.WorkDirectory, $"git-clone-{Guid.NewGuid():N}");
+        await TestGitRepository.RunAsync(Path.GetDirectoryName(clone)!, "clone", origin, clone);
+        await File.WriteAllTextAsync(Path.Join(clone, "from-clone.md"), "clone\n");
+        await TestGitRepository.CommitAllAsync(clone, "from clone");
+        var provider = new GitWorkingTreeProvider();
+
+        await provider.PushAsync(clone, forceWithLease: false, setUpstream: false);
+
+        Assert.That(await TestGitRepository.ReadAsync(origin, "log", "-1", "--pretty=%s"), Is.EqualTo("from clone"));
+        if (Directory.Exists(clone))
+            Directory.Delete(clone, recursive: true);
+        if (Directory.Exists(origin))
+            Directory.Delete(origin, recursive: true);
+    }
+
+    [Test]
+    public async Task GetLogAsync_returnsDecoratedCommitsNewestFirst()
+    {
+        var provider = new GitWorkingTreeProvider();
+
+        var log = await provider.GetLogAsync(_repository, 10);
+
+        Assert.That(log.Commits, Has.Count.EqualTo(1));
+        Assert.That(log.Commits[0].Subject, Is.EqualTo("initial"));
+        Assert.That(log.Commits[0].Id, Has.Length.EqualTo(40));
+        Assert.That(log.Commits[0].Refs, Does.Contain("HEAD").Or.Contain("main"));
+    }
+
+    [Test]
+    public void FetchAsync_rejectsAnUnsafeRemoteName()
+    {
+        var provider = new GitWorkingTreeProvider();
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await provider.FetchAsync(_repository, "-u"));
+
+        Assert.That(exception!.Message, Does.Contain("Remote must be a valid Git remote name"));
+    }
+
+    private async Task<string> CreateOriginWithTopicAsync()
+    {
+        var origin = Path.Join(TestContext.CurrentContext.WorkDirectory, $"git-origin-{Guid.NewGuid():N}");
+        await TestGitRepository.InitializeAsync(origin);
+        await File.WriteAllTextAsync(Path.Join(origin, "ORIGIN.md"), "origin\n");
+        await TestGitRepository.CommitAllAsync(origin, "origin");
+        await TestGitRepository.RunAsync(origin, "switch", "-c", "topic");
+        await File.WriteAllTextAsync(Path.Join(origin, "TOPIC.md"), "topic\n");
+        await TestGitRepository.CommitAllAsync(origin, "topic");
+        await TestGitRepository.RunAsync(origin, "switch", "main");
+        return origin;
     }
 }

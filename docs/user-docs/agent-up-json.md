@@ -19,10 +19,14 @@ Place `agent-up.json` at the repository or worktree root. The CLI reads this fil
   "name": "Inventory",
   "display": {},
   "applications": [],
+  "desktopApplications": [],
   "services": [],
   "dotnet": [],
   "docker": [],
-  "prompts": {}
+  "prompts": {},
+  "commits": {},
+  "verification": {},
+  "coverage": {}
 }
 ```
 
@@ -44,6 +48,8 @@ Use compatibility sections when Agent-Up should preserve a legacy executable-plu
 - `applications` for local executable-plus-arguments applications.
 - `desktopApplications` for Linux graphical applications shown as streamed Desktop and Mobile tabs.
 - `services` for legacy Docker services.
+- `commits` to opt into the Server-owned proposal queue (`enabled`) or attach legacy local-queue test commands.
+- `verification` and `coverage` for path-rule checks and coverage floors. See the [reference](./agent-up-json-reference.md#verification-object).
 
 The complete field contract is in the [reference](./agent-up-json-reference.md).
 

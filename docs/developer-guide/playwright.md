@@ -4,52 +4,11 @@ title: Playwright Generation
 
 # Playwright Generation
 
-Agent-Up can generate Playwright tests from recorded interaction history.
+Shipped today: Desktop Validation sidebar replay and `export_validation_flow` on Browser MCP emit a Playwright test from a saved validation flow. See [Behavioral validation flows](#behavioral-validation-flows).
 
-Generated tests should:
+## Direction
 
-- Prefer semantic locators.
-- Avoid brittle selectors.
-- Generate assertions.
-- Produce readable code.
-- Follow Playwright best practices.
-
-## Workflow Inference
-
-Agent-Up should infer user intent instead of exporting raw interaction history.
-
-Example interaction:
-
-- Open Orders.
-- Create Customer.
-- Add Products.
-- Submit Order.
-- Verify Success.
-
-Generated test:
-
-```text
-Creating an order succeeds
-```
-
-The output should not look like:
-
-```text
-Click Button 17
-```
-
-## Automatic Assertions
-
-Agent-Up should infer assertions such as:
-
-- Success notification visible.
-- Navigation completed.
-- Validation error visible.
-- Button disabled.
-- URL changed.
-- Network request completed.
-
-Generated tests should validate outcomes rather than merely replay interactions.
+Generated tests should prefer semantic locators, avoid brittle selectors, generate assertions from visible outcomes, produce readable code, and follow Playwright best practices. Inferring user intent from raw history is not the current exporter.
 
 ## Behavioral validation flows
 

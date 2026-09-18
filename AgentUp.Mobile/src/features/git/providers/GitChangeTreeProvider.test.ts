@@ -6,6 +6,7 @@ import {
   allFilePaths,
   canCommitSelection,
   canDiscardSelection,
+  changeStatusCounts,
   filePathsUnder,
   flattenChangeTree,
   isDirectorySelected,
@@ -145,6 +146,27 @@ test('an empty directory is never reported as selected', () => {
   });
 
   assert.equal(isDirectorySelected(nodes, nodes[0], []), false);
+});
+
+test('changeStatusCounts totals added and deleted files', () => {
+  const nodes = flattenChangeTree({
+    workspaceId: 'ws-1',
+    branch: 'main',
+    fileCount: 4,
+    root: {
+      name: '',
+      path: '',
+      directories: [],
+      files: [
+        { name: 'a.ts', path: 'a.ts', status: 'Added' },
+        { name: 'b.ts', path: 'b.ts', status: 'Untracked' },
+        { name: 'c.ts', path: 'c.ts', status: 'Deleted' },
+        { name: 'd.ts', path: 'd.ts', status: 'Modified' },
+      ],
+    },
+  });
+
+  assert.deepEqual(changeStatusCounts(nodes), { added: 2, deleted: 1 });
 });
 
 test('commit is offered only for a selection with a non-blank message', () => {

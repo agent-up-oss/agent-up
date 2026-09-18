@@ -139,7 +139,7 @@ public sealed class CommitsOutputService(TextWriter output, ICommitsJsonRenderer
         output.WriteLine($"Suggested commit:");
         output.WriteLine($"  git commit -m \"{result.Message}\"");
         if (result.RemainingCount > 0)
-            output.WriteLine($"  ({result.RemainingCount} {(result.RemainingCount == 1 ? "entry" : "entries")} remaining — run 'agentup commits next' after committing)");
+            output.WriteLine($"  ({result.RemainingCount} {(result.RemainingCount == 1 ? "entry" : "entries")} remaining — run 'agent-up commits next' after committing)");
         else
             output.WriteLine("  (queue is now empty)");
         return 0;
@@ -181,7 +181,7 @@ public sealed class CommitsOutputService(TextWriter output, ICommitsJsonRenderer
 
     public int WriteEmptyQueue(string command)
     {
-        output.WriteLine($"Queue is empty. Use 'agentup commits enqueue' to add entries.");
+        output.WriteLine($"Queue is empty. Use 'agent-up commits enqueue' to add entries.");
         return 0;
     }
 
@@ -208,7 +208,7 @@ public sealed class CommitsOutputService(TextWriter output, ICommitsJsonRenderer
 
     public int WriteHelp()
     {
-        output.WriteLine("Usage: agentup commits <command>");
+        output.WriteLine("Usage: agent-up commits <command>");
         output.WriteLine("Commands:");
         output.WriteLine("  enqueue  Add a proposed commit entry to the queue");
         output.WriteLine("  status   Show the current commit queue");

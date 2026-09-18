@@ -187,10 +187,14 @@ const config = {
             items: [
               { label: 'Overview', to: '/docs/' },
               { label: 'Setup', to: '/docs/setup' },
-              { label: 'Current Limitations', to: '/docs/limitations' },
+              { label: 'Downloads', to: '/docs/downloads' },
               { label: 'Workspace', to: '/docs/workspace' },
+              { label: 'Mobile', to: '/docs/mobile' },
+              { label: 'Git changes', to: '/docs/git-changes' },
+              { label: 'CLI', to: '/docs/cli' },
               { label: 'Configuration', to: '/docs/configuration' },
-              { label: 'Browser Profiles', to: '/docs/browser-profiles' },
+              { label: 'Browser', to: '/docs/browser' },
+              { label: 'Current Limitations', to: '/docs/limitations' },
             ],
           },
           {
@@ -198,7 +202,10 @@ const config = {
             items: [
               { label: 'Architecture', to: '/developer-guide/architecture' },
               { label: 'Server', to: '/developer-guide/server' },
+              { label: 'Desktop', to: '/developer-guide/desktop' },
+              { label: 'Mobile', to: '/developer-guide/mobile' },
               { label: 'MCP', to: '/developer-guide/mcp' },
+              { label: 'Packaging', to: '/developer-guide/packaging' },
             ],
           },
           {

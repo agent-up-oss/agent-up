@@ -27,15 +27,23 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
     {
         var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
         var branch = await RunGitAsync(repoRoot, ["rev-parse", "--abbrev-ref", "HEAD"], cancellationToken);
+        var commit = await RunGitAsync(repoRoot, ["rev-parse", "HEAD"], cancellationToken);
         var listed = await RunGitAsync(repoRoot, ["branch", "--format=%(refname:short)"], cancellationToken, trimOutput: false);
-        var branches = listed
-            .Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var remoteListed = await RunGitAsync(
+            repoRoot,
+            ["branch", "-r", "--format=%(refname:short)"],
+            cancellationToken,
+            trimOutput: false);
+        var branches = ParseLines(listed)
             .Distinct(StringComparer.Ordinal)
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
             .ToList();
         if (branch.Length > 0 && !branches.Contains(branch, StringComparer.Ordinal))
             branches.Insert(0, branch);
-        return new GitHeadState(branch, branches);
+
+        var remotes = ParseRemoteBranches(remoteListed);
+        var (upstream, ahead, behind) = await ReadUpstreamAsync(repoRoot, cancellationToken);
+        return new GitHeadState(branch, branches, remotes, upstream, ahead, behind, commit);
     }
 
     public async Task<GitFileDiff?> GetFileDiffAsync(
@@ -170,6 +178,84 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
             await RunGitAsync(repoRoot, ["switch", "--", branch], cancellationToken);
     }
 
+    public async Task CheckoutRemoteAsync(
+        string worktreePath,
+        string name,
+        CancellationToken cancellationToken = default)
+    {
+        var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
+        var requested = await NormalizeBranchNameAsync(repoRoot, name, cancellationToken);
+        var head = await GetHeadStateAsync(repoRoot, cancellationToken);
+        var matches = MatchRemoteBranches(requested, head.RemoteBranches);
+        if (matches.Count == 0)
+            throw new InvalidOperationException($"No remote-tracking branch named '{requested}'.");
+        if (matches.Count > 1)
+            throw new InvalidOperationException($"Branch '{requested}' exists on multiple remotes.");
+
+        var target = matches[0];
+        var localName = target.Name;
+        if (head.LocalBranches.Contains(localName, StringComparer.Ordinal))
+        {
+            await RunGitAsync(repoRoot, ["switch", "--", localName], cancellationToken);
+            return;
+        }
+
+        var startPoint = $"{target.Remote}/{target.Name}";
+        await RunGitAsync(repoRoot, ["switch", "--track", startPoint], cancellationToken);
+    }
+
+    public Task FetchAsync(string worktreePath, string? remote, CancellationToken cancellationToken = default)
+        => RunRemoteAsync(
+            worktreePath,
+            string.IsNullOrWhiteSpace(remote)
+                ? ["fetch", "--prune"]
+                : ["fetch", "--prune", "--", NormalizeRemoteName(remote)],
+            cancellationToken);
+
+    public Task PullAsync(string worktreePath, bool rebase, CancellationToken cancellationToken = default)
+        => RunRemoteAsync(worktreePath, rebase ? ["pull", "--rebase"] : ["pull", "--ff-only"], cancellationToken);
+
+    public async Task PushAsync(
+        string worktreePath,
+        bool forceWithLease,
+        bool setUpstream,
+        CancellationToken cancellationToken = default)
+    {
+        var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
+        var arguments = new List<string> { "push" };
+        if (forceWithLease)
+            arguments.Add("--force-with-lease");
+        if (setUpstream)
+        {
+            var head = await GetHeadStateAsync(repoRoot, cancellationToken);
+            if (head.Branch.Length == 0 || string.Equals(head.Branch, "HEAD", StringComparison.Ordinal))
+                throw new InvalidOperationException("Push requires a checked-out branch.");
+
+            var remote = RemoteNameFromUpstream(head.Upstream) ?? "origin";
+            arguments.Add("-u");
+            arguments.Add(remote);
+            arguments.Add(head.Branch);
+        }
+
+        await RunRemoteAsync(repoRoot, arguments, cancellationToken);
+    }
+
+    public async Task<GitLog> GetLogAsync(
+        string worktreePath,
+        int? max,
+        CancellationToken cancellationToken = default)
+    {
+        var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
+        var limit = Math.Clamp(max ?? 100, 1, 200);
+        var output = await RunGitAsync(
+            repoRoot,
+            ["log", "--decorate=full", "--pretty=format:%H%x1f%h%x1f%P%x1f%s%x1f%an%x1f%aI%x1f%D", "-n", limit.ToString()],
+            cancellationToken,
+            allowedExitCodes: [0, 128],
+            trimOutput: false);
+        return new GitLog(ParseLog(output));
+    }
+
     private static string NormalizeSeparators(string path)
         => OperatingSystem.IsWindows() ? path.Replace('\\', '/') : path;
 
@@ -292,6 +378,171 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         return normalized;
     }
 
+    private async Task<(string? Upstream, int Ahead, int Behind)> ReadUpstreamAsync(
+        string repoRoot,
+        CancellationToken cancellationToken)
+    {
+        var upstreamResult = await RunGitCoreAsync(repoRoot, ["rev-parse", "--abbrev-ref", "@{upstream}"], cancellationToken);
+        if (upstreamResult.ExitCode != 0)
+            return (null, 0, 0);
+
+        var upstream = upstreamResult.Stdout.TrimEnd();
+        var countResult = await RunGitCoreAsync(
+            repoRoot,
+            ["rev-list", "--left-right", "--count", "HEAD...@{upstream}"],
+            cancellationToken);
+        if (countResult.ExitCode != 0)
+            return (upstream, 0, 0);
+
+        var parts = countResult.Stdout.Trim().Split('\t', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length != 2
+            || !int.TryParse(parts[0], out var ahead)
+            || !int.TryParse(parts[1], out var behind))
+        {
+            return (upstream, 0, 0);
+        }
+
+        return (upstream, ahead, behind);
+    }
+
+    private static List<GitRemoteBranch> ParseRemoteBranches(string listed)
+        => ParseLines(listed)
+            .Where(line => !line.EndsWith("/HEAD", StringComparison.Ordinal)
+                           && !string.Equals(line, "HEAD", StringComparison.Ordinal))
+            .Select(line => (Line: line, Separator: line.IndexOf('/')))
+            .Where(item => item.Separator > 0 && item.Separator < item.Line.Length - 1)
+            .Select(item => new GitRemoteBranch(item.Line[..item.Separator], item.Line[(item.Separator + 1)..]))
+            .DistinctBy(branch => $"{branch.Remote}/{branch.Name}", StringComparer.Ordinal)
+            .OrderBy(branch => branch.Remote, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(branch => branch.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    private static List<GitRemoteBranch> MatchRemoteBranches(string requested, IReadOnlyList<GitRemoteBranch> remotes)
+    {
+        var exact = remotes.Where(branch => string.Equals(branch.Name, requested, StringComparison.Ordinal)).ToList();
+        if (exact.Count > 0)
+            return exact;
+
+        var separator = requested.IndexOf('/');
+        if (separator <= 0 || separator == requested.Length - 1)
+            return [];
+
+        var remote = requested[..separator];
+        var name = requested[(separator + 1)..];
+        return remotes
+            .Where(branch =>
+                string.Equals(branch.Remote, remote, StringComparison.Ordinal)
+                && string.Equals(branch.Name, name, StringComparison.Ordinal))
+            .ToList();
+    }
+
+    private static string? RemoteNameFromUpstream(string? upstream)
+    {
+        if (string.IsNullOrWhiteSpace(upstream))
+            return null;
+
+        var separator = upstream.IndexOf('/');
+        return separator <= 0 ? null : upstream[..separator];
+    }
+
+    private static string NormalizeRemoteName(string? name)
+    {
+        var trimmed = (name ?? string.Empty).Trim();
+        if (trimmed.Length == 0 || trimmed.Length > 255 || trimmed.StartsWith('-') || !RemoteNameArgument().IsMatch(trimmed))
+            throw new InvalidOperationException("Remote must be a valid Git remote name.");
+
+        return trimmed;
+    }
+
+    private static IReadOnlyList<string> ParseLines(string output)
+        => output.Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private static IReadOnlyList<GitLogCommit> ParseLog(string output)
+    {
+        var commits = new List<GitLogCommit>();
+        foreach (var line in ParseLines(output))
+        {
+            var fields = line.Split('\u001f');
+            if (fields.Length < 7)
+                continue;
+
+            var parents = fields[2]
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var refs = fields[6]
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(NormalizeLogRef)
+                .Where(value => value.Length > 0)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+            commits.Add(new GitLogCommit(
+                fields[0],
+                fields[1],
+                parents,
+                fields[3],
+                fields[4],
+                fields[5],
+                refs));
+        }
+
+        return commits;
+    }
+
+    private static string NormalizeLogRef(string raw)
+    {
+        var value = raw.Trim();
+        if (value.StartsWith("HEAD -> ", StringComparison.Ordinal))
+            value = value["HEAD -> ".Length..];
+        else if (string.Equals(value, "HEAD", StringComparison.Ordinal))
+            return "HEAD";
+
+        if (value.StartsWith("tag: ", StringComparison.Ordinal))
+            value = value["tag: ".Length..];
+        if (value.StartsWith("refs/heads/", StringComparison.Ordinal))
+            return value["refs/heads/".Length..];
+        if (value.StartsWith("refs/remotes/", StringComparison.Ordinal))
+            return value["refs/remotes/".Length..];
+        if (value.StartsWith("refs/tags/", StringComparison.Ordinal))
+            return value["refs/tags/".Length..];
+        return value;
+    }
+
+    private async Task RunRemoteAsync(
+        string worktreePath,
+        IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken)
+    {
+        var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
+        try
+        {
+            await RunGitAsync(repoRoot, arguments, cancellationToken, disablePrompt: true);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new InvalidOperationException(MapRemoteError(arguments[0], ex.Message), ex);
+        }
+    }
+
+    private static string MapRemoteError(string operation, string message)
+    {
+        if (message.Contains("non-fast-forward", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("failed to push some refs", StringComparison.OrdinalIgnoreCase))
+            return "The remote rejected a non-fast-forward update.";
+
+        if (message.Contains("no upstream", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("no tracking information", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("has no upstream branch", StringComparison.OrdinalIgnoreCase))
+            return "This branch has no upstream. Push with setUpstream to create one.";
+
+        if (message.Contains("Authentication", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Permission denied", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("could not read Username", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Could not read from remote repository", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("could not read from remote repository", StringComparison.OrdinalIgnoreCase))
+            return $"Git {operation} could not authenticate to the remote.";
+
+        return message;
+    }
+
     private static List<string> Concat(string first, params object[] rest)
     {
         var arguments = new List<string> { first };
@@ -311,10 +562,11 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         IReadOnlyList<string> arguments,
         CancellationToken cancellationToken,
         int[]? allowedExitCodes = null,
-        bool trimOutput = true)
+        bool trimOutput = true,
+        bool disablePrompt = false)
     {
         var allowed = allowedExitCodes ?? [0];
-        var result = await RunGitCoreAsync(worktreePath, arguments, cancellationToken);
+        var result = await RunGitCoreAsync(worktreePath, arguments, cancellationToken, disablePrompt);
         if (!allowed.Contains(result.ExitCode))
             throw new InvalidOperationException($"Git operation '{arguments[0]}' failed: {result.Stderr.Trim()}");
 
@@ -324,7 +576,8 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
     private static async Task<(int ExitCode, string Stdout, string Stderr)> RunGitCoreAsync(
         string worktreePath,
         IReadOnlyList<string> arguments,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool disablePrompt = false)
     {
         var safeWorktreePath = NormalizeWorktreePath(worktreePath);
         ValidateGitArguments(arguments);
@@ -336,6 +589,8 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
             RedirectStandardError = true,
             UseShellExecute = false
         };
+        if (disablePrompt)
+            psi.Environment["GIT_TERMINAL_PROMPT"] = "0";
         psi.ArgumentList.Add("-C");
         psi.ArgumentList.Add(safeWorktreePath);
         foreach (var argument in arguments)
@@ -415,9 +670,12 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
             throw new InvalidOperationException("Git arguments must be literal values.");
     }
 
-    [GeneratedRegex("^(rev-parse|status|diff|add|commit|cat-file|restore|clean|branch|switch|check-ref-format)$")]
+    [GeneratedRegex("^(rev-parse|status|diff|add|commit|cat-file|restore|clean|branch|switch|check-ref-format|fetch|pull|push|log|rev-list)$")]
     private static partial Regex AllowedGitOperation();
 
     [GeneratedRegex(@"^[^\u0000-\u001F\u007F]+$")]
     private static partial Regex GitPathArgument();
+
+    [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9._-]*$")]
+    private static partial Regex RemoteNameArgument();
 }

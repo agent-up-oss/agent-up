@@ -82,4 +82,29 @@ public sealed class McpEndpointExposure
             .Where(value => value.Length > 0)
             .ToHashSet(StringComparer.Ordinal);
     }
+
+    [Test]
+    public void Mcp_catalog_names_only_declared_tools()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var declared = DeclaredToolNames(root);
+        var markdown = File.ReadAllText(Path.Join(root, "docs/developer-guide/mcp.md"));
+        var named = System.Text.RegularExpressions.Regex.Matches(markdown, "`([a-z][a-z0-9]*(?:_[a-z0-9]+)+)`")
+            .Select(match => match.Groups[1].Value)
+            .Distinct(StringComparer.Ordinal)
+            .Where(name => !declared.Contains(name))
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.That(named, Is.Empty,
+            "docs/developer-guide/mcp.md named MCP tools that no [McpServerTool] declares.");
+    }
+
+    [Test]
+    public void Mcp_catalog_documents_verification_server()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var markdown = File.ReadAllText(Path.Join(root, "docs/developer-guide/mcp.md"));
+        Assert.That(markdown, Does.Contain("/mcp/verification"));
+    }
 }

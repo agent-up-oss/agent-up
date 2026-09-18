@@ -4,6 +4,8 @@ title: Desktop Application Hosting Assessment
 
 # Desktop Application Hosting Assessment
 
+> **Assessment, not current contract.** This page records a design investigation. Hosted Linux `desktopApplications` and ticketed Desktop/Mobile viewers are shipped. Remaining items below are reliability and platform backlog. For current behavior see [Server](./server.md), [Desktop](./desktop.md), and [Mobile](./mobile.md).
+
 ## Decision
 
 Desktop application hosting is feasible, and more of the previous Server-side display work is reusable than the removal commit alone suggests. The right approach is to retain and harden the transport-neutral parts of `AgentUp.Browser.Streaming`, replace its Chromium-specific producer and input adapters, and refuse to carry forward the Desktop compositor workarounds or the misleading RDP contract.
@@ -176,7 +178,7 @@ Flow control is mandatory: keep at most the newest pending framebuffer update pe
 Both clients use the Server-provided viewer page, keeping the protocol implementation in one web asset and the clients thin.
 
 - AgentUp.Desktop creates a dedicated NativeWebView for a selected desktop-application tab and navigates it to the ticketed viewer URL. Existing HTTP tabs retain their current direct-port NativeWebViews.
-- AgentUp.Mobile uses a native WebView on Android/iOS and an iframe-compatible viewer surface in the PWA. The current Mobile application screen is only a placeholder, so desktop streaming should be implemented together with the general application-tab content contract rather than as a second temporary path.
+- AgentUp.Mobile uses a native WebView on Android/iOS and an iframe-compatible viewer surface in the PWA. Ticketed application viewers are shipped; remaining work is reliability, not a placeholder screen.
 - Both clients forward focus, viewport, touch/pointer, and keyboard intent through the viewer protocol. They show Server health and reconnect states but do not infer application readiness from the most recent frame.
 - Clipboard and file transfer are disabled in the first release. They require explicit authorization, size limits, audit records, and platform behavior tests before being enabled.
 - Viewer accessibility controls and an explicit "take control" action are required. Touch input maps through the fixed logical framebuffer; pinch zoom changes only client presentation and never the Server coordinate space.

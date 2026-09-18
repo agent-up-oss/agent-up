@@ -31,7 +31,7 @@ Agent-Up solves these problems without requiring changes to application source c
 
 ## System Shape
 
-The Server is the single source of truth. Desktop, CLI, and MCP clients are all thin clients over server-owned runtime state.
+The Server is the single source of truth. Desktop, Mobile, CLI, and MCP clients are all thin clients over server-owned runtime state.
 
 ```text
                 +----------------------+
@@ -44,16 +44,15 @@ The Server is the single source of truth. Desktop, CLI, and MCP clients are all 
                 | Event Recorder       |
                 | Diagnostics          |
                 | Playwright Generator |
-                | MCP Server           |
+                | MCP servers          |
                 +----------+-----------+
                            |
-        +------------------+-------------------+
-        |                  |                   |
-+---------------+   +---------------+   +------------------+
-| Avalonia UI   |   | AgentUp CLI   |   | MCP Clients      |
-| Human UI      |   | Thin Wrapper  |   | ChatGPT          |
-|               |   |               |   | Claude / Codex   |
-+---------------+   +---------------+   +------------------+
+        +------------------+-------------------+------------------+
+        |                  |                   |                  |
++---------------+   +---------------+   +---------------+   +------------------+
+| Desktop       |   | Mobile        |   | CLI           |   | MCP clients      |
+| Avalonia UI   |   | Expo / PWA    |   | agent-up      |   | named /mcp/*     |
++---------------+   +---------------+   +---------------+   +------------------+
 ```
 
 ## Getting Started
@@ -83,7 +82,10 @@ Create `agent-up.json` in the root of the repository you want to manage:
     {
       "name": "Frontend",
       "command": "npm run dev",
-      "path": "."
+      "path": ".",
+      "ports": [
+        { "variable": "PORT", "defaultPort": 3000 }
+      ]
     }
   ]
 }
@@ -108,14 +110,17 @@ This reads `agent-up.json`, captures the current git branch and commit, and push
 
 ## Documentation Map
 
+- [Downloads](./downloads.md) lists current development-preview packages.
+- [Setup](./setup.md) describes packaged and source-first development workflows.
 - [Workspace](./workspace.md) defines the workspace model.
-- [Setup](./setup.md) describes the current source-first development workflow.
-- [Releases](./releases.md) describes packaged artifacts and update behavior.
-- [Current Limitations](./limitations.md) explains what is implemented, experimental, in progress, and planned.
-- [Browser](./browser.md) covers shared browser sessions and automation.
-- [Browser Profiles](./browser-profiles.md) explains per-workspace browser isolation.
-- [CLI](./cli.md) covers the human-friendly command wrapper.
+- [Mobile](./mobile.md) covers the Expo client for Android, iOS, and the PWA.
+- [Git changes](./git-changes.md) is the human working-tree review surface.
+- [CLI](./cli.md) covers the `agent-up` command wrapper.
+- [Browser](./browser.md) covers Desktop, Mobile, and Server browser surfaces.
+- [Browser Profiles](./browser-profiles.md) explains per-workspace headless isolation.
 - [Configuration](./configuration.md) and [agent-up.json](./agent-up-json.md) describe declarative application setup.
+- [Releases](./releases.md) describes packaged artifacts and update behavior.
+- [Current Limitations](./limitations.md) explains what is implemented, Preview, Experimental, and Planned.
 - [Roadmap](./roadmap.md) captures the long-term direction.
 
 Implementation details live in the [Developer Guide](/developer-guide/).
