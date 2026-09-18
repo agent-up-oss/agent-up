@@ -105,32 +105,29 @@ public sealed class TestDataBuilders
     {
         var (_, node) = ArchitectureFixture.ParseSourceFile(path);
 
-        foreach (var declaration in node.DescendantNodes().OfType<RecordDeclarationSyntax>())
-            if (declaration.ParameterList?.Parameters.Count > MaximumPositionalParameters)
-                yield return declaration.Identifier.Text;
-
-        foreach (var declaration in node.DescendantNodes().OfType<ClassDeclarationSyntax>())
-            if (declaration.ParameterList?.Parameters.Count > MaximumPositionalParameters ||
-                declaration.Members.OfType<ConstructorDeclarationSyntax>()
-                    .Any(constructor => constructor.ParameterList.Parameters.Count > MaximumPositionalParameters))
-                yield return declaration.Identifier.Text;
+        return node.DescendantNodes()
+            .OfType<TypeDeclarationSyntax>()
+            .Where(IsWide)
+            .Select(declaration => declaration.Identifier.Text);
     }
+
+    private static bool IsWide(TypeDeclarationSyntax declaration)
+        => declaration.ParameterList?.Parameters.Count > MaximumPositionalParameters
+           || declaration.Members.OfType<ConstructorDeclarationSyntax>()
+               .Any(constructor => constructor.ParameterList.Parameters.Count > MaximumPositionalParameters);
 
     private static IEnumerable<(string Type, int Count)> HotspotTypes(string root, string project)
     {
         var candidates = CandidateTypes(root, project);
         if (candidates.Count == 0)
-            yield break;
+            return [];
 
-        var counts = candidates.ToDictionary(type => type, _ => 0, StringComparer.Ordinal);
-        foreach (var path in ArchitectureFixture.ProjectSourceFiles(root, project))
-            foreach (var type in ConstructedTypeNames(path))
-                if (counts.ContainsKey(type))
-                    counts[type]++;
-
-        foreach (var (type, count) in counts)
-            if (count > MaximumInlineConstructions)
-                yield return (type, count);
+        return ArchitectureFixture.ProjectSourceFiles(root, project)
+            .SelectMany(ConstructedTypeNames)
+            .Where(candidates.Contains)
+            .GroupBy(type => type, StringComparer.Ordinal)
+            .Where(group => group.Count() > MaximumInlineConstructions)
+            .Select(group => (group.Key, group.Count()));
     }
 
     /// <summary>Types the test project already has a builder for, by file name.</summary>
@@ -161,17 +158,21 @@ public sealed class TestDataBuilders
     {
         var (tree, node) = ArchitectureFixture.ParseSourceFile(path);
 
-        foreach (var creation in node.DescendantNodes().OfType<ObjectCreationExpressionSyntax>())
-            if (ArchitectureFixture.FinalTypeSegment(creation.Type) == type)
-                yield return Violation(root, path, tree, creation, type);
+        var named = node.DescendantNodes()
+            .OfType<ObjectCreationExpressionSyntax>()
+            .Where(creation => ArchitectureFixture.FinalTypeSegment(creation.Type) == type);
 
         // `new(...)` carries no type of its own, so it is judged by the type it is written
         // into - the variable, field, property or return type it initialises. Without that
         // the builder rule would have a loophole that reads exactly like the construction
         // it bans.
-        foreach (var creation in node.DescendantNodes().OfType<ImplicitObjectCreationExpressionSyntax>())
-            if (TargetTypeName(creation) == type)
-                yield return Violation(root, path, tree, creation, type);
+        var implicitly = node.DescendantNodes()
+            .OfType<ImplicitObjectCreationExpressionSyntax>()
+            .Where(creation => TargetTypeName(creation) == type);
+
+        return named.Cast<SyntaxNode>()
+            .Concat(implicitly)
+            .Select(creation => Violation(root, path, tree, creation, type));
     }
 
     private static string Violation(string root, string path, SyntaxTree tree, SyntaxNode creation, string type)

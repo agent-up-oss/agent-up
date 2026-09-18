@@ -77,17 +77,13 @@ public sealed class TestAssertionDensity
         if (member.Name.Identifier.Text == "Multiple")
             return false;
 
-        return AssertionEntryPoints.Contains(
-            ArchitectureFixture.FinalTypeSegment(member.Expression as TypeSyntax
-                ?? SyntaxFactoryTypeOf(member.Expression)),
-            StringComparer.Ordinal);
-    }
+        var receiver = member.Expression switch
+        {
+            IdentifierNameSyntax identifier => identifier.Identifier.Text,
+            MemberAccessExpressionSyntax qualified => qualified.Name.Identifier.Text,
+            _ => null
+        };
 
-    /// <summary>
-    /// The receiver of a member access as a type name, for the identifier form that the
-    /// parser does not hand back as a <see cref="TypeSyntax"/>.
-    /// </summary>
-    private static TypeSyntax SyntaxFactoryTypeOf(ExpressionSyntax expression)
-        => expression as TypeSyntax
-           ?? Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseTypeName(expression.ToString());
+        return receiver is not null && AssertionEntryPoints.Contains(receiver, StringComparer.Ordinal);
+    }
 }

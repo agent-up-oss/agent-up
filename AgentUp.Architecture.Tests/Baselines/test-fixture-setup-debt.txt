@@ -1,0 +1,73 @@
+# Fixtures that arrange their subject in a [SetUp] or [OneTimeSetUp] method rather than in
+# the test that depends on it. Reading such a test does not tell you what the subject was
+# given, and every test in the fixture pays for whatever the slowest one needed.
+#
+# Entries are removed as the setup moves into local helpers the tests call with explicit
+# parameters; TestFixtureSetup fails on an entry that is already clean, so this file cannot
+# drift into fiction. New fixtures must not be added.
+AgentUp.CLI.Tests/E2E/WorkspaceCommandsTests.cs
+AgentUp.CLI.Tests/Features/Commits/Provider/CommitsGitProviderTests.cs
+AgentUp.CLI.Tests/Features/Commits/Provider/CommitsQueueProviderTests.cs
+AgentUp.CLI.Tests/Features/Composition/Provider/SentryTelemetryEnvironmentTests.cs
+AgentUp.CLI.Tests/Features/Workspaces/Controller/CurrentWorkspaceResolverTests.cs
+AgentUp.CLI.Tests/Features/Workspaces/Controller/DiagnosticsCommandTests.cs
+AgentUp.CLI.Tests/Features/Workspaces/Controller/WorkspaceCommandServiceDiagnosticsTests.cs
+AgentUp.CLI.Tests/Features/Workspaces/Provider/WorkspaceConfigurationProviderTests.cs
+AgentUp.Capabilities.Claude.Tests/Features/ClaudeCapability/Provider/ClaudeVersionProviderTests.cs
+AgentUp.Capabilities.Codex.Tests/Features/CodexCapability/Provider/CodexVersionProviderTests.cs
+AgentUp.Capabilities.Common.Tests/Features/CapabilityInventory/Provider/CapabilityInventoryFileProviderTests.cs
+AgentUp.Capabilities.Cursor.Tests/Features/CursorCapability/Provider/CursorVersionProviderTests.cs
+AgentUp.Capabilities.Docker.Tests/Features/DockerCapability/Provider/DockerVersionProviderTests.cs
+AgentUp.Capabilities.Dotnet.Tests/Features/DotnetCapability/Provider/DotnetVersionProviderTests.cs
+AgentUp.Desktop.Tests/Features/Authentication/Provider/FileServerConnectionStoreTests.cs
+AgentUp.Desktop.Tests/Features/Composition/Provider/SentryTelemetryEnvironmentTests.cs
+AgentUp.Desktop.Tests/Features/FirstRun/Provider/FirstRunTutorialChecksTests.cs
+AgentUp.Desktop.Tests/Features/FirstRun/Repository/FileFirstRunTutorialSettingsStoreTests.cs
+AgentUp.Server.Tests/Features/Agents/HTTP/AgentsHttpTests.cs
+AgentUp.Server.Tests/Features/Agents/HTTP/InstalledAgentCapabilityHttpTests.cs
+AgentUp.Server.Tests/Features/Agents/Unit/AgentSchedulingServiceTests.cs
+AgentUp.Server.Tests/Features/ApplicationProxy/HTTP/ApplicationProxyHttpTests.cs
+AgentUp.Server.Tests/Features/Applications/HTTP/ApplicationsHttpTests.cs
+AgentUp.Server.Tests/Features/Audit/Controller/AuditMcpToolsTests.cs
+AgentUp.Server.Tests/Features/Audit/HTTP/ApplicationAuditHttpTests.cs
+AgentUp.Server.Tests/Features/Audit/HTTP/ApplicationAuditStreamHttpTests.cs
+AgentUp.Server.Tests/Features/Audit/Repository/FileAuditRepositoryTests.cs
+AgentUp.Server.Tests/Features/Authentication/HTTP/AuthenticationHttpTests.cs
+AgentUp.Server.Tests/Features/Commits/Controller/CommitQueueMcpToolsTests.cs
+AgentUp.Server.Tests/Features/Composition/Provider/SentryTelemetryEnvironmentTests.cs
+AgentUp.Server.Tests/Features/Database/Controller/DatabaseHttpTests.cs
+AgentUp.Server.Tests/Features/DesktopApplications/HTTP/DesktopApplicationsHttpTests.cs
+AgentUp.Server.Tests/Features/Diagnostics/HTTP/WorkspaceDiagnosticsHttpTests.cs
+AgentUp.Server.Tests/Features/Git/HTTP/GitChangesHttpTests.cs
+AgentUp.Server.Tests/Features/Git/Provider/GitWorkingTreeProviderTests.cs
+AgentUp.Server.Tests/Features/Git/Provider/WorkspaceAgentPromptGuardTests.cs
+AgentUp.Server.Tests/Features/Orchestration/Controller/OrchestrationMcpResourcesTests.cs
+AgentUp.Server.Tests/Features/Orchestration/Controller/OrchestrationMcpToolsTests.cs
+AgentUp.Server.Tests/Features/Ports/Provider/FilePortRangeStoreTests.cs
+AgentUp.Server.Tests/Features/Processes/Provider/WorkspaceProcessManagerTests.cs
+AgentUp.Server.Tests/Features/Processes/Repository/FileOutputRepositoryTests.cs
+AgentUp.Server.Tests/Features/ServiceControl/Controller/ServiceControllerHttpTests.cs
+AgentUp.Server.Tests/Features/SourceClones/HTTP/SourceClonesHttpTests.cs
+AgentUp.Server.Tests/Features/SourceClones/Provider/GitSourceCloneProviderTests.cs
+AgentUp.Server.Tests/Features/SourceClones/Provider/SourceCloneRootProviderTests.cs
+AgentUp.Server.Tests/Features/SourceClones/Provider/SourceCloneTargetProviderTests.cs
+AgentUp.Server.Tests/Features/TraySession/Controller/TraySessionControllerTests.cs
+AgentUp.Server.Tests/Features/Workspaces/HTTP/WebClientCorsHttpTests.cs
+AgentUp.Server.Tests/Features/Workspaces/HTTP/WorkspacesHttpTests.cs
+AgentUp.Server.Tests/Features/Workspaces/Provider/WorkspaceDiskUsageProviderTests.cs
+AgentUp.Server.Tests/Features/Workspaces/Repository/WorkspaceRepositoryTests.cs
+AgentUp.Server.Tests/Features/Workspaces/Unit/WorkspaceRegistryTests.cs
+AgentUp.TestAgents.Tests/Features/Authentication/Controller/AuthenticationControllerTests.cs
+AgentUp.TestAgents.Tests/Features/Authentication/Provider/TestAgentCredentialStoreTests.cs
+AgentUp.TestAgents.Tests/Features/Authentication/Provider/TestAgentLoginFlowRefusalTests.cs
+AgentUp.TestAgents.Tests/Features/Host/Controller/TestAgentHostControllerTests.cs
+AgentUp.TestAgents.Tests/Features/IdentityProvider/Provider/TestIdentityProviderConsentTests.cs
+AgentUp.TestAgents.Tests/Features/IdentityProvider/Provider/TestIdentityProviderRefusalTests.cs
+AgentUp.TestAgents.Tests/Features/IdentityProvider/Provider/TestIdentityProviderServiceTests.cs
+AgentUp.Tests/Features/Browser/E2E/DesktopOAuthSignInFlowTests.cs
+AgentUp.Tests/Features/Browser/E2E/DesktopWebViewFilePickerTests.cs
+AgentUp.Tests/Features/Browser/Headless/HeadlessBroadcastServiceTests.cs
+AgentUp.Tests/Features/Browser/Headless/HeadlessE2ETests.cs
+AgentUp.Tests/Features/Browser/Headless/HeadlessEndpointTests.cs
+AgentUp.Tests/Features/DesktopApplications/E2E/DesktopApplicationStreamingE2ETests.cs
+AgentUp.Tests/Fixtures/DesktopFixtureHost.cs
