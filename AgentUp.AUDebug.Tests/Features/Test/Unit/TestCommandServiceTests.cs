@@ -127,5 +127,5 @@ public sealed class TestCommandServiceTests
         => new(new DebugTestSuiteCatalog(), runner, output ?? TextWriter.Null);
 
     private static DebugCommandDto Command(string suite, string verb = "test")
-        => new(verb, null, null, null, null, TimeSpan.FromSeconds(30), false, suite);
+        => DebugDomain.Verb(verb).WithSuite(suite).Build();
 }

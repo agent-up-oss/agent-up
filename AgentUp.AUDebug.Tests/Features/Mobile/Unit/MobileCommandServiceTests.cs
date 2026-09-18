@@ -222,6 +222,9 @@ public sealed class MobileCommandServiceTests
         Assert.That(result.Message, Does.Contain("requires a workspace name"));
     }
 
-    private static DebugCommandDto Command(string? password = "test")
-        => new("mobile", "mobile", "login", null, password, TimeSpan.FromSeconds(30), false);
+    private static DebugCommandDto Command(string? password = DebugDomain.Password)
+        => DebugDomain.Command(DebugDomain.MobileSurface)
+            .Doing(DebugDomain.LoginAction)
+            .WithPassword(password)
+            .Build();
 }

@@ -263,19 +263,17 @@ public sealed class ProposalStackGitProviderTests
     }
 
     private static CommitsQueue Queued(ProposalCommitResult first)
-        => new(
-            3,
-            [ServerDomain.CommitEntry()
+        => ServerDomain.Queue()
+            .With(ServerDomain.CommitEntry()
                 .For("Test")
                 .Saying("feat(Test): first")
                 .Touching(["value.txt"])
-                .WithProposalCommit(first.Commit)
-                .Build()],
-            QueueId: "queue-1",
-            BaseCommit: first.BaseCommit,
-            TipCommit: first.Commit,
-            QueueWorktreePath: first.QueueWorktreePath,
-            Generation: 1);
+                .WithProposalCommit(first.Commit))
+            .WithQueueId("queue-1")
+            .OnStack(first.BaseCommit, first.Commit)
+            .InWorktree(first.QueueWorktreePath)
+            .AtGeneration(1)
+            .Build();
 
     private static async Task<string> GitAsync(string directory, params string[] arguments)
     {

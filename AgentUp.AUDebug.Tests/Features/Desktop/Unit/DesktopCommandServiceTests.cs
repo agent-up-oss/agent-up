@@ -124,6 +124,11 @@ public sealed class DesktopCommandServiceTests
         FakeEnvironment environment)
         => new(windows, client, new FakeSessionStore(), environment);
 
-    private static DebugCommandDto Command(string action, string? password = "test", TimeSpan? timeout = null)
-        => new("desktop", "desktop", action, "Agent-Up", password, timeout ?? TimeSpan.FromSeconds(30), false);
+    private static DebugCommandDto Command(string action, string? password = DebugDomain.Password, TimeSpan? timeout = null)
+        => DebugDomain.Command(DebugDomain.DesktopSurface)
+            .Doing(action)
+            .ForWorkspace(DebugDomain.WorkspaceName)
+            .WithPassword(password)
+            .TimingOutAfter(timeout ?? DebugDomain.Timeout)
+            .Build();
 }

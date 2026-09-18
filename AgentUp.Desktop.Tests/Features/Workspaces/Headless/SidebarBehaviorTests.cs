@@ -92,8 +92,15 @@ public class SidebarBehaviorTests
         Assert.That(app.Sidebar.WorkspaceCount, Is.EqualTo(3));
 
         var updated = DesktopDomain.Workspaces();
-        updated.Add(new AgentUp.Desktop.Features.Workspaces.DTOs.WorkspaceDto(
-            "ws-4", "New Service", "/repo/new", "/worktrees/new", "main", "aaa000", "Stopped"));
+        updated.Add(DesktopDomain.Workspace()
+            .WithId("ws-4")
+            .Named("New Service")
+            .WithRepositoryPath("/repo/new")
+            .WithWorktreePath("/worktrees/new")
+            .OnBranch(DesktopDomain.ThirdBranch)
+            .AtCommit("aaa000")
+            .Stopped()
+            .Build());
         handler.SetWorkspaces(updated);
 
         await app.Sidebar.ClickReloadAsync();

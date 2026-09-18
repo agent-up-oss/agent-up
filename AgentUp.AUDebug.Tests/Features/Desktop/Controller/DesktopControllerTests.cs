@@ -2,6 +2,7 @@ using AgentUp.AUDebug.Features.Desktop.Controllers;
 using AgentUp.AUDebug.Features.Desktop.Services;
 using AgentUp.AUDebug.Features.Host.DTOs;
 using AgentUp.AUDebug.Tests.Fake;
+using AgentUp.AUDebug.Tests.Support;
 
 namespace AgentUp.AUDebug.Tests.Features.Desktop.Controller;
 
@@ -64,5 +65,9 @@ public sealed class DesktopControllerTests
         => new(new DesktopCommandService(windows, new FakeWorkspaceClient(), new FakeSessionStore(), new FakeEnvironment()));
 
     private static DebugCommandDto Command(string action)
-        => new("desktop", "desktop", action, "Agent-Up", "test", TimeSpan.FromSeconds(30), false);
+        => DebugDomain.Command(DebugDomain.DesktopSurface)
+            .Doing(action)
+            .ForWorkspace(DebugDomain.WorkspaceName)
+            .WithPassword(DebugDomain.Password)
+            .Build();
 }
