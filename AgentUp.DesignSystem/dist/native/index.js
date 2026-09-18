@@ -39,6 +39,14 @@ export const agentUpTheme = Object.freeze({
     scrim: "#0a0b0cb8",
     overlay: "#0a0b0c73",
     transparent: "#00000000",
+    gitLane0: "#2bf27a",
+    gitLane1: "#4fa3d8",
+    gitLane2: "#e0a128",
+    gitLane3: "#00a8e8",
+    gitLane4: "#8bb7ff",
+    gitLane5: "#ffd66b",
+    gitLane6: "#00d66b",
+    gitLane7: "#c2d2ca",
   }),
   spacing: Object.freeze({
     1: 4,
@@ -567,28 +575,81 @@ export const agentUpTheme = Object.freeze({
       fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 11,
     }),
+    gitChangeList: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#121416",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+      paddingHorizontal: 0,
+      paddingVertical: 4,
+    }),
     gitRow: Object.freeze({
-      paddingHorizontal: 4,
-      paddingVertical: 3,
+      minHeight: 32,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
       color: "#c2d2ca",
       backgroundColor: "#00000000",
-      borderRadius: 4,
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00000000",
+      borderRadius: 8,
     }),
     gitRowSelected: Object.freeze({
-      backgroundColor: "#10281d",
       color: "#f5fbf7",
+      backgroundColor: "#10281d",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00c257",
     }),
-    gitAdd: Object.freeze({
+    gitChangeName: Object.freeze({
+      minWidth: 0,
+      color: "#f5fbf7",
+      fontSize: 13,
+      fontWeight: '500',
+    }),
+    gitChangeNameDirectory: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    gitStatus: Object.freeze({
+      width: 14,
+      color: "#c2d2ca",
+      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    gitStatusAdded: Object.freeze({
       color: "#2bf27a",
     }),
-    gitDelete: Object.freeze({
+    gitStatusUntracked: Object.freeze({
+      color: "#22c55e",
+    }),
+    gitStatusDeleted: Object.freeze({
       color: "#d84f4f",
     }),
-    gitRename: Object.freeze({
+    gitStatusModified: Object.freeze({
       color: "#4fa3d8",
     }),
-    gitConflict: Object.freeze({
+    gitStatusRenamed: Object.freeze({
+      color: "#8bb7ff",
+    }),
+    gitStatusConflicted: Object.freeze({
       color: "#e0a128",
+    }),
+    gitStatusDirectory: Object.freeze({
+      color: "#8a9a92",
+    }),
+    gitInsertions: Object.freeze({
+      color: "#2bf27a",
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    gitDeletions: Object.freeze({
+      color: "#e48989",
+      fontSize: 12,
+      fontWeight: '600',
     }),
     auditHeader: Object.freeze({
       paddingHorizontal: 12,
@@ -851,6 +912,259 @@ export const agentUpTheme = Object.freeze({
       paddingHorizontal: 12,
       paddingVertical: 12,
       backgroundColor: "#00000000",
+    }),
+    fileViewer: Object.freeze({
+      minHeight: 256,
+      minWidth: 288,
+      color: "#f5fbf7",
+      backgroundColor: "#202428",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 16,
+    }),
+    fileViewerHeader: Object.freeze({
+      minHeight: 32,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+      borderRadius: "var(--au-radius-xl) var(--au-radius-xl) 0 0",
+    }),
+    fileViewerPath: Object.freeze({
+      color: "#f5fbf7",
+      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    fileViewerStatus: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 11,
+      fontWeight: '500',
+      textTransform: 'uppercase',
+      letterSpacing: 0.66,
+    }),
+    fileViewerNav: Object.freeze({
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      color: "#c2d2ca",
+      backgroundColor: "#121416",
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+    }),
+    fileViewerJump: Object.freeze({
+      minHeight: 32,
+      paddingHorizontal: 8,
+      paddingVertical: 0,
+      color: "#c2d2ca",
+      backgroundColor: "#191c1f",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 6,
+      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
+      fontSize: 11,
+    }),
+    fileViewerGoto: Object.freeze({
+      width: 72,
+      minHeight: 32,
+      paddingHorizontal: 8,
+      paddingVertical: 0,
+      color: "#f5fbf7",
+      backgroundColor: "#17191b",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 6,
+      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
+      fontSize: 11,
+    }),
+    fileViewerBody: Object.freeze({
+      minHeight: 160,
+      color: "#c2d2ca",
+      backgroundColor: "#0a0b0c",
+    }),
+    fileViewerLine: Object.freeze({
+      minHeight: 22,
+      paddingHorizontal: 8,
+      paddingVertical: 0,
+      color: "#c2d2ca",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00000000",
+      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
+      fontSize: 11,
+    }),
+    fileViewerLineAdded: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#11211b",
+    }),
+    fileViewerLineDeleted: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#261a1c",
+    }),
+    fileViewerLineHunk: Object.freeze({
+      color: "#8bb7ff",
+      backgroundColor: "#121416",
+    }),
+    fileViewerLineMeta: Object.freeze({
+      color: "#8a9a92",
+      backgroundColor: "#121416",
+    }),
+    fileViewerLineCurrent: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#10281d",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00c257",
+    }),
+    fileViewerGutter: Object.freeze({
+      width: 52,
+      color: "#718077",
+      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
+      fontSize: 11,
+    }),
+    fileViewerPrefix: Object.freeze({
+      width: 14,
+      color: "#718077",
+      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
+      fontSize: 11,
+    }),
+    fileViewerPrefixAdded: Object.freeze({
+      color: "#2bf27a",
+    }),
+    fileViewerPrefixDeleted: Object.freeze({
+      color: "#e48989",
+    }),
+    fileViewerCode: Object.freeze({
+      color: "#c2d2ca",
+      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
+      fontSize: 11,
+    }),
+    syntaxPlain: Object.freeze({
+      color: "#c2d2ca",
+    }),
+    syntaxKeyword: Object.freeze({
+      color: "#8bb7ff",
+    }),
+    syntaxType: Object.freeze({
+      color: "#4fa3d8",
+    }),
+    syntaxString: Object.freeze({
+      color: "#ffd66b",
+    }),
+    syntaxComment: Object.freeze({
+      color: "#8a9a92",
+      fontStyle: 'italic',
+    }),
+    syntaxNumber: Object.freeze({
+      color: "#e0a128",
+    }),
+    syntaxFunction: Object.freeze({
+      color: "#f5fbf7",
+    }),
+    syntaxProperty: Object.freeze({
+      color: "#c2d2ca",
+    }),
+    syntaxPunctuation: Object.freeze({
+      color: "#718077",
+    }),
+    syntaxOperator: Object.freeze({
+      color: "#c2d2ca",
+    }),
+    gitLog: Object.freeze({
+      backgroundColor: "#0a0b0c",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+    }),
+    gitLogRow: Object.freeze({
+      minHeight: 28,
+      paddingHorizontal: 12,
+      paddingVertical: 0,
+      color: "#c2d2ca",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00000000",
+      borderRadius: 8,
+      fontSize: 12,
+    }),
+    gitLogRowSelected: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#10281d",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00c257",
+    }),
+    gitLogGraph: Object.freeze({
+      backgroundColor: "#00000000",
+    }),
+    gitLogLane0: Object.freeze({
+      color: "#2bf27a",
+    }),
+    gitLogLane1: Object.freeze({
+      color: "#4fa3d8",
+    }),
+    gitLogLane2: Object.freeze({
+      color: "#e0a128",
+    }),
+    gitLogLane3: Object.freeze({
+      color: "#00a8e8",
+    }),
+    gitLogLane4: Object.freeze({
+      color: "#8bb7ff",
+    }),
+    gitLogLane5: Object.freeze({
+      color: "#ffd66b",
+    }),
+    gitLogLane6: Object.freeze({
+      color: "#00d66b",
+    }),
+    gitLogLane7: Object.freeze({
+      color: "#c2d2ca",
+    }),
+    gitLogBody: Object.freeze({
+      minWidth: 0,
+    }),
+    gitLogSubject: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 12,
+      fontWeight: '500',
+    }),
+    gitLogAuthor: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 11,
+      fontWeight: '500',
+    }),
+    gitLogTime: Object.freeze({
+      color: "#718077",
+      fontSize: 11,
+    }),
+    gitLogRef: Object.freeze({
+      maxWidth: 176,
+      minHeight: 20,
+      paddingHorizontal: 8,
+      paddingVertical: 0,
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 999,
+      fontSize: 11,
+      fontWeight: '500',
+    }),
+    gitLogRefHead: Object.freeze({
+      color: "#2bf27a",
+      borderColor: "#00b85059",
+    }),
+    gitLogRefRemote: Object.freeze({
+      color: "#8bb7ff",
+    }),
+    gitLogNode: Object.freeze({
+      width: 8,
+      height: 8,
+      borderRadius: 999,
     }),
     productFrame: Object.freeze({
       minWidth: 0,

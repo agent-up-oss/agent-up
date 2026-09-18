@@ -31,7 +31,7 @@ const layoutCssProperties = new Set([
 ]);
 
 const primitives = await readFile(new URL('src/agent-up.css', root), 'utf8');
-const product = await readFile(new URL('src/product.css', root), 'utf8');
+const product = await readProductCss(root);
 const marketing = await readFile(new URL('src/marketing.css', root), 'utf8');
 const tokens = parseCustomProperties(primitives);
 const rules = parseRules(`${primitives}\n${product}\n${marketing}`);
@@ -213,6 +213,30 @@ test('agent transcript uses catalog user bubbles, work logs, and thought hairlin
   assert.match(mobile, /auBox\('chatWork'\)/);
 });
 
+test('Git change list uses catalog status glyphs instead of restyled rows', async () => {
+  assert.equal(agentUpTheme.components.gitStatusAdded.color, agentUpTheme.colors.accentSoft);
+  assert.equal(agentUpTheme.components.gitStatusUntracked.color, agentUpTheme.colors.statusHealthy);
+  assert.equal(agentUpTheme.components.gitStatusDeleted.color, agentUpTheme.colors.statusDanger);
+  assert.equal(agentUpTheme.components.gitStatusModified.color, agentUpTheme.colors.statusInfo);
+  assert.equal(agentUpTheme.components.gitStatusRenamed.color, agentUpTheme.colors.textInfo);
+  assert.equal(agentUpTheme.components.gitStatusConflicted.color, agentUpTheme.colors.statusWarning);
+  assert.equal(agentUpTheme.components.gitStatusDirectory.color, agentUpTheme.colors.textMuted);
+  assert.equal(agentUpTheme.components.gitChangeName.color, agentUpTheme.colors.textPrimary);
+  assert.equal(agentUpTheme.components.gitChangeNameDirectory.color, agentUpTheme.colors.textMuted);
+  assert.equal(agentUpTheme.components.gitRowSelected.backgroundColor, agentUpTheme.colors.surfaceSelected);
+  assert.equal(agentUpTheme.components.gitRowSelected.borderLeftColor, agentUpTheme.colors.accentLine);
+  assert.match(avaloniaStyles, /Selector="Border\.gitNodeRow"/);
+  assert.match(avaloniaStyles, /Selector="Border\.gitNodeRowSelected"/);
+  const axaml = await readFile(resolve(repository, 'AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml'), 'utf8');
+  assert.match(axaml, /Classes="gitNodeRow"/);
+  assert.match(axaml, /Classes="gitChangeName"/);
+  assert.match(axaml, /Classes="au-git-status"/);
+  const mobile = await readFile(resolve(repository, 'AgentUp.Mobile/src/features/git/components/GitChangeRow.tsx'), 'utf8');
+  assert.match(mobile, /auBox\('gitRow'\)/);
+  assert.match(mobile, /auText\(nameClass/);
+  assert.match(mobile, /auText\(statusClass/);
+});
+
 test('tappable cards are catalog buttons instead of local picker chrome', async () => {
   assert.match(avaloniaStyles, /Selector="Button\.au-choice"/);
   assert.match(avaloniaStyles, /Button\.au-choice:pointerover/);
@@ -384,4 +408,15 @@ async function filesUnder(directory, extensions) {
         ? [resolve(directory, entry.name)]
         : []));
   return nested.flat();
+}
+
+async function readProductCss(base) {
+  const src = new URL('src/', base);
+  const product = await readFile(new URL('product.css', src), 'utf8');
+  const extras = (await readdir(src))
+    .filter(name => name.endsWith('.css') && !['agent-up.css', 'product.css', 'marketing.css', 'docs.css'].includes(name))
+    .sort();
+  if (!extras.length) return product;
+  const fragments = await Promise.all(extras.map(name => readFile(new URL(name, src), 'utf8')));
+  return `${product}\n\n${fragments.join('\n\n')}`;
 }

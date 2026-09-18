@@ -1,4 +1,3 @@
-import { agentUpTheme } from '@agent-up/design-system/native';
 import type { GitChangeDirectory, GitChangeNode, GitChangeTree } from '../models/GitChanges';
 
 // Flattens the Server-owned directory tree into indented rows: directories first, then files,
@@ -103,22 +102,36 @@ export function statusGlyph(status: GitChangeNode['status']): string {
   }
 }
 
-export function statusColor(status: GitChangeNode['status']): string {
+export type GitStatusClass =
+  | 'gitStatusAdded'
+  | 'gitStatusUntracked'
+  | 'gitStatusDeleted'
+  | 'gitStatusModified'
+  | 'gitStatusRenamed'
+  | 'gitStatusConflicted'
+  | 'gitStatusDirectory';
+
+export function statusClass(status: GitChangeNode['status']): GitStatusClass {
   switch (status) {
     case 'Added':
+      return 'gitStatusAdded';
     case 'Untracked':
-      return agentUpTheme.colors.accentSoft;
+      return 'gitStatusUntracked';
     case 'Deleted':
-      return agentUpTheme.colors.statusDanger;
+      return 'gitStatusDeleted';
     case 'Renamed':
-      return agentUpTheme.colors.statusInfo;
+      return 'gitStatusRenamed';
     case 'Conflicted':
-      return agentUpTheme.colors.statusWarning;
+      return 'gitStatusConflicted';
     case 'Modified':
-      return agentUpTheme.colors.textSecondary;
+      return 'gitStatusModified';
     default:
-      return agentUpTheme.colors.textMuted;
+      return 'gitStatusDirectory';
   }
+}
+
+export function nameClass(isDirectory: boolean): 'gitChangeNameDirectory' | 'gitChangeName' {
+  return isDirectory ? 'gitChangeNameDirectory' : 'gitChangeName';
 }
 
 function flattenDirectory(directory: GitChangeDirectory, depth: number, isRoot: boolean): GitChangeNode[] {

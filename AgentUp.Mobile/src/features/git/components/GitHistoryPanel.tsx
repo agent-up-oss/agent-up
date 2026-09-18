@@ -4,10 +4,11 @@ import { useServers } from '@/features/servers/controllers/ServersContext';
 import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
-import type { GitLogRow } from '../models/GitChanges';
+import type { GitLogRef, GitLogRow } from '../models/GitChanges';
 import { checkoutRemote, getHeadState, getLog, switchBranch } from '../providers/GitApiProvider';
 import { createRequestGate } from '../providers/RequestGateProvider';
-import { layoutGitLog } from '../providers/GitLogLayoutProvider';
+import { formatGitLogTime, layoutGitLog } from '../providers/GitLogLayoutProvider';
+import { GitLogGraphColumn } from './GitLogGraphColumn';
 
 const POLL_MS = 2500;
 
@@ -16,6 +17,7 @@ export function GitHistoryPanel({ workspaceId }: { workspaceId: string }) {
   const { server } = useWorkspaces();
   const [rows, setRows] = useState<GitLogRow[]>([]);
   const [locals, setLocals] = useState<string[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -78,28 +80,93 @@ export function GitHistoryPanel({ workspaceId }: { workspaceId: string }) {
       {!!status && <Text style={styles.status}>{status}</Text>}
       <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
         {rows.length === 0 && !loading && <Text style={styles.empty}>No commits yet.</Text>}
-        {rows.map(row =>
-          <View key={row.commit.id} style={styles.row}>
-            <Text style={styles.graph}>{row.graph}</Text>
+        {rows.map(row => {
+          const selected = row.commit.id === selectedId;
+          return (
             <Pressable
-              disabled={busy || !row.checkoutName}
-              onPress={() => { if (row.checkoutName) void checkout(row.checkoutName); }}>
-              <Text style={styles.hash}>{row.commit.shortId}</Text>
+              key={row.commit.id}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              onPress={() => setSelectedId(row.commit.id)}
+              style={[styles.row, selected ? styles.rowSelected : null]}>
+              <GitLogGraphColumn row={row} />
+              <View style={styles.body}>
+                {row.refs.length > 0 &&
+                  <View style={styles.refs}>
+                    {row.refs.map(ref =>
+                      <GitLogRefChip
+                        key={`${row.commit.id}:${ref.name}`}
+                        refInfo={ref}
+                        disabled={busy || !canCheckout(ref, locals)}
+                        onPress={() => { if (canCheckout(ref, locals)) void checkout(ref.name); }}
+                      />)}
+                  </View>}
+                <Text numberOfLines={1} style={styles.subject}>{row.commit.subject}</Text>
+                <Text numberOfLines={1} style={styles.author}>{row.commit.author}</Text>
+                <Text style={styles.time}>{formatGitLogTime(row.commit.timestamp)}</Text>
+              </View>
             </Pressable>
-            <Text numberOfLines={1} style={styles.subject}>{row.commit.subject}</Text>
-          </View>)}
+          );
+        })}
       </ScrollView>
     </View>
   );
 }
 
+function GitLogRefChip({
+  refInfo,
+  disabled,
+  onPress,
+}: {
+  refInfo: GitLogRef;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      style={[styles.ref, refInfo.kind === 'head' && styles.refHead, refInfo.kind === 'remote' && styles.refRemote]}>
+      <Text
+        numberOfLines={1}
+        style={[
+          styles.refLabel,
+          refInfo.kind === 'head' && styles.refHeadLabel,
+          refInfo.kind === 'remote' && styles.refRemoteLabel,
+        ]}>
+        {refInfo.name}
+      </Text>
+    </Pressable>
+  );
+}
+
+function canCheckout(ref: GitLogRef, locals: string[]): boolean {
+  if (ref.kind === 'head') return false;
+  if (ref.kind === 'local') return locals.includes(ref.name);
+  return ref.kind === 'remote';
+}
+
 const styles = StyleSheet.create({
   panel: { flex: 1, gap: 8 },
-  list: { gap: 8, paddingVertical: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  graph: { ...auText('mono', 'muted'), fontSize: agentUpTheme.typography.sizeXs },
-  hash: auText('accent'),
-  subject: { ...auText('workspaceName'), flex: 1, fontSize: 12 },
+  list: { ...auBox('gitLog'), paddingVertical: 4 },
+  row: {
+    ...auBox('gitLogRow'),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: agentUpTheme.spacing[3],
+  },
+  rowSelected: auBox('gitLogRowSelected'),
+  body: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: agentUpTheme.spacing[2], minWidth: 0 },
+  refs: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, maxWidth: '100%' },
+  ref: auBox('gitLogRef'),
+  refHead: auBox('gitLogRefHead'),
+  refRemote: auBox('gitLogRefRemote'),
+  refLabel: auText('gitLogRef'),
+  refHeadLabel: auText('gitLogRefHead'),
+  refRemoteLabel: auText('gitLogRefRemote'),
+  subject: { ...auText('gitLogSubject'), flexGrow: 1, flexShrink: 1 },
+  author: auText('gitLogAuthor'),
+  time: auText('gitLogTime'),
   empty: auText('muted'),
   error: auText('badgeDanger'),
   status: auText('accent'),

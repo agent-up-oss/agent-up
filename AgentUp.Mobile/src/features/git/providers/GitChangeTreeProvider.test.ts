@@ -10,9 +10,10 @@ import {
   filePathsUnder,
   flattenChangeTree,
   isDirectorySelected,
+  nameClass,
   retainSelectedPaths,
   selectedFilePaths,
-  statusColor,
+  statusClass,
   statusGlyph,
   toggleNodeSelection,
 } from './GitChangeTreeProvider';
@@ -177,10 +178,24 @@ test('commit is offered only for a selection with a non-blank message', () => {
   assert.equal(canCommitSelection(0, ''), false);
 });
 
-test('status glyphs and colors distinguish the change kinds', () => {
+test('status glyphs and catalog classes distinguish the change kinds', () => {
   assert.equal(statusGlyph('Added'), '+');
+  assert.equal(statusGlyph('Untracked'), '?');
   assert.equal(statusGlyph('Deleted'), '−');
+  assert.equal(statusGlyph('Renamed'), '→');
+  assert.equal(statusGlyph('Conflicted'), '!');
+  assert.equal(statusGlyph('Modified'), 'M');
   assert.equal(statusGlyph(null), '▸');
-  assert.equal(statusColor('Deleted'), agentUpTheme.colors.statusDanger);
-  assert.equal(statusColor(null), agentUpTheme.colors.textMuted);
+  assert.equal(statusClass('Added'), 'gitStatusAdded');
+  assert.equal(statusClass('Untracked'), 'gitStatusUntracked');
+  assert.equal(statusClass('Deleted'), 'gitStatusDeleted');
+  assert.equal(statusClass('Modified'), 'gitStatusModified');
+  assert.equal(statusClass('Renamed'), 'gitStatusRenamed');
+  assert.equal(statusClass('Conflicted'), 'gitStatusConflicted');
+  assert.equal(statusClass(null), 'gitStatusDirectory');
+  assert.equal(nameClass(true), 'gitChangeNameDirectory');
+  assert.equal(nameClass(false), 'gitChangeName');
+  assert.equal(agentUpTheme.components[statusClass('Added')].color, agentUpTheme.colors.accentSoft);
+  assert.equal(agentUpTheme.components[statusClass('Deleted')].color, agentUpTheme.colors.statusDanger);
+  assert.equal(agentUpTheme.components[statusClass(null)].color, agentUpTheme.colors.textMuted);
 });

@@ -268,15 +268,91 @@ ready in 842 ms</pre>
     </article>
   </section>
 
-  <section data-au-surface="git" data-au-title="Git changes" data-au-intro="The Git panel is the human review surface for the working tree. Coding agents still use the commit queue.">
-    <article data-au-component="git-row" data-au-title="Change tree" data-au-note="Status color is additive: added, deleted, renamed, conflicted. Directories stay muted." data-au-avalonia="Border" data-au-class="au-git-row" data-au-desktop-class="gitNodeRow">
-      <div class="au-stack">
-        <div class="au-git-row au-git-row--selected">src/</div>
-        <div class="au-git-row au-git-add">+ AgentChatScreen.tsx</div>
-        <div class="au-git-row au-git-delete">− obsolete.css</div>
-        <div class="au-git-row au-git-rename">pricing.tsx → storefront.tsx</div>
-        <div class="au-git-row au-git-conflict">! agent-up.json</div>
+  <section data-au-surface="git" data-au-title="Git changes" data-au-intro="The Git panel is the human review surface for the working tree. The change list is a directory tree: checkbox selects, the filename opens the file, and the status glyph carries the kind color. Coding agents still use the commit queue.">
+    <article data-au-component="git-change-list" data-au-title="Change list" data-au-note="The tree sits on a pane, not a full-bleed slab. Review counts use insertions and deletions, never a decorative green outline." data-au-avalonia="Border" data-au-class="au-git-change-list">
+      <div class="au-git-change-list" style="padding: 0.5rem;">
+        <div class="au-cluster" style="margin-bottom: 0.5rem;">
+          <button class="au-button au-button--secondary au-button--compact" type="button">Review <span class="au-git-insertions">+12</span> <span class="au-git-deletions">−4</span></button>
+          <button class="au-button au-button--compact" type="button">Commit</button>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox au-checkbox--checked"></span>
+          <span class="au-git-status au-git-status--directory">▸</span>
+          <span class="au-git-change-name au-git-change-name--directory">Changes</span>
+        </div>
+        <div class="au-git-row" style="padding-left: 1.25rem;">
+          <span class="au-checkbox au-checkbox--checked"></span>
+          <span class="au-git-status au-git-status--directory">▸</span>
+          <span class="au-git-change-name au-git-change-name--directory">src</span>
+        </div>
+        <div class="au-git-row au-git-row--selected" style="padding-left: 2.125rem;">
+          <span class="au-checkbox au-checkbox--checked"></span>
+          <span class="au-git-change-name">AgentChatScreen.tsx</span>
+          <span class="au-git-status au-git-status--modified">M</span>
+        </div>
+        <div class="au-git-row" style="padding-left: 2.125rem;">
+          <span class="au-checkbox"></span>
+          <span class="au-git-change-name">new-view.ts</span>
+          <span class="au-git-status au-git-status--added">+</span>
+        </div>
+        <div class="au-git-row" style="padding-left: 2.125rem;">
+          <span class="au-checkbox"></span>
+          <span class="au-git-change-name">scratch.md</span>
+          <span class="au-git-status au-git-status--untracked">?</span>
+        </div>
+        <div class="au-git-row" style="padding-left: 2.125rem;">
+          <span class="au-checkbox"></span>
+          <span class="au-git-change-name">obsolete.css</span>
+          <span class="au-git-status au-git-status--deleted">−</span>
+        </div>
+        <div class="au-git-row" style="padding-left: 2.125rem;">
+          <span class="au-checkbox"></span>
+          <span class="au-git-change-name">storefront.tsx</span>
+          <span class="au-git-status au-git-status--renamed">→</span>
+        </div>
+        <div class="au-git-row" style="padding-left: 2.125rem;">
+          <span class="au-checkbox"></span>
+          <span class="au-git-change-name">agent-up.json</span>
+          <span class="au-git-status au-git-status--conflicted">!</span>
+        </div>
       </div>
+    </article>
+    <article data-au-component="git-row" data-au-title="Change row" data-au-note="Checkbox and filename are separate hit targets. Hover is the neutral state layer. The open file takes the selected tint plus a 2px accent rule; checked boxes do not." data-au-avalonia="Border" data-au-class="au-git-row" data-au-desktop-class="gitNodeRow">
+      <div class="au-git-row au-git-row--selected">
+        <span class="au-checkbox au-checkbox--checked"></span>
+        <span class="au-git-change-name">AgentChatScreen.tsx</span>
+        <span class="au-git-status au-git-status--modified">M</span>
+      </div>
+    </article>
+    <article data-au-component="git-row-selected" data-au-title="Open change" data-au-note="Opening a file is the primary selection on this list. Many-of-many checkboxes stay on the checkbox itself." data-au-avalonia="Border" data-au-class="au-git-row--selected" data-au-desktop-class="gitNodeRowSelected">
+      <div class="au-git-row au-git-row--selected">
+        <span class="au-checkbox au-checkbox--checked"></span>
+        <span class="au-git-change-name">AgentChatScreen.tsx</span>
+        <span class="au-git-status au-git-status--modified">M</span>
+      </div>
+    </article>
+    <article data-au-component="git-change-name" data-au-title="File name" data-au-note="Filenames stay primary. Do not paint the whole row in the status color." data-au-avalonia="TextBlock" data-au-class="au-git-change-name" data-au-desktop-class="gitChangeName">
+      <span class="au-git-change-name">AgentChatScreen.tsx</span>
+    </article>
+    <article data-au-component="git-change-name-directory" data-au-title="Directory name" data-au-note="Directories are grouping chrome: muted, slightly stronger weight, no status glyph." data-au-avalonia="TextBlock" data-au-class="au-git-change-name--directory" data-au-desktop-class="gitChangeNameDirectory">
+      <span class="au-git-change-name au-git-change-name--directory">src</span>
+    </article>
+    <article data-au-component="git-status" data-au-title="Status glyph" data-au-note="Modified M is info blue, added + is accent green, untracked ? is healthy, deleted − is danger, renamed → is info text, conflicted ! is warning. Directories stay muted." data-au-avalonia="TextBlock" data-au-class="au-git-status">
+      <div class="au-cluster">
+        <span class="au-git-status au-git-status--modified">M</span>
+        <span class="au-git-status au-git-status--added">+</span>
+        <span class="au-git-status au-git-status--untracked">?</span>
+        <span class="au-git-status au-git-status--deleted">−</span>
+        <span class="au-git-status au-git-status--renamed">→</span>
+        <span class="au-git-status au-git-status--conflicted">!</span>
+        <span class="au-git-status au-git-status--directory">▸</span>
+      </div>
+    </article>
+    <article data-au-component="git-insertions" data-au-title="Insertions" data-au-note="Added-file counts next to Review. Green here is change meaning, not chrome." data-au-avalonia="TextBlock" data-au-class="au-git-insertions">
+      <span class="au-git-insertions">+12</span>
+    </article>
+    <article data-au-component="git-deletions" data-au-title="Deletions" data-au-note="Deleted-file counts stay danger red." data-au-avalonia="TextBlock" data-au-class="au-git-deletions">
+      <span class="au-git-deletions">−4</span>
     </article>
   </section>
 
@@ -395,6 +471,41 @@ ready in 842 ms</pre>
         </div>
         <button class="au-button" type="button">Clone</button>
       </div>
+    </article>
+  </section>
+
+  <section data-au-surface="documentation" data-au-title="Documentation" data-au-intro="Docs use these components to move attention, not to fill the page with layout. One focus pane per page. Surface chips sit on a beat, never as a Desktop versus Mobile chapter.">
+    <article data-au-component="doc-lifecycle" data-au-title="Lifecycle stamp" data-au-note="The eyebrow pairs the slice name with Available, Preview, Experimental, or Planned from voice.json." data-au-avalonia="Border" data-au-class="au-doc-lifecycle">
+      <p class="au-eyebrow au-cluster">Workspaces <span class="au-badge au-doc-lifecycle">Available</span></p>
+    </article>
+    <article data-au-component="doc-focus" data-au-title="Focus pane" data-au-note="One raised pane. The thing to remember. Do not use twice on a page. Compose au-pane; do not invent a second card." data-au-avalonia="Border" data-au-class="au-doc-focus">
+      <aside class="au-pane au-doc-focus">Start the workspace from the directory that contains <code class="au-mono">agent-up.json</code>.</aside>
+    </article>
+    <article data-au-component="doc-spine" data-au-title="Spine" data-au-note="A vertical lane for procedures. Only the current beat is selected, the same idea as Git history lanes." data-au-avalonia="Border" data-au-class="au-doc-spine">
+      <ol class="au-doc-spine">
+        <li class="au-doc-spine__beat au-doc-spine__beat--selected">Start the workspace</li>
+        <li class="au-doc-spine__beat">Open Review</li>
+        <li class="au-doc-spine__beat">Commit the selected paths</li>
+      </ol>
+    </article>
+    <article data-au-component="doc-fork" data-au-title="Fork" data-au-note="One question, two collapsed paths. Unused path stays closed, the same idea as the agent work log." data-au-avalonia="Border" data-au-class="au-doc-fork">
+      <div class="au-doc-fork">
+        <p class="au-doc-fork__question">Which queue?</p>
+        <details class="au-doc-fork__path" open>
+          <summary>Proposal queue</summary>
+          <p class="au-muted"><code class="au-mono">commits.enabled</code> is true. Agents enqueue into a managed worktree.</p>
+        </details>
+        <details class="au-doc-fork__path">
+          <summary>Legacy local queue</summary>
+          <p class="au-muted">The setting is absent. The CLI still owns an independent patch file.</p>
+        </details>
+      </div>
+    </article>
+    <article data-au-component="doc-contract" data-au-title="Contract" data-au-note="A single monospace hero for the command, JSON key, or route this page uses. Not a dump of every endpoint. Compose au-code." data-au-avalonia="TextBlock" data-au-class="au-doc-contract">
+      <pre class="au-code au-doc-contract">agent-up start</pre>
+    </article>
+    <article data-au-component="doc-surface" data-au-title="Surface hint" data-au-note="Mute chips for Desktop, Mobile, CLI, and MCP. They appear on a beat. Never a three-column client layout." data-au-avalonia="Border" data-au-class="au-doc-surface">
+      <p class="au-cluster"><span class="au-badge au-doc-surface">Desktop</span><span class="au-badge au-doc-surface">Mobile</span> Open Review from the Git surface.</p>
     </article>
   </section>
 

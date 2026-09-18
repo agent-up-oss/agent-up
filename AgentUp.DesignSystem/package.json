@@ -8,11 +8,16 @@
     ".": "./dist/web/agent-up.css",
     "./styles.css": "./dist/web/agent-up.css",
     "./marketing.css": "./dist/web/marketing.css",
+    "./docs.css": "./dist/web/docs.css",
     "./tokens": "./dist/web/tokens.cjs",
     "./native": "./dist/native/index.js",
     "./native-types": "./dist/native/index.d.ts",
     "./catalog": "./dist/web/catalog.json",
     "./catalog.html": "./dist/web/catalog.html",
+    "./syntax": {
+      "types": "./src/syntax/highlight.d.ts",
+      "default": "./src/syntax/highlight.mjs"
+    },
     "./avalonia": "./dist/avalonia/AgentUpTheme.axaml",
     "./avalonia-styles": "./dist/avalonia/AgentUpStyles.axaml",
     "./brand/*": "./brand/*"

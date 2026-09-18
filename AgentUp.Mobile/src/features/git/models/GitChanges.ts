@@ -88,12 +88,28 @@ export type GitLog = {
   commits: GitLogCommit[];
 };
 
+export type GitLogRefKind = 'head' | 'local' | 'remote';
+
+export type GitLogRef = {
+  name: string;
+  kind: GitLogRefKind;
+};
+
+export type GitLogGraphLink = {
+  fromLane: number;
+  toLane: number;
+  colorLane: number;
+};
+
 export type GitLogRow = {
   commit: GitLogCommit;
   lane: number;
   parentLanes: number[];
-  graph: string;
+  incomingLanes: number[];
+  outgoing: GitLogGraphLink[];
+  laneCount: number;
   checkoutName: string | null;
+  refs: GitLogRef[];
 };
 
 export type GitChangeNode = {

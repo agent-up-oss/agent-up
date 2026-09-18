@@ -47,12 +47,24 @@ public sealed record GitLogCommitDto(
     string Timestamp,
     IReadOnlyList<string> Refs);
 
+public sealed record GitLogRefDto(string Name, string Kind)
+{
+    public bool CanCheckout => Kind is "local" or "remote";
+    public bool IsHead => Kind == "head";
+    public bool IsRemote => Kind == "remote";
+}
+
+public sealed record GitLogGraphLinkDto(int FromLane, int ToLane, int ColorLane);
+
 public sealed record GitLogRowDto(
     GitLogCommitDto Commit,
     int Lane,
     IReadOnlyList<int> ParentLanes,
-    string Graph,
-    string? CheckoutName);
+    IReadOnlyList<int> IncomingLanes,
+    IReadOnlyList<GitLogGraphLinkDto> Outgoing,
+    int LaneCount,
+    string? CheckoutName,
+    IReadOnlyList<GitLogRefDto> Refs);
 
 public sealed record GitCheckoutRequestDto(string Name);
 

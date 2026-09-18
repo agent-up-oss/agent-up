@@ -619,26 +619,152 @@
     {
       "id": "git",
       "title": "Git changes",
-      "intro": "The Git panel is the human review surface for the working tree. Coding agents still use the commit queue.",
+      "intro": "The Git panel is the human review surface for the working tree. The change list is a directory tree: checkbox selects, the filename opens the file, and the status glyph carries the kind color. Coding agents still use the commit queue.",
       "components": [
         {
+          "id": "git-change-list",
+          "title": "Change list",
+          "note": "The tree sits on a pane, not a full-bleed slab. Review counts use insertions and deletions, never a decorative green outline.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-git-change-list",
+          "classes": [
+            "au-git-change-list",
+            "au-cluster",
+            "au-button",
+            "au-button--secondary",
+            "au-button--compact",
+            "au-git-insertions",
+            "au-git-deletions",
+            "au-git-row",
+            "au-checkbox",
+            "au-checkbox--checked",
+            "au-git-status",
+            "au-git-status--directory",
+            "au-git-change-name",
+            "au-git-change-name--directory",
+            "au-git-row--selected",
+            "au-git-status--modified",
+            "au-git-status--added",
+            "au-git-status--untracked",
+            "au-git-status--deleted",
+            "au-git-status--renamed",
+            "au-git-status--conflicted"
+          ],
+          "html": "<div class=\"au-git-change-list\" style=\"padding: 0.5rem;\">\n        <div class=\"au-cluster\" style=\"margin-bottom: 0.5rem;\">\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Review <span class=\"au-git-insertions\">+12</span> <span class=\"au-git-deletions\">−4</span></button>\n          <button class=\"au-button au-button--compact\" type=\"button\">Commit</button>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-status au-git-status--directory\">▸</span>\n          <span class=\"au-git-change-name au-git-change-name--directory\">Changes</span>\n        </div>\n        <div class=\"au-git-row\" style=\"padding-left: 1.25rem;\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-status au-git-status--directory\">▸</span>\n          <span class=\"au-git-change-name au-git-change-name--directory\">src</span>\n        </div>\n        <div class=\"au-git-row au-git-row--selected\" style=\"padding-left: 2.125rem;\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-change-name\">AgentChatScreen.tsx</span>\n          <span class=\"au-git-status au-git-status--modified\">M</span>\n        </div>\n        <div class=\"au-git-row\" style=\"padding-left: 2.125rem;\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-change-name\">new-view.ts</span>\n          <span class=\"au-git-status au-git-status--added\">+</span>\n        </div>\n        <div class=\"au-git-row\" style=\"padding-left: 2.125rem;\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-change-name\">scratch.md</span>\n          <span class=\"au-git-status au-git-status--untracked\">?</span>\n        </div>\n        <div class=\"au-git-row\" style=\"padding-left: 2.125rem;\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-change-name\">obsolete.css</span>\n          <span class=\"au-git-status au-git-status--deleted\">−</span>\n        </div>\n        <div class=\"au-git-row\" style=\"padding-left: 2.125rem;\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-change-name\">storefront.tsx</span>\n          <span class=\"au-git-status au-git-status--renamed\">→</span>\n        </div>\n        <div class=\"au-git-row\" style=\"padding-left: 2.125rem;\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-change-name\">agent-up.json</span>\n          <span class=\"au-git-status au-git-status--conflicted\">!</span>\n        </div>\n      </div>"
+        },
+        {
           "id": "git-row",
-          "title": "Change tree",
-          "note": "Status color is additive: added, deleted, renamed, conflicted. Directories stay muted.",
+          "title": "Change row",
+          "note": "Checkbox and filename are separate hit targets. Hover is the neutral state layer. The open file takes the selected tint plus a 2px accent rule; checked boxes do not.",
           "avalonia": "Border",
           "desktopClass": "gitNodeRow",
           "desktopHost": "",
           "rootClass": "au-git-row",
           "classes": [
-            "au-stack",
             "au-git-row",
             "au-git-row--selected",
-            "au-git-add",
-            "au-git-delete",
-            "au-git-rename",
-            "au-git-conflict"
+            "au-checkbox",
+            "au-checkbox--checked",
+            "au-git-change-name",
+            "au-git-status",
+            "au-git-status--modified"
           ],
-          "html": "<div class=\"au-stack\">\n        <div class=\"au-git-row au-git-row--selected\">src/</div>\n        <div class=\"au-git-row au-git-add\">+ AgentChatScreen.tsx</div>\n        <div class=\"au-git-row au-git-delete\">− obsolete.css</div>\n        <div class=\"au-git-row au-git-rename\">pricing.tsx → storefront.tsx</div>\n        <div class=\"au-git-row au-git-conflict\">! agent-up.json</div>\n      </div>"
+          "html": "<div class=\"au-git-row au-git-row--selected\">\n        <span class=\"au-checkbox au-checkbox--checked\"></span>\n        <span class=\"au-git-change-name\">AgentChatScreen.tsx</span>\n        <span class=\"au-git-status au-git-status--modified\">M</span>\n      </div>"
+        },
+        {
+          "id": "git-row-selected",
+          "title": "Open change",
+          "note": "Opening a file is the primary selection on this list. Many-of-many checkboxes stay on the checkbox itself.",
+          "avalonia": "Border",
+          "desktopClass": "gitNodeRowSelected",
+          "desktopHost": "",
+          "rootClass": "au-git-row--selected",
+          "classes": [
+            "au-git-row",
+            "au-git-row--selected",
+            "au-checkbox",
+            "au-checkbox--checked",
+            "au-git-change-name",
+            "au-git-status",
+            "au-git-status--modified"
+          ],
+          "html": "<div class=\"au-git-row au-git-row--selected\">\n        <span class=\"au-checkbox au-checkbox--checked\"></span>\n        <span class=\"au-git-change-name\">AgentChatScreen.tsx</span>\n        <span class=\"au-git-status au-git-status--modified\">M</span>\n      </div>"
+        },
+        {
+          "id": "git-change-name",
+          "title": "File name",
+          "note": "Filenames stay primary. Do not paint the whole row in the status color.",
+          "avalonia": "TextBlock",
+          "desktopClass": "gitChangeName",
+          "desktopHost": "",
+          "rootClass": "au-git-change-name",
+          "classes": [
+            "au-git-change-name"
+          ],
+          "html": "<span class=\"au-git-change-name\">AgentChatScreen.tsx</span>"
+        },
+        {
+          "id": "git-change-name-directory",
+          "title": "Directory name",
+          "note": "Directories are grouping chrome: muted, slightly stronger weight, no status glyph.",
+          "avalonia": "TextBlock",
+          "desktopClass": "gitChangeNameDirectory",
+          "desktopHost": "",
+          "rootClass": "au-git-change-name--directory",
+          "classes": [
+            "au-git-change-name",
+            "au-git-change-name--directory"
+          ],
+          "html": "<span class=\"au-git-change-name au-git-change-name--directory\">src</span>"
+        },
+        {
+          "id": "git-status",
+          "title": "Status glyph",
+          "note": "Modified M is info blue, added + is accent green, untracked ? is healthy, deleted − is danger, renamed → is info text, conflicted ! is warning. Directories stay muted.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-git-status",
+          "classes": [
+            "au-cluster",
+            "au-git-status",
+            "au-git-status--modified",
+            "au-git-status--added",
+            "au-git-status--untracked",
+            "au-git-status--deleted",
+            "au-git-status--renamed",
+            "au-git-status--conflicted",
+            "au-git-status--directory"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <span class=\"au-git-status au-git-status--modified\">M</span>\n        <span class=\"au-git-status au-git-status--added\">+</span>\n        <span class=\"au-git-status au-git-status--untracked\">?</span>\n        <span class=\"au-git-status au-git-status--deleted\">−</span>\n        <span class=\"au-git-status au-git-status--renamed\">→</span>\n        <span class=\"au-git-status au-git-status--conflicted\">!</span>\n        <span class=\"au-git-status au-git-status--directory\">▸</span>\n      </div>"
+        },
+        {
+          "id": "git-insertions",
+          "title": "Insertions",
+          "note": "Added-file counts next to Review. Green here is change meaning, not chrome.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-git-insertions",
+          "classes": [
+            "au-git-insertions"
+          ],
+          "html": "<span class=\"au-git-insertions\">+12</span>"
+        },
+        {
+          "id": "git-deletions",
+          "title": "Deletions",
+          "note": "Deleted-file counts stay danger red.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-git-deletions",
+          "classes": [
+            "au-git-deletions"
+          ],
+          "html": "<span class=\"au-git-deletions\">−4</span>"
         }
       ]
     },
@@ -964,6 +1090,105 @@
       ]
     },
     {
+      "id": "documentation",
+      "title": "Documentation",
+      "intro": "Docs use these components to move attention, not to fill the page with layout. One focus pane per page. Surface chips sit on a beat, never as a Desktop versus Mobile chapter.",
+      "components": [
+        {
+          "id": "doc-lifecycle",
+          "title": "Lifecycle stamp",
+          "note": "The eyebrow pairs the slice name with Available, Preview, Experimental, or Planned from voice.json.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-doc-lifecycle",
+          "classes": [
+            "au-eyebrow",
+            "au-cluster",
+            "au-badge",
+            "au-doc-lifecycle"
+          ],
+          "html": "<p class=\"au-eyebrow au-cluster\">Workspaces <span class=\"au-badge au-doc-lifecycle\">Available</span></p>"
+        },
+        {
+          "id": "doc-focus",
+          "title": "Focus pane",
+          "note": "One raised pane. The thing to remember. Do not use twice on a page. Compose au-pane; do not invent a second card.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-doc-focus",
+          "classes": [
+            "au-pane",
+            "au-doc-focus",
+            "au-mono"
+          ],
+          "html": "<aside class=\"au-pane au-doc-focus\">Start the workspace from the directory that contains <code class=\"au-mono\">agent-up.json</code>.</aside>"
+        },
+        {
+          "id": "doc-spine",
+          "title": "Spine",
+          "note": "A vertical lane for procedures. Only the current beat is selected, the same idea as Git history lanes.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-doc-spine",
+          "classes": [
+            "au-doc-spine",
+            "au-doc-spine__beat",
+            "au-doc-spine__beat--selected"
+          ],
+          "html": "<ol class=\"au-doc-spine\">\n        <li class=\"au-doc-spine__beat au-doc-spine__beat--selected\">Start the workspace</li>\n        <li class=\"au-doc-spine__beat\">Open Review</li>\n        <li class=\"au-doc-spine__beat\">Commit the selected paths</li>\n      </ol>"
+        },
+        {
+          "id": "doc-fork",
+          "title": "Fork",
+          "note": "One question, two collapsed paths. Unused path stays closed, the same idea as the agent work log.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-doc-fork",
+          "classes": [
+            "au-doc-fork",
+            "au-doc-fork__question",
+            "au-doc-fork__path",
+            "au-muted",
+            "au-mono"
+          ],
+          "html": "<div class=\"au-doc-fork\">\n        <p class=\"au-doc-fork__question\">Which queue?</p>\n        <details class=\"au-doc-fork__path\" open>\n          <summary>Proposal queue</summary>\n          <p class=\"au-muted\"><code class=\"au-mono\">commits.enabled</code> is true. Agents enqueue into a managed worktree.</p>\n        </details>\n        <details class=\"au-doc-fork__path\">\n          <summary>Legacy local queue</summary>\n          <p class=\"au-muted\">The setting is absent. The CLI still owns an independent patch file.</p>\n        </details>\n      </div>"
+        },
+        {
+          "id": "doc-contract",
+          "title": "Contract",
+          "note": "A single monospace hero for the command, JSON key, or route this page uses. Not a dump of every endpoint. Compose au-code.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-doc-contract",
+          "classes": [
+            "au-code",
+            "au-doc-contract"
+          ],
+          "html": "<pre class=\"au-code au-doc-contract\">agent-up start</pre>"
+        },
+        {
+          "id": "doc-surface",
+          "title": "Surface hint",
+          "note": "Mute chips for Desktop, Mobile, CLI, and MCP. They appear on a beat. Never a three-column client layout.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-doc-surface",
+          "classes": [
+            "au-cluster",
+            "au-badge",
+            "au-doc-surface"
+          ],
+          "html": "<p class=\"au-cluster\"><span class=\"au-badge au-doc-surface\">Desktop</span><span class=\"au-badge au-doc-surface\">Mobile</span> Open Review from the Git surface.</p>"
+        }
+      ]
+    },
+    {
       "id": "marketing",
       "title": "Marketing",
       "intro": "The product is the illustration. One headline, one outcome, and a visible Available / Preview / Experimental / Planned label.",
@@ -1075,6 +1300,341 @@
             "au-code"
           ],
           "html": "<pre class=\"au-code\">@import '@agent-up/design-system/styles.css';\nimport { agentUpTheme } from '@agent-up/design-system/native';\n&lt;StyleInclude Source=\"/DesignSystem/AgentUpStyles.axaml\" /&gt;</pre>"
+        }
+      ]
+    },
+    {
+      "id": "file-viewer",
+      "title": "File viewer",
+      "intro": "A readonly inspection window for a Server-owned file or diff. The catalog owns chrome, gutter, line kinds, hunk markers, and syntax token colors. Clients virtualize the line list instead of dumping the file into one text node.",
+      "components": [
+        {
+          "id": "file-viewer",
+          "title": "Inspection window",
+          "note": "Compose the overlay panel. Header carries path and change status. Close returns to the change list. Do not turn this into an editor.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-file-viewer",
+          "classes": [
+            "au-overlay-panel",
+            "au-file-viewer",
+            "au-file-viewer-header",
+            "au-file-viewer-path",
+            "au-file-viewer-status",
+            "au-button",
+            "au-button--secondary",
+            "au-button--compact",
+            "au-file-viewer-nav",
+            "au-file-viewer-jump",
+            "au-file-viewer-goto",
+            "au-file-viewer-body",
+            "au-file-viewer-line",
+            "au-file-viewer-line--meta",
+            "au-file-viewer-gutter",
+            "au-file-viewer-prefix",
+            "au-file-viewer-code",
+            "au-file-viewer-line--hunk",
+            "au-syntax-keyword",
+            "au-syntax-function",
+            "au-file-viewer-line--deleted",
+            "au-file-viewer-prefix--deleted",
+            "au-syntax-type",
+            "au-file-viewer-line--added",
+            "au-file-viewer-line--current",
+            "au-file-viewer-prefix--added",
+            "au-syntax-property",
+            "au-syntax-comment"
+          ],
+          "html": "<div class=\"au-overlay-panel au-file-viewer\" style=\"max-width: 42rem;\">\n        <div class=\"au-file-viewer-header\">\n          <span class=\"au-file-viewer-path\">AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx</span>\n          <span class=\"au-file-viewer-status\">Modified</span>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Close</button>\n        </div>\n        <div class=\"au-file-viewer-nav\">\n          <button class=\"au-file-viewer-jump\" type=\"button\">@@ −48,6 +48,18 @@</button>\n          <button class=\"au-file-viewer-jump\" type=\"button\">@@ −265,12 +277,40 @@</button>\n          <input class=\"au-file-viewer-goto\" value=\"52\" readonly aria-label=\"Go to line\" />\n        </div>\n        <div class=\"au-file-viewer-body\">\n          <div class=\"au-file-viewer-line au-file-viewer-line--meta\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">diff --git a/GitChangesPanel.tsx b/GitChangesPanel.tsx</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--hunk\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">@@ −48,6 +48,18 @@ export function GitChangesPanel</span>\n          </div>\n          <div class=\"au-file-viewer-line\">\n            <span class=\"au-file-viewer-gutter\">48</span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">const</span> [diff, setDiff] = <span class=\"au-syntax-function\">useState</span>(<span class=\"au-syntax-keyword\">null</span>);</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--deleted\">\n            <span class=\"au-file-viewer-gutter\">49</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--deleted\">−</span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">return</span> &lt;<span class=\"au-syntax-type\">Text</span>&gt;{diffText(diff)}&lt;/<span class=\"au-syntax-type\">Text</span>&gt;;</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--added au-file-viewer-line--current\">\n            <span class=\"au-file-viewer-gutter\">52</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--added\">+</span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">return</span> &lt;<span class=\"au-syntax-type\">GitFileViewer</span> diff={diff} <span class=\"au-syntax-property\">onClose</span>={close} /&gt;;</span>\n          </div>\n          <div class=\"au-file-viewer-line\">\n            <span class=\"au-file-viewer-gutter\">53</span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-comment\">// Filename opens inspection. Checkbox stays selection.</span></span>\n          </div>\n        </div>\n      </div>"
+        },
+        {
+          "id": "file-viewer-header",
+          "title": "Viewer header",
+          "note": "Path is monospace. Status is a muted label, not a colored filename. Close is a secondary control.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-file-viewer-header",
+          "classes": [
+            "au-file-viewer-header",
+            "au-file-viewer-path",
+            "au-file-viewer-status",
+            "au-button",
+            "au-button--secondary",
+            "au-button--compact"
+          ],
+          "html": "<div class=\"au-file-viewer-header\">\n        <span class=\"au-file-viewer-path\">src/app/main.cs</span>\n        <span class=\"au-file-viewer-status\">Added</span>\n        <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Close</button>\n      </div>"
+        },
+        {
+          "id": "file-viewer-path",
+          "title": "Path",
+          "note": "The inspected path stays primary monospace. Do not paint it with the change kind.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-file-viewer-path",
+          "classes": [
+            "au-file-viewer-path"
+          ],
+          "html": "<span class=\"au-file-viewer-path\">AgentUp.Server/Features/Git/Controllers/GitChangesController.cs</span>"
+        },
+        {
+          "id": "file-viewer-status",
+          "title": "Change status",
+          "note": "Status is a caption next to the path. Kind color still lives on the change-list glyph.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-file-viewer-status",
+          "classes": [
+            "au-file-viewer-status"
+          ],
+          "html": "<span class=\"au-file-viewer-status\">Modified</span>"
+        },
+        {
+          "id": "file-viewer-nav",
+          "title": "Hunk navigation",
+          "note": "Jump chips list hunk headers. Go-to-line is a compact mono field. These are navigation, not editing.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-file-viewer-nav",
+          "classes": [
+            "au-file-viewer-nav",
+            "au-file-viewer-jump",
+            "au-file-viewer-goto"
+          ],
+          "html": "<div class=\"au-file-viewer-nav\">\n        <button class=\"au-file-viewer-jump\" type=\"button\">@@ −1,4 +1,9 @@</button>\n        <input class=\"au-file-viewer-goto\" value=\"12\" readonly aria-label=\"Go to line\" />\n      </div>"
+        },
+        {
+          "id": "file-viewer-jump",
+          "title": "Hunk chip",
+          "note": "Hunk markers are raised chips. Hover is the neutral state layer.",
+          "avalonia": "Button",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-file-viewer-jump",
+          "classes": [
+            "au-file-viewer-jump"
+          ],
+          "html": "<button class=\"au-file-viewer-jump\" type=\"button\">@@ −48,6 +48,18 @@</button>"
+        },
+        {
+          "id": "file-viewer-line",
+          "title": "Context line",
+          "note": "Unchanged lines sit on the canvas. The gutter is tabular. Hover is a neutral state layer.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-file-viewer-line",
+          "classes": [
+            "au-file-viewer-line",
+            "au-file-viewer-gutter",
+            "au-file-viewer-prefix",
+            "au-file-viewer-code",
+            "au-syntax-keyword",
+            "au-syntax-type"
+          ],
+          "html": "<div class=\"au-file-viewer-line\">\n        <span class=\"au-file-viewer-gutter\">48</span>\n        <span class=\"au-file-viewer-prefix\"> </span>\n        <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">public</span> <span class=\"au-syntax-keyword\">sealed</span> <span class=\"au-syntax-keyword\">class</span> <span class=\"au-syntax-type\">GitFileDiff</span></span>\n      </div>"
+        },
+        {
+          "id": "file-viewer-line-added",
+          "title": "Added line",
+          "note": "Insertions use the selected-soft fill. Green is change meaning, not chrome.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-file-viewer-line--added",
+          "classes": [
+            "au-file-viewer-line",
+            "au-file-viewer-line--added",
+            "au-file-viewer-gutter",
+            "au-file-viewer-prefix",
+            "au-file-viewer-prefix--added",
+            "au-file-viewer-code",
+            "au-syntax-keyword"
+          ],
+          "html": "<div class=\"au-file-viewer-line au-file-viewer-line--added\">\n        <span class=\"au-file-viewer-gutter\">52</span>\n        <span class=\"au-file-viewer-prefix au-file-viewer-prefix--added\">+</span>\n        <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">return</span> viewer;</span>\n      </div>"
+        },
+        {
+          "id": "file-viewer-line-deleted",
+          "title": "Deleted line",
+          "note": "Deletions use the danger surface. The prefix carries danger text.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-file-viewer-line--deleted",
+          "classes": [
+            "au-file-viewer-line",
+            "au-file-viewer-line--deleted",
+            "au-file-viewer-gutter",
+            "au-file-viewer-prefix",
+            "au-file-viewer-prefix--deleted",
+            "au-file-viewer-code",
+            "au-syntax-keyword"
+          ],
+          "html": "<div class=\"au-file-viewer-line au-file-viewer-line--deleted\">\n        <span class=\"au-file-viewer-gutter\">49</span>\n        <span class=\"au-file-viewer-prefix au-file-viewer-prefix--deleted\">−</span>\n        <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">return</span> diffText;</span>\n      </div>"
+        },
+        {
+          "id": "file-viewer-line-hunk",
+          "title": "Hunk marker",
+          "note": "@@ headers are info-colored on a quiet surface so they read as structure, not as code.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-file-viewer-line--hunk",
+          "classes": [
+            "au-file-viewer-line",
+            "au-file-viewer-line--hunk",
+            "au-file-viewer-gutter",
+            "au-file-viewer-prefix",
+            "au-file-viewer-code"
+          ],
+          "html": "<div class=\"au-file-viewer-line au-file-viewer-line--hunk\">\n        <span class=\"au-file-viewer-gutter\"></span>\n        <span class=\"au-file-viewer-prefix\"> </span>\n        <span class=\"au-file-viewer-code\">@@ −48,6 +48,18 @@</span>\n      </div>"
+        },
+        {
+          "id": "file-viewer-line-current",
+          "title": "Current line",
+          "note": "Jump target and the open line use the selected tint plus a 2px accent rule.",
+          "avalonia": "Border",
+          "desktopClass": "fileViewerLineCurrent",
+          "desktopHost": "",
+          "rootClass": "au-file-viewer-line--current",
+          "classes": [
+            "au-file-viewer-line",
+            "au-file-viewer-line--current",
+            "au-file-viewer-gutter",
+            "au-file-viewer-prefix",
+            "au-file-viewer-prefix--added",
+            "au-file-viewer-code"
+          ],
+          "html": "<div class=\"au-file-viewer-line au-file-viewer-line--current\">\n        <span class=\"au-file-viewer-gutter\">52</span>\n        <span class=\"au-file-viewer-prefix au-file-viewer-prefix--added\">+</span>\n        <span class=\"au-file-viewer-code\">setDiffPath(node.path);</span>\n      </div>"
+        },
+        {
+          "id": "file-viewer-gutter",
+          "title": "Line number",
+          "note": "Gutter digits are faint, tabular, and right-aligned so columns hold still while scrolling.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-file-viewer-gutter",
+          "classes": [
+            "au-file-viewer-gutter"
+          ],
+          "html": "<span class=\"au-file-viewer-gutter\">128</span>"
+        },
+        {
+          "id": "syntax-keyword",
+          "title": "Syntax tokens",
+          "note": "Highlighting reuses text-info, warning, muted, and primary. Do not force syntax into green — green is reserved for added lines.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-syntax-keyword",
+          "classes": [
+            "au-cluster",
+            "au-syntax-keyword",
+            "au-syntax-type",
+            "au-syntax-string",
+            "au-syntax-comment",
+            "au-syntax-number",
+            "au-syntax-function"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <span class=\"au-syntax-keyword\">async</span>\n        <span class=\"au-syntax-type\">string</span>\n        <span class=\"au-syntax-string\">\"ws-1\"</span>\n        <span class=\"au-syntax-comment\">// Server-owned</span>\n        <span class=\"au-syntax-number\">2500</span>\n        <span class=\"au-syntax-function\">getFileDiff</span>\n      </div>"
+        },
+        {
+          "id": "syntax-string",
+          "title": "String token",
+          "note": "Strings use warning amber so they never compete with insertion green.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-syntax-string",
+          "classes": [
+            "au-syntax-string"
+          ],
+          "html": "<span class=\"au-syntax-string\">\"Agent-Up\"</span>"
+        },
+        {
+          "id": "syntax-comment",
+          "title": "Comment token",
+          "note": "Comments stay muted italic. They are structure, not action.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-syntax-comment",
+          "classes": [
+            "au-syntax-comment"
+          ],
+          "html": "<span class=\"au-syntax-comment\">// Clients display Server-owned diffs.</span>"
+        }
+      ]
+    },
+    {
+      "id": "git-log",
+      "title": "Git history",
+      "intro": "The commit graph is a selectable log: colored lanes, merge curves, branch ref pills, subject, author, and relative time. Green is selection, not decoration.",
+      "components": [
+        {
+          "id": "git-log-graph",
+          "title": "Commit graph",
+          "note": "Lanes are a closed design-system palette. First parents continue; additional parents curve into a new lane. Do not draw ASCII | * | glyphs.",
+          "avalonia": "Border",
+          "desktopClass": "gitLogGraph",
+          "desktopHost": "",
+          "rootClass": "au-git-log-graph",
+          "classes": [
+            "au-git-log-graph",
+            "au-git-log-lane-0",
+            "au-git-log-graph-edge",
+            "au-git-log-graph-node",
+            "au-git-log-graph-node--filled",
+            "au-git-log-lane-1"
+          ],
+          "html": "<svg class=\"au-git-log-graph\" width=\"42\" height=\"112\" viewBox=\"0 0 42 112\" aria-hidden=\"true\">\n        <g class=\"au-git-log-lane-0\">\n          <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n          <path class=\"au-git-log-graph-edge\" d=\"M 7 28 L 7 42\"></path>\n          <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n          <circle class=\"au-git-log-graph-node\" cx=\"7\" cy=\"42\" r=\"3.5\"></circle>\n        </g>\n        <g class=\"au-git-log-lane-1\">\n          <path class=\"au-git-log-graph-edge\" d=\"M 7 14 C 7 21, 21 21, 21 28\"></path>\n          <path class=\"au-git-log-graph-edge\" d=\"M 21 28 L 21 42\"></path>\n          <path class=\"au-git-log-graph-edge\" d=\"M 21 42 L 21 56\"></path>\n          <path class=\"au-git-log-graph-edge\" d=\"M 7 42 C 7 49, 21 49, 21 56\"></path>\n          <path class=\"au-git-log-graph-edge\" d=\"M 21 56 L 21 70\"></path>\n          <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"21\" cy=\"70\" r=\"3.5\"></circle>\n        </g>\n      </svg>"
+        },
+        {
+          "id": "git-log-row",
+          "title": "History row",
+          "note": "Selection is an accent tint plus a 2px leading accent rule. Hover stays a neutral state layer.",
+          "avalonia": "Border",
+          "desktopClass": "gitLogRow",
+          "desktopHost": "ListBoxItem",
+          "rootClass": "au-git-log-row",
+          "classes": [
+            "au-git-log",
+            "au-git-log-row",
+            "au-git-log-row--selected",
+            "au-git-log-graph",
+            "au-git-log-lane-0",
+            "au-git-log-graph-edge",
+            "au-git-log-graph-node",
+            "au-git-log-graph-node--filled",
+            "au-git-log-body",
+            "au-git-log-ref",
+            "au-git-log-ref--head",
+            "au-git-log-subject",
+            "au-git-log-author",
+            "au-git-log-time"
+          ],
+          "html": "<div class=\"au-git-log\">\n        <div class=\"au-git-log-row au-git-log-row--selected\">\n          <svg class=\"au-git-log-graph\" width=\"28\" height=\"28\" viewBox=\"0 0 28 28\" aria-hidden=\"true\">\n            <g class=\"au-git-log-lane-0\">\n              <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n              <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n              <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n            </g>\n          </svg>\n          <span class=\"au-git-log-body\">\n            <span class=\"au-git-log-ref au-git-log-ref--head\">HEAD</span>\n            <span class=\"au-git-log-ref\">main</span>\n            <span class=\"au-git-log-subject\">feat(Git): show the commit graph</span>\n            <span class=\"au-git-log-author\">Daniel Mass</span>\n            <span class=\"au-git-log-time\">24 minutes ago</span>\n          </span>\n        </div>\n        <div class=\"au-git-log-row\">\n          <svg class=\"au-git-log-graph\" width=\"28\" height=\"28\" viewBox=\"0 0 28 28\" aria-hidden=\"true\">\n            <g class=\"au-git-log-lane-0\">\n              <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n              <path class=\"au-git-log-graph-edge\" d=\"M 7 14 C 7 21, 21 21, 21 28\"></path>\n              <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n            </g>\n          </svg>\n          <span class=\"au-git-log-body\">\n            <span class=\"au-git-log-subject\">Merge pull request</span>\n            <span class=\"au-git-log-author\">Daniel Mass</span>\n            <span class=\"au-git-log-time\">Yesterday 21:05</span>\n          </span>\n        </div>\n      </div>"
+        },
+        {
+          "id": "git-log-ref",
+          "title": "Ref chips",
+          "note": "Local branches, remotes, and HEAD are pills. Checkout stays on labeled branch refs, not detached HEAD.",
+          "avalonia": "Button",
+          "desktopClass": "gitLogRef",
+          "desktopHost": "",
+          "rootClass": "au-git-log-ref",
+          "classes": [
+            "au-cluster",
+            "au-git-log-ref",
+            "au-git-log-ref--head",
+            "au-git-log-ref--remote"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-git-log-ref au-git-log-ref--head\" type=\"button\">HEAD</button>\n        <button class=\"au-git-log-ref\" type=\"button\">369-mobile</button>\n        <button class=\"au-git-log-ref au-git-log-ref--remote\" type=\"button\">origin/main</button>\n      </div>"
         }
       ]
     }

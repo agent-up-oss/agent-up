@@ -16,10 +16,10 @@ import {
   isDirectorySelected,
   retainSelectedPaths,
   selectedFilePaths,
-  statusColor,
-  statusGlyph,
   toggleNodeSelection,
 } from '../providers/GitChangeTreeProvider';
+import { GitChangeRow } from './GitChangeRow';
+import { GitFileViewer } from './GitFileViewer';
 
 const POLL_MS = 2500;
 
@@ -27,10 +27,12 @@ export function GitChangesPanel({
   workspaceId: workspaceIdProp,
   mode = 'review',
   onReview,
+  onOpenFile,
 }: {
   workspaceId?: string;
   mode?: 'overview' | 'review';
   onReview?: () => void;
+  onOpenFile?: (path: string) => void;
 } = {}) {
   const { expireActiveCredential } = useServers();
   const { server, selectedWorkspace } = useWorkspaces();
@@ -125,6 +127,7 @@ export function GitChangesPanel({
 
   const openDiff = async (node: GitChangeNode) => {
     if (!server || !workspaceId || node.isDirectory) return;
+    onOpenFile?.(node.path);
     const ticket = diffGate.begin();
     setDiffPath(node.path); setDiff(null); setDiffLoading(true);
     try {
@@ -239,19 +242,14 @@ export function GitChangesPanel({
             ? isDirectorySelected(nodes, node, selected)
             : selected.includes(node.path);
           return (
-            <View key={node.key} style={[styles.row, { paddingLeft: 4 + node.depth * 16 }]}>
-              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }}
-                accessibilityLabel={`Select ${node.path}`}
-                onPress={() => setSelected(current => toggleNodeSelection(nodes, node, current))}
-                style={[styles.checkbox, checked && styles.checkboxChecked]}>
-                <Text style={styles.checkmark}>{checked ? '✓' : ''}</Text>
-              </Pressable>
-              <Text style={[styles.glyph, { color: statusColor(node.status) }]}>{statusGlyph(node.status)}</Text>
-              <Pressable accessibilityRole="button" accessibilityLabel={`Open ${node.path}`}
-                disabled={node.isDirectory || overview} onPress={() => void openDiff(node)} style={styles.nameButton}>
-                <Text numberOfLines={1} style={node.isDirectory ? styles.directoryName : styles.fileName}>{node.name}</Text>
-              </Pressable>
-            </View>
+            <GitChangeRow
+              key={node.key}
+              node={node}
+              checked={checked}
+              open={!node.isDirectory && diffPath === node.path}
+              onToggle={() => setSelected(current => toggleNodeSelection(nodes, node, current))}
+              onOpenFile={() => void openDiff(node)}
+            />
           );
         })}
       </ScrollView>
@@ -266,30 +264,18 @@ export function GitChangesPanel({
 
       <Modal visible={diffPath !== null} transparent animationType="fade" onRequestClose={() => setDiffPath(null)}>
         <View style={styles.modalScrim}>
-          <View style={styles.dialog}>
-            <Text accessibilityRole="header" numberOfLines={2} style={styles.dialogTitle}>{diffPath}</Text>
-            {diffLoading
-              ? <ActivityIndicator color={agentUpTheme.colors.accentSoft} />
-              : <ScrollView horizontal style={styles.diffScroll}>
-                  <ScrollView>
-                    <Text style={styles.diffText}>{diffText(diff)}</Text>
-                  </ScrollView>
-                </ScrollView>}
-            <Pressable accessibilityRole="button" accessibilityLabel="Close diff" onPress={() => setDiffPath(null)}
-              style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>Close</Text>
-            </Pressable>
-          </View>
+          {diffPath !== null &&
+            <GitFileViewer
+              path={diffPath}
+              status={diff?.status ?? ''}
+              diff={diff}
+              loading={diffLoading}
+              onClose={() => setDiffPath(null)}
+            />}
         </View>
       </Modal>
     </View>
   );
-}
-
-function diffText(diff: GitFileDiff | null): string {
-  if (!diff) return 'This file no longer has changes.';
-  if (diff.isBinary) return 'This file is binary; Agent-Up does not render a text diff for it.';
-  return diff.diff;
 }
 
 const styles = StyleSheet.create({
@@ -307,20 +293,12 @@ const styles = StyleSheet.create({
   empty: { ...auText('muted'), lineHeight: 21 },
   error: { ...auText('badgeDanger'), lineHeight: 21 },
   status: { ...auText('accent'), lineHeight: 21 },
-  tree: { flex: 1, minHeight: 80, ...auBox('card') },
-  overviewTree: { flex: 1, minHeight: 120, ...auBox('card') },
+  tree: { flex: 1, minHeight: 80, ...auBox('gitChangeList') },
+  overviewTree: { flex: 1, minHeight: 120, ...auBox('gitChangeList') },
   treeContent: { paddingVertical: 6, flexGrow: 1 },
   footer: { gap: 12 },
   actions: { flexDirection: 'row', gap: 8 },
   overviewToolbar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 10, paddingVertical: 5 },
-  checkbox: { ...auBox('checkbox'), alignItems: 'center', justifyContent: 'center' },
-  checkboxChecked: auBox('checkboxChecked'),
-  checkmark: { ...auText('workspaceName'), fontSize: 12, lineHeight: 14 },
-  glyph: { width: 14, fontSize: 12, fontWeight: '800' },
-  nameButton: { flexShrink: 1 },
-  directoryName: { ...auText('workspaceBranch'), fontSize: agentUpTheme.typography.sizeSm, fontWeight: '700' },
-  fileName: auText('workspaceName'),
   label: auText('fieldLabel'),
   messageInput: { minHeight: 90, ...auBox('input'), ...auText('input'), textAlignVertical: 'top' },
   overviewMessage: { minHeight: 72, ...auBox('input'), ...auText('input'), textAlignVertical: 'top' },
@@ -328,14 +306,8 @@ const styles = StyleSheet.create({
   buttonText: auText('button'),
   reviewButton: { ...auBox('button', 'buttonSecondary'), flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   reviewText: auText('buttonSecondary'),
-  insertions: { ...auText('accent'), fontSize: 12, fontWeight: '700' },
-  deletions: { ...auText('badgeDanger'), fontSize: 12, fontWeight: '700' },
-  secondaryButton: { ...auBox('button', 'buttonSecondary'), alignItems: 'center', justifyContent: 'center' },
-  secondaryButtonText: auText('buttonSecondary'),
+  insertions: auText('gitInsertions'),
+  deletions: auText('gitDeletions'),
   disabled: { opacity: 0.38 },
   modalScrim: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center', ...auBox('scrim') },
-  dialog: { width: '100%', maxWidth: 620, maxHeight: '85%', ...auBox('card'), gap: 12 },
-  dialogTitle: auText('pageTitle'),
-  diffScroll: { flexGrow: 0 },
-  diffText: { ...auText('mono', 'muted'), fontSize: agentUpTheme.typography.sizeXs },
 });

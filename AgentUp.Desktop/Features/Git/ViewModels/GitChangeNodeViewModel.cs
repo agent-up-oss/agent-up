@@ -1,17 +1,16 @@
-using AgentUp.Desktop.Shared.Models;
 using System.Reactive;
-using Avalonia;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Git.ViewModels;
 
 public sealed class GitChangeNodeViewModel : ReactiveObject
 {
-    private const double IndentPerLevel = 14;
+    private const double IndentPerLevel = 12;
 
     private readonly List<GitChangeNodeViewModel> _files = [];
     private IGitChangeNodeHost? _host;
     private bool _isSelected;
+    private bool _isOpen;
 
     public string Name { get; }
     public string Path { get; }
@@ -20,11 +19,16 @@ public sealed class GitChangeNodeViewModel : ReactiveObject
     public string Status { get; }
 
     public bool IsFile => !IsDirectory;
-    public Thickness Indent => new(Depth * IndentPerLevel, 0, 0, 0);
+    public double IndentWidth => Depth * IndentPerLevel;
     public string Glyph => IsDirectory ? "▸" : StatusGlyph(Status);
-    public string GlyphColor => IsDirectory ? AgentUpThemeColors.TextMuted : StatusColor(Status);
-    public string NameColor => IsDirectory ? AgentUpThemeColors.TextMuted : AgentUpThemeColors.TextPrimary;
     public string ToolTip => IsDirectory ? Path : $"{Path} — {Status}";
+
+    public bool IsAdded => Status == "Added";
+    public bool IsUntracked => Status == "Untracked";
+    public bool IsDeleted => Status == "Deleted";
+    public bool IsRenamed => Status == "Renamed";
+    public bool IsConflicted => Status == "Conflicted";
+    public bool IsModified => IsFile && !IsAdded && !IsUntracked && !IsDeleted && !IsRenamed && !IsConflicted;
 
     public bool IsSelected
     {
@@ -37,6 +41,12 @@ public sealed class GitChangeNodeViewModel : ReactiveObject
             this.RaiseAndSetIfChanged(ref _isSelected, value);
             _host?.NodeSelectionChanged(this);
         }
+    }
+
+    public bool IsOpen
+    {
+        get => _isOpen;
+        private set => this.RaiseAndSetIfChanged(ref _isOpen, value);
     }
 
     public ReactiveCommand<Unit, Unit> OpenCommand { get; }
@@ -69,6 +79,8 @@ public sealed class GitChangeNodeViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(IsSelected));
     }
 
+    internal void SetOpenSilently(bool open) => IsOpen = open;
+
     private Task OpenAsync()
         => _host is null || IsDirectory ? Task.CompletedTask : _host.OpenFileAsync(this);
 
@@ -80,14 +92,5 @@ public sealed class GitChangeNodeViewModel : ReactiveObject
         "Renamed" => "→",
         "Conflicted" => "!",
         _ => "M"
-    };
-
-    private static string StatusColor(string status) => status switch
-    {
-        "Added" or "Untracked" => AgentUpThemeColors.AccentSoft,
-        "Deleted" => AgentUpThemeColors.StatusDanger,
-        "Renamed" => AgentUpThemeColors.StatusInfo,
-        "Conflicted" => AgentUpThemeColors.StatusWarning,
-        _ => AgentUpThemeColors.TextSecondary
     };
 }

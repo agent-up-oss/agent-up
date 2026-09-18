@@ -384,7 +384,8 @@ public sealed class GitPanelViewModelTests
 
         Assert.That(panel.LogRows, Has.Count.EqualTo(2));
         Assert.That(panel.LogRows[0].CheckoutName, Is.EqualTo("main"));
-        Assert.That(panel.LogRows[0].Graph, Does.Contain("*"));
+        Assert.That(panel.SelectedLogRow, Is.EqualTo(panel.LogRows[0]));
+        Assert.That(panel.LogRows[0].Outgoing, Is.Not.Empty);
     }
 
     [Test]
@@ -547,10 +548,15 @@ public sealed class GitPanelViewModelTests
         Assert.That(panel.Diff.IsVisible, Is.True);
         Assert.That(panel.Diff.Path, Is.EqualTo("src/app/main.cs"));
         Assert.That(panel.Diff.Content, Is.EqualTo("@@ -1 +1 @@"));
+        Assert.That(panel.Diff.Lines, Has.Count.EqualTo(1));
+        Assert.That(panel.Diff.Lines[0].IsHunk, Is.True);
+        Assert.That(panel.Nodes[3].IsOpen, Is.True);
+        Assert.That(panel.Nodes.Count(node => node.IsOpen), Is.EqualTo(1));
 
         await panel.Diff.CloseCommand.Execute().FirstAsync();
 
         Assert.That(panel.Diff.IsVisible, Is.False);
+        Assert.That(panel.Nodes[3].IsOpen, Is.False);
     }
 
     [Test]

@@ -18,7 +18,10 @@ public sealed class GitLogLayoutProviderTests
         Assert.That(rows[0].Lane, Is.EqualTo(0));
         Assert.That(rows[1].Lane, Is.EqualTo(0));
         Assert.That(rows[0].CheckoutName, Is.EqualTo("main"));
-        Assert.That(rows[0].Graph, Does.Contain("*"));
+        Assert.That(rows[0].Outgoing, Has.Exactly(1).Items);
+        Assert.That(rows[0].Outgoing[0].ToLane, Is.EqualTo(0));
+        Assert.That(rows[1].IncomingLanes, Is.EqualTo(new[] { 0 }));
+        Assert.That(rows[0].Refs.Select(item => item.Kind), Is.EqualTo(new[] { "head", "local" }));
     }
 
     [Test]
@@ -32,6 +35,16 @@ public sealed class GitLogLayoutProviderTests
 
         Assert.That(rows[0].Lane, Is.EqualTo(0));
         Assert.That(rows[0].ParentLanes, Is.EqualTo(new[] { 0, 1 }));
+        Assert.That(rows[0].Outgoing.Any(link => link.FromLane == 0 && link.ToLane == 1), Is.True);
+        Assert.That(rows[0].LaneCount, Is.EqualTo(2));
+        Assert.That(rows[1].IncomingLanes, Is.EqualTo(new[] { 0, 1 }));
         Assert.That(rows[2].Lane, Is.EqualTo(0).Or.EqualTo(1));
+    }
+
+    [Test]
+    public void FormatTime_usesRelativeMinutes()
+    {
+        var now = new DateTimeOffset(2026, 1, 3, 12, 0, 0, TimeSpan.Zero);
+        Assert.That(GitLogLayoutProvider.FormatTime("2026-01-03T11:36:00+00:00", now), Is.EqualTo("24 minutes ago"));
     }
 }

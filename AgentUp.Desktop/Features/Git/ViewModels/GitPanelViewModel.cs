@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Reactive;
+using System.Reactive.Linq;
 using System.Text.Json;
 using AgentUp.Desktop.Features.Git.Controllers;
 using AgentUp.Desktop.Features.Git.DTOs;
@@ -35,6 +36,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     private GitBranchChoiceDto? _selectedBranchItem;
     private int _ahead;
     private int _behind;
+    private GitLogRowDto? _selectedLogRow;
     private CancellationTokenSource? _watch;
 
     public ObservableCollection<GitChangeNodeViewModel> Nodes { get; } = [];
@@ -42,6 +44,12 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     public ObservableCollection<GitBranchChoiceDto> BranchItems { get; } = [];
     public ObservableCollection<GitLogRowDto> LogRows { get; } = [];
     public ObservableCollection<CommitQueueEntryDto> QueueEntries { get; } = [];
+
+    public GitLogRowDto? SelectedLogRow
+    {
+        get => _selectedLogRow;
+        set => this.RaiseAndSetIfChanged(ref _selectedLogRow, value);
+    }
 
     public string? QueueWorktreePath { get; private set; }
     public long QueueGeneration { get; private set; }
@@ -103,6 +111,8 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
                 x => x.CommitMessage,
                 x => x.IsBusy,
                 (selected, message, busy) => selected > 0 && !string.IsNullOrWhiteSpace(message) && !busy));
+        Diff.WhenAnyValue(diff => diff.IsVisible, diff => diff.Path)
+            .Subscribe(_ => MarkOpenFile(Diff.IsVisible ? Diff.Path : null));
     }
 
     public bool IsVisible
@@ -409,6 +419,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         LocalBranches.Clear();
         BranchItems.Clear();
         LogRows.Clear();
+        SelectedLogRow = null;
         Ahead = 0;
         Behind = 0;
         SetBranch(string.Empty);
@@ -703,15 +714,19 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
             var log = await _git.GetLogAsync(workspaceId, cancellationToken);
             if (request != _treeRequest)
                 return;
+            var selectedId = SelectedLogRow?.Commit.Id;
             LogRows.Clear();
             foreach (var row in GitLogLayoutProvider.Layout(log?.Commits))
                 LogRows.Add(row);
+            SelectedLogRow = LogRows.FirstOrDefault(row => string.Equals(row.Commit.Id, selectedId, StringComparison.Ordinal))
+                ?? LogRows.FirstOrDefault();
         }
         catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or JsonException or TaskCanceledException)
         {
             if (request != _treeRequest || cancellationToken.IsCancellationRequested)
                 return;
             LogRows.Clear();
+            SelectedLogRow = null;
             if (ErrorMessage is null)
                 ErrorMessage = $"Could not load Git history: {ex.Message}";
         }
@@ -768,23 +783,25 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
             return;
         }
 
-        if (selected.Count == 0)
-            return;
-
-        _isApplyingSelection = true;
-        try
+        if (selected.Count > 0)
         {
-            foreach (var node in Nodes.Where(candidate => candidate.IsFile && selected.Contains(candidate.Path)))
-                node.SetSelectedSilently(true);
-            foreach (var directory in Nodes.Where(candidate => candidate.IsDirectory))
-                directory.SetSelectedSilently(directory.Files.Count > 0 && directory.Files.All(file => file.IsSelected));
-        }
-        finally
-        {
-            _isApplyingSelection = false;
+            _isApplyingSelection = true;
+            try
+            {
+                foreach (var node in Nodes.Where(candidate => candidate.IsFile && selected.Contains(candidate.Path)))
+                    node.SetSelectedSilently(true);
+                foreach (var directory in Nodes.Where(candidate => candidate.IsDirectory))
+                    directory.SetSelectedSilently(directory.Files.Count > 0 && directory.Files.All(file => file.IsSelected));
+            }
+            finally
+            {
+                _isApplyingSelection = false;
+            }
+
+            SelectedFileCount = Nodes.Count(node => node.IsFile && node.IsSelected);
         }
 
-        SelectedFileCount = Nodes.Count(node => node.IsFile && node.IsSelected);
+        MarkOpenFile(Diff.IsVisible ? Diff.Path : null);
     }
 
     private void ApplyHead(GitChangeTreeDto? tree) =>
@@ -899,6 +916,12 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         var node = new GitChangeNodeViewModel(name, path, depth, isDirectory, status);
         node.SetHost(this);
         return node;
+    }
+
+    private void MarkOpenFile(string? path)
+    {
+        foreach (var node in Nodes)
+            node.SetOpenSilently(node.IsFile && path is not null && string.Equals(node.Path, path, StringComparison.Ordinal));
     }
 
     private void RaiseListProperties()

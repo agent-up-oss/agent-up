@@ -7,6 +7,7 @@
         xmlns:databaseVm="using:AgentUp.Desktop.Features.Ports.ViewModels"
         xmlns:databaseViewsVm="using:AgentUp.Desktop.Features.Database.ViewModels"
         xmlns:gitVm="using:AgentUp.Desktop.Features.Git.ViewModels"
+        xmlns:gitViews="using:AgentUp.Desktop.Features.Git.Views"
         xmlns:agentVm="using:AgentUp.Desktop.Features.Agents.ViewModels"
         xmlns:validationVm="using:AgentUp.Desktop.Features.Validation.ViewModels"
         xmlns:metricsViews="using:AgentUp.Desktop.Features.Metrics.Views"
@@ -280,16 +281,16 @@
             <Setter Property="Background" Value="Transparent"/>
         </Style>
         <!-- Strip default Button chrome without undoing catalog actions. -->
-        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run)">
+        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump)">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
-        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):pointerover /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump):pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
-        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):pressed /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump):pressed /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
         <!-- Integrated window chrome -->
@@ -1832,31 +1833,56 @@
                                                             Content="Confirm discard"/>
                                                 </StackPanel>
                                             </StackPanel>
-                                            <ItemsControl x:Name="GitLog"
-                                                          ItemsSource="{Binding Git.LogRows}"
-                                                          MaxHeight="160">
-                                                <ItemsControl.ItemTemplate>
+                                            <ListBox x:Name="GitLog"
+                                                     Classes="au-git-log"
+                                                     ItemsSource="{Binding Git.LogRows}"
+                                                     SelectedItem="{Binding Git.SelectedLogRow}"
+                                                     MaxHeight="280">
+                                                <ListBox.ItemTemplate>
                                                     <DataTemplate>
-                                                        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" Margin="0,2">
-                                                            <TextBlock Text="{Binding Graph}"
-                                                                       FontFamily="monospace"
-                                                                       FontSize="11"
-                                                                       Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                                                            <Button Grid.Column="1"
-                                                                    Classes="au-button au-button--secondary au-button--compact"
-                                                                    Command="{Binding DataContext.Git.CheckoutLogRefCommand, ElementName=GitPanel}"
-                                                                    CommandParameter="{Binding CheckoutName}"
-                                                                    IsEnabled="{Binding CheckoutName, Converter={x:Static ObjectConverters.IsNotNull}}"
-                                                                    Content="{Binding Commit.ShortId}"/>
-                                                            <TextBlock Grid.Column="2"
-                                                                       Text="{Binding Commit.Subject}"
-                                                                       Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"
-                                                                       FontSize="11"
-                                                                       TextTrimming="CharacterEllipsis"/>
-                                                        </Grid>
+                                                        <Border Classes="gitLogRow au-git-log-row">
+                                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                                                <gitViews:GitLogGraphColumn Row="{Binding}"/>
+                                                                <Grid Grid.Column="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                        <ItemsControl ItemsSource="{Binding Refs}">
+                                                                            <ItemsControl.ItemsPanel>
+                                                                                <ItemsPanelTemplate>
+                                                                                    <StackPanel Orientation="Horizontal" Spacing="4"/>
+                                                                                </ItemsPanelTemplate>
+                                                                            </ItemsControl.ItemsPanel>
+                                                                            <ItemsControl.ItemTemplate>
+                                                                                <DataTemplate>
+                                                                                    <Button Classes="gitLogRef au-git-log-ref"
+                                                                                            Classes.au-git-log-ref--head="{Binding IsHead}"
+                                                                                            Classes.au-git-log-ref--remote="{Binding IsRemote}"
+                                                                                            Command="{Binding DataContext.Git.CheckoutLogRefCommand, ElementName=GitPanel}"
+                                                                                            CommandParameter="{Binding Name}"
+                                                                                            IsEnabled="{Binding CanCheckout}"
+                                                                                            Content="{Binding Name}"/>
+                                                                                </DataTemplate>
+                                                                            </ItemsControl.ItemTemplate>
+                                                                        </ItemsControl>
+                                                                        <TextBlock Classes="au-git-log-subject"
+                                                                                   Text="{Binding Commit.Subject}"
+                                                                                   TextTrimming="CharacterEllipsis"
+                                                                                   VerticalAlignment="Center"/>
+                                                                    </StackPanel>
+                                                                    <TextBlock Grid.Column="1"
+                                                                               Classes="au-git-log-author"
+                                                                               Text="{Binding Commit.Author}"
+                                                                               TextTrimming="CharacterEllipsis"
+                                                                               VerticalAlignment="Center"/>
+                                                                    <TextBlock Grid.Column="2"
+                                                                               Classes="au-git-log-time"
+                                                                               Text="{Binding Commit.Timestamp, Converter={x:Static gitViews:GitLogTimeConverter.Instance}}"
+                                                                               VerticalAlignment="Center"/>
+                                                                </Grid>
+                                                            </Grid>
+                                                        </Border>
                                                     </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
                                         </StackPanel>
                                     </Border>
 
@@ -1865,39 +1891,54 @@
                                                       VerticalScrollBarVisibility="Auto"
                                                       HorizontalScrollBarVisibility="Disabled"
                                                       Margin="8,0">
+                                            <Border Classes="au-git-change-list">
                                             <ItemsControl ItemsSource="{Binding Git.Nodes}">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate DataType="gitVm:GitChangeNodeViewModel">
-                                                        <Border Classes="gitNodeRow" Margin="{Binding Indent}">
-                                                            <Grid ColumnDefinitions="Auto,Auto,*">
+                                                        <Border Classes="gitNodeRow"
+                                                                Classes.gitNodeRowSelected="{Binding IsOpen}">
+                                                            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
                                                                 <CheckBox Grid.Column="0"
                                                                           IsChecked="{Binding IsSelected}"
                                                                           MinWidth="0"
                                                                           Padding="0"
                                                                           Margin="0,0,6,0"
                                                                           VerticalAlignment="Center"/>
-                                                                <TextBlock Grid.Column="1"
+                                                                <Border Grid.Column="1"
+                                                                        Width="{Binding IndentWidth}"/>
+                                                                <TextBlock Grid.Column="2"
+                                                                           Classes="au-git-status au-git-status--directory"
                                                                            Text="{Binding Glyph}"
-                                                                           Foreground="{Binding GlyphColor}"
-                                                                           FontSize="11"
-                                                                           FontWeight="Bold"
-                                                                           Width="14"
-                                                                           VerticalAlignment="Center"/>
-                                                                <Button Grid.Column="2"
+                                                                           IsVisible="{Binding IsDirectory}"
+                                                                           VerticalAlignment="Center"
+                                                                           Margin="0,0,6,0"/>
+                                                                <Button Grid.Column="3"
                                                                         Classes="gitNodeName"
                                                                         Command="{Binding OpenCommand}"
                                                                         IsEnabled="{Binding IsFile}"
                                                                         ToolTip.Tip="{Binding ToolTip}">
                                                                     <TextBlock Text="{Binding Name}"
-                                                                               Foreground="{Binding NameColor}"
-                                                                               FontSize="12"
+                                                                               Classes="gitChangeName"
+                                                                               Classes.gitChangeNameDirectory="{Binding IsDirectory}"
                                                                                TextTrimming="CharacterEllipsis"/>
                                                                 </Button>
+                                                                <TextBlock Grid.Column="4"
+                                                                           Classes="au-git-status"
+                                                                           Classes.au-git-status--added="{Binding IsAdded}"
+                                                                           Classes.au-git-status--untracked="{Binding IsUntracked}"
+                                                                           Classes.au-git-status--deleted="{Binding IsDeleted}"
+                                                                           Classes.au-git-status--modified="{Binding IsModified}"
+                                                                           Classes.au-git-status--renamed="{Binding IsRenamed}"
+                                                                           Classes.au-git-status--conflicted="{Binding IsConflicted}"
+                                                                           Text="{Binding Glyph}"
+                                                                           IsVisible="{Binding IsFile}"
+                                                                           VerticalAlignment="Center"/>
                                                             </Grid>
                                                         </Border>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
+                                            </Border>
                                         </ScrollViewer>
                                         <TextBlock x:Name="GitLoadingIndicator"
                                                    IsVisible="{Binding Git.IsLoading}"
@@ -2614,8 +2655,8 @@
               x:Name="GitFileDiffOverlay"
               IsVisible="{Binding Git.Diff.IsVisible}"
               IsHitTestVisible="{Binding Git.Diff.IsVisible}">
-            <Border Background="{DynamicResource AgentUpColorOverlayBrush}"/>
-            <Border Background="{DynamicResource AgentUpColorOverlayBrush}">
+            <Border Classes="au-scrim"/>
+            <Border Classes="au-scrim">
                 <Border.Effect>
                     <BlurEffect Radius="10"/>
                 </Border.Effect>
@@ -2625,60 +2666,129 @@
                   ColumnDefinitions="*,10*,*">
                 <Border Grid.Row="1"
                         Grid.Column="1"
-                        Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
-                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="20">
-                    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
-                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
-                            <StackPanel Grid.Column="0" Spacing="3">
-                                <TextBlock x:Name="GitFileDiffPath"
-                                           Text="{Binding Git.Diff.Path}"
-                                           Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"
-                                           FontSize="15"
-                                           FontWeight="Bold"
-                                           TextTrimming="CharacterEllipsis"/>
-                                <TextBlock x:Name="GitFileDiffStatus"
-                                           Text="{Binding Git.Diff.Status}"
-                                           Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
-                                           FontSize="11"/>
-                            </StackPanel>
-                            <Button Grid.Column="1"
-                                    x:Name="GitFileDiffCloseButton"
-                                    Command="{Binding Git.Diff.CloseCommand}"
-                                    ToolTip.Tip="Close">
-                                <Border Classes="chromeButton">
-                                    <TextBlock Classes="chromeIcon chromeCloseIcon" Text="×"/>
-                                </Border>
-                            </Button>
-                        </Grid>
+                        Classes="au-overlay-panel au-file-viewer">
+                    <Grid RowDefinitions="Auto,Auto,*,Auto">
+                        <Border Classes="au-file-viewer-header">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Grid.Column="0" Spacing="3">
+                                    <TextBlock x:Name="GitFileDiffPath"
+                                               Classes="au-file-viewer-path"
+                                               Text="{Binding Git.Diff.Path}"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="GitFileDiffStatus"
+                                               Classes="au-file-viewer-status"
+                                               Text="{Binding Git.Diff.Status}"/>
+                                </StackPanel>
+                                <Button Grid.Column="1"
+                                        x:Name="GitFileDiffCloseButton"
+                                        Command="{Binding Git.Diff.CloseCommand}"
+                                        ToolTip.Tip="Close">
+                                    <Border Classes="chromeButton">
+                                        <TextBlock Classes="chromeIcon chromeCloseIcon" Text="×"/>
+                                    </Border>
+                                </Button>
+                            </Grid>
+                        </Border>
 
-                        <Panel Grid.Row="1">
+                        <Border Grid.Row="1"
+                                Classes="au-file-viewer-nav"
+                                IsVisible="{Binding Git.Diff.HasHunks}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ItemsControl ItemsSource="{Binding Git.Diff.Hunks}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="8"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="gitVm:GitFileDiffHunkViewModel">
+                                        <Button Classes="au-file-viewer-jump"
+                                                Command="{Binding DataContext.Git.Diff.JumpCommand, ElementName=GitFileDiffOverlay}"
+                                                CommandParameter="{Binding LineIndex}"
+                                                Content="{Binding Label}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBox x:Name="GitFileDiffGoto"
+                                     Classes="au-file-viewer-goto"
+                                     PlaceholderText="Line"
+                                     Text="{Binding Git.Diff.GotoQuery}"
+                                     MinWidth="72"/>
+                            <Button Classes="au-button au-button--secondary au-button--compact"
+                                    Command="{Binding Git.Diff.JumpToEnteredLineCommand}"
+                                    Content="Go"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Panel Grid.Row="2">
                             <TextBlock IsVisible="{Binding Git.Diff.IsLoading}"
+                                       Classes="au-accent"
                                        Text="Loading diff…"
-                                       Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"
-                                       FontSize="13"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"/>
-                            <ScrollViewer VerticalScrollBarVisibility="Auto"
-                                          HorizontalScrollBarVisibility="Auto">
-                                <TextBlock x:Name="GitFileDiffContent"
-                                           Text="{Binding Git.Diff.Content}"
-                                           Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"
-                                           FontFamily="Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace"
-                                           FontSize="12"/>
-                            </ScrollViewer>
+                            <Border Classes="au-file-viewer-body" IsVisible="{Binding !Git.Diff.IsLoading}">
+                            <ListBox x:Name="GitFileDiffLines"
+                                     ItemsSource="{Binding Git.Diff.Lines}"
+                                     SelectedItem="{Binding Git.Diff.CurrentLine}"
+                                     gitViews:GitFileViewerScroll.TargetIndex="{Binding Git.Diff.CurrentIndex}">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VirtualizingStackPanel/>
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate DataType="gitVm:GitFileDiffLineViewModel">
+                                        <Border Classes="au-file-viewer-line"
+                                                Classes.au-file-viewer-line--added="{Binding IsAdded}"
+                                                Classes.au-file-viewer-line--deleted="{Binding IsDeleted}"
+                                                Classes.au-file-viewer-line--hunk="{Binding IsHunk}"
+                                                Classes.au-file-viewer-line--meta="{Binding IsMeta}"
+                                                Classes.au-file-viewer-line--current="{Binding IsCurrent}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Classes="au-file-viewer-gutter"
+                                                           Width="40"
+                                                           Text="{Binding Gutter}"/>
+                                                <TextBlock Classes="au-file-viewer-prefix"
+                                                           Classes.au-file-viewer-prefix--added="{Binding IsAdded}"
+                                                           Classes.au-file-viewer-prefix--deleted="{Binding IsDeleted}"
+                                                           Text="{Binding Prefix}"/>
+                                                <ItemsControl ItemsSource="{Binding Tokens}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel Orientation="Horizontal"/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate DataType="gitVm:GitFileDiffTokenViewModel">
+                                                            <TextBlock Classes="au-syntax-plain"
+                                                                       Classes.au-syntax-keyword="{Binding IsKeyword}"
+                                                                       Classes.au-syntax-type="{Binding IsType}"
+                                                                       Classes.au-syntax-string="{Binding IsString}"
+                                                                       Classes.au-syntax-comment="{Binding IsComment}"
+                                                                       Classes.au-syntax-number="{Binding IsNumber}"
+                                                                       Classes.au-syntax-function="{Binding IsFunction}"
+                                                                       Classes.au-syntax-property="{Binding IsProperty}"
+                                                                       Classes.au-syntax-punctuation="{Binding IsPunctuation}"
+                                                                       Classes.au-syntax-operator="{Binding IsOperator}"
+                                                                       Text="{Binding Text}"/>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            </Border>
                         </Panel>
 
-                        <Button Grid.Row="2"
+                        <Button Grid.Row="3"
                                 x:Name="GitFileDiffDismissButton"
+                                Classes="au-button au-button--secondary"
                                 HorizontalAlignment="Right"
-                                Command="{Binding Git.Diff.CloseCommand}">
-                            <Border Classes="tutorialSecondaryButton">
-                                <TextBlock Classes="tutorialButtonText" Text="Close"/>
-                            </Border>
-                        </Button>
+                                Margin="16,0,16,16"
+                                Command="{Binding Git.Diff.CloseCommand}"
+                                Content="Close"/>
                     </Grid>
                 </Border>
             </Grid>

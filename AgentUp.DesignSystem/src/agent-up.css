@@ -68,6 +68,19 @@
   --au-color-overlay: #0a0b0c73;
   --au-color-transparent: #00000000;
 
+  /*
+   * Git history lanes. A closed eight-color set reused from existing semantic
+   * hues so Mobile and Desktop never invent hex for the graph.
+   */
+  --au-color-git-lane-0: #2bf27a;
+  --au-color-git-lane-1: #4fa3d8;
+  --au-color-git-lane-2: #e0a128;
+  --au-color-git-lane-3: #00a8e8;
+  --au-color-git-lane-4: #8bb7ff;
+  --au-color-git-lane-5: #ffd66b;
+  --au-color-git-lane-6: #00d66b;
+  --au-color-git-lane-7: #c2d2ca;
+
   /* Typography. Native bindings use platform sans-serif at these sizes. */
   --au-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --au-font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;

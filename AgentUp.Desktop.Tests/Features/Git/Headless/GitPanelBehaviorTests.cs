@@ -86,6 +86,7 @@ public sealed class GitPanelBehaviorTests
 
         Assert.That(overlay.IsVisible, Is.True);
         Assert.That(driver.Window.FindControl<TextBlock>("GitFileDiffPath")!.Text, Is.EqualTo("src/main.cs"));
+        Assert.That(driver.Window.FindControl<ListBox>("GitFileDiffLines"), Is.Not.Null);
 
         await driver.Window.ClickControlAsync(driver.Window.FindControl<Button>("GitFileDiffDismissButton")!);
 

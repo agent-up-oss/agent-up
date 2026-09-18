@@ -42,4 +42,12 @@ internal static class AgentUpThemeColors
     internal const string Scrim = "#0a0b0cb8";
     internal const string Overlay = "#0a0b0c73";
     internal const string Transparent = "#00000000";
+    internal const string GitLane0 = "#2bf27a";
+    internal const string GitLane1 = "#4fa3d8";
+    internal const string GitLane2 = "#e0a128";
+    internal const string GitLane3 = "#00a8e8";
+    internal const string GitLane4 = "#8bb7ff";
+    internal const string GitLane5 = "#ffd66b";
+    internal const string GitLane6 = "#00d66b";
+    internal const string GitLane7 = "#c2d2ca";
 }
