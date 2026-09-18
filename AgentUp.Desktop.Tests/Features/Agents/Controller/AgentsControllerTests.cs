@@ -31,4 +31,13 @@ public sealed class AgentsControllerTests
             Assert.That(streamed, Is.EqualTo(0));
         });
     }
+
+    [Test]
+    public async Task Missing_session_and_schedule_results_remain_null_at_the_controller_boundary()
+    {
+        var controller = new AgentsController(new AgentChatService(new FakeAgentApiProvider()));
+
+        Assert.That(await controller.GetAsync("missing", CancellationToken.None), Is.Null);
+        Assert.That(await controller.ScheduleAsync("missing", "Codex", CancellationToken.None), Is.Null);
+    }
 }
