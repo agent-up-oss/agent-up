@@ -63,7 +63,8 @@ push (path-filtered) or workflow_dispatch
       ios (macos-15)
 ```
 
-Push runs when `AgentUp.Mobile`, `AgentUp.DesignSystem`, `AgentUp.WebAudit`, this
+Push runs when `AgentUp.Mobile`, `AgentUp.Chat`, `AgentUp.AgentAuth`,
+`AgentUp.ServerClient`, `AgentUp.DesignSystem`, `AgentUp.WebAudit`, this
 workflow, the iOS certs workflow, or the mobile helper scripts change. Changing
 only `ci.yml` does not start Mobile CI.
 

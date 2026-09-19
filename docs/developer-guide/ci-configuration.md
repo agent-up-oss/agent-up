@@ -110,8 +110,9 @@ LocalInstaller NuGet publishing is optional. Add `NUGET_API_KEY` to publish `Loc
 Native mobile binaries are built by `.github/workflows/mobile-ci.yaml`. Path-filtered
 pushes run the shared Mobile test job before they smoke-build and sign. Store
 upload and `android-v*` / `ios-v*` GitHub releases run only on
-`workflow_dispatch`. Missing required secrets fail the job; they do not skip the
-upload. Play upload secrets are required only on dispatch.
+`workflow_dispatch`. The desktop `ci.yml` signing and release steps skip when
+credentials are absent; the mobile store workflow is an exception and fails
+instead. Play upload secrets are required only on dispatch.
 The same Apple Match secret names as other MassiveCreationLab iOS apps can be
 copied onto this repository. Full flow: [Mobile store release](./mobile-store-release.md).
 

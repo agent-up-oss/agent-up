@@ -8,15 +8,20 @@ on:
       - AgentUp.Mobile/**
       - AgentUp.DesignSystem/**
       - AgentUp.WebAudit/**
+      - AgentUp.Chat/**
+      - AgentUp.AgentAuth/**
+      - AgentUp.ServerClient/**
       - .github/workflows/mobile-ci.yaml
       - .github/workflows/mobile-ios-certs.yaml
       - .github/scripts/install-android-ndk.sh
+      - .github/scripts/install-mobile-deps.sh
       - .github/scripts/plan-mobile-version.js
       - .github/scripts/plan-mobile-version.test.js
       - .github/scripts/prepare-mobile-artifact.sh
       - .github/scripts/publish-mobile-github-release.sh
       - .github/scripts/require-env.sh
       - .github/scripts/verify-mobile-artifact.sh
+      - .github/scripts/verify-mobile-artifact.test.mjs
   workflow_dispatch:
     inputs:
       channel:
@@ -68,8 +73,8 @@ jobs:
         with:
           node-version: 22
 
-      - name: Verify version planner
-        run: node --test .github/scripts/plan-mobile-version.test.js
+      - name: Verify mobile helper scripts
+        run: node --test .github/scripts/plan-mobile-version.test.js .github/scripts/verify-mobile-artifact.test.mjs
 
       - name: Plan mobile version
         id: plan
@@ -98,12 +103,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: AgentUp.Mobile/package-lock.json
+          cache-dependency-path: |
+            AgentUp.Mobile/package-lock.json
+            AgentUp.Chat/package-lock.json
+            AgentUp.AgentAuth/package-lock.json
+            AgentUp.ServerClient/package-lock.json
 
       - name: Install JavaScript dependencies
-        run: |
-          node AgentUp.DesignSystem/scripts/build.mjs
-          npm ci --prefix AgentUp.Mobile
+        run: ./.github/scripts/install-mobile-deps.sh
 
       - name: Typecheck
         working-directory: AgentUp.Mobile
@@ -113,14 +120,7 @@ jobs:
         working-directory: AgentUp.Mobile
         run: |
           npx tsc --noEmit -p tsconfig.test.json
-          npx tsx --test \
-            src/features/servers/providers/*.test.ts \
-            src/features/authentication/providers/*.test.ts \
-            src/features/workspaces/providers/*.test.ts \
-            src/features/git/providers/*.test.ts \
-            src/features/agents/providers/*.test.ts \
-            src/features/applications/providers/*.test.ts \
-            src/features/telemetry/providers/*.test.ts
+          npx tsx --test src/features/**/providers/*.test.ts
           node --test scripts/*.test.mjs
 
       - name: Export web application
@@ -147,7 +147,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: AgentUp.Mobile/package-lock.json
+          cache-dependency-path: |
+            AgentUp.Mobile/package-lock.json
+            AgentUp.Chat/package-lock.json
+            AgentUp.AgentAuth/package-lock.json
+            AgentUp.ServerClient/package-lock.json
 
       - uses: actions/setup-java@v6
         with:
@@ -161,6 +165,8 @@ jobs:
           working-directory: AgentUp.Mobile
 
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: Require Android signing secrets
         env:
@@ -186,9 +192,7 @@ jobs:
             "cmake;3.22.1"
 
       - name: Install JavaScript dependencies
-        run: |
-          node AgentUp.DesignSystem/scripts/build.mjs
-          npm ci --prefix AgentUp.Mobile
+        run: ./.github/scripts/install-mobile-deps.sh
 
       - name: Decode Android upload keystore
         env:
@@ -295,7 +299,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: AgentUp.Mobile/package-lock.json
+          cache-dependency-path: |
+            AgentUp.Mobile/package-lock.json
+            AgentUp.Chat/package-lock.json
+            AgentUp.AgentAuth/package-lock.json
+            AgentUp.ServerClient/package-lock.json
 
       - uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -307,10 +315,6 @@ jobs:
           bundler-cache: true
           working-directory: AgentUp.Mobile
 
-      - uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.MATCH_DEPLOY_KEY }}
-
       - name: Require iOS secrets
         env:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
@@ -321,10 +325,12 @@ jobs:
           MATCH_DEPLOY_KEY: ${{ secrets.MATCH_DEPLOY_KEY }}
         run: bash .github/scripts/require-env.sh APPSTORE_KEY_ID APPSTORE_ISSUER_ID APPSTORE_P8 MATCH_PASSWORD MATCH_REPOSITORY MATCH_DEPLOY_KEY
 
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MATCH_DEPLOY_KEY }}
+
       - name: Install JavaScript dependencies
-        run: |
-          node AgentUp.DesignSystem/scripts/build.mjs
-          npm ci --prefix AgentUp.Mobile
+        run: ./.github/scripts/install-mobile-deps.sh
 
       - name: Prebuild iOS
         working-directory: AgentUp.Mobile

@@ -191,6 +191,7 @@ platform :android do
       task: "bundle",
       build_type: "Release",
       flags: "--no-daemon --stacktrace",
+      print_command: false,
       properties: {
         "android.injected.signing.store.file" => ENV["ANDROID_KEYSTORE_PATH"],
         "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASS"],

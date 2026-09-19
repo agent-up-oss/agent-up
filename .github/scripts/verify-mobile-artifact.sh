@@ -51,7 +51,7 @@ case "$kind" in
     java -jar "$bundletool_jar" validate --bundle="$artifact"
     ;;
   ipa)
-    if ! unzip -l "$artifact" | grep -Eq 'Payload/[^/]+\.app/'; then
+    if ! unzip -l "$artifact" | grep -E 'Payload/[^/]+\.app/' >/dev/null; then
       echo "IPA does not contain Payload/*.app: $artifact" >&2
       unzip -l "$artifact" >&2
       exit 1
