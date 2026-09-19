@@ -12,6 +12,7 @@ import {
   GIT_LOG_PAGE_SIZE,
   GIT_LOG_ROW_HEIGHT,
   GIT_LOG_TIME_WIDTH,
+  gitLogColumnUsesSelectedChrome,
   layoutGitLog,
 } from '../providers/GitLogLayoutProvider';
 import { GitLogGraphColumn } from './GitLogGraphColumn';
@@ -231,7 +232,7 @@ function GitLogTimeCell({
       accessibilityLabel={`${formatGitLogTimestamp(row.commit.timestamp)} ${row.commit.subject}`}
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={[styles.timeCell, selected ? styles.rowSelected : null]}>
+      style={[styles.timeCell, selected && gitLogColumnUsesSelectedChrome('timestamp') ? styles.rowSelected : null]}>
       <Text numberOfLines={1} style={styles.time}>{formatGitLogTimestamp(row.commit.timestamp)}</Text>
     </Pressable>
   );
@@ -252,7 +253,7 @@ function GitLogGraphCell({
       accessibilityLabel={row.commit.subject}
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={[styles.graphCell, selected ? styles.rowSelected : null]}>
+      style={[styles.graphCell, selected && gitLogColumnUsesSelectedChrome('graph') ? styles.rowSelected : null]}>
       <GitLogGraphColumn row={row} />
     </Pressable>
   );

@@ -24,6 +24,12 @@ export type GitBranchMutationKind =
   | 'checkoutRemote'
   | 'create';
 
+export type GitBranchPickerPointerSurface = 'overlay' | 'search' | 'list';
+
+export function gitBranchPickerClosesFromPointer(surface: GitBranchPickerPointerSurface): boolean {
+  return surface === 'overlay';
+}
+
 export function gitBranchPickerViewportHeight(
   visibleRows = GIT_BRANCH_PICKER_VISIBLE_ROWS,
   rowHeight = GIT_BRANCH_PICKER_ROW_HEIGHT,

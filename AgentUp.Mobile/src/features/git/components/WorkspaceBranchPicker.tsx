@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
@@ -8,10 +8,13 @@ import type { GitHeadState } from '../models/GitChanges';
 import {
   filterGitBranchPickerRows,
   gitBranchMutationConfirm,
+  gitBranchPickerClosesFromPointer,
   gitBranchPickerViewportHeight,
   type GitConfirmCopy,
 } from '../providers/GitBranchPickerProvider';
 import { checkoutRemote, fetchRemote, getHeadState, pullRemote, pushRemote, switchBranch } from '../providers/GitApiProvider';
+
+type MenuLayout = { top: number; left: number; width: number };
 
 type WorkspaceBranchPickerProps = {
   workspaceId: string;
@@ -28,7 +31,15 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranc
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [menuLayout, setMenuLayout] = useState<MenuLayout | null>(null);
   const request = useRef(0);
+  const wrapRef = useRef<View>(null);
+
+  const closeMenu = useCallback(() => {
+    setOpen(false);
+    setQuery('');
+    setMenuLayout(null);
+  }, []);
 
   const load = useCallback(async () => {
     if (!server) return;
@@ -49,13 +60,12 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranc
 
   useEffect(() => {
     setHead(null);
-    setOpen(false);
+    closeMenu();
     setCreating(false);
     setName('');
-    setQuery('');
     setError(null);
     void load();
-  }, [load]);
+  }, [load, closeMenu]);
 
   const branches = head?.localBranches ?? [];
   const remotes = head?.remoteBranches ?? [];
@@ -66,11 +76,28 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranc
 
   const afterSuccess = async () => {
     setCreating(false);
-    setOpen(false);
     setName('');
-    setQuery('');
+    closeMenu();
     await load();
     await refresh();
+  };
+
+  const toggleMenu = () => {
+    if (busy || !hasBranches) return;
+    if (open) {
+      closeMenu();
+      return;
+    }
+    setCreating(false);
+    setQuery('');
+    wrapRef.current?.measureInWindow((x, y, width, height) => {
+      setMenuLayout({ top: y + height + 8, left: x, width });
+      setOpen(true);
+    });
+  };
+
+  const dismissFromOverlay = () => {
+    if (gitBranchPickerClosesFromPointer('overlay')) closeMenu();
   };
 
   const runSwitch = async (next: string, create: boolean) => {
@@ -145,14 +172,83 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranc
   const sync = ahead === 0 && behind === 0 ? '' : `↑${ahead} ↓${behind}`;
   const hasBranches = branches.length > 0 || remotes.length > 0;
 
+  const menu = open && hasBranches && menuLayout && (
+    <View style={[styles.menu, { position: 'absolute', top: menuLayout.top, left: menuLayout.left, width: menuLayout.width }]}>
+      <TextInput
+        accessibilityLabel="Search branches"
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search branches"
+        placeholderTextColor={agentUpTheme.colors.textFaint}
+        autoCorrect={false}
+        autoCapitalize="none"
+        style={styles.search}
+      />
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+        style={[styles.list, { maxHeight: gitBranchPickerViewportHeight() }]}>
+        {rows.length === 0 &&
+          <Text style={styles.empty}>No matching branches</Text>}
+        {rows.map(row => {
+          if (row.kind === 'section') {
+            return <Text key={`section:${row.title}`} style={styles.section}>{row.title}</Text>;
+          }
+          if (row.kind === 'local') {
+            return (
+              <Pressable
+                key={`local:${row.name}`}
+                disabled={busy || row.name === head?.branch}
+                onPress={() => confirmAction(
+                  gitBranchMutationConfirm('switch', head, row.name),
+                  () => void runSwitch(row.name, false),
+                )}
+                style={[styles.option, row.name === head?.branch && styles.optionActive]}>
+                <Text style={[styles.optionText, row.name === head?.branch && styles.optionTextActive]}>{row.name}</Text>
+              </Pressable>
+            );
+          }
+          return (
+            <Pressable
+              key={`remote:${row.label}`}
+              disabled={busy}
+              onPress={() => confirmAction(
+                gitBranchMutationConfirm('checkoutRemote', head, row.label),
+                () => void runCheckout(row.label),
+              )}
+              style={styles.option}>
+              <Text style={styles.optionText}>{row.label}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+
   return (
-    <View style={styles.wrap}>
+    <View ref={wrapRef} collapsable={false} style={styles.wrap}>
+      <Modal
+        visible={open && hasBranches}
+        transparent
+        animationType="none"
+        onRequestClose={closeMenu}>
+        <View style={styles.modalRoot} pointerEvents="box-none">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss branch list"
+            testID="dismiss-branch-list"
+            onPress={dismissFromOverlay}
+            style={styles.dismissOverlay}
+          />
+          {menu}
+        </View>
+      </Modal>
       <View style={styles.row}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Current branch ${branch}`}
           disabled={busy || !hasBranches}
-          onPress={() => { setCreating(false); setQuery(''); setOpen(value => !value); }}
+          onPress={toggleMenu}
           style={styles.dropdown}>
           <Text numberOfLines={1} style={styles.branch}>{branch}</Text>
           <Text style={styles.chevron}>{open ? '▴' : '▾'}</Text>
@@ -161,7 +257,7 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranc
           accessibilityRole="button"
           accessibilityLabel="Create branch"
           disabled={busy}
-          onPress={() => { setOpen(false); setCreating(true); }}
+          onPress={() => { closeMenu(); setCreating(true); }}
           style={styles.plus}>
           <Text style={styles.plusText}>+</Text>
         </Pressable>
@@ -197,63 +293,11 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranc
             testID="open-git-history"
             accessibilityRole="button"
             accessibilityLabel="History"
-            onPress={onHistory}
+            onPress={() => { closeMenu(); onHistory(); }}
             style={styles.action}>
             <Text style={styles.actionText}>History</Text>
           </Pressable>}
       </View>
-      {open && hasBranches && (
-        <View style={styles.menu}>
-          <TextInput
-            accessibilityLabel="Search branches"
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search branches"
-            placeholderTextColor={agentUpTheme.colors.textFaint}
-            autoCorrect={false}
-            autoCapitalize="none"
-            style={styles.search}
-          />
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            nestedScrollEnabled
-            style={[styles.list, { maxHeight: gitBranchPickerViewportHeight() }]}>
-            {rows.length === 0 &&
-              <Text style={styles.empty}>No matching branches</Text>}
-            {rows.map(row => {
-              if (row.kind === 'section') {
-                return <Text key={`section:${row.title}`} style={styles.section}>{row.title}</Text>;
-              }
-              if (row.kind === 'local') {
-                return (
-                  <Pressable
-                    key={`local:${row.name}`}
-                    disabled={busy || row.name === head?.branch}
-                    onPress={() => confirmAction(
-                      gitBranchMutationConfirm('switch', head, row.name),
-                      () => void runSwitch(row.name, false),
-                    )}
-                    style={[styles.option, row.name === head?.branch && styles.optionActive]}>
-                    <Text style={[styles.optionText, row.name === head?.branch && styles.optionTextActive]}>{row.name}</Text>
-                  </Pressable>
-                );
-              }
-              return (
-                <Pressable
-                  key={`remote:${row.label}`}
-                  disabled={busy}
-                  onPress={() => confirmAction(
-                    gitBranchMutationConfirm('checkoutRemote', head, row.label),
-                    () => void runCheckout(row.label),
-                  )}
-                  style={styles.option}>
-                  <Text style={styles.optionText}>{row.label}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-      )}
       {creating && (
         <View style={styles.create}>
           <TextInput
@@ -285,6 +329,8 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranc
 
 const styles = StyleSheet.create({
   wrap: { gap: 8 },
+  modalRoot: { flex: 1 },
+  dismissOverlay: { position: 'absolute', inset: 0, zIndex: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dropdown: {
     flex: 1,
@@ -314,7 +360,7 @@ const styles = StyleSheet.create({
   actionPrimaryText: auText('button', 'buttonCompact'),
   actionDanger: { ...auBox('button', 'buttonDanger', 'buttonCompact'), minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
   actionDangerText: auText('button', 'buttonCompact'),
-  menu: { ...auBox('card'), overflow: 'hidden', paddingHorizontal: 0, paddingVertical: 8, gap: 8 },
+  menu: { ...auBox('card'), overflow: 'hidden', paddingHorizontal: 0, paddingVertical: 8, gap: 8, zIndex: 2, elevation: 8 },
   search: { marginHorizontal: 8, ...auBox('input'), ...auText('input') },
   list: { flexGrow: 0 },
   empty: { ...auText('muted'), paddingHorizontal: 12, paddingVertical: 10 },

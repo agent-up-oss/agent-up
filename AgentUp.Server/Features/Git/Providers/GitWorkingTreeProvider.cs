@@ -550,26 +550,33 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         CancellationToken cancellationToken)
     {
         var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
-        try
-        {
-            await RunGitAsync(repoRoot, arguments, cancellationToken, disablePrompt: true);
-        }
-        catch (InvalidOperationException ex)
-        {
-            throw new InvalidOperationException(MapRemoteError(arguments[0], ex.Message), ex);
-        }
+        await RunGitAsync(repoRoot, arguments, cancellationToken, disablePrompt: true);
     }
 
-    private static string MapRemoteError(string operation, string message)
+    private static string MapGitError(string operation, string stderr)
     {
-        if (message.Contains("non-fast-forward", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("failed to push some refs", StringComparison.OrdinalIgnoreCase))
-            return "The remote rejected a non-fast-forward update.";
+        var message = stderr.Trim();
+        if (message.Contains("Please tell me who you are", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Author identity unknown", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("unable to auto-detect email address", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("user.useConfigOnly", StringComparison.OrdinalIgnoreCase))
+            return "Git user.name and user.email must be configured for this repository before committing.";
 
-        if (message.Contains("no upstream", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("no tracking information", StringComparison.OrdinalIgnoreCase)
-            || message.Contains("has no upstream branch", StringComparison.OrdinalIgnoreCase))
-            return "This branch has no upstream. Push with setUpstream to create one.";
+        if (message.Contains("gpg failed to sign", StringComparison.OrdinalIgnoreCase))
+            return "Git could not sign the commit. Configure signing for the Agent-Up Server process, or disable commit.gpgsign in this repository.";
+
+        if (message.Contains("cannot do a partial commit during a merge", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Committing is not possible because you have unmerged files", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("unmerged files", StringComparison.OrdinalIgnoreCase))
+            return "Finish or abort the in-progress merge before committing selected files.";
+
+        if (message.Contains("would be overwritten by checkout", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Please commit your changes or stash them", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("local changes to the following files would be overwritten", StringComparison.OrdinalIgnoreCase))
+            return "Switch refused because the worktree has conflicting local changes.";
+
+        if (message.Contains("stale info", StringComparison.OrdinalIgnoreCase))
+            return "Force-with-lease failed because the remote branch moved.";
 
         if (message.Contains("Authentication", StringComparison.OrdinalIgnoreCase)
             || message.Contains("Permission denied", StringComparison.OrdinalIgnoreCase)
@@ -578,7 +585,34 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
             || message.Contains("could not read from remote repository", StringComparison.OrdinalIgnoreCase))
             return $"Git {operation} could not authenticate to the remote.";
 
-        return message;
+        if (message.Contains("no upstream", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("no tracking information", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("has no upstream branch", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("No configured push destination", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("no configured push destination", StringComparison.OrdinalIgnoreCase))
+            return "This branch has no upstream. Push with setUpstream to create one.";
+
+        if (string.Equals(operation, "pull", StringComparison.Ordinal)
+            && (message.Contains("Not possible to fast-forward", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("cannot fast-forward", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("Need to specify how to reconcile divergent branches", StringComparison.OrdinalIgnoreCase)))
+            return "Pull could not fast-forward because the branches have diverged.";
+
+        if (message.Contains("non-fast-forward", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("failed to push some refs", StringComparison.OrdinalIgnoreCase))
+            return "The remote rejected a non-fast-forward update.";
+
+        var firstLine = message
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault() ?? string.Empty;
+        if (firstLine.StartsWith("fatal: ", StringComparison.OrdinalIgnoreCase))
+            firstLine = firstLine["fatal: ".Length..];
+        if (firstLine.StartsWith("error: ", StringComparison.OrdinalIgnoreCase))
+            firstLine = firstLine["error: ".Length..];
+
+        return firstLine.Length is > 0 and < 240
+            ? $"Git operation '{operation}' failed: {firstLine}"
+            : $"Git operation '{operation}' failed.";
     }
 
     private static List<string> Concat(string first, params object[] rest)
@@ -606,7 +640,7 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         var allowed = allowedExitCodes ?? [0];
         var result = await RunGitCoreAsync(worktreePath, arguments, cancellationToken, disablePrompt);
         if (!allowed.Contains(result.ExitCode))
-            throw new InvalidOperationException($"Git operation '{arguments[0]}' failed: {result.Stderr.Trim()}");
+            throw new InvalidOperationException(MapGitError(arguments[0], result.Stderr));
 
         return trimOutput ? result.Stdout.TrimEnd() : result.Stdout;
     }
@@ -627,6 +661,7 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
             RedirectStandardError = true,
             UseShellExecute = false
         };
+        SanitizeGitEnvironment(psi.Environment);
         if (disablePrompt)
             psi.Environment["GIT_TERMINAL_PROMPT"] = "0";
         psi.ArgumentList.Add("-C");
@@ -634,26 +669,50 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         foreach (var argument in arguments)
             psi.ArgumentList.Add(argument);
 
-        using var process = Process.Start(psi)
-            ?? throw new InvalidOperationException("Failed to start git process.");
-
-        var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
-        string stdout;
-        string stderr;
+        Process process;
         try
         {
-            await process.WaitForExitAsync(cancellationToken);
-            stdout = await stdoutTask;
-            stderr = await stderrTask;
+            process = Process.Start(psi)
+                ?? throw new InvalidOperationException("Git is not available on this Server host.");
         }
-        catch (OperationCanceledException)
+        catch (Win32Exception ex)
         {
-            await KillProcessAfterCancellationAsync(process);
-            throw;
+            throw new InvalidOperationException("Git is not available on this Server host.", ex);
         }
 
-        return new(process.ExitCode, stdout, stderr);
+        using (process)
+        {
+            var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
+            string stdout;
+            string stderr;
+            try
+            {
+                await process.WaitForExitAsync(cancellationToken);
+                stdout = await stdoutTask;
+                stderr = await stderrTask;
+            }
+            catch (OperationCanceledException)
+            {
+                await KillProcessAfterCancellationAsync(process);
+                throw;
+            }
+
+            return new(process.ExitCode, stdout, stderr);
+        }
+    }
+
+    private static void SanitizeGitEnvironment(IDictionary<string, string?> environment)
+    {
+        foreach (var key in new[]
+        {
+            "GIT_DIR",
+            "GIT_WORK_TREE",
+            "GIT_INDEX_FILE",
+            "GIT_OBJECT_DIRECTORY",
+            "GIT_ALTERNATE_OBJECT_DIRECTORIES"
+        })
+            environment.Remove(key);
     }
 
     private static async Task KillProcessAfterCancellationAsync(Process process)

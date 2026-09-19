@@ -85,8 +85,8 @@ public sealed class GitChangeTreeService
                 {
                     var commit = await _git.CommitAsync(
                         workspace.WorktreePath,
-                        request.Files ?? [],
-                        request.Message ?? string.Empty,
+                        request?.Files ?? [],
+                        request?.Message ?? string.Empty,
                         cancellationToken);
                     return GitCommitResult.Success(commit);
                 }
@@ -109,7 +109,7 @@ public sealed class GitChangeTreeService
             {
                 try
                 {
-                    await _git.DiscardAsync(workspace.WorktreePath, request.Files ?? [], cancellationToken);
+                    await _git.DiscardAsync(workspace.WorktreePath, request?.Files ?? [], cancellationToken);
                     return GitMutationResult.Success();
                 }
                 catch (InvalidOperationException ex)

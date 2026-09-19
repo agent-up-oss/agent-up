@@ -249,6 +249,19 @@ public sealed class GitChangeTreeServiceTests
     }
 
     [Test]
+    public async Task CommitAsync_treatsANullRequestAsAnEmptySelection()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var result = await service.CommitAsync(workspaceId, null!);
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(git.CommittedFiles, Is.Empty);
+        Assert.That(git.CommittedMessage, Is.EqualTo(string.Empty));
+    }
+
+    [Test]
     public async Task CommitAsync_reportsNotFoundForAnUnknownWorkspace()
     {
         var service = CreateService(

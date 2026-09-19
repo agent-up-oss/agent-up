@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import {
   formatGitLogTime,
   formatGitLogTimestamp,
+  gitLogColumnUsesSelectedChrome,
   gitLogGraphEdges,
   gitLogLaneX,
   layoutGitLog,
@@ -55,6 +56,11 @@ test('formatGitLogTime uses relative and calendar buckets', () => {
 
 test('formatGitLogTimestamp uses a fixed-width calendar clock', () => {
   assert.equal(formatGitLogTimestamp(new Date(2026, 8, 16, 16, 28, 0).toISOString()), '16.09.26 16:28');
+});
+
+test('gitLogColumnUsesSelectedChrome keeps selection on the timestamp only', () => {
+  assert.equal(gitLogColumnUsesSelectedChrome('timestamp'), true);
+  assert.equal(gitLogColumnUsesSelectedChrome('graph'), false);
 });
 
 test('classifyGitLogRef treats names absent from local branches as tags', () => {

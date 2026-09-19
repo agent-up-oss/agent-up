@@ -5,6 +5,7 @@ import {
   GIT_BRANCH_PICKER_VISIBLE_ROWS,
   filterGitBranchPickerRows,
   gitBranchMutationConfirm,
+  gitBranchPickerClosesFromPointer,
   gitBranchPickerViewportHeight,
   gitFetchRemoteLabel,
   gitUpstreamLabel,
@@ -63,6 +64,12 @@ test('filterGitBranchPickerRows matches a remote prefix and omits empty groups',
 
 test('filterGitBranchPickerRows returns nothing when the query misses every name', () => {
   assert.deepEqual(filterGitBranchPickerRows(['main'], remotes, 'does-not-exist'), []);
+});
+
+test('gitBranchPickerClosesFromPointer dismisses overlay presses only', () => {
+  assert.equal(gitBranchPickerClosesFromPointer('overlay'), true);
+  assert.equal(gitBranchPickerClosesFromPointer('search'), false);
+  assert.equal(gitBranchPickerClosesFromPointer('list'), false);
 });
 
 test('gitBranchMutationConfirm names fetch, pull, push, and force-push remotes', () => {

@@ -7,6 +7,12 @@ export const GIT_LOG_NODE_RADIUS = 3.5;
 export const GIT_LOG_PAGE_SIZE = 200;
 export const GIT_LOG_TIME_WIDTH = 108;
 
+export type GitLogChromeColumn = 'timestamp' | 'graph';
+
+export function gitLogColumnUsesSelectedChrome(column: GitLogChromeColumn): boolean {
+  return column === 'timestamp';
+}
+
 export function classifyGitLogRef(name: string, localBranches: readonly string[] = []): GitLogRef {
   if (name === 'HEAD') return { name, kind: 'head' };
   if (name.includes('/')) return { name, kind: 'remote' };
