@@ -51,7 +51,6 @@ permissions:
   contents: read
 
 env:
-  MOBILE_STORE_ID: com.massivecreationlab.agentup
   BUNDLETOOL_VERSION: "1.18.1"
 
 jobs:
@@ -263,7 +262,7 @@ jobs:
         working-directory: AgentUp.Mobile
         env:
           ANDROID_AAB_PATH: ${{ github.workspace }}/artifacts/mobile/${{ needs.version.outputs.artifact_name }}.aab
-          ANDROID_PACKAGE_NAME: com.massivecreationlab.agentup
+          ANDROID_PACKAGE_NAME: net.themassiveone.agent-up.android
           GOOGLE_PLAY_KEY_FILE_PATH: ${{ runner.temp }}/google-play.json
         run: bundle exec fastlane android ${{ needs.version.outputs.lane }}
 
@@ -293,7 +292,7 @@ jobs:
       AGENTUP_MOBILE_VERSION: ${{ needs.version.outputs.version }}
       AGENTUP_MOBILE_VERSION_CODE: ${{ needs.version.outputs.version_code }}
       EXPO_NO_TELEMETRY: "1"
-      IOS_BUNDLE_ID: com.massivecreationlab.agentup
+      IOS_BUNDLE_ID: net.themassiveone.agent-up.ios
     steps:
       - uses: actions/checkout@v7
 
