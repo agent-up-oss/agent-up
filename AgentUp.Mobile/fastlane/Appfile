@@ -3,6 +3,6 @@ for_platform :ios do
 end
 
 for_platform :android do
-  package_name(ENV.fetch("ANDROID_PACKAGE_NAME", "net.themassiveone.agent-up.android"))
+  package_name(ENV.fetch("ANDROID_PACKAGE_NAME", "net.themassiveone.agentup.android"))
   json_key_file(ENV["GOOGLE_PLAY_KEY_FILE_PATH"]) unless ENV["GOOGLE_PLAY_KEY_FILE_PATH"].to_s.strip.empty?
 end

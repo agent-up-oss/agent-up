@@ -262,7 +262,7 @@ jobs:
         working-directory: AgentUp.Mobile
         env:
           ANDROID_AAB_PATH: ${{ github.workspace }}/artifacts/mobile/${{ needs.version.outputs.artifact_name }}.aab
-          ANDROID_PACKAGE_NAME: net.themassiveone.agent-up.android
+          ANDROID_PACKAGE_NAME: net.themassiveone.agentup.android
           GOOGLE_PLAY_KEY_FILE_PATH: ${{ runner.temp }}/google-play.json
         run: bundle exec fastlane android ${{ needs.version.outputs.lane }}
 
