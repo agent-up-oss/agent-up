@@ -15,6 +15,7 @@ const sidebars = {
         'repo/au-debug',
         'repo/telemetry',
         'repo/ci-configuration',
+        'repo/mobile-store-release',
       ],
     },
     {

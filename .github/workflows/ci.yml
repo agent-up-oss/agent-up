@@ -1,6 +1,12 @@
 name: Agent-Up CI
 
-on: [push]
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - android-v*
+      - ios-v*
 
 # Runs on main share one group and never cancel, so every commit that can release is built.
 # Everywhere else the newest push wins: a branch run that a later push has already superseded

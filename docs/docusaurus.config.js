@@ -146,6 +146,7 @@ const config = {
           { from: '/developer-guide/au-debug', to: '/developer-guide/repo/au-debug' },
           { from: '/developer-guide/telemetry', to: '/developer-guide/repo/telemetry' },
           { from: '/developer-guide/ci-configuration', to: '/developer-guide/repo/ci-configuration' },
+          { from: '/developer-guide/mobile-store-release', to: '/developer-guide/repo/mobile-store-release' },
           { from: '/developer-guide/server', to: '/developer-guide/workspaces' },
           { from: '/developer-guide/desktop', to: '/developer-guide/workspaces' },
           { from: '/developer-guide/mobile', to: '/developer-guide/workspaces' },

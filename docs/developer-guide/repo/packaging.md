@@ -10,6 +10,8 @@ Packaged installations install Agent-Up as three user-visible components backed 
 - `AgentUp.CLI` is available globally as `agent-up`.
 - `AgentUp.Desktop` is installed in the native application location.
 
+Android and iOS store binaries are not desktop installer artifacts. They ship from [Mobile store release](./mobile-store-release.md) on `workflow_dispatch`.
+
 Installer and packaging behavior is product behavior and must be testable. Product-neutral installer planning, payload, adapter, progress, validation, per-component install/update/uninstall/repair, platform install contracts, release artifact staging, native tool orchestration, and package smoke validation live in the `LocalInstaller.*` libraries with matching `LocalInstaller.*.Tests` projects. `AgentUp.InstallerApp`, `AgentUp.Packaging`, and `AgentUp.PackageSmoke` are thin Agent-Up entrypoints that register typed product and artifact manifests through the LocalInstaller fluent API and delegate to those LocalInstaller libraries. Native package assets live under `packaging/` and should consume shared installer contracts instead of growing untested platform-only logic.
 
 Each installable executable owns its own LocalInstaller artifact manifest. Packager, Smoke, and InstallerApp compose products by calling `UseProductManifest<T>()` plus `InstallerOptionCli<T>()`, `InstallerOptionServer<T>()`, `InstallerOptionDesktop<T>()`, `InstallerOptionTray<T>()`, and `InstallerApplication<T>()` where applicable. Multiple options may use the same target category, but each option must have a unique artifact ID so payload staging and command-line component selection can address it directly.

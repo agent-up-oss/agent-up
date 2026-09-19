@@ -292,6 +292,7 @@ history. Clients must not start an agent CLI directly.
 Expo Router entrypoints live under `AgentUp.Mobile/src/app/`. Product UI and client behavior live in feature-oriented slices under `AgentUp.Mobile/src/features/`, following the same capability-oriented organization used by the .NET clients.
 
 Mobile development environment and platform commands are documented in [Workspaces](/developer-guide/workspaces).
+Android and iOS native CI and store shipping are documented in [Mobile store release](mobile-store-release.md).
 
 `AgentUp.CLI` is a developer convenience wrapper. It forwards commands to the Server and owns no runtime or orchestration state. The legacy local commit queue file is the documented exception until `commits.enabled` migration finishes.
 

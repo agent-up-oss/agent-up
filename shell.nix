@@ -6,8 +6,11 @@ pkgs.mkShell {
   # not through the standard NixOS ld wrapper.
   # xorg.xvfb provides the virtual framebuffer X server used by E2E tests when
   # no real display is available (CI and headless environments).
+  # zip and unzip are used by mobile IPA artifact verification.
   buildInputs = with pkgs; [
     nodejs_22
+    zip
+    unzip
     alsa-lib
     at-spi2-atk
     cairo
