@@ -13,6 +13,10 @@ to Play or App Store Connect and does not create `android-v*` / `ios-v*` GitHub
 releases. Dispatch the same workflow on the branch that already has a product
 `vX.Y.Z` tag to publish.
 
+After validation, each platform job uploads the signed AAB or IPA plus checksum
+to GitHub Actions artifacts (`mobile-android`, `mobile-ios`) with 1-day
+retention, including on smoke, before any Play or App Store Connect submit.
+
 The workflow runs Mobile typechecking, provider and script tests, and a web
 export in a dedicated Ubuntu job before either native build. Dependency
 installation runs the design-system generator with `--check` so stale committed

@@ -251,6 +251,15 @@ jobs:
             aab \
             "$RUNNER_TEMP/bundletool.jar"
 
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mobile-android
+          path: |
+            artifacts/mobile/${{ needs.version.outputs.artifact_name }}.aab
+            artifacts/mobile/${{ needs.version.outputs.artifact_name }}.aab.sha256
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Write Play service account
         if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
@@ -363,6 +372,15 @@ jobs:
           bash .github/scripts/verify-mobile-artifact.sh \
             "artifacts/mobile/${{ needs.version.outputs.artifact_name }}.ipa" \
             ipa
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mobile-ios
+          path: |
+            artifacts/mobile/${{ needs.version.outputs.artifact_name }}.ipa
+            artifacts/mobile/${{ needs.version.outputs.artifact_name }}.ipa.sha256
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Upload to App Store Connect
         if: ${{ github.event_name == 'workflow_dispatch' }}
