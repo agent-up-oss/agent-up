@@ -6,6 +6,7 @@ using AgentUp.Server.Features.Commits.Services;
 using AgentUp.Server.Features.Verification.Controllers;
 using AgentUp.Server.Features.Verification.Services;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 using AgentUp.Verification.Features.Verification.Models;
 using AgentUp.Verification.Features.Verification.Providers;
 using AgentUp.Verification.Features.Verification.Services;
@@ -24,7 +25,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider();
         var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("MySlice", "feat(MySlice): add thing", ["a.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue().For("MySlice").Saying("feat(MySlice): add thing").Touching(["a.cs"]).Build());
 
         Assert.That(result.Succeeded, Is.True);
         Assert.That(queue.Stored!.Commits, Has.Count.EqualTo(1));
@@ -36,11 +37,14 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task EnqueueAsync_appendsToExistingQueue()
     {
-        var existing = new CommitsQueue(1, [new CommitEntry("First", "fix(First): first", ["x.cs"])]);
+        var existing = ServerDomain.Queue()
+            .AtVersion(1)
+            .With(ServerDomain.CommitEntry().For("First").Saying("fix(First): first").Touching(["x.cs"]).Build())
+            .Build();
         var queue = new FakeCommitsQueueProvider(existing);
         var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Second", "fix(Second): second", ["y.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue().For("Second").Saying("fix(Second): second").Touching(["y.cs"]).Build());
 
         Assert.That(result.Succeeded, Is.True);
         Assert.That(queue.Stored!.Commits, Has.Count.EqualTo(2));
@@ -53,7 +57,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider();
         var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue().For("S").Saying("refactor(S): update queue").Touching(["a.cs"]).Build());
 
         Assert.That(result.QueueSize, Is.EqualTo(1));
     }
@@ -71,7 +75,7 @@ public sealed class CommitsServiceTests
             new EnabledConfigurationProvider(),
             null);
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue().For("S").Saying("refactor(S): update queue").Touching(["a.cs"]).Build());
 
         Assert.Multiple(() =>
         {
@@ -107,7 +111,7 @@ public sealed class CommitsServiceTests
             new EnabledConfigurationProvider(),
             verification);
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue().For("S").Saying("refactor(S): update queue").Touching(["a.cs"]).Build());
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("requires a configured verification section"));
     }
@@ -115,14 +119,22 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task EnqueueAsync_keepsProposalModeAfterTheFlagIsDisabled()
     {
-        var existing = new CommitsQueue(
-            3,
-            [new CommitEntry("S", "refactor(S): first", ["a.cs"], "entry-1", "entry-1", ProposalCommit: "proposal")],
-            QueueId: "queue-1",
-            BaseCommit: "base",
-            TipCommit: "proposal",
-            QueueWorktreePath: "/managed/queue",
-            Generation: 1);
+        var existing = ServerDomain.Queue()
+            .AtVersion(3)
+            .With(ServerDomain.CommitEntry()
+                .For("S")
+                .Saying("refactor(S): first")
+                .Touching(["a.cs"])
+                .WithId("entry-1")
+                .WithPatchId("entry-1")
+                .WithProposalCommit("proposal")
+                .Build())
+            .WithQueueId("queue-1")
+            .WithBaseCommit("base")
+            .WithTipCommit("proposal")
+            .InWorktree("/managed/queue")
+            .AtGeneration(1)
+            .Build();
         var queue = new FakeCommitsQueueProvider(existing);
         var proposals = new FakeProposalStackGitProvider();
         var service = new CommitsService(
@@ -133,7 +145,7 @@ public sealed class CommitsServiceTests
             new DisabledConfigurationProvider(),
             null);
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): second", ["b.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue().For("S").Saying("refactor(S): second").Touching(["b.cs"]).Build());
 
         Assert.Multiple(() =>
         {
@@ -151,7 +163,7 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider();
         var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue().For("S").Saying("refactor(S): update queue").Touching(["a.cs"]).Build());
 
         Assert.That(result.Message, Does.Contain("Enqueued 'S'. Queue size: 1."));
         Assert.That(result.Message, Does.Contain("The tracked files have been restored to their pre-change state"));
@@ -166,7 +178,7 @@ public sealed class CommitsServiceTests
         var git = new FakeCommitsGitProvider();
         var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
-        await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"]));
+        await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue().For("S").Saying("refactor(S): update queue").Touching(["a.cs"]).Build());
 
         Assert.That(git.DiffRequested, Is.True);
         Assert.That(git.FilesRestored, Is.True);
@@ -179,7 +191,7 @@ public sealed class CommitsServiceTests
         var git = new FakeCommitsGitProvider(restoreException: new IOException("restore failed"));
         var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue().For("S").Saying("refactor(S): update queue").Touching(["a.cs"]).Build());
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(queue.Stored!.Commits, Is.Empty);
@@ -190,10 +202,13 @@ public sealed class CommitsServiceTests
     public async Task EnqueueAsync_failsWhenActiveSessionExists()
     {
         var queue = new FakeCommitsQueueProvider(
-            new CommitsQueue(2, [], new CommitEditSession("entry-1", "entry-1", ["a.cs"])));
+            ServerDomain.Queue()
+                .AtVersion(2)
+                .WithActiveSession(new CommitEditSession("entry-1", "entry-1", ["a.cs"]))
+                .Build());
         var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["b.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue().For("S").Saying("refactor(S): update queue").Touching(["b.cs"]).Build());
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("edit session"));
@@ -202,12 +217,18 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task EnqueueAsync_failsWhenFileAlreadyAssignedToAnotherEntry()
     {
-        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
-            new CommitEntry("First", "fix(First): first", ["a.cs"], "entry-1")
-        ]));
+        var queue = new FakeCommitsQueueProvider(ServerDomain.Queue()
+            .AtVersion(1)
+            .With(ServerDomain.CommitEntry()
+                .For("First")
+                .Saying("fix(First): first")
+                .Touching(["a.cs"])
+                .WithId("entry-1")
+                .Build())
+            .Build());
         var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Second", "fix(Second): second", ["a.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue().For("Second").Saying("fix(Second): second").Touching(["a.cs"]).Build());
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("a.cs"));
@@ -220,7 +241,7 @@ public sealed class CommitsServiceTests
         var git = new FakeCommitsGitProvider(operationState: new GitOperationState("merge", true));
         var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("S", "refactor(S): update queue", ["a.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue().For("S").Saying("refactor(S): update queue").Touching(["a.cs"]).Build());
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("Git merge"));
@@ -232,7 +253,7 @@ public sealed class CommitsServiceTests
     {
         var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "build(commits): cover queue", ["a.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue().For("Commits").Saying("build(commits): cover queue").Touching(["a.cs"]).Build());
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("feat, fix, test, chore, refactor, style, docs"));
@@ -243,7 +264,7 @@ public sealed class CommitsServiceTests
     {
         var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "fix: validate queue", ["a.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue().For("Commits").Saying("fix: validate queue").Touching(["a.cs"]).Build());
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("must include a scope"));
@@ -254,7 +275,7 @@ public sealed class CommitsServiceTests
     {
         var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "fix(Workspaces): validate queue", ["a.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue().For("Commits").Saying("fix(Workspaces): validate queue").Touching(["a.cs"]).Build());
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("does not match queued slice"));
@@ -266,12 +287,13 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider();
         var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest(
-            "SmokeRuns",
-            "test(SmokeRuns): cover package smoke validation",
-            [
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue()
+            .For("SmokeRuns")
+            .Saying("test(SmokeRuns): cover package smoke validation")
+            .Touching([
                 "AgentUp.PackageSmoke/Features/SmokeRuns/Services/SmokeRunService.cs"
-            ]));
+            ])
+            .Build());
 
         Assert.That(result.Succeeded, Is.True);
     }
@@ -281,10 +303,11 @@ public sealed class CommitsServiceTests
     {
         var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest(
-            "Commits",
-            "test(Commits): cover queue validation",
-            ["AgentUp.Server/Features/Commits/Services/CommitsService.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue()
+            .For("Commits")
+            .Saying("test(Commits): cover queue validation")
+            .Touching(["AgentUp.Server/Features/Commits/Services/CommitsService.cs"])
+            .Build());
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("test commits may only include test or smoke-validation files"));
@@ -295,10 +318,11 @@ public sealed class CommitsServiceTests
     {
         var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest(
-            "Commits",
-            "chore(Commits): tune queue internals",
-            ["AgentUp.Server/Features/Commits/Services/CommitsService.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue()
+            .For("Commits")
+            .Saying("chore(Commits): tune queue internals")
+            .Touching(["AgentUp.Server/Features/Commits/Services/CommitsService.cs"])
+            .Build());
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("chore commits may only include maintenance"));
@@ -310,10 +334,11 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider();
         var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest(
-            "ci",
-            "chore(ci): update release workflow",
-            [".github/workflows/release.yml", "packaging/linux/agent-up-server.service"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue()
+            .For("ci")
+            .Saying("chore(ci): update release workflow")
+            .Touching([".github/workflows/release.yml", "packaging/linux/agent-up-server.service"])
+            .Build());
 
         Assert.That(result.Succeeded, Is.True);
     }
@@ -323,7 +348,11 @@ public sealed class CommitsServiceTests
     {
         var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "docs(commits): explain queue", ["AgentUp.Server/Features/Commits/Services/CommitsService.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue()
+            .For("Commits")
+            .Saying("docs(commits): explain queue")
+            .Touching(["AgentUp.Server/Features/Commits/Services/CommitsService.cs"])
+            .Build());
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("docs commits may only include documentation files"));
@@ -335,7 +364,11 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider();
         var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("guidance", "docs(guidance): explain queue", ["docs/developer-guide/mcp.md", "AGENTS.md"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue()
+            .For("guidance")
+            .Saying("docs(guidance): explain queue")
+            .Touching(["docs/developer-guide/mcp.md", "AGENTS.md"])
+            .Build());
 
         Assert.That(result.Succeeded, Is.True);
         Assert.That(queue.Stored!.Commits.Single().Message, Is.EqualTo("docs(guidance): explain queue"));
@@ -346,7 +379,11 @@ public sealed class CommitsServiceTests
     {
         var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("ui", "style(ui): tune layout", ["AgentUp.Desktop/Features/Workspaces/ViewModels/MainViewModel.cs"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue()
+            .For("ui")
+            .Saying("style(ui): tune layout")
+            .Touching(["AgentUp.Desktop/Features/Workspaces/ViewModels/MainViewModel.cs"])
+            .Build());
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("style commits may only include CSS or HTML files"));
@@ -358,7 +395,11 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider();
         var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("docs-style", "style(docs-style): tune layout", ["docs/src/css/custom.css", "docs/static/index.html"]));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue()
+            .For("docs-style")
+            .Saying("style(docs-style): tune layout")
+            .Touching(["docs/src/css/custom.css", "docs/static/index.html"])
+            .Build());
 
         Assert.That(result.Succeeded, Is.True);
         Assert.That(queue.Stored!.Commits.Single().Files, Is.EqualTo(new[] { "docs/src/css/custom.css", "docs/static/index.html" }));
@@ -369,13 +410,14 @@ public sealed class CommitsServiceTests
     {
         var service = new CommitsService(new FakeCommitsQueueProvider(), new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest(
-            "Commits",
-            "fix(Commits): queue",
-            [
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue()
+            .For("Commits")
+            .Saying("fix(Commits): queue")
+            .Touching([
                 "AgentUp.Server/Features/Commits/Services/CommitsService.cs",
                 "AgentUp.Server/Features/Workspaces/Services/WorkspaceRegistry.cs"
-            ]));
+            ])
+            .Build());
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("multiple feature slices"));
@@ -387,13 +429,14 @@ public sealed class CommitsServiceTests
         var queue = new FakeCommitsQueueProvider();
         var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest(
-            "fix/commits",
-            "fix(commits): guard queue",
-            [
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue()
+            .For("fix/commits")
+            .Saying("fix(commits): guard queue")
+            .Touching([
                 "AgentUp.Server/Features/Commits/Services/CommitsService.cs",
                 "AgentUp.Server.Tests/Features/Commits/Unit/CommitsServiceTests.cs"
-            ]));
+            ])
+            .Build());
 
         Assert.That(result.Succeeded, Is.True);
         Assert.That(queue.Stored!.Commits.Single().Slice, Is.EqualTo("fix/commits"));
@@ -402,12 +445,25 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task EnqueueAsync_rejectsDuplicateReviewIssueId()
     {
-        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
-            new CommitEntry("Commits", "fix(Commits): first", ["a.cs"], "entry-1", "patch-1", "review-1")
-        ]));
+        var queue = new FakeCommitsQueueProvider(ServerDomain.Queue()
+            .AtVersion(1)
+            .With(ServerDomain.CommitEntry()
+                .For("Commits")
+                .Saying("fix(Commits): first")
+                .Touching(["a.cs"])
+                .WithId("entry-1")
+                .WithPatchId("patch-1")
+                .WithReviewIssue("review-1")
+                .Build())
+            .Build());
         var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "fix(Commits): second", ["b.cs"], "review-1"));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue()
+            .For("Commits")
+            .Saying("fix(Commits): second")
+            .Touching(["b.cs"])
+            .WithReviewIssue("review-1")
+            .Build());
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("review-1"));
@@ -416,12 +472,25 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task EnqueueAsync_rejectsDuplicateReviewIssueIdWithDifferentWhitespace()
     {
-        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
-            new CommitEntry("Commits", "fix(Commits): first", ["a.cs"], "entry-1", "patch-1", " review-1 ")
-        ]));
+        var queue = new FakeCommitsQueueProvider(ServerDomain.Queue()
+            .AtVersion(1)
+            .With(ServerDomain.CommitEntry()
+                .For("Commits")
+                .Saying("fix(Commits): first")
+                .Touching(["a.cs"])
+                .WithId("entry-1")
+                .WithPatchId("patch-1")
+                .WithReviewIssue(" review-1 ")
+                .Build())
+            .Build());
         var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
-        var result = await service.EnqueueAsync(WorktreePath, new EnqueueRequest("Commits", "fix(Commits): second", ["b.cs"], "review-1"));
+        var result = await service.EnqueueAsync(WorktreePath, ServerDomain.Enqueue()
+            .For("Commits")
+            .Saying("fix(Commits): second")
+            .Touching(["b.cs"])
+            .WithReviewIssue("review-1")
+            .Build());
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("review-1"));
@@ -430,9 +499,15 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task UpdateMessageAsync_rejectsDocsPrefixForRuntimeEntry()
     {
-        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
-            new CommitEntry("Commits", "fix(commits): validate prefix", ["AgentUp.Server/Features/Commits/Services/CommitsService.cs"], "entry-1")
-        ]));
+        var queue = new FakeCommitsQueueProvider(ServerDomain.Queue()
+            .AtVersion(1)
+            .With(ServerDomain.CommitEntry()
+                .For("Commits")
+                .Saying("fix(commits): validate prefix")
+                .Touching(["AgentUp.Server/Features/Commits/Services/CommitsService.cs"])
+                .WithId("entry-1")
+                .Build())
+            .Build());
         var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.UpdateMessageAsync(WorktreePath, "1", "docs(commits): explain prefix");
@@ -456,9 +531,10 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task GetStatusAsync_returnsQueuedEntries()
     {
-        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
-            new CommitEntry("Slice", "msg", ["a.cs"])
-        ]));
+        var queue = new FakeCommitsQueueProvider(ServerDomain.Queue()
+            .AtVersion(1)
+            .With(ServerDomain.CommitEntry().For("Slice").Saying("msg").Touching(["a.cs"]).Build())
+            .Build());
         var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.GetStatusAsync(WorktreePath);
@@ -470,9 +546,10 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task GetStatusAsync_flagsModifiedFilesNotInAnyEntry()
     {
-        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
-            new CommitEntry("Slice", "msg", ["owned.cs"])
-        ]));
+        var queue = new FakeCommitsQueueProvider(ServerDomain.Queue()
+            .AtVersion(1)
+            .With(ServerDomain.CommitEntry().For("Slice").Saying("msg").Touching(["owned.cs"]).Build())
+            .Build());
         var git = new FakeCommitsGitProvider(modifiedFiles: ["owned.cs", "unassigned.cs"]);
         var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
@@ -484,9 +561,10 @@ public sealed class CommitsServiceTests
     [Test]
     public async Task GetStatusAsync_doesNotFlagAssignedFiles()
     {
-        var queue = new FakeCommitsQueueProvider(new CommitsQueue(1, [
-            new CommitEntry("Slice", "msg", ["a.cs", "b.cs"])
-        ]));
+        var queue = new FakeCommitsQueueProvider(ServerDomain.Queue()
+            .AtVersion(1)
+            .With(ServerDomain.CommitEntry().For("Slice").Saying("msg").Touching(["a.cs", "b.cs"]).Build())
+            .Build());
         var git = new FakeCommitsGitProvider(modifiedFiles: ["a.cs", "b.cs"]);
         var service = new CommitsService(queue, git, new CommitPolicyProvider());
 
@@ -499,7 +577,7 @@ public sealed class CommitsServiceTests
     public async Task GetStatusAsync_returnsActiveSession()
     {
         var session = new CommitEditSession("entry-1", "entry-1", ["a.cs"]);
-        var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [], session));
+        var queue = new FakeCommitsQueueProvider(ServerDomain.Queue().AtVersion(2).WithActiveSession(session).Build());
         var service = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
 
         var result = await service.GetStatusAsync(WorktreePath);

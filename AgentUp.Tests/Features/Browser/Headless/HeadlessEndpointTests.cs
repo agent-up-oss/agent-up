@@ -42,28 +42,52 @@ public sealed class HeadlessEndpointTests : IDisposable
     }
 
     [Test]
-    public async Task Viewer_endpoint_returns_html_with_canvas_and_workspaceId()
+    public async Task Viewer_endpoint_returns_html()
     {
-        var response = await _client.GetAsync("/api/browser/rdp-viewer?workspaceId=test-ws");
+        var response = await _client.GetAsync(ViewerPath);
 
         Assert.That((int)response.StatusCode, Is.EqualTo(200));
         Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("text/html"));
+    }
 
-        var body = await response.Content.ReadAsStringAsync();
+    [Test]
+    public async Task Viewer_page_drawsTheStreamIntoACanvasItDrivesItself()
+    {
+        var body = await ViewerBodyAsync();
+
         Assert.Multiple(() =>
         {
             Assert.That(body, Does.Contain("<canvas"));
-            // workspaceId is NOT interpolated into the HTML; the JS reads it from location.search.
-            Assert.That(body, Does.Contain("location.search"));
-            Assert.That(body, Does.Contain("/api/browser/rdp/"));
-            Assert.That(body, Does.Contain("id=\"ai-badge\""));
             // connectStream() was replaced by the JS state machine (window.__viewer).
             Assert.That(body, Does.Contain("window.__viewer"));
+            Assert.That(body, Does.Contain("/api/browser/rdp/"));
+            Assert.That(body, Does.Contain("setTimeout"));
+            Assert.That(body, Does.Contain("id=\"ai-badge\""));
+        });
+    }
+
+    // The workspace id is never interpolated into the HTML, and the token never leaves the
+    // fragment: the page reads both from the URL in the browser instead.
+    [Test]
+    public async Task Viewer_page_readsTheWorkspaceAndTokenFromTheUrlRatherThanTheMarkup()
+    {
+        var body = await ViewerBodyAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(body, Does.Contain("location.search"));
             Assert.That(body, Does.Contain("location.hash.slice(1)"));
             Assert.That(body, Does.Contain("agent-up.auth."));
             Assert.That(body, Does.Contain("Authorization"));
-            Assert.That(body, Does.Contain("setTimeout"));
         });
+    }
+
+    private const string ViewerPath = "/api/browser/rdp-viewer?workspaceId=test-ws";
+
+    private async Task<string> ViewerBodyAsync()
+    {
+        using var response = await _client.GetAsync(ViewerPath);
+        return await response.Content.ReadAsStringAsync();
     }
 
     [Test]

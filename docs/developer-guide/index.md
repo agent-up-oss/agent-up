@@ -18,5 +18,6 @@ Agent-Up is a workspace manager, not an application framework. The Server owns o
 - [MCP](./mcp.md) covers the automation interface.
 - [Commit Merge Queue Assessment](./commit-merge-queue-assessment.md) evaluates a Git-backed, incrementally dependent proposal queue with per-entry verification and human-controlled integration.
 - [Event Recording](./event-recording.md) and [Playwright Generation](./playwright.md) describe validation and test generation.
+- [Testing](./testing.md) sets out how tests are written: builders, shared domain data, and setup that stays in the test.
 - [CI Configuration](./ci-configuration.md) documents repository secrets and variables for signing and release.
 - [Product telemetry](./telemetry.md) describes Sentry error reporting for Agent-Up processes.

@@ -19,7 +19,7 @@ public sealed class WorkspaceEventClientTests
     [AvaloniaTest]
     public async Task WorkspaceEvents_debounceSupersededWorkspaceRefreshes()
     {
-        using var server = new WorkspaceEventTestServer([WorkspaceFixtures.WithHttpPort("ws-1", 10000)]);
+        using var server = new WorkspaceEventTestServer([DesktopDomain.WorkspaceServing(10000).Build()]);
         using var http = new HttpClient { BaseAddress = new Uri(server.BaseUrl) };
         var sidebar = await CreateLoadedSidebarAsync(http);
         using var events = new WorkspaceEventClient(http, sidebar);
@@ -27,9 +27,9 @@ public sealed class WorkspaceEventClientTests
         events.Start();
         await server.WaitForEventSubscriberAsync();
 
-        server.SetWorkspace(WorkspaceFixtures.WithHttpPort("ws-1", 10100));
+        server.SetWorkspace(DesktopDomain.WorkspaceServing(10100).Build());
         await server.EmitWorkspaceEventAsync("ws-1", "Running", [("App", "Running")]);
-        server.SetWorkspace(WorkspaceFixtures.WithHttpPort("ws-1", 10200));
+        server.SetWorkspace(DesktopDomain.WorkspaceServing(10200).Build());
         await server.EmitWorkspaceEventAsync("ws-1", "Running", [("App", "Running")]);
 
         await WaitUntilAsync(() => server.WorkspaceGetCount("ws-1") == 1
@@ -42,7 +42,7 @@ public sealed class WorkspaceEventClientTests
     [AvaloniaTest]
     public async Task Stop_cancelsPendingWorkspaceRefresh()
     {
-        using var server = new WorkspaceEventTestServer([WorkspaceFixtures.WithHttpPort("ws-1", 10000)]);
+        using var server = new WorkspaceEventTestServer([DesktopDomain.WorkspaceServing(10000).Build()]);
         using var http = new HttpClient { BaseAddress = new Uri(server.BaseUrl) };
         var sidebar = await CreateLoadedSidebarAsync(http);
         using var events = new WorkspaceEventClient(http, sidebar);
@@ -50,7 +50,7 @@ public sealed class WorkspaceEventClientTests
         events.Start();
         await server.WaitForEventSubscriberAsync();
 
-        server.SetWorkspace(WorkspaceFixtures.WithHttpPort("ws-1", 10200));
+        server.SetWorkspace(DesktopDomain.WorkspaceServing(10200).Build());
         await server.EmitWorkspaceEventAsync("ws-1", "Running", [("App", "Running")]);
         events.Stop();
         await Task.Delay(400);
@@ -62,7 +62,7 @@ public sealed class WorkspaceEventClientTests
     [AvaloniaTest]
     public async Task WorkspaceEvents_removeDeletedWorkspaceFromSidebar()
     {
-        using var server = new WorkspaceEventTestServer([WorkspaceFixtures.WithHttpPort("ws-1", 10000)]);
+        using var server = new WorkspaceEventTestServer([DesktopDomain.WorkspaceServing(10000).Build()]);
         using var http = new HttpClient { BaseAddress = new Uri(server.BaseUrl) };
         var sidebar = await CreateLoadedSidebarAsync(http);
         using var events = new WorkspaceEventClient(http, sidebar);

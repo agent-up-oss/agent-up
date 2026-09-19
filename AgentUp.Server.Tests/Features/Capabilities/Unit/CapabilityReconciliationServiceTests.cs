@@ -1,6 +1,7 @@
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Ports.DTOs;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Capabilities.Unit;
 
@@ -11,7 +12,7 @@ public sealed class CapabilityReconciliationServiceTests
     public async Task Missing_dotnet_adapter_returns_an_unrunnable_application_with_declared_metadata()
     {
         var service = new CapabilityReconciliationService([]);
-        var ports = new[] { new PortDeclaration("WEB_PORT", 5000, "http") };
+        var ports = new[] { ServerDomain.Port().Named("WEB_PORT").On(5000).Build() };
         var allocated = new[] { new PortMapping("WEB_PORT", 5000, 12000, "http") };
 
         var result = await service.ReconcileDotnetAsync(

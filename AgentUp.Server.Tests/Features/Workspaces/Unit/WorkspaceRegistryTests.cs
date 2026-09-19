@@ -6,6 +6,7 @@ using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Workspaces.Unit;
 
@@ -29,12 +30,13 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_ReturnsWorkspace_WithAllSuppliedFields()
     {
-        var request = new RegisterWorkspaceRequest(
-            DisplayName: "Agent 1",
-            RepositoryPath: "/repos/app",
-            WorktreePath: "/repos/app/.worktrees/agent-1",
-            Branch: "feature/auth",
-            Commit: "abc1234");
+        var request = ServerDomain.Workspace()
+            .Named("Agent 1")
+            .WithRepositoryPath("/repos/app")
+            .WithWorktreePath("/repos/app/.worktrees/agent-1")
+            .OnBranch("feature/auth")
+            .AtCommit("abc1234")
+            .Build();
 
         var workspace = await _registry.RegisterAsync(request);
 
@@ -48,7 +50,7 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_AssignsNonEmptyId()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace().Build());
 
         Assert.That(workspace.Id, Is.Not.Empty);
     }
@@ -56,8 +58,8 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_AssignsUniqueIds()
     {
-        var a = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
-        var b = await _registry.RegisterAsync(new RegisterWorkspaceRequest("B", "/r", "/r/b", "main", "c2"));
+        var a = await _registry.RegisterAsync(ServerDomain.Workspace().Build());
+        var b = await _registry.RegisterAsync(ServerDomain.SecondWorkspace().Build());
 
         Assert.That(a.Id, Is.Not.EqualTo(b.Id));
     }
@@ -65,8 +67,8 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_SameWorktreePath_RetainsId_AndDoesNotDuplicate()
     {
-        var first = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
-        var second = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c2"));
+        var first = await _registry.RegisterAsync(ServerDomain.Workspace().Build());
+        var second = await _registry.RegisterAsync(ServerDomain.Workspace().AtCommit(ServerDomain.SecondCommit).Build());
 
         Assert.That(second.Id, Is.EqualTo(first.Id));
         Assert.That(_registry.GetAll(), Has.Count.EqualTo(1));
@@ -75,21 +77,25 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_SameWorktreePath_UpdatesFields()
     {
-        await _registry.RegisterAsync(new RegisterWorkspaceRequest("Old Name", "/r", "/r/a", "main", "c1"));
-        var updated = await _registry.RegisterAsync(new RegisterWorkspaceRequest("New Name", "/r", "/r/a", "feature", "c2"));
+        await _registry.RegisterAsync(ServerDomain.Workspace().Named("Old Name").Build());
+        var updated = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("New Name")
+            .OnBranch("feature")
+            .AtCommit(ServerDomain.SecondCommit)
+            .Build());
 
         Assert.That(updated.DisplayName, Is.EqualTo("New Name"));
         Assert.That(updated.Branch, Is.EqualTo("feature"));
-        Assert.That(updated.Commit, Is.EqualTo("c2"));
+        Assert.That(updated.Commit, Is.EqualTo(ServerDomain.SecondCommit));
     }
 
     [Test]
     public async Task Register_SameWorktreePath_ResetsStateTo_Stopped()
     {
-        var first = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var first = await _registry.RegisterAsync(ServerDomain.Workspace().Build());
         await _registry.UpdateStateAsync(first.Id, WorkspaceState.Running);
 
-        var second = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c2"));
+        var second = await _registry.RegisterAsync(ServerDomain.Workspace().AtCommit(ServerDomain.SecondCommit).Build());
 
         Assert.That(second.State, Is.EqualTo(WorkspaceState.Stopped));
     }
@@ -97,7 +103,7 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_DefaultsStateTo_Stopped()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace().Build());
 
         Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Stopped));
     }
@@ -105,8 +111,12 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task GetAll_OrdersActiveWorkspacesBeforeInactiveOnes()
     {
-        var first = await _registry.RegisterAsync(new RegisterWorkspaceRequest("Alpha", "/r", "/r/a", "main", "c1"));
-        var second = await _registry.RegisterAsync(new RegisterWorkspaceRequest("Beta", "/r", "/r/b", "main", "c2"));
+        var first = await _registry.RegisterAsync(ServerDomain.Workspace().Named("Alpha").Build());
+        var second = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Beta")
+            .WithWorktreePath(ServerDomain.SecondWorktreePath)
+            .AtCommit(ServerDomain.SecondCommit)
+            .Build());
 
         await _registry.UpdateStateAsync(second.Id, WorkspaceState.Running);
         await _registry.UpdateStateAsync(first.Id, WorkspaceState.Stopped);
@@ -124,8 +134,12 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task GetAll_ReturnsAllRegisteredWorkspaces()
     {
-        await _registry.RegisterAsync(new RegisterWorkspaceRequest("Alpha", "/r", "/r/a", "main", "c1"));
-        await _registry.RegisterAsync(new RegisterWorkspaceRequest("Beta", "/r", "/r/b", "main", "c2"));
+        await _registry.RegisterAsync(ServerDomain.Workspace().Named("Alpha").Build());
+        await _registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Beta")
+            .WithWorktreePath(ServerDomain.SecondWorktreePath)
+            .AtCommit(ServerDomain.SecondCommit)
+            .Build());
 
         Assert.That(_registry.GetAll(), Has.Count.EqualTo(2));
     }
@@ -133,7 +147,7 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task GetById_ReturnsWorkspace_WhenExists()
     {
-        var registered = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var registered = await _registry.RegisterAsync(ServerDomain.Workspace().Build());
 
         var found = _registry.GetById(registered.Id);
 
@@ -150,7 +164,7 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task UpdateState_ChangesState_WhenWorkspaceExists()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace().Build());
 
         var updated = await _registry.UpdateStateAsync(workspace.Id, WorkspaceState.Running);
 
@@ -169,8 +183,8 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task UpdateState_DoesNotAffect_OtherWorkspaces()
     {
-        var a = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
-        var b = await _registry.RegisterAsync(new RegisterWorkspaceRequest("B", "/r", "/r/b", "main", "c2"));
+        var a = await _registry.RegisterAsync(ServerDomain.Workspace().Build());
+        var b = await _registry.RegisterAsync(ServerDomain.SecondWorkspace().Build());
 
         await _registry.UpdateStateAsync(a.Id, WorkspaceState.Running);
 
@@ -180,7 +194,7 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Remove_RemovesWorkspace_WhenExists()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace().Build());
 
         var removed = await _registry.RemoveAsync(workspace.Id);
 
@@ -196,7 +210,7 @@ public class WorkspaceRegistryTests
         var registry = ServerTestComposition.CreateRegistry(
             [new FakeCapabilityAdapter("dotnet"), new FakeCapabilityAdapter("docker")],
             bus);
-        var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace().Build());
         await using var subscription = bus.Subscribe();
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
 
@@ -221,7 +235,7 @@ public class WorkspaceRegistryTests
         await using var subscription = bus.Subscribe();
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
 
-        var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1"));
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace().Build());
         var evt = await subscription.Reader.ReadAsync(cts.Token);
 
         Assert.Multiple(() =>
@@ -243,10 +257,20 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task MultipleWorkspaces_HaveIsolated_Fields()
     {
-        var a = await _registry.RegisterAsync(new RegisterWorkspaceRequest(
-            "Alpha", "/repos/app", "/repos/app/.worktrees/alpha", "feature/alpha", "aaa0001"));
-        var b = await _registry.RegisterAsync(new RegisterWorkspaceRequest(
-            "Beta", "/repos/app", "/repos/app/.worktrees/beta", "feature/beta", "bbb0002"));
+        var a = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Alpha")
+            .WithRepositoryPath("/repos/app")
+            .WithWorktreePath("/repos/app/.worktrees/alpha")
+            .OnBranch("feature/alpha")
+            .AtCommit("aaa0001")
+            .Build());
+        var b = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Beta")
+            .WithRepositoryPath("/repos/app")
+            .WithWorktreePath("/repos/app/.worktrees/beta")
+            .OnBranch("feature/beta")
+            .AtCommit("bbb0002")
+            .Build());
 
         Assert.That(_registry.GetById(a.Id)!.WorktreePath, Is.Not.EqualTo(_registry.GetById(b.Id)!.WorktreePath));
         Assert.That(_registry.GetById(a.Id)!.Branch, Is.Not.EqualTo(_registry.GetById(b.Id)!.Branch));
@@ -256,10 +280,7 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_DockerServices_AreIncluded_InApplicationsList()
     {
-        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-        {
-            Services = [new DockerServiceDefinition("Database", "postgres:16")]
-        };
+        var request = ServerDomain.Workspace().WithService(new DockerServiceDefinition("Database", "postgres:16")).Build();
 
         var workspace = await _registry.RegisterAsync(request);
 
@@ -271,10 +292,7 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_DockerService_PreservesImage()
     {
-        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-        {
-            Services = [new DockerServiceDefinition("Cache", "redis:7")]
-        };
+        var request = ServerDomain.Workspace().WithService(new DockerServiceDefinition("Cache", "redis:7")).Build();
 
         var workspace = await _registry.RegisterAsync(request);
 
@@ -284,18 +302,14 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_DockerService_PreservesPorts_Environment_Volumes()
     {
-        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-        {
-            Services =
-            [
-                new DockerServiceDefinition(
+        var request = ServerDomain.Workspace()
+            .WithService(new DockerServiceDefinition(
                     Name: "Database",
                     Image: "postgres:16",
-                    Ports: [new PortDeclaration("DB_PORT", 5432)],
+                    Ports: [ServerDomain.Port().Named("DB_PORT").On(5432).Build()],
                     Environment: new Dictionary<string, string> { ["POSTGRES_PASSWORD"] = "not-a-real-value" },
-                    Volumes: ["pgdata:/var/lib/postgresql/data"])
-            ]
-        };
+                    Volumes: ["pgdata:/var/lib/postgresql/data"]))
+            .Build();
 
         var workspace = await _registry.RegisterAsync(request);
         var db = workspace.Applications[0];
@@ -311,11 +325,10 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_MixedApplicationsAndServices_AreAllPresent()
     {
-        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-        {
-            Applications = [new ApplicationDefinition("API", "dotnet run", null)],
-            Services = [new DockerServiceDefinition("Database", "postgres:16")]
-        };
+        var request = ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder("API", ServerDomain.ApiCommand).Build())
+            .WithService(new DockerServiceDefinition("Database", "postgres:16"))
+            .Build();
 
         var workspace = await _registry.RegisterAsync(request);
 
@@ -327,10 +340,7 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_DockerService_DefaultsStateTo_Stopped()
     {
-        var request = new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-        {
-            Services = [new DockerServiceDefinition("Database", "postgres:16")]
-        };
+        var request = ServerDomain.Workspace().WithService(new DockerServiceDefinition("Database", "postgres:16")).Build();
 
         var workspace = await _registry.RegisterAsync(request);
 
@@ -340,17 +350,13 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_TypedDotnet_UsesCapabilityLaunchPlan()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-        {
-            Dotnet =
-            [
-                new DotnetApplicationDefinition(
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithDotnet(new DotnetApplicationDefinition(
                     "Api",
                     "10.0.x",
                     new DotnetRunDefinition("src/Api/Api.csproj", ["--no-launch-profile"]),
-                    [new PortDeclaration("API_PORT", 5000)])
-            ]
-        });
+                    [ServerDomain.Port().Named("API_PORT").On(5000).Build()]))
+            .Build());
 
         var app = workspace.Applications.Single();
         Assert.That(app.CapabilityId, Is.EqualTo("dotnet"));
@@ -363,19 +369,15 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_TypedDotnet_PreservesEnvironmentAndEnvironmentFiles()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-        {
-            Dotnet =
-            [
-                new DotnetApplicationDefinition(
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithDotnet(new DotnetApplicationDefinition(
                     "Api",
                     "10.0.x",
                     new DotnetRunDefinition("src/Api/Api.csproj"),
                     null,
                     new Dictionary<string, string> { ["ASPNETCORE_ENVIRONMENT"] = "Development" },
-                    [".env"])
-            ]
-        });
+                    [".env"]))
+            .Build());
 
         var app = workspace.Applications.Single();
         Assert.That(app.Environment!["ASPNETCORE_ENVIRONMENT"], Is.EqualTo("Development"));
@@ -385,16 +387,12 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_TypedDocker_UsesDockerCapabilityMetadata()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-        {
-            Docker =
-            [
-                new DockerCapabilityDefinition(
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithDocker(new DockerCapabilityDefinition(
                     "Database",
                     "postgres:17",
-                    [new PortDeclaration("DB_PORT", 5432)])
-            ]
-        });
+                    [ServerDomain.Port().Named("DB_PORT").On(5432).Build()]))
+            .Build());
 
         var app = workspace.Applications.Single();
         Assert.That(app.ServiceType, Is.EqualTo(ServiceType.Docker));
@@ -406,19 +404,15 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_TypedDocker_PreservesEnvironmentAndEnvironmentFiles()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-        {
-            Docker =
-            [
-                new DockerCapabilityDefinition(
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithDocker(new DockerCapabilityDefinition(
                     "Database",
                     "postgres:17",
                     null,
                     new Dictionary<string, string> { ["POSTGRES_USER"] = "user" },
                     ["pgdata:/var/lib/postgresql/data"],
-                    [".env.database"])
-            ]
-        });
+                    [".env.database"]))
+            .Build());
 
         var app = workspace.Applications.Single();
         Assert.That(app.Environment!["POSTGRES_USER"], Is.EqualTo("user"));
@@ -429,16 +423,12 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_TypedDocker_PreservesCommand()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-        {
-            Docker =
-            [
-                new DockerCapabilityDefinition(
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithDocker(new DockerCapabilityDefinition(
                     "Redpanda",
                     "docker.redpanda.com/redpandadata/redpanda:v24.2.4",
-                    Command: ["redpanda", "start", "--smp", "1"])
-            ]
-        });
+                    Command: ["redpanda", "start", "--smp", "1"]))
+            .Build());
 
         var app = workspace.Applications.Single();
         Assert.That(app.Args, Is.EqualTo(new[] { "redpanda", "start", "--smp", "1" }));
@@ -447,13 +437,12 @@ public class WorkspaceRegistryTests
     [Test]
     public async Task Register_Service_PreservesCommand()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-        {
-            Services = [new DockerServiceDefinition(
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithService(new DockerServiceDefinition(
                 "Redpanda",
                 "docker.redpanda.com/redpandadata/redpanda:v24.2.4",
-                Command: ["redpanda", "start", "--smp", "1"])]
-        });
+                Command: ["redpanda", "start", "--smp", "1"]))
+            .Build());
 
         var app = workspace.Applications.Single();
         Assert.That(app.Args, Is.EqualTo(new[] { "redpanda", "start", "--smp", "1" }));
@@ -462,10 +451,10 @@ public class WorkspaceRegistryTests
     [Test]
     public void Register_rejects_an_unknown_desktop_runtime()
     {
-        var request = new RegisterWorkspaceRequest("Desktop", "/r", "/r/a", "main", "c1")
-        {
-            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".", Runtime: "wine")]
-        };
+        var request = ServerDomain.Workspace()
+            .Named("Desktop")
+            .WithDesktopApplication(new DesktopApplicationDefinition("Editor", "dotnet run", ".", Runtime: "wine"))
+            .Build();
 
         var error = Assert.ThrowsAsync<InvalidOperationException>(async () => await _registry.RegisterAsync(request));
 
@@ -475,13 +464,10 @@ public class WorkspaceRegistryTests
     [Test]
     public void Register_rejects_an_unsafe_desktop_window_size()
     {
-        var request = new RegisterWorkspaceRequest("Desktop", "/r", "/r/a", "main", "c1")
-        {
-            DesktopApplications =
-            [
-                new DesktopApplicationDefinition("Editor", "dotnet run", ".", new DesktopWindowDefinition(10, 800))
-            ]
-        };
+        var request = ServerDomain.Workspace()
+            .Named("Desktop")
+            .WithDesktopApplication(new DesktopApplicationDefinition("Editor", "dotnet run", ".", new DesktopWindowDefinition(10, 800)))
+            .Build();
 
         var error = Assert.ThrowsAsync<InvalidOperationException>(async () => await _registry.RegisterAsync(request));
 
@@ -489,7 +475,7 @@ public class WorkspaceRegistryTests
     }
 
     private static WorkspaceRegistry CreateRegistry(IReadOnlyList<ICapabilityAdapter> adapters) =>
-        ServerTestComposition.CreateRegistry(adapters);
+        ServerTestComposition.CreateRegistry(adapters, new WorkspaceEventBus());
 
     private sealed class FakeCapabilityAdapter(string capabilityId) : ICapabilityAdapter
     {

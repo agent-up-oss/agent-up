@@ -10,6 +10,7 @@ using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Text.Json;
 
@@ -451,22 +452,16 @@ public sealed class BrowserMcpServiceTests
     private static async Task<(WorkspaceRegistry Registry, string WorkspaceId)> RegistryWithWorkspaceAsync()
     {
         var registry = ServerTestComposition.CreateRegistry();
-        var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest(
-            "Workspace",
-            "/repo",
-            "/repo/worktree",
-            "main",
-            "abc")
-        {
-            Applications =
-            [
-                new ApplicationDefinition(
-                    "Web",
-                    "npm run start",
-                    "web",
-                    [new PortDeclaration("PORT", 3000, "http")])
-            ]
-        });
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Workspace")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/repo/worktree")
+            .AtCommit("abc")
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "npm run start")
+                    .At(ServerDomain.WebPath)
+                    .WithPort(ServerDomain.Port().Named("PORT").On(3000).WithProtocol("http"))
+                    .Build())
+            .Build());
         return (registry, workspace.Id);
     }
 

@@ -31,6 +31,7 @@ const sidebars = {
       type: 'category',
       label: 'Operations',
       items: [
+        'testing',
         'ci-configuration',
       ],
     },

@@ -5,6 +5,7 @@ using AgentUp.Server.Features.Audit.Repositories;
 using AgentUp.Server.Features.Audit.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Audit.Controller;
 
@@ -31,13 +32,27 @@ public sealed class AuditMcpToolsTests
     public async Task Query_FiltersByScope()
     {
         var events = new InMemoryAuditEventRepository();
-        var controller = ServerTestComposition.CreateAuditController(events: events);
+        var controller = ServerTestComposition.CreateAuditController(ServerTestComposition.CreateRegistry(), events);
         var tools = new AuditMcpTools(controller);
         await controller.RecordAsync(
-            new AuditRecordRequest("metrics", "server", "host_metrics_sample", "success", null, Scope: "host-server"),
+            ServerDomain.AuditRecord()
+                .OfKind("metrics")
+                .From("server")
+                .Doing("host_metrics_sample")
+                .Outcome("success")
+                .ForWorkspace(null)
+                .InScope("host-server")
+                .Build(),
             CancellationToken.None);
         await controller.RecordAsync(
-            new AuditRecordRequest("metrics", "server", "app_metrics_pull", "success", "workspace", Scope: "application"),
+            ServerDomain.AuditRecord()
+                .OfKind("metrics")
+                .From("server")
+                .Doing("app_metrics_pull")
+                .Outcome("success")
+                .ForWorkspace("workspace")
+                .InScope("application")
+                .Build(),
             CancellationToken.None);
 
         var result = await tools.Query(scope: "host-server", kind: "metrics", compact: false);
@@ -55,13 +70,27 @@ public sealed class AuditMcpToolsTests
     public async Task Query_DefaultsToWorkspaceScope_WhenScopeOmitted()
     {
         var events = new InMemoryAuditEventRepository();
-        var controller = ServerTestComposition.CreateAuditController(events: events);
+        var controller = ServerTestComposition.CreateAuditController(ServerTestComposition.CreateRegistry(), events);
         var tools = new AuditMcpTools(controller);
         await controller.RecordAsync(
-            new AuditRecordRequest("metrics", "server", "host_metrics_sample", "success", null, Scope: "host-server"),
+            ServerDomain.AuditRecord()
+                .OfKind("metrics")
+                .From("server")
+                .Doing("host_metrics_sample")
+                .Outcome("success")
+                .ForWorkspace(null)
+                .InScope("host-server")
+                .Build(),
             CancellationToken.None);
         await controller.RecordAsync(
-            new AuditRecordRequest("workspace", "server", "workspace_state_changed", "success", "workspace", Scope: "workspace"),
+            ServerDomain.AuditRecord()
+                .OfKind("workspace")
+                .From("server")
+                .Doing("workspace_state_changed")
+                .Outcome("success")
+                .ForWorkspace("workspace")
+                .InScope("workspace")
+                .Build(),
             CancellationToken.None);
 
         var result = await tools.Query(kind: null, compact: false);
@@ -79,13 +108,25 @@ public sealed class AuditMcpToolsTests
     public async Task Query_ReturnsMatchingAuditEvents()
     {
         var events = new InMemoryAuditEventRepository();
-        var controller = ServerTestComposition.CreateAuditController(events: events);
+        var controller = ServerTestComposition.CreateAuditController(ServerTestComposition.CreateRegistry(), events);
         var tools = new AuditMcpTools(controller);
         await controller.RecordAsync(
-            new AuditRecordRequest("browser", "mcp", "browser_click", "success", "workspace"),
+            ServerDomain.AuditRecord()
+                .OfKind("browser")
+                .From("mcp")
+                .Doing("browser_click")
+                .Outcome("success")
+                .ForWorkspace("workspace")
+                .Build(),
             CancellationToken.None);
         await controller.RecordAsync(
-            new AuditRecordRequest("workspace", "server", "workspace_state_changed", "success", "other"),
+            ServerDomain.AuditRecord()
+                .OfKind("workspace")
+                .From("server")
+                .Doing("workspace_state_changed")
+                .Outcome("success")
+                .ForWorkspace("other")
+                .Build(),
             CancellationToken.None);
 
         var result = await tools.Query(workspaceId: "workspace", kind: "browser", compact: false);
@@ -105,7 +146,8 @@ public sealed class AuditMcpToolsTests
     public async Task LoadArtifact_ReturnsInlineImage_WhenRequested()
     {
         var artifacts = new InMemoryAuditArtifactRepository();
-        var controller = ServerTestComposition.CreateAuditController(artifacts: artifacts);
+        var controller = ServerTestComposition.CreateAuditController(
+            ServerTestComposition.CreateRegistry(), new InMemoryAuditEventRepository(), artifacts);
         var tools = new AuditMcpTools(controller);
         var saved = await artifacts.SaveAsync("evt", "browser-screenshot", "image/png", [1, 2, 3], CancellationToken.None);
 

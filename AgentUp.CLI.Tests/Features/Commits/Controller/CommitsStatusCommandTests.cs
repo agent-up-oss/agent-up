@@ -1,3 +1,4 @@
+using AgentUp.CLI.Tests.Support;
 using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using System.Text.Json;
 using AgentUp.CLI.Features.Commits.Controllers;
@@ -27,7 +28,10 @@ public sealed class CommitsStatusCommandTests
     public async Task RunAsync_singleEntry_writesSliceAndMessage()
     {
         using var output = new StringWriter();
-        var queue = new CommitsQueue(1, [new CommitEntry("MySlice", "feat(MySlice): thing", ["a.cs"])]);
+        var queue = CliDomain.Queue()
+            .AtVersion(1)
+            .With(CliDomain.CommitEntry().For("MySlice").Saying("feat(MySlice): thing").Touching(["a.cs"]).Build())
+            .Build();
         var command = BuildCommand(output, queue: queue);
 
         await command.RunAsync();
@@ -40,10 +44,11 @@ public sealed class CommitsStatusCommandTests
     public async Task RunAsync_multipleEntries_listsAll()
     {
         using var output = new StringWriter();
-        var queue = new CommitsQueue(1, [
-            new CommitEntry("First", "fix(First): first", ["a.cs"]),
-            new CommitEntry("Second", "fix(Second): second", ["b.cs"])
-        ]);
+        var queue = CliDomain.Queue()
+            .AtVersion(1)
+            .With(CliDomain.CommitEntry().For("First").Saying("fix(First): first").Touching(["a.cs"]).Build())
+            .With(CliDomain.CommitEntry().For("Second").Saying("fix(Second): second").Touching(["b.cs"]).Build())
+            .Build();
         var command = BuildCommand(output, queue: queue);
 
         await command.RunAsync();
@@ -59,7 +64,10 @@ public sealed class CommitsStatusCommandTests
     public async Task RunAsync_unassignedFiles_writesWarning()
     {
         using var output = new StringWriter();
-        var queue = new CommitsQueue(1, [new CommitEntry("Slice", "msg", ["owned.cs"])]);
+        var queue = CliDomain.Queue()
+            .AtVersion(1)
+            .With(CliDomain.CommitEntry().For("Slice").Saying("msg").Touching(["owned.cs"]).Build())
+            .Build();
         var command = BuildCommand(output, queue: queue, modifiedFiles: ["owned.cs", "unassigned.cs"]);
 
         await command.RunAsync();
@@ -72,7 +80,10 @@ public sealed class CommitsStatusCommandTests
     public async Task RunAsync_allFilesAssigned_noWarning()
     {
         using var output = new StringWriter();
-        var queue = new CommitsQueue(1, [new CommitEntry("Slice", "msg", ["a.cs", "b.cs"])]);
+        var queue = CliDomain.Queue()
+            .AtVersion(1)
+            .With(CliDomain.CommitEntry().For("Slice").Saying("msg").Touching(["a.cs", "b.cs"]).Build())
+            .Build();
         var command = BuildCommand(output, queue: queue, modifiedFiles: ["a.cs", "b.cs"]);
 
         await command.RunAsync();
@@ -84,10 +95,17 @@ public sealed class CommitsStatusCommandTests
     public async Task RunAsync_jsonFormat_writesQueueCountAndEntries()
     {
         using var output = new StringWriter();
-        var queue = new CommitsQueue(1, [
-            new CommitEntry("First", "fix(First): first", ["a.cs"], "entry-1", ReviewIssueId: "review-42"),
-            new CommitEntry("Second", "fix(Second): second", ["b.cs"])
-        ]);
+        var queue = CliDomain.Queue()
+            .AtVersion(1)
+            .With(CliDomain.CommitEntry()
+                .For("First")
+                .Saying("fix(First): first")
+                .Touching(["a.cs"])
+                .WithId("entry-1")
+                .WithReviewIssue("review-42")
+                .Build())
+            .With(CliDomain.CommitEntry().For("Second").Saying("fix(Second): second").Touching(["b.cs"]).Build())
+            .Build();
         var command = BuildCommand(output, queue: queue, operationState: new GitOperationState("merge", true));
 
         var code = await command.RunAsync(["--format", "json"]);

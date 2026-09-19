@@ -9,7 +9,7 @@ public class SidebarBehaviorTests
     [AvaloniaTest]
     public async Task Sidebar_showsWorkspaceNames_whenExpanded()
     {
-        var app = await AppDriver.LaunchWithWorkspacesAsync(WorkspaceFixtures.Multiple());
+        var app = await AppDriver.LaunchWithWorkspacesAsync(DesktopDomain.Workspaces());
 
         Assert.That(app.Sidebar.IsExpanded, Is.True);
         Assert.That(app.Sidebar.IsShowingNames, Is.True);
@@ -19,7 +19,7 @@ public class SidebarBehaviorTests
     [AvaloniaTest]
     public async Task Sidebar_switchesToAvatarView_whenCollapsed()
     {
-        var app = await AppDriver.LaunchWithWorkspacesAsync(WorkspaceFixtures.Multiple());
+        var app = await AppDriver.LaunchWithWorkspacesAsync(DesktopDomain.Workspaces());
 
         await app.Sidebar.CollapseAsync();
 
@@ -31,7 +31,7 @@ public class SidebarBehaviorTests
     [AvaloniaTest]
     public async Task Sidebar_restoresNameView_whenExpandedAfterCollapse()
     {
-        var app = await AppDriver.LaunchWithWorkspacesAsync(WorkspaceFixtures.Multiple());
+        var app = await AppDriver.LaunchWithWorkspacesAsync(DesktopDomain.Workspaces());
         await app.Sidebar.CollapseAsync();
 
         await app.Sidebar.ExpandAsync();
@@ -43,7 +43,7 @@ public class SidebarBehaviorTests
     [AvaloniaTest]
     public async Task Sidebar_displaysAllRegisteredWorkspaces()
     {
-        var workspaces = WorkspaceFixtures.Multiple();
+        var workspaces = DesktopDomain.Workspaces();
         var app = await AppDriver.LaunchWithWorkspacesAsync(workspaces);
 
         Assert.That(app.Sidebar.WorkspaceCount, Is.EqualTo(workspaces.Count));
@@ -75,7 +75,7 @@ public class SidebarBehaviorTests
     [AvaloniaTest]
     public async Task Sidebar_preservesSelection_acrossCollapseAndExpand()
     {
-        var app = await AppDriver.LaunchWithWorkspacesAsync(WorkspaceFixtures.Multiple());
+        var app = await AppDriver.LaunchWithWorkspacesAsync(DesktopDomain.Workspaces());
         await app.Sidebar.SelectWorkspaceAtIndexAsync(1);
         var selectedName = app.Sidebar.SelectedWorkspaceName;
 
@@ -88,12 +88,19 @@ public class SidebarBehaviorTests
     [AvaloniaTest]
     public async Task Sidebar_updatesWorkspaceList_whenReloadButtonClicked()
     {
-        var (app, handler) = await AppDriver.LaunchWithMutableWorkspacesAsync(WorkspaceFixtures.Multiple());
+        var (app, handler) = await AppDriver.LaunchWithMutableWorkspacesAsync(DesktopDomain.Workspaces());
         Assert.That(app.Sidebar.WorkspaceCount, Is.EqualTo(3));
 
-        var updated = WorkspaceFixtures.Multiple();
-        updated.Add(new AgentUp.Desktop.Features.Workspaces.DTOs.WorkspaceDto(
-            "ws-4", "New Service", "/repo/new", "/worktrees/new", "main", "aaa000", "Stopped"));
+        var updated = DesktopDomain.Workspaces();
+        updated.Add(DesktopDomain.Workspace()
+            .WithId("ws-4")
+            .Named("New Service")
+            .WithRepositoryPath("/repo/new")
+            .WithWorktreePath("/worktrees/new")
+            .OnBranch(DesktopDomain.ThirdBranch)
+            .AtCommit("aaa000")
+            .Stopped()
+            .Build());
         handler.SetWorkspaces(updated);
 
         await app.Sidebar.ClickReloadAsync();
@@ -104,7 +111,7 @@ public class SidebarBehaviorTests
     [AvaloniaTest]
     public async Task Sidebar_clearWorkspaceList_releasesBrowserResources()
     {
-        var workspace = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var workspace = DesktopDomain.WorkspaceServing(3000).Build();
         var (app, handler) = await AppDriver.LaunchWithMutableWorkspacesAsync(
             [workspace],
             () => throw new InvalidOperationException("WebView not available in headless tests."));

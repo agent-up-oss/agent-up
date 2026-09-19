@@ -12,6 +12,7 @@ using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
 using AgentUp.Server.Tests.Features.Agents.Unit;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -34,7 +35,7 @@ public sealed class WorkspaceAgentPromptGuardTests
             new CapabilitiesController(new CapabilityReconciliationService([])),
             new WorkspaceEventBus());
         await registry.StartAsync(CancellationToken.None);
-        _workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest("Workspace", "/repo", "/repo", "main", "abc"));
+        _workspace = await registry.RegisterAsync(ServerDomain.Workspace().Named("Workspace").At("/repo").AtCommit("abc").Build());
         _process = new FakeAgentProcessProvider();
         var command = OperatingSystem.IsWindows()
             ? Path.Join(Environment.SystemDirectory, "cmd.exe")

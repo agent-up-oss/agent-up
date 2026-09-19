@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.Authentication.Providers;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Configuration;
 
 namespace AgentUp.Server.Tests.Features.Authentication.Provider;

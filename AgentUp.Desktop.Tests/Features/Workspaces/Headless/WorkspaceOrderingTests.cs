@@ -10,17 +10,24 @@ public class WorkspaceOrderingTests
     [AvaloniaTest]
     public async Task Sidebar_putsRunningWorkspacesAboveStoppedOnes()
     {
+        const string NotAGitRepository = "not a git repo";
         var now = DateTimeOffset.UtcNow;
         var workspaces = new List<WorkspaceDto>
         {
-            new("ws-1", "agent1", "/repo/agent1", "/worktrees/agent1", "not a git repo", "abc123", "Stopped")
-            {
-                LastActivityAtUtc = now
-            },
-            new("ws-2", "agent2", "/repo/agent2", "/worktrees/agent2", "not a git repo", "def456", "Running")
-            {
-                LastActivityAtUtc = now.AddMinutes(-30)
-            },
+            DesktopDomain.Workspace()
+                .Identified("agent1")
+                .WithId(DesktopDomain.WorkspaceId)
+                .OnBranch(NotAGitRepository)
+                .Stopped()
+                .ActiveAt(now)
+                .Build(),
+            DesktopDomain.Workspace()
+                .Identified("agent2")
+                .WithId(DesktopDomain.SecondWorkspaceId)
+                .OnBranch(NotAGitRepository)
+                .AtCommit(DesktopDomain.SecondCommit)
+                .ActiveAt(now.AddMinutes(-30))
+                .Build(),
         };
 
         var app = await AppDriver.LaunchWithWorkspacesAsync(workspaces);
@@ -31,7 +38,7 @@ public class WorkspaceOrderingTests
     [AvaloniaTest]
     public async Task Sidebar_movesRunningWorkspaceAboveStoppedOnes_afterStartAction()
     {
-        var workspaces = WorkspaceFixtures.Multiple();
+        var workspaces = DesktopDomain.Workspaces();
         var (app, _) = await AppDriver.LaunchWithMutableWorkspacesAsync(workspaces);
 
         var stoppedIndex = app.Sidebar.WorkspaceIds.ToList().IndexOf("ws-2");

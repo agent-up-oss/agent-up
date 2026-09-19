@@ -700,7 +700,7 @@ This applies to every production/test project pair once created:
 | `LocalInstaller.Packaging` | `LocalInstaller.Packaging.Tests` |
 | `LocalInstaller.Smoke` | `LocalInstaller.Smoke.Tests` |
 
-`AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture and review-hygiene rules over source owned by the Agent-Up repository. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, concrete controller boundary presence for slices with inbound traffic, controller dependency construction rules, controller separation from providers/repositories/factories, controller and service sibling-slice boundary usage, controller method complexity, nested production type bans, feature test-kind coverage, error-handling hygiene, path/disposable/async safety, test taxonomy rules, MCP endpoint tool-allowlist completeness, and verification path-rule coverage for every production and test project. LocalInstaller source architecture is tested in the sibling LocalInstaller repository. Keep architecture and generic source hygiene rules in the owning repository instead of burying them in product E2E tests.
+`AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture and review-hygiene rules over source owned by the Agent-Up repository. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, concrete controller boundary presence for slices with inbound traffic, controller dependency construction rules, controller separation from providers/repositories/factories, controller and service sibling-slice boundary usage, controller method complexity, nested production type bans, feature test-kind coverage, error-handling hygiene, path/disposable/async safety, test taxonomy rules, test data builder requirements, per-test assertion limits, fixture setup debt, MCP endpoint tool-allowlist completeness, and verification path-rule coverage for every production and test project. LocalInstaller source architecture is tested in the sibling LocalInstaller repository. Keep architecture and generic source hygiene rules in the owning repository instead of burying them in product E2E tests.
 
 `AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application and shared Installer application through platform fixture adapters. Desktop browser behavior that only exists once a real WebView engine and a real platform storage provider are involved — the WebView upload bridge and OAuth sign-in through redirects and native popups — belongs here rather than in headless tests, and must substitute only the modal dialogs and native engine callbacks a CI runner cannot drive. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK: the adapter always starts a private Xvfb, `XDG_RUNTIME_DIR`, and session bus, imports `PATH` and native libraries from `nix-shell shell.nix` so IDEs do not need extra env vars, and Avalonia is forced onto X11, so a developer workstation's Wayland/X11 session is not reused. Set `AGENTUP_E2E_USE_SESSION_DISPLAY=1` only to debug against the real display. macOS uses `AgentUp.Fixtures.MacOs` and isolates test home and temporary storage. Windows uses `AgentUp.Fixtures.Windows` and isolates WebView2 profile storage through `WEBVIEW2_USER_DATA_FOLDER` only: it must leave `LOCALAPPDATA` and `APPDATA` pointing at the real profile, because redirecting them isolates nothing Desktop stores -- `Environment.GetFolderPath` asks the shell rather than the environment on Windows -- while the WebView2 browser process does inherit them and never finishes starting from an empty profile root, which hangs the UI thread before any test runs. Isolating Desktop's own storage on Windows needs a storage-root override in the product, which does not exist yet. Platform-specific canary tests enforce both isolation contracts; successful native Avalonia/WebView startup proves the hosted desktop session itself. Both start Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run: Ubuntu runs them in the GUI test job, while the macOS and Windows package jobs execute a framework-dependent test artifact produced by the Ubuntu payload job against the matching .NET runtime those jobs install. macOS CI runs the project through its NUnitLite executable entry point so Avalonia Native initializes on the process main thread while still exercising the same test fixtures and native WebView.
 
@@ -817,7 +817,7 @@ AgentUp.Desktop.Tests/
       Headless/     (Avalonia headless tests for application panel UI)
     Console/
       Headless/     (Avalonia headless tests for console output panel UI)
-  Support/          (AppDriver, SidebarDriver, ContentDriver, WorkspaceFixtures)
+  Support/          (AppDriver, SidebarDriver, ContentDriver, DesktopDomain, builders)
 ```
 
 ## Test Strategy
@@ -836,6 +836,32 @@ Use layered tests with clear ownership:
 `Unit/` tests must not use real filesystem, process execution, sockets, current-directory mutation, or environment mutation APIs. If a test needs `File.*`, `Directory.*`, `Path.GetTempPath`, `Process.Start`, `ProcessStartInfo`, `Directory.SetCurrentDirectory`, `Environment.SetEnvironmentVariable`, `TcpListener`, `TcpClient`, or `Socket`, put it in `Repository/`, `Provider/`, `HTTP/`, `Headless/`, or `E2E/` according to the behavior being observed.
 
 Avoid duplicate tests that assert the same rule through multiple layers.
+
+## Test Authoring
+
+Test data is built through builders, not production constructors. `AgentUp.Verification.Tests`
+is the worked example; [Testing](docs/developer-guide/testing.md) has the detail. In short:
+
+- Each test project keeps its builders and its shared domain vocabulary in `Support/`:
+  `ServerDomain`, `CliDomain`, `DesktopDomain`, `DebugDomain`, `VerificationDomain`. Tests
+  name workspaces, applications, ports and commits through that vocabulary instead of
+  repeating literals, so a reader can tell whether two tests mean the same thing.
+- A production DTO or model with more than three constructor parameters, built more than
+  fifteen times in one test project, must have a `Support/<Type>Builder.cs` in that project.
+  Once a builder exists nothing else in the project constructs that type, implicit `new(...)`
+  included. `TestDataBuilders` enforces both halves.
+- Variation is a call on the builder, not another shared fixture method: "the same workspace
+  but stopped" is `DesktopDomain.Workspace().Stopped()`.
+- A test method asserts at most ten times. `TestAssertionDensity` enforces this; above it a
+  test is covering more than one behaviour and a failure stops saying which broke.
+- New fixtures arrange their subject inside the test, through a local helper taking explicit
+  parameters, rather than in `[SetUp]` or `[OneTimeSetUp]`. `TestFixtureSetup` holds the line
+  over a ratchet baseline of the fixtures that predate the rule. `[TearDown]` is unaffected.
+- Composition helpers such as `ServerTestComposition` compose services only, never test data,
+  and take every parameter that changes behaviour under test explicitly rather than defaulting
+  it internally.
+- Cover platform and CI branches through an injected capability provider, not `Assume.That`
+  or a runtime skip: a test that decides it does not apply reports success without running.
 
 NUnit tests default to a 30-second per-test timeout from `coverlet.runsettings`. Tests that must run longer, such as capability CLI smoke and native-display E2E, set `[Timeout]` / `[CancelAfter]` on the fixture or method. A 1-minute testhost hang dump aborts a stuck session so a single hung test cannot run forever; it is not a 1-minute budget for a full project run.
 

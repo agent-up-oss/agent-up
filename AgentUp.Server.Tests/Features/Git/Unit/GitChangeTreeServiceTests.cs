@@ -4,6 +4,7 @@ using AgentUp.Server.Features.Git.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Git.Unit;
 
@@ -301,12 +302,7 @@ public sealed class GitChangeTreeServiceTests
         IWorkspacePromptGuard? prompts = null)
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
-        var workspace = await workspaces.RegisterAsync(new RegisterWorkspaceRequest(
-            DisplayName: "widgets",
-            RepositoryPath: WorktreePath,
-            WorktreePath: WorktreePath,
-            Branch: "main",
-            Commit: "abc123"));
+        var workspace = await workspaces.RegisterAsync(ServerDomain.Workspace().Named("widgets").At(WorktreePath).AtCommit("abc123").Build());
 
         return (CreateService(workspaces, git, prompts), workspace.Id);
     }

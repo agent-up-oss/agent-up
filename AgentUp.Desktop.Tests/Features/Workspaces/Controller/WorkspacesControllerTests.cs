@@ -2,6 +2,7 @@ using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Interfaces;
 using AgentUp.Desktop.Features.Workspaces.Services;
+using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Workspaces.Controller;
 
@@ -45,7 +46,15 @@ public sealed class WorkspacesControllerTests
         public Task<WorkspaceDto> CloneAsync(CloneSourceRequestDto request, CancellationToken cancellationToken = default)
         {
             CloneRequest = request;
-            return Task.FromResult(new WorkspaceDto("cloned", "clone", "/repo", "/repo", "main", "abc", "stopped"));
+            return Task.FromResult(DesktopDomain.Workspace()
+                .WithId("cloned")
+                .Named("clone")
+                .WithRepositoryPath("/repo")
+                .WithWorktreePath("/repo")
+                .OnBranch("main")
+                .AtCommit("abc")
+                .InState("stopped")
+                .Build());
         }
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) { Actions.Add($"start:{workspaceId}"); return Task.CompletedTask; }
         public Task StopAsync(string workspaceId, CancellationToken cancellationToken = default) { Actions.Add($"stop:{workspaceId}"); return Task.CompletedTask; }

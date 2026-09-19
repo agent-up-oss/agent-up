@@ -4,6 +4,7 @@ using AgentUp.Server.Features.Validation.Repositories;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Validation.Provider;
 
@@ -17,7 +18,7 @@ public sealed class ProjectValidationFlowRepositoryTests
         try
         {
             var registry = ServerTestComposition.CreateRegistry();
-            var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest("Workspace", worktree, worktree, "main", "abc"));
+            var workspace = await registry.RegisterAsync(ServerDomain.Workspace().Named("Workspace").At(worktree).AtCommit("abc").Build());
             var paths = new ValidationFlowPathProvider(new WorkspaceQueryController(registry));
             var repository = new ProjectValidationFlowRepository(paths);
             var flow = new ValidationFlow(

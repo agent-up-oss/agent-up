@@ -2,6 +2,7 @@ using AgentUp.AUDebug.Features.Host.DTOs;
 using AgentUp.AUDebug.Features.Mobile.Controllers;
 using AgentUp.AUDebug.Features.Mobile.Services;
 using AgentUp.AUDebug.Tests.Fake;
+using AgentUp.AUDebug.Tests.Support;
 
 namespace AgentUp.AUDebug.Tests.Features.Mobile.Controller;
 
@@ -14,7 +15,9 @@ public sealed class MobileControllerTests
         var screenshots = new FakeWebScreenshotDriver();
         var result = await new MobileController(
             new MobileCommandService(screenshots, new FakeMobileSurfaceDriver(), new FakeWorkspaceClient(), new FakeSessionStore(), new FakeEnvironment())).RunAsync(
-            new DebugCommandDto("mobile", "mobile", "screenshot", null, null, TimeSpan.FromSeconds(30), false),
+            DebugDomain.Command(DebugDomain.MobileSurface)
+                .Doing(DebugDomain.ScreenshotAction)
+                .Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(0));
@@ -28,7 +31,10 @@ public sealed class MobileControllerTests
         var surface = new FakeMobileSurfaceDriver();
         var result = await new MobileController(
             new MobileCommandService(new FakeWebScreenshotDriver(), surface, new FakeWorkspaceClient(), new FakeSessionStore(), new FakeEnvironment())).RunAsync(
-            new DebugCommandDto("mobile", "mobile", "login", null, "test", TimeSpan.FromSeconds(30), false),
+            DebugDomain.Command(DebugDomain.MobileSurface)
+                .Doing(DebugDomain.LoginAction)
+                .WithPassword(DebugDomain.Password)
+                .Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(0));
@@ -40,7 +46,9 @@ public sealed class MobileControllerTests
     {
         var result = await new MobileController(
             new MobileCommandService(new FakeWebScreenshotDriver(), new FakeMobileSurfaceDriver(), new FakeWorkspaceClient(), new FakeSessionStore(), new FakeEnvironment())).RunAsync(
-            new DebugCommandDto("mobile", "mobile", "nope", null, null, TimeSpan.FromSeconds(30), false),
+            DebugDomain.Command(DebugDomain.MobileSurface)
+                .Doing("nope")
+                .Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));
@@ -53,7 +61,11 @@ public sealed class MobileControllerTests
         var surface = new FakeMobileSurfaceDriver();
         var result = await new MobileController(
             new MobileCommandService(new FakeWebScreenshotDriver(), surface, new FakeWorkspaceClient(), new FakeSessionStore(), new FakeEnvironment())).RunAsync(
-            new DebugCommandDto("mobile", "mobile", "open-agent", "Agent-Up", "test", TimeSpan.FromSeconds(30), false),
+            DebugDomain.Command(DebugDomain.MobileSurface)
+                .Doing(DebugDomain.OpenAgentAction)
+                .ForWorkspace(DebugDomain.WorkspaceName)
+                .WithPassword(DebugDomain.Password)
+                .Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(0));

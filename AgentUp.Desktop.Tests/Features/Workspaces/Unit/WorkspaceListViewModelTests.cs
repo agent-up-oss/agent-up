@@ -5,6 +5,7 @@ using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Interfaces;
 using AgentUp.Desktop.Features.Workspaces.Services;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Workspaces.Unit;
 
@@ -55,7 +56,15 @@ public sealed class WorkspaceListViewModelTests
             => Task.FromResult<WorkspaceDto?>(null);
 
         public Task<WorkspaceDto> CloneAsync(CloneSourceRequestDto request, CancellationToken cancellationToken = default)
-            => Task.FromResult(new WorkspaceDto("ws-cloned", "widgets", "/clones/widgets", "/clones/widgets", "main", "abc123", "Stopped"));
+            => Task.FromResult(DesktopDomain.Workspace()
+                .WithId("ws-cloned")
+                .Named("widgets")
+                .WithRepositoryPath("/clones/widgets")
+                .WithWorktreePath("/clones/widgets")
+                .OnBranch("main")
+                
+                .Stopped()
+                .Build());
 
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.CompletedTask;
 

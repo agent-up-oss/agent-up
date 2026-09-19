@@ -9,6 +9,7 @@ using AgentUp.Server.Features.DesktopApplications.Providers;
 using AgentUp.Server.Features.DesktopApplications.Services;
 using AgentUp.Server.Features.Processes.Providers;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Server.Tests.Features.DesktopApplications.Provider;

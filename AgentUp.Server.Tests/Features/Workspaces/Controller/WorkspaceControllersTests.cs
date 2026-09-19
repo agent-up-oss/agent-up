@@ -3,6 +3,7 @@ using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Models;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Workspaces.Controller;
 
@@ -13,11 +14,12 @@ public sealed class WorkspaceControllersTests
     public async Task Query_controller_registers_and_finds_applications_by_exact_name()
     {
         var controller = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
-        var workspace = await controller.RegisterAsync(new RegisterWorkspaceRequest(
-            "Sample", "/repo", "/repo", "main", "abc")
-        {
-            Applications = [new ApplicationDefinition("Web", "npm start", null)]
-        });
+        var workspace = await controller.RegisterAsync(ServerDomain.Workspace()
+            .Named("Sample")
+            .At("/repo")
+            .AtCommit("abc")
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "npm start").Build())
+            .Build());
 
         Assert.That(controller.GetById(workspace.Id), Is.SameAs(workspace));
         Assert.That(controller.HasApplication(workspace.Id, "Web"), Is.True);
@@ -28,11 +30,12 @@ public sealed class WorkspaceControllersTests
     public async Task State_controller_updates_registered_workspace_and_application_state()
     {
         var registry = ServerTestComposition.CreateRegistry();
-        var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest(
-            "Sample", "/repo", "/repo", "main", "abc")
-        {
-            Applications = [new ApplicationDefinition("Web", "npm start", null)]
-        });
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Sample")
+            .At("/repo")
+            .AtCommit("abc")
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "npm start").Build())
+            .Build());
         var controller = ServerTestComposition.CreateWorkspaceStateController(registry);
 
         var workspaceUpdated = await controller.UpdateWorkspaceStateAsync(workspace.Id, WorkspaceState.Running);
