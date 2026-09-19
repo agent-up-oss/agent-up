@@ -1,4 +1,4 @@
 git_url(ENV["MATCH_REPOSITORY"])
 git_branch("master")
 storage_mode("git")
-app_identifier(["com.massivecreationlab.agentup"])
+app_identifier(["net.themassiveone.agent-up.ios"])

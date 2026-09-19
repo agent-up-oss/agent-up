@@ -1,8 +1,8 @@
 for_platform :ios do
-  app_identifier(ENV.fetch("IOS_BUNDLE_ID", "com.massivecreationlab.agentup"))
+  app_identifier(ENV.fetch("IOS_BUNDLE_ID", "net.themassiveone.agent-up.ios"))
 end
 
 for_platform :android do
-  package_name(ENV.fetch("ANDROID_PACKAGE_NAME", "com.massivecreationlab.agentup"))
+  package_name(ENV.fetch("ANDROID_PACKAGE_NAME", "net.themassiveone.agent-up.android"))
   json_key_file(ENV["GOOGLE_PLAY_KEY_FILE_PATH"]) unless ENV["GOOGLE_PLAY_KEY_FILE_PATH"].to_s.strip.empty?
 end
