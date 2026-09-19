@@ -78,7 +78,42 @@ public sealed class LoopbackListenerTests
         });
     }
 
+    // Linux HttpListener.Start for http://+:port/ can throw ArgumentNullException from
+    // Monitor.Enter instead of HttpListenerException. That has to be a fallback, not a crash:
+    // Android E2E otherwise dies in test-idp before the identity provider answers.
+    [Test]
+    public void IsRetryableBindFailure_includesTheLinuxWildcardStartCrash()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(LoopbackListener.IsRetryableBindFailure(new HttpListenerException()), Is.True);
+            Assert.That(LoopbackListener.IsRetryableBindFailure(new SocketException()), Is.True);
+            Assert.That(LoopbackListener.IsRetryableBindFailure(new ArgumentNullException()), Is.True);
+            Assert.That(LoopbackListener.IsRetryableBindFailure(new ArgumentException()), Is.True);
+            Assert.That(LoopbackListener.IsRetryableBindFailure(new InvalidOperationException()), Is.False);
+        });
+    }
+
+    [Test]
+    public void Start_bindsWhenTheWildcardPrefixCannotStart()
+    {
+        var (listener, port) = LoopbackListener.Start(0, Wildcard, Loopback);
+        using var bound = listener;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(listener.IsListening, Is.True);
+            Assert.That(port, Is.GreaterThan(0));
+            Assert.That(listener.Prefixes, Is.Not.Empty);
+        });
+    }
+
     private static IEnumerable<string> Prefixes(int port) => [$"http://127.0.0.1:{port}/agentup-test/"];
+
+    private static IEnumerable<string> Wildcard(int port) => [$"http://+:{port}/"];
+
+    private static IEnumerable<string> Loopback(int port) =>
+        [$"http://127.0.0.1:{port}/", $"http://localhost:{port}/"];
 
     private static TcpListener Occupied(out int port)
     {

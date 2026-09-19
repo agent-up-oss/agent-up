@@ -24,7 +24,10 @@ public static class LoopbackListener
     /// <para>
     /// Each entry of <paramref name="preferences"/> is a set of prefixes to try at a port, in
     /// order, so a caller that wants to bind every interface can offer loopback as the next best
-    /// thing for a host that will not reserve it.
+    /// thing for a host that will not reserve it. A prefix set that throws while starting is
+    /// skipped: Linux <see cref="HttpListener"/> can throw <see cref="ArgumentNullException"/> for
+    /// <c>http://+:port/</c> instead of a bind exception, and that must fall through rather than
+    /// kill the process.
     /// </para>
     /// </summary>
     public static (HttpListener Listener, int Port) Start(int port, params Func<int, IEnumerable<string>>[] preferences) =>
@@ -49,15 +52,23 @@ public static class LoopbackListener
         foreach (var preference in preferences)
         {
             var listener = new HttpListener();
-            foreach (var prefix in preference(port))
-                listener.Prefixes.Add(prefix);
-
             try
             {
+                foreach (var prefix in preference(port))
+                    listener.Prefixes.Add(prefix);
+
                 listener.Start();
                 return listener;
             }
-            catch (Exception exception) when (exception is HttpListenerException or SocketException)
+            catch (HttpListenerException)
+            {
+                listener.Close();
+            }
+            catch (SocketException)
+            {
+                listener.Close();
+            }
+            catch (ArgumentException)
             {
                 listener.Close();
             }
@@ -65,6 +76,14 @@ public static class LoopbackListener
 
         return null;
     }
+
+    /// <summary>
+    /// Failures that mean this prefix set cannot be used on this host, so the next set should run.
+    /// </summary>
+    internal static bool IsRetryableBindFailure(Exception exception) =>
+        exception is HttpListenerException
+            or SocketException
+            or ArgumentException;
 
     private static HttpListenerException Refused(string message) =>
         new((int)SocketError.AddressAlreadyInUse, message);
