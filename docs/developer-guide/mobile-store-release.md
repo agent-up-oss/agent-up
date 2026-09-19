@@ -14,7 +14,9 @@ releases. Dispatch the same workflow on the branch that already has a product
 `vX.Y.Z` tag to publish.
 
 The workflow runs Mobile typechecking, provider and script tests, and a web
-export in a dedicated Ubuntu job before either native build. It does not call
+export in a dedicated Ubuntu job before either native build. Dependency
+installation runs the design-system generator with `--check` so stale committed
+outputs fail instead of being rewritten. It does not call
 semantic-release or use `.releaserc.json`. Android compiles on Ubuntu. iOS
 compiles on macOS because CocoaPods and `xcodebuild` cannot run on Linux.
 

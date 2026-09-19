@@ -13,9 +13,18 @@
 # to. So this waits for the window manager to name a focused window, waking and unlocking on each
 # attempt, and only then lets the suite start.
 #
+# A focused window is still not enough. Hosted google_apis images often leave
+# com.google.android.googlesdksetup in an Application Not Responding dialog, and that dialog holds
+# focus. Treating it as ready is how a run reported "awake and focused" and then failed every
+# Detox scenario. The first-run wizard is skipped and those packages are stopped until a normal
+# window holds focus.
+#
 # A condition rather than a sleep, deliberately: a fixed delay long enough for a slow runner is
 # waste on a fast one, and short enough for a fast one is a test that fails on a slow one.
 set -euo pipefail
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+focus_helper="$script_dir/android-emulator-focus.mjs"
 
 adb="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}/platform-tools/adb"
 if [ ! -x "$adb" ]; then
@@ -36,6 +45,15 @@ fi
 "$adb" shell svc power stayon true
 "$adb" shell settings put system screen_off_timeout 2147483647
 
+# Skip the first-run wizard so it cannot ANR over the suite. Best-effort: a device that is already
+# provisioned ignores these, and a package that is not installed is not worth failing the run over.
+"$adb" shell settings put global device_provisioned 1 >/dev/null 2>&1 || true
+"$adb" shell settings put secure user_setup_complete 1 >/dev/null 2>&1 || true
+"$adb" shell pm disable-user --user 0 com.google.android.googlesdksetup >/dev/null 2>&1 || true
+"$adb" shell pm disable-user --user 0 com.google.android.setupwizard >/dev/null 2>&1 || true
+"$adb" shell am force-stop com.google.android.googlesdksetup >/dev/null 2>&1 || true
+"$adb" shell am force-stop com.google.android.setupwizard >/dev/null 2>&1 || true
+
 attempt=1
 while [ "$attempt" -le 60 ]; do
   # Both are best-effort: on a device that is already awake and unlocked they change nothing, and
@@ -46,9 +64,18 @@ while [ "$attempt" -le 60 ]; do
   # mCurrentFocus is null while nothing holds focus, which is the state Espresso gives up on.
   focus="$("$adb" shell dumpsys window 2>/dev/null | grep -m 1 'mCurrentFocus' || true)"
   case "$focus" in
-    *"mCurrentFocus=null"*|"") ;;
-    *) echo "The emulator is awake and focused: ${focus## }"; exit 0 ;;
+    *"Application Not Responding"*|*"com.google.android.googlesdksetup"*|*"com.google.android.setupwizard"*)
+      "$adb" shell am force-stop com.google.android.googlesdksetup >/dev/null 2>&1 || true
+      "$adb" shell am force-stop com.google.android.setupwizard >/dev/null 2>&1 || true
+      # BACK closes some ANR dialogs when force-stop has not yet taken the window.
+      "$adb" shell input keyevent KEYCODE_BACK >/dev/null 2>&1 || true
+      ;;
   esac
+
+  if node "$focus_helper" "$focus"; then
+    echo "The emulator is awake and focused: ${focus## }"
+    exit 0
+  fi
 
   attempt=$((attempt + 1))
   sleep 2

@@ -22,6 +22,8 @@ on:
       - .github/scripts/require-env.sh
       - .github/scripts/verify-mobile-artifact.sh
       - .github/scripts/verify-mobile-artifact.test.mjs
+      - .github/scripts/android-emulator-focus.mjs
+      - .github/scripts/android-emulator-focus.test.mjs
   workflow_dispatch:
     inputs:
       channel:
@@ -74,7 +76,7 @@ jobs:
           node-version: 22
 
       - name: Verify mobile helper scripts
-        run: node --test .github/scripts/plan-mobile-version.test.js .github/scripts/verify-mobile-artifact.test.mjs
+        run: node --test .github/scripts/plan-mobile-version.test.js .github/scripts/verify-mobile-artifact.test.mjs .github/scripts/android-emulator-focus.test.mjs
 
       - name: Plan mobile version
         id: plan

@@ -6,12 +6,16 @@
 #
 # The repository's npm scripts route through nix-shell, which the mobile CI runners do not have
 # and which would fight the Xcode and Android toolchains they do have. The commands underneath are
-# the same ones those scripts run; only the shell wrapper is skipped.
+# the same ones those scripts run, including the design-system --check; only the shell wrapper is
+# skipped.
 set -euo pipefail
 
 app="${1:-AgentUp.Mobile}"
 
-node AgentUp.DesignSystem/scripts/build.mjs
+# Fail rather than rewrite. Cloudflare Pages and the clients consume the committed DesignSystem
+# dist; generating it here would hide a stale checkout behind a passing job. The repository npm
+# scripts pass --check for the same reason; this is that command without the nix-shell wrapper.
+node AgentUp.DesignSystem/scripts/build.mjs --check
 
 npm --prefix AgentUp.WebAudit install --no-audit --no-fund
 npm --prefix AgentUp.WebAudit run build

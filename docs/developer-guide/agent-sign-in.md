@@ -105,4 +105,6 @@ download as a failed job. The NDK step already retries the same class of truncat
 Before Detox starts, the workflow also configures the emulator to stay awake while powered and
 disables its screen timeout. Merely finding a focused window at boot is insufficient because the
 screen can otherwise lock while the harness starts its Server and test-agent processes, leaving
-Espresso with a visible application root that no longer has window focus.
+Espresso with a visible application root that no longer has window focus. An Application Not
+Responding dialog or the Google first-run wizard also holds focus; the wake script skips that
+wizard and waits until a normal window is focused before the suite starts.

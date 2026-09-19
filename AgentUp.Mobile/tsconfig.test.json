@@ -11,7 +11,8 @@
     "src/features/workspaces/**/*.ts",
     "src/features/git/**/*.ts",
     "src/features/applications/**/*.ts",
-    "src/features/telemetry/**/*.ts"
+    "src/features/telemetry/**/*.ts",
+    "src/features/agents/benchmark/MobilePerformanceGate.ts"
   ],
   "exclude": []
 }

@@ -9,7 +9,7 @@ import test from 'node:test';
 
 const script = join(dirname(fileURLToPath(import.meta.url)), 'verify-mobile-artifact.sh');
 
-function writeIpa(dir, { includePayload, extraFiles }) {
+function writeIpa(dir, { includePayload = false, extraFiles = 0, extraPaths = [] } = {}) {
   const root = join(dir, 'contents');
   mkdirSync(root);
   if (includePayload) {
@@ -20,6 +20,11 @@ function writeIpa(dir, { includePayload, extraFiles }) {
   writeFileSync(join(root, 'pad.bin'), randomBytes(1024 * 1024));
   for (let index = 0; index < extraFiles; index += 1) {
     writeFileSync(join(root, `extra-${index}.txt`), 'x');
+  }
+  for (const relative of extraPaths) {
+    const full = join(root, relative);
+    mkdirSync(dirname(full), { recursive: true });
+    writeFileSync(full, 'x');
   }
 
   const ipa = join(dir, 'app.ipa');
@@ -48,6 +53,26 @@ test('rejects an IPA without Payload/*.app', () => {
   const dir = mkdtempSync(join(tmpdir(), 'verify-ipa-'));
   try {
     const ipa = writeIpa(dir, { includePayload: false, extraFiles: 0 });
+    assert.throws(() => verify(ipa), /does not contain Payload\/\*\.app/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('rejects a nested Payload/*.app that is not at the archive root', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'verify-ipa-'));
+  try {
+    const ipa = writeIpa(dir, { extraPaths: ['nested/Payload/Fake.app/Info.plist'] });
+    assert.throws(() => verify(ipa), /does not contain Payload\/\*\.app/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('rejects a similarly named NotPayload/*.app path', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'verify-ipa-'));
+  try {
+    const ipa = writeIpa(dir, { extraPaths: ['NotPayload/Fake.app/Info.plist'] });
     assert.throws(() => verify(ipa), /does not contain Payload\/\*\.app/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
