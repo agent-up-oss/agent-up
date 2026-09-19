@@ -30,4 +30,7 @@ public sealed class WorkspaceQueryController
 
     public async Task ReallocatePortsAsync(string workspaceId)
         => await _registry.ReallocatePortsAsync(workspaceId);
+
+    public Task<bool> UpdateGitIdentityAsync(string workspaceId, string branch, string commit)
+        => _registry.UpdateGitIdentityAsync(workspaceId, branch, commit);
 }

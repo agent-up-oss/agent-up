@@ -13,7 +13,7 @@ The Server image and this chart are public on Docker Hub. Cluster workloads do n
 
 ```bash
 helm upgrade --install agent-up ./chart \
-  --set ingress.host=agent-up.massivecreationlab.com \
+  --set ingress.host=agent-up.example.com \
   --set server.adminPassword=YOUR_ADMIN_PASSWORD
 ```
 
@@ -21,7 +21,7 @@ helm upgrade --install agent-up ./chart \
 
 ```bash
 helm upgrade --install agent-up ./chart \
-  --set ingress.host=agent-up.massivecreationlab.com \
+  --set ingress.host=agent-up.example.com \
   --set server.existingSecret=agent-up-server-secrets
 ```
 
@@ -67,7 +67,7 @@ capabilities:
 
 ```bash
 helm upgrade --install agent-up ./chart \
-  --set ingress.host=agent-up.massivecreationlab.com \
+  --set ingress.host=agent-up.example.com \
   --set server.existingSecret=agent-up-server-secrets \
   --set capabilities.dotnet.disabled=false \
   --set capabilities.dotnet.versions="{10.0.x}" \

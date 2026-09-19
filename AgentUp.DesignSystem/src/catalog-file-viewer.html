@@ -1,0 +1,129 @@
+  <section data-au-surface="file-viewer" data-au-title="File viewer" data-au-intro="A readonly inspection window for a Server-owned file or diff. The catalog owns chrome, gutter, line kinds, hunk markers, and syntax token colors. Clients virtualize the line list instead of dumping the file into one text node.">
+    <article data-au-component="file-viewer" data-au-title="Inspection window" data-au-note="Compose the overlay panel. Header carries path and change status. Close returns to the change list. Do not turn this into an editor." data-au-avalonia="Border" data-au-class="au-file-viewer">
+      <div class="au-overlay-panel au-file-viewer" style="max-width: 42rem;">
+        <div class="au-file-viewer-header">
+          <span class="au-file-viewer-path">AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx</span>
+          <span class="au-file-viewer-status">Modified</span>
+          <button class="au-button au-button--secondary au-button--compact" type="button">Close</button>
+        </div>
+        <div class="au-file-viewer-nav">
+          <button class="au-file-viewer-jump" type="button">@@ −48,6 +48,18 @@</button>
+          <button class="au-file-viewer-jump" type="button">@@ −265,12 +277,40 @@</button>
+          <input class="au-file-viewer-goto" value="52" readonly aria-label="Go to line" />
+        </div>
+        <div class="au-file-viewer-body">
+          <div class="au-file-viewer-line au-file-viewer-line--meta">
+            <span class="au-file-viewer-gutter"></span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code">diff --git a/GitChangesPanel.tsx b/GitChangesPanel.tsx</span>
+          </div>
+          <div class="au-file-viewer-line au-file-viewer-line--hunk">
+            <span class="au-file-viewer-gutter"></span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code">@@ −48,6 +48,18 @@ export function GitChangesPanel</span>
+          </div>
+          <div class="au-file-viewer-line">
+            <span class="au-file-viewer-gutter">48</span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code"><span class="au-syntax-keyword">const</span> [diff, setDiff] = <span class="au-syntax-function">useState</span>(<span class="au-syntax-keyword">null</span>);</span>
+          </div>
+          <div class="au-file-viewer-line au-file-viewer-line--deleted">
+            <span class="au-file-viewer-gutter">49</span>
+            <span class="au-file-viewer-prefix au-file-viewer-prefix--deleted">−</span>
+            <span class="au-file-viewer-code"><span class="au-syntax-keyword">return</span> &lt;<span class="au-syntax-type">Text</span>&gt;{diffText(diff)}&lt;/<span class="au-syntax-type">Text</span>&gt;;</span>
+          </div>
+          <div class="au-file-viewer-line au-file-viewer-line--added au-file-viewer-line--current">
+            <span class="au-file-viewer-gutter">52</span>
+            <span class="au-file-viewer-prefix au-file-viewer-prefix--added">+</span>
+            <span class="au-file-viewer-code"><span class="au-syntax-keyword">return</span> &lt;<span class="au-syntax-type">GitFileViewer</span> diff={diff} <span class="au-syntax-property">onClose</span>={close} /&gt;;</span>
+          </div>
+          <div class="au-file-viewer-line">
+            <span class="au-file-viewer-gutter">53</span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code"><span class="au-syntax-plain">    </span><span class="au-syntax-keyword">return</span> foo;</span>
+          </div>
+          <div class="au-file-viewer-line">
+            <span class="au-file-viewer-gutter">54</span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code"><span class="au-syntax-comment">// Filename opens inspection. Checkbox stays selection.</span></span>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="file-viewer-header" data-au-title="Viewer header" data-au-note="Path is monospace. Status is a muted label, not a colored filename. Close is a secondary control." data-au-avalonia="Border" data-au-class="au-file-viewer-header">
+      <div class="au-file-viewer-header">
+        <span class="au-file-viewer-path">src/app/main.cs</span>
+        <span class="au-file-viewer-status">Added</span>
+        <button class="au-button au-button--secondary au-button--compact" type="button">Close</button>
+      </div>
+    </article>
+    <article data-au-component="file-viewer-path" data-au-title="Path" data-au-note="The inspected path stays primary monospace. Do not paint it with the change kind." data-au-avalonia="TextBlock" data-au-class="au-file-viewer-path">
+      <span class="au-file-viewer-path">AgentUp.Server/Features/Git/Controllers/GitChangesController.cs</span>
+    </article>
+    <article data-au-component="file-viewer-status" data-au-title="Change status" data-au-note="Status is a caption next to the path. Kind color still lives on the change-list glyph." data-au-avalonia="TextBlock" data-au-class="au-file-viewer-status">
+      <span class="au-file-viewer-status">Modified</span>
+    </article>
+    <article data-au-component="file-viewer-nav" data-au-title="Hunk navigation" data-au-note="Jump chips list hunk headers. Go-to-line is a compact mono field. These are navigation, not editing." data-au-avalonia="Border" data-au-class="au-file-viewer-nav">
+      <div class="au-file-viewer-nav">
+        <button class="au-file-viewer-jump" type="button">@@ −1,4 +1,9 @@</button>
+        <input class="au-file-viewer-goto" value="12" readonly aria-label="Go to line" />
+      </div>
+    </article>
+    <article data-au-component="file-viewer-jump" data-au-title="Hunk chip" data-au-note="Hunk markers are raised chips. Hover is the neutral state layer." data-au-avalonia="Button" data-au-class="au-file-viewer-jump">
+      <button class="au-file-viewer-jump" type="button">@@ −48,6 +48,18 @@</button>
+    </article>
+    <article data-au-component="file-viewer-line" data-au-title="Context line" data-au-note="Unchanged lines sit on the canvas. The gutter is tabular. Hover is a neutral state layer." data-au-avalonia="Border" data-au-class="au-file-viewer-line">
+      <div class="au-file-viewer-line">
+        <span class="au-file-viewer-gutter">48</span>
+        <span class="au-file-viewer-prefix"> </span>
+        <span class="au-file-viewer-code"><span class="au-syntax-keyword">public</span> <span class="au-syntax-keyword">sealed</span> <span class="au-syntax-keyword">class</span> <span class="au-syntax-type">GitFileDiff</span></span>
+      </div>
+    </article>
+    <article data-au-component="file-viewer-line-added" data-au-title="Added line" data-au-note="Insertions use the selected-soft fill. Green is change meaning, not chrome." data-au-avalonia="Border" data-au-class="au-file-viewer-line--added">
+      <div class="au-file-viewer-line au-file-viewer-line--added">
+        <span class="au-file-viewer-gutter">52</span>
+        <span class="au-file-viewer-prefix au-file-viewer-prefix--added">+</span>
+        <span class="au-file-viewer-code"><span class="au-syntax-keyword">return</span> viewer;</span>
+      </div>
+    </article>
+    <article data-au-component="file-viewer-line-deleted" data-au-title="Deleted line" data-au-note="Deletions use the danger surface. The prefix carries danger text." data-au-avalonia="Border" data-au-class="au-file-viewer-line--deleted">
+      <div class="au-file-viewer-line au-file-viewer-line--deleted">
+        <span class="au-file-viewer-gutter">49</span>
+        <span class="au-file-viewer-prefix au-file-viewer-prefix--deleted">−</span>
+        <span class="au-file-viewer-code"><span class="au-syntax-keyword">return</span> diffText;</span>
+      </div>
+    </article>
+    <article data-au-component="file-viewer-line-hunk" data-au-title="Hunk marker" data-au-note="@@ headers are info-colored on a quiet surface so they read as structure, not as code." data-au-avalonia="Border" data-au-class="au-file-viewer-line--hunk">
+      <div class="au-file-viewer-line au-file-viewer-line--hunk">
+        <span class="au-file-viewer-gutter"></span>
+        <span class="au-file-viewer-prefix"> </span>
+        <span class="au-file-viewer-code">@@ −48,6 +48,18 @@</span>
+      </div>
+    </article>
+    <article data-au-component="file-viewer-line-current" data-au-title="Current line" data-au-note="Jump target and the open line use the selected tint plus a 2px accent rule." data-au-avalonia="Border" data-au-class="au-file-viewer-line--current" data-au-desktop-class="fileViewerLineCurrent">
+      <div class="au-file-viewer-line au-file-viewer-line--current">
+        <span class="au-file-viewer-gutter">52</span>
+        <span class="au-file-viewer-prefix au-file-viewer-prefix--added">+</span>
+        <span class="au-file-viewer-code">setDiffPath(node.path);</span>
+      </div>
+    </article>
+    <article data-au-component="file-viewer-gutter" data-au-title="Line number" data-au-note="Gutter digits are faint, tabular, and right-aligned so columns hold still while scrolling." data-au-avalonia="TextBlock" data-au-class="au-file-viewer-gutter">
+      <span class="au-file-viewer-gutter">128</span>
+    </article>
+    <article data-au-component="syntax-keyword" data-au-title="Syntax tokens" data-au-note="Highlighting reuses text-info, warning, muted, and primary. Do not force syntax into green — green is reserved for added lines." data-au-avalonia="TextBlock" data-au-class="au-syntax-keyword">
+      <div class="au-cluster">
+        <span class="au-syntax-keyword">async</span>
+        <span class="au-syntax-type">string</span>
+        <span class="au-syntax-string">"ws-1"</span>
+        <span class="au-syntax-comment">// Server-owned</span>
+        <span class="au-syntax-number">2500</span>
+        <span class="au-syntax-function">getFileDiff</span>
+      </div>
+    </article>
+    <article data-au-component="syntax-string" data-au-title="String token" data-au-note="Strings use warning amber so they never compete with insertion green." data-au-avalonia="TextBlock" data-au-class="au-syntax-string">
+      <span class="au-syntax-string">"Agent-Up"</span>
+    </article>
+    <article data-au-component="syntax-comment" data-au-title="Comment token" data-au-note="Comments stay muted italic. They are structure, not action." data-au-avalonia="TextBlock" data-au-class="au-syntax-comment">
+      <span class="au-syntax-comment">// Clients display Server-owned diffs.</span>
+    </article>
+  </section>

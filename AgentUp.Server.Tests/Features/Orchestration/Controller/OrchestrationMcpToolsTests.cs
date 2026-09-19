@@ -108,7 +108,7 @@ public sealed class OrchestrationMcpToolsTests
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("agent-up.json was not found"));
-        Assert.That(result.Message, Does.Contain("docs/user-docs/agent-up-json.md"));
+        Assert.That(result.Message, Does.Contain("docs/user-docs/configuration/index.md"));
         Assert.That(result.Message, Does.Contain("ask the user"));
         Assert.That(_registry.GetAll(), Is.Empty);
     }

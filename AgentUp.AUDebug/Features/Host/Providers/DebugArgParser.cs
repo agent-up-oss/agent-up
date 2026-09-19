@@ -9,7 +9,9 @@ public sealed class DebugArgParser : IDebugArgParser
     {
         int? timeoutSeconds = null;
         var detach = false;
+        var fullPage = false;
         string? password = null;
+        string? heading = null;
         var positionals = new List<string>();
 
         for (var index = 0; index < args.Length; index++)
@@ -18,6 +20,12 @@ public sealed class DebugArgParser : IDebugArgParser
             if (arg == "--detach")
             {
                 detach = true;
+                continue;
+            }
+
+            if (arg == "--full-page")
+            {
+                fullPage = true;
                 continue;
             }
 
@@ -39,6 +47,17 @@ public sealed class DebugArgParser : IDebugArgParser
                 continue;
             }
 
+            if (arg == "--heading")
+            {
+                if (index + 1 >= args.Length || args[index + 1].StartsWith("--", StringComparison.Ordinal))
+                    return (null, "Error: --heading requires a value.");
+                heading = args[index + 1];
+                if (string.IsNullOrWhiteSpace(heading))
+                    return (null, "Error: --heading requires a value.");
+                index++;
+                continue;
+            }
+
             if (arg.StartsWith("--", StringComparison.Ordinal))
                 return (null, $"Error: unknown argument '{arg}'.");
 
@@ -48,24 +67,35 @@ public sealed class DebugArgParser : IDebugArgParser
         if (timeoutSeconds > DebugLayout.MaxTimeoutSeconds)
             return (null, $"Error: --timeout must be between 1 and {DebugLayout.MaxTimeoutSeconds} seconds.");
 
-        return Build(positionals, password, timeoutSeconds, detach);
+        return Build(positionals, password, timeoutSeconds, detach, heading, fullPage);
     }
 
     private static (DebugCommandDto? Command, string? Error) Build(
         IReadOnlyList<string> positionals,
         string? password,
         int? timeoutSeconds,
-        bool detach)
+        bool detach,
+        string? heading,
+        bool fullPage)
     {
         if (positionals.Count == 0 || positionals[0] is "help" or "-h")
-            return Command("help", timeoutSeconds ?? DebugLayout.DefaultTimeoutSeconds, password, detach);
+            return FinishHelpOrHost("help", timeoutSeconds, password, detach, heading, fullPage);
 
         var verb = positionals[0];
         if (verb is "up" or "down" or "status")
         {
             if (positionals.Count > 1)
                 return (null, $"Error: '{verb}' does not take extra arguments.");
-            return Command(verb, timeoutSeconds ?? DebugLayout.DefaultTimeoutSeconds, password, detach);
+            return FinishHelpOrHost(verb, timeoutSeconds, password, detach, heading, fullPage);
+        }
+
+        if (heading is not null || fullPage)
+        {
+            var docsScreenshot = verb == "docs"
+                                 && positionals.Count >= 2
+                                 && positionals[1] == "screenshot";
+            if (!docsScreenshot)
+                return (null, "Error: --heading and --full-page are only valid for docs screenshot.");
         }
 
         if (verb is "test" or "build")
@@ -95,7 +125,14 @@ public sealed class DebugArgParser : IDebugArgParser
             return (null, $"Error: unknown {verb} action '{action}'.");
 
         string? workspaceName = null;
-        if (action == "start-workspace" || (verb == "mobile" && action == "open-agent"))
+        string? pagePath = null;
+        if (verb == "docs" && action == "screenshot")
+        {
+            if (positionals.Count > 3)
+                return (null, "Error: 'docs screenshot' takes at most one page path.");
+            pagePath = positionals.Count == 3 ? positionals[2] : null;
+        }
+        else if (action == "start-workspace" || (verb == "mobile" && action == "open-agent"))
         {
             if (positionals.Count < 3)
                 return (null, $"Error: {verb} {action} requires a workspace name.");
@@ -114,8 +151,25 @@ public sealed class DebugArgParser : IDebugArgParser
                 workspaceName,
                 password,
                 TimeSpan.FromSeconds(timeoutSeconds ?? DebugLayout.DefaultTimeoutSeconds),
-                detach),
+                detach,
+                PagePath: pagePath,
+                Heading: heading,
+                FullPage: fullPage),
             null);
+    }
+
+    private static (DebugCommandDto? Command, string? Error) FinishHelpOrHost(
+        string verb,
+        int? timeoutSeconds,
+        string? password,
+        bool detach,
+        string? heading,
+        bool fullPage)
+    {
+        if (heading is not null || fullPage)
+            return (null, "Error: --heading and --full-page are only valid for docs screenshot.");
+
+        return Command(verb, timeoutSeconds ?? DebugLayout.DefaultTimeoutSeconds, password, detach);
     }
 
     private static (DebugCommandDto? Command, string? Error) Command(

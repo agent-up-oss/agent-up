@@ -19,6 +19,9 @@ internal sealed class DebugCommandDtoBuilder(string verb, string? surface = null
     private TimeSpan _timeout = DebugDomain.Timeout;
     private bool _detach;
     private string? _suite;
+    private string? _pagePath;
+    private string? _heading;
+    private bool _fullPage;
 
     public DebugCommandDtoBuilder Doing(string? action)
     {
@@ -56,6 +59,24 @@ internal sealed class DebugCommandDtoBuilder(string verb, string? surface = null
         return this;
     }
 
+    public DebugCommandDtoBuilder AtPage(string? pagePath)
+    {
+        _pagePath = pagePath;
+        return this;
+    }
+
+    public DebugCommandDtoBuilder ScrollingTo(string? heading)
+    {
+        _heading = heading;
+        return this;
+    }
+
+    public DebugCommandDtoBuilder CapturingFullPage()
+    {
+        _fullPage = true;
+        return this;
+    }
+
     public DebugCommandDto Build()
-        => new(verb, surface, _action, _workspaceName, _password, _timeout, _detach, _suite);
+        => new(verb, surface, _action, _workspaceName, _password, _timeout, _detach, _suite, _pagePath, _heading, _fullPage);
 }

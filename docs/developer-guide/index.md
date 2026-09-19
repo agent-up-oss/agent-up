@@ -5,19 +5,26 @@ slug: /
 
 # Developer Guide
 
-This guide captures the implementation direction for Agent-Up.
+<DocWhat>
+This guide captures the implementation direction for Agent-Up. The Server owns orchestration and runtime state. Desktop, CLI, and MCP clients stay thin.
 
-Agent-Up is a workspace manager, not an application framework. The Server owns orchestration and runtime state. Desktop, CLI, and MCP clients stay thin. Every implementation decision should preserve framework agnosticism, zero application source changes, and multiple concurrent isolated workspaces.
+Agent-Up is a workspace manager, not an application framework. Every implementation decision should preserve framework agnosticism, zero application source changes, and multiple concurrent isolated workspaces.
+</DocWhat>
 
-## Start Here
+<DocFacts label="MCP servers">
+<DocFact label="orchestration">/mcp/orchestration</DocFact>
+<DocFact label="browser">/mcp/browser</DocFact>
+<DocFact label="audit">/mcp/audit</DocFact>
+<DocFact label="commits">/mcp/commits</DocFact>
+<DocFact label="verification">/mcp/verification</DocFact>
+</DocFacts>
 
-- [Design Principles](./design-principles.md) defines the constraints that shape the implementation.
-- [Architecture](./architecture.md) explains the major components and ownership boundaries.
-- [AUDebug](./au-debug.md) hosts repo Desktop, Mobile, and docs for visual inspection.
-- [Server](./server.md) describes the single source of truth.
-- [MCP](./mcp.md) covers the automation interface.
-- [Commit Merge Queue Assessment](./commit-merge-queue-assessment.md) evaluates a Git-backed, incrementally dependent proposal queue with per-entry verification and human-controlled integration.
-- [Event Recording](./event-recording.md) and [Playwright Generation](./playwright.md) describe validation and test generation.
-- [Testing](./testing.md) sets out how tests are written: builders, shared domain data, and setup that stays in the test.
-- [CI Configuration](./ci-configuration.md) documents repository secrets and variables for signing and release.
-- [Product telemetry](./telemetry.md) describes Sentry error reporting for Agent-Up processes.
+MCP is a protocol, not a slice. Each slice General lists that slice's tools and routes.
+
+## Start here
+
+- [Repo](/developer-guide/repo/architecture) covers architecture rules, packaging, CI, `au-debug`, design-system consumption, and telemetry.
+- [Testing](/developer-guide/repo/testing) sets out how tests are written: builders, shared domain data, and setup that stays in the test.
+- Slice Generals use the same labels as User Docs: [Workspaces](/developer-guide/workspaces), [Applications](/developer-guide/applications), [Git](/developer-guide/git), [Commits](/developer-guide/commits), [Agents](/developer-guide/agents), [Browser](/developer-guide/browser), [Diagnostics](/developer-guide/diagnostics), [Verification](/developer-guide/verification), [Configuration](/developer-guide/configuration).
+
+The [Commit merge queue assessment](/developer-guide/commits/merge-queue-assessment) and [Desktop application hosting assessment](/developer-guide/applications/hosting-assessment) are design notes, not the current contract.

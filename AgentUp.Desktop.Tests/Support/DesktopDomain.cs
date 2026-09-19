@@ -55,6 +55,9 @@ internal static class DesktopDomain
     /// <summary>The canonical workspace: one running worktree with no applications.</summary>
     public static WorkspaceDtoBuilder Workspace() => new();
 
+    /// <summary>A Git log commit; tests override the id, parents, and refs they care about.</summary>
+    public static GitLogCommitDtoBuilder GitCommit() => new();
+
     /// <summary>A second workspace, so "two different workspaces" has one spelling.</summary>
     public static WorkspaceDtoBuilder SecondWorkspace()
         => new WorkspaceDtoBuilder()

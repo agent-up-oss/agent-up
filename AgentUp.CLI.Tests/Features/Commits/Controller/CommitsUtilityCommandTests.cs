@@ -162,6 +162,19 @@ public sealed class CommitsUtilityCommandTests
     }
 
     [Test]
+    public async Task Edit_unknownVerb_writesUsage()
+    {
+        using var output = new StringWriter();
+        var command = BuildController(output);
+
+        var code = await command.RunAsync(["edit", "nope", "--format", "json"]);
+
+        using var json = JsonDocument.Parse(output.ToString());
+        Assert.That(code, Is.EqualTo(1));
+        Assert.That(json.RootElement.GetProperty("error").GetString(), Does.Contain("commits edit"));
+    }
+
+    [Test]
     public async Task Remove_archivesEntry()
     {
         using var output = new StringWriter();

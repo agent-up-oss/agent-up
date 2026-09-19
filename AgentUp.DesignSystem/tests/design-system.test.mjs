@@ -31,7 +31,7 @@ const layoutCssProperties = new Set([
 ]);
 
 const primitives = await readFile(new URL('src/agent-up.css', root), 'utf8');
-const product = await readFile(new URL('src/product.css', root), 'utf8');
+const product = await readProductCss(root);
 const marketing = await readFile(new URL('src/marketing.css', root), 'utf8');
 const tokens = parseCustomProperties(primitives);
 const rules = parseRules(`${primitives}\n${product}\n${marketing}`);
@@ -205,12 +205,48 @@ test('agent transcript uses catalog user bubbles, work logs, and thought hairlin
   assert.match(axaml, /Classes="au-chat-user"/);
   assert.match(axaml, /Classes="au-chat-run"/);
   assert.match(axaml, /Classes="au-chat-work"/);
-  const mobile = await readFile(resolve(repository, 'AgentUp.Mobile/src/features/agents/components/AgentChatScreen.tsx'), 'utf8');
+  const mobile = await readFile(resolve(repository, 'AgentUp.Chat/src/components/AgentChatScreen.tsx'), 'utf8');
   assert.match(mobile, /auBox\('chatThought'\)/);
   assert.match(mobile, /auText\('chatThoughtBody'\)/);
   assert.match(mobile, /auBox\('chatUser'\)/);
   assert.match(mobile, /auBox\('chatRun'\)/);
   assert.match(mobile, /auBox\('chatWork'\)/);
+});
+
+test('Git change list uses catalog status glyphs instead of restyled rows', async () => {
+  assert.equal(agentUpTheme.components.gitStatusAdded.color, agentUpTheme.colors.accentSoft);
+  assert.equal(agentUpTheme.components.gitStatusUntracked.color, agentUpTheme.colors.statusHealthy);
+  assert.equal(agentUpTheme.components.gitStatusDeleted.color, agentUpTheme.colors.statusDanger);
+  assert.equal(agentUpTheme.components.gitStatusModified.color, agentUpTheme.colors.statusInfo);
+  assert.equal(agentUpTheme.components.gitStatusRenamed.color, agentUpTheme.colors.textInfo);
+  assert.equal(agentUpTheme.components.gitStatusConflicted.color, agentUpTheme.colors.statusWarning);
+  assert.equal(agentUpTheme.components.gitStatusDirectory.color, agentUpTheme.colors.textMuted);
+  assert.equal(agentUpTheme.components.gitChangeName.color, agentUpTheme.colors.textPrimary);
+  assert.equal(agentUpTheme.components.gitChangeNameDirectory.color, agentUpTheme.colors.textMuted);
+  assert.equal(agentUpTheme.components.gitRowSelected.backgroundColor, agentUpTheme.colors.surfaceSelected);
+  assert.equal(agentUpTheme.components.gitRowSelected.borderLeftColor, agentUpTheme.colors.accentLine);
+  assert.equal(agentUpTheme.components.gitTreeGuide.borderLeftColor, agentUpTheme.colors.borderSubtle);
+  assert.equal(agentUpTheme.components.gitTreeGuide.width, agentUpTheme.spacing[5]);
+  assert.equal(agentUpTheme.components.gitTreeToggleExpanded.color, agentUpTheme.colors.textMuted);
+  assert.equal(agentUpTheme.components.gitTreeToggleCollapsed.color, agentUpTheme.colors.textMuted);
+  assert.match(avaloniaStyles, /Selector="Border\.gitNodeRow"/);
+  assert.match(avaloniaStyles, /Selector="Border\.gitNodeRowSelected"/);
+  assert.match(avaloniaStyles, /Selector="Border\.gitTreeGuide"/);
+  assert.match(avaloniaStyles, /Selector="Button\.gitTreeToggle"/);
+  const axaml = await readFile(resolve(repository, 'AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml'), 'utf8');
+  assert.match(axaml, /Classes="gitNodeRow"/);
+  assert.match(axaml, /Classes="gitChangeName"/);
+  assert.match(axaml, /Classes="au-git-status"/);
+  assert.match(axaml, /Classes="au-git-tree-guide"/);
+  assert.match(axaml, /Classes="au-git-tree-toggle"/);
+  const mobile = await readFile(resolve(repository, 'AgentUp.Mobile/src/features/git/components/GitChangeRow.tsx'), 'utf8');
+  assert.match(mobile, /auBox\('gitRow'\)/);
+  assert.match(mobile, /auBox\('gitTreeGuide'\)/);
+  assert.match(mobile, /auText\(nameClass/);
+  assert.match(mobile, /auText\(statusClass/);
+  const list = catalog.surfaces.find(item => item.id === 'git')?.components.find(item => item.id === 'git-change-list');
+  assert.ok(list?.html.includes('au-git-tree-guide'));
+  assert.ok(list?.html.includes('au-git-tree-toggle--collapsed'));
 });
 
 test('tappable cards are catalog buttons instead of local picker chrome', async () => {
@@ -222,7 +258,7 @@ test('tappable cards are catalog buttons instead of local picker chrome', async 
   const axaml = await readFile(resolve(repository, 'AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml'), 'utf8');
   assert.match(axaml, /Classes="au-choice"/);
   assert.doesNotMatch(axaml, /agentPickerButton/);
-  const mobile = await readFile(resolve(repository, 'AgentUp.Mobile/src/features/agents/components/AgentChatScreen.tsx'), 'utf8');
+  const mobile = await readFile(resolve(repository, 'AgentUp.Chat/src/components/AgentChatScreen.tsx'), 'utf8');
   assert.match(mobile, /auBox\('choice'\)/);
 });
 
@@ -306,6 +342,50 @@ test('marketing CSS keeps the retired ambient neon treatment forbidden', () => {
   assert.doesNotMatch(marketing, /text-shadow|drop-shadow|radial-gradient/i);
 });
 
+test('documentation catalog encodes a skim path rather than marketing chips', () => {
+  const docs = catalog.surfaces.find(surface => surface.id === 'documentation');
+  assert.ok(docs, 'catalog is missing documentation surface');
+  const ids = docs.components.map(component => component.id);
+  for (const id of [
+    'doc-kicker', 'doc-focus', 'doc-meta', 'doc-what', 'doc-spine',
+    'doc-contract', 'doc-fork', 'doc-facts', 'doc-surfaces', 'doc-steps',
+    'doc-callout', 'doc-next',
+  ]) {
+    assert.ok(ids.includes(id), `documentation catalog is missing ${id}`);
+  }
+  const kicker = docs.components.find(component => component.id === 'doc-kicker');
+  assert.match(kicker.html, /au-field-label/);
+  assert.doesNotMatch(kicker.html, /au-eyebrow/);
+  const surfaces = docs.components.find(component => component.id === 'doc-surfaces');
+  assert.match(surfaces.html, /au-field-label/);
+  assert.doesNotMatch(surfaces.html, /au-badge au-doc-surface/);
+  const spine = docs.components.find(component => component.id === 'doc-spine');
+  assert.match(spine.html, /au-doc-spine__n/);
+  assert.doesNotMatch(spine.html, /On this page/);
+  assert.doesNotMatch(spine.html, /au-doc-spine__beat--selected/);
+  const what = docs.components.find(component => component.id === 'doc-what');
+  assert.doesNotMatch(what.html, /au-field-label/);
+  const focus = docs.components.find(component => component.id === 'doc-focus');
+  assert.match(focus.html, /Watch/);
+  assert.doesNotMatch(focus.html, /Remember/);
+  const callout = docs.components.find(component => component.id === 'doc-callout');
+  assert.match(callout.html, /au-callout--warning/);
+  assert.match(callout.html, /au-doc-callout__body/);
+  assert.match(callout.html, /localhost:5000/);
+  assert.match(callout.html, /localhost:5001/);
+});
+
+test('docs.css uses semantic tokens rather than raw product colors', async () => {
+  const css = await readFile(new URL('src/docs.css', root), 'utf8');
+  assert.doesNotMatch(css, /#[0-9a-fA-F]{3,8}/);
+  assert.match(css, /\.au-doc-kicker/);
+  assert.match(css, /\.au-doc-what/);
+  assert.match(css, /\.au-doc-next/);
+  assert.match(css, /clamp\(2\.25rem, 4vw, 2\.75rem\)/);
+  assert.match(css, /\.au-doc-spine__beat--selected/);
+  assert.match(css, /\.au-doc-callout__body/);
+});
+
 test('brand voice is a closed lifecycle schema with required identity fields', async () => {
   const voice = JSON.parse(await readFile(new URL('brand/voice.json', root), 'utf8'));
   for (const field of ['productName', 'category', 'promise', 'boundary']) {
@@ -384,4 +464,15 @@ async function filesUnder(directory, extensions) {
         ? [resolve(directory, entry.name)]
         : []));
   return nested.flat();
+}
+
+async function readProductCss(base) {
+  const src = new URL('src/', base);
+  const product = await readFile(new URL('product.css', src), 'utf8');
+  const extras = (await readdir(src))
+    .filter(name => name.endsWith('.css') && !['agent-up.css', 'product.css', 'marketing.css', 'docs.css'].includes(name))
+    .sort();
+  if (!extras.length) return product;
+  const fragments = await Promise.all(extras.map(name => readFile(new URL(name, src), 'utf8')));
+  return `${product}\n\n${fragments.join('\n\n')}`;
 }

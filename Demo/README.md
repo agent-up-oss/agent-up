@@ -28,7 +28,7 @@ Suggested recording flow:
 
 1. Start the Agent-Up Server and Desktop.
 2. Open four terminals, one in each `Demo/agentx` directory.
-3. Give each terminal agent its local `PROMPT.md`.
+3. Give each terminal agent its local `PROMPT.md`. Attach Orchestration MCP at `/mcp/orchestration`, then Browser MCP at `/mcp/browser` (and Audit MCP at `/mcp/audit` if querying history).
 4. Let the agents start their workspaces and use MCP browser/audit tools while OBS records the Desktop scene.
 
 The fourth workspace is an altered version of the online-shop workspace focused on returns and fulfillment.

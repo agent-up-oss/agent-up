@@ -77,7 +77,7 @@ export default function DesignSystemPage() {
             <p className="au-lede">Every surface below is a live catalog example. Desktop, Mobile, docs, and marketing apply these classes and compiled bindings. They do not invent a second theme from the palette.</p>
             <div className="au-cluster">
               <a className="au-button" href="#catalog">Open the catalog</a>
-              <Link className="au-button au-button--secondary" to="/developer-guide/design-system">Implementation contract</Link>
+              <Link className="au-button au-button--secondary" to="/developer-guide/repo/design-system">Implementation contract</Link>
             </div>
           </div>
           <div className="au-product-frame" aria-label="Agent-Up interface example">

@@ -1,26 +1,52 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
-import type { GitHeadState } from '../models/GitChanges';
-import { getHeadState, switchBranch } from '../providers/GitApiProvider';
+import type { GitHeadState, GitSyncResult } from '../models/GitChanges';
+import {
+  filterGitBranchPickerRows,
+  gitBranchMutationConfirm,
+  gitBranchPickerClosesFromPointer,
+  gitBranchPickerViewportHeight,
+  gitPushFailureConfirm,
+  gitPushFailureOffersForce,
+  type GitConfirmCopy,
+} from '../providers/GitBranchPickerProvider';
+import { checkoutRemote, fetchRemote, getHeadState, pullRemote, pushRemote, switchBranch } from '../providers/GitApiProvider';
+import { GitConfirmDialog } from './GitConfirmDialog';
+
+type MenuLayout = { top: number; left: number; width: number };
+
+type PendingConfirm = { copy: GitConfirmCopy; action: () => void };
 
 type WorkspaceBranchPickerProps = {
   workspaceId: string;
+  onHistory?: () => void;
+  onReload?: () => void;
 };
 
-export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProps) {
+export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload }: WorkspaceBranchPickerProps) {
   const { expireActiveCredential } = useServers();
   const { server, refresh } = useWorkspaces();
   const [head, setHead] = useState<GitHeadState | null>(null);
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
+  const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
+  const [menuLayout, setMenuLayout] = useState<MenuLayout | null>(null);
   const request = useRef(0);
+  const wrapRef = useRef<View>(null);
+
+  const closeMenu = useCallback(() => {
+    setOpen(false);
+    setQuery('');
+    setMenuLayout(null);
+  }, []);
 
   const load = useCallback(async () => {
     if (!server) return;
@@ -41,14 +67,48 @@ export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProp
 
   useEffect(() => {
     setHead(null);
-    setOpen(false);
+    closeMenu();
     setCreating(false);
     setName('');
     setError(null);
+    setConfirm(null);
     void load();
-  }, [load]);
+  }, [load, closeMenu]);
 
-  const run = async (next: string, create: boolean) => {
+  const branches = head?.localBranches ?? [];
+  const remotes = head?.remoteBranches ?? [];
+  const rows = useMemo(
+    () => filterGitBranchPickerRows(branches, remotes, query),
+    [branches, remotes, query],
+  );
+
+  const afterSuccess = async () => {
+    setCreating(false);
+    setName('');
+    closeMenu();
+    await load();
+    await refresh();
+  };
+
+  const toggleMenu = () => {
+    if (busy || !hasBranches) return;
+    if (open) {
+      closeMenu();
+      return;
+    }
+    setCreating(false);
+    setQuery('');
+    wrapRef.current?.measureInWindow((x, y, width, height) => {
+      setMenuLayout({ top: y + height + 8, left: x, width });
+      setOpen(true);
+    });
+  };
+
+  const dismissFromOverlay = () => {
+    if (gitBranchPickerClosesFromPointer('overlay')) closeMenu();
+  };
+
+  const runSwitch = async (next: string, create: boolean) => {
     if (!server || busy || next.length === 0 || next === head?.branch) return;
     setBusy(true);
     setError(null);
@@ -58,11 +118,7 @@ export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProp
         setError(result.error ?? 'The branch switch failed.');
         return;
       }
-      setCreating(false);
-      setOpen(false);
-      setName('');
-      await load();
-      await refresh();
+      await afterSuccess();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'The branch switch failed.');
     } finally {
@@ -70,17 +126,145 @@ export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProp
     }
   };
 
+  const runCheckout = async (next: string) => {
+    if (!server || busy || next.length === 0) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await checkoutRemote(server, workspaceId, next);
+      if (!result.succeeded) {
+        setError(result.error ?? 'The checkout failed.');
+        return;
+      }
+      await afterSuccess();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'The checkout failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runSync = async (
+    label: string,
+    action: () => Promise<GitSyncResult>,
+    options: { offerForceOnFailure?: boolean } = {},
+  ) => {
+    if (!server || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await action();
+      if (!result.succeeded) {
+        const detail = result.error ?? `The ${label} failed.`;
+        if (options.offerForceOnFailure && gitPushFailureOffersForce(detail)) {
+          setConfirm({
+            copy: gitPushFailureConfirm(detail, head),
+            action: () => void runSync('force push', () => pushRemote(server, workspaceId, true, false)),
+          });
+          return;
+        }
+        setError(detail);
+        return;
+      }
+      await afterSuccess();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : `The ${label} failed.`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmAction = (copy: GitConfirmCopy, action: () => void) => {
+    if (busy) return;
+    closeMenu();
+    setConfirm({ copy, action });
+  };
+
   const branch = head?.branch || 'not on a git branch';
-  const branches = head?.localBranches ?? [];
+  const ahead = head?.ahead ?? 0;
+  const behind = head?.behind ?? 0;
+  const sync = ahead === 0 && behind === 0 ? '' : `↑${ahead} ↓${behind}`;
+  const hasBranches = branches.length > 0 || remotes.length > 0;
+  const menuOpen = open && hasBranches && menuLayout !== null;
+
+  const menu = menuOpen && (
+    <View style={[styles.menu, { position: 'absolute', top: menuLayout.top, left: menuLayout.left, width: menuLayout.width }]}>
+      <TextInput
+        accessibilityLabel="Search branches"
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search branches"
+        placeholderTextColor={agentUpTheme.colors.textFaint}
+        autoCorrect={false}
+        autoCapitalize="none"
+        style={styles.search}
+      />
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+        style={[styles.list, { maxHeight: gitBranchPickerViewportHeight() }]}>
+        {rows.length === 0 &&
+          <Text style={styles.empty}>No matching branches</Text>}
+        {rows.map(row => {
+          if (row.kind === 'section') {
+            return <Text key={`section:${row.title}`} style={styles.section}>{row.title}</Text>;
+          }
+          if (row.kind === 'local') {
+            return (
+              <Pressable
+                key={`local:${row.name}`}
+                disabled={busy || row.name === head?.branch}
+                onPress={() => confirmAction(
+                  gitBranchMutationConfirm('switch', head, row.name),
+                  () => void runSwitch(row.name, false),
+                )}
+                style={[styles.option, row.name === head?.branch && styles.optionActive]}>
+                <Text style={[styles.optionText, row.name === head?.branch && styles.optionTextActive]}>{row.name}</Text>
+              </Pressable>
+            );
+          }
+          return (
+            <Pressable
+              key={`remote:${row.label}`}
+              disabled={busy}
+              onPress={() => confirmAction(
+                gitBranchMutationConfirm('checkoutRemote', head, row.label),
+                () => void runCheckout(row.label),
+              )}
+              style={styles.option}>
+              <Text style={styles.optionText}>{row.label}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
 
   return (
-    <View style={styles.wrap}>
+    <View ref={wrapRef} collapsable={false} style={styles.wrap}>
+      {menuOpen &&
+        <Modal
+          visible
+          transparent
+          animationType="none"
+          onRequestClose={closeMenu}>
+          <View style={styles.modalRoot} pointerEvents="box-none">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss branch list"
+              testID="dismiss-branch-list"
+              onPress={dismissFromOverlay}
+              style={styles.dismissOverlay}
+            />
+            {menu}
+          </View>
+        </Modal>}
       <View style={styles.row}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Current branch ${branch}`}
-          disabled={busy || branches.length === 0}
-          onPress={() => { setCreating(false); setOpen(value => !value); }}
+          disabled={busy || !hasBranches}
+          onPress={toggleMenu}
           style={styles.dropdown}>
           <Text numberOfLines={1} style={styles.branch}>{branch}</Text>
           <Text style={styles.chevron}>{open ? '▴' : '▾'}</Text>
@@ -89,24 +273,53 @@ export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProp
           accessibilityRole="button"
           accessibilityLabel="Create branch"
           disabled={busy}
-          onPress={() => { setOpen(false); setCreating(true); }}
+          onPress={() => { closeMenu(); setCreating(true); }}
           style={styles.plus}>
           <Text style={styles.plusText}>+</Text>
         </Pressable>
       </View>
-      {open && branches.length > 0 && (
-        <View style={styles.menu}>
-          {branches.map(item => (
-            <Pressable
-              key={item}
-              disabled={busy || item === head?.branch}
-              onPress={() => void run(item, false)}
-              style={[styles.option, item === head?.branch && styles.optionActive]}>
-              <Text style={[styles.optionText, item === head?.branch && styles.optionTextActive]}>{item}</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
+      {!!sync && <Text style={styles.sync}>{sync}</Text>}
+      <View style={styles.actions}>
+        {onReload &&
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Reload"
+            disabled={busy}
+            onPress={onReload}
+            style={styles.refresh}>
+            <Text style={styles.refreshIcon}>↻</Text>
+          </Pressable>}
+        <Pressable
+          disabled={busy}
+          onPress={() => confirmAction(gitBranchMutationConfirm('fetch', head), () => void runSync('fetch', () => fetchRemote(server!, workspaceId, null)))}
+          style={styles.action}>
+          <Text style={styles.actionText}>Fetch</Text>
+        </Pressable>
+        <Pressable
+          disabled={busy}
+          onPress={() => confirmAction(gitBranchMutationConfirm('pull', head), () => void runSync('pull', () => pullRemote(server!, workspaceId, false)))}
+          style={styles.action}>
+          <Text style={styles.actionText}>Pull</Text>
+        </Pressable>
+        <Pressable
+          disabled={busy}
+          onPress={() => confirmAction(
+            gitBranchMutationConfirm('push', head),
+            () => void runSync('push', () => pushRemote(server!, workspaceId, false, false), { offerForceOnFailure: true }),
+          )}
+          style={styles.actionPrimary}>
+          <Text style={styles.actionPrimaryText}>Push</Text>
+        </Pressable>
+        {onHistory &&
+          <Pressable
+            testID="open-git-history"
+            accessibilityRole="button"
+            accessibilityLabel="History"
+            onPress={() => { closeMenu(); onHistory(); }}
+            style={styles.action}>
+            <Text style={styles.actionText}>History</Text>
+          </Pressable>}
+      </View>
       {creating && (
         <View style={styles.create}>
           <TextInput
@@ -119,7 +332,10 @@ export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProp
           />
           <Pressable
             disabled={busy || !name.trim()}
-            onPress={() => void run(name.trim(), true)}
+            onPress={() => confirmAction(
+              gitBranchMutationConfirm('create', head, name.trim()),
+              () => void runSwitch(name.trim(), true),
+            )}
             style={[styles.createButton, (!name.trim() || busy) && styles.disabled]}>
             <Text style={styles.createButtonText}>Create</Text>
           </Pressable>
@@ -129,12 +345,24 @@ export function WorkspaceBranchPicker({ workspaceId }: WorkspaceBranchPickerProp
         </View>
       )}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
+      <GitConfirmDialog
+        copy={confirm?.copy ?? null}
+        busy={busy}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => {
+          const next = confirm;
+          setConfirm(null);
+          next?.action();
+        }}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { gap: 8 },
+  modalRoot: { flex: 1 },
+  dismissOverlay: { position: 'absolute', inset: 0, zIndex: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dropdown: {
     flex: 1,
@@ -156,8 +384,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   plusText: { ...auText('accent'), fontSize: 20, fontWeight: '700', lineHeight: 22 },
-  menu: { ...auBox('card'), overflow: 'hidden', paddingHorizontal: 0, paddingVertical: 0 },
-  option: { paddingHorizontal: 12, paddingVertical: 10 },
+  sync: auText('muted'),
+  actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  refresh: { ...auBox('titleTool'), alignItems: 'center', justifyContent: 'center' },
+  refreshIcon: auText('chromeIcon'),
+  action: { ...auBox('button', 'buttonSecondary', 'buttonCompact'), minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  actionText: auText('buttonSecondary', 'buttonCompact'),
+  actionPrimary: { ...auBox('button', 'buttonCompact'), minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  actionPrimaryText: auText('button', 'buttonCompact'),
+  menu: { ...auBox('card'), overflow: 'hidden', paddingHorizontal: 0, paddingVertical: 8, gap: 8, zIndex: 2, elevation: 8 },
+  search: { marginHorizontal: 8, ...auBox('input'), ...auText('input') },
+  list: { flexGrow: 0 },
+  empty: { ...auText('muted'), paddingHorizontal: 12, paddingVertical: 10 },
+  section: { ...auText('fieldLabel'), paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 },
+  option: { paddingHorizontal: 12, paddingVertical: 10, minHeight: 40, justifyContent: 'center' },
   optionActive: auBox('cardSelected'),
   optionText: auText('muted'),
   optionTextActive: auText('workspaceName'),

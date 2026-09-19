@@ -8,10 +8,17 @@ and marketing presentation. The canonical format is HTML and CSS:
 - `src/product.css` defines Agent-Up product surfaces: chrome, workspaces,
   applications, browser, console, Git, diagnostics, metrics, validation, auth,
   database explorer, and Mobile.
-- `src/catalog.html` is the structural catalog. Avalonia infers control types,
-  class names, and Desktop aliases from it instead of restating the same UI in XAML.
+- `src/catalog.html` is the structural catalog. Additional `src/catalog-*.html`
+  fragments (Git history in `catalog-git-log.html`) are concatenated at build
+  time. Avalonia infers control types, class names, and Desktop aliases from the
+  combined catalog instead of restating the same UI in XAML.
+- `src/git-log.css` defines the commit graph, pinned timestamp column, sticky selected detail, and ref chips.
 - `src/marketing.css` defines reusable marketing compositions that keep the real
   product UI as the visual reference.
+- `src/docs.css` defines documentation structure used by User Docs and the
+  Developer Guide: kicker, focus pane, what-it-is, numbered spine, contract,
+  fork, facts, surface rows, steps, callout, and next-in-slice. It is not
+  compiled into Desktop or Mobile bindings.
 - `brand/voice.json` defines product naming, positioning, lifecycle language, and
   editorial rules.
 
@@ -24,6 +31,7 @@ styles** under `dist/`. Those generated bindings must never be edited manually.
 ```css
 @import '@agent-up/design-system/styles.css';
 @import '@agent-up/design-system/marketing.css';
+@import '@agent-up/design-system/docs.css';
 ```
 
 ```ts
@@ -49,4 +57,4 @@ that keep the accent meaningful:
 - **Text stays legible on every fill.** Each text role must clear WCAG AA
   (4.5:1) against every surface and selection fill the catalog places it on.
 
-See `docs/developer-guide/design-system.md` for the full visual contract.
+See `docs/developer-guide/repo/design-system.md` for the full visual contract.

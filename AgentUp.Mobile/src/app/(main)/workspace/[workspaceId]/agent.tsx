@@ -1,40 +1,37 @@
-import { Redirect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AgentChatScreen } from '@agent-up/chat';
-import { GitChangesPanel } from '@/features/git/components/GitChangesPanel';
+import { WorkspaceRouteGate } from '@/features/workspaces/components/WorkspaceRouteGate';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
+import { useInnerShell } from '@/features/shell/hooks/useInnerShell';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
-import { ShellLoading } from '@/features/shell/components/ShellLoading';
+import { useCallback, useMemo, useState } from 'react';
 
 export default function WorkspaceAgentRoute() {
-  const { workspaceId } = useLocalSearchParams<{ workspaceId: string }>();
-  const { workspaces, selectedWorkspace, selectWorkspace, ready, server } = useWorkspaces();
-  const workspace = workspaces.find(entry => entry.id === workspaceId) ?? null;
-  const [presentation, present] = useShellPresentation();
-
-  useEffect(() => {
-    if (workspace && selectedWorkspace?.id !== workspace.id) selectWorkspace(workspace.id);
-  }, [workspace, selectedWorkspace?.id, selectWorkspace]);
-
-  useShellConfig(presentation);
-
-  if (!ready) return <ShellLoading />;
-  if (!workspace) return <Redirect href="/(main)/workspace" />;
-
-  // The chat module knows nothing about this app's shell or its git slice, so the route is what
-  // supplies both. The harness app that the sign-in tests drive supplies neither.
-  return <AgentChatScreen
-    workspace={workspace}
-    server={server}
-    changesPanel={<GitChangesPanel workspaceId={workspace.id} />}
-    onPresent={present}
-  />;
+  const { server } = useWorkspaces();
+  return (
+    <WorkspaceRouteGate>
+      {workspace => <WorkspaceAgentChat workspaceId={workspace.id} displayName={workspace.displayName} server={server} />}
+    </WorkspaceRouteGate>
+  );
 }
 
-/** Holds the chrome the chat asked for, in the shape this app's shell expects. */
-function useShellPresentation() {
+function WorkspaceAgentChat({
+  workspaceId,
+  displayName,
+  server,
+}: {
+  workspaceId: string;
+  displayName: string;
+  server: ReturnType<typeof useWorkspaces>['server'];
+}) {
   const [title, setTitle] = useState('Workspace agent');
   const present = useCallback((value: { title: string }) => setTitle(value.title), []);
-  const config = useMemo(() => ({ title, rightAction: null, sidebarContent: null }), [title]);
-  return [config, present] as const;
+  const inner = useInnerShell(title, `/(main)/workspace/${workspaceId}/agents`);
+  const config = useMemo(() => ({ ...inner, title }), [inner, title]);
+  useShellConfig(config);
+
+  return <AgentChatScreen
+    workspace={{ id: workspaceId, displayName }}
+    server={server}
+    onPresent={present}
+  />;
 }

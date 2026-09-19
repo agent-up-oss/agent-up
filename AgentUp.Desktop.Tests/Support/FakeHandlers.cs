@@ -32,6 +32,9 @@ internal sealed class FakeHttpMessageHandler(
             return Task.FromResult(Ok(GitRoutes.EmptyTree(GitRoutes.WorkspaceId(path), workspace?.Branch)));
         }
 
+        if (GitRoutes.IsLogRoute(path))
+            return Task.FromResult(Ok(GitRoutes.EmptyLog()));
+
         if (GitRoutes.IsCommitQueueRoute(path))
             return Task.FromResult(Ok(GitRoutes.EmptyQueue()));
 
@@ -106,6 +109,9 @@ internal sealed class MutableFakeHttpMessageHandler(List<WorkspaceDto> initial) 
             var gitWorkspace = _workspaces.FirstOrDefault(item => item.Id == GitRoutes.WorkspaceId(path));
             return Task.FromResult(Ok(GitRoutes.EmptyTree(GitRoutes.WorkspaceId(path), gitWorkspace?.Branch)));
         }
+
+        if (GitRoutes.IsLogRoute(path))
+            return Task.FromResult(Ok(GitRoutes.EmptyLog()));
 
         if (GitRoutes.IsCommitQueueRoute(path))
             return Task.FromResult(Ok(GitRoutes.EmptyQueue()));
@@ -253,6 +259,12 @@ internal static class GitRoutes
     public static bool IsChangesRoute(string path)
         => path.StartsWith("/api/workspaces/", StringComparison.Ordinal)
            && path.EndsWith("/git/changes", StringComparison.Ordinal);
+
+    public static bool IsLogRoute(string path)
+        => path.StartsWith("/api/workspaces/", StringComparison.Ordinal)
+           && path.EndsWith("/git/log", StringComparison.Ordinal);
+
+    public static GitLogDto EmptyLog() => new([]);
 
     public static bool IsCommitQueueRoute(string path)
         => path.StartsWith("/api/workspaces/", StringComparison.Ordinal)

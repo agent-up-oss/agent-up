@@ -40,4 +40,26 @@ public sealed class GitController
         bool create,
         CancellationToken cancellationToken = default)
         => _changes.SwitchBranchAsync(workspaceId, name, create, cancellationToken);
+
+    public Task<GitMutationResultDto> CheckoutRemoteAsync(
+        string workspaceId,
+        string name,
+        CancellationToken cancellationToken = default)
+        => _changes.CheckoutRemoteAsync(workspaceId, name, cancellationToken);
+
+    public Task<GitSyncResultDto> FetchAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => _changes.FetchAsync(workspaceId, cancellationToken: cancellationToken);
+
+    public Task<GitSyncResultDto> PullAsync(string workspaceId, bool rebase = false, CancellationToken cancellationToken = default)
+        => _changes.PullAsync(workspaceId, rebase, cancellationToken);
+
+    public Task<GitSyncResultDto> PushAsync(
+        string workspaceId,
+        bool forceWithLease = false,
+        bool setUpstream = false,
+        CancellationToken cancellationToken = default)
+        => _changes.PushAsync(workspaceId, forceWithLease, setUpstream, cancellationToken);
+
+    public Task<GitLogDto?> GetLogAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => _changes.GetLogAsync(workspaceId, cancellationToken: cancellationToken);
 }

@@ -19,12 +19,22 @@ export type GitChangeDirectory = {
   files: GitChangeFile[];
 };
 
+export type GitRemoteBranch = {
+  remote: string;
+  name: string;
+};
+
 export type GitChangeTree = {
   workspaceId: string;
   branch: string;
   fileCount: number;
   root: GitChangeDirectory;
   localBranches?: string[];
+  remoteBranches?: GitRemoteBranch[];
+  upstream?: string | null;
+  ahead?: number;
+  behind?: number;
+  commit?: string | null;
 };
 
 export type GitFileDiff = {
@@ -50,9 +60,59 @@ export type GitMutationResult = {
 export type GitHeadState = {
   branch: string;
   localBranches: string[];
+  remoteBranches?: GitRemoteBranch[];
+  upstream?: string | null;
+  ahead?: number;
+  behind?: number;
+  commit?: string | null;
 };
 
-// One row of the flattened, indented directory listing the clients render.
+export type GitSyncResult = {
+  found: boolean;
+  succeeded: boolean;
+  error: string | null;
+  head: GitHeadState | null;
+};
+
+export type GitLogCommit = {
+  id: string;
+  shortId: string;
+  parents: string[];
+  subject: string;
+  author: string;
+  timestamp: string;
+  refs: string[];
+};
+
+export type GitLog = {
+  commits: GitLogCommit[];
+  hasMore?: boolean;
+};
+
+export type GitLogRefKind = 'head' | 'local' | 'remote' | 'tag';
+
+export type GitLogRef = {
+  name: string;
+  kind: GitLogRefKind;
+};
+
+export type GitLogGraphLink = {
+  fromLane: number;
+  toLane: number;
+  colorLane: number;
+};
+
+export type GitLogRow = {
+  commit: GitLogCommit;
+  lane: number;
+  parentLanes: number[];
+  incomingLanes: number[];
+  outgoing: GitLogGraphLink[];
+  laneCount: number;
+  checkoutName: string | null;
+  refs: GitLogRef[];
+};
+
 export type GitChangeNode = {
   key: string;
   name: string;

@@ -39,6 +39,7 @@
 
   <ItemGroup>
     <Compile Include="../AgentUp.DesignSystem/dist/dotnet/AgentUpThemeColors.g.cs" Link="Shared/Models/AgentUpThemeColors.g.cs" />
+    <Compile Include="../AgentUp.DesignSystem/dist/dotnet/AgentUpSyntaxGrammars.g.cs" Link="Shared/Models/AgentUpSyntaxGrammars.g.cs" />
     <AvaloniaResource Include="../media/logo.png" Link="media/logo.png" />
     <AvaloniaResource Include="../AgentUp.DesignSystem/dist/avalonia/AgentUpTheme.axaml" Link="DesignSystem/AgentUpTheme.axaml" />
     <AvaloniaResource Include="../AgentUp.DesignSystem/dist/avalonia/AgentUpStyles.axaml" Link="DesignSystem/AgentUpStyles.axaml" />
