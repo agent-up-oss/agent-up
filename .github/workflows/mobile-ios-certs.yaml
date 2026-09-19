@@ -84,5 +84,5 @@ jobs:
           APPSTORE_P8: ${{ secrets.APPSTORE_P8 }}
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_REPOSITORY: ${{ secrets.MATCH_REPOSITORY }}
-          IOS_BUNDLE_ID: com.massivecreationlab.agentup
+          IOS_BUNDLE_ID: net.themassiveone.agent-up.ios
         run: bundle exec fastlane ios sync_certificates
