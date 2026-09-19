@@ -53,6 +53,13 @@
   border-left: 2px solid var(--au-color-accent-line);
 }
 
+/* Mobile splits timestamp and graph. Selected chrome stays on the timestamp only. */
+.au-git-log-graph-scroll .au-git-log-row--selected {
+  color: inherit;
+  background: var(--au-color-transparent);
+  border-left-color: var(--au-color-transparent);
+}
+
 .au-git-log-graph {
   display: block;
   flex: 0 0 auto;

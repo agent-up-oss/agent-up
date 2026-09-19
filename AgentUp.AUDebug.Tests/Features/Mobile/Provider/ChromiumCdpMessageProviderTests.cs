@@ -1,4 +1,4 @@
-using AgentUp.AUDebug.Features.Mobile.Providers;
+using AgentUp.AUDebug.Shared.Providers;
 
 namespace AgentUp.AUDebug.Tests.Features.Mobile.Provider;
 
@@ -24,6 +24,45 @@ public sealed class ChromiumCdpMessageProviderTests
         Assert.That(json, Does.Contain("\"Page.captureScreenshot\""));
         Assert.That(json, Does.Contain("\"png\""));
         Assert.That(json, Does.Contain("\"fromSurface\":true"));
+        Assert.That(json, Does.Not.Contain("captureBeyondViewport"));
+    }
+
+    [Test]
+    public void CaptureScreenshot_canAskForTheWholeDocument()
+    {
+        var json = ChromiumCdpMessageProvider.CaptureScreenshot(4, true);
+
+        Assert.That(json, Does.Contain("\"id\":4"));
+        Assert.That(json, Does.Contain("\"captureBeyondViewport\":true"));
+    }
+
+    [Test]
+    public void SetDeviceMetrics_overridesTheEmulatedViewport()
+    {
+        var json = ChromiumCdpMessageProvider.SetDeviceMetrics(1440, 3200, 3);
+
+        Assert.That(json, Does.Contain("\"Emulation.setDeviceMetricsOverride\""));
+        Assert.That(json, Does.Contain("\"width\":1440"));
+        Assert.That(json, Does.Contain("\"height\":3200"));
+        Assert.That(json, Does.Contain("\"id\":3"));
+    }
+
+    [Test]
+    public void ReadSize_readsWidthAndHeight()
+    {
+        var size = ChromiumCdpMessageProvider.ReadSize(
+            """{"id":1,"result":{"result":{"type":"object","value":{"width":1440,"height":2800}}}}""");
+
+        Assert.That(size.Width, Is.EqualTo(1440));
+        Assert.That(size.Height, Is.EqualTo(2800));
+    }
+
+    [Test]
+    public void ReadSize_requiresWidthAndHeight()
+    {
+        Assert.That(
+            () => ChromiumCdpMessageProvider.ReadSize("""{"id":1,"result":{"result":{"type":"object","value":{}}}}"""),
+            Throws.InvalidOperationException.With.Message.Contains("width and height"));
     }
 
     [Test]

@@ -6,33 +6,43 @@ title: Verification
 
 # Verification
 
-<DocFocus>
-Record receipts before enqueue. Verification never reads the commit queue.
-</DocFocus>
+<DocWhat>
+Verification maps changed paths to named checks, runs those checks, and records receipts. It owns the `verification` and `coverage` objects in `agent-up.json` and the receipt ledger.
 
-**Owner:** `AgentUp.Verification`. Tests live in `AgentUp.Verification.Tests`. MCP: `/mcp/verification`. Field contract: [agent-up.json reference](/docs/configuration/reference#verification-object).
+It never reads the agent commit queue. Record receipts before enqueue. MCP is loopback-only, like the other Agent-Up servers.
+</DocWhat>
 
-## What it is
-
-`AgentUp.Verification` owns the `verification` and `coverage` objects in `agent-up.json`, path-rule check selection, and the receipt ledger.
+<DocMeta
+  owner="AgentUp.Verification"
+  tests="AgentUp.Verification.Tests"
+  mcp="/mcp/verification"
+/>
 
 <DocSpine>
-<DocBeat selected>`plan_verification`</DocBeat>
-<DocBeat>`run_verification`</DocBeat>
-<DocBeat>`guard_verification` before enqueue</DocBeat>
+<DocBeat>Plan which checks apply</DocBeat>
+<DocBeat>Run them and record receipts</DocBeat>
+<DocBeat>Guard before enqueue</DocBeat>
 </DocSpine>
 
-<DocContract>/mcp/verification</DocContract>
+<DocContract label="Tool">run_verification</DocContract>
 
-The MCP server is Streamable HTTP at `/mcp/verification`, with legacy SSE at `/mcp/verification/sse` plus `/mcp/verification/message`. Loopback-only MCP access applies here the same as the other servers.
+## Tools
 
-Tools:
+<DocSteps>
+<DocStep title="plan_verification">See which checks the current changes require, and which rule selected each.</DocStep>
+<DocStep title="run_verification">Run every required check and record a receipt per check.</DocStep>
+<DocStep title="run_verification_check">Re-run one check by id after a targeted fix.</DocStep>
+<DocStep title="guard_verification">Report whether every required check has a passing receipt matching the current file contents.</DocStep>
+</DocSteps>
 
-- `plan_verification`
-- `run_verification`
-- `run_verification_check`
-- `guard_verification`
+<DocFacts label="Also">
+<DocFact label="CLI">agent-up verify plan · run · guard</DocFact>
+<DocFact label="Coverage">Runs as patch-coverage inside run_verification</DocFact>
+<DocFact label="Receipts">{'.git/agent-up/verification/receipts.json'}</DocFact>
+</DocFacts>
 
-`agent-up verify coverage` has no MCP tool; it runs as the `patch-coverage` check inside `run_verification`. CLI equivalents are `agent-up verify plan`, `agent-up verify run [<check-id>]`, and `agent-up verify guard [--run] [--format hook]`.
+The field contract is the [agent-up.json reference](/docs/configuration/reference#verification-object). Agent operating rules stay in `AGENTS.md`.
 
-Receipts live in `.git/agent-up/verification/receipts.json` and must be recorded before enqueue. Agent operating rules stay in `AGENTS.md`.
+<DocNext href="/developer-guide/commits" title="Commits">
+Enqueue only after receipts pass.
+</DocNext>

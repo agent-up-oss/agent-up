@@ -1,4 +1,5 @@
 import type { GitChangeDirectory, GitChangeNode, GitChangeTree } from '../models/GitChanges';
+import type { GitConfirmCopy } from './GitBranchPickerProvider';
 
 // Flattens the Server-owned directory tree into indented rows: directories first, then files,
 // mirroring the directory mode of a commit window.
@@ -74,6 +75,26 @@ export function changeStatusCounts(nodes: GitChangeNode[]): { added: number; del
   return { added, deleted };
 }
 
+export function selectedChangeStatusCounts(
+  nodes: GitChangeNode[],
+  selected: readonly string[],
+): { added: number; deleted: number } {
+  const files = new Set(selectedFilePaths(nodes, [...selected]));
+  return changeStatusCounts(nodes.filter(node => node.isDirectory || files.has(node.path)));
+}
+
+export function changeTreeSignature(nodes: GitChangeNode[]): string {
+  return nodes
+    .filter(node => !node.isDirectory)
+    .map(node => `${node.path}\0${node.status ?? ''}`)
+    .sort()
+    .join('\n');
+}
+
+export function isChangeTreeStale(visualized: GitChangeNode[], incoming: GitChangeNode[]): boolean {
+  return changeTreeSignature(visualized) !== changeTreeSignature(incoming);
+}
+
 export function canDiscardSelection(selectedCount: number, busy: boolean): boolean {
   return selectedCount > 0 && !busy;
 }
@@ -83,15 +104,29 @@ export function canCommitSelection(selectedCount: number, message: string): bool
   return selectedCount > 0 && message.trim().length > 0;
 }
 
-export function gitCommitConfirmCopy(message: string, files: string[]): {
-  title: string;
-  message: string;
-  confirm: string;
-} {
+export function gitCommitConfirmCopy(message: string, files: string[]): GitConfirmCopy {
   return {
     title: 'Commit selected files?',
     message: `This commits ${files.length} file(s) with this message:\n\n${message.trim()}\n\n${files.join('\n')}`,
     confirm: 'Commit',
+  };
+}
+
+export function gitDiscardConfirmCopy(files: string[]): GitConfirmCopy {
+  return {
+    title: 'Discard selected files?',
+    message: `This discards ${files.length} selected file(s):\n\n${files.join('\n')}`,
+    confirm: 'Discard',
+    destructive: true,
+  };
+}
+
+export function gitStaleTreeConfirmCopy(): GitConfirmCopy {
+  return {
+    title: 'Change tree is out of date',
+    message: 'The visualized Git changes are older than the Server tree. Reload before you select or commit against this list.',
+    confirm: 'Reload',
+    cancel: false,
   };
 }
 

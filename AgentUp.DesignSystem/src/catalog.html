@@ -273,7 +273,7 @@ ready in 842 ms</pre>
       <div class="au-git-change-list" style="padding: 0.5rem;">
         <div class="au-cluster" style="margin-bottom: 0.5rem;">
           <button class="au-button au-button--secondary au-button--compact" type="button">Review <span class="au-git-insertions">+12</span> <span class="au-git-deletions">−4</span></button>
-          <button class="au-button au-button--compact" type="button">Commit</button>
+          <button class="au-button au-button--compact" type="button">Commit <span class="au-git-insertions au-git-insertions--on-primary">+12</span> <span class="au-git-deletions au-git-deletions--on-primary">−4</span></button>
         </div>
         <div class="au-git-row">
           <span class="au-checkbox au-checkbox--checked"></span>
@@ -385,6 +385,12 @@ ready in 842 ms</pre>
     </article>
     <article data-au-component="git-deletions" data-au-title="Deletions" data-au-note="Deleted-file counts stay danger red." data-au-avalonia="TextBlock" data-au-class="au-git-deletions">
       <span class="au-git-deletions">−4</span>
+    </article>
+    <article data-au-component="git-insertions-on-primary" data-au-title="Insertions on primary" data-au-note="Counts on a primary Commit button use on-accent. Accent-on-accent is unreadable." data-au-avalonia="TextBlock" data-au-class="au-git-insertions--on-primary">
+      <button class="au-button" type="button">Commit <span class="au-git-insertions au-git-insertions--on-primary">+12</span></button>
+    </article>
+    <article data-au-component="git-deletions-on-primary" data-au-title="Deletions on primary" data-au-note="Deleted counts on a primary Commit button use the same inverse on-accent as the label." data-au-avalonia="TextBlock" data-au-class="au-git-deletions--on-primary">
+      <button class="au-button" type="button">Commit <span class="au-git-deletions au-git-deletions--on-primary">−4</span></button>
     </article>
   </section>
 
@@ -506,19 +512,43 @@ ready in 842 ms</pre>
     </article>
   </section>
 
-  <section data-au-surface="documentation" data-au-title="Documentation" data-au-intro="Docs use these components to move attention, not to fill the page with layout. One focus pane per page. Surface chips sit on a beat, never as a Desktop versus Mobile chapter.">
-    <article data-au-component="doc-lifecycle" data-au-title="Lifecycle stamp" data-au-note="The eyebrow pairs the slice name with Available, Preview, Experimental, or Planned from voice.json." data-au-avalonia="Border" data-au-class="au-doc-lifecycle">
-      <p class="au-eyebrow au-cluster">Workspaces <span class="au-badge au-doc-lifecycle">Available</span></p>
+  <section data-au-surface="documentation" data-au-title="Documentation" data-au-intro="A real title, then what the page is, then optional caution. Meta is a quiet list. The spine is an equal numbered map. Highlight a beat only as in-page progress. The contract is the one featured block. Next is last.">
+    <article data-au-component="doc-kicker" data-au-title="Kicker" data-au-note="Slice name as a field-label plus Available, Preview, Experimental, or Planned from voice.json. Not marketing eyebrow type." data-au-avalonia="Border" data-au-class="au-doc-kicker">
+      <p class="au-cluster au-doc-kicker"><span class="au-field-label">Workspaces</span> <span class="au-badge au-doc-lifecycle au-doc-lifecycle--available">Available</span></p>
     </article>
-    <article data-au-component="doc-focus" data-au-title="Focus pane" data-au-note="One raised pane. The thing to remember. Do not use twice on a page. Compose au-pane; do not invent a second card." data-au-avalonia="Border" data-au-class="au-doc-focus">
-      <aside class="au-pane au-doc-focus">Start the workspace from the directory that contains <code class="au-mono">agent-up.json</code>.</aside>
+    <article data-au-component="doc-what" data-au-title="What it is" data-au-note="The dek under the title. Three sentences for a first-time reader. No field-label. Do not open with Remember." data-au-avalonia="Border" data-au-class="au-doc-what">
+      <div class="au-doc-what">
+        <div class="au-doc-what__body">
+          <p>A workspace is the unit of isolation for a developer or agent session. Start it from the directory that contains <code class="au-mono">agent-up.json</code>.</p>
+        </div>
+      </div>
     </article>
-    <article data-au-component="doc-spine" data-au-title="Spine" data-au-note="A vertical lane for procedures. Only the current beat is selected, the same idea as Git history lanes." data-au-avalonia="Border" data-au-class="au-doc-spine">
-      <ol class="au-doc-spine">
-        <li class="au-doc-spine__beat au-doc-spine__beat--selected">Start the workspace</li>
-        <li class="au-doc-spine__beat">Open Review</li>
-        <li class="au-doc-spine__beat">Commit the selected paths</li>
-      </ol>
+    <article data-au-component="doc-meta" data-au-title="Owner meta" data-au-note="Developer Generals only. Owner, tests, MCP, and REST after the dek, never before the reader knows what the page is." data-au-avalonia="Border" data-au-class="au-doc-meta">
+      <div class="au-doc-meta">
+        <div class="au-doc-meta__row"><p class="au-field-label">Owner</p><p class="au-doc-meta__value">AgentUp.Server</p></div>
+        <div class="au-doc-meta__row"><p class="au-field-label">MCP</p><p class="au-doc-meta__value">/mcp/orchestration</p></div>
+      </div>
+    </article>
+    <article data-au-component="doc-focus" data-au-title="Focus pane" data-au-note="Optional caution after the dek. Compose au-pane. Never the first content on a page." data-au-avalonia="Border" data-au-class="au-doc-focus">
+      <aside class="au-pane au-doc-focus">
+        <p class="au-field-label">Watch</p>
+        <div class="au-doc-focus__body">Run verification before enqueue. Verification never reads the commit queue.</div>
+      </aside>
+    </article>
+    <article data-au-component="doc-spine" data-au-title="Spine" data-au-note="Equal numbered map. Highlight a beat only when it is the current step of an in-page procedure, never the first item by default." data-au-avalonia="Border" data-au-class="au-doc-spine">
+      <div class="au-doc-spine">
+        <ol class="au-doc-spine__list">
+          <li class="au-doc-spine__beat"><span class="au-doc-spine__n"></span><div><p class="au-doc-spine__title">Start the workspace</p></div></li>
+          <li class="au-doc-spine__beat"><span class="au-doc-spine__n"></span><div><p class="au-doc-spine__title">Open Review</p></div></li>
+          <li class="au-doc-spine__beat"><span class="au-doc-spine__n"></span><div><p class="au-doc-spine__title">Commit the selected paths</p></div></li>
+        </ol>
+      </div>
+    </article>
+    <article data-au-component="doc-contract" data-au-title="Contract" data-au-note="One command, JSON key, or route. Field-label plus au-code. Not a dump of every endpoint." data-au-avalonia="Border" data-au-class="au-doc-contract">
+      <div class="au-doc-contract">
+        <p class="au-field-label">Command</p>
+        <pre class="au-code">agent-up start</pre>
+      </div>
     </article>
     <article data-au-component="doc-fork" data-au-title="Fork" data-au-note="One question, two collapsed paths. Unused path stays closed, the same idea as the agent work log." data-au-avalonia="Border" data-au-class="au-doc-fork">
       <div class="au-doc-fork">
@@ -533,11 +563,46 @@ ready in 842 ms</pre>
         </details>
       </div>
     </article>
-    <article data-au-component="doc-contract" data-au-title="Contract" data-au-note="A single monospace hero for the command, JSON key, or route this page uses. Not a dump of every endpoint. Compose au-code." data-au-avalonia="TextBlock" data-au-class="au-doc-contract">
-      <pre class="au-code au-doc-contract">agent-up start</pre>
+    <article data-au-component="doc-facts" data-au-title="Facts" data-au-note="Glossary pairs the reader must keep in view: CLI name, packaged versus repository URL, chrome names." data-au-avalonia="Border" data-au-class="au-doc-facts">
+      <div class="au-doc-facts">
+        <p class="au-field-label">Keep in view</p>
+        <div class="au-doc-facts__list">
+          <div class="au-doc-fact"><p class="au-field-label">CLI</p><p class="au-doc-fact__value">agent-up</p></div>
+          <div class="au-doc-fact"><p class="au-field-label">Packaged</p><p class="au-doc-fact__value">http://localhost:5000</p></div>
+          <div class="au-doc-fact"><p class="au-field-label">Repository</p><p class="au-doc-fact__value">http://localhost:5001</p></div>
+        </div>
+      </div>
     </article>
-    <article data-au-component="doc-surface" data-au-title="Surface hint" data-au-note="Mute chips for Desktop, Mobile, CLI, and MCP. They appear on a beat. Never a three-column client layout." data-au-avalonia="Border" data-au-class="au-doc-surface">
-      <p class="au-cluster"><span class="au-badge au-doc-surface">Desktop</span><span class="au-badge au-doc-surface">Mobile</span> Open Review from the Git surface.</p>
+    <article data-au-component="doc-surfaces" data-au-title="Surface hints" data-au-note="Field-labeled Desktop, Mobile, CLI, and MCP rows. They appear on a beat. Never a three-column client layout and never mute chips." data-au-avalonia="Border" data-au-class="au-doc-surfaces">
+      <div class="au-doc-surfaces-wrap">
+        <p class="au-field-label">Where it differs</p>
+        <div class="au-doc-surfaces">
+          <div class="au-doc-surface"><p class="au-field-label">Desktop</p><div class="au-doc-surface__body">Open Review from the Commit tab.</div></div>
+          <div class="au-doc-surface"><p class="au-field-label">Mobile</p><div class="au-doc-surface__body">Open Review from the Git tab.</div></div>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="doc-steps" data-au-title="Steps" data-au-note="Numbered how-to for body sections. Distinct from the three-beat spine on the General lead." data-au-avalonia="Border" data-au-class="au-doc-steps">
+      <ol class="au-doc-steps">
+        <li class="au-doc-step"><span class="au-doc-step__n"></span><div><p class="au-doc-step__title">Connect</p><div class="au-doc-step__body"><p class="au-muted">Use the Server URL first. Only one Server is active.</p></div></div></li>
+        <li class="au-doc-step"><span class="au-doc-step__n"></span><div><p class="au-doc-step__title">Start</p><div class="au-doc-step__body"><p class="au-muted">Run <code class="au-mono">agent-up start</code> from the workspace root.</p></div></div></li>
+      </ol>
+    </article>
+    <article data-au-component="doc-callout" data-au-title="Callout" data-au-note="Compose au-callout. Warning and danger use status color. Green remains meaning, not chrome. A warning may hold labeled rows when the caution is a list, not a paragraph." data-au-avalonia="Border" data-au-class="au-doc-callout">
+      <aside class="au-callout au-callout--warning au-doc-callout">
+        <p class="au-field-label">Watch</p>
+        <div class="au-doc-callout__body">
+          <div class="au-doc-fact"><p class="au-field-label">Packaged</p><p class="au-doc-fact__value">http://localhost:5000</p></div>
+          <div class="au-doc-fact"><p class="au-field-label">Repository</p><p class="au-doc-fact__value">http://localhost:5001</p></div>
+        </div>
+      </aside>
+    </article>
+    <article data-au-component="doc-next" data-au-title="Next in slice" data-au-note="Last on the page, after body sections. Field-label plus one link." data-au-avalonia="Border" data-au-class="au-doc-next">
+      <div class="au-doc-next">
+        <p class="au-field-label">Next in this slice</p>
+        <a class="au-doc-next__link" href="/docs/applications">Applications</a>
+        <p class="au-doc-next__hint">Processes that run inside a workspace.</p>
+      </div>
     </article>
   </section>
 

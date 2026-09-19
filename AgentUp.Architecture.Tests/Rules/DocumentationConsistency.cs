@@ -126,6 +126,71 @@ public sealed class DocumentationConsistency
             "Top-level docs folders cannot be named Desktop, Mobile, Server, CLI, Packaging, or CI.");
     }
 
+    [Test]
+    public void Slice_generals_follow_the_page_standard()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var violations = FrozenSlices
+            .SelectMany(slice => new[]
+            {
+                AssertGeneral(root, Path.Join(root, "docs/user-docs", slice.ToLowerInvariant(), "index.md"), developer: false),
+                AssertGeneral(root, Path.Join(root, "docs/developer-guide", slice.ToLowerInvariant(), "index.md"), developer: true),
+            })
+            .Where(violation => violation is not null)
+            .ToArray();
+
+        Assert.That(violations, Is.Empty, string.Join(Environment.NewLine, violations));
+    }
+
+    private static string? AssertGeneral(string root, string path, bool developer)
+    {
+        var relative = ArchitectureFixture.Relative(root, path);
+        if (!File.Exists(path))
+            return $"{relative}: missing slice General.";
+
+        var source = File.ReadAllText(path);
+        var markers = developer
+            ? new[] { "<DocEyebrow", "<DocWhat", "<DocMeta", "<DocSpine", "<DocContract", "<DocNext" }
+            : new[] { "<DocEyebrow", "<DocWhat", "<DocSpine", "<DocContract", "<DocNext" };
+
+        var last = -1;
+        foreach (var marker in markers)
+        {
+            var index = source.IndexOf(marker, StringComparison.Ordinal);
+            if (index < 0)
+                return $"{relative}: missing {marker.TrimStart('<')} in the lead.";
+            if (index <= last)
+                return $"{relative}: {marker.TrimStart('<')} is out of page-standard order.";
+            last = index;
+        }
+
+        var focus = source.IndexOf("<DocFocus", StringComparison.Ordinal);
+        var what = source.IndexOf("<DocWhat", StringComparison.Ordinal);
+        if (focus >= 0 && focus < what)
+            return $"{relative}: DocFocus must follow DocWhat. Open with what the page is, not a Remember pane.";
+
+        if (source.Contains("<DocBeat selected>", StringComparison.Ordinal))
+            return $"{relative}: do not highlight the first spine beat on a General. Selected beats are in-page progress only.";
+
+        var lastHeading = source.LastIndexOf("\n## ", StringComparison.Ordinal);
+        var next = source.IndexOf("<DocNext", StringComparison.Ordinal);
+        if (lastHeading >= 0 && next >= 0 && next < lastHeading)
+            return $"{relative}: DocNext must follow body sections. It is last on the page.";
+
+        if (source.Contains("## What it is", StringComparison.Ordinal))
+            return $"{relative}: use DocWhat, not an h2 that splits the lead.";
+
+        if (!developer)
+        {
+            if (source.Contains("Avalonia", StringComparison.Ordinal) || source.Contains("Expo", StringComparison.Ordinal))
+                return $"{relative}: User Generals must not explain Avalonia or Expo.";
+            if (source.Contains("**Owner:**", StringComparison.Ordinal))
+                return $"{relative}: User Generals must not include owner/tests meta.";
+        }
+
+        return null;
+    }
+
     private static string[] CategoryLabels(string source)
         => Regex.Matches(source, @"type:\s*'category',\s*label:\s*'([^']+)'")
             .Select(match => match.Groups[1].Value)

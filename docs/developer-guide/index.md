@@ -5,11 +5,21 @@ slug: /
 
 # Developer Guide
 
-This guide captures the implementation direction for Agent-Up.
+<DocWhat>
+This guide captures the implementation direction for Agent-Up. The Server owns orchestration and runtime state. Desktop, CLI, and MCP clients stay thin.
 
-Agent-Up is a workspace manager, not an application framework. The Server owns orchestration and runtime state. Desktop, CLI, and MCP clients stay thin. Every implementation decision should preserve framework agnosticism, zero application source changes, and multiple concurrent isolated workspaces.
+Agent-Up is a workspace manager, not an application framework. Every implementation decision should preserve framework agnosticism, zero application source changes, and multiple concurrent isolated workspaces.
+</DocWhat>
 
-MCP is a protocol, not a slice. Attach to `/mcp/orchestration`, `/mcp/browser`, `/mcp/audit`, `/mcp/commits`, and `/mcp/verification`. Each slice General lists that slice's tools and routes.
+<DocFacts label="MCP servers">
+<DocFact label="orchestration">/mcp/orchestration</DocFact>
+<DocFact label="browser">/mcp/browser</DocFact>
+<DocFact label="audit">/mcp/audit</DocFact>
+<DocFact label="commits">/mcp/commits</DocFact>
+<DocFact label="verification">/mcp/verification</DocFact>
+</DocFacts>
+
+MCP is a protocol, not a slice. Each slice General lists that slice's tools and routes.
 
 ## Start here
 

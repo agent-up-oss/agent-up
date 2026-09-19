@@ -1272,6 +1272,12 @@
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
+  <Style Selector="TextBlock.au-git-insertions--on-primary">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorOnAccentBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-deletions--on-primary">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorOnAccentBrush}"/>
+  </Style>
   <Style Selector="Border.au-audit-header">
     <Setter Property="Padding" Value="12,8"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>

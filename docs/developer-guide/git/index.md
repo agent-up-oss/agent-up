@@ -6,24 +6,26 @@ title: Git
 
 # Git
 
-<DocFocus>
-The `Git` slice is the human review-and-commit surface. It is not an escape hatch around `enqueue_commit`.
-</DocFocus>
+<DocWhat>
+Git is the human review-and-commit surface for a workspace worktree: change tree, per-file diffs, selective commits, remotes, and a bounded log.
 
-**Owner:** `AgentUp.Server` `Git` slice. Tests live in `AgentUp.Server.Tests/Features/Git/`. REST under `/api/workspaces/{workspaceId}/git/*`. Desktop Commit tab and Mobile Git Review/History are clients.
+It is separate from `Commits`, which owns the agent-facing queue. Desktop Commit and Mobile Review display that queue as read-only.
+</DocWhat>
 
-## What it is
-
-The slice resolves the selected workspace's worktree path and exposes a change tree, per-file diffs, selective commits, remotes, and a bounded log. The provider runs Git through an allowlisted operation set with `ProcessStartInfo.ArgumentList`, rejects pathspec magic, and always passes `--` before user-supplied paths.
+<DocMeta
+  owner="AgentUp.Server Git slice"
+  tests="AgentUp.Server.Tests/Features/Git/"
+  rest={'/api/workspaces/{workspaceId}/git/*'}
+/>
 
 <DocSpine>
-<DocBeat selected>Read `/git/changes`</DocBeat>
+<DocBeat>Read the change tree</DocBeat>
 <DocBeat>Commit or discard selected paths</DocBeat>
 <DocBeat>Use remotes and history when the user asked</DocBeat>
 </DocSpine>
 
-<DocContract>GET /api/workspaces/&#123;workspaceId&#125;/git/changes</DocContract>
+<DocContract label="Route">{'GET /api/workspaces/{workspaceId}/git/changes'}</DocContract>
 
-This slice is separate from `Commits`. `Commits` owns the agent-facing queue. Desktop Commit and Mobile Review display that queue as read-only from `GET /api/workspaces/{workspaceId}/commit-queue`.
-
-Next in this slice: [Review tree and diffs](/developer-guide/git/review).
+<DocNext href="/developer-guide/git/review" title="Review tree and diffs">
+Change tree, file diffs, and selective commits.
+</DocNext>

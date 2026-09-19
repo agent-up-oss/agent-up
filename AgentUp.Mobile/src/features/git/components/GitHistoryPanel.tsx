@@ -5,6 +5,7 @@ import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvid
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { GitLogCommit, GitLogRef, GitLogRow } from '../models/GitChanges';
+import type { GitConfirmCopy } from '../providers/GitBranchPickerProvider';
 import { checkoutRemote, getHeadState, getLog, switchBranch } from '../providers/GitApiProvider';
 import { createRequestGate } from '../providers/RequestGateProvider';
 import {
@@ -12,9 +13,12 @@ import {
   GIT_LOG_PAGE_SIZE,
   GIT_LOG_ROW_HEIGHT,
   GIT_LOG_TIME_WIDTH,
+  gitHistoryCheckoutConfirm,
+  gitLogCheckoutTarget,
   gitLogColumnUsesSelectedChrome,
   layoutGitLog,
 } from '../providers/GitLogLayoutProvider';
+import { GitConfirmDialog } from './GitConfirmDialog';
 import { GitLogGraphColumn } from './GitLogGraphColumn';
 
 const POLL_MS = 2500;
@@ -31,6 +35,7 @@ export function GitHistoryPanel({ workspaceId }: { workspaceId: string }) {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [confirm, setConfirm] = useState<{ copy: GitConfirmCopy; action: () => void } | null>(null);
   const gate = useRef(createRequestGate());
   const commitsRef = useRef<GitLogCommit[]>([]);
   const pagedRef = useRef(false);
@@ -134,7 +139,12 @@ export function GitHistoryPanel({ workspaceId }: { workspaceId: string }) {
             row={selected}
             locals={locals}
             disabled={busy}
-            onCheckout={name => { void checkout(name); }}
+            onCheckout={ref => {
+              setConfirm({
+                copy: gitHistoryCheckoutConfirm(ref, selected.commit.subject),
+                action: () => { void checkout(ref.name); },
+              });
+            }}
           />
         )}
         <ScrollView style={styles.rows} contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
@@ -183,6 +193,16 @@ export function GitHistoryPanel({ workspaceId }: { workspaceId: string }) {
         )}
       </ScrollView>
       </View>
+      <GitConfirmDialog
+        copy={confirm?.copy ?? null}
+        busy={busy}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => {
+          const next = confirm;
+          setConfirm(null);
+          next?.action();
+        }}
+      />
     </View>
   );
 }
@@ -196,8 +216,9 @@ function GitLogDetailHeader({
   row: GitLogRow;
   locals: string[];
   disabled: boolean;
-  onCheckout: (name: string) => void;
+  onCheckout: (ref: GitLogRef) => void;
 }) {
+  const target = gitLogCheckoutTarget(row, locals);
   return (
     <View style={styles.detail}>
       <Text style={styles.subject}>{row.commit.subject}</Text>
@@ -208,9 +229,16 @@ function GitLogDetailHeader({
             <GitLogRefChip
               key={`${row.commit.id}:${ref.name}`}
               refInfo={ref}
-              disabled={disabled || !canCheckout(ref, locals)}
-              onPress={() => { if (canCheckout(ref, locals)) onCheckout(ref.name); }}
             />)}
+          {target &&
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Checkout ${target.name}`}
+              disabled={disabled}
+              onPress={() => onCheckout(target)}
+              style={styles.checkout}>
+              <Text style={styles.checkoutLabel}>Checkout</Text>
+            </Pressable>}
         </View>
       )}
     </View>
@@ -261,18 +289,11 @@ function GitLogGraphCell({
 
 function GitLogRefChip({
   refInfo,
-  disabled,
-  onPress,
 }: {
   refInfo: GitLogRef;
-  disabled: boolean;
-  onPress: () => void;
 }) {
-  const checkoutable = refInfo.kind === 'local' || refInfo.kind === 'remote';
   return (
-    <Pressable
-      disabled={disabled || !checkoutable}
-      onPress={onPress}
+    <View
       style={[
         styles.ref,
         refInfo.kind === 'head' && styles.refHead,
@@ -289,14 +310,8 @@ function GitLogRefChip({
         ]}>
         {refInfo.name}
       </Text>
-    </Pressable>
+    </View>
   );
-}
-
-function canCheckout(ref: GitLogRef, locals: string[]): boolean {
-  if (ref.kind === 'head' || ref.kind === 'tag') return false;
-  if (ref.kind === 'local') return locals.includes(ref.name);
-  return ref.kind === 'remote';
 }
 
 function mergeCommits(existing: GitLogCommit[], incoming: GitLogCommit[]): GitLogCommit[] {
@@ -354,4 +369,6 @@ const styles = StyleSheet.create({
     marginVertical: agentUpTheme.spacing[3],
   },
   loadMoreLabel: auText('buttonSecondary', 'buttonCompact'),
+  checkout: { ...auBox('button', 'buttonSecondary', 'buttonCompact'), minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  checkoutLabel: auText('buttonSecondary', 'buttonCompact'),
 });

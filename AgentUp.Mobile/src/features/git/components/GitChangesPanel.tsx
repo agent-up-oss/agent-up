@@ -1,40 +1,49 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { GitChangeNode, GitChangeTree, GitFileDiff } from '../models/GitChanges';
 import type { CommitQueue } from '../models/CommitQueue';
+import type { GitConfirmCopy } from '../providers/GitBranchPickerProvider';
 import { commitFiles, discardFiles, getChanges, getCommitQueue, getFileDiff } from '../providers/GitApiProvider';
 import { createRequestGate, type RequestGate } from '../providers/RequestGateProvider';
 import {
   canCommitSelection,
   canDiscardSelection,
-  changeStatusCounts,
   flattenChangeTree,
   gitCommitConfirmCopy,
+  gitDiscardConfirmCopy,
+  gitStaleTreeConfirmCopy,
+  isChangeTreeStale,
   isDirectorySelected,
   retainCollapsedPaths,
   retainSelectedPaths,
+  selectedChangeStatusCounts,
   selectedFilePaths,
   toggleDirectoryCollapsed,
   toggleNodeSelection,
   visibleChangeNodes,
 } from '../providers/GitChangeTreeProvider';
 import { GitChangeRow } from './GitChangeRow';
+import { GitConfirmDialog } from './GitConfirmDialog';
 import { GitFileViewer } from './GitFileViewer';
 
 const POLL_MS = 2500;
+
+type PendingConfirm = { copy: GitConfirmCopy; action: () => void };
 
 export function GitChangesPanel({
   workspaceId: workspaceIdProp,
   mode = 'review',
   onOpenFile,
+  reloadNonce = 0,
 }: {
   workspaceId?: string;
   mode?: 'overview' | 'review';
   onOpenFile?: (path: string) => void;
+  reloadNonce?: number;
 } = {}) {
   const { expireActiveCredential } = useServers();
   const { server, selectedWorkspace } = useWorkspaces();
@@ -50,6 +59,8 @@ export function GitChangesPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [stale, setStale] = useState(false);
+  const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
   const [diff, setDiff] = useState<GitFileDiff | null>(null);
   const [diffPath, setDiffPath] = useState<string | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
@@ -62,6 +73,9 @@ export function GitChangesPanel({
   const { tree: treeGate, diff: diffGate, mutate: mutateGate } = gates.current;
   const inflightLoads = useRef(0);
   const mutating = useRef(false);
+  const treeRef = useRef<GitChangeTree | null>(null);
+  const seenReloadNonce = useRef(reloadNonce);
+  treeRef.current = tree;
 
   useEffect(() => {
     mutateGate.begin();
@@ -71,7 +85,20 @@ export function GitChangesPanel({
 
   const selectionWorkspace = useRef<string | null>(null);
 
-  const load = useCallback(async (silent = false) => {
+  const applyTree = useCallback((changes: GitChangeTree | null) => {
+    setTree(changes);
+    const flattened = flattenChangeTree(changes);
+    setSelected(current => {
+      const keep = selectionWorkspace.current === workspaceId ? current : [];
+      selectionWorkspace.current = workspaceId;
+      return retainSelectedPaths(flattened, keep);
+    });
+    setCollapsed(current => retainCollapsedPaths(flattened, current));
+    setStale(false);
+    setConfirm(null);
+  }, [workspaceId]);
+
+  const load = useCallback(async (silent = false, apply = !silent) => {
     if (silent && inflightLoads.current > 0) return;
     const ticket = treeGate.begin();
     if (!server || !workspaceId) {
@@ -80,6 +107,8 @@ export function GitChangesPanel({
       setQueue(null);
       setSelected([]);
       setCollapsed([]);
+      setStale(false);
+      setConfirm(null);
       return;
     }
     if (!silent) { setLoading(true); setError(null); }
@@ -87,14 +116,16 @@ export function GitChangesPanel({
     try {
       const changes = await getChanges(server, workspaceId);
       if (!treeGate.isCurrent(ticket)) return;
-      setTree(changes);
-      const flattened = flattenChangeTree(changes);
-      setSelected(current => {
-        const keep = selectionWorkspace.current === workspaceId ? current : [];
-        selectionWorkspace.current = workspaceId;
-        return retainSelectedPaths(flattened, keep);
-      });
-      setCollapsed(current => retainCollapsedPaths(flattened, current));
+      const visualized = flattenChangeTree(treeRef.current);
+      const incoming = flattenChangeTree(changes);
+      if (!apply && silent && treeRef.current !== null && isChangeTreeStale(visualized, incoming)) {
+        setStale(true);
+        setConfirm(current => current?.copy.cancel === false
+          ? current
+          : { copy: gitStaleTreeConfirmCopy(), action: () => { void load(false, true); } });
+        return;
+      }
+      applyTree(changes);
       if (silent) setError(null);
       if (overview) return;
       try {
@@ -123,14 +154,19 @@ export function GitChangesPanel({
       inflightLoads.current = Math.max(0, inflightLoads.current - 1);
       if (treeGate.isCurrent(ticket) && !silent) setLoading(false);
     }
-  }, [server, workspaceId, treeGate, expireActiveCredential, overview]);
+  }, [server, workspaceId, treeGate, expireActiveCredential, overview, applyTree]);
 
-  useEffect(() => { void load(false); }, [load]);
+  useEffect(() => { void load(false, true); }, [load]);
   useEffect(() => {
     if (!server || !workspaceId) return;
-    const timer = setInterval(() => { void load(true); }, POLL_MS);
+    const timer = setInterval(() => { void load(true, false); }, POLL_MS);
     return () => clearInterval(timer);
   }, [server, workspaceId, load]);
+  useEffect(() => {
+    if (reloadNonce === seenReloadNonce.current) return;
+    seenReloadNonce.current = reloadNonce;
+    void load(false, true);
+  }, [reloadNonce, load]);
 
   const openDiff = async (node: GitChangeNode) => {
     if (!server || !workspaceId || node.isDirectory) return;
@@ -150,7 +186,7 @@ export function GitChangesPanel({
   };
 
   const runMutation = async (action: () => Promise<{ succeeded: boolean; error?: string | null; commit?: string | null }>, onSuccess: (result: { commit?: string | null }) => string) => {
-    if (!server || !workspaceId || busy || mutating.current) return false;
+    if (!server || !workspaceId || busy || mutating.current || stale) return false;
     mutating.current = true;
     const ticket = mutateGate.current();
     setBusy(true); setError(null); setStatus(null);
@@ -159,7 +195,7 @@ export function GitChangesPanel({
       if (!mutateGate.isCurrent(ticket)) return false;
       if (!result.succeeded) { setError(result.error ?? 'The Git operation failed.'); return false; }
       setStatus(onSuccess(result));
-      await load(true);
+      await load(true, true);
       return true;
     } catch (cause) {
       if (!mutateGate.isCurrent(ticket)) return false;
@@ -174,9 +210,9 @@ export function GitChangesPanel({
   const selectedCount = selectedFilePaths(nodes, selected).length;
   const fileCount = nodes.filter(node => !node.isDirectory).length;
   const files = selectedFilePaths(nodes, selected);
-  const counts = changeStatusCounts(nodes);
-  const canCommit = !busy && canCommitSelection(selectedCount, message);
-  const canDiscard = !overview && canDiscardSelection(selectedCount, busy);
+  const counts = selectedChangeStatusCounts(nodes, selected);
+  const canCommit = !busy && !stale && canCommitSelection(selectedCount, message);
+  const canDiscard = !overview && !stale && canDiscardSelection(selectedCount, busy);
 
   const commitSelection = () => void runMutation(async () => {
     const result = await commitFiles(server!, workspaceId!, files, message.trim());
@@ -186,11 +222,7 @@ export function GitChangesPanel({
 
   const confirmCommit = () => {
     if (!canCommit) return;
-    const copy = gitCommitConfirmCopy(message, files);
-    Alert.alert(copy.title, copy.message, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: copy.confirm, onPress: commitSelection },
-    ]);
+    setConfirm({ copy: gitCommitConfirmCopy(message, files), action: commitSelection });
   };
 
   const countLabel = [
@@ -206,8 +238,8 @@ export function GitChangesPanel({
       onPress={confirmCommit}
       style={[styles.button, !canCommit && styles.disabled]}>
       <Text style={styles.buttonText}>Commit</Text>
-      {counts.added > 0 && <Text style={styles.insertions}>+{counts.added}</Text>}
-      {counts.deleted > 0 && <Text style={styles.deletions}>−{counts.deleted}</Text>}
+      {counts.added > 0 && <Text style={styles.insertionsOnPrimary}>+{counts.added}</Text>}
+      {counts.deleted > 0 && <Text style={styles.deletionsOnPrimary}>−{counts.deleted}</Text>}
     </Pressable>
   );
 
@@ -218,18 +250,10 @@ export function GitChangesPanel({
           <View style={styles.titleRow}>
             <Text style={styles.summary}>{selectedCount} of {fileCount} file(s) selected</Text>
             <Pressable disabled={!canDiscard} onPress={() => {
-              Alert.alert(
-                'Discard selected files?',
-                files.join('\n'),
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Discard',
-                    style: 'destructive',
-                    onPress: () => void runMutation(() => discardFiles(server!, workspaceId!, files), () => `Discarded ${files.length} file(s).`),
-                  },
-                ],
-              );
+              setConfirm({
+                copy: gitDiscardConfirmCopy(files),
+                action: () => void runMutation(() => discardFiles(server!, workspaceId!, files), () => `Discarded ${files.length} file(s).`),
+              });
             }}
               style={[styles.discardButton, !canDiscard && styles.disabled]}>
               <Text style={styles.discardText}>Discard</Text>
@@ -281,6 +305,17 @@ export function GitChangesPanel({
         <View style={styles.actions}>{commitButton}</View>
       </View>
 
+      <GitConfirmDialog
+        copy={confirm?.copy ?? null}
+        busy={busy}
+        onCancel={() => { if (confirm?.copy.cancel !== false) setConfirm(null); }}
+        onConfirm={() => {
+          const next = confirm;
+          setConfirm(null);
+          next?.action();
+        }}
+      />
+
       <Modal visible={diffPath !== null} transparent animationType="fade" onRequestClose={() => setDiffPath(null)}>
         <View style={styles.modalScrim}>
           {diffPath !== null &&
@@ -315,15 +350,15 @@ const styles = StyleSheet.create({
   tree: { flex: 1, minHeight: 80, ...auBox('gitChangeList') },
   overviewTree: { flex: 1, minHeight: 120, ...auBox('gitChangeList') },
   treeContent: { paddingVertical: 6, flexGrow: 1 },
-  footer: { gap: 12 },
+  footer: { gap: 12, zIndex: 2 },
   actions: { flexDirection: 'row', gap: 8 },
   label: auText('fieldLabel'),
   messageInput: { minHeight: 90, ...auBox('input'), ...auText('input'), textAlignVertical: 'top' },
   overviewMessage: { minHeight: 72, ...auBox('input'), ...auText('input'), textAlignVertical: 'top' },
   button: { ...auBox('button'), flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   buttonText: auText('button'),
-  insertions: auText('gitInsertions'),
-  deletions: auText('gitDeletions'),
+  insertionsOnPrimary: auText('gitInsertions', 'gitInsertionsOnPrimary'),
+  deletionsOnPrimary: auText('gitDeletions', 'gitDeletionsOnPrimary'),
   disabled: { opacity: 0.38 },
   modalScrim: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center', ...auBox('scrim') },
 });

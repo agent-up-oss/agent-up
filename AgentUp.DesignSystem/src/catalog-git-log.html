@@ -1,17 +1,18 @@
-  <section data-au-surface="git-log" data-au-title="Git history" data-au-intro="Mobile history is graph-first: a pinned timestamp column and a horizontally scrollable graph. Selecting a row puts subject, author, branches, and tags in a sticky header. Checkout lives in that header, not on the row. Green is selection, not decoration.">
-    <article data-au-component="git-log-detail" data-au-title="Selected commit" data-au-note="The sticky header is the only place for commit message, author, refs, and checkout. Rows stay timestamp plus graph." data-au-avalonia="Border" data-au-class="au-git-log-detail" data-au-desktop-class="gitLogDetail">
+  <section data-au-surface="git-log" data-au-title="Git history" data-au-intro="Mobile history is graph-first: a pinned timestamp column and a horizontally scrollable graph. Selecting a row puts subject, author, branches, and tags in a sticky header. Checkout is a confirmed header action, not a chip tap. Green is selection, not decoration.">
+    <article data-au-component="git-log-detail" data-au-title="Selected commit" data-au-note="The sticky header is the only place for commit message, author, refs, and a confirmed checkout. Ref chips are labels. Rows stay timestamp plus graph." data-au-avalonia="Border" data-au-class="au-git-log-detail" data-au-desktop-class="gitLogDetail">
       <div class="au-git-log-detail">
         <span class="au-git-log-subject">fix(packaging): seal platform verification gaps</span>
         <span class="au-git-log-author">Daniel Mass</span>
         <div class="au-cluster">
-          <button class="au-git-log-ref au-git-log-ref--head" type="button">HEAD</button>
-          <button class="au-git-log-ref" type="button">369-mobile</button>
-          <button class="au-git-log-ref au-git-log-ref--remote" type="button">origin/main</button>
+          <span class="au-git-log-ref au-git-log-ref--head">HEAD</span>
+          <span class="au-git-log-ref">369-mobile</span>
+          <span class="au-git-log-ref au-git-log-ref--remote">origin/main</span>
           <span class="au-git-log-ref au-git-log-ref--tag">v3.47.0</span>
+          <button class="au-button au-button--secondary au-button--compact" type="button">Checkout</button>
         </div>
       </div>
     </article>
-    <article data-au-component="git-log-row" data-au-title="History row" data-au-note="Every row is a fixed-width timestamp plus the graph. Selection is an accent tint plus a 2px leading accent rule. Hover stays a neutral state layer. When the graph is wider than the pane, only the graph region scrolls horizontally." data-au-avalonia="Border" data-au-class="au-git-log-row" data-au-desktop-class="gitLogRow" data-au-desktop-host="ListBoxItem">
+    <article data-au-component="git-log-row" data-au-title="History row" data-au-note="Every row is a fixed-width timestamp plus the graph. Selection is an accent tint plus a 2px leading accent rule on the timestamp only. The graph column stays unselected so lane colors stay readable. Hover stays a neutral state layer. When the graph is wider than the pane, only the graph region scrolls horizontally." data-au-avalonia="Border" data-au-class="au-git-log-row" data-au-desktop-class="gitLogRow" data-au-desktop-host="ListBoxItem">
       <div class="au-git-log">
         <div class="au-git-log-track">
           <div>
@@ -29,7 +30,7 @@
             </div>
           </div>
           <div class="au-git-log-graph-scroll">
-            <div class="au-git-log-row au-git-log-row--selected">
+            <div class="au-git-log-row">
               <svg class="au-git-log-graph" width="70" height="28" viewBox="0 0 70 28" aria-hidden="true">
                 <g class="au-git-log-lane-0">
                   <path class="au-git-log-graph-edge" d="M 7 0 L 7 14"></path>
@@ -135,11 +136,11 @@
         </g>
       </svg>
     </article>
-    <article data-au-component="git-log-ref" data-au-title="Ref chips" data-au-note="Local branches, remotes, tags, and HEAD are pills in the sticky header. Checkout stays on labeled branch refs, not detached HEAD or tags." data-au-avalonia="Button" data-au-class="au-git-log-ref" data-au-desktop-class="gitLogRef">
+    <article data-au-component="git-log-ref" data-au-title="Ref chips" data-au-note="Local branches, remotes, tags, and HEAD are pills in the sticky header. Chips label the selected commit; checkout is a confirmed header action, not a chip tap." data-au-avalonia="Button" data-au-class="au-git-log-ref" data-au-desktop-class="gitLogRef">
       <div class="au-cluster">
-        <button class="au-git-log-ref au-git-log-ref--head" type="button">HEAD</button>
-        <button class="au-git-log-ref" type="button">369-mobile</button>
-        <button class="au-git-log-ref au-git-log-ref--remote" type="button">origin/main</button>
+        <span class="au-git-log-ref au-git-log-ref--head">HEAD</span>
+        <span class="au-git-log-ref">369-mobile</span>
+        <span class="au-git-log-ref au-git-log-ref--remote">origin/main</span>
         <span class="au-git-log-ref au-git-log-ref--tag">v3.47.0</span>
       </div>
     </article>

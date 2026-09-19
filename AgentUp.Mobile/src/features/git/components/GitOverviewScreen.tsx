@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { WorkspaceBranchPicker } from './WorkspaceBranchPicker';
@@ -9,6 +9,8 @@ import { agentUpTheme, auText } from '@agent-up/design-system/native';
 
 export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
   const router = useRouter();
+  const [reloadNonce, setReloadNonce] = useState(0);
+  const reload = useCallback(() => setReloadNonce(current => current + 1), []);
 
   const shellConfig = useMemo(() => ({
     title: 'Git',
@@ -23,10 +25,11 @@ export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
         <WorkspaceBranchPicker
           workspaceId={workspaceId}
           onHistory={() => router.push(`/(main)/workspace/${workspaceId}/git/history`)}
+          onReload={reload}
         />
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Changes</Text>
-          <GitChangesPanel workspaceId={workspaceId} mode="overview" />
+          <GitChangesPanel workspaceId={workspaceId} mode="overview" reloadNonce={reloadNonce} />
         </View>
       </View>
       <WorkspaceTabBar workspaceId={workspaceId} active="git" />

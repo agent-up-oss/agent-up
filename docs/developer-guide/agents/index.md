@@ -6,25 +6,30 @@ title: Agents
 
 # Agents
 
-<DocFocus>
-One authenticated ACP session per workspace. Clients never launch the CLI or own the session.
-</DocFocus>
+<DocWhat>
+Each workspace has one authenticated ACP session. The Server schedules the configured ACP executable in the worktree. Clients never launch the CLI or own the session.
 
-**Owner:** `AgentUp.Server` Agents surface. Tests live in Server Agents HTTP smoke and capability Provider smoke. REST: `/api/workspaces/{workspaceId}/agent`. Sign-in transports: [Sign-in](/developer-guide/agents/sign-in).
+A second agent is rejected until the current one is stopped. Prompts are serialized per workspace.
+</DocWhat>
 
-## What it is
-
-The authenticated `/api/workspaces/{workspaceId}/agent` surface schedules one ACP agent per workspace. Scheduling starts the configured ACP executable in the workspace worktree, performs ACP `initialize` and `session/new`, and retains the returned session ID. Prompts are serialized per workspace. A second agent is rejected until the current one is stopped.
+<DocMeta
+  owner="AgentUp.Server Agents surface"
+  tests="Server Agents HTTP smoke and capability Provider smoke"
+  rest={'/api/workspaces/{workspaceId}/agent'}
+/>
 
 <DocSpine>
-<DocBeat selected>Discover the inventory command</DocBeat>
+<DocBeat>Discover the inventory command</DocBeat>
 <DocBeat>Complete subscription sign-in when ACP requires it</DocBeat>
 <DocBeat>Stream prompts and permission decisions over REST/SSE</DocBeat>
 </DocSpine>
 
-<DocContract>POST .../authenticate</DocContract>
+<DocContract label="Route">POST .../authenticate</DocContract>
 
-Next in this slice: [Sign-in](/developer-guide/agents/sign-in).
+<DocSurfaces>
+<DocSurface desktop>The Agent tab streams workspace ACP events over SSE on a dedicated HTTP client with an infinite timeout. User prompts are right-aligned catalog bubbles. The live agent run stays fully open; the next question collapses tools, searches, and thoughts to a Worked disclosure.</DocSurface>
+<DocSurface mobile>The Agents overview tab lists Server-discovered ACP agents so the user can continue the current session or start a new one, then opens the existing chat module as an inner page. `session/request_permission` is a blocking decision card. The client shows the sign-in URL and Codex device code from the Server and must not launch `xdg-open` itself.</DocSurface>
+</DocSurfaces>
 
 ## Session runtime
 
@@ -42,8 +47,6 @@ Live-CLI Provider smoke tests discover those installed executables, and Server A
 
 Agent-Up advertises no terminal-auth capability because the authenticated HTTP client cannot safely proxy an interactive terminal.
 
-## Desktop and Mobile chrome
-
-<DocSurface desktop>The Agent tab streams workspace ACP events over SSE on a dedicated HTTP client with an infinite timeout. User prompts are right-aligned catalog bubbles. The live agent run stays fully open; the next question collapses tools, searches, and thoughts to a Worked disclosure.</DocSurface>
-
-<DocSurface mobile>The Agents overview tab lists Server-discovered ACP agents so the user can continue the current session or start a new one, then opens the existing chat module as an inner page. `session/request_permission` is a blocking decision card. Subscription login is a Server-owned CLI flow: the client shows the sign-in URL and Codex device code from the Server and must not launch `xdg-open` itself.</DocSurface>
+<DocNext href="/developer-guide/agents/sign-in" title="Sign-in">
+Poll, code, and redirect transports.
+</DocNext>

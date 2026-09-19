@@ -4,7 +4,14 @@ title: AUDebug
 
 # AgentUp.AUDebug
 
-`AgentUp.AUDebug` is a maintainer visual-debug CLI named `au-debug`. It is similar in shape to `AgentUp.CLI`, but it does not wrap Server orchestration for users. It hosts the **repository** Desktop, Mobile web export, and docs site side by side so agents and maintainers can inspect those UIs without using a packaged Agent-Up install.
+<DocWhat>
+`au-debug` hosts the repository Desktop, Mobile web export, and docs site so agents can screenshot and inspect those UIs without a packaged install. It is a maintainer visual-debug CLI, not an orchestration owner.
+</DocWhat>
+
+<DocFacts>
+<DocFact label="Server">http://127.0.0.1:5001</DocFact>
+<DocFact label="Docs">http://127.0.0.1:10100</DocFact>
+</DocFacts>
 
 `au-debug up` uses the repository Server on `http://127.0.0.1:5001` because Desktop and Mobile login need it. If that URL is already ready, `up` reuses it and `down` leaves it running. Otherwise `up` starts a repo Server and `down` stops Desktop, Mobile, docs, and that Server process.
 
@@ -32,6 +39,8 @@ Cold Desktop compiles can exceed 30 seconds. Pass `--timeout 120` for those runs
 ./au-debug desktop screenshot
 ./au-debug mobile screenshot
 ./au-debug docs screenshot
+./au-debug docs screenshot /docs/workspaces --full-page
+./au-debug docs screenshot /developer-guide/workspaces --heading "Orchestration MCP"
 ./au-debug desktop login
 ./au-debug mobile login
 ./au-debug desktop start-workspace Agent-Up
@@ -41,6 +50,8 @@ Cold Desktop compiles can exceed 30 seconds. Pass `--timeout 120` for those runs
 ```
 
 `status` probes the hosted Server, Mobile, and docs URLs and checks that the Desktop window is present. Do not curl those ports or call `xdotool` from the shell; those checks belong inside `au-debug`.
+
+`docs screenshot` captures the hosted Docusaurus site after `up` is ready. With no path it captures `/docs/`. Pass a site path under `/docs/`, `/developer-guide/`, or `/design-system` to inspect one page. `--heading` scrolls that heading into the 1440x900 viewport before capture. `--full-page` captures the whole document. Both flags can be used together.
 
 ## Tests and builds
 
@@ -87,7 +98,7 @@ Every one-shot command and `up` readiness uses a 30 second watchdog by default (
 |---|---|
 | Server | `http://127.0.0.1:5001` |
 | Mobile web | `http://127.0.0.1:10102` |
-| Docs | `http://127.0.0.1:10100` (design-system at `/design-system`) |
+| Docs | `http://127.0.0.1:10100` (`/docs/`, `/developer-guide/`, `/design-system`) |
 | Desktop | native window titled `Agent-Up` |
 
 Mobile `./au-debug build mobile` (or `./au-debug test mobile`) must have produced a web export before `up` serves Mobile. Desktop is launched through `run-desktop.sh`.

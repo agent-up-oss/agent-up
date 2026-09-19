@@ -8,6 +8,9 @@ import {
   gitLogLaneX,
   layoutGitLog,
   classifyGitLogRef,
+  gitHistoryCheckoutConfirm,
+  gitLogCanCheckout,
+  gitLogCheckoutTarget,
 } from './GitLogLayoutProvider';
 
 const root = { id: 'aaa', shortId: 'aaa', parents: [], subject: 'root', author: 'A', timestamp: '2026-01-01T00:00:00Z', refs: ['main'] };
@@ -74,4 +77,22 @@ test('layoutGitLog classifies tags when local branches are provided', () => {
   const rows = layoutGitLog([tagged], ['main']);
   assert.deepEqual(rows[0].refs.map(ref => ref.kind), ['head', 'local', 'tag']);
   assert.equal(rows[0].checkoutName, 'main');
+});
+
+test('gitLogCheckoutTarget ignores HEAD and tags and names a confirmable ref', () => {
+  const rows = layoutGitLog([{ ...root, refs: ['HEAD', 'main', 'origin/main', 'v1.0.0'] }], ['main']);
+  const target = gitLogCheckoutTarget(rows[0], ['main']);
+  assert.equal(target?.kind, 'local');
+  assert.equal(target?.name, 'main');
+  assert.equal(gitLogCanCheckout(rows[0].refs[0], ['main']), false);
+  assert.equal(gitLogCanCheckout({ name: 'v1.0.0', kind: 'tag' }, ['main']), false);
+  assert.deepEqual(gitHistoryCheckoutConfirm(target!, 'fix(git): confirm checkout'), {
+    title: 'Checkout branch?',
+    message: 'This checks out the local branch main from commit “fix(git): confirm checkout” in the workspace worktree.',
+    confirm: 'Checkout',
+  });
+  assert.match(
+    gitHistoryCheckoutConfirm({ name: 'origin/topic', kind: 'remote' }, 'feat(App): topic').message,
+    /origin\/topic/,
+  );
 });

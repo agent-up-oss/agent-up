@@ -291,6 +291,10 @@
   font-weight: var(--au-weight-ui-strong);
   font-variant-numeric: tabular-nums;
 }
+.au-git-insertions--on-primary,
+.au-git-deletions--on-primary {
+  color: var(--au-color-on-accent);
+}
 
 /* Diagnostics / audit */
 .au-audit-header {

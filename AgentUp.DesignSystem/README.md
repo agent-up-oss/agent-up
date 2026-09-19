@@ -15,8 +15,10 @@ and marketing presentation. The canonical format is HTML and CSS:
 - `src/git-log.css` defines the commit graph, pinned timestamp column, sticky selected detail, and ref chips.
 - `src/marketing.css` defines reusable marketing compositions that keep the real
   product UI as the visual reference.
-- `src/docs.css` defines documentation attention components used by User Docs
-  and the Developer Guide. It is not compiled into Desktop or Mobile bindings.
+- `src/docs.css` defines documentation structure used by User Docs and the
+  Developer Guide: kicker, focus pane, what-it-is, numbered spine, contract,
+  fork, facts, surface rows, steps, callout, and next-in-slice. It is not
+  compiled into Desktop or Mobile bindings.
 - `brand/voice.json` defines product naming, positioning, lifecycle language, and
   editorial rules.
 

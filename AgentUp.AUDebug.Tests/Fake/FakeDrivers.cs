@@ -1,3 +1,4 @@
+using AgentUp.AUDebug.Features.Docs.Interfaces;
 using AgentUp.AUDebug.Features.Mobile.Interfaces;
 using AgentUp.AUDebug.Shared.Interfaces;
 using AgentUp.AUDebug.Shared.Providers;
@@ -28,6 +29,28 @@ public sealed class FakeMobileSurfaceDriver : IMobileSurfaceDriver
     public async Task CaptureAgentAsync(string outputPath, CancellationToken cancellationToken)
     {
         CaptureAgentPath = outputPath;
+        if (DelayUntilCanceled)
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+}
+
+public sealed class FakeDocsPageCapture : IDocsPageCapture
+{
+    public List<(string Url, string Path, string? Heading, bool FullPage)> Captures { get; } = [];
+    public bool DelayUntilCanceled { get; set; }
+    public Exception? CaptureException { get; set; }
+
+    public async Task CaptureAsync(
+        string url,
+        string outputPath,
+        string? heading,
+        bool fullPage,
+        CancellationToken cancellationToken)
+    {
+        Captures.Add((url, outputPath, heading, fullPage));
+        if (CaptureException is not null)
+            throw CaptureException;
         if (DelayUntilCanceled)
             await Task.Delay(Timeout.Infinite, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();

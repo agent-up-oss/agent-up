@@ -6,25 +6,23 @@ title: Configuration
 
 # Configuration
 
-<DocFocus>
+<DocWhat>
 `agent-up.json` at the repository root is the declarative contract the Server reads when a workspace starts.
-</DocFocus>
 
-## What it is
-
-The file declares applications, local services, capability requirements, ports, and launch-time environment. Applications do not reference Agent-Up packages, SDKs, or APIs. Agent-Up supplies runtime values through process launch configuration.
+The file declares applications, local services, capability requirements, ports, and launch-time environment. Applications do not reference Agent-Up packages, SDKs, or APIs.
+</DocWhat>
 
 <DocSpine>
-<DocBeat selected>Place `agent-up.json` at the repository root</DocBeat>
+<DocBeat>Place `agent-up.json` at the repository root</DocBeat>
 <DocBeat>Prefer `dotnet` and `docker` capability sections</DocBeat>
 <DocBeat>Start the workspace so the Server owns the result</DocBeat>
 </DocSpine>
 
-<DocContract>agent-up.json</DocContract>
+<DocContract label="File">agent-up.json</DocContract>
 
+<DocCallout>
 Only `name` is required. All application and service arrays are optional.
-
-Next in this slice: [Reference](/docs/configuration/reference).
+</DocCallout>
 
 ## Top-level shape
 
@@ -110,3 +108,7 @@ See [environment and secrets](/docs/configuration/environment) for precedence, p
 ## Examples
 
 See [examples](/docs/configuration/examples) for complete capability-aware and legacy configuration files.
+
+<DocNext href="/docs/configuration/reference" title="Reference">
+The complete field contract.
+</DocNext>

@@ -4,9 +4,18 @@ title: Setup
 
 # Setup
 
-Agent-Up is currently a development preview. Packaged installers and platform packages are still being hardened while signing, update behavior, and service handling evolve.
+<DocWhat>
+Setup is how you install Agent-Up and connect a client to the Server. Installed Desktop artifacts run the Server as a local background service.
+</DocWhat>
 
-Installed Desktop artifacts are expected to run the Server as a local background service. Desktop, CLI, and MCP clients connect to that service at `http://localhost:5000` unless `AGENTUP_SERVER_URL` points elsewhere.
+<DocCallout kind="warning">
+<DocFact label="Packaged">{'http://localhost:5000'}</DocFact>
+<DocFact label="Repository">{'http://localhost:5001'}</DocFact>
+</DocCallout>
+
+<DocCallout kind="warning" label="Development Preview">
+Packaged installers and platform packages are still being hardened while signing, update behavior, and service handling evolve.
+</DocCallout>
 
 If the service starts and stops repeatedly or consumes CPU while failing to become ready, check whether another application is already listening on port 5000. Packaged services restart with a 5 second backoff, but Agent-Up still needs an available local server port.
 
@@ -101,7 +110,7 @@ On NixOS:
 ./run-desktop.sh
 ```
 
-The script runs the desktop inside `shell.nix`, which provides the native libraries needed by Avalonia, SkiaSharp, and WebKitGTK.
+The script runs the desktop inside `shell.nix`, which provides the native libraries needed on Linux.
 
 On first launch, Desktop shows a setup tutorial that can create two sample workspaces. Skip persists, so the overlay does not return on the next start. Native tests set `AGENTUP_SKIP_FIRST_RUN_TUTORIAL=1`; users do not need that variable.
 

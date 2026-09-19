@@ -721,6 +721,10 @@
   font-weight: var(--au-weight-ui-strong);
   font-variant-numeric: tabular-nums;
 }
+.au-git-insertions--on-primary,
+.au-git-deletions--on-primary {
+  color: var(--au-color-on-accent);
+}
 
 /* Diagnostics / audit */
 .au-audit-header {
@@ -1193,6 +1197,13 @@
   color: var(--au-color-text-primary);
   background: var(--au-color-surface-selected);
   border-left: 2px solid var(--au-color-accent-line);
+}
+
+/* Mobile splits timestamp and graph. Selected chrome stays on the timestamp only. */
+.au-git-log-graph-scroll .au-git-log-row--selected {
+  color: inherit;
+  background: var(--au-color-transparent);
+  border-left-color: var(--au-color-transparent);
 }
 
 .au-git-log-graph {

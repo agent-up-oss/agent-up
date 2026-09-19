@@ -6,25 +6,30 @@ title: Diagnostics
 
 # Diagnostics
 
-<DocFocus>
+<DocWhat>
+The Server continuously collects console output, JavaScript exceptions, failed network requests, performance timings, health information, and process status.
+
+Product crash reporting for Agent-Up itself stays in [telemetry](/developer-guide/repo/telemetry).
+</DocWhat>
+
+<DocMeta
+  owner="AgentUp.Server diagnostics and audit"
+  tests="Server diagnostics/audit suites"
+  mcp="/mcp/audit plus Orchestration get_workspace_console"
+  rest={'/api/diagnostics/workspaces/{workspaceId}'}
+/>
+
+<DocCallout>
 If browser navigation or a start fails, read the workspace console before retrying the browser.
-</DocFocus>
-
-**Owner:** `AgentUp.Server` diagnostics and audit. Tests live in Server diagnostics/audit suites. MCP: `/mcp/audit` plus Orchestration `get_workspace_diagnostics` and `get_workspace_console`. REST: `/api/diagnostics/workspaces/{workspaceId}` and `/api/audit/...`.
-
-## What it is
-
-The Server continuously collects console output, JavaScript exceptions, failed network requests, performance timings, health information, and process status. Product crash reporting for Agent-Up itself stays in [telemetry](/developer-guide/repo/telemetry).
+</DocCallout>
 
 <DocSpine>
-<DocBeat selected>Inspect `get_workspace_console`</DocBeat>
+<DocBeat>Inspect `get_workspace_console`</DocBeat>
 <DocBeat>Read health and process state</DocBeat>
 <DocBeat>Query durable audit history when you need the record</DocBeat>
 </DocSpine>
 
-<DocContract>get_workspace_console</DocContract>
-
-Next in this slice: [Event recording](/developer-guide/diagnostics/events).
+<DocContract label="Tool">get_workspace_console</DocContract>
 
 ## Exposure
 
@@ -44,10 +49,20 @@ The REST endpoint is `GET /api/audit/workspaces/{workspaceId}/applications/{appl
 
 `/mcp/audit` exposes Streamable HTTP and legacy SSE at `/mcp/audit/sse` plus `/mcp/audit/message`. It owns durable audit history queries and Server-managed artifact loading.
 
-- `audit_query`: filters durable audit events by workspace, working-directory id, repository path, branch, commit, event kind, source, outcome, and time range.
-- `audit_timeline`: returns compact recent history for agent context.
-- `audit_get_event`: returns full details for one audit event.
-- `audit_load_artifact`: loads a Server-managed artifact by opaque artifact id and can return inline image data when requested.
+<DocSteps>
+<DocStep title="audit_query">
+Filters durable audit events by workspace, working-directory id, repository path, branch, commit, event kind, source, outcome, and time range.
+</DocStep>
+<DocStep title="audit_timeline">
+Returns compact recent history for agent context.
+</DocStep>
+<DocStep title="audit_get_event">
+Returns full details for one audit event.
+</DocStep>
+<DocStep title="audit_load_artifact">
+Loads a Server-managed artifact by opaque artifact id and can return inline image data when requested.
+</DocStep>
+</DocSteps>
 
 ## Metrics and audit scopes
 
@@ -67,3 +82,7 @@ Application metrics endpoints are pull-based: declare `metrics` on a port in `ag
 ## Purpose
 
 Diagnostics make AI validation practical. An agent should be able to modify code, restart the workspace, inspect health, interact with the application, and retrieve evidence when something fails.
+
+<DocNext href="/developer-guide/diagnostics/events" title="Event recording">
+Durable audit history and artifacts.
+</DocNext>

@@ -1,27 +1,33 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
-import type { GitHeadState } from '../models/GitChanges';
+import type { GitHeadState, GitSyncResult } from '../models/GitChanges';
 import {
   filterGitBranchPickerRows,
   gitBranchMutationConfirm,
   gitBranchPickerClosesFromPointer,
   gitBranchPickerViewportHeight,
+  gitPushFailureConfirm,
+  gitPushFailureOffersForce,
   type GitConfirmCopy,
 } from '../providers/GitBranchPickerProvider';
 import { checkoutRemote, fetchRemote, getHeadState, pullRemote, pushRemote, switchBranch } from '../providers/GitApiProvider';
+import { GitConfirmDialog } from './GitConfirmDialog';
 
 type MenuLayout = { top: number; left: number; width: number };
+
+type PendingConfirm = { copy: GitConfirmCopy; action: () => void };
 
 type WorkspaceBranchPickerProps = {
   workspaceId: string;
   onHistory?: () => void;
+  onReload?: () => void;
 };
 
-export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranchPickerProps) {
+export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload }: WorkspaceBranchPickerProps) {
   const { expireActiveCredential } = useServers();
   const { server, refresh } = useWorkspaces();
   const [head, setHead] = useState<GitHeadState | null>(null);
@@ -31,6 +37,7 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranc
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
   const [menuLayout, setMenuLayout] = useState<MenuLayout | null>(null);
   const request = useRef(0);
   const wrapRef = useRef<View>(null);
@@ -64,6 +71,7 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranc
     setCreating(false);
     setName('');
     setError(null);
+    setConfirm(null);
     void load();
   }, [load, closeMenu]);
 
@@ -136,14 +144,26 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranc
     }
   };
 
-  const runSync = async (label: string, action: () => Promise<{ succeeded: boolean; error?: string | null }>) => {
+  const runSync = async (
+    label: string,
+    action: () => Promise<GitSyncResult>,
+    options: { offerForceOnFailure?: boolean } = {},
+  ) => {
     if (!server || busy) return;
     setBusy(true);
     setError(null);
     try {
       const result = await action();
       if (!result.succeeded) {
-        setError(result.error ?? `The ${label} failed.`);
+        const detail = result.error ?? `The ${label} failed.`;
+        if (options.offerForceOnFailure && gitPushFailureOffersForce(detail)) {
+          setConfirm({
+            copy: gitPushFailureConfirm(detail, head),
+            action: () => void runSync('force push', () => pushRemote(server, workspaceId, true, false)),
+          });
+          return;
+        }
+        setError(detail);
         return;
       }
       await afterSuccess();
@@ -156,14 +176,8 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranc
 
   const confirmAction = (copy: GitConfirmCopy, action: () => void) => {
     if (busy) return;
-    Alert.alert(copy.title, copy.message, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: copy.confirm,
-        style: copy.destructive ? 'destructive' : 'default',
-        onPress: action,
-      },
-    ]);
+    closeMenu();
+    setConfirm({ copy, action });
   };
 
   const branch = head?.branch || 'not on a git branch';
@@ -171,8 +185,9 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranc
   const behind = head?.behind ?? 0;
   const sync = ahead === 0 && behind === 0 ? '' : `↑${ahead} ↓${behind}`;
   const hasBranches = branches.length > 0 || remotes.length > 0;
+  const menuOpen = open && hasBranches && menuLayout !== null;
 
-  const menu = open && hasBranches && menuLayout && (
+  const menu = menuOpen && (
     <View style={[styles.menu, { position: 'absolute', top: menuLayout.top, left: menuLayout.left, width: menuLayout.width }]}>
       <TextInput
         accessibilityLabel="Search branches"
@@ -227,22 +242,23 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranc
 
   return (
     <View ref={wrapRef} collapsable={false} style={styles.wrap}>
-      <Modal
-        visible={open && hasBranches}
-        transparent
-        animationType="none"
-        onRequestClose={closeMenu}>
-        <View style={styles.modalRoot} pointerEvents="box-none">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Dismiss branch list"
-            testID="dismiss-branch-list"
-            onPress={dismissFromOverlay}
-            style={styles.dismissOverlay}
-          />
-          {menu}
-        </View>
-      </Modal>
+      {menuOpen &&
+        <Modal
+          visible
+          transparent
+          animationType="none"
+          onRequestClose={closeMenu}>
+          <View style={styles.modalRoot} pointerEvents="box-none">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss branch list"
+              testID="dismiss-branch-list"
+              onPress={dismissFromOverlay}
+              style={styles.dismissOverlay}
+            />
+            {menu}
+          </View>
+        </Modal>}
       <View style={styles.row}>
         <Pressable
           accessibilityRole="button"
@@ -264,6 +280,15 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranc
       </View>
       {!!sync && <Text style={styles.sync}>{sync}</Text>}
       <View style={styles.actions}>
+        {onReload &&
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Reload"
+            disabled={busy}
+            onPress={onReload}
+            style={styles.refresh}>
+            <Text style={styles.refreshIcon}>↻</Text>
+          </Pressable>}
         <Pressable
           disabled={busy}
           onPress={() => confirmAction(gitBranchMutationConfirm('fetch', head), () => void runSync('fetch', () => fetchRemote(server!, workspaceId, null)))}
@@ -278,15 +303,12 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranc
         </Pressable>
         <Pressable
           disabled={busy}
-          onPress={() => confirmAction(gitBranchMutationConfirm('push', head), () => void runSync('push', () => pushRemote(server!, workspaceId, false, false)))}
+          onPress={() => confirmAction(
+            gitBranchMutationConfirm('push', head),
+            () => void runSync('push', () => pushRemote(server!, workspaceId, false, false), { offerForceOnFailure: true }),
+          )}
           style={styles.actionPrimary}>
           <Text style={styles.actionPrimaryText}>Push</Text>
-        </Pressable>
-        <Pressable
-          disabled={busy}
-          onPress={() => confirmAction(gitBranchMutationConfirm('forcePush', head), () => void runSync('force push', () => pushRemote(server!, workspaceId, true, false)))}
-          style={styles.actionDanger}>
-          <Text style={styles.actionDangerText}>Force push</Text>
         </Pressable>
         {onHistory &&
           <Pressable
@@ -323,6 +345,16 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory }: WorkspaceBranc
         </View>
       )}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
+      <GitConfirmDialog
+        copy={confirm?.copy ?? null}
+        busy={busy}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => {
+          const next = confirm;
+          setConfirm(null);
+          next?.action();
+        }}
+      />
     </View>
   );
 }
@@ -353,13 +385,13 @@ const styles = StyleSheet.create({
   },
   plusText: { ...auText('accent'), fontSize: 20, fontWeight: '700', lineHeight: 22 },
   sync: auText('muted'),
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  refresh: { ...auBox('titleTool'), alignItems: 'center', justifyContent: 'center' },
+  refreshIcon: auText('chromeIcon'),
   action: { ...auBox('button', 'buttonSecondary', 'buttonCompact'), minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
   actionText: auText('buttonSecondary', 'buttonCompact'),
   actionPrimary: { ...auBox('button', 'buttonCompact'), minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
   actionPrimaryText: auText('button', 'buttonCompact'),
-  actionDanger: { ...auBox('button', 'buttonDanger', 'buttonCompact'), minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
-  actionDangerText: auText('button', 'buttonCompact'),
   menu: { ...auBox('card'), overflow: 'hidden', paddingHorizontal: 0, paddingVertical: 8, gap: 8, zIndex: 2, elevation: 8 },
   search: { marginHorizontal: 8, ...auBox('input'), ...auText('input') },
   list: { flexGrow: 0 },

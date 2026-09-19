@@ -8,4 +8,7 @@ public sealed record DebugCommandDto(
     string? Password,
     TimeSpan Timeout,
     bool Detach,
-    string? Suite = null);
+    string? Suite = null,
+    string? PagePath = null,
+    string? Heading = null,
+    bool FullPage = false);

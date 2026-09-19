@@ -7,7 +7,10 @@ import {
   gitBranchMutationConfirm,
   gitBranchPickerClosesFromPointer,
   gitBranchPickerViewportHeight,
+  gitConfirmShowsCancel,
   gitFetchRemoteLabel,
+  gitPushFailureConfirm,
+  gitPushFailureOffersForce,
   gitUpstreamLabel,
 } from './GitBranchPickerProvider';
 
@@ -119,4 +122,26 @@ test('gitBranchMutationConfirm names switch, remote checkout, and create targets
     'This creates branch topic from the current HEAD and checks it out.',
   );
   assert.equal(gitUpstreamLabel(head({ upstream: null })), 'its upstream');
+});
+
+test('gitPushFailureOffersForce maps non-fast-forward and lease failures', () => {
+  assert.equal(gitPushFailureOffersForce('The remote rejected a non-fast-forward update.'), true);
+  assert.equal(gitPushFailureOffersForce('failed to push some refs to origin'), true);
+  assert.equal(gitPushFailureOffersForce('Updates were rejected because the tip of your current branch is behind'), true);
+  assert.equal(gitPushFailureOffersForce('Force-with-lease failed: stale info'), true);
+  assert.equal(gitPushFailureOffersForce('Git push could not authenticate to the remote.'), false);
+  assert.equal(gitPushFailureOffersForce('This branch has no upstream. Push with setUpstream to create one.'), false);
+  assert.equal(gitPushFailureOffersForce(null), false);
+});
+
+test('gitPushFailureConfirm names force-with-lease and why the push was rejected', () => {
+  const copy = gitPushFailureConfirm('The remote rejected a non-fast-forward update.', head());
+  assert.equal(copy.title, 'Push rejected');
+  assert.equal(copy.confirm, 'Force push (--force-with-lease)');
+  assert.equal(copy.destructive, true);
+  assert.equal(gitConfirmShowsCancel(copy), true);
+  assert.match(copy.message, /incoming commits|commits you do not/);
+  assert.match(copy.message, /origin\/main/);
+  assert.match(copy.message, /--force-with-lease/);
+  assert.equal(gitConfirmShowsCancel({ title: 'x', message: 'y', confirm: 'Reload', cancel: false }), false);
 });

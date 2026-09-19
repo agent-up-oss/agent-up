@@ -66,7 +66,22 @@ Definition sources for a slice are that pair of General pages, not a client-name
 
 ## Page standard
 
-Every General uses this reading order: eyebrow (slice name plus `Available` / `Preview` / `Experimental` / `Planned`), one focus pane, what it is (three sentences max), spine, contract, optional fork, surface hints on beats that differ, then next in this slice. Developer Generals add owner, tests, and the MCP/REST surface after the focus pane. Do not open with a project list. User Generals never explain Avalonia, Expo, or solution layout.
+Every General uses this reading order, encoded as design-system docs components:
+
+1. `DocEyebrow` — slice name plus `Available` / `Preview` / `Experimental` / `Planned`
+2. page title — larger than product chrome (`clamp(2.25rem, 4vw, 2.75rem)`, weight 700)
+3. `DocWhat` — what this page is, for a first-time reader, three sentences max. This is the dek under the title. Do not open with a Remember pane.
+4. Developer only: `DocMeta` — owner, tests, MCP, REST as a quiet definition list, not a card
+5. optional `DocCallout` / `DocFocus` — a rule that only makes sense after the dek. Never the first content. A warning may hold `DocFact` rows when the caution is a list, such as packaged versus repository Server URLs. Do not put those gotchas in `DocFacts`.
+6. `DocSpine` — three equal beats. No default highlight. Highlight a beat only when it is the current step of an in-page procedure.
+7. `DocContract` — the one featured command, JSON key, or route
+8. optional `DocFork`, `DocFacts`, `DocSurfaces` — only where they add information the dek did not already say
+9. body sections as `h2`s — `DocSteps`, `DocFacts`, and `DocCallout` instead of undifferentiated paragraphs and CLI dumps
+10. `DocNext` — last on the page, after the body
+
+Subpages in a slice dropdown may assume the slice name from General, not the whole General. They still open with what *this* page is.
+
+Give each structural block enough space and a distinct treatment so it reads as one unit. Do not box every component the same way. Do not open with a project list. User Generals never explain Avalonia, Expo, or solution layout.
 
 # Architecture
 
@@ -383,7 +398,7 @@ AgentUp.AUDebug/
     Host/             (au-debug up/down/status, session, log mux, 30s readiness watchdog)
     Desktop/          (desktop screenshot, login, start-workspace)
     Mobile/           (mobile screenshot, login)
-    Docs/             (docs screenshot)
+    Docs/             (docs screenshot of a hosted page, optional path/heading/full-page)
     Test/             (scoped and full visual-iteration test runs)
 
 LocalInstaller.Core/
@@ -627,7 +642,7 @@ Mobile application spaces load each application's HTTP interface in a native Web
 
 Mobile renders `desktopApplications` through the same session-ticketed Server viewer as Desktop: `react-native-webview` on Android/iOS and an iframe in the PWA. It must not proxy or own the display stream.
 
-Each workspace has a local bottom bar with Apps, Git, and Agents overview tabs. The Git tab overview lists uncommitted changes and hosts branch Fetch/Pull/Push with a History action next to Force push. Inner Git Review, History, application, and agent-chat pages return through the nav-bar back button. Mobile's Git Review page reads and displays the Server-owned proposal queue. It must not reconstruct queue ancestry or infer verification state locally.
+Each workspace has a local bottom bar with Apps, Git, and Agents overview tabs. The Git tab overview lists uncommitted changes and hosts Reload, Fetch, Pull, Push, and a History action. Force push is offered only after a rejected non-fast-forward push. Inner Git Review, History, application, and agent-chat pages return through the nav-bar back button. Mobile's Git Review page reads and displays the Server-owned proposal queue. It must not reconstruct queue ancestry or infer verification state locally.
 
 Agent sign-in on every client goes through `AgentUp.AgentAuth` (`@agent-up/agent-auth`). It branches on the transport the Server reports - `poll`, `code`, or `redirect` - and never on which agent is signing in, so the real Claude, Codex, and Cursor CLIs and the test agents drive one code path rather than parallel ones. Platform behavior lives in an adapter behind a port; the state machine stays free of React and React Native imports so it is tested under plain Node.
 
@@ -1143,7 +1158,7 @@ Read: `docs/user-docs/configuration/index.md` and `docs/developer-guide/configur
 
 ## AUDebug
 
-`au-debug` hosts repo Desktop, Mobile, and docs for visual comparison. One-shot commands use a 30 second watchdog. Probe the host with `au-debug status` instead of curling ports or searching windows. Run visual-iteration checks with `au-debug test <suite>` or `au-debug test`. Rebuild generated design-system bindings with `au-debug build design-system`, and Mobile typecheck plus web export with `au-debug build mobile`. Do not invoke those npm or `dotnet test` commands directly when an `au-debug` wrap exists. Read: `docs/developer-guide/repo/au-debug.md`.
+`au-debug` hosts repo Desktop, Mobile, and docs for visual comparison. One-shot commands use a 30 second watchdog. Probe the host with `au-debug status` instead of curling ports or searching windows. Capture a hosted docs page with `au-debug docs screenshot [path]`; add `--heading <text>` to scroll that heading into view, or `--full-page` to capture the whole document. Run visual-iteration checks with `au-debug test <suite>` or `au-debug test`. Rebuild generated design-system bindings with `au-debug build design-system`, and Mobile typecheck plus web export with `au-debug build mobile`. Do not invoke those npm or `dotnet test` commands directly when an `au-debug` wrap exists. Read: `docs/developer-guide/repo/au-debug.md`.
 
 MCP is a protocol, not a slice. Attach to `/mcp/orchestration`, `/mcp/browser`, `/mcp/audit`, `/mcp/commits`, and `/mcp/verification`. Each developer General lists that slice's tools. See `docs/developer-guide/index.md`.
 

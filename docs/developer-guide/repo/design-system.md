@@ -33,6 +33,9 @@ shows the live components that surface uses.
 - `src/file-viewer.css` owns the readonly inspection window: header, hunk
   navigation, gutter, line kinds, and syntax token colors. Grammars live in
   `src/syntax/highlight.mjs` and compile to Mobile and Desktop.
+- `src/docs.css` owns documentation structure (kicker, focus, what-it-is,
+  numbered spine, contract, fork, facts, surface rows, steps, callout, next).
+  It is not compiled into Desktop or Mobile bindings.
 - `src/marketing.css` owns campaign and product-frame compositions.
 - `brand/voice.json` owns product naming, positioning, capability lifecycle
   language, and editorial principles.
@@ -98,7 +101,7 @@ Desktop is the reference rendering:
   uses `.au-git-tree-guide` hairlines and `.au-git-tree-toggle` chevrons
   (`--expanded` / `--collapsed`). Checkbox selection stays on the checkbox; the
   open file uses `--selected`. Do not color the filename with the change kind.
-  Review counts use `.au-git-insertions` and `.au-git-deletions`.
+  Review counts use `.au-git-insertions` and `.au-git-deletions`. Counts on a primary Commit button use `--on-primary` so they take on-accent instead of accent-on-accent.
 - Git history is `.au-git-log` with `.au-git-log-row` entries, a pinned
   `.au-git-log-time` column, `.au-git-log-graph` lanes in
   `.au-git-log-graph-scroll`, and a sticky `.au-git-log-detail` header for the

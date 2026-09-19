@@ -342,6 +342,50 @@ test('marketing CSS keeps the retired ambient neon treatment forbidden', () => {
   assert.doesNotMatch(marketing, /text-shadow|drop-shadow|radial-gradient/i);
 });
 
+test('documentation catalog encodes a skim path rather than marketing chips', () => {
+  const docs = catalog.surfaces.find(surface => surface.id === 'documentation');
+  assert.ok(docs, 'catalog is missing documentation surface');
+  const ids = docs.components.map(component => component.id);
+  for (const id of [
+    'doc-kicker', 'doc-focus', 'doc-meta', 'doc-what', 'doc-spine',
+    'doc-contract', 'doc-fork', 'doc-facts', 'doc-surfaces', 'doc-steps',
+    'doc-callout', 'doc-next',
+  ]) {
+    assert.ok(ids.includes(id), `documentation catalog is missing ${id}`);
+  }
+  const kicker = docs.components.find(component => component.id === 'doc-kicker');
+  assert.match(kicker.html, /au-field-label/);
+  assert.doesNotMatch(kicker.html, /au-eyebrow/);
+  const surfaces = docs.components.find(component => component.id === 'doc-surfaces');
+  assert.match(surfaces.html, /au-field-label/);
+  assert.doesNotMatch(surfaces.html, /au-badge au-doc-surface/);
+  const spine = docs.components.find(component => component.id === 'doc-spine');
+  assert.match(spine.html, /au-doc-spine__n/);
+  assert.doesNotMatch(spine.html, /On this page/);
+  assert.doesNotMatch(spine.html, /au-doc-spine__beat--selected/);
+  const what = docs.components.find(component => component.id === 'doc-what');
+  assert.doesNotMatch(what.html, /au-field-label/);
+  const focus = docs.components.find(component => component.id === 'doc-focus');
+  assert.match(focus.html, /Watch/);
+  assert.doesNotMatch(focus.html, /Remember/);
+  const callout = docs.components.find(component => component.id === 'doc-callout');
+  assert.match(callout.html, /au-callout--warning/);
+  assert.match(callout.html, /au-doc-callout__body/);
+  assert.match(callout.html, /localhost:5000/);
+  assert.match(callout.html, /localhost:5001/);
+});
+
+test('docs.css uses semantic tokens rather than raw product colors', async () => {
+  const css = await readFile(new URL('src/docs.css', root), 'utf8');
+  assert.doesNotMatch(css, /#[0-9a-fA-F]{3,8}/);
+  assert.match(css, /\.au-doc-kicker/);
+  assert.match(css, /\.au-doc-what/);
+  assert.match(css, /\.au-doc-next/);
+  assert.match(css, /clamp\(2\.25rem, 4vw, 2\.75rem\)/);
+  assert.match(css, /\.au-doc-spine__beat--selected/);
+  assert.match(css, /\.au-doc-callout__body/);
+});
+
 test('brand voice is a closed lifecycle schema with required identity fields', async () => {
   const voice = JSON.parse(await readFile(new URL('brand/voice.json', root), 'utf8'));
   for (const field of ['productName', 'category', 'promise', 'boundary']) {

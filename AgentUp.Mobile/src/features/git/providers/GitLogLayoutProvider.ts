@@ -1,4 +1,5 @@
 import type { GitLogCommit, GitLogGraphLink, GitLogRef, GitLogRow } from '../models/GitChanges';
+import type { GitConfirmCopy } from './GitBranchPickerProvider';
 
 export const GIT_LOG_LANE_PALETTE = 8;
 export const GIT_LOG_LANE_WIDTH = 14;
@@ -18,6 +19,31 @@ export function classifyGitLogRef(name: string, localBranches: readonly string[]
   if (name.includes('/')) return { name, kind: 'remote' };
   if (localBranches.length > 0 && !localBranches.includes(name)) return { name, kind: 'tag' };
   return { name, kind: 'local' };
+}
+
+export function gitLogCanCheckout(ref: GitLogRef, locals: readonly string[]): boolean {
+  if (ref.kind === 'head' || ref.kind === 'tag') return false;
+  if (ref.kind === 'local') return locals.includes(ref.name);
+  return ref.kind === 'remote';
+}
+
+export function gitLogCheckoutTarget(row: GitLogRow, locals: readonly string[]): GitLogRef | null {
+  return row.refs.find(ref => gitLogCanCheckout(ref, locals)) ?? null;
+}
+
+export function gitHistoryCheckoutConfirm(ref: GitLogRef, subject: string): GitConfirmCopy {
+  if (ref.kind === 'remote') {
+    return {
+      title: 'Checkout remote branch?',
+      message: `This checks out ${ref.name} from commit “${subject}”, creating a local tracking branch if needed.`,
+      confirm: 'Checkout',
+    };
+  }
+  return {
+    title: 'Checkout branch?',
+    message: `This checks out the local branch ${ref.name} from commit “${subject}” in the workspace worktree.`,
+    confirm: 'Checkout',
+  };
 }
 
 export function gitLogLaneColorKey(lane: number): `gitLane${number}` {

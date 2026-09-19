@@ -35,5 +35,8 @@ public sealed class DebugOutputServiceTests
         Assert.That(output.ToString(), Does.Contain("test all"));
         Assert.That(output.ToString(), Does.Contain("build design-system"));
         Assert.That(output.ToString(), Does.Contain("build mobile"));
+        Assert.That(output.ToString(), Does.Contain("docs screenshot [path]"));
+        Assert.That(output.ToString(), Does.Contain("--full-page"));
+        Assert.That(output.ToString(), Does.Contain("--heading <text>"));
     }
 }

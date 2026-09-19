@@ -13,7 +13,12 @@ export type GitConfirmCopy = {
   message: string;
   confirm: string;
   destructive?: boolean;
+  cancel?: false | string;
 };
+
+export function gitConfirmShowsCancel(copy: GitConfirmCopy): boolean {
+  return copy.cancel !== false;
+}
 
 export type GitBranchMutationKind =
   | 'fetch'
@@ -140,6 +145,52 @@ export function gitBranchMutationConfirm(
         confirm: 'Create',
       };
   }
+}
+
+const PUSH_FAILURE_FORCE_NEEDLES = [
+  'non-fast-forward',
+  'failed to push some refs',
+  'force-with-lease',
+  'stale info',
+  'remote rejected',
+  'updates were rejected',
+  '[rejected]',
+  'tip of your current branch is behind',
+  'fetch first',
+  'incoming',
+];
+
+export function gitPushFailureOffersForce(error: string | null | undefined): boolean {
+  if (!error) return false;
+  const text = error.toLowerCase();
+  return PUSH_FAILURE_FORCE_NEEDLES.some(needle => text.includes(needle));
+}
+
+export function gitPushFailureReason(error: string): string {
+  const text = error.toLowerCase();
+  if (text.includes('behind') || text.includes('fetch first') || text.includes('incoming')) {
+    return 'The remote has incoming commits your branch does not have.';
+  }
+  if (text.includes('force-with-lease') || text.includes('stale info')) {
+    return 'The remote moved since your last fetch, so --force-with-lease could not update it.';
+  }
+  if (text.includes('non-fast-forward') || text.includes('rejected') || text.includes('failed to push some refs')) {
+    return 'The remote rejected a non-fast-forward update because it has commits you do not.';
+  }
+  return error.trim();
+}
+
+export function gitPushFailureConfirm(error: string, head: GitHeadState | null): GitConfirmCopy {
+  const branch = head?.branch?.trim() || 'the current branch';
+  const upstream = gitUpstreamLabel(head);
+  return {
+    title: 'Push rejected',
+    message:
+      `${gitPushFailureReason(error)} Force push (--force-with-lease) of branch ${branch} to ${upstream} `
+      + 'updates the remote only if nobody else has pushed since your last fetch.',
+    confirm: 'Force push (--force-with-lease)',
+    destructive: true,
+  };
 }
 
 function formatRemoteBranch(item: GitRemoteBranch): string {

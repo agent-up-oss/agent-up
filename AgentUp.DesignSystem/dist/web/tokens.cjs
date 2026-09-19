@@ -681,6 +681,12 @@ const agentUpTheme = Object.freeze({
       fontSize: 12,
       fontWeight: '600',
     }),
+    gitInsertionsOnPrimary: Object.freeze({
+      color: "#000000",
+    }),
+    gitDeletionsOnPrimary: Object.freeze({
+      color: "#000000",
+    }),
     auditHeader: Object.freeze({
       paddingHorizontal: 12,
       paddingVertical: 8,

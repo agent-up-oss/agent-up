@@ -7,9 +7,13 @@ import {
   canCommitSelection,
   canDiscardSelection,
   changeStatusCounts,
+  changeTreeSignature,
   directoryToggleClass,
   directoryToggleGlyph,
   gitCommitConfirmCopy,
+  gitDiscardConfirmCopy,
+  gitStaleTreeConfirmCopy,
+  isChangeTreeStale,
   filePathsUnder,
   flattenChangeTree,
   isDirectorySelected,
@@ -17,6 +21,7 @@ import {
   retainCollapsedPaths,
   retainSelectedPaths,
   selectedFilePaths,
+  selectedChangeStatusCounts,
   statusClass,
   statusGlyph,
   toggleDirectoryCollapsed,
@@ -176,6 +181,62 @@ test('changeStatusCounts totals added and deleted files', () => {
   assert.deepEqual(changeStatusCounts(nodes), { added: 2, deleted: 1 });
 });
 
+test('selectedChangeStatusCounts uses the selected subset and matches global when all are selected', () => {
+  const nodes = flattenChangeTree({
+    workspaceId: 'ws-1',
+    branch: 'main',
+    fileCount: 4,
+    root: {
+      name: '',
+      path: '',
+      directories: [],
+      files: [
+        { name: 'a.ts', path: 'a.ts', status: 'Added' },
+        { name: 'b.ts', path: 'b.ts', status: 'Untracked' },
+        { name: 'c.ts', path: 'c.ts', status: 'Deleted' },
+        { name: 'd.ts', path: 'd.ts', status: 'Modified' },
+      ],
+    },
+  });
+  const global = changeStatusCounts(nodes);
+
+  assert.deepEqual(selectedChangeStatusCounts(nodes, []), { added: 0, deleted: 0 });
+  assert.deepEqual(selectedChangeStatusCounts(nodes, ['a.ts', 'c.ts']), { added: 1, deleted: 1 });
+  assert.deepEqual(
+    selectedChangeStatusCounts(nodes, ['a.ts', 'b.ts', 'c.ts', 'd.ts']),
+    global,
+  );
+  assert.deepEqual(selectedChangeStatusCounts(nodes, allFilePaths(nodes)), global);
+});
+
+test('isChangeTreeStale detects file-set and status signature mismatch', () => {
+  const current = flattenChangeTree(sampleTree());
+  assert.equal(isChangeTreeStale(current, current), false);
+  assert.equal(changeTreeSignature(current), changeTreeSignature([...current].reverse()));
+
+  const incoming = flattenChangeTree({
+    ...sampleTree(),
+    fileCount: 4,
+    root: {
+      ...sampleTree().root,
+      files: [
+        { name: 'README.md', path: 'README.md', status: 'Deleted' },
+        { name: 'new.ts', path: 'new.ts', status: 'Added' },
+      ],
+    },
+  });
+  assert.equal(isChangeTreeStale(current, incoming), true);
+});
+
+test('gitStaleTreeConfirmCopy offers only Reload', () => {
+  assert.deepEqual(gitStaleTreeConfirmCopy(), {
+    title: 'Change tree is out of date',
+    message: 'The visualized Git changes are older than the Server tree. Reload before you select or commit against this list.',
+    confirm: 'Reload',
+    cancel: false,
+  });
+});
+
 test('commit is offered only for a selection with a non-blank message', () => {
   assert.equal(canCommitSelection(1, 'fix(App): correct the probe'), true);
   assert.equal(canCommitSelection(0, 'fix(App): correct the probe'), false);
@@ -189,6 +250,15 @@ test('gitCommitConfirmCopy names the message and selected paths', () => {
     title: 'Commit selected files?',
     message: 'This commits 2 file(s) with this message:\n\nfix(App): correct the probe\n\nsrc/app/main.cs\nREADME.md',
     confirm: 'Commit',
+  });
+});
+
+test('gitDiscardConfirmCopy names the selected paths', () => {
+  assert.deepEqual(gitDiscardConfirmCopy(['src/app/main.cs', 'README.md']), {
+    title: 'Discard selected files?',
+    message: 'This discards 2 selected file(s):\n\nsrc/app/main.cs\nREADME.md',
+    confirm: 'Discard',
+    destructive: true,
   });
 });
 
@@ -212,6 +282,8 @@ test('status glyphs and catalog classes distinguish the change kinds', () => {
   assert.equal(agentUpTheme.components[statusClass('Added')].color, agentUpTheme.colors.accentSoft);
   assert.equal(agentUpTheme.components[statusClass('Deleted')].color, agentUpTheme.colors.statusDanger);
   assert.equal(agentUpTheme.components[statusClass(null)].color, agentUpTheme.colors.textMuted);
+  assert.equal(agentUpTheme.components.gitInsertionsOnPrimary.color, agentUpTheme.colors.onAccent);
+  assert.equal(agentUpTheme.components.gitDeletionsOnPrimary.color, agentUpTheme.colors.onAccent);
 });
 
 test('collapsed directories hide nested rows and keep selecting every file beneath them', () => {
