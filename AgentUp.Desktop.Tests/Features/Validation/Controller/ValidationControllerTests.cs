@@ -20,6 +20,20 @@ public sealed class ValidationControllerTests{
         await controller.LoadAsync("ws one", "web app");
         Assert.That(handler.Query, Is.EqualTo("?application=web%20app"));
     }
+
+    [Test]
+    public async Task Load_replaces_the_application_filter_on_each_request()
+    {
+        var handler = new Handler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://server/") };
+        var api = new ValidationFlowApiClient(http);
+        var controller = new ValidationController(new ValidationViewModel(
+            api, new ValidationFlowReplayService(api, new AgentUp.Desktop.Features.Browser.Controllers.BrowserInteractionController())));
+
+        await controller.LoadAsync("workspace", "api");
+
+        Assert.That(handler.Query, Is.EqualTo("?application=api"));
+    }
     private sealed class Handler : HttpMessageHandler
     {
         public string? Query { get; private set; }

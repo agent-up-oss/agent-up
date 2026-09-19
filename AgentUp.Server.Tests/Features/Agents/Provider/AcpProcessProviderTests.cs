@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Providers;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 

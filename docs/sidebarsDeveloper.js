@@ -9,6 +9,7 @@ const sidebars = {
         'design-principles',
         'architecture',
         'server',
+        'agent-sign-in',
         'desktop',
         'desktop-app-hosting-assessment',
         'au-debug',
@@ -31,6 +32,7 @@ const sidebars = {
       type: 'category',
       label: 'Operations',
       items: [
+        'testing',
         'ci-configuration',
         'mobile-store-release',
       ],

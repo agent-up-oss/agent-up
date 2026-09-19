@@ -1736,6 +1736,31 @@
                                                        Text="{Binding Git.SelectionSummary}"
                                                        Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
                                                        FontSize="11"/>
+                                            <Border x:Name="CommitProposalQueue"
+                                                    IsVisible="{Binding Git.HasQueuedProposals}"
+                                                    Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
+                                                    BorderBrush="{DynamicResource AgentUpColorBorderSelectedBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="4"
+                                                    Padding="8">
+                                                <StackPanel Spacing="4">
+                                                    <TextBlock Text="Agent proposal queue"
+                                                               Foreground="{DynamicResource AgentUpColorAccentBrightBrush}"
+                                                               FontWeight="Bold"
+                                                               FontSize="11"/>
+                                                    <ItemsControl ItemsSource="{Binding Git.QueueEntries}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+                                                                    <TextBlock Text="{Binding Slice}" Foreground="{DynamicResource AgentUpColorTextMutedBrush}" FontSize="10"/>
+                                                                    <TextBlock Grid.Column="1" Text="{Binding Message}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Grid.Column="2" Text="{Binding State}" Foreground="{DynamicResource AgentUpColorAccentBrightBrush}" FontSize="10"/>
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
+                                            </Border>
                                             <TextBlock x:Name="GitErrorMessage"
                                                        Text="{Binding Git.ErrorMessage}"
                                                        IsVisible="{Binding Git.ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"

@@ -16,7 +16,7 @@ public sealed class ProcessOutputServiceTests
     {
         var output = new InMemoryOutputRepository();
         var events = new InMemoryAuditEventRepository();
-        var audit = ServerTestComposition.CreateAuditController(events: events);
+        var audit = ServerTestComposition.CreateAuditController(ServerTestComposition.CreateRegistry(), events);
         var service = new ProcessOutputService(
             output,
             audit,
@@ -41,7 +41,7 @@ public sealed class ProcessOutputServiceTests
     {
         var output = new InMemoryOutputRepository();
         var events = new InMemoryAuditEventRepository();
-        var audit = ServerTestComposition.CreateAuditController(events: events);
+        var audit = ServerTestComposition.CreateAuditController(ServerTestComposition.CreateRegistry(), events);
         var service = new ProcessOutputService(
             output,
             audit,
@@ -61,7 +61,7 @@ public sealed class ProcessOutputServiceTests
     {
         var output = new InMemoryOutputRepository();
         var events = new InMemoryAuditEventRepository();
-        var audit = ServerTestComposition.CreateAuditController(events: events);
+        var audit = ServerTestComposition.CreateAuditController(ServerTestComposition.CreateRegistry(), events);
         var service = new ProcessOutputService(
             output,
             audit,
@@ -77,7 +77,7 @@ public sealed class ProcessOutputServiceTests
     public async Task AppendAsync_KeepsOutput_WhenAuditRecordingFails()
     {
         var output = new InMemoryOutputRepository();
-        var audit = ServerTestComposition.CreateAuditController(events: new FailingAuditEventRepository());
+        var audit = ServerTestComposition.CreateAuditController(ServerTestComposition.CreateRegistry(), new FailingAuditEventRepository());
         var service = new ProcessOutputService(
             output,
             audit,

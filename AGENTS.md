@@ -73,6 +73,27 @@ AgentUp.Desktop/
 AgentUp.Mobile/
   package.json
 
+AgentUp.Mobile.E2E/
+  package.json
+
+AgentUp.Mobile.E2E.App/
+  package.json
+
+AgentUp.Chat/
+  package.json
+
+AgentUp.AgentAuth/
+  package.json
+
+AgentUp.ServerClient/
+  package.json
+
+AgentUp.TestAgents/
+  AgentUp.TestAgents.csproj
+
+AgentUp.TestAgents.Tests/
+  AgentUp.TestAgents.Tests.csproj
+
 AgentUp.DesignSystem/
   package.json
 
@@ -102,6 +123,12 @@ AgentUp.Server.Tests/
 
 AgentUp.Browser.Streaming.Tests/
   AgentUp.Browser.Streaming.Tests.csproj
+
+AgentUp.Browser.Streaming.Benchmarks/
+  AgentUp.Browser.Streaming.Benchmarks.csproj
+
+AgentUp.Server.Benchmarks/
+  AgentUp.Server.Benchmarks.csproj
 
 AgentUp.Capabilities.Abstractions.Tests/
   AgentUp.Capabilities.Abstractions.Tests.csproj
@@ -149,8 +176,10 @@ The exact project list may evolve, but ownership must not drift:
 
 | Area | Owns |
 |---|---|
-| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, process lifecycle, ports, authenticated HTTPS forwarding of allocated HTTP application ports, Docker, browser lifecycle, hosted Linux desktop application sessions, one authenticated ACP agent session per workspace, diagnostics, event recording, MCP, REST API |
+| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, the optional Git-backed dependent proposal queue and its managed worktree, process lifecycle, ports, authenticated HTTPS forwarding of allocated HTTP application ports, Docker, browser lifecycle, hosted Linux desktop application sessions, one authenticated ACP agent session per workspace, diagnostics, event recording, MCP, REST API |
 | `AgentUp.Browser.Streaming` | Reusable remote-display viewer and bounded multi-subscriber frame/input transport for Server-owned graphical sessions |
+| `AgentUp.Browser.Streaming.Benchmarks` | BenchmarkDotNet measurements for designated performance-sensitive browser streaming paths; runs as a receipt-backed slow verification check |
+| `AgentUp.Server.Benchmarks` | BenchmarkDotNet measurements and stored regression baseline for live agent event framing |
 | `AgentUp.Capabilities.Abstractions` | Stable capability adapter interfaces, manifest DTOs, installed-version inventory contracts, validation results, and launch plans |
 | `AgentUp.Capabilities.Common` | Shared capability catalog parsing, checksum validation, Agent-Up tool-cache layout, install planning, capability inventory, and CLI executable discovery used by first-party and future external capabilities |
 | `AgentUp.Capabilities.Dotnet` | First-party .NET ecosystem adapter, SDK discovery, version reconciliation, and `dotnet` launch planning |
@@ -162,7 +191,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Mobile/` | Expo and React Native client for Android, iOS, and the installable web PWA; displays Server-owned state and submits user requests |
 | `AgentUp.DesignSystem/` | Canonical HTML/CSS product, documentation, and marketing design contract; generates the React Native, CommonJS, and Avalonia resource and style bindings consumed by Agent-Up surfaces and external marketing repositories |
 | `AgentUp.WebAudit/` | Publishable `@agent-up/audit` TypeScript browser client for sending managed frontend audit events to the Server; owns no audit state |
-| `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities |
+| `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities; its legacy independent local commit queue remains only for repositories that have not enabled the Server-owned Git proposal queue |
 | `AgentUp.AUDebug` | Maintainer visual-debug CLI (`au-debug`) that hosts repo Desktop, Mobile, and docs together for screenshot and UI-flow inspection |
 | `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues |
 | `AgentUp.Verification` | Owns `agent-up.json`'s `verification` schema, the static path-rule check resolver, and the content-addressed receipt ledger used by the Server MCP verification tools and the `agentup verify` CLI. Never reads the commit queue, which is what keeps the commit module optional |
@@ -509,7 +538,7 @@ The Desktop is an Avalonia client for humans. It displays workspaces, browser ta
 
 Applications declared in `desktopApplications` are displayed in session-ticketed streamed application tabs. Desktop must not launch their virtual displays, capture frames, or own input/session state. Existing HTTP application tabs continue to connect directly to their allocated ports and do not use the streaming path.
 
-It connects to one Server at a time and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. Full guide: `docs/developer-guide/desktop.md`.
+It connects to one Server at a time and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. It must not own runtime state; its Git panel displays the Server-owned proposal queue, including entry order, messages, and verification state. Full guide: `docs/developer-guide/desktop.md`.
 
 Installed Desktop packages must install or depend on a local Server service rather than embedding orchestration in the Desktop process.
 
@@ -535,7 +564,13 @@ Mobile application spaces load each application's HTTP interface in a native Web
 
 Mobile renders `desktopApplications` through the same session-ticketed Server viewer as Desktop: `react-native-webview` on Android/iOS and an iframe in the PWA. It must not proxy or own the display stream.
 
-Developer guide: `docs/developer-guide/mobile.md`. Store pipeline: `docs/developer-guide/mobile-store-release.md`.
+Mobile's Git changes panel reads and displays the Server-owned proposal queue. It must not reconstruct queue ancestry or infer verification state locally.
+
+Agent sign-in on every client goes through `AgentUp.AgentAuth` (`@agent-up/agent-auth`). It branches on the transport the Server reports - `poll`, `code`, or `redirect` - and never on which agent is signing in, so the real Claude, Codex, and Cursor CLIs and the test agents drive one code path rather than parallel ones. Platform behavior lives in an adapter behind a port; the state machine stays free of React and React Native imports so it is tested under plain Node.
+
+The `redirect` transport must open an in-app WebView, not the system browser. The agent CLI's callback is bound to loopback on the Server host, so a client only completes that sign-in by observing the navigation and posting it to `POST agent/login/callback`; `Linking.openURL` hands the URL to Safari or Chrome and nothing comes back. A client must not open a sign-in link the user did not ask it to open.
+
+Developer guides: `docs/developer-guide/mobile.md`, `docs/developer-guide/mobile-store-release.md` for the store pipeline, and `docs/developer-guide/agent-sign-in.md` for the sign-in transports.
 
 ## MCP
 
@@ -552,6 +587,8 @@ Every managed repository is described declaratively with `agent-up.json`.
 Managed applications must not reference Agent-Up packages, SDKs, or APIs. Agent-Up injects runtime values through environment variables and process launch configuration. The first-party AgentUp.Mobile client is an explicit exception and may consume the state-free `@agent-up/audit` browser transport because it is itself an Agent-Up product client.
 
 Legacy local application commands and legacy Docker `services` remain supported. Local application commands are executable-plus-arguments strings, not shell expressions; the Server launches them directly with an argument list and rejects shell chaining, redirects, variable expansion, and subshells. New ecosystem-aware configuration should prefer capability sections such as `dotnet` and `docker`; the Server reconciles declared version requirements with versions discovered or managed by capability adapters, then exposes capability status to Desktop, CLI, and automation clients.
+
+The optional `commits.enabled` setting opts a repository into the Server-owned Git proposal queue. Its entries form a linear dependent stack in a private managed worktree and are stored as commits under Agent-Up namespaced refs without moving or committing the developer's branch. Enqueue runs the Verification rules for the proposed delta before recording the entry. Agents must continue dependent work at the managed queue worktree path returned by enqueue. Omitting the setting preserves the legacy independent patch queue during migration.
 
 A local application entry may declare `install`, an executable-plus-arguments command (same allowlist and shell rejection as `command`) run to completion in the application's `path` before every launch of `command`. It has no separate "already installed" tracking: the Server reruns it on every start and restart and relies on the command itself being idempotent (`npm install`, `dotnet restore`, `pip install -r requirements.txt`). Output streams to the application console prefixed with `[install]`; a non-zero exit fails the start without launching `command`.
 
@@ -657,14 +694,15 @@ This applies to every production/test project pair once created:
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
 | `AgentUp.AUDebug` | `AgentUp.AUDebug.Tests` |
 | `AgentUp.Verification` | `AgentUp.Verification.Tests` |
+| `AgentUp.TestAgents` | `AgentUp.TestAgents.Tests` |
 | `LocalInstaller.Core` | `LocalInstaller.Core.Tests` |
 | `LocalInstaller.App` | `LocalInstaller.App.Tests` |
 | `LocalInstaller.Packaging` | `LocalInstaller.Packaging.Tests` |
 | `LocalInstaller.Smoke` | `LocalInstaller.Smoke.Tests` |
 
-`AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture and review-hygiene rules over source owned by the Agent-Up repository. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, concrete controller boundary presence for slices with inbound traffic, controller dependency construction rules, controller separation from providers/repositories/factories, controller and service sibling-slice boundary usage, controller method complexity, nested production type bans, feature test-kind coverage, error-handling hygiene, path/disposable/async safety, test taxonomy rules, MCP endpoint tool-allowlist completeness, and verification path-rule coverage for every production and test project. LocalInstaller source architecture is tested in the sibling LocalInstaller repository. Keep architecture and generic source hygiene rules in the owning repository instead of burying them in product E2E tests.
+`AgentUp.Architecture.Tests` is a dedicated ArchUnitNET/NUnit project for executable architecture and review-hygiene rules over source owned by the Agent-Up repository. It validates production project dependency ownership, feature/type-folder layout, shared-folder layout, concrete controller boundary presence for slices with inbound traffic, controller dependency construction rules, controller separation from providers/repositories/factories, controller and service sibling-slice boundary usage, controller method complexity, nested production type bans, feature test-kind coverage, error-handling hygiene, path/disposable/async safety, test taxonomy rules, test data builder requirements, per-test assertion limits, fixture setup debt, MCP endpoint tool-allowlist completeness, and verification path-rule coverage for every production and test project. LocalInstaller source architecture is tested in the sibling LocalInstaller repository. Keep architecture and generic source hygiene rules in the owning repository instead of burying them in product E2E tests.
 
-`AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application and shared Installer application through platform fixture adapters. Desktop browser behavior that only exists once a real WebView engine and a real platform storage provider are involved — the WebView upload bridge and OAuth sign-in through redirects and native popups — belongs here rather than in headless tests, and must substitute only the modal dialogs and native engine callbacks a CI runner cannot drive. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK: the adapter always starts a private Xvfb, `XDG_RUNTIME_DIR`, and session bus, imports `PATH` and native libraries from `nix-shell shell.nix` so IDEs do not need extra env vars, and Avalonia is forced onto X11, so a developer workstation's Wayland/X11 session is not reused. Set `AGENTUP_E2E_USE_SESSION_DISPLAY=1` only to debug against the real display. macOS uses `AgentUp.Fixtures.MacOs`, and Windows uses `AgentUp.Fixtures.Windows`, each starting Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run. macOS CI runs the project through its NUnitLite executable entry point so Avalonia Native initializes on the process main thread while still exercising the same test fixtures and native WebView.
+`AgentUp.Tests` is a separate cross-product E2E project that exercises the full Desktop application and shared Installer application through platform fixture adapters. Desktop browser behavior that only exists once a real WebView engine and a real platform storage provider are involved — the WebView upload bridge and OAuth sign-in through redirects and native popups — belongs here rather than in headless tests, and must substitute only the modal dialogs and native engine callbacks a CI runner cannot drive. Linux uses `AgentUp.Fixtures.Linux` with Xvfb and WebKitGTK: the adapter always starts a private Xvfb, `XDG_RUNTIME_DIR`, and session bus, imports `PATH` and native libraries from `nix-shell shell.nix` so IDEs do not need extra env vars, and Avalonia is forced onto X11, so a developer workstation's Wayland/X11 session is not reused. Set `AGENTUP_E2E_USE_SESSION_DISPLAY=1` only to debug against the real display. macOS uses `AgentUp.Fixtures.MacOs` and isolates test home and temporary storage. Windows uses `AgentUp.Fixtures.Windows` and isolates WebView2 profile storage through `WEBVIEW2_USER_DATA_FOLDER` only: it must leave `LOCALAPPDATA` and `APPDATA` pointing at the real profile, because redirecting them isolates nothing Desktop stores -- `Environment.GetFolderPath` asks the shell rather than the environment on Windows -- while the WebView2 browser process does inherit them and never finishes starting from an empty profile root, which hangs the UI thread before any test runs. Isolating Desktop's own storage on Windows needs a storage-root override in the product, which does not exist yet. Platform-specific canary tests enforce both isolation contracts; successful native Avalonia/WebView startup proves the hosted desktop session itself. Both start Avalonia against the native desktop/WebView backend available on the CI runner. These tests are part of the normal platform test run: Ubuntu runs them in the GUI test job, while the macOS and Windows package jobs execute a framework-dependent test artifact produced by the Ubuntu payload job against the matching .NET runtime those jobs install. macOS CI runs the project through its NUnitLite executable entry point so Avalonia Native initializes on the process main thread while still exercising the same test fixtures and native WebView.
 
 Changes to packaging, installers, CI payload staging, Desktop startup, browser/WebView hosting, or installed app layout that can affect the delivered Desktop or InstallerApp runtime must run the relevant project tests and `AgentUp.Tests` in the same verification pass. Do not claim completion for those changes after only running the package, installer, or app unit test projects.
 
@@ -675,6 +713,40 @@ After every task that touches any production project, run the architecture tests
 ```
 
 All architecture rules must pass. Fix any violation before considering the task done. Do not move on, commit, or report success while architecture tests are failing.
+
+`AgentUp.Mobile.E2E` is the mobile end-to-end project. It drives agent sign-in on a real iOS simulator (Detox, `macos-latest`), a real Android emulator (Detox, `ubuntu-latest` with KVM), and the installable web export (Playwright), against a real Agent-Up Server process, the real test agent CLIs from `AgentUp.TestAgents`, and the real identity provider behind them. Nothing in it is in-process, headless-only, or faked.
+
+The app it drives is `AgentUp.Mobile.E2E.App`: the real `AgentUp.Chat` and `AgentUp.AgentAuth` modules mounted with nothing around them. It exists so the suite tests sign-in rather than navigation - reaching the chat in the full client took four taps through the sidebar, a workspace list and a dashboard, every one of them a way for an unrelated change to fail this suite - and so the app it compiles is small enough to build often. The code under test is the same module the shipping client mounts; only the shell around it is missing.
+
+`AgentUp.Chat` is that module: the transcript, the permission prompts and the subscription sign-in, with no import from any app. Which workspace, which Server, and what sits behind the Changes tab all arrive as props, which is what lets the client and the harness run one implementation instead of two. It reaches a Server through `AgentUp.ServerClient`, the transport the client's own slices use.
+
+The disposable native sign-in harness permits cleartext traffic only so its Android emulator and iOS simulator can reach ephemeral Server and identity-provider processes on the CI host. Production Mobile transport policy must not inherit that exception.
+
+Both modules are consumed as `file:` dependencies and ship TypeScript sources, so every app that mounts them needs the `metro.config.js` dedupe they come with: Metro resolves a symlinked package's imports from its own `node_modules` first, and a second copy of `react` there means the module's hooks read a different dispatcher than the app rendered with and throw on mount. `AgentUp.Mobile.E2E/pwa/mounts.spec.mjs` is what catches that, because it happened.
+
+`plugins/withoutReleaseLint.js` turns off lint's release checks there. `assembleRelease` runs lintVital, which reads every proguard file the variant declares and, on a hosted runner, walks into `/home/packer` - the image builder's home directory, not readable by the runner - so the task cannot succeed. This app is never shipped, so lint has nothing to protect in it; the real client keeps its own lint untouched.
+
+Its androidTest manifest comes from `AgentUp.Mobile.E2E.App/plugins/withDetoxAndroidTestManifest.js`. androidx.test's `InstrumentationActivityInvoker` declares three activities with intent filters and no `android:exported`, which anything targeting Android 12 or higher must state explicitly, so the merge fails and the test APK is never assembled. The androidTest source set's manifest is the highest-priority one for that APK, so stating it there settles the merge whatever version of androidx.test is resolved - and the version arrives transitively through Detox, so it is not ours to pin.
+
+Detox synchronises on the app being idle, and the chat holds an event stream open for its whole life, so `detox/signIn.test.js` excludes that stream from synchronisation with `device.setURLBlacklist`. Without it the tap that mounts the chat never reports back and every native scenario dies on the hook timeout: the action reaches the app, the app opens the stream, and Detox waits for an idle that cannot come. Nothing else relies on that heuristic here - every wait in these suites is a condition on Server state or on an element being visible.
+
+The harness app carries `@config-plugins/detox`, and Android does not run without it. `expo prebuild` generates a plain Android project with no instrumentation: no `androidTest` source set, no `testInstrumentationRunner`, no Detox dependency - so `assembleAndroidTest` produces nothing and every run dies with "Failed to find the app binary". The plugin injects exactly those, plus a maven repo pointing at the npm-pinned copy of Detox so `com.wix:detox:+` resolves to the version the lockfile names. Its peer range still says expo ^53, which is stale metadata rather than a real incompatibility, so the app's `.npmrc` sets `legacy-peer-deps`; what it generates is verified by prebuilding and reading the project, not assumed.
+
+Sign-in runs in its own workflow, `.github/workflows/mobile-agent-auth-ci.yml`, scoped by path to the things it tests. That filter is the whole correctness argument for the gate, and it includes `AgentUp.Server` and `AgentUp.TestAgents` alongside the client modules: the Server drives every one of these sign-ins and the test agents implement them, so a change to either is exactly what this suite exists to catch. A nightly run covers whatever the filter misses.
+
+`AgentUp.TestAgents` publishes one binary launched through a per-agent shim: `test-agent1` (loopback redirect, the `codex login` shape), `test-agent2` (device code, `codex login --device-auth`), `test-agent3` (pasted code with an unterminated prompt, `claude setup-token`), `test-agent4` (silent polling, `cursor-agent login`), and `test-idp`. Each speaks real ACP v1 over stdio and refuses `session/new` until it holds a credential. There are four sign-in shapes but only three agent kinds, so the loopback-redirect and device-code agents share the Codex slot and the stack starts twice rather than letting them collide.
+
+Every process the harness starts is watched by `AgentUp.Mobile.E2E/harness/supervise.mjs`, because a stack that fails to come up has to say why. Without it a process that dies on startup looks exactly like a slow one: the wait runs its full minute and reports `fetch failed`, which is true and useless - and that is precisely how one run lost the identity provider and left nothing behind to explain it. What each process said is kept and reported, and its death ends the wait at once instead of a minute later.
+
+These tests must not be flaky, and that is enforced rather than hoped for. No fixed delays: `AgentUp.Mobile.E2E/scripts/forbid-sleep.mjs` fails the build on `setTimeout`, `device.sleep`, or `page.waitForTimeout` outside the wait helper, and every wait is a condition plus a deadline that names what it was waiting for. Approval is a control-plane call to the test identity provider at a moment the test chooses, never a wait on a polling interval and never a click driven into a browser's DOM. Ports are ephemeral, versions are pinned (simulator runtime, system image, API level, Detox, Playwright), app state is reset per case, and there are no retries: a retry hides a flake instead of surfacing it. Android's pre-test wake script keeps the powered emulator awake and disables its screen timeout before checking focus, so the screen cannot lock while the harness starts its processes and leave Espresso attached to a root without window focus.
+
+The mobile CI jobs sit at the same dependency tier as `docs` and `jetbrains-plugin`, and each publishes the Server and test agents itself instead of taking an artifact from the .NET chain. That publish runs while the job is already provisioning an emulator or an Xcode toolchain; an artifact dependency would serialise the mobile suite behind the slowest jobs in the pipeline.
+
+The three end-to-end jobs hold a runner for tens of minutes, one of them macOS. They run on every push regardless: a suite that decides for itself when to run cannot be used to gain confidence in a change, because a green pipeline stops distinguishing "passed" from "never ran". What bounds them instead is the cache - an unchanged client reuses the app it already built - and a per-job `concurrency` group with `cancel-in-progress`, because the workflow-level group deliberately never cancels a branch run and without that a full set survived every push until the runners were saturated.
+
+`AgentUp.AgentAuth/dist` is committed, as `AgentUp.WebAudit/dist` and `AgentUp.DesignSystem/dist` already are: Cloudflare Pages builds the web client through `build:cloudflare` in its own Node image and cannot build sibling packages first. The `mobile` job rebuilds it and fails on any diff, so the committed output cannot drift from its source.
+
+Expo generates `AgentUp.Mobile/ios/` and `AgentUp.Mobile/android/` during those jobs and they stay uncommitted. `.github/scripts/install-mobile-deps.sh` installs mobile dependencies for CI without the `nix-shell` wrapper the repository npm scripts use: those runners have no Nix and do have Xcode and Android toolchains that the wrapper's replaced `PATH` would break. It runs the same underlying commands; only the shell wrapper is skipped. This is the second documented exception alongside `build:cloudflare`.
 
 Changes under `AgentUp.Mobile/` must run `./au-debug test mobile` (typecheck, tests, and web export). Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
 
@@ -695,7 +767,7 @@ Forbidden:
 
 Tests should follow the same feature/slice layout as production code.
 
-Architecture rules belong in `AgentUp.Architecture.Tests`. Use ArchUnitNET for assembly/type dependency rules and focused filesystem/source checks for physical layout rules ArchUnitNET cannot observe. Root-level test support folders are limited to documented support areas such as `Support/`, `Fixtures/`, `Fake/`, `Architecture/`, or root `E2E/`; test-kind folders such as `Controller/` must stay under `Features/<Slice>/`.
+Architecture rules belong in `AgentUp.Architecture.Tests`. Use ArchUnitNET for assembly/type dependency rules and focused filesystem/source checks for physical layout rules ArchUnitNET cannot observe. Root-level test support folders are limited to documented support areas such as `Support/`, `Fixtures/`, `Fake/`, `Architecture/`, or root `E2E/`; test-kind folders such as `Controller/` and `Benchmark/` must stay under `Features/<Slice>/`.
 
 Feature slices with `Controllers/`, `Services/` or `Models/`, and `Providers/` should have matching `Controller/`, `Unit/`, and `Provider/` test-kind coverage. Existing gaps are tracked as explicit architecture-test debt; new or expanded slices must not add to that baseline.
 
@@ -745,7 +817,7 @@ AgentUp.Desktop.Tests/
       Headless/     (Avalonia headless tests for application panel UI)
     Console/
       Headless/     (Avalonia headless tests for console output panel UI)
-  Support/          (AppDriver, SidebarDriver, ContentDriver, WorkspaceFixtures)
+  Support/          (AppDriver, SidebarDriver, ContentDriver, DesktopDomain, builders)
 ```
 
 ## Test Strategy
@@ -757,6 +829,7 @@ Use layered tests with clear ownership:
 - HTTP tests verify REST routing, model binding, validation, status codes, and response shapes.
 - Repository/infrastructure tests verify persistence behavior with realistic storage dependencies when practical.
 - Provider tests verify low-level external behavior in isolation, including filesystem providers, command/tool providers, environment providers, platform adapters, package writers/stagers, probes, generated directory state, and process-style command shapes. Temp directories are allowed when the provider boundary requires them. Codex, Cursor, and Claude Provider smoke tests discover the ACP CLIs declared in capability inventory and present on the machine, and assert both the installed and missing outcomes; Server Agents HTTP smoke uses those same live adapters and asserts the workspace agent picker matches that discovery. These tests must not skip based on whether a CLI is present.
+- Performance gates cover only repeated hot paths with stored numeric baselines: streamed pointer-input decoding, live agent-event framing, and Mobile transcript/Git-tree projection. .NET gates compare BenchmarkDotNet mean time and allocation against versioned baselines; Mobile compares trimmed timing samples against its versioned baseline. A gate fails above its declared relative tolerance. Exact-file path rules select the relevant `slow` check, and CI runs every gate. Do not add one-shot, constant-return, OS-counter, no-op-provider, or external-I/O microbenchmarks; profile or soak-test those workloads instead.
 - Headless tests verify Avalonia UI behavior without native display dependencies.
 - End-to-end workspace lifecycle tests should be few and prove full integration across Server, process management, ports, diagnostics, and browser state.
 
@@ -764,7 +837,35 @@ Use layered tests with clear ownership:
 
 Avoid duplicate tests that assert the same rule through multiple layers.
 
+## Test Authoring
+
+Test data is built through builders, not production constructors. `AgentUp.Verification.Tests`
+is the worked example; [Testing](docs/developer-guide/testing.md) has the detail. In short:
+
+- Each test project keeps its builders and its shared domain vocabulary in `Support/`:
+  `ServerDomain`, `CliDomain`, `DesktopDomain`, `DebugDomain`, `VerificationDomain`. Tests
+  name workspaces, applications, ports and commits through that vocabulary instead of
+  repeating literals, so a reader can tell whether two tests mean the same thing.
+- A production DTO or model with more than three constructor parameters, built more than
+  fifteen times in one test project, must have a `Support/<Type>Builder.cs` in that project.
+  Once a builder exists nothing else in the project constructs that type, implicit `new(...)`
+  included. `TestDataBuilders` enforces both halves.
+- Variation is a call on the builder, not another shared fixture method: "the same workspace
+  but stopped" is `DesktopDomain.Workspace().Stopped()`.
+- A test method asserts at most ten times. `TestAssertionDensity` enforces this; above it a
+  test is covering more than one behaviour and a failure stops saying which broke.
+- New fixtures arrange their subject inside the test, through a local helper taking explicit
+  parameters, rather than in `[SetUp]` or `[OneTimeSetUp]`. `TestFixtureSetup` holds the line
+  over a ratchet baseline of the fixtures that predate the rule. `[TearDown]` is unaffected.
+- Composition helpers such as `ServerTestComposition` compose services only, never test data,
+  and take every parameter that changes behaviour under test explicitly rather than defaulting
+  it internally.
+- Cover platform and CI branches through an injected capability provider, not `Assume.That`
+  or a runtime skip: a test that decides it does not apply reports success without running.
+
 NUnit tests default to a 30-second per-test timeout from `coverlet.runsettings`. Tests that must run longer, such as capability CLI smoke and native-display E2E, set `[Timeout]` / `[CancelAfter]` on the fixture or method. A 1-minute testhost hang dump aborts a stuck session so a single hung test cannot run forever; it is not a 1-minute budget for a full project run.
+
+CI additionally enforces Linux Release wall-clock budgets in an independent watchdog job: 60 seconds for the combined Server/Desktop `Unit` tier, 75 seconds for `Provider`, and 180 seconds for cross-product `E2E`. The watchdog gives a background Chromium installation at most 120 seconds, runs display-dependent Provider and E2E tests under Xvfb, rejects filters that execute zero tests, and uploads TRX diagnostics. Update a budget only from a recorded CI baseline and explain the changed workload; never raise it merely to make a regression green.
 
 # Verification
 
@@ -1129,7 +1230,7 @@ Scope commit messages to the queued slice, for example `fix(UbuntuInstallation):
 
 The Agent-Up main release workflow publishes `@agent-up/audit` to npm with the planned release version when `NPM_TOKEN` is configured. The same release also publishes the Server container and `agent-up-helm` chart to Docker Hub (`themassiveone/agent-up-server` and `themassiveone/agent-up-helm`) when `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are configured. Android and iOS store binaries ship from `.github/workflows/mobile-ci.yaml` on `workflow_dispatch`; see `docs/developer-guide/mobile-store-release.md`. Path-filtered pushes of that workflow only smoke-build and sign. Helm `capabilities` values list every first-party capability as an object with `disabled` and `versions`, plus optional `command`, `arguments`, and `versionArguments` for ACP adapters, then write enabled entries to Agent-Up capability inventory the same way NixOS `services.agent-up.capabilities` does. The Server image includes `git` and the Codex, Cursor, and Claude ACP CLIs from a repository-locked npm install and checksum-verified Node and Cursor archives, and links the nested `codex` CLI next to `codex-acp` for ChatGPT device-code subscription login; chart defaults enable those three ACP capabilities against `/opt/agent-up/bin`.
 
-Installer and packaging behavior is testable product behavior. Shared installer planning, payload, adapter, progress, validation, per-component install/update/uninstall/repair, and platform install contracts belong in `LocalInstaller.Core`, with matching tests in `LocalInstaller.Core.Tests`. The shared InstallerApp UX belongs in `LocalInstaller.App`, with Avalonia headless tests in `LocalInstaller.App.Tests` and native-display Agent-Up flow tests in `AgentUp.Tests`; the dashboard includes an explicit refresh action that rechecks installed component and capability-module state for newly available versions. Product entrypoints use the LocalInstaller fluent API to register typed product and artifact manifests; each installable executable owns its artifact manifest, and `Program.cs` files should stay limited to product, installer option, and app startup configuration with no platform-specific installer plumbing. Multiple installer options may share a target category such as CLI or Server, but each option must have a unique artifact ID and payload directory. The installer app uses real platform adapters by default when `AGENTUP_INSTALLER_PAYLOAD_ROOT` points at a staged payload, supports noninteractive operation smoke through `AgentUp.InstallerApp --smoke-installer-operations --payload-root <payload-root>` that exercises individual component operations before bundled core install, treats Server as including tray payload and login autostart, and tests opt into fake adapters with `AGENTUP_INSTALLER_FAKE=1`. Native package formats should wrap or launch that dashboard rather than owning divergent install flows. Ubuntu package postinstall must install the dashboard launcher without auto-launching it; Ubuntu Desktop and InstallerApp launchers declare `StartupWMClass` for taskbar icon matching. Windows installer-owned tray autostart is machine-level so elevated install context does not register only the administrator user. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `LocalInstaller.Packaging`, with matching tests in `LocalInstaller.Packaging.Tests`; thin `AgentUp.Packaging` only registers Agent-Up product metadata and delegates to LocalInstaller. CI packaging must use prebuilt InstallerApp, Desktop, Server, CLI, Tray, Packaging, and PackageSmoke artifacts from the Ubuntu .NET payload job so native release runners do not restore, build, or test product .NET projects. Native package jobs wait on the payload, test, GUI test, and coverage jobs plus version. CI builds `Plugins/Jetbrains` with the planned release version injected through Gradle and publishes `agent-up-jetbrains-plugin.zip` as a GitHub release asset. When `JETBRAINS_MARKETPLACE_TOKEN` is configured, CI also publishes the JetBrains plugin to Marketplace after the GitHub release succeeds. Shared package and installed-service smoke validation belongs in `LocalInstaller.Smoke`, with matching tests in `LocalInstaller.Smoke.Tests`; thin `AgentUp.PackageSmoke` only registers Agent-Up smoke product metadata and delegates to LocalInstaller. PackageSmoke accepts `--product-manifest <path>` so package, installed-service, and installer-flow smoke can run for a second product without recompilation. Installed-service smoke installs the native package, runs the installed InstallerApp with its installed payload root and `--install-core`, then delegates service, CLI, diagnostics, and uninstall checks to PackageSmoke. Native package assets stay under `packaging/` and should consume shared installer contracts rather than accumulating untested script-only behavior.
+Installer and packaging behavior is testable product behavior. `agentup verify run linux-smoke` publishes the Linux payloads and packaging/smoke tools, creates the Ubuntu package, and validates the packaged Server and CLI locally; because it performs full self-contained publishes it belongs to the `platform` tier rather than the fast tier. macOS and Windows smoke checks remain CI-only because they consume cross-published artifacts on their native runners. Shared installer planning, payload, adapter, progress, validation, per-component install/update/uninstall/repair, and platform install contracts belong in `LocalInstaller.Core`, with matching tests in `LocalInstaller.Core.Tests`. The shared InstallerApp UX belongs in `LocalInstaller.App`, with Avalonia headless tests in `LocalInstaller.App.Tests` and native-display Agent-Up flow tests in `AgentUp.Tests`; the dashboard includes an explicit refresh action that rechecks installed component and capability-module state for newly available versions. Product entrypoints use the LocalInstaller fluent API to register typed product and artifact manifests; each installable executable owns its artifact manifest, and `Program.cs` files should stay limited to product, installer option, and app startup configuration with no platform-specific installer plumbing. Multiple installer options may share a target category such as CLI or Server, but each option must have a unique artifact ID and payload directory. The installer app uses real platform adapters by default when `AGENTUP_INSTALLER_PAYLOAD_ROOT` points at a staged payload, supports noninteractive operation smoke through `AgentUp.InstallerApp --smoke-installer-operations --payload-root <payload-root>` that exercises individual component operations before bundled core install, treats Server as including tray payload and login autostart, and tests opt into fake adapters with `AGENTUP_INSTALLER_FAKE=1`. Native package formats should wrap or launch that dashboard rather than owning divergent install flows. Ubuntu package postinstall must install the dashboard launcher without auto-launching it; Ubuntu Desktop and InstallerApp launchers declare `StartupWMClass` for taskbar icon matching. Windows installer-owned tray autostart is machine-level so elevated install context does not register only the administrator user. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `LocalInstaller.Packaging`, with matching tests in `LocalInstaller.Packaging.Tests`; thin `AgentUp.Packaging` only registers Agent-Up product metadata and delegates to LocalInstaller. CI packaging must use prebuilt InstallerApp, Desktop, Server, CLI, Tray, Packaging, PackageSmoke, and AgentUp.Tests artifacts from the Ubuntu .NET payload job so native release runners do not restore, build, or test product .NET projects. Native package jobs wait on the payload, test, GUI test, and coverage jobs plus version. CI builds `Plugins/Jetbrains` with the planned release version injected through Gradle and publishes `agent-up-jetbrains-plugin.zip` as a GitHub release asset. When `JETBRAINS_MARKETPLACE_TOKEN` is configured, CI also publishes the JetBrains plugin to Marketplace after the GitHub release succeeds. Shared package and installed-service smoke validation belongs in `LocalInstaller.Smoke`, with matching tests in `LocalInstaller.Smoke.Tests`; thin `AgentUp.PackageSmoke` only registers Agent-Up smoke product metadata and delegates to LocalInstaller. PackageSmoke accepts `--product-manifest <path>` so package, installed-service, and installer-flow smoke can run for a second product without recompilation. Installed-service smoke installs the native package, runs the installed InstallerApp with its installed payload root and `--install-core`, then delegates service, CLI, diagnostics, and uninstall checks to PackageSmoke. Native package assets stay under `packaging/` and should consume shared installer contracts rather than accumulating untested script-only behavior.
 
 The standalone LocalInstaller repository owns the LocalInstaller release workflow. It plans versions with semantic-release using `localinstaller-v${version}` tags, builds/tests/packs `localinstaller.sln` with the planned `LocalInstallerVersion`, publishes self-contained `LocalInstaller.Sample.*` payloads from the Ubuntu build leg, packages those sample payloads on native Ubuntu, macOS, and Windows runners through `LocalInstaller.Sample.Packager`, smoke-validates them through `LocalInstaller.Sample.Smoke`, and creates a `main`-only GitHub release containing `LocalInstaller.*.nupkg` plus sample native installer assets. NuGet publishing is optional and must run only when `NUGET_API_KEY` is configured.
 

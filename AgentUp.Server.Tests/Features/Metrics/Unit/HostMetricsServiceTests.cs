@@ -16,7 +16,7 @@ public sealed class HostMetricsServiceTests
     public async Task ExecuteAsync_RecordsHostServerMetrics()
     {
         var events = new InMemoryAuditEventRepository();
-        var audit = ServerTestComposition.CreateAuditController(events: events);
+        var audit = ServerTestComposition.CreateAuditController(ServerTestComposition.CreateRegistry(), events);
         var service = new HostMetricsService(audit, NullLogger<HostMetricsService>.Instance);
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
 
@@ -28,5 +28,19 @@ public sealed class HostMetricsServiceTests
             evt.Kind == "metrics"
             && evt.Scope == AuditScope.HostServer
             && evt.Details.ContainsKey("process.workingSetBytes")), Is.True);
+    }
+
+    [Test]
+    public async Task StopAsync_completes_cleanly_after_immediate_cancellation()
+    {
+        var service = new HostMetricsService(
+            ServerTestComposition.CreateAuditController(ServerTestComposition.CreateRegistry(), new InMemoryAuditEventRepository()),
+            NullLogger<HostMetricsService>.Instance);
+        using var cancellation = new CancellationTokenSource();
+
+        await service.StartAsync(cancellation.Token);
+        cancellation.Cancel();
+
+        Assert.DoesNotThrowAsync(async () => await service.StopAsync(CancellationToken.None));
     }
 }

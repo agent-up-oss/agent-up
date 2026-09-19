@@ -1,5 +1,6 @@
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
+using System.Text.Json;
 using AgentUp.Desktop.Features.Git.Controllers;
 using AgentUp.Desktop.Features.Git.DTOs;
 using AgentUp.Desktop.Features.Git.Interfaces;
@@ -564,6 +565,85 @@ public sealed class GitPanelViewModelTests
         Assert.That(panel.Diff.Content, Is.EqualTo("+util"));
     }
 
+    [Test]
+    public async Task LoadAsync_exposesServerOwnedProposalQueue()
+    {
+        var api = new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            Queue = new CommitQueueDto(
+                [new CommitQueueEntryDto("Commits", "feat(Commits): queue", ["a.cs"], "entry-1", "base", "tip", "ready")],
+                [],
+                "/managed/queue",
+                "base",
+                "tip",
+                4)
+        };
+        var panel = CreatePanel(api);
+
+        await panel.LoadAsync("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(panel.HasQueuedProposals, Is.True);
+            Assert.That(panel.QueueEntries.Single().State, Is.EqualTo("ready"));
+            Assert.That(panel.QueueWorktreePath, Is.EqualTo("/managed/queue"));
+            Assert.That(panel.QueueGeneration, Is.EqualTo(4));
+        });
+    }
+
+    [Test]
+    public async Task LoadAsync_keepsGitChangesWhenTheProposalQueueFails()
+    {
+        var api = new FakeGitApiProvider { Tree = SampleTree(), QueueFailure = "queue down" };
+        var panel = CreatePanel(api);
+
+        await panel.LoadAsync("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(panel.Nodes, Is.Not.Empty);
+            Assert.That(panel.HasQueuedProposals, Is.False);
+            Assert.That(panel.ErrorMessage, Does.Contain("Could not load the agent proposal queue"));
+            Assert.That(panel.ErrorMessage, Does.Contain("queue down"));
+        });
+    }
+
+    [Test]
+    public async Task LoadAsync_keepsGitChangesWhenTheProposalQueueBodyIsMalformed()
+    {
+        var api = new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            QueueException = new JsonException("The JSON value could not be converted.")
+        };
+        var panel = CreatePanel(api);
+
+        await panel.LoadAsync("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(panel.Nodes, Is.Not.Empty);
+            Assert.That(panel.HasQueuedProposals, Is.False);
+            Assert.That(panel.ErrorMessage, Does.Contain("Could not load the agent proposal queue"));
+            Assert.That(panel.ErrorMessage, Does.Contain("The JSON value could not be converted."));
+        });
+    }
+
+    [Test]
+    public async Task LoadAsync_stopsWhenQueueLoadIsCanceled()
+    {
+        var api = new FakeGitApiProvider { Tree = SampleTree() };
+        var panel = CreatePanel(api);
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+
+        await panel.LoadAsync("ws-1", canceled.Token);
+
+        Assert.That(panel.HasQueuedProposals, Is.False);
+        Assert.That(panel.ErrorMessage, Is.Null);
+    }
+
     private static GitChangeTreeDto OtherWorkspaceTree()
         => new(
             "ws-2",
@@ -607,6 +687,23 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
     private TaskCompletionSource<GitFileDiffDto?>? _heldDiff;
 
     public GitChangeTreeDto? Tree { get; set; }
+
+    public CommitQueueDto? Queue { get; set; }
+
+    public string? QueueFailure { get; set; }
+
+    public Exception? QueueException { get; set; }
+
+    public Task<CommitQueueDto?> GetCommitQueueAsync(string workspaceId, CancellationToken cancellationToken = default)
+    {
+        if (cancellationToken.IsCancellationRequested)
+            return Task.FromException<CommitQueueDto?>(new TaskCanceledException());
+        if (QueueException is not null)
+            return Task.FromException<CommitQueueDto?>(QueueException);
+        if (QueueFailure is not null)
+            return Task.FromException<CommitQueueDto?>(new HttpRequestException(QueueFailure));
+        return Task.FromResult(Queue);
+    }
 
     public GitFileDiffDto? FileDiff { get; set; }
 

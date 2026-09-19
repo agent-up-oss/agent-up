@@ -1,0 +1,87 @@
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
+import { createServer } from 'node:http';
+import { extname, join, resolve as resolvePath, sep } from 'node:path';
+
+import { freePort } from './stack.mjs';
+
+const TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2',
+};
+
+/**
+ * Serves the Metro web export over real HTTP.
+ *
+ * The installable client has to be exercised the way it is actually delivered, as static files
+ * from an origin, rather than through a dev server that resolves modules differently.
+ */
+export async function startStaticServer(exportDir) {
+  const root = resolvePath(exportDir);
+  const port = await freePort();
+
+  const server = createServer(async (request, response) => {
+    const requested = decodeURIComponent((request.url ?? '/').split('?')[0]);
+    const file = await resolveFile(root, requested);
+    if (!file) {
+      response.writeHead(404).end('Not found');
+      return;
+    }
+
+    response.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'application/octet-stream' });
+    createReadStream(file).pipe(response);
+  });
+
+  await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));
+
+  return {
+    url: `http://localhost:${port}`,
+    dispose: () => new Promise(resolve => server.close(resolve)),
+  };
+}
+
+/**
+ * The file a request maps to, or null.
+ *
+ * Every path handed to the filesystem is built from segments that cannot escape the export: the
+ * request is reduced to plain names, so no '..' ever reaches a join, and the result is checked
+ * against the root again before it is read. A traversal here would silently serve the repository.
+ */
+async function resolveFile(root, requested) {
+  const candidate = join(root, ...safeSegments(requested));
+
+  const direct = await fileWithin(root, candidate);
+  if (direct) return direct;
+
+  const index = await fileWithin(root, join(candidate, 'index.html'));
+  if (index) return index;
+
+  // The client is a single-page app, so unknown paths fall back to its entry document.
+  return fileWithin(root, join(root, 'index.html'));
+}
+
+/** The request path reduced to names, with anything that could climb out removed. */
+export function safeSegments(requested) {
+  return requested
+    .split('/')
+    .filter(segment => segment.length > 0 && segment !== '.' && segment !== '..')
+    .map(segment => segment.replaceAll('\\', ''));
+}
+
+async function fileWithin(root, path) {
+  if (path !== root && !path.startsWith(root + sep)) return null;
+  try {
+    return (await stat(path)).isFile() ? path : null;
+  } catch {
+    return null;
+  }
+}

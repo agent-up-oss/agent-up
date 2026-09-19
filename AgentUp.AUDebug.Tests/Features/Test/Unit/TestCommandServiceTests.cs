@@ -2,6 +2,7 @@ using AgentUp.AUDebug.Features.Host.DTOs;
 using AgentUp.AUDebug.Features.Test.Providers;
 using AgentUp.AUDebug.Features.Test.Services;
 using AgentUp.AUDebug.Tests.Fake;
+using AgentUp.AUDebug.Tests.Support;
 
 namespace AgentUp.AUDebug.Tests.Features.Test.Unit;
 
@@ -112,7 +113,10 @@ public sealed class TestCommandServiceTests
     {
         var runner = new FakeTestProcessRunner { DelayUntilCanceled = true };
         var result = await Service(runner).RunAsync(
-            new DebugCommandDto("test", null, null, null, null, TimeSpan.FromMilliseconds(40), false, "design-system"),
+            DebugDomain.Verb("test")
+                .TimingOutAfter(TimeSpan.FromMilliseconds(40))
+                .WithSuite("design-system")
+                .Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));
@@ -123,5 +127,5 @@ public sealed class TestCommandServiceTests
         => new(new DebugTestSuiteCatalog(), runner, output ?? TextWriter.Null);
 
     private static DebugCommandDto Command(string suite, string verb = "test")
-        => new(verb, null, null, null, null, TimeSpan.FromSeconds(30), false, suite);
+        => DebugDomain.Verb(verb).WithSuite(suite).Build();
 }

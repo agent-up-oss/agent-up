@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using AgentUp.Server.Tests.Support;
 using AgentUp.Server;
 using AgentUp.Server.Features.Authentication.DTOs;
 using Microsoft.AspNetCore.Mvc.Testing;

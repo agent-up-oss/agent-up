@@ -158,6 +158,9 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IAgentClaudeCredentialStore, AgentClaudeCredentialStore>();
         builder.Services.AddSingleton<IAgentProcessEnvironmentProvider, AgentProcessEnvironmentProvider>();
         builder.Services.AddSingleton<AgentLoginCommandProvider>();
+        builder.Services.AddSingleton<AgentLoginFlowProvider>();
+        builder.Services.AddHttpClient("agent-login-callback");
+        builder.Services.AddSingleton<AgentLoginCallbackRelay>();
         builder.Services.AddSingleton<IAgentSubscriptionLoginProvider, AgentSubscriptionLoginProvider>();
         builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
         builder.Services.AddSingleton<AgentEventFrameProvider>();
@@ -269,9 +272,12 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<McpEndpointSessionProvider>();
         builder.Services.AddSingleton<CommitPolicyProvider>();
         builder.Services.AddSingleton<ICommitsGitProvider, CommitsGitProvider>();
+        builder.Services.AddSingleton<IProposalStackGitProvider, ProposalStackGitProvider>();
+        builder.Services.AddSingleton<ICommitQueueConfigurationProvider, CommitQueueConfigurationProvider>();
         builder.Services.AddSingleton<ICommitsQueueProvider, CommitsQueueProvider>();
         builder.Services.AddSingleton<CommitsService>();
         builder.Services.AddSingleton<CommitsController>();
+        builder.Services.AddSingleton<WorkspaceCommitQueueService>();
 
         // Verification owns test selection and proof. It never reads the commit queue, so
         // the commit module stays optional; the queue contributes changed content only
@@ -291,6 +297,8 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<VerificationRunService>();
         builder.Services.AddSingleton<VerificationGuardService>();
         builder.Services.AddSingleton<VerificationReportService>();
+        builder.Services.AddSingleton<VerificationQueueGateService>();
+        builder.Services.AddSingleton<VerificationController>();
         builder.Services.AddSingleton<VerificationMcpService>();
         builder.Services.AddSingleton<CommitQueueMcpService>();
         builder.Services.AddSingleton<IProcessExitCode, ProcessExitCode>();

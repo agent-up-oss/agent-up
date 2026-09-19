@@ -103,8 +103,11 @@ public sealed class DesktopWebViewFilePickerTests
         await File.WriteAllTextAsync(_notePath, NoteContent, new UTF8Encoding(false));
         await File.WriteAllTextAsync(_diagramPath, DiagramContent, new UTF8Encoding(false));
 
+        TestContext.Progress.WriteLine("File picker E2E: starting the loopback page server.");
         _server = new HtmlAppServer(PageHtml);
+        TestContext.Progress.WriteLine($"File picker E2E: loopback page server listening on {_server.Port}.");
         _desktop = await DesktopBrowserHarness.LaunchAsync(_server.Port);
+        TestContext.Progress.WriteLine("File picker E2E: Desktop harness ready.");
     }
 
     [OneTimeTearDown]
@@ -128,9 +131,13 @@ public sealed class DesktopWebViewFilePickerTests
     [SetUp]
     public async Task LoadFreshPage()
     {
+        TestContext.Progress.WriteLine($"File picker E2E: [SetUp] navigating to {_server.BaseUrl}.");
         await _desktop.NavigateAsync(_server.BaseUrl);
+        TestContext.Progress.WriteLine("File picker E2E: [SetUp] navigated; waiting for the upload bridge.");
         await _desktop.WaitForFilePickerBridgeAsync();
+        TestContext.Progress.WriteLine("File picker E2E: [SetUp] bridge installed; waiting for an empty request map.");
         await _desktop.WaitForScriptAsync("window.__pending()", "0", "The page did not start with an empty request map");
+        TestContext.Progress.WriteLine("File picker E2E: [SetUp] complete.");
     }
 
     [Test, CancelAfter(60000), Timeout(60000)]

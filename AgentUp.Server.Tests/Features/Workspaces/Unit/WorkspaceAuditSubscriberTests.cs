@@ -18,7 +18,7 @@ public sealed class WorkspaceAuditSubscriberTests
         var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var subscriber = new WorkspaceAuditSubscriber(
             bus,
-            ServerTestComposition.CreateAuditController(events: events),
+            ServerTestComposition.CreateAuditController(ServerTestComposition.CreateRegistry(), events),
             () => ready.TrySetResult());
 
         await subscriber.StartAsync(CancellationToken.None);
@@ -52,7 +52,7 @@ public sealed class WorkspaceAuditSubscriberTests
         var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var subscriber = new WorkspaceAuditSubscriber(
             bus,
-            ServerTestComposition.CreateAuditController(events: events),
+            ServerTestComposition.CreateAuditController(ServerTestComposition.CreateRegistry(), events),
             () => ready.TrySetResult());
 
         await subscriber.StartAsync(CancellationToken.None);

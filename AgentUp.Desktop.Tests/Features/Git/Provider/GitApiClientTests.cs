@@ -2,6 +2,7 @@ using System.Net;
 using System.Diagnostics.CodeAnalysis;
 using AgentUp.Desktop.Features.Git.DTOs;
 using AgentUp.Desktop.Features.Git.Providers;
+using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Git.Provider;
 
@@ -30,6 +31,52 @@ public sealed class GitApiClientTests
         var client = new GitApiClient(http);
 
         Assert.That(await client.GetChangesAsync("ws-1"), Is.Null);
+    }
+
+    [Test]
+    public async Task GetCommitQueueAsync_readsProposalAncestryAndGeneration()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK,
+            """{"entries":[{"slice":"Commits","message":"feat(Commits): queue","files":["a.cs"],"id":"entry-1","parentCommit":"base","proposalCommit":"tip","state":"ready"}],"unassignedFiles":[],"queueWorktreePath":"/managed/queue","baseCommit":"base","tipCommit":"tip","generation":3}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var queue = await client.GetCommitQueueAsync("ws 1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(queue!.Entries.Single().State, Is.EqualTo("ready"));
+            Assert.That(queue.Generation, Is.EqualTo(3));
+            Assert.That(queue.QueueWorktreePath, Is.EqualTo("/managed/queue"));
+            Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws%201/commit-queue"));
+        });
+    }
+
+    [Test]
+    public async Task GetCommitQueueAsync_returnsNullWhenTheWorkspaceIsUnknown()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.NotFound, "");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        Assert.That(await client.GetCommitQueueAsync("ws-1"), Is.Null);
+    }
+
+    [Test]
+    public async Task GetCommitQueueAsync_readsAnEmptyQueueFromTheWorkspaceFakeHandler()
+    {
+        using var handler = new FakeHttpMessageHandler([DesktopDomain.Workspace().Build()]);
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        var client = new GitApiClient(http);
+
+        var queue = await client.GetCommitQueueAsync("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(queue, Is.Not.Null);
+            Assert.That(queue!.Entries, Is.Empty);
+            Assert.That(queue.Generation, Is.EqualTo(0));
+        });
     }
 
     [Test]

@@ -9,7 +9,7 @@ public sealed class WebViewLifecycleTests
     [AvaloniaTest]
     public async Task ClosedWindow_ignoresLateBrowserNavigation()
     {
-        var workspace = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var workspace = DesktopDomain.WorkspaceServing(3000).Build();
         var createdWebViews = 0;
         var app = await AppDriver.LaunchWithWorkspaceAsync(
             workspace,

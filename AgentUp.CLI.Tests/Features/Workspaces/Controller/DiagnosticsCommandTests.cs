@@ -6,6 +6,7 @@ using AgentUp.CLI.Features.Workspaces.Interfaces;
 using AgentUp.CLI.Features.Workspaces.Models;
 using AgentUp.CLI.Features.Workspaces.Providers;
 using AgentUp.CLI.Features.Workspaces.Services;
+using AgentUp.CLI.Tests.Support;
 
 namespace AgentUp.CLI.Tests.Features.Workspaces.Controller;
 
@@ -35,7 +36,15 @@ public sealed class DiagnosticsCommandTests
             [new ApplicationDiagnosticsDto("web", "Healthy", "Healthy", ["ready"], false)],
             []);
         var client = ClientReturning(
-            [new WorkspaceDto("w1", "Shop", _workspaceRoot, _workspaceRoot, "main", "abc", "Running")],
+            [CliDomain.Workspace()
+                .WithId("w1")
+                .Named("Shop")
+                .WithRepositoryPath(_workspaceRoot)
+                .WithWorktreePath(_workspaceRoot)
+                .OnBranch("main")
+                .AtCommit("abc")
+                .InState("Running")
+                .Build()],
             diagnostics);
         var service = CreateService(client);
         var command = new DiagnosticsCommand(service, output);

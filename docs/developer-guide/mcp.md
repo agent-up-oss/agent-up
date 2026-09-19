@@ -16,6 +16,8 @@ The Orchestration MCP server exposes Streamable HTTP at `/mcp/orchestration` and
 
 The Commits MCP server exposes Streamable HTTP at `/mcp/commits` and legacy SSE compatibility at `/mcp/commits/sse` plus `/mcp/commits/message`. It owns only commit queue tools and exposes no workspace resources.
 
+Human clients read the same authoritative state through `GET /api/workspaces/{workspaceId}/commit-queue`. Desktop and Mobile display the returned ordered entries and verification states; MCP agents use `get_commits_status` and must continue at the returned managed worktree path after the first Git-backed enqueue.
+
 The Browser MCP server exposes Streamable HTTP at `/mcp/browser` and legacy SSE compatibility at `/mcp/browser/sse` plus `/mcp/browser/message`. It owns browser navigation, inspection, interaction, wait, and screenshot tools.
 
 The Browser MCP endpoint also exposes `desktop_inspect`, `desktop_screenshot`, `desktop_click`, `desktop_fill`, and `desktop_press` for applications declared in `desktopApplications`. These tools address an explicit workspace application and session generation. Desktop screenshots use the Server-owned framebuffer; coordinate input from a stale generation is rejected after an application restart.
@@ -52,10 +54,10 @@ Initial `/mcp/orchestration` tools:
 
 Initial `/mcp/commits` tools:
 
-- `enqueue_commit`: saves a vertical-slice patch in the commit queue and restores the tracked files to their pre-change state for `agentup commits next`. Merges any explicitly requested test commands with build/test commands resolved from `agent-up.json`'s `commits` configuration for the entry's files, including transitively dependent projects.
+- `enqueue_commit`: when `commits.enabled` is true, runs the required Verification checks, records the selected delta as the next Git commit in a Server-managed proposal worktree, leaves the developer branch unchanged, and returns the worktree path where the agent must continue dependent work. Without that opt-in it retains the legacy independent-patch behavior during migration.
 - `enqueue_review_fix_commit`: saves one review issue violation fix with a required `reviewIssueId`; do not combine multiple review issues in one entry.
 - `get_commits_status`: returns queued entries, unassigned modified files, any active commit edit session, and active Git operation state.
-- `guard_commits`: blocks new work while queued entries, active edit sessions, staged changes, unassigned modified files, or active Git merge/rebase/cherry-pick/revert/bisect operations exist.
+- `guard_commits`: returns the managed `continueWorktreePath` when a dependent proposal queue already exists, allowing later tasks to build on its tip. Legacy queued entries, active edit sessions, staged changes, unassigned modified files, and active Git merge/rebase/cherry-pick/revert/bisect operations block work.
 - `get_commit_changes`: returns working-tree files with queue assignment information.
 - `inspect_commit`: returns one queued entry, optionally including the saved patch.
 - `update_commit_message`, `update_commit_tests`, `add_commit_files`, `remove_commit_files`: update queued entry metadata and file assignment.
@@ -81,7 +83,7 @@ Initial `/mcp/audit` tools:
 
 If `start_workspace` cannot find `agent-up.json`, it instructs the agent to read `docs/user-docs/agent-up-json.md`, search for an existing `agent-up.json`, or ask the user before creating one.
 
-`commits next` remains CLI-only because staging and popping a queued entry is developer-owned review work. Agents stop after `get_commits_status`.
+For `commits.enabled`, agents read `queueWorktreePath` from the structured enqueue result and continue later tasks there; they do not stop merely because proposals are queued. Legacy `commits next` remains CLI-only developer-owned review work.
 
 MCP enqueue operations require conventional commit messages scoped to the queued slice, such as `fix(Commits): validate queue metadata`. When the Server recognizes feature-sliced paths under `Features/<Slice>/`, enqueue operations reject entries that span multiple slices or whose slice label does not match the recognized slice. Repositories without recognized vertical-slice paths still require a slice label and matching commit-message scope.
 
@@ -95,7 +97,7 @@ Future tools will add richer diagnostics and Playwright export without moving or
 
 MCP has no server-side lifecycle callback for when an agent finishes a turn. The Server cannot push a post-job reminder; it can only respond to tool calls.
 
-Agents should call `guard_commits` before starting a new coding task. If it fails, they should stop instead of making new changes unless the user explicitly asked to inspect, debug, or continue the existing queued or working-tree changes.
+Agents should call `guard_commits` before starting a new coding task. A successful response with `continueWorktreePath` directs the ACP task to the managed proposal tip. If the guard fails, agents should stop unless the user explicitly asked to continue existing changes.
 
 Claude Code installations can surface commit queue reminders with a client-side `Stop` hook. Configure the hook to run `agentup commits guard` and print a reminder when tracked files are dirty but not assigned to a queued entry:
 
@@ -115,7 +117,7 @@ Claude Code installations can surface commit queue reminders with a client-side 
 }
 ```
 
-`enqueue_commit` intentionally restores tracked files after saving the patch. Its success message must tell agents not to re-apply or modify those files because the queue owns them until the developer runs `agentup commits next`.
+Legacy `enqueue_commit` restores tracked files after saving an independent patch. With `commits.enabled`, the first enqueue instead restores the developer worktree after creating the proposal worktree; subsequent changes remain committed and checked out at the proposal tip. Its success message returns the managed worktree path, and agents must use that path for dependent work.
 
 Mutating commit queue operations are blocked while Git reports an active merge, rebase, cherry-pick, revert, or bisect. Integrations should surface the returned operation state and ask the developer to finish or abort the Git operation first.
 

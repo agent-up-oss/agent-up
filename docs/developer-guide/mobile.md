@@ -130,6 +130,8 @@ flattening and directory/file selection are pure functions in
 `providers/GitChangeTreeProvider.ts` so they are covered by node tests without a
 renderer.
 
+Each poll also requests the selected workspace's Server-owned proposal queue. The panel displays its ordered messages, generation, and verification states; Mobile never derives ancestry or readiness locally.
+
 Both slices reach the Server through
 `src/features/servers/providers/ServerRequestProvider.ts`. The servers slice
 owns connectivity to a configured Server, so feature slices do not reimplement

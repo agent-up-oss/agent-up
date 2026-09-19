@@ -2,6 +2,7 @@ using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Workspaces.Unit;
 
@@ -99,15 +100,15 @@ public class WorkspaceItemViewModelTests
             "/worktree",
             "Stopped",
             [
-                new ApplicationDto("Old", "old", null, "Running"),
-                new ApplicationDto("Web", "web", null, "Starting")
+                new ApplicationDtoBuilder("Old", "old").Build(),
+                new ApplicationDtoBuilder("Web", "web").InState("Starting").Build()
             ]);
-        var ports = new List<PortMappingDto> { new("WEB_PORT", 3000, 5300) };
+        var ports = new List<PortMappingDto> { DesktopDomain.Port().Named("WEB_PORT").Declaring(3000).AllocatedTo(5300).Build() };
 
         vm.UpdateFrom("Running",
             [
-                new ApplicationDto("Web", "web", null, "Running") { AllocatedPorts = ports },
-                new ApplicationDto("Worker", "worker", null, "Stopped")
+                new ApplicationDtoBuilder("Web", "web").WithPorts(ports).Build(),
+                new ApplicationDtoBuilder("Worker", "worker").InState("Stopped").Build()
             ]);
 
         Assert.Multiple(() =>
@@ -131,10 +132,10 @@ public class WorkspaceItemViewModelTests
             "/repo",
             "/worktree",
             "Stopped",
-            [new ApplicationDto("Web", "old", null, "Starting")]);
-        var ports = new List<PortMappingDto> { new("WEB_PORT", 3000, 5400) };
+            [new ApplicationDtoBuilder("Web", "old").InState("Starting").Build()]);
+        var ports = new List<PortMappingDto> { DesktopDomain.Port().Named("WEB_PORT").Declaring(3000).AllocatedTo(5400).Build() };
 
-        vm.UpdateFrom("Running", [new ApplicationDto("Web", "new", null, "Running") { AllocatedPorts = ports }]);
+        vm.UpdateFrom("Running", [new ApplicationDtoBuilder("Web", "new").WithPorts(ports).Build()]);
 
         var web = vm.Applications.Single();
         Assert.Multiple(() =>
@@ -155,11 +156,11 @@ public class WorkspaceItemViewModelTests
             "/repo",
             "/worktree",
             "Stopped",
-            [new ApplicationDto("Database", "postgres", null, "Running")]);
+            [new ApplicationDtoBuilder("Database", "postgres").Build()]);
         var applicationChangeEvents = 0;
         vm.ApplicationsChanged += (_, _) => applicationChangeEvents++;
 
-        vm.UpdateFrom("Running", [new ApplicationDto("Database", "postgres", null, "Running") { Database = true }]);
+        vm.UpdateFrom("Running", [new ApplicationDtoBuilder("Database", "postgres").AsDatabase().Build()]);
 
         Assert.Multiple(() =>
         {
@@ -175,7 +176,7 @@ public class WorkspaceItemViewModelTests
         var applicationChangeEvents = 0;
         vm.ApplicationsChanged += (_, _) => applicationChangeEvents++;
 
-        vm.UpdateFrom("Running", [new ApplicationDto("Worker", "worker", null, "Running") { AllocatedPorts = null! }]);
+        vm.UpdateFrom("Running", [new ApplicationDtoBuilder("Worker", "worker").WithPorts(null!).Build()]);
 
         Assert.That(vm.Applications.Single().AllocatedPorts, Is.Empty);
         Assert.That(applicationChangeEvents, Is.EqualTo(1));
@@ -191,7 +192,7 @@ public class WorkspaceItemViewModelTests
             "/repo",
             "/worktree",
             "Stopped",
-            [new ApplicationDto("Worker", "worker", null, "Starting")]);
+            [new ApplicationDtoBuilder("Worker", "worker").InState("Starting").Build()]);
         var applicationChangeEvents = 0;
         vm.ApplicationsChanged += (_, _) => applicationChangeEvents++;
 

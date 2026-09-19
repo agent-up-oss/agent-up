@@ -32,6 +32,9 @@ internal sealed class FakeHttpMessageHandler(
             return Task.FromResult(Ok(GitRoutes.EmptyTree(GitRoutes.WorkspaceId(path), workspace?.Branch)));
         }
 
+        if (GitRoutes.IsCommitQueueRoute(path))
+            return Task.FromResult(Ok(GitRoutes.EmptyQueue()));
+
         if (OverviewRoutes.IsOverviewRoute(path))
         {
             var workspace = workspaces.FirstOrDefault(item => item.Id == GitRoutes.WorkspaceId(path));
@@ -104,6 +107,9 @@ internal sealed class MutableFakeHttpMessageHandler(List<WorkspaceDto> initial) 
             return Task.FromResult(Ok(GitRoutes.EmptyTree(GitRoutes.WorkspaceId(path), gitWorkspace?.Branch)));
         }
 
+        if (GitRoutes.IsCommitQueueRoute(path))
+            return Task.FromResult(Ok(GitRoutes.EmptyQueue()));
+
         if (OverviewRoutes.IsOverviewRoute(path))
         {
             var overviewWorkspace = _workspaces.FirstOrDefault(item => item.Id == GitRoutes.WorkspaceId(path));
@@ -155,14 +161,14 @@ internal sealed class MutableFakeHttpMessageHandler(List<WorkspaceDto> initial) 
     // registering a workspace for every managed source clone.
     private HttpResponseMessage CloneResponse()
     {
-        var cloned = new WorkspaceDto(
-            $"cloned-{_workspaces.Count + 1}",
-            "widgets",
-            "/clones/widgets",
-            "/clones/widgets",
-            "main",
-            "abc123",
-            "Stopped");
+        var cloned = new WorkspaceDtoBuilder()
+            .WithId($"cloned-{_workspaces.Count + 1}")
+            .Named("widgets")
+            .WithRepositoryPath("/clones/widgets")
+            .WithWorktreePath("/clones/widgets")
+            .OnBranch(DesktopDomain.ThirdBranch)
+            .Stopped()
+            .Build();
         _workspaces = [.. _workspaces, cloned];
         return Created(cloned);
     }
@@ -247,6 +253,13 @@ internal static class GitRoutes
     public static bool IsChangesRoute(string path)
         => path.StartsWith("/api/workspaces/", StringComparison.Ordinal)
            && path.EndsWith("/git/changes", StringComparison.Ordinal);
+
+    public static bool IsCommitQueueRoute(string path)
+        => path.StartsWith("/api/workspaces/", StringComparison.Ordinal)
+           && path.EndsWith("/commit-queue", StringComparison.Ordinal);
+
+    public static CommitQueueDto EmptyQueue()
+        => new([], [], null, null, null, 0);
 
     public static string WorkspaceId(string path)
     {

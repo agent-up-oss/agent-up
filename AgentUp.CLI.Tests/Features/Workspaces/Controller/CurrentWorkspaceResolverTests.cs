@@ -5,6 +5,7 @@ using AgentUp.CLI.Shared.Providers;
 using AgentUp.CLI.Features.Workspaces.DTOs;
 using AgentUp.CLI.Features.Workspaces.Providers;
 using AgentUp.CLI.Features.Workspaces.Services;
+using AgentUp.CLI.Tests.Support;
 
 namespace AgentUp.CLI.Tests.Features.Workspaces.Controller;
 
@@ -29,7 +30,15 @@ public class CurrentWorkspaceResolverTests
     {
         var nestedDirectory = Path.Join(_workspaceRoot, "src", "feature");
         Directory.CreateDirectory(nestedDirectory);
-        var workspace = new WorkspaceDto("w1", "App", _workspaceRoot, _workspaceRoot, "main", "abc", "Running");
+        var workspace = CliDomain.Workspace()
+            .WithId("w1")
+            .Named("App")
+            .WithRepositoryPath(_workspaceRoot)
+            .WithWorktreePath(_workspaceRoot)
+            .OnBranch("main")
+            .AtCommit("abc")
+            .InState("Running")
+            .Build();
         var client = ClientReturning([workspace]);
 
         var result = await new CurrentWorkspaceResolver(client, nestedDirectory)

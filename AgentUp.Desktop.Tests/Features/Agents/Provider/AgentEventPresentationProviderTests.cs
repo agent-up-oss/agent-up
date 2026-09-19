@@ -55,23 +55,40 @@ public sealed class AgentEventPresentationProviderTests
         });
     }
 
+    // While a run is going the label names whatever the agent last did, so each update kind
+    // is its own case rather than one line in a block of thirteen.
+    [TestCase("Thought", null, "Thinking")]
+    [TestCase("Tool", "Read file", "Using Read file")]
+    [TestCase("Tool", null, "Using a tool")]
+    [TestCase("Agent", null, "Writing")]
+    [TestCase("Plan", null, "Working through the plan")]
+    [TestCase("Compacting", null, "Compacting context")]
+    [TestCase(null, null, "Working")]
+    public void ActivityLabel_namesTheLatestUpdateWhileRunning(string? kind, string? detail, string expected)
+        => Assert.That(
+            AgentEventPresentationProvider.ActivityLabel("running", false, null, kind, detail),
+            Is.EqualTo(expected));
+
+    [TestCase("ready", "Idle")]
+    [TestCase("stopped", "Stopped")]
+    [TestCase("authentication_required", "Waiting for sign-in")]
+    [TestCase("authenticating", "Waiting for sign-in")]
+    public void ActivityLabel_namesTheSessionStateWhenNothingIsRunning(string state, string expected)
+        => Assert.That(
+            AgentEventPresentationProvider.ActivityLabel(state, false, null, null, null),
+            Is.EqualTo(expected));
+
     [Test]
-    public void ActivityLabel_usesPermissionAndLatestUpdateWhileRunning()
-    {
-        Assert.That(AgentEventPresentationProvider.ActivityLabel("ready", false, null, null, null), Is.EqualTo("Idle"));
-        Assert.That(AgentEventPresentationProvider.ActivityLabel("running", true, null, "Thought", null), Is.EqualTo("Waiting for a decision"));
-        Assert.That(AgentEventPresentationProvider.ActivityLabel("running", false, null, "Thought", null), Is.EqualTo("Thinking"));
-        Assert.That(AgentEventPresentationProvider.ActivityLabel("running", false, null, "Tool", "Read file"), Is.EqualTo("Using Read file"));
-        Assert.That(AgentEventPresentationProvider.ActivityLabel("running", false, null, "Tool", null), Is.EqualTo("Using a tool"));
-        Assert.That(AgentEventPresentationProvider.ActivityLabel("running", false, null, "Agent", null), Is.EqualTo("Writing"));
-        Assert.That(AgentEventPresentationProvider.ActivityLabel("running", false, null, "Plan", null), Is.EqualTo("Working through the plan"));
-        Assert.That(AgentEventPresentationProvider.ActivityLabel("running", false, null, "Compacting", null), Is.EqualTo("Compacting context"));
-        Assert.That(AgentEventPresentationProvider.ActivityLabel("running", false, null, null, null), Is.EqualTo("Working"));
-        Assert.That(AgentEventPresentationProvider.ActivityLabel("stopped", false, null, null, null), Is.EqualTo("Stopped"));
-        Assert.That(AgentEventPresentationProvider.ActivityLabel("authentication_required", false, null, null, null), Is.EqualTo("Waiting for sign-in"));
-        Assert.That(AgentEventPresentationProvider.ActivityLabel("authenticating", false, null, null, null), Is.EqualTo("Waiting for sign-in"));
-        Assert.That(AgentEventPresentationProvider.ActivityLabel("ready", false, "boom", null, null), Is.EqualTo("boom"));
-    }
+    public void ActivityLabel_saysADecisionIsWaitedOn_aheadOfWhateverTheAgentWasDoing()
+        => Assert.That(
+            AgentEventPresentationProvider.ActivityLabel("running", true, null, "Thought", null),
+            Is.EqualTo("Waiting for a decision"));
+
+    [Test]
+    public void ActivityLabel_showsAnError_aheadOfTheSessionState()
+        => Assert.That(
+            AgentEventPresentationProvider.ActivityLabel("ready", false, "boom", null, null),
+            Is.EqualTo("boom"));
 
     [Test]
     public void OptionLabel_fallsBackToKindThenOptionId()
@@ -83,22 +100,46 @@ public sealed class AgentEventPresentationProviderTests
     }
 
     [Test]
-    public void Present_formatsPlansCompactionAndLargeUsage()
+    public void Present_rendersAPlanWithItsCompletedEntriesTicked()
     {
-        var plan = Present("""{"sessionUpdate":"plan_update","entries":[{"content":"One","status":"completed"},{"content":"Two","status":"in_progress"},{"content":"Three","status":"pending"}]}""");
+        var plan = Present("""
+            {"sessionUpdate":"plan_update","entries":[{"content":"One","status":"completed"},
+            {"content":"Two","status":"in_progress"},{"content":"Three","status":"pending"}]}
+            """);
+
         Assert.That(plan.Kind, Is.EqualTo("plan"));
         Assert.That(plan.Text, Does.Contain("✓ One"));
-        Assert.That(Present("""{"sessionUpdate":"session_info_update"}""").Kind, Is.EqualTo("ignore"));
-        Assert.That(Present("""{"sessionUpdate":"compaction_start"}""").Compacting, Is.True);
-        Assert.That(Present("""{"sessionUpdate":"compaction_completed_summary"}""").Compacting, Is.False);
-        Assert.That(Present("""{"sessionUpdate":"usage_update","used":1500000,"size":2000000}""").Usage, Is.EqualTo("1.5M / 2.0M"));
-        Assert.That(Present("""{"sessionUpdate":"usage_update","used":1500,"size":1800}""").Usage, Is.EqualTo("1.5k / 1.8k"));
-        Assert.That(Present("""{"sessionUpdate":"usage_update","used":12,"size":20}""").Usage, Is.EqualTo("12 / 20"));
-        Assert.That(Present("""{"sessionUpdate":"agent_thought_chunk","content":{"text":""}}""").Kind, Is.EqualTo("ignore"));
-        Assert.That(Present("""{"sessionUpdate":"agent_message_chunk","content":[{"text":"Hello"},{"text":"world"}]}""").Text, Is.EqualTo("Hello\nworld"));
-        Assert.That(Parse("[]"), Is.Null);
-        Assert.That(Parse("""{"requestId":"req"}"""), Is.Null);
     }
+
+    [TestCase("compaction_start", true)]
+    [TestCase("compaction_completed_summary", false)]
+    public void Present_tracksWhetherTheAgentIsCompactingItsContext(string update, bool compacting)
+        => Assert.That(Present($$"""{"sessionUpdate":"{{update}}"}""").Compacting, Is.EqualTo(compacting));
+
+    // Context usage is read at a glance, so it is scaled rather than printed in full.
+    [TestCase(1500000, 2000000, "1.5M / 2.0M")]
+    [TestCase(1500, 1800, "1.5k / 1.8k")]
+    [TestCase(12, 20, "12 / 20")]
+    public void Present_scalesContextUsageToTheSizeItReports(int used, int size, string expected)
+        => Assert.That(
+            Present($$"""{"sessionUpdate":"usage_update","used":{{used}},"size":{{size}}}""").Usage,
+            Is.EqualTo(expected));
+
+    [TestCase("""{"sessionUpdate":"session_info_update"}""")]
+    [TestCase("""{"sessionUpdate":"agent_thought_chunk","content":{"text":""}}""")]
+    public void Present_ignoresUpdatesWithNothingToShow(string json)
+        => Assert.That(Present(json).Kind, Is.EqualTo("ignore"));
+
+    [Test]
+    public void Present_joinsTheChunksOfAnAgentMessage()
+        => Assert.That(
+            Present("""{"sessionUpdate":"agent_message_chunk","content":[{"text":"Hello"},{"text":"world"}]}""").Text,
+            Is.EqualTo("Hello\nworld"));
+
+    [TestCase("[]")]
+    [TestCase("""{"requestId":"req"}""")]
+    public void ParsePermission_returnsNothingForAPayloadThatIsNotAPrompt(string json)
+        => Assert.That(Parse(json), Is.Null);
 
     private static PresentedAgentUpdate Present(string json, bool unwrap = false)
     {

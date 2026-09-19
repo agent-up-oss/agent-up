@@ -8,6 +8,7 @@ AgentUp.Mobile/dist-native/
 docs/build
 .docusaurus
 artifacts/
+BenchmarkDotNet.Artifacts/
 release-artifacts/
 # dotnet test writes here when no --results-directory is given.
 TestResults/
@@ -21,3 +22,6 @@ tmp/
 .agent-up-dev/
 *.tgz
 **/TestResults/**
+# Expo generates these for native builds; they are not committed (AGENTS.md, Mobile client rules).
+AgentUp.Mobile/ios/
+AgentUp.Mobile/android/

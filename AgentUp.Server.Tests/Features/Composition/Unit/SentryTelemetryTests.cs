@@ -88,29 +88,53 @@ public sealed class SentryTelemetryTests
     }
 
     [Test]
-    public void Apply_setsErrorOnlyOptionsAndTagReleaseContract()
+    public void Apply_reportsAgainstTheReleaseAndEnvironmentItWasGiven()
     {
-        var created = SentryTelemetry.TryCreate(
-            Request(runtimeIdentifier: "linux-x64"),
-            out var settings);
-        Assert.That(created, Is.True);
-
-        var options = new SentryAspNetCoreOptions();
-        SentryTelemetry.Apply(options, settings!);
+        var options = ApplyTo(new SentryAspNetCoreOptions());
 
         Assert.Multiple(() =>
         {
             Assert.That(options.Dsn, Is.EqualTo(SampleDsn));
             Assert.That(options.Release, Is.EqualTo("1.2.3"));
             Assert.That(options.Environment, Is.EqualTo("production"));
+        });
+    }
+
+    // Telemetry is errors only and carries no user data: no PII, no tracing, and nothing
+    // below Error raised as an event.
+    [Test]
+    public void Apply_reportsErrorsOnlyAndNoPersonalData()
+    {
+        var options = ApplyTo(new SentryAspNetCoreOptions());
+
+        Assert.Multiple(() =>
+        {
             Assert.That(options.SendDefaultPii, Is.False);
             Assert.That(options.TracesSampleRate, Is.EqualTo(0));
             Assert.That(options.MinimumEventLevel, Is.EqualTo(Microsoft.Extensions.Logging.LogLevel.Error));
             Assert.That(options.MinimumBreadcrumbLevel, Is.EqualTo(Microsoft.Extensions.Logging.LogLevel.Warning));
+        });
+    }
+
+    [Test]
+    public void Apply_tagsEveryEventWithTheComponentDeploymentAndRuntime()
+    {
+        var options = ApplyTo(new SentryAspNetCoreOptions());
+
+        Assert.Multiple(() =>
+        {
             Assert.That(options.DefaultTags["agentup.component"], Is.EqualTo("server"));
             Assert.That(options.DefaultTags["agentup.deployment"], Is.EqualTo("packaged"));
             Assert.That(options.DefaultTags["agentup.rid"], Is.EqualTo("linux-x64"));
         });
+    }
+
+    private static SentryAspNetCoreOptions ApplyTo(SentryAspNetCoreOptions options)
+    {
+        var created = SentryTelemetry.TryCreate(Request(runtimeIdentifier: "linux-x64"), out var settings);
+        Assert.That(created, Is.True);
+        SentryTelemetry.Apply(options, settings!);
+        return options;
     }
 
     [Test]

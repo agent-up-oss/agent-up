@@ -12,8 +12,8 @@ public sealed class AddWorkspaceOverlayTests
     [AvaloniaTest]
     public async Task AddWorkspaceOverlay_hidesConsoleWebView_whileConsoleIsVisible()
     {
-        var workspace = WorkspaceFixtures.WithApplications();
-        var output = WorkspaceFixtures.OutputFor(workspace.Id, workspace.Applications[0].Name, ["line 1"]);
+        var workspace = DesktopDomain.WorkspaceWithApplications().Build();
+        var output = DesktopDomain.OutputFor(workspace.Id, workspace.Applications[0].Name, ["line 1"]);
         var driver = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output, () => new NativeWebView());
         var viewModel = (MainViewModel)driver.Window.DataContext!;
         viewModel.SelectedShellTab = WorkspaceShellTab.Application;
@@ -32,7 +32,7 @@ public sealed class AddWorkspaceOverlayTests
     [AvaloniaTest]
     public async Task AddWorkspaceButton_opensTheRepositoryAndBranchDialog()
     {
-        var driver = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var overlay = driver.Window.FindControl<Grid>("AddWorkspaceOverlay")!;
 
         Assert.That(overlay.IsVisible, Is.False);
@@ -47,7 +47,7 @@ public sealed class AddWorkspaceOverlayTests
     [AvaloniaTest]
     public async Task AddWorkspaceCancelButton_closesTheDialog()
     {
-        var driver = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         await driver.Window.ClickControlAsync(driver.Window.FindControl<Button>("AddWorkspaceButton")!);
 
         await driver.Window.ClickControlAsync(driver.Window.FindControl<Button>("AddWorkspaceCancelButton")!);
@@ -58,7 +58,7 @@ public sealed class AddWorkspaceOverlayTests
     [AvaloniaTest]
     public async Task ConfirmingTheDialogClonesTheRepositoryAndSelectsTheNewWorkspace()
     {
-        var (driver, _) = await AppDriver.LaunchWithMutableWorkspacesAsync([WorkspaceFixtures.Single()]);
+        var (driver, _) = await AppDriver.LaunchWithMutableWorkspacesAsync([DesktopDomain.Workspace().Build()]);
         var viewModel = (MainViewModel)driver.Window.DataContext!;
         await driver.Window.ClickControlAsync(driver.Window.FindControl<Button>("AddWorkspaceButton")!);
 

@@ -7,6 +7,7 @@ using AgentUp.Server.Features.DesktopApplications.Services;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Server.Tests.Features.Applications.Unit;
@@ -138,10 +139,9 @@ public sealed class ApplicationLifecycleServiceTests
         registry ??= ServerTestComposition.CreateRegistry();
         if (registry.GetAll().Count == 0)
         {
-            await registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "c1")
-            {
-                DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
-            });
+            await registry.RegisterAsync(ServerDomain.Workspace()
+                .WithDesktopApplication(new DesktopApplicationDefinition("Editor", "dotnet run", "."))
+                .Build());
         }
         processes ??= new RecordingProcessManager();
         var desktop = new DesktopApplicationsController(new DesktopSessionService(
