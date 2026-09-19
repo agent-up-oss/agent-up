@@ -1,0 +1,239 @@
+# frozen_string_literal: true
+
+STORE_ID = "com.massivecreationlab.agentup"
+MATCH_BRANCH = "master"
+UPLOAD_ATTEMPTS = 3
+
+def require_env(*keys)
+  keys.each do |key|
+    UI.user_error!("#{key} is not set") if ENV[key].to_s.strip.empty?
+  end
+end
+
+def match_git_url
+  require_env("MATCH_REPOSITORY")
+  match_org, match_repo = ENV["MATCH_REPOSITORY"].split("/", 2)
+  UI.user_error!("MATCH_REPOSITORY must be org/repo") if match_org.to_s.empty? || match_repo.to_s.empty?
+  "git@github.com:#{match_org}/#{match_repo}.git"
+end
+
+def ios_bundle_id
+  ENV.fetch("IOS_BUNDLE_ID", STORE_ID)
+end
+
+def android_package_name
+  ENV.fetch("ANDROID_PACKAGE_NAME", STORE_ID)
+end
+
+def configure_app_store_connect_api_key
+  require_env("APPSTORE_KEY_ID", "APPSTORE_ISSUER_ID", "APPSTORE_P8")
+  app_store_connect_api_key(
+    key_id: ENV["APPSTORE_KEY_ID"],
+    issuer_id: ENV["APPSTORE_ISSUER_ID"],
+    key_content: ENV["APPSTORE_P8"]
+  )
+end
+
+def with_retries(attempts = UPLOAD_ATTEMPTS)
+  last_error = nil
+  attempts.times do |attempt|
+    begin
+      return yield
+    rescue FastlaneCore::Interface::FastlaneError, StandardError => error
+      last_error = error
+      UI.important("Attempt #{attempt + 1}/#{attempts} failed: #{error.message}")
+      sleep(8 * (2**attempt)) unless attempt == attempts - 1
+    end
+  end
+  UI.user_error!(last_error.message)
+end
+
+def ios_xcode_project
+  projects = Dir.glob("ios/*.xcodeproj")
+  UI.user_error!("No Xcode project under ios/. Run expo prebuild first.") if projects.empty?
+  UI.user_error!("Multiple Xcode projects under ios/: #{projects.join(', ')}") if projects.length > 1
+  projects.first
+end
+
+def match_appstore(readonly:)
+  require_env("MATCH_PASSWORD")
+  match(
+    type: "appstore",
+    readonly: readonly,
+    storage_mode: "git",
+    git_url: match_git_url,
+    git_branch: MATCH_BRANCH,
+    app_identifier: [ios_bundle_id],
+    force_for_new_certificates: false
+  )
+end
+
+def match_development
+  require_env("MATCH_PASSWORD")
+  match(
+    type: "development",
+    readonly: false,
+    storage_mode: "git",
+    git_url: match_git_url,
+    git_branch: MATCH_BRANCH,
+    app_identifier: [ios_bundle_id],
+    force_for_new_certificates: false
+  )
+end
+
+platform :ios do
+  lane :init_ci do
+    org, repo = (ENV["GITHUB_REPOSITORY"] || "").split("/")
+    match_org, match_repo = (ENV["MATCH_REPOSITORY"] || "").split("/")
+    require_env("GH_PAT", "MATCH_REPOSITORY")
+    UI.user_error!("GITHUB_REPOSITORY must be org/repo") if org.to_s.empty? || repo.to_s.empty?
+
+    github_action(
+      api_token: ENV["GH_PAT"],
+      org: org,
+      repo: repo,
+      match_org: match_org,
+      match_repo: match_repo,
+      writable_deploy_key: true,
+      verbose: true
+    )
+  end
+
+  desc "Create or update Match profiles for Agent-Up. Reuses existing Apple certificates."
+  lane :sync_certificates do
+    configure_app_store_connect_api_key
+    match_development
+    match_appstore(readonly: false)
+  end
+
+  desc "Build a signed App Store IPA after expo prebuild"
+  lane :build do
+    setup_ci
+    configure_app_store_connect_api_key
+    match_appstore(readonly: true)
+
+    project = ios_xcode_project
+    scheme = File.basename(project, ".xcodeproj")
+    bundle_id = ios_bundle_id
+    output_directory = File.expand_path(ENV.fetch("MOBILE_OUTPUT_DIR", "dist-native"))
+    output_name = ENV.fetch("IOS_OUTPUT_NAME", "Agent-Up")
+
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: project,
+      team_id: ENV["sigh_#{bundle_id}_appstore_team-id"],
+      code_sign_identity: "iPhone Distribution",
+      profile_name: ENV["sigh_#{bundle_id}_appstore_profile-name"],
+      profile_uuid: ENV["sigh_#{bundle_id}_appstore"],
+      bundle_identifier: bundle_id
+    )
+
+    build_app(
+      project: project,
+      scheme: scheme,
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: output_directory,
+      output_name: output_name,
+      export_options: {
+        signingStyle: "manual",
+        provisioningProfiles: {
+          bundle_id => "match AppStore #{bundle_id}"
+        }
+      }
+    )
+  end
+
+  desc "Upload an already-signed IPA to TestFlight"
+  lane :beta do
+    configure_app_store_connect_api_key
+    require_env("IOS_IPA_PATH")
+    with_retries do
+      upload_to_testflight(
+        ipa: ENV["IOS_IPA_PATH"],
+        skip_waiting_for_build_processing: true,
+        skip_submission: true
+      )
+    end
+  end
+
+  desc "Upload an already-signed IPA to App Store Connect without submitting review"
+  lane :release do
+    configure_app_store_connect_api_key
+    require_env("IOS_IPA_PATH")
+    with_retries do
+      upload_to_app_store(
+        ipa: ENV["IOS_IPA_PATH"],
+        skip_metadata: true,
+        skip_screenshots: true,
+        submit_for_review: false,
+        run_precheck_before_submit: false,
+        force: true,
+        precheck_include_in_app_purchases: false
+      )
+    end
+  end
+end
+
+platform :android do
+  desc "Build a signed Play upload AAB after expo prebuild"
+  lane :build do
+    require_env(
+      "ANDROID_KEYSTORE_PATH",
+      "ANDROID_KEYSTORE_PASS",
+      "ANDROID_KEYALIAS_NAME",
+      "ANDROID_KEYALIAS_PASS"
+    )
+    UI.user_error!("ANDROID_KEYSTORE_PATH does not exist") unless File.file?(ENV["ANDROID_KEYSTORE_PATH"])
+
+    gradle(
+      project_dir: "android",
+      task: "bundle",
+      build_type: "Release",
+      flags: "--no-daemon --stacktrace",
+      print_command: false,
+      properties: {
+        "android.injected.signing.store.file" => ENV["ANDROID_KEYSTORE_PATH"],
+        "android.injected.signing.store.password" => ENV["ANDROID_KEYSTORE_PASS"],
+        "android.injected.signing.key.alias" => ENV["ANDROID_KEYALIAS_NAME"],
+        "android.injected.signing.key.password" => ENV["ANDROID_KEYALIAS_PASS"]
+      }
+    )
+  end
+
+  desc "Upload an AAB to the Play internal track"
+  lane :beta do
+    require_env("ANDROID_AAB_PATH", "GOOGLE_PLAY_KEY_FILE_PATH")
+    with_retries do
+      upload_to_play_store(
+        package_name: android_package_name,
+        json_key: ENV["GOOGLE_PLAY_KEY_FILE_PATH"],
+        aab: ENV["ANDROID_AAB_PATH"],
+        track: "internal",
+        release_status: "completed",
+        skip_upload_metadata: true,
+        skip_upload_images: true,
+        skip_upload_screenshots: true,
+        skip_upload_changelogs: true
+      )
+    end
+  end
+
+  desc "Upload an AAB to the Play production track"
+  lane :release do
+    require_env("ANDROID_AAB_PATH", "GOOGLE_PLAY_KEY_FILE_PATH")
+    with_retries do
+      upload_to_play_store(
+        package_name: android_package_name,
+        json_key: ENV["GOOGLE_PLAY_KEY_FILE_PATH"],
+        aab: ENV["ANDROID_AAB_PATH"],
+        track: "production",
+        release_status: "completed",
+        skip_upload_metadata: true,
+        skip_upload_images: true,
+        skip_upload_screenshots: true,
+        skip_upload_changelogs: true
+      )
+    end
+  end
+end
