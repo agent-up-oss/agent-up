@@ -106,6 +106,12 @@ public class WorkspaceRegistryTests
     }
 
     [Test]
+    public async Task UpdateGitIdentity_ReturnsFalseForAnUnknownWorkspace()
+    {
+        Assert.That(await _registry.UpdateGitIdentityAsync("missing", "topic", "def456"), Is.False);
+    }
+
+    [Test]
     public async Task Register_SameWorktreePath_ResetsStateTo_Stopped()
     {
         var first = await _registry.RegisterAsync(ServerDomain.Workspace().Build());

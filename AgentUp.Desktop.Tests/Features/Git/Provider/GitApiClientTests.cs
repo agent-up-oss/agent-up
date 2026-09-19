@@ -239,6 +239,43 @@ public sealed class GitApiClientTests
     }
 
     [Test]
+    public async Task GetLogAsync_returnsNullWhenTheWorkspaceIsUnknown()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.NotFound, "");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        Assert.That(await client.GetLogAsync("ws-1"), Is.Null);
+    }
+
+    [Test]
+    public async Task FetchAsync_returnsNotRegisteredWhenTheWorkspaceIsUnknown()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.NotFound, "");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var result = await client.FetchAsync("ws-1", new GitFetchRequestDto("origin"));
+
+        Assert.That(result.Found, Is.False);
+        Assert.That(result.Error, Does.Contain("no longer registered"));
+    }
+
+    [Test]
+    public async Task PushAsync_treatsAnEmptyBodyAsAFailedResult()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK, "null");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var result = await client.PushAsync("ws-1", new GitPushRequestDto(false, false));
+
+        Assert.That(result.Found, Is.True);
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Does.Contain("empty Git result"));
+    }
+
+    [Test]
     public async Task SwitchBranchAsync_returnsNotRegisteredWhenTheWorkspaceIsUnknown()
     {
         using var handler = new RecordingGitHandler(HttpStatusCode.NotFound, "");

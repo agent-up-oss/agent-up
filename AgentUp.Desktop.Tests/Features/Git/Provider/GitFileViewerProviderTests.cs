@@ -41,6 +41,36 @@ public sealed class GitFileViewerProviderTests
         var tokens = GitFileViewerProvider.Highlight("src/app/main.cs", added);
         Assert.That(tokens.Any(token => token is { Kind: "keyword", Text: "class" }), Is.True);
         Assert.That(GitFileViewerProvider.JumpIndex(lines, "2"), Is.EqualTo(added.Index).Or.EqualTo(lines.Single(line => line.Kind == "deleted").Index));
+        Assert.That(GitFileViewerProvider.JumpIndex(lines, ""), Is.Null);
+        Assert.That(GitFileViewerProvider.JumpIndex(lines, "@@"), Is.EqualTo(lines.Single(line => line.Kind == "hunk").Index));
+        Assert.That(GitFileViewerProvider.ParseDiff(""), Is.Empty);
+        Assert.That(GitFileViewerProvider.DetectLanguage(" "), Is.EqualTo("plaintext"));
+        Assert.That(GitFileViewerProvider.DetectLanguage("Dockerfile"), Is.EqualTo("shell"));
+        Assert.That(GitFileViewerProvider.DetectLanguage("Makefile"), Is.EqualTo("shell"));
+        Assert.That(GitFileViewerProvider.DetectLanguage("LICENSE"), Is.EqualTo("plaintext"));
+    }
+
+    [Test]
+    public void Tokenize_coversCommentsStringsNumbersTypesAndOperators()
+    {
+        Assert.That(GitFileViewerProvider.Tokenize("", "csharp"), Is.Empty);
+        Assert.That(GitFileViewerProvider.Tokenize("plain", "missing-language")[0].Kind, Is.EqualTo("plain"));
+
+        var commented = GitFileViewerProvider.Tokenize("return; // done", "csharp");
+        Assert.That(commented.Any(token => token is { Kind: "comment", Text: "// done" }), Is.True);
+
+        var block = GitFileViewerProvider.Tokenize("/* a */ int x = 0xFFn;", "csharp");
+        Assert.That(block.Any(token => token.Kind == "comment" && token.Text.Contains("/*")), Is.True);
+        Assert.That(block.Any(token => token is { Kind: "type", Text: "int" }), Is.True);
+        Assert.That(block.Any(token => token is { Kind: "number", Text: "0xFFn" }), Is.True);
+
+        var escaped = GitFileViewerProvider.Tokenize("""var s = "a\"b";""", "csharp");
+        Assert.That(escaped.Any(token => token.Kind == "string" && token.Text.Contains("\\\"")), Is.True);
+
+        var call = GitFileViewerProvider.Tokenize("obj.Run(1 + 2);", "csharp");
+        Assert.That(call.Any(token => token is { Kind: "property", Text: "Run" } or { Kind: "function", Text: "Run" }), Is.True);
+        Assert.That(call.Any(token => token.Kind == "operator"), Is.True);
+        Assert.That(call.Any(token => token.Kind == "punctuation"), Is.True);
     }
 
     [Test]

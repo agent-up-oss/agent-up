@@ -33,6 +33,9 @@ public sealed class DocsPageUrlProviderTests
         Assert.That(
             DocsPageUrlProvider.Resolve("/design-system#catalog"),
             Is.EqualTo($"{DebugLayout.DocsUrl}/design-system#catalog"));
+        Assert.That(
+            DocsPageUrlProvider.Resolve("#what-it-is"),
+            Is.EqualTo($"{DebugLayout.DocsUrl}{DebugLayout.DocsHomePath}#what-it-is"));
     }
 
     [Test]

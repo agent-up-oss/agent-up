@@ -6,6 +6,7 @@ using AgentUp.Desktop.Features.Git.DTOs;
 using AgentUp.Desktop.Features.Git.Interfaces;
 using AgentUp.Desktop.Features.Git.Services;
 using AgentUp.Desktop.Features.Git.ViewModels;
+using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Git.Unit;
 
@@ -403,14 +404,152 @@ public sealed class GitPanelViewModelTests
     }
 
     [Test]
+    public async Task PullAndPushCommands_reportRemoteStatus()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree() };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+
+        await panel.PullCommand.Execute().FirstAsync();
+        Assert.That(client.PullRequest, Is.Not.Null);
+        Assert.That(panel.StatusMessage, Is.EqualTo("Pulled."));
+
+        await panel.PushCommand.Execute().FirstAsync();
+        Assert.That(client.PushRequest!.ForceWithLease, Is.False);
+        Assert.That(panel.StatusMessage, Is.EqualTo("Pushed."));
+    }
+
+    [Test]
+    public async Task PullCommand_reportsServerFailuresAndTransportErrors()
+    {
+        var client = new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            SyncResult = new GitSyncResultDto(true, false, null, null)
+        };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+
+        await panel.PullCommand.Execute().FirstAsync();
+        Assert.That(panel.ErrorMessage, Is.EqualTo("The Git remote operation failed."));
+
+        client.SyncFailure = new HttpRequestException("offline");
+        await panel.FetchCommand.Execute().FirstAsync();
+        Assert.That(panel.ErrorMessage, Does.Contain("Could not update remotes"));
+    }
+
+    [Test]
+    public async Task SelectedBranchItem_switchesADifferentLocalBranchAndIgnoresTheCurrentHead()
+    {
+        var client = new FakeGitApiProvider
+        {
+            Tree = SampleTree() with { LocalBranches = ["main", "topic"] }
+        };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+
+        panel.SelectedBranchItem = panel.BranchItems.Single(item => item.Key == "main");
+        Assert.That(client.BranchRequest, Is.Null);
+
+        panel.SelectedBranchItem = panel.BranchItems.Single(item => item.Key == "topic");
+        await Task.Delay(50);
+        Assert.That(client.BranchRequest!.Name, Is.EqualTo("topic"));
+    }
+
+    [Test]
+    public async Task CheckoutLogRefCommand_checksOutARemoteRef()
+    {
+        var client = new FakeGitApiProvider
+        {
+            Tree = SampleTree() with
+            {
+                LocalBranches = ["main"],
+                RemoteBranches = [new GitRemoteBranchDto("origin", "topic")]
+            }
+        };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+
+        await panel.CheckoutLogRefCommand.Execute("origin/topic").FirstAsync();
+
+        Assert.That(client.CheckoutRequest!.Name, Is.EqualTo("origin/topic"));
+        Assert.That(panel.StatusMessage, Does.Contain("Checked out"));
+    }
+
+    [Test]
+    public async Task CheckoutRemote_reportsServerFailuresAndTransportErrors()
+    {
+        var client = new FakeGitApiProvider
+        {
+            Tree = SampleTree() with
+            {
+                LocalBranches = ["main"],
+                RemoteBranches = [new GitRemoteBranchDto("origin", "topic")]
+            },
+            MutationResult = new GitMutationResultDto(true, false, null)
+        };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+
+        await panel.CheckoutLogRefCommand.Execute("origin/topic").FirstAsync();
+        Assert.That(panel.ErrorMessage, Is.EqualTo("The checkout failed."));
+
+        client.SwitchFailure = new HttpRequestException("offline");
+        await panel.CheckoutLogRefCommand.Execute("origin/topic").FirstAsync();
+        Assert.That(panel.ErrorMessage, Does.Contain("Could not check out"));
+    }
+
+    [Test]
+    public async Task LoadAsync_restoresCollapsedDirectories()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree() };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+        await panel.Nodes[1].ToggleExpandCommand.Execute().FirstAsync();
+
+        await panel.LoadAsync("ws-1", silent: true);
+
+        Assert.That(panel.Nodes[1].IsExpanded, Is.False);
+        Assert.That(panel.Nodes[2].IsRowVisible, Is.False);
+    }
+
+    [Test]
+    public async Task CollapsingTheChangesRootHidesEveryNestedRow()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
+        await panel.LoadAsync("ws-1");
+
+        await panel.Nodes[0].ToggleExpandCommand.Execute().FirstAsync();
+
+        Assert.That(panel.Nodes[0].IsRowVisible, Is.True);
+        Assert.That(panel.Nodes.Skip(1).All(node => !node.IsRowVisible), Is.True);
+    }
+
+    [Test]
+    public async Task LoadAsync_reportsHistoryFailuresWithoutClearingChanges()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            LogFailure = new HttpRequestException("history down")
+        });
+
+        await panel.LoadAsync("ws-1");
+
+        Assert.That(panel.Nodes, Is.Not.Empty);
+        Assert.That(panel.LogRows, Is.Empty);
+        Assert.That(panel.ErrorMessage, Does.Contain("Could not load Git history"));
+    }
+
+    [Test]
     public async Task LoadAsync_rendersLogRowsFromTheServerHistory()
     {
         var panel = CreatePanel(new FakeGitApiProvider
         {
             Tree = SampleTree(),
             Log = new GitLogDto([
-                new GitLogCommitDto("bbb", "bbb", ["aaa"], "child", "A", "2026-01-02T00:00:00Z", ["HEAD", "main"]),
-                new GitLogCommitDto("aaa", "aaa", [], "root", "A", "2026-01-01T00:00:00Z", ["main"])
+                DesktopDomain.GitCommit().WithId("bbb").WithParents("aaa").Saying("child").At("2026-01-02T00:00:00Z").WithRefs("HEAD", "main").Build(),
+                DesktopDomain.GitCommit().WithId("aaa").Saying("root").At("2026-01-01T00:00:00Z").WithRefs("main").Build()
             ])
         });
 
@@ -883,7 +1022,11 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
 
     public GitLogDto Log { get; set; } = new([]);
 
+    public Exception? LogFailure { get; set; }
+
     public GitSyncResultDto SyncResult { get; set; } = new(true, true, null, null);
+
+    public Exception? SyncFailure { get; set; }
 
     public GitMutationResultDto MutationResult { get; set; } = new(true, true, null);
 
@@ -952,21 +1095,29 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
     public Task<GitSyncResultDto> FetchAsync(string workspaceId, GitFetchRequestDto request, CancellationToken cancellationToken = default)
     {
         FetchRequest = request;
-        return Task.FromResult(SyncResult);
+        return SyncFailure is not null
+            ? Task.FromException<GitSyncResultDto>(SyncFailure)
+            : Task.FromResult(SyncResult);
     }
 
     public Task<GitSyncResultDto> PullAsync(string workspaceId, GitPullRequestDto request, CancellationToken cancellationToken = default)
     {
         PullRequest = request;
-        return Task.FromResult(SyncResult);
+        return SyncFailure is not null
+            ? Task.FromException<GitSyncResultDto>(SyncFailure)
+            : Task.FromResult(SyncResult);
     }
 
     public Task<GitSyncResultDto> PushAsync(string workspaceId, GitPushRequestDto request, CancellationToken cancellationToken = default)
     {
         PushRequest = request;
-        return Task.FromResult(SyncResult);
+        return SyncFailure is not null
+            ? Task.FromException<GitSyncResultDto>(SyncFailure)
+            : Task.FromResult(SyncResult);
     }
 
     public Task<GitLogDto?> GetLogAsync(string workspaceId, int max = 100, CancellationToken cancellationToken = default)
-        => Task.FromResult<GitLogDto?>(Log);
+        => LogFailure is not null
+            ? Task.FromException<GitLogDto?>(LogFailure)
+            : Task.FromResult<GitLogDto?>(Log);
 }

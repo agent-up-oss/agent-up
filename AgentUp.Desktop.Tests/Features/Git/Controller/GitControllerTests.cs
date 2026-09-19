@@ -101,6 +101,18 @@ public sealed class GitControllerTests
     }
 
     [Test]
+    public async Task PullAsync_mapsTheRebaseFlag()
+    {
+        var client = new FakeGitApiProvider();
+        var controller = CreateController(client);
+
+        var result = await controller.PullAsync("ws-1", rebase: true);
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(client.PullRequest!.Rebase, Is.True);
+    }
+
+    [Test]
     public async Task PushAsync_mapsForceWithLease()
     {
         var client = new FakeGitApiProvider();

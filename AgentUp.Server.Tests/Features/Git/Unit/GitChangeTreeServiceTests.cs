@@ -211,6 +211,18 @@ public sealed class GitChangeTreeServiceTests
     }
 
     [Test]
+    public async Task CheckoutRemoteAsync_reportsGitFailures()
+    {
+        var git = new FakeGitWorkingTreeProvider { Failure = "No remote-tracking branch" };
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var result = await service.CheckoutRemoteAsync(workspaceId, new GitCheckoutRequest("missing"));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Does.Contain("No remote-tracking branch"));
+    }
+
+    [Test]
     public async Task DiscardAsync_reportsNotFoundForAnUnknownWorkspace()
     {
         var service = CreateService(
@@ -381,6 +393,31 @@ public sealed class GitChangeTreeServiceTests
         Assert.That(log!.HasMore, Is.True);
         Assert.That(git.LogSkip, Is.EqualTo(200));
         Assert.That(git.LogUntil, Is.EqualTo("def"));
+    }
+
+    [Test]
+    public async Task GetLogAsync_returnsNullForAnUnknownWorkspaceAndAnEmptyLogWhenGitFails()
+    {
+        var git = new FakeGitWorkingTreeProvider { Failure = "not a git repository" };
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        Assert.That(await service.GetLogAsync("missing", 10), Is.Null);
+        var log = await service.GetLogAsync(workspaceId, 10);
+        Assert.That(log, Is.Not.Null);
+        Assert.That(log!.Commits, Is.Empty);
+    }
+
+    [Test]
+    public async Task FetchAsync_reportsNotFoundForAnUnknownWorkspace()
+    {
+        var service = CreateService(
+            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()),
+            new FakeGitWorkingTreeProvider());
+
+        var result = await service.FetchAsync("missing", new GitFetchRequest("origin"));
+
+        Assert.That(result.Found, Is.False);
+        Assert.That(GitSyncResult.NotFound().Succeeded, Is.False);
     }
 
     [Test]

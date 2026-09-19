@@ -109,15 +109,19 @@ public sealed class DebugArgParserTests
     {
         var (_, missing) = _parser.Parse(["docs", "screenshot", "--heading"]);
         var (_, flag) = _parser.Parse(["docs", "screenshot", "--heading", "--full-page"]);
+        var (_, blank) = _parser.Parse(["docs", "screenshot", "--heading", "   "]);
         Assert.That(missing, Does.Contain("--heading requires a value"));
         Assert.That(flag, Does.Contain("--heading requires a value"));
+        Assert.That(blank, Does.Contain("--heading requires a value"));
     }
 
     [Test]
     public void Parse_headingOnlyForDocsScreenshot()
     {
-        var (_, error) = _parser.Parse(["desktop", "screenshot", "--heading", "Git"]);
-        Assert.That(error, Does.Contain("only valid for docs screenshot"));
+        var (_, desktop) = _parser.Parse(["desktop", "screenshot", "--heading", "Git"]);
+        var (_, status) = _parser.Parse(["status", "--full-page"]);
+        Assert.That(desktop, Does.Contain("only valid for docs screenshot"));
+        Assert.That(status, Does.Contain("only valid for docs screenshot"));
     }
 
     [Test]

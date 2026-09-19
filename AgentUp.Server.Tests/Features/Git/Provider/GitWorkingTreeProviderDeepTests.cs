@@ -291,6 +291,89 @@ public sealed class GitWorkingTreeProviderDeepTests
         Assert.That(oversized.Commits, Has.Count.EqualTo(13));
     }
 
+    [Test]
+    public async Task CheckoutRemoteAsync_switchesAnExistingLocalBranchAndAcceptsARemoteQualifiedName()
+    {
+        var origin = await CreateRemoteWithTopicAsync("origin");
+        var repository = await SeedAsync();
+        await TestGitRepository.RunAsync(repository, "remote", "add", "origin", origin);
+        await TestGitRepository.RunAsync(repository, "fetch", "origin");
+        await TestGitRepository.RunAsync(repository, "switch", "-c", "topic");
+        await TestGitRepository.RunAsync(repository, "switch", "main");
+        var provider = new GitWorkingTreeProvider();
+
+        await provider.CheckoutRemoteAsync(repository, "topic");
+        Assert.That((await provider.GetHeadStateAsync(repository)).Branch, Is.EqualTo("topic"));
+
+        await provider.CheckoutRemoteAsync(repository, "origin/topic");
+        Assert.That((await provider.GetHeadStateAsync(repository)).Branch, Is.EqualTo("topic"));
+    }
+
+    [Test]
+    public async Task PushAsync_setUpstreamPublishesABranchWithoutTracking()
+    {
+        var (clone, bare) = await CreateLinkedClonePairAsync();
+        await TestGitRepository.RunAsync(clone, "switch", "-c", "topic");
+        await File.WriteAllTextAsync(Path.Join(clone, "topic.md"), "topic\n");
+        await TestGitRepository.CommitAllAsync(clone, "topic");
+        var provider = new GitWorkingTreeProvider();
+
+        await provider.PushAsync(clone, forceWithLease: false, setUpstream: true);
+
+        Assert.That(await TestGitRepository.ReadAsync(bare, "rev-parse", "--abbrev-ref", "topic"), Is.EqualTo("topic"));
+        var head = await provider.GetHeadStateAsync(clone);
+        Assert.That(head.Upstream, Does.Contain("topic"));
+    }
+
+    [Test]
+    public async Task PushAsync_setUpstreamRejectsDetachedHead()
+    {
+        var (clone, _) = await CreateLinkedClonePairAsync();
+        await TestGitRepository.RunAsync(clone, "switch", "--detach");
+        var provider = new GitWorkingTreeProvider();
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await provider.PushAsync(clone, forceWithLease: false, setUpstream: true));
+
+        Assert.That(exception!.Message, Does.Contain("checked-out branch"));
+    }
+
+    [Test]
+    public async Task PushAsync_reportsANonFastForwardRejection()
+    {
+        var (clone, bare) = await CreateLinkedClonePairAsync();
+        var other = Track(Path.Join(TestContext.CurrentContext.WorkDirectory, $"git-deep-{Guid.NewGuid():N}-ahead"));
+        await TestGitRepository.RunAsync(Path.GetDirectoryName(other)!, "clone", bare, other);
+        await TestGitRepository.ConfigureIdentityAsync(other);
+        await File.WriteAllTextAsync(Path.Join(other, "other.md"), "other\n");
+        await TestGitRepository.CommitAllAsync(other, "other");
+        await TestGitRepository.RunAsync(other, "push", "origin", "main");
+        await File.WriteAllTextAsync(Path.Join(clone, "stale.md"), "stale\n");
+        await TestGitRepository.CommitAllAsync(clone, "stale");
+        var provider = new GitWorkingTreeProvider();
+
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await provider.PushAsync(clone, forceWithLease: false, setUpstream: false));
+
+        Assert.That(exception!.Message, Does.Contain("non-fast-forward"));
+        Assert.That(exception.Message, Does.Not.Contain("failed to push some refs"));
+    }
+
+    [Test]
+    public async Task GetLogAsync_normalizesHeadTagsAndRemoteRefs()
+    {
+        var repository = await SeedAsync();
+        await TestGitRepository.RunAsync(repository, "tag", "v1.0.0");
+        await TestGitRepository.RunAsync(repository, "update-ref", "refs/remotes/origin/main", "HEAD");
+        var provider = new GitWorkingTreeProvider();
+
+        var log = await provider.GetLogAsync(repository, 20);
+
+        Assert.That(log.Commits[0].Refs, Does.Contain("HEAD").Or.Contain("main"));
+        Assert.That(log.Commits[0].Refs, Does.Contain("v1.0.0"));
+        Assert.That(log.Commits[0].Refs, Does.Contain("origin/main"));
+    }
+
     private async Task<string> SeedAsync()
     {
         var repository = Track(Path.Join(TestContext.CurrentContext.WorkDirectory, $"git-deep-{Guid.NewGuid():N}"));

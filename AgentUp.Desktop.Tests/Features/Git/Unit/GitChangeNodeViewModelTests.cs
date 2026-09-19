@@ -37,6 +37,39 @@ public sealed class GitChangeNodeViewModelTests
         });
     }
 
+    [Test]
+    public void Directory_setExpandedSilentlyIsIdempotentUntilTheValueChanges()
+    {
+        var node = new GitChangeNodeViewModel("src", "src", 1, true, string.Empty);
+
+        node.SetExpandedSilently(true);
+        Assert.That(node.IsExpanded, Is.True);
+
+        node.SetExpandedSilently(false);
+        Assert.That(node.IsCollapsed, Is.True);
+    }
+
+    [Test]
+    public async Task File_toggleExpandDoesNotCollapse()
+    {
+        var node = new GitChangeNodeViewModel("main.cs", "src/main.cs", 2, false, "Modified");
+
+        await node.ToggleExpandCommand.Execute().FirstAsync();
+
+        Assert.That(node.IsExpanded, Is.True);
+    }
+
+    [Test]
+    public void TokenViewModel_exposesTheGrammarKind()
+    {
+        var token = new GitFileDiffTokenViewModel("keyword", "class");
+
+        Assert.That(token.Kind, Is.EqualTo("keyword"));
+        Assert.That(token.Text, Is.EqualTo("class"));
+        Assert.That(token.IsKeyword, Is.True);
+        Assert.That(token.IsType, Is.False);
+    }
+
     [TestCase("Added", "+", true, false, false, false, false, false)]
     [TestCase("Untracked", "?", false, true, false, false, false, false)]
     [TestCase("Deleted", "−", false, false, true, false, false, false)]

@@ -63,6 +63,19 @@ public sealed class GitChangesHttpTests
     }
 
     [Test]
+    public async Task Fetch_returnsNotFoundForAnUnknownWorkspace()
+    {
+        using var client = _factory.CreateClient();
+
+        using var response = await client.PostAsJsonAsync(
+            "/api/workspaces/missing/git/fetch",
+            new GitFetchRequest("origin"));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        Assert.That(GitSyncResult.NotFound().Found, Is.False);
+    }
+
+    [Test]
     public async Task CommitQueue_returnsNotFoundForAnUnknownWorkspace()
     {
         using var client = _factory.CreateClient();

@@ -23,6 +23,7 @@ internal static class TestGitRepository
 
     public static async Task CommitAllAsync(string path, string message)
     {
+        await ConfigureIdentityAsync(path);
         await RunAsync(path, "add", "--all");
         await RunAsync(path, "commit", "-m", message);
     }
