@@ -1,7 +1,7 @@
 using AgentUp.AUDebug.Features.Docs.Controllers;
 using AgentUp.AUDebug.Features.Docs.Services;
-using AgentUp.AUDebug.Features.Host.DTOs;
 using AgentUp.AUDebug.Tests.Fake;
+using AgentUp.AUDebug.Tests.Support;
 
 namespace AgentUp.AUDebug.Tests.Features.Docs.Controller;
 
@@ -14,7 +14,9 @@ public sealed class DocsControllerTests
         var pages = new FakeDocsPageCapture();
         var result = await new DocsController(
             new DocsCommandService(pages, new FakeSessionStore())).ScreenshotAsync(
-            new DebugCommandDto("docs", "docs", "screenshot", null, null, TimeSpan.FromSeconds(30), false),
+            DebugDomain.Command(DebugDomain.DocsSurface)
+                .Doing(DebugDomain.ScreenshotAction)
+                .Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(0));
@@ -28,7 +30,9 @@ public sealed class DocsControllerTests
         var pages = new FakeDocsPageCapture { CaptureException = new InvalidOperationException("boom") };
         var result = await new DocsController(
             new DocsCommandService(pages, new FakeSessionStore())).ScreenshotAsync(
-            new DebugCommandDto("docs", "docs", "screenshot", null, null, TimeSpan.FromSeconds(30), false),
+            DebugDomain.Command(DebugDomain.DocsSurface)
+                .Doing(DebugDomain.ScreenshotAction)
+                .Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));

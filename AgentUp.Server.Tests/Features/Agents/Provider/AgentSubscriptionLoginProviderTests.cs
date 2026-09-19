@@ -2,6 +2,7 @@ using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Interfaces;
 using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Agents.Providers;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 

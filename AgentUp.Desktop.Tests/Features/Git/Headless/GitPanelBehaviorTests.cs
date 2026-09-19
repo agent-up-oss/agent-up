@@ -13,7 +13,7 @@ public sealed class GitPanelBehaviorTests
     [AvaloniaTest]
     public async Task GitPanel_isHiddenUntilTheCommitTabIsSelected()
     {
-        var driver = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var viewModel = (MainViewModel)driver.Window.DataContext!;
         var panel = driver.Window.FindControl<Border>("GitPanel")!;
 
@@ -28,7 +28,7 @@ public sealed class GitPanelBehaviorTests
     [AvaloniaTest]
     public async Task GitPanel_showsTheCommitMessageBoxAndCommitButton()
     {
-        var driver = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var viewModel = (MainViewModel)driver.Window.DataContext!;
         viewModel.SelectedShellTab = WorkspaceShellTab.Commit;
         await HeadlessExtensions.FlushAsync();
@@ -42,7 +42,7 @@ public sealed class GitPanelBehaviorTests
     [AvaloniaTest]
     public async Task GitCommitButton_staysDisabledWithoutSelectedFilesOrAMessage()
     {
-        var driver = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var viewModel = (MainViewModel)driver.Window.DataContext!;
         viewModel.SelectedShellTab = WorkspaceShellTab.Commit;
         await HeadlessExtensions.FlushAsync();
@@ -53,7 +53,7 @@ public sealed class GitPanelBehaviorTests
     [AvaloniaTest]
     public async Task GitPanel_rendersServerOwnedProposalMessagesAndState()
     {
-        var driver = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var viewModel = (MainViewModel)driver.Window.DataContext!;
         viewModel.SelectedShellTab = WorkspaceShellTab.Commit;
         viewModel.Git.ApplyQueue(new CommitQueueDto(
@@ -75,7 +75,7 @@ public sealed class GitPanelBehaviorTests
     [AvaloniaTest]
     public async Task GitFileDiffOverlay_isHiddenUntilAFileIsOpened()
     {
-        var driver = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var overlay = driver.Window.FindControl<Grid>("GitFileDiffOverlay")!;
 
         Assert.That(overlay.IsVisible, Is.False);

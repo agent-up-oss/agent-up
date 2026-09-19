@@ -28,6 +28,14 @@ fi
 
 "$adb" wait-for-device
 
+# A focused window now does not guarantee a focused window after the harness has spent a minute
+# starting the Server and test agents. Hosted emulators use the normal Android screen timeout, so
+# the display can lock between this check and Detox's first lookup. Espresso then sees the app's
+# still-visible root without window focus and waits until the test fails. Keep the CI device awake
+# while it is powered and disable its screen timeout before making the one-time focus check.
+"$adb" shell svc power stayon true
+"$adb" shell settings put system screen_off_timeout 2147483647
+
 attempt=1
 while [ "$attempt" -le 60 ]; do
   # Both are best-effort: on a device that is already awake and unlocked they change nothing, and

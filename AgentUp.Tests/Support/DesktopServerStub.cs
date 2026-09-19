@@ -1,7 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using AgentUp.Desktop.Features.Applications.DTOs;
-using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 
 namespace AgentUp.Tests.Support;
@@ -29,21 +27,8 @@ internal sealed class DesktopServerStub(string workspaceId, int applicationPort)
     }
 
     private WorkspaceDto Workspace()
-        => new(
-            workspaceId,
-            workspaceId,
-            $"/repo/{workspaceId}",
-            $"/worktrees/{workspaceId}",
-            "main",
-            "e2ec0de",
-            "Running")
-        {
-            Applications =
-            [
-                new ApplicationDto(ApplicationName, "serve", null, "Running")
-                {
-                    AllocatedPorts = [new PortMappingDto("PORT", applicationPort, applicationPort)]
-                }
-            ]
-        };
+        => ProductDomain.KnownWorkspace(workspaceId)
+            .WithApplication(new ApplicationDtoBuilder(ApplicationName, "serve")
+                .WithPort(new PortMappingDtoBuilder().On(applicationPort)))
+            .Build();
 }

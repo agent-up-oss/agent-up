@@ -1026,7 +1026,6 @@
     ],
     "sliceExemptions": [
       "AgentUp.Server/Features/Database",
-      "AgentUp.Server/Features/Ports",
       "AgentUp.Desktop/Features/Browser",
       "AgentUp.CLI/Features/Authentication"
     ]

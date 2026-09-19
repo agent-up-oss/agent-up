@@ -65,7 +65,7 @@ public sealed class GitApiClientTests
     [Test]
     public async Task GetCommitQueueAsync_readsAnEmptyQueueFromTheWorkspaceFakeHandler()
     {
-        using var handler = new FakeHttpMessageHandler([WorkspaceFixtures.Single()]);
+        using var handler = new FakeHttpMessageHandler([DesktopDomain.Workspace().Build()]);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         var client = new GitApiClient(http);
 

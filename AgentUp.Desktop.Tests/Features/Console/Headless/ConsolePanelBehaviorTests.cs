@@ -13,9 +13,9 @@ public class ConsolePanelBehaviorTests
     [AvaloniaTest]
     public async Task Panel_loadsConsoleOutput_forAutoSelectedApplication()
     {
-        var workspace = WorkspaceFixtures.WithApplications();
+        var workspace = DesktopDomain.WorkspaceWithApplications().Build();
         var outputLines = new List<string> { "$ cargo run", "▸ Listening on :3001", "› GET / 200" };
-        var output = WorkspaceFixtures.OutputFor(workspace.Id, workspace.Applications[0].Name, outputLines);
+        var output = DesktopDomain.OutputFor(workspace.Id, workspace.Applications[0].Name, outputLines);
 
         var app = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output);
 
@@ -61,11 +61,11 @@ public class ConsolePanelBehaviorTests
     [AvaloniaTest]
     public async Task Panel_capsConsoleOutput_atMaxLines()
     {
-        var workspace = WorkspaceFixtures.WithApplications();
+        var workspace = DesktopDomain.WorkspaceWithApplications().Build();
         var tooManyLines = Enumerable.Range(0, ConsoleViewModel.MaxLines + 1)
             .Select(i => $"line {i}")
             .ToList();
-        var output = WorkspaceFixtures.OutputFor(workspace.Id, workspace.Applications[0].Name, tooManyLines);
+        var output = DesktopDomain.OutputFor(workspace.Id, workspace.Applications[0].Name, tooManyLines);
 
         var app = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output);
 
@@ -76,11 +76,11 @@ public class ConsolePanelBehaviorTests
     [AvaloniaTest]
     public async Task Panel_showsTruncationNotice_whenOutputExceedsMaxLines()
     {
-        var workspace = WorkspaceFixtures.WithApplications();
+        var workspace = DesktopDomain.WorkspaceWithApplications().Build();
         var tooManyLines = Enumerable.Range(0, ConsoleViewModel.MaxLines + 1)
             .Select(i => $"line {i}")
             .ToList();
-        var output = WorkspaceFixtures.OutputFor(workspace.Id, workspace.Applications[0].Name, tooManyLines);
+        var output = DesktopDomain.OutputFor(workspace.Id, workspace.Applications[0].Name, tooManyLines);
 
         var app = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output);
 
@@ -90,8 +90,8 @@ public class ConsolePanelBehaviorTests
     [AvaloniaTest]
     public async Task Panel_doesNotShowTruncationNotice_whenOutputFitsWithinMaxLines()
     {
-        var workspace = WorkspaceFixtures.WithApplications();
-        var output = WorkspaceFixtures.OutputFor(workspace.Id, workspace.Applications[0].Name, ["line 1", "line 2"]);
+        var workspace = DesktopDomain.WorkspaceWithApplications().Build();
+        var output = DesktopDomain.OutputFor(workspace.Id, workspace.Applications[0].Name, ["line 1", "line 2"]);
 
         var app = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output);
 
@@ -101,7 +101,7 @@ public class ConsolePanelBehaviorTests
     [AvaloniaTest]
     public async Task Panel_updatesConsoleOutput_whenDifferentApplicationSelected()
     {
-        var workspace = WorkspaceFixtures.WithApplications();
+        var workspace = DesktopDomain.WorkspaceWithApplications().Build();
         var output = new Dictionary<string, List<string>>
         {
             [$"{workspace.Id}/{workspace.Applications[0].Name}"] = ["line from API"],
@@ -118,11 +118,11 @@ public class ConsolePanelBehaviorTests
     [AvaloniaTest]
     public async Task Panel_showsHasHiddenLines_whenOutputExceedsDefaultDisplayLines()
     {
-        var workspace = WorkspaceFixtures.WithApplications();
+        var workspace = DesktopDomain.WorkspaceWithApplications().Build();
         var manyLines = Enumerable.Range(0, ConsoleViewModel.DefaultDisplayLines + 1)
             .Select(i => $"line {i}")
             .ToList();
-        var output = WorkspaceFixtures.OutputFor(workspace.Id, workspace.Applications[0].Name, manyLines);
+        var output = DesktopDomain.OutputFor(workspace.Id, workspace.Applications[0].Name, manyLines);
 
         var app = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output);
 
@@ -132,8 +132,8 @@ public class ConsolePanelBehaviorTests
     [AvaloniaTest]
     public async Task Panel_doesNotShowHasHiddenLines_whenOutputFitsWithinDefaultDisplayLines()
     {
-        var workspace = WorkspaceFixtures.WithApplications();
-        var output = WorkspaceFixtures.OutputFor(workspace.Id, workspace.Applications[0].Name, ["line 1", "line 2"]);
+        var workspace = DesktopDomain.WorkspaceWithApplications().Build();
+        var output = DesktopDomain.OutputFor(workspace.Id, workspace.Applications[0].Name, ["line 1", "line 2"]);
 
         var app = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output);
 

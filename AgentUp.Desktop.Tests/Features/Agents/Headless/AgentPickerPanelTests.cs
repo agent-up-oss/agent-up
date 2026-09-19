@@ -13,7 +13,7 @@ public sealed class AgentPickerPanelTests
     [AvaloniaTest]
     public async Task AgentPicker_usesCatalogChoiceButtonsInsteadOfWrappedCards()
     {
-        var app = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
+        var app = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var viewModel = (MainViewModel)app.Window.DataContext!;
         viewModel.SelectedShellTab = WorkspaceShellTab.Agent;
         viewModel.Agent.Agents.Add(new AgentDescriptorDto("Codex", true, "Codex"));

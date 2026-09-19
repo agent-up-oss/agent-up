@@ -102,3 +102,7 @@ the build away - which is exactly when the next push is about to need it.
 Android installs the emulator package with retries before `android-emulator-runner` asks for it.
 Google's emulator zip is occasionally not an archive, and that action treats a single failed
 download as a failed job. The NDK step already retries the same class of truncated download.
+Before Detox starts, the workflow also configures the emulator to stay awake while powered and
+disables its screen timeout. Merely finding a focused window at boot is insufficient because the
+screen can otherwise lock while the harness starts its Server and test-agent processes, leaving
+Espresso with a visible application root that no longer has window focus.

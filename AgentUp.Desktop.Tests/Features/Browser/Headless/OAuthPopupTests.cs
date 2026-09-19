@@ -19,7 +19,7 @@ public sealed class OAuthPopupTests
         NativeWebView? webView = null;
         var popup = new FakeWebPopup();
         var app = await AppDriver.LaunchWithWorkspaceAsync(
-            WorkspaceFixtures.WithHttpPort("ws-1", 3000),
+            DesktopDomain.WorkspaceServing(3000).Build(),
             () => webView = new NativeWebView());
         app.Window.WebPopupFactory = () => popup;
 
@@ -41,7 +41,7 @@ public sealed class OAuthPopupTests
     {
         NativeWebView? webView = null;
         var app = await AppDriver.LaunchWithWorkspaceAsync(
-            WorkspaceFixtures.WithHttpPort("ws-1", 3000),
+            DesktopDomain.WorkspaceServing(3000).Build(),
             () => webView = new NativeWebView());
         app.Window.WebPopupFactory = () => new FakeWebPopup();
 
@@ -60,7 +60,7 @@ public sealed class OAuthPopupTests
     {
         NativeWebView? webView = null;
         var app = await AppDriver.LaunchWithWorkspaceAsync(
-            WorkspaceFixtures.WithHttpPort("ws-1", 3000),
+            DesktopDomain.WorkspaceServing(3000).Build(),
             () => webView = new NativeWebView());
         app.Window.WebPopupFactory = () => throw new InvalidOperationException("no WebKit installed");
 
@@ -83,7 +83,7 @@ public sealed class OAuthPopupTests
         NativeWebView? webView = null;
         var factoryCalls = 0;
         var app = await AppDriver.LaunchWithWorkspaceAsync(
-            WorkspaceFixtures.WithHttpPort("ws-1", 3000),
+            DesktopDomain.WorkspaceServing(3000).Build(),
             () => webView = new NativeWebView());
         app.Window.WebPopupFactory = () =>
         {
@@ -107,7 +107,7 @@ public sealed class OAuthPopupTests
         NativeWebView? webView = null;
         var popup = new FakeWebPopup();
         var app = await AppDriver.LaunchWithWorkspaceAsync(
-            WorkspaceFixtures.WithHttpPort("ws-1", 3000),
+            DesktopDomain.WorkspaceServing(3000).Build(),
             () => webView = new NativeWebView());
         app.Window.WebPopupFactory = () => popup;
 

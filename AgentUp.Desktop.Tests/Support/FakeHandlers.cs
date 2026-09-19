@@ -167,14 +167,14 @@ internal sealed class MutableFakeHttpMessageHandler(List<WorkspaceDto> initial) 
     // registering a workspace for every managed source clone.
     private HttpResponseMessage CloneResponse()
     {
-        var cloned = new WorkspaceDto(
-            $"cloned-{_workspaces.Count + 1}",
-            "widgets",
-            "/clones/widgets",
-            "/clones/widgets",
-            "main",
-            "abc123",
-            "Stopped");
+        var cloned = new WorkspaceDtoBuilder()
+            .WithId($"cloned-{_workspaces.Count + 1}")
+            .Named("widgets")
+            .WithRepositoryPath("/clones/widgets")
+            .WithWorktreePath("/clones/widgets")
+            .OnBranch(DesktopDomain.ThirdBranch)
+            .Stopped()
+            .Build();
         _workspaces = [.. _workspaces, cloned];
         return Created(cloned);
     }

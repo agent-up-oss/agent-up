@@ -8,6 +8,7 @@ const sidebars = {
       collapsed: true,
       items: [
         'repo/architecture',
+        'repo/testing',
         'repo/design-principles',
         'repo/design-system',
         'repo/packaging',

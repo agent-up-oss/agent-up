@@ -15,33 +15,14 @@ namespace AgentUp.Desktop.Tests.Features.Agents.Headless;
 public sealed class AgentChatViewModelStreamTests
 {
     [AvaloniaTest]
-    public async Task Stream_appliesSessionMessagesToolsPlansAndPermissions()
+    public async Task Stream_appliesTheSessionItReceived()
     {
         var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var fake = new StreamApiFake
-        {
-            EventsHang = hang,
-            Events =
-            [
-                Event(1, "state", """{"workspaceId":"ws-1","agent":"Codex","state":"running","sessionId":"s1","error":null,"agents":[{"agent":"Codex","available":true,"displayName":"Codex"}],"authMethods":[]}"""),
-                Event(2, "user_message", """{"text":"Hello"}"""),
-                Event(3, "session_update", """{"sessionUpdate":"session_info_update","title":"Fix tests"}"""),
-                Event(4, "session_update", """{"sessionUpdate":"current_mode_update","currentModeId":"ask"}"""),
-                Event(5, "session_update", """{"sessionUpdate":"usage_update","used":12,"size":20}"""),
-                Event(6, "session_update", """{"sessionUpdate":"agent_message_chunk","content":{"text":"Working"}}"""),
-                Event(7, "session_update", """{"sessionUpdate":"agent_message_chunk","content":{"text":" on it"}}"""),
-                Event(8, "session_update", """{"sessionUpdate":"tool_call","toolCallId":"t1","title":"Read","status":"pending"}"""),
-                Event(9, "session_update", """{"sessionUpdate":"tool_call_update","toolCallId":"t1","status":"completed","content":{"text":"ok"}}"""),
-                Event(10, "session_update", """{"sessionUpdate":"plan_update","entries":[{"content":"One","status":"completed"}]}"""),
-                Event(11, "session_update", """{"sessionUpdate":"compaction_start"}"""),
-                Event(12, "permission_request", """{"requestId":"req-1","request":{"title":"Run tests?","options":[{"optionId":"allow","name":"Allow once","kind":"allow_once"}]}}"""),
-            ]
-        };
-        var view = new AgentChatViewModel(new AgentsController(new AgentChatService(fake)));
+        var view = await LoadedStreamAsync(hang);
 
-        await view.LoadAsync("ws-1");
-        await WaitUntilAsync(() => view.HasPermission && view.Messages.Count() >= 4);
 
+        // The session header, the transcript and the permission prompt are three separate
+        // readings of the same stream, so they are asserted as three groups.
         Assert.Multiple(() =>
         {
             Assert.That(view.HasAgent, Is.True);
@@ -49,16 +30,49 @@ public sealed class AgentChatViewModelStreamTests
             Assert.That(view.HasContext, Is.True);
             Assert.That(view.SessionTitle, Is.EqualTo("Fix tests"));
             Assert.That(view.Mode, Is.EqualTo("ask"));
+        });
+
+        hang.TrySetResult();
+    }
+
+    [AvaloniaTest]
+    public async Task Stream_buildsATranscriptOfMessagesToolsAndPlans()
+    {
+        var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var view = await LoadedStreamAsync(hang);
+
+        Assert.Multiple(() =>
+        {
             Assert.That(view.Messages.Any(item => item.Role == "You" && item.Text == "Hello"), Is.True);
             Assert.That(view.Messages.Any(item => item.Role == "Agent" && item.Text.Contains("Working on it")), Is.True);
             Assert.That(view.Messages.Any(item => item.Role == "Tool" && item.ToolCallId == "t1"), Is.True);
             Assert.That(view.Messages.Any(item => item.Role == "Plan"), Is.True);
-            Assert.That(view.PermissionTitle, Is.EqualTo("Run tests?"));
-            Assert.That(view.HasPermission, Is.True);
         });
 
         hang.TrySetResult();
+    }
+
+    [AvaloniaTest]
+    public async Task Stream_raisesThePermissionRequestItReceived()
+    {
+        var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var view = await LoadedStreamAsync(hang);
+
+        Assert.That(view.HasPermission, Is.True);
+        Assert.That(view.PermissionTitle, Is.EqualTo("Run tests?"));
+
+        hang.TrySetResult();
+    }
+
+    [AvaloniaTest]
+    public async Task Stream_dropsTheSessionWhenTheWorkspaceIsDeselected()
+    {
+        var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var view = await LoadedStreamAsync(hang);
+
+        hang.TrySetResult();
         await view.LoadAsync(null);
+
         Assert.That(view.HasAgent, Is.False);
     }
 
@@ -304,6 +318,39 @@ public sealed class AgentChatViewModelStreamTests
             await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
             await Task.Delay(20, timeout.Token);
         }
+    }
+
+    /// <summary>
+    /// A view model that has read one full session: state, a question, session metadata,
+    /// a streamed reply, a tool call, a plan, a compaction and a permission request. The
+    /// stream is held open by <paramref name="hang"/> so a test can read the live state.
+    /// </summary>
+    private static async Task<AgentChatViewModel> LoadedStreamAsync(TaskCompletionSource hang)
+    {
+        var fake = new StreamApiFake
+        {
+            EventsHang = hang,
+            Events =
+            [
+                Event(1, "state", """{"workspaceId":"ws-1","agent":"Codex","state":"running","sessionId":"s1","error":null,"agents":[{"agent":"Codex","available":true,"displayName":"Codex"}],"authMethods":[]}"""),
+                Event(2, "user_message", """{"text":"Hello"}"""),
+                Event(3, "session_update", """{"sessionUpdate":"session_info_update","title":"Fix tests"}"""),
+                Event(4, "session_update", """{"sessionUpdate":"current_mode_update","currentModeId":"ask"}"""),
+                Event(5, "session_update", """{"sessionUpdate":"usage_update","used":12,"size":20}"""),
+                Event(6, "session_update", """{"sessionUpdate":"agent_message_chunk","content":{"text":"Working"}}"""),
+                Event(7, "session_update", """{"sessionUpdate":"agent_message_chunk","content":{"text":" on it"}}"""),
+                Event(8, "session_update", """{"sessionUpdate":"tool_call","toolCallId":"t1","title":"Read","status":"pending"}"""),
+                Event(9, "session_update", """{"sessionUpdate":"tool_call_update","toolCallId":"t1","status":"completed","content":{"text":"ok"}}"""),
+                Event(10, "session_update", """{"sessionUpdate":"plan_update","entries":[{"content":"One","status":"completed"}]}"""),
+                Event(11, "session_update", """{"sessionUpdate":"compaction_start"}"""),
+                Event(12, "permission_request", """{"requestId":"req-1","request":{"title":"Run tests?","options":[{"optionId":"allow","name":"Allow once","kind":"allow_once"}]}}"""),
+            ]
+        };
+        var view = new AgentChatViewModel(new AgentsController(new AgentChatService(fake)));
+
+        await view.LoadAsync("ws-1");
+        await WaitUntilAsync(() => view.HasPermission && view.Messages.Count() >= 4);
+        return view;
     }
 }
 

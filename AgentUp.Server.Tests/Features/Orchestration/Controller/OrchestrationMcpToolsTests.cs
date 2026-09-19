@@ -14,6 +14,7 @@ using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
 using AgentUp.Server.Shared.Interfaces;
 using AgentUp.Server.Shared.Providers;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Server.Tests.Features.Orchestration.Controller;
@@ -61,11 +62,10 @@ public sealed class OrchestrationMcpToolsTests
         _configuration.Configuration = new AgentUpConfiguration(
             "Inventory",
             [
-                new ApplicationDefinition(
-                    "Frontend",
-                    "npm run dev",
-                    "/",
-                    [new PortDeclaration("WEB_PORT", 5173)])
+                new ApplicationDefinitionBuilder("Frontend", ServerDomain.WebCommand)
+                    .At("/")
+                    .WithPort(ServerDomain.Port().Named("WEB_PORT").On(5173))
+                    .Build()
             ]);
 
         var result = await _tools.StartWorkspace("/repos/inventory", CancellationToken.None);
@@ -113,42 +113,53 @@ public sealed class OrchestrationMcpToolsTests
         Assert.That(_registry.GetAll(), Is.Empty);
     }
 
-    [Test]
-    public void ContextTools_ReturnCanonicalGuidance()
-    {
-        var context = _tools.GetAgentUpContext();
+    // The context resource is the one thing every agent reads before it does anything, so
+    // each phrase below is a separate promise to agents rather than one lump of prose.
+    // Split by the concern the phrase belongs to, so a deleted line names what was lost.
+    [TestCase("AgentUp.Server is the single source of truth")]
+    [TestCase("deploy my app with Agent-Up")]
+    [TestCase("call start_workspace")]
+    [TestCase("immediately instead of listing workspaces")]
+    public void AgentUpContext_tellsAgentsToStartWorkspacesThroughTheServer(string guidance)
+        => Assert.That(_tools.GetAgentUpContext(), Does.Contain(guidance));
 
-        Assert.That(context, Does.Contain("AgentUp.Server is the single source of truth"));
-        Assert.That(context, Does.Contain("deploy my app with Agent-Up"));
-        Assert.That(context, Does.Contain("call start_workspace"));
-        Assert.That(context, Does.Contain("immediately instead of listing workspaces"));
-        Assert.That(context, Does.Contain("If browser navigation, inspection, waiting, screenshots, or interaction fails or times out"));
-        Assert.That(context, Does.Contain("inspect the workspace console immediately"));
-        Assert.That(context, Does.Contain("query Audit MCP for recent application console events"));
-        Assert.That(context, Does.Contain("Before starting a new coding task"));
-        Assert.That(context, Does.Contain("guard_commits"));
-        Assert.That(context, Does.Contain("continueWorktreePath"));
-        Assert.That(context, Does.Contain("inspect, debug, or continue"));
-        Assert.That(context, Does.Contain("enqueue_review_fix_commit"));
-        Assert.That(context, Does.Contain("one pull request review issue violation"));
-        Assert.That(context, Does.Contain("Scope every conventional commit message"));
-        Assert.That(context, Does.Contain("feat means a user-facing addition"));
-        Assert.That(context, Does.Contain("fix means a user-facing fix"));
-        Assert.That(context, Does.Contain("test means test-only or smoke-validation changes"));
-        Assert.That(context, Does.Contain("chore means maintenance/packaging/CI/tooling"));
-        Assert.That(context, Does.Contain("prompts.commitPolicy"));
-        Assert.That(context, Does.Contain("style means CSS/HTML only"));
-        Assert.That(context, Does.Contain("docs means documentation only"));
-        Assert.That(context, Does.Contain("separate guidance/docs entry"));
-        Assert.That(context, Does.Contain("active merge, rebase, cherry-pick, revert, or bisect"));
-        Assert.That(context, Does.Contain("Legacy enqueue restores tracked files"));
-        Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"services\""));
-        Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"desktopApplications\""));
-        Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"ports\""));
-        Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"display\""));
-        Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"prompts\""));
-        Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain("\"commitPolicy\""));
-    }
+    [TestCase("If browser navigation, inspection, waiting, screenshots, or interaction fails or times out")]
+    [TestCase("inspect the workspace console immediately")]
+    [TestCase("query Audit MCP for recent application console events")]
+    public void AgentUpContext_tellsAgentsWhereToLookWhenBrowserWorkFails(string guidance)
+        => Assert.That(_tools.GetAgentUpContext(), Does.Contain(guidance));
+
+    [TestCase("Before starting a new coding task")]
+    [TestCase("guard_commits")]
+    [TestCase("continueWorktreePath")]
+    [TestCase("inspect, debug, or continue")]
+    [TestCase("enqueue_review_fix_commit")]
+    [TestCase("one pull request review issue violation")]
+    [TestCase("active merge, rebase, cherry-pick, revert, or bisect")]
+    [TestCase("Legacy enqueue restores tracked files")]
+    public void AgentUpContext_tellsAgentsHowToWorkTheCommitQueue(string guidance)
+        => Assert.That(_tools.GetAgentUpContext(), Does.Contain(guidance));
+
+    [TestCase("Scope every conventional commit message")]
+    [TestCase("feat means a user-facing addition")]
+    [TestCase("fix means a user-facing fix")]
+    [TestCase("test means test-only or smoke-validation changes")]
+    [TestCase("chore means maintenance/packaging/CI/tooling")]
+    [TestCase("style means CSS/HTML only")]
+    [TestCase("docs means documentation only")]
+    [TestCase("separate guidance/docs entry")]
+    [TestCase("prompts.commitPolicy")]
+    public void AgentUpContext_definesEveryConventionalCommitType(string guidance)
+        => Assert.That(_tools.GetAgentUpContext(), Does.Contain(guidance));
+
+    [TestCase("\"services\"")]
+    [TestCase("\"desktopApplications\"")]
+    [TestCase("\"ports\"")]
+    [TestCase("\"display\"")]
+    [TestCase("\"prompts\"")]
+    [TestCase("\"commitPolicy\"")]
+    public void AgentUpJsonFormat_documentsEveryTopLevelSection(string section)
+        => Assert.That(_tools.GetAgentUpJsonFormat(), Does.Contain(section));
 
     [Test]
     public void StartWorkspaceDescription_TellsAgentsWhenToUseAgentUp()
@@ -201,7 +212,7 @@ public sealed class OrchestrationMcpToolsTests
     {
         _configuration.Configuration = new AgentUpConfiguration(
             "App",
-            [new ApplicationDefinition("App", "dotnet run", "/", [])]);
+            [new ApplicationDefinitionBuilder("App", ServerDomain.ApiCommand).At("/").Build()]);
         await _tools.StartWorkspace("/repos/app", CancellationToken.None);
         var workspace = _registry.GetAll().Single();
         var tools = new OrchestrationMcpTools(
@@ -229,7 +240,7 @@ public sealed class OrchestrationMcpToolsTests
     {
         _configuration.Configuration = new AgentUpConfiguration(
             "App",
-            [new ApplicationDefinition("Web", "dotnet run", "/", [])]);
+            [new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.ApiCommand).At("/").Build()]);
         await _tools.StartWorkspace("/repos/app", CancellationToken.None);
         var workspace = _registry.GetAll().Single();
 
@@ -258,7 +269,7 @@ public sealed class OrchestrationMcpToolsTests
     {
         _configuration.Configuration = new AgentUpConfiguration(
             "App",
-            [new ApplicationDefinition("Web", "dotnet run", "/", [])]);
+            [new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.ApiCommand).At("/").Build()]);
         await _tools.StartWorkspace("/repos/app", CancellationToken.None);
         var workspace = _registry.GetAll().Single();
 

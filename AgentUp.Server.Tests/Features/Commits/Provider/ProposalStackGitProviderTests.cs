@@ -2,6 +2,7 @@ using System.Diagnostics;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Models;
 using AgentUp.Server.Features.Commits.Providers;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Commits.Provider;
 
@@ -47,14 +48,20 @@ public sealed class ProposalStackGitProviderTests
         Assert.That(await GitAsync(repository, "rev-parse", "HEAD"), Is.EqualTo(humanHead));
 
         await File.WriteAllTextAsync(Path.Join(first.QueueWorktreePath, "value.txt"), "second\n");
-        var state = new CommitsQueue(
-            3,
-            [new CommitEntry("Test", "feat(Test): first", ["value.txt"], ProposalCommit: first.Commit)],
-            QueueId: "queue-1",
-            BaseCommit: first.BaseCommit,
-            TipCommit: first.Commit,
-            QueueWorktreePath: first.QueueWorktreePath,
-            Generation: 1);
+        var state = ServerDomain.Queue()
+            .AtVersion(3)
+            .With(ServerDomain.CommitEntry()
+                .For("Test")
+                .Saying("feat(Test): first")
+                .Touching(["value.txt"])
+                .WithProposalCommit(first.Commit)
+                .Build())
+            .WithQueueId("queue-1")
+            .WithBaseCommit(first.BaseCommit)
+            .WithTipCommit(first.Commit)
+            .InWorktree(first.QueueWorktreePath)
+            .AtGeneration(1)
+            .Build();
         var second = await provider.EnqueueAsync(first.QueueWorktreePath, state, "queue-1", "feat(Test): second", ["value.txt"]);
 
         Assert.Multiple(() =>
@@ -256,14 +263,17 @@ public sealed class ProposalStackGitProviderTests
     }
 
     private static CommitsQueue Queued(ProposalCommitResult first)
-        => new(
-            3,
-            [new CommitEntry("Test", "feat(Test): first", ["value.txt"], ProposalCommit: first.Commit)],
-            QueueId: "queue-1",
-            BaseCommit: first.BaseCommit,
-            TipCommit: first.Commit,
-            QueueWorktreePath: first.QueueWorktreePath,
-            Generation: 1);
+        => ServerDomain.Queue()
+            .With(ServerDomain.CommitEntry()
+                .For("Test")
+                .Saying("feat(Test): first")
+                .Touching(["value.txt"])
+                .WithProposalCommit(first.Commit))
+            .WithQueueId("queue-1")
+            .OnStack(first.BaseCommit, first.Commit)
+            .InWorktree(first.QueueWorktreePath)
+            .AtGeneration(1)
+            .Build();
 
     private static async Task<string> GitAsync(string directory, params string[] arguments)
     {

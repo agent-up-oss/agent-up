@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using AgentUp.Server.Features.ServiceControl.Interfaces;
 using AgentUp.Server.Features.TraySession.Controllers;
 using AgentUp.Server.Features.TraySession.Services;
+using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

@@ -1,6 +1,7 @@
 using AgentUp.AUDebug.Features.Docs.Services;
 using AgentUp.AUDebug.Features.Host.DTOs;
 using AgentUp.AUDebug.Tests.Fake;
+using AgentUp.AUDebug.Tests.Support;
 
 namespace AgentUp.AUDebug.Tests.Features.Docs.Unit;
 
@@ -13,7 +14,9 @@ public sealed class DocsCommandServiceTests
         var pages = new FakeDocsPageCapture();
         var result = await new DocsCommandService(pages, new FakeSessionStore())
             .ScreenshotAsync(
-                new DebugCommandDto("docs", "docs", "screenshot", null, null, TimeSpan.FromSeconds(30), false),
+                DebugDomain.Command(DebugDomain.DocsSurface)
+                    .Doing(DebugDomain.ScreenshotAction)
+                    .Build(),
                 CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(0));
@@ -28,17 +31,12 @@ public sealed class DocsCommandServiceTests
         var pages = new FakeDocsPageCapture();
         var result = await new DocsCommandService(pages, new FakeSessionStore())
             .ScreenshotAsync(
-                new DebugCommandDto(
-                    "docs",
-                    "docs",
-                    "screenshot",
-                    null,
-                    null,
-                    TimeSpan.FromSeconds(30),
-                    false,
-                    PagePath: "/developer-guide/git",
-                    Heading: "What it is",
-                    FullPage: true),
+                DebugDomain.Command(DebugDomain.DocsSurface)
+                    .Doing(DebugDomain.ScreenshotAction)
+                    .AtPage("/developer-guide/git")
+                    .ScrollingTo("What it is")
+                    .CapturingFullPage()
+                    .Build(),
                 CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(0));
@@ -53,15 +51,10 @@ public sealed class DocsCommandServiceTests
         var pages = new FakeDocsPageCapture();
         var result = await new DocsCommandService(pages, new FakeSessionStore())
             .ScreenshotAsync(
-                new DebugCommandDto(
-                    "docs",
-                    "docs",
-                    "screenshot",
-                    null,
-                    null,
-                    TimeSpan.FromSeconds(30),
-                    false,
-                    PagePath: "../secret"),
+                DebugDomain.Command(DebugDomain.DocsSurface)
+                    .Doing(DebugDomain.ScreenshotAction)
+                    .AtPage("../secret")
+                    .Build(),
                 CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));
@@ -75,7 +68,9 @@ public sealed class DocsCommandServiceTests
         var pages = new FakeDocsPageCapture { CaptureException = new InvalidOperationException("boom") };
         var result = await new DocsCommandService(pages, new FakeSessionStore())
             .ScreenshotAsync(
-                new DebugCommandDto("docs", "docs", "screenshot", null, null, TimeSpan.FromSeconds(30), false),
+                DebugDomain.Command(DebugDomain.DocsSurface)
+                    .Doing(DebugDomain.ScreenshotAction)
+                    .Build(),
                 CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));
@@ -88,7 +83,10 @@ public sealed class DocsCommandServiceTests
         var pages = new FakeDocsPageCapture { DelayUntilCanceled = true };
         var result = await new DocsCommandService(pages, new FakeSessionStore())
             .ScreenshotAsync(
-                new DebugCommandDto("docs", "docs", "screenshot", null, null, TimeSpan.FromMilliseconds(30), false),
+                DebugDomain.Command(DebugDomain.DocsSurface)
+                    .Doing(DebugDomain.ScreenshotAction)
+                    .TimingOutAfter(TimeSpan.FromMilliseconds(30))
+                    .Build(),
                 CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));

@@ -2,6 +2,7 @@ using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Orchestration.DTOs;
 using AgentUp.Server.Features.Orchestration.Providers;
 using AgentUp.Server.Features.Ports.DTOs;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Orchestration.Unit;
 
@@ -20,14 +21,14 @@ public sealed class WorkspaceRegistrationBuilderTests
                         "Api",
                         "10.0.x",
                         new DotnetRunDefinition("src/Api/Api.csproj", ["--no-launch-profile"]),
-                        [new PortDeclaration("API_PORT", 5000)])
+                        [ServerDomain.Port().Named("API_PORT").On(5000).Build()])
                 ],
                 Docker:
                 [
                     new DockerCapabilityDefinition(
                         "Database",
                         "postgres:17",
-                        [new PortDeclaration("DB_PORT", 5432)])
+                        [ServerDomain.Port().Named("DB_PORT").On(5432).Build()])
                 ]),
             new WorkspaceIdentity("/repo", "main", "abc123"),
             "/repo/worktree");

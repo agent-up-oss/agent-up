@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.Processes.Providers;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Configuration;
 
 namespace AgentUp.Server.Tests.Features.Processes.Provider;

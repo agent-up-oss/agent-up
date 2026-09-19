@@ -31,10 +31,26 @@ public sealed class DebugOutputServiceTests
         Assert.That(output.ToString(), Does.Contain("desktop open-agent"));
         Assert.That(output.ToString(), Does.Contain("mobile open-agent"));
         Assert.That(output.ToString(), Does.Contain("status"));
+    }
+
+    [Test]
+    public void WriteHelp_listsTestAndBuildCommands()
+    {
+        using var output = new StringWriter();
+        new DebugOutputService(output).WriteHelp();
+
         Assert.That(output.ToString(), Does.Contain("test <suite>"));
         Assert.That(output.ToString(), Does.Contain("test all"));
         Assert.That(output.ToString(), Does.Contain("build design-system"));
         Assert.That(output.ToString(), Does.Contain("build mobile"));
+    }
+
+    [Test]
+    public void WriteHelp_listsDocsScreenshotFlags()
+    {
+        using var output = new StringWriter();
+        new DebugOutputService(output).WriteHelp();
+
         Assert.That(output.ToString(), Does.Contain("docs screenshot [path]"));
         Assert.That(output.ToString(), Does.Contain("--full-page"));
         Assert.That(output.ToString(), Does.Contain("--heading <text>"));

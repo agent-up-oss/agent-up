@@ -1,3 +1,4 @@
+using AgentUp.CLI.Tests.Support;
 using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using System.Text.Json;
 using AgentUp.CLI.Features.Commits.Controllers;
@@ -15,8 +16,13 @@ public sealed class CommitsUtilityCommandTests
     public async Task Changes_jsonFormat_writesAssignedAndUnassignedFiles()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["queued.cs"], "entry-1");
-        var command = BuildController(output, new CommitsQueue(2, [entry]), modifiedFiles: ["queued.cs", "loose.cs"]);
+        var entry = CliDomain.CommitEntry()
+            .For("Slice")
+            .Saying("fix(Slice): msg")
+            .Touching(["queued.cs"])
+            .WithId("entry-1")
+            .Build();
+        var command = BuildController(output, CliDomain.Queue().AtVersion(2).With(entry).Build(), modifiedFiles: ["queued.cs", "loose.cs"]);
 
         var code = await command.RunAsync(["changes", "--format", "json"]);
 
@@ -59,8 +65,13 @@ public sealed class CommitsUtilityCommandTests
     public async Task Guard_whenQueueHasEntry_returnsNonZero()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["queued.cs"], "entry-1");
-        var command = BuildController(output, new CommitsQueue(2, [entry]));
+        var entry = CliDomain.CommitEntry()
+            .For("Slice")
+            .Saying("fix(Slice): msg")
+            .Touching(["queued.cs"])
+            .WithId("entry-1")
+            .Build();
+        var command = BuildController(output, CliDomain.Queue().AtVersion(2).With(entry).Build());
 
         var code = await command.RunAsync(["guard"]);
 
@@ -72,8 +83,13 @@ public sealed class CommitsUtilityCommandTests
     public async Task EditBegin_jsonFormat_returnsSession()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["queued.cs"], "entry-1");
-        var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
+        var entry = CliDomain.CommitEntry()
+            .For("Slice")
+            .Saying("fix(Slice): msg")
+            .Touching(["queued.cs"])
+            .WithId("entry-1")
+            .Build();
+        var queue = new FakeCommitsQueueProvider(CliDomain.Queue().AtVersion(2).With(entry).Build());
         queue.Patches["entry-1"] = "diff --git a/queued.cs b/queued.cs\n";
         var command = BuildController(output, queueProvider: queue);
 
@@ -89,8 +105,13 @@ public sealed class CommitsUtilityCommandTests
     public async Task Inspect_whenFormatPrecedesEntry_usesEntryReference()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["queued.cs"], "entry-1");
-        var command = BuildController(output, new CommitsQueue(2, [entry]));
+        var entry = CliDomain.CommitEntry()
+            .For("Slice")
+            .Saying("fix(Slice): msg")
+            .Touching(["queued.cs"])
+            .WithId("entry-1")
+            .Build();
+        var command = BuildController(output, CliDomain.Queue().AtVersion(2).With(entry).Build());
 
         var code = await command.RunAsync(["inspect", "--format", "json", "1"]);
 
@@ -103,8 +124,13 @@ public sealed class CommitsUtilityCommandTests
     public async Task EditBegin_whenFormatPrecedesVerb_usesVerbAndEntryReference()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["queued.cs"], "entry-1");
-        var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
+        var entry = CliDomain.CommitEntry()
+            .For("Slice")
+            .Saying("fix(Slice): msg")
+            .Touching(["queued.cs"])
+            .WithId("entry-1")
+            .Build();
+        var queue = new FakeCommitsQueueProvider(CliDomain.Queue().AtVersion(2).With(entry).Build());
         queue.Patches["entry-1"] = "diff --git a/queued.cs b/queued.cs\n";
         var command = BuildController(output, queueProvider: queue);
 
@@ -119,8 +145,13 @@ public sealed class CommitsUtilityCommandTests
     public async Task Message_whenFormatPrecedesEntry_usesEntryReference()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["queued.cs"], "entry-1");
-        var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
+        var entry = CliDomain.CommitEntry()
+            .For("Slice")
+            .Saying("fix(Slice): msg")
+            .Touching(["queued.cs"])
+            .WithId("entry-1")
+            .Build();
+        var queue = new FakeCommitsQueueProvider(CliDomain.Queue().AtVersion(2).With(entry).Build());
         var command = BuildController(output, queueProvider: queue);
 
         var code = await command.RunAsync(["message", "--format", "json", "1", "--message", "fix(Slice): updated"]);
@@ -134,8 +165,13 @@ public sealed class CommitsUtilityCommandTests
     public async Task Remove_archivesEntry()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["queued.cs"], "entry-1");
-        var queue = new FakeCommitsQueueProvider(new CommitsQueue(2, [entry]));
+        var entry = CliDomain.CommitEntry()
+            .For("Slice")
+            .Saying("fix(Slice): msg")
+            .Touching(["queued.cs"])
+            .WithId("entry-1")
+            .Build();
+        var queue = new FakeCommitsQueueProvider(CliDomain.Queue().AtVersion(2).With(entry).Build());
         var command = BuildController(output, queueProvider: queue);
 
         var code = await command.RunAsync(["remove", "1"]);
