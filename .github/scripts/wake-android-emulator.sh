@@ -13,9 +13,18 @@
 # to. So this waits for the window manager to name a focused window, waking and unlocking on each
 # attempt, and only then lets the suite start.
 #
+# A focused window is still not enough. Hosted google_apis images often leave
+# com.google.android.googlesdksetup in an Application Not Responding dialog, and that dialog holds
+# focus. Treating it as ready is how a run reported "awake and focused" and then failed every
+# Detox scenario. The first-run wizard is skipped and those packages are stopped until a normal
+# window holds focus.
+#
 # A condition rather than a sleep, deliberately: a fixed delay long enough for a slow runner is
 # waste on a fast one, and short enough for a fast one is a test that fails on a slow one.
 set -euo pipefail
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+focus_helper="$script_dir/android-emulator-focus.mjs"
 
 adb="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}/platform-tools/adb"
 if [ ! -x "$adb" ]; then
@@ -36,6 +45,15 @@ fi
 "$adb" shell svc power stayon true
 "$adb" shell settings put system screen_off_timeout 2147483647
 
+# Skip the first-run wizard so it cannot ANR over the suite. Best-effort: a device that is already
+# provisioned ignores these, and a package that is not installed is not worth failing the run over.
+"$adb" shell settings put global device_provisioned 1 >/dev/null 2>&1 || true
+"$adb" shell settings put secure user_setup_complete 1 >/dev/null 2>&1 || true
+"$adb" shell pm disable-user --user 0 com.google.android.googlesdksetup >/dev/null 2>&1 || true
+"$adb" shell pm disable-user --user 0 com.google.android.setupwizard >/dev/null 2>&1 || true
+"$adb" shell am force-stop com.google.android.googlesdksetup >/dev/null 2>&1 || true
+"$adb" shell am force-stop com.google.android.setupwizard >/dev/null 2>&1 || true
+
 attempt=1
 while [ "$attempt" -le 60 ]; do
   # Both are best-effort: on a device that is already awake and unlocked they change nothing, and
@@ -49,19 +67,24 @@ while [ "$attempt" -le 60 ]; do
   # force-stop the named package so the next attempt can reach a real window.
   focus="$("$adb" shell dumpsys window 2>/dev/null | grep -m 1 'mCurrentFocus' || true)"
   case "$focus" in
-    *"Application Not Responding"*)
-      echo "Dismissing emulator ANR: ${focus## }"
+    *"Application Not Responding"*|*"com.google.android.googlesdksetup"*|*"com.google.android.setupwizard"*)
+      echo "Dismissing emulator setup or ANR: ${focus## }"
       pkg="$(printf '%s\n' "$focus" | sed -n 's/.*Application Not Responding: \([^}]*\).*/\1/p' | tr -d '[:space:]')"
       if [ -n "$pkg" ]; then
         "$adb" shell am force-stop "$pkg" >/dev/null 2>&1 || true
       fi
+      "$adb" shell am force-stop com.google.android.googlesdksetup >/dev/null 2>&1 || true
+      "$adb" shell am force-stop com.google.android.setupwizard >/dev/null 2>&1 || true
       "$adb" shell input keyevent KEYCODE_ESCAPE >/dev/null 2>&1 || true
       "$adb" shell input keyevent KEYCODE_BACK >/dev/null 2>&1 || true
       "$adb" shell input keyevent KEYCODE_HOME >/dev/null 2>&1 || true
       ;;
-    *"mCurrentFocus=null"*|"") ;;
-    *) echo "The emulator is awake and focused: ${focus## }"; exit 0 ;;
   esac
+
+  if node "$focus_helper" "$focus"; then
+    echo "The emulator is awake and focused: ${focus## }"
+    exit 0
+  fi
 
   attempt=$((attempt + 1))
   sleep 2

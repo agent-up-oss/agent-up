@@ -31,6 +31,8 @@ on:
       - ".github/scripts/install-android-ndk.sh"
       - ".github/scripts/install-android-emulator.sh"
       - ".github/scripts/wake-android-emulator.sh"
+      - ".github/scripts/android-emulator-focus.mjs"
+      - ".github/scripts/android-emulator-focus.test.mjs"
       - ".github/scripts/build-mobile-e2e-stack.sh"
       - ".github/scripts/mobile-app-key.sh"
       - ".github/scripts/mobile-app-restored.sh"
@@ -135,6 +137,9 @@ jobs:
             AgentUp.AgentAuth/package-lock.json
             AgentUp.ServerClient/package-lock.json
             AgentUp.WebAudit/package-lock.json
+
+      - name: Check emulator wake helpers
+        run: node --test .github/scripts/android-emulator-focus.test.mjs
 
       - uses: actions/setup-java@v6
         with:

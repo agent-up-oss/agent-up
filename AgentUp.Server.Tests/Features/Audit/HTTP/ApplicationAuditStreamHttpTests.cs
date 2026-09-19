@@ -25,11 +25,10 @@ public sealed class ApplicationAuditStreamHttpTests
     }
 
     [TearDown]
-    public void TearDown()
+    public async Task TearDown()
     {
         _factory.Dispose();
-        if (Directory.Exists(_dataDirectory))
-            Directory.Delete(_dataDirectory, recursive: true);
+        await DeleteDataDirectoryAsync(_dataDirectory);
     }
 
     [Test]
@@ -56,6 +55,7 @@ public sealed class ApplicationAuditStreamHttpTests
         await RecordAsync(client, "web", "health", "port_health_check");
 
         var firstLine = await readTask;
+        cts.Cancel();
 
         Assert.Multiple(() =>
         {
@@ -63,6 +63,28 @@ public sealed class ApplicationAuditStreamHttpTests
             Assert.That(firstLine, Does.Contain("load_failed"));
             Assert.That(firstLine, Does.Not.Contain("port_health_check"));
         });
+    }
+
+    private static async Task DeleteDataDirectoryAsync(string path)
+    {
+        if (!Directory.Exists(path))
+            return;
+
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+        while (true)
+        {
+            try
+            {
+                Directory.Delete(path, recursive: true);
+                return;
+            }
+            catch (IOException) when (DateTime.UtcNow < deadline && Directory.Exists(path))
+            {
+                // Hosted metrics and the SSE writer can recreate files while the first
+                // recursive delete is walking the tree.
+                await Task.Delay(20);
+            }
+        }
     }
 
     private static async Task RecordAsync(HttpClient client, string application, string kind, string action)
