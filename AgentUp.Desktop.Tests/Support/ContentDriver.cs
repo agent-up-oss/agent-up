@@ -18,6 +18,9 @@ internal sealed class ContentDriver(MainWindow window)
     public bool ShowsEmptyState =>
         window.FindControl<StackPanel>("EmptyState")?.IsVisible ?? false;
 
+    public string? EmptyStateHint =>
+        window.FindControl<TextBlock>("EmptyStateHint")?.Text;
+
     public bool ShowsWorkspaceDetail =>
         window.FindControl<Border>("WorkspaceDetail")?.IsVisible ?? false;
 

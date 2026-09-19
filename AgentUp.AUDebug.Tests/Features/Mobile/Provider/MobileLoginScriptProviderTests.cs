@@ -1,5 +1,6 @@
 using AgentUp.AUDebug.Features.Host.DTOs;
 using AgentUp.AUDebug.Features.Mobile.Providers;
+using AgentUp.AUDebug.Shared.Providers;
 
 namespace AgentUp.AUDebug.Tests.Features.Mobile.Provider;
 
@@ -26,6 +27,20 @@ public sealed class MobileLoginScriptProviderTests
         var script = MobileOpenAgentScriptProvider.Build();
         Assert.That(script, Does.Contain("Open chat"));
         Assert.That(script, Does.Contain("waitForText"));
+    }
+
+    [Test]
+    public void DebuggerList_prefersAMatchingPageUrl()
+    {
+        var json = """
+            [
+              {"id":"1","url":"about:blank","webSocketDebuggerUrl":"ws://127.0.0.1:19223/devtools/page/blank"},
+              {"id":"2","url":"http://127.0.0.1:10100/docs/workspaces","webSocketDebuggerUrl":"ws://127.0.0.1:19223/devtools/page/docs"}
+            ]
+            """;
+        Assert.That(
+            ChromiumDebuggerListParser.ReadWebSocketUrl(json, "127.0.0.1:10100"),
+            Is.EqualTo("ws://127.0.0.1:19223/devtools/page/docs"));
     }
 
     [Test]

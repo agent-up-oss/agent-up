@@ -14,10 +14,24 @@ internal static class TestGitRepository
         return path;
     }
 
+    public static async Task ConfigureIdentityAsync(string path)
+    {
+        await RunAsync(path, "config", "user.name", "Agent Up");
+        await RunAsync(path, "config", "user.email", "agent-up@example.invalid");
+        await RunAsync(path, "config", "commit.gpgsign", "false");
+    }
+
     public static async Task CommitAllAsync(string path, string message)
     {
+        await ConfigureIdentityAsync(path);
         await RunAsync(path, "add", "--all");
         await RunAsync(path, "commit", "-m", message);
+    }
+
+    public static async Task UnsetIdentityAsync(string path)
+    {
+        await RunAsync(path, ["config", "--unset-all", "user.name"], [0, 5]);
+        await RunAsync(path, ["config", "--unset-all", "user.email"], [0, 5]);
     }
 
     public static Task RunAsync(string workingDirectory, params string[] arguments)

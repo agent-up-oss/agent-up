@@ -18,12 +18,14 @@ export type AppShellConfig = {
   title: string;
   rightAction: ShellAction | null;
   sidebarContent: ReactNode | null;
+  backAction?: ShellAction | null;
 };
 
 export const defaultShellConfig: AppShellConfig = {
   title: '',
   rightAction: null,
   sidebarContent: null,
+  backAction: null,
 };
 
 type AppShellController = {

@@ -29,7 +29,7 @@ function ProductFrame() {
         <div className={styles.workspace}><span className="au-status-dot"/><span><b>main</b><small>main</small></span></div>
       </aside>
       <div className={styles.runtime}>
-        <div className="au-tabs"><button className="au-tab" aria-selected="true">Storefront</button><button className="au-tab">API</button><button className="au-tab">Database</button></div>
+        <div className="au-tabs"><button className="au-tab" aria-selected="true">Overview</button><button className="au-tab">Agent</button><button className="au-tab">Commit</button><button className="au-tab">Storefront</button></div>
         <div className={styles.subnav}><span className="au-badge au-badge--healthy"><span className="au-status-dot au-status-dot--healthy"/>3000:11200</span><b>Console</b><b>Metrics</b><b>Diagnostics</b></div>
         <div className={styles.browserBar}>‹ &nbsp; › &nbsp; ↻ <span className="au-mono">http://localhost:11200/</span></div>
         <div className={styles.browser}><p className="au-eyebrow">checkout-fix / storefront</p><h2>Review the runtime that belongs to this change.</h2><p>Applications, ports, diagnostics, and browser automation stay attached to the workspace Agent-Up Server owns.</p></div>
@@ -47,7 +47,7 @@ export default function Home() {
           <h1 className="au-display">Run every branch. Review the right one.</h1>
           <p className="au-lede">{voice.promise}</p>
           <div className="au-cluster">
-            <Link className="au-button" to="/docs/downloads">Download</Link>
+            <Link className="au-button" to="/docs/start/downloads">Download</Link>
             <Link className="au-button au-button--secondary" to="/docs/">Read the docs</Link>
           </div>
           <p className={styles.preview}>Development preview · APIs and workflows may change.</p>
@@ -75,7 +75,7 @@ export default function Home() {
 
       <section className={`au-section ${styles.finalCta}`}><div className="au-container au-stack">
         <p className="au-eyebrow">Start with one repository</p><h2 className="au-title">Make parallel runtime review trustworthy.</h2>
-        <div className="au-cluster"><Link className="au-button" to="/docs/setup">Set up Agent-Up</Link><Link className="au-button au-button--secondary" to="/developer-guide/architecture">See the architecture</Link></div>
+        <div className="au-cluster"><Link className="au-button" to="/docs/start/setup">Set up Agent-Up</Link><Link className="au-button au-button--secondary" to="/developer-guide/repo/architecture">See the architecture</Link></div>
       </div></section>
     </main>
   </Layout>;

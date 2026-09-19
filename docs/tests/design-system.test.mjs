@@ -6,7 +6,8 @@ import catalog from '@agent-up/design-system/catalog' with { type: 'json' };
 const requiredSurfaces = [
   'foundations', 'primitives', 'chrome', 'workspaces', 'applications', 'browser',
   'console', 'git', 'diagnostics', 'metrics', 'validation', 'auth', 'database',
-  'mobile', 'marketing', 'voice', 'brand', 'governance',
+  'mobile', 'documentation', 'marketing', 'voice', 'brand', 'governance',
+  'file-viewer',
 ];
 
 test('the design-system showcase is linked from primary navigation and the footer', async () => {
@@ -22,6 +23,9 @@ test('the docs import canonical product and marketing styles', async () => {
   const css = await readFile(new URL('../src/css/custom.css', import.meta.url), 'utf8');
   assert.match(css, /@agent-up\/design-system\/styles\.css/);
   assert.match(css, /@agent-up\/design-system\/marketing\.css/);
+  assert.match(css, /@agent-up\/design-system\/docs\.css/);
+  assert.match(css, /clamp\(2\.25rem, 4vw, 2\.75rem\)/);
+  assert.doesNotMatch(css, /\.theme-doc-markdown h1 \{[^}]*--au-font-size-ui-xl/);
 });
 
 test('the showcase is a tabbed catalog of every public design-system surface', async () => {
@@ -46,4 +50,20 @@ test('each showcase surface renders live catalog component examples', () => {
       assert.match(component.html, /class="[^"]*au-/);
     }
   }
+});
+
+test('MDX wrappers emit the catalog documentation classes', async () => {
+  const source = await readFile(new URL('../src/theme/MDXComponents.js', import.meta.url), 'utf8');
+  for (const name of [
+    'DocEyebrow', 'DocFocus', 'DocMeta', 'DocWhat', 'DocSpine', 'DocBeat',
+    'DocContract', 'DocFork', 'DocFacts', 'DocSurfaces', 'DocSurface',
+    'DocSteps', 'DocCallout', 'DocNext',
+  ]) {
+    assert.match(source, new RegExp(`function ${name}`));
+  }
+  assert.match(source, /au-doc-kicker/);
+  assert.match(source, /au-doc-callout__body/);
+  assert.match(source, /au-field-label/);
+  assert.doesNotMatch(source, /au-eyebrow/);
+  assert.doesNotMatch(source, /au-badge au-doc-surface/);
 });

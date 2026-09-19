@@ -1,5 +1,5 @@
-import { agentUpTheme } from '@agent-up/design-system/native';
 import type { GitChangeDirectory, GitChangeNode, GitChangeTree } from '../models/GitChanges';
+import type { GitConfirmCopy } from './GitBranchPickerProvider';
 
 // Flattens the Server-owned directory tree into indented rows: directories first, then files,
 // mirroring the directory mode of a commit window.
@@ -64,6 +64,37 @@ export function retainSelectedPaths(nodes: GitChangeNode[], selected: string[]):
   return selected.filter(path => files.has(path));
 }
 
+export function changeStatusCounts(nodes: GitChangeNode[]): { added: number; deleted: number } {
+  let added = 0;
+  let deleted = 0;
+  for (const node of nodes) {
+    if (node.isDirectory) continue;
+    if (node.status === 'Added' || node.status === 'Untracked') added += 1;
+    else if (node.status === 'Deleted') deleted += 1;
+  }
+  return { added, deleted };
+}
+
+export function selectedChangeStatusCounts(
+  nodes: GitChangeNode[],
+  selected: readonly string[],
+): { added: number; deleted: number } {
+  const files = new Set(selectedFilePaths(nodes, [...selected]));
+  return changeStatusCounts(nodes.filter(node => node.isDirectory || files.has(node.path)));
+}
+
+export function changeTreeSignature(nodes: GitChangeNode[]): string {
+  return nodes
+    .filter(node => !node.isDirectory)
+    .map(node => `${node.path}\0${node.status ?? ''}`)
+    .sort()
+    .join('\n');
+}
+
+export function isChangeTreeStale(visualized: GitChangeNode[], incoming: GitChangeNode[]): boolean {
+  return changeTreeSignature(visualized) !== changeTreeSignature(incoming);
+}
+
 export function canDiscardSelection(selectedCount: number, busy: boolean): boolean {
   return selectedCount > 0 && !busy;
 }
@@ -71,6 +102,32 @@ export function canDiscardSelection(selectedCount: number, busy: boolean): boole
 // Commit is offered only for a non-empty selection with a non-blank message.
 export function canCommitSelection(selectedCount: number, message: string): boolean {
   return selectedCount > 0 && message.trim().length > 0;
+}
+
+export function gitCommitConfirmCopy(message: string, files: string[]): GitConfirmCopy {
+  return {
+    title: 'Commit selected files?',
+    message: `This commits ${files.length} file(s) with this message:\n\n${message.trim()}\n\n${files.join('\n')}`,
+    confirm: 'Commit',
+  };
+}
+
+export function gitDiscardConfirmCopy(files: string[]): GitConfirmCopy {
+  return {
+    title: 'Discard selected files?',
+    message: `This discards ${files.length} selected file(s):\n\n${files.join('\n')}`,
+    confirm: 'Discard',
+    destructive: true,
+  };
+}
+
+export function gitStaleTreeConfirmCopy(): GitConfirmCopy {
+  return {
+    title: 'Change tree is out of date',
+    message: 'The visualized Git changes are older than the Server tree. Reload before you select or commit against this list.',
+    confirm: 'Reload',
+    cancel: false,
+  };
 }
 
 export function statusGlyph(status: GitChangeNode['status']): string {
@@ -92,22 +149,74 @@ export function statusGlyph(status: GitChangeNode['status']): string {
   }
 }
 
-export function statusColor(status: GitChangeNode['status']): string {
+export type GitStatusClass =
+  | 'gitStatusAdded'
+  | 'gitStatusUntracked'
+  | 'gitStatusDeleted'
+  | 'gitStatusModified'
+  | 'gitStatusRenamed'
+  | 'gitStatusConflicted'
+  | 'gitStatusDirectory';
+
+export function statusClass(status: GitChangeNode['status']): GitStatusClass {
   switch (status) {
     case 'Added':
+      return 'gitStatusAdded';
     case 'Untracked':
-      return agentUpTheme.colors.accentSoft;
+      return 'gitStatusUntracked';
     case 'Deleted':
-      return agentUpTheme.colors.statusDanger;
+      return 'gitStatusDeleted';
     case 'Renamed':
-      return agentUpTheme.colors.statusInfo;
+      return 'gitStatusRenamed';
     case 'Conflicted':
-      return agentUpTheme.colors.statusWarning;
+      return 'gitStatusConflicted';
     case 'Modified':
-      return agentUpTheme.colors.textSecondary;
+      return 'gitStatusModified';
     default:
-      return agentUpTheme.colors.textMuted;
+      return 'gitStatusDirectory';
   }
+}
+
+export function nameClass(isDirectory: boolean): 'gitChangeNameDirectory' | 'gitChangeName' {
+  return isDirectory ? 'gitChangeNameDirectory' : 'gitChangeName';
+}
+
+export function directoryToggleGlyph(expanded: boolean): string {
+  return expanded ? '▾' : '▸';
+}
+
+export function directoryToggleClass(expanded: boolean): 'gitTreeToggleExpanded' | 'gitTreeToggleCollapsed' {
+  return expanded ? 'gitTreeToggleExpanded' : 'gitTreeToggleCollapsed';
+}
+
+export function ancestorDirectoryPaths(node: GitChangeNode): string[] {
+  const ancestors: string[] = [];
+  if (node.path.length > 0) ancestors.push('');
+  const parts = node.path.split('/').filter(Boolean);
+  const limit = node.isDirectory ? parts.length - 1 : parts.length;
+  let prefix = '';
+  for (let index = 0; index < limit; index += 1) {
+    prefix = prefix ? `${prefix}/${parts[index]}` : parts[index];
+    ancestors.push(prefix);
+  }
+  return ancestors;
+}
+
+export function visibleChangeNodes(nodes: GitChangeNode[], collapsed: readonly string[]): GitChangeNode[] {
+  if (collapsed.length === 0) return nodes;
+  const hidden = new Set(collapsed);
+  return nodes.filter(node => ancestorDirectoryPaths(node).every(path => !hidden.has(path)));
+}
+
+export function toggleDirectoryCollapsed(collapsed: readonly string[], path: string): string[] {
+  return collapsed.includes(path)
+    ? collapsed.filter(item => item !== path)
+    : [...collapsed, path];
+}
+
+export function retainCollapsedPaths(nodes: GitChangeNode[], collapsed: readonly string[]): string[] {
+  const directories = new Set(nodes.filter(node => node.isDirectory).map(node => node.path));
+  return collapsed.filter(path => directories.has(path));
 }
 
 function flattenDirectory(directory: GitChangeDirectory, depth: number, isRoot: boolean): GitChangeNode[] {

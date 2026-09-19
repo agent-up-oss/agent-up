@@ -12,3 +12,4 @@ export { AgentSignIn } from './components/AgentSignIn';
 export { createAgentLoginPort } from './providers/AgentLoginPortProvider';
 export type { AgentLoginPortOptions, PendingRedirect } from './providers/AgentLoginPortProvider';
 export * from './models/AgentSession';
+export { getAgent, scheduleAgent } from './providers/AgentApiProvider';

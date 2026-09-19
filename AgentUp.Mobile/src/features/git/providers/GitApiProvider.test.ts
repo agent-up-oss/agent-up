@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { commitFiles, discardFiles, getChanges, getCommitQueue, getFileDiff, getHeadState, switchBranch } from './GitApiProvider';
+import { checkoutRemote, commitFiles, discardFiles, fetchRemote, getChanges, getCommitQueue, getFileDiff, getHeadState, getLog, pullRemote, pushRemote, switchBranch } from './GitApiProvider';
 
 type Recorded = { url: string; init: RequestInit };
 
@@ -112,6 +112,66 @@ test('switchBranch posts the requested branch name', async () => {
 
   assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws-1/git/branch');
   assert.deepEqual(JSON.parse(String(recorded[0].init.body)), { name: 'topic', create: true });
+});
+
+test('checkoutRemote posts the remote branch name', async () => {
+  const recorded: Recorded[] = [];
+  const body = JSON.stringify({ found: true, succeeded: true, error: null });
+
+  await checkoutRemote({ url: 'http://localhost:5000' }, 'ws-1', 'origin/topic', fakeFetch(200, body, recorded));
+
+  assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws-1/git/checkout');
+  assert.deepEqual(JSON.parse(String(recorded[0].init.body)), { name: 'origin/topic' });
+});
+
+test('fetchRemote posts the fetch route', async () => {
+  const recorded: Recorded[] = [];
+  const body = JSON.stringify({ found: true, succeeded: true, error: null, head: { branch: 'main', localBranches: ['main'] } });
+
+  await fetchRemote({ url: 'http://localhost:5000' }, 'ws-1', 'origin', fakeFetch(200, body, recorded));
+
+  assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws-1/git/fetch');
+  assert.deepEqual(JSON.parse(String(recorded[0].init.body)), { remote: 'origin' });
+});
+
+test('pullRemote and pushRemote post the sync flags', async () => {
+  const recorded: Recorded[] = [];
+  const body = JSON.stringify({ found: true, succeeded: true, error: null, head: { branch: 'main', localBranches: ['main'] } });
+  const fetchImpl = fakeFetch(200, body, recorded);
+
+  await pullRemote({ url: 'http://localhost:5000' }, 'ws-1', true, fetchImpl);
+  await pushRemote({ url: 'http://localhost:5000' }, 'ws-1', true, false, fetchImpl);
+
+  assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws-1/git/pull');
+  assert.deepEqual(JSON.parse(String(recorded[0].init.body)), { rebase: true });
+  assert.equal(recorded[1].url, 'http://localhost:5000/api/workspaces/ws-1/git/push');
+  assert.deepEqual(JSON.parse(String(recorded[1].init.body)), { forceWithLease: true, setUpstream: false });
+});
+
+test('getLog requests the bounded history route', async () => {
+  const recorded: Recorded[] = [];
+  const body = JSON.stringify({
+    commits: [{ id: 'abc', shortId: 'abc', parents: [], subject: 'initial', author: 'A', timestamp: '2026-01-01T00:00:00Z', refs: ['main'] }],
+    hasMore: true,
+  });
+
+  const log = await getLog({ url: 'http://localhost:5000' }, 'ws 1', 20, 0, undefined, fakeFetch(200, body, recorded));
+
+  assert.equal(log?.commits[0].subject, 'initial');
+  assert.equal(log?.hasMore, true);
+  assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws%201/git/log?max=20');
+});
+
+test('getLog pages older history with skip and until', async () => {
+  const recorded: Recorded[] = [];
+  const body = JSON.stringify({ commits: [], hasMore: false });
+
+  await getLog({ url: 'http://localhost:5000' }, 'ws-1', 200, 200, 'abc', fakeFetch(200, body, recorded));
+
+  assert.equal(
+    recorded[0].url,
+    'http://localhost:5000/api/workspaces/ws-1/git/log?max=200&skip=200&until=abc',
+  );
 });
 
 test('commitFiles surfaces the server problem detail', async () => {

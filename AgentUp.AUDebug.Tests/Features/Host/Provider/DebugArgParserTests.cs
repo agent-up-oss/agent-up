@@ -73,6 +73,55 @@ public sealed class DebugArgParserTests
 
         Assert.That(error, Is.Null);
         Assert.That(command!.Surface, Is.EqualTo("docs"));
+        Assert.That(command.PagePath, Is.Null);
+        Assert.That(command.Heading, Is.Null);
+        Assert.That(command.FullPage, Is.False);
+    }
+
+    [Test]
+    public void Parse_docsScreenshot_readsPathHeadingAndFullPage()
+    {
+        var (command, error) = _parser.Parse([
+            "docs",
+            "screenshot",
+            "/developer-guide/git",
+            "--heading",
+            "What it is",
+            "--full-page"
+        ]);
+
+        Assert.That(error, Is.Null);
+        Assert.That(command!.PagePath, Is.EqualTo("/developer-guide/git"));
+        Assert.That(command.Heading, Is.EqualTo("What it is"));
+        Assert.That(command.FullPage, Is.True);
+    }
+
+    [Test]
+    public void Parse_docsScreenshot_rejectsTwoPaths()
+    {
+        var (command, error) = _parser.Parse(["docs", "screenshot", "/docs/workspaces", "/docs/git"]);
+        Assert.That(command, Is.Null);
+        Assert.That(error, Does.Contain("at most one page path"));
+    }
+
+    [Test]
+    public void Parse_headingRequiresValue()
+    {
+        var (_, missing) = _parser.Parse(["docs", "screenshot", "--heading"]);
+        var (_, flag) = _parser.Parse(["docs", "screenshot", "--heading", "--full-page"]);
+        var (_, blank) = _parser.Parse(["docs", "screenshot", "--heading", "   "]);
+        Assert.That(missing, Does.Contain("--heading requires a value"));
+        Assert.That(flag, Does.Contain("--heading requires a value"));
+        Assert.That(blank, Does.Contain("--heading requires a value"));
+    }
+
+    [Test]
+    public void Parse_headingOnlyForDocsScreenshot()
+    {
+        var (_, desktop) = _parser.Parse(["desktop", "screenshot", "--heading", "Git"]);
+        var (_, status) = _parser.Parse(["status", "--full-page"]);
+        Assert.That(desktop, Does.Contain("only valid for docs screenshot"));
+        Assert.That(status, Does.Contain("only valid for docs screenshot"));
     }
 
     [Test]
@@ -201,7 +250,7 @@ public sealed class DebugArgParserTests
     [Test]
     public void Parse_screenshotExtraArgs_returnsError()
     {
-        var (_, error) = _parser.Parse(["docs", "screenshot", "extra"]);
+        var (_, error) = _parser.Parse(["desktop", "screenshot", "extra"]);
         Assert.That(error, Does.Contain("does not take extra arguments"));
     }
 }

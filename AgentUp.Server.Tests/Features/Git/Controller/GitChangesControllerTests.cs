@@ -129,6 +129,86 @@ public sealed class GitChangesControllerTests
         Assert.That(result, Is.InstanceOf<NotFoundResult>());
     }
 
+    [Test]
+    public async Task Checkout_returnsTheMutationResult()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (controller, workspaceId) = await CreateControllerAsync(git);
+
+        var result = await controller.Checkout(workspaceId, new GitCheckoutRequest("topic"));
+
+        Assert.That(OkValue<GitMutationResult>(result).Succeeded, Is.True);
+        Assert.That(git.CheckedOutBranch, Is.EqualTo("topic"));
+    }
+
+    [Test]
+    public async Task Fetch_returnsTheSyncResult()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (controller, workspaceId) = await CreateControllerAsync(git);
+
+        var result = await controller.Fetch(workspaceId, new GitFetchRequest("origin"));
+
+        Assert.That(OkValue<GitSyncResult>(result).Succeeded, Is.True);
+        Assert.That(git.FetchedRemote, Is.EqualTo("origin"));
+    }
+
+    [Test]
+    public async Task Pull_returnsTheSyncResult()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (controller, workspaceId) = await CreateControllerAsync(git);
+
+        var result = await controller.Pull(workspaceId, new GitPullRequest(true));
+
+        Assert.That(OkValue<GitSyncResult>(result).Succeeded, Is.True);
+        Assert.That(git.PulledRebase, Is.True);
+    }
+
+    [Test]
+    public async Task Push_returnsTheSyncResult()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (controller, workspaceId) = await CreateControllerAsync(git);
+
+        var result = await controller.Push(workspaceId, new GitPushRequest(true, false));
+
+        Assert.That(OkValue<GitSyncResult>(result).Succeeded, Is.True);
+        Assert.That(git.PushedForceWithLease, Is.True);
+        Assert.That(git.PushedSetUpstream, Is.False);
+    }
+
+    [Test]
+    public async Task GetLog_returnsTheCommitLog()
+    {
+        var git = new FakeGitWorkingTreeProvider
+        {
+            Log = new GitLog([new GitLogCommit("abc", "abc", [], "initial", "Agent Up", "2026-01-01T00:00:00Z", ["main"])])
+        };
+        var (controller, workspaceId) = await CreateControllerAsync(git);
+
+        var result = await controller.GetLog(workspaceId, 20);
+
+        Assert.That(OkValue<GitLog>(result).Commits[0].Subject, Is.EqualTo("initial"));
+    }
+
+    [Test]
+    public async Task GetLog_forwardsSkipAndUntilCursors()
+    {
+        var git = new FakeGitWorkingTreeProvider
+        {
+            Log = new GitLog([new GitLogCommit("abc", "abc", [], "older", "Agent Up", "2026-01-01T00:00:00Z", ["main"])], HasMore: true)
+        };
+        var (controller, workspaceId) = await CreateControllerAsync(git);
+
+        var result = await controller.GetLog(workspaceId, 200, 200, "abc");
+
+        Assert.That(OkValue<GitLog>(result).HasMore, Is.True);
+        Assert.That(git.LogMax, Is.EqualTo(200));
+        Assert.That(git.LogSkip, Is.EqualTo(200));
+        Assert.That(git.LogUntil, Is.EqualTo("abc"));
+    }
+
     private static T OkValue<T>(IActionResult result) where T : class
         => (result as OkObjectResult)?.Value as T
            ?? throw new AssertionException($"Expected a 200 OK result carrying {typeof(T).Name}, got {result.GetType().Name}.");

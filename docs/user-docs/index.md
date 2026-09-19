@@ -5,76 +5,59 @@ slug: /
 
 # Agent-Up
 
-Agent-Up is a local runtime control plane for parallel AI-assisted software development.
+<DocWhat>
+Agent-Up is a local runtime control plane for parallel AI-assisted software development. It is not an application framework, deployment tool, IDE, or production orchestrator.
 
 It manages the running development environment around applications: workspaces, Git worktrees, application processes, port allocation, Docker services, isolated browser profiles, logs, diagnostics, event history, and automation surfaces.
+</DocWhat>
 
-Agent-Up is not an application framework, deployment tool, IDE, Docker replacement, Git replacement, or production orchestrator.
+<DocCallout kind="warning" label="Development Preview">
+Agent-Up is under active development. Packaged artifacts, APIs, configuration, installer behavior, and workflows may change without notice.
+</DocCallout>
 
-> **Development Preview:** Agent-Up is under active development. Packaged artifacts, APIs, configuration, installer behavior, and workflows may change without notice.
+## What Agent-Up solves
 
-Every AI agent can work in its own Git worktree with its own branch, runtime environment, browser profile, infrastructure, application state, diagnostics, and event history. Agent-Up is being built to make switching between these isolated workspaces practical while letting developers and AI agents interact with the same running applications.
+Modern AI-assisted development creates multiple parallel runtimes. Existing tooling usually assumes one developer running one application instance.
 
-## What Agent-Up Solves
+<DocSteps>
+<DocStep title="Stop colliding runtimes">
+Constantly starting and stopping services, Docker collisions, and browser tab sprawl.
+</DocStep>
+<DocStep title="Keep one source of truth">
+The Server owns orchestration. Desktop, Mobile, CLI, and MCP clients stay thin.
+</DocStep>
+<DocStep title="Leave application source unchanged">
+Agent-Up injects ports and environment at launch. Applications do not take an Agent-Up dependency.
+</DocStep>
+</DocSteps>
 
-Modern AI-assisted development creates multiple parallel runtimes. Existing tooling usually assumes one developer running one application instance, which leads to:
+<DocFacts label="Clients">
+<DocFact label="Desktop">Human workspace chrome</DocFact>
+<DocFact label="Mobile">Android, iOS, and the installable PWA</DocFact>
+<DocFact label="CLI">agent-up</DocFact>
+<DocFact label="MCP">Five named servers, never a shared /mcp</DocFact>
+</DocFacts>
 
-- Constantly starting and stopping services.
-- Docker infrastructure collisions.
-- Browser tab sprawl.
-- Duplicated authentication flows.
-- Inconsistent runtime state.
-- Manual process management.
-- Difficult validation of AI-generated changes.
+<DocCallout kind="warning">
+<DocFact label="Packaged">{'http://localhost:5000'}</DocFact>
+<DocFact label="Repository">{'http://localhost:5001'}</DocFact>
+</DocCallout>
 
-Agent-Up solves these problems without requiring changes to application source code.
+## Getting started
 
-## System Shape
+See [Current Limitations](/docs/start/limitations) for the current implementation status of each major area.
 
-The Server is the single source of truth. Desktop, CLI, and MCP clients are all thin clients over server-owned runtime state.
-
-```text
-                +----------------------+
-                |   AgentUp.Server     |
-                |----------------------|
-                | Workspace Manager    |
-                | Process Manager      |
-                | Browser Manager      |
-                | Port Manager         |
-                | Event Recorder       |
-                | Diagnostics          |
-                | Playwright Generator |
-                | MCP Server           |
-                +----------+-----------+
-                           |
-        +------------------+-------------------+
-        |                  |                   |
-+---------------+   +---------------+   +------------------+
-| Avalonia UI   |   | AgentUp CLI   |   | MCP Clients      |
-| Human UI      |   | Thin Wrapper  |   | ChatGPT          |
-|               |   |               |   | Claude / Codex   |
-+---------------+   +---------------+   +------------------+
-```
-
-## Getting Started
-
-See [Current Limitations](./limitations.md) for the current implementation status of each major area.
-
-### 1. Start the server
-
-Installed Desktop artifacts run the Server as the local `agent-up-server` service.
-
-From the repository root:
-
-```bash
-dotnet run --project AgentUp.Server
-```
-
-The server starts on `http://localhost:5001` in the current development launch profile.
-
-### 2. Add an `agent-up.json` to your project
-
-Create `agent-up.json` in the root of the repository you want to manage:
+<DocSteps>
+<DocStep title="Start the Server">
+Installed Desktop artifacts run the Server as the local `agent-up-server` service. From the repository root, `dotnet run --project AgentUp.Server` listens on `http://localhost:5001`.
+</DocStep>
+<DocStep title="Add agent-up.json">
+Put it at the root of the repository you want to manage. Only `name` is required.
+</DocStep>
+<DocStep title="Start the workspace">
+From that repository, run `agent-up start --server http://localhost:5001`.
+</DocStep>
+</DocSteps>
 
 ```json
 {
@@ -83,39 +66,34 @@ Create `agent-up.json` in the root of the repository you want to manage:
     {
       "name": "Frontend",
       "command": "npm run dev",
-      "path": "."
+      "path": ".",
+      "ports": [
+        { "variable": "PORT", "defaultPort": 3000 }
+      ]
     }
   ]
 }
 ```
 
-### 3. Push the workspace definition
-
-From your project directory, run the CLI with `dotnet run`:
+When invoking with `dotnet run`, pass CLI arguments after `--`:
 
 ```bash
 dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:5001
 ```
 
-Or set the server URL once as an environment variable and omit `--server` on every call:
+## Documentation map
 
-```bash
-export AGENTUP_SERVER_URL=http://localhost:5001
-dotnet run --project /path/to/AgentUp.CLI -- start
-```
+Docs are grouped by product slice, not by client.
 
-This reads `agent-up.json`, captures the current git branch and commit, and pushes the workspace and application definitions to the server. The server then exposes them at `GET /api/workspaces/{id}/applications` for the desktop app to consume.
-
-## Documentation Map
-
-- [Workspace](./workspace.md) defines the workspace model.
-- [Setup](./setup.md) describes the current source-first development workflow.
-- [Releases](./releases.md) describes packaged artifacts and update behavior.
-- [Current Limitations](./limitations.md) explains what is implemented, experimental, in progress, and planned.
-- [Browser](./browser.md) covers shared browser sessions and automation.
-- [Browser Profiles](./browser-profiles.md) explains per-workspace browser isolation.
-- [CLI](./cli.md) covers the human-friendly command wrapper.
-- [Configuration](./configuration.md) and [agent-up.json](./agent-up-json.md) describe declarative application setup.
-- [Roadmap](./roadmap.md) captures the long-term direction.
+- [Start](/docs/start/setup) covers downloads, setup, releases, limitations, and the roadmap.
+- [Workspaces](/docs/workspaces) is identity, connect, start/stop, and clones.
+- [Applications](/docs/applications) is processes, ports, console, and hosted GUI apps.
+- [Git](/docs/git) is working-tree review, history, and remotes.
+- [Commits](/docs/commits) is the agent proposal queue.
+- [Agents](/docs/agents) is the ACP session and subscription sign-in.
+- [Browser](/docs/browser) is isolated surfaces and validation.
+- [Diagnostics](/docs/diagnostics) is console, health, and audit history.
+- [Verification](/docs/verification) is path-rule checks and receipts.
+- [Configuration](/docs/configuration) is `agent-up.json`.
 
 Implementation details live in the [Developer Guide](/developer-guide/).

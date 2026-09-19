@@ -1,0 +1,164 @@
+---
+title: Setup
+---
+
+# Setup
+
+<DocWhat>
+Setup is how you install Agent-Up and connect a client to the Server. Installed Desktop artifacts run the Server as a local background service.
+</DocWhat>
+
+<DocCallout kind="warning">
+<DocFact label="Packaged">{'http://localhost:5000'}</DocFact>
+<DocFact label="Repository">{'http://localhost:5001'}</DocFact>
+</DocCallout>
+
+<DocCallout kind="warning" label="Development Preview">
+Packaged installers and platform packages are still being hardened while signing, update behavior, and service handling evolve.
+</DocCallout>
+
+If the service starts and stops repeatedly or consumes CPU while failing to become ready, check whether another application is already listening on port 5000. Packaged services restart with a 5 second backoff, but Agent-Up still needs an available local server port.
+
+## Requirements
+
+- .NET SDK 10.0 or a compatible SDK for the current target framework.
+- Git.
+- Docker and Docker Compose when managed repositories declare Docker services.
+- Node.js and npm for the documentation site.
+- Nix on NixOS or Linux systems that need the provided native desktop dependency shell.
+
+## Clone and Build
+
+```bash
+git clone https://github.com/themassiveone/agent-up.git
+cd agent-up
+dotnet restore agent-up.sln
+dotnet build agent-up.sln
+```
+
+Packaged installers and GitHub Release assets are published from `https://github.com/agent-up-oss/agent-up`. Clone and contribute against `themassiveone/agent-up`.
+
+## Start the Server
+
+When using an installed Desktop artifact, the Server should already be running as the local `agent-up-server` service.
+
+REST authentication is required by default. Set `AGENTUP_ADMIN_PASSWORD` before
+starting a protected Server, or copy `.env.example` to `.env` in the repository
+root and edit the value there. Server, Desktop, and CLI load that file on startup
+when it exists; shell environment variables still take precedence.
+
+```bash
+cp .env.example .env
+# edit .env, then:
+dotnet run --project AgentUp.Server
+```
+
+You can still export the password directly when you prefer:
+
+```bash
+export AGENTUP_ADMIN_PASSWORD='choose-a-long-password'
+dotnet run --project AgentUp.Server
+```
+
+Desktop and Mobile prompt for this password when they connect. The Server still
+starts when the password is unset, but login cannot succeed until it is configured.
+
+Desktop and Mobile can save more than one Server. Switching to another saved
+Server opens that Server's workspaces as a new space on the client; the
+previous Server's local window or app state is not kept. Saved sign-in tokens
+stay on the device so the administrator password is not typed again until that
+Server rejects them. Mobile then returns to the connect screen and asks for
+the password again.
+
+For a deliberately unauthenticated local installation, set
+`AGENTUP_AUTH_DISABLED=true` instead. Desktop and Mobile skip their login UI in
+that mode.
+
+To expose REST to the LAN, bind the Server to your network interface and protect
+it with HTTPS or a TLS-terminating reverse proxy. Plain HTTP exposes the
+administrator password during login and bearer tokens on the wire. MCP has no
+login because it is intended for local tools, and the Server rejects MCP requests
+whose remote address is not loopback.
+
+Remote Desktop and Mobile clients must use HTTPS when the Server URL is not
+loopback. Loopback HTTP remains supported for local development on
+`http://localhost` and `http://127.0.0.1`.
+
+For source development:
+
+```bash
+dotnet run --project AgentUp.Server
+```
+
+The development launch profile currently listens on:
+
+```text
+http://localhost:5001
+```
+
+## Start the Desktop
+
+On systems with the required native desktop libraries available:
+
+```bash
+dotnet run --project AgentUp.Desktop
+```
+
+On NixOS:
+
+```bash
+./run-desktop.sh
+```
+
+The script runs the desktop inside `shell.nix`, which provides the native libraries needed on Linux.
+
+On first launch, Desktop shows a setup tutorial that can create two sample workspaces. Skip persists, so the overlay does not return on the next start. Native tests set `AGENTUP_SKIP_FIRST_RUN_TUTORIAL=1`; users do not need that variable.
+
+See [Workspaces](/docs/workspaces) for connect, start, and the Mobile workspace list.
+
+## Release Artifacts
+
+See [Downloads](/docs/start/downloads) for current platform download links and install commands.
+
+## Configure a Repository
+
+Add `agent-up.json` to the repository you want Agent-Up to manage:
+
+```json
+{
+  "name": "My App",
+  "applications": [
+    {
+      "name": "Frontend",
+      "command": "npm run dev",
+      "path": ".",
+      "ports": [
+        { "variable": "PORT", "defaultPort": 3000 }
+      ]
+    }
+  ]
+}
+```
+
+Applications should read ports from environment variables supplied by Agent-Up instead of hardcoding localhost ports.
+
+## Register a Workspace
+
+From the managed repository:
+
+```bash
+dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:5001
+```
+
+This reads `agent-up.json`, captures the current Git branch and commit, and registers the workspace with the server.
+
+## Contributor Workflow
+
+Contributor testing and documentation builds are covered in the [Developer Guide](/developer-guide/workspaces/workflows).
+
+## Troubleshooting
+
+- If the desktop fails to start on Linux, use `./run-desktop.sh` or install the native libraries listed in `shell.nix`.
+- If the CLI cannot reach the server, pass `--server` explicitly (`http://localhost:5001` for the repository launch profile, `http://localhost:5000` for a packaged service) or set `AGENTUP_SERVER_URL`.
+- If an application does not bind correctly, confirm it reads the configured port environment variable.
+- If Docker services fail, verify Docker and Docker Compose work outside Agent-Up first.

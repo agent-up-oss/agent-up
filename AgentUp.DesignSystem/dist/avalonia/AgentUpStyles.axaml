@@ -1052,25 +1052,135 @@
     <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
   </Style>
+  <Style Selector="Border.au-git-change-list">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusLg}"/>
+    <Setter Property="Padding" Value="0,4"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-change-list">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+    <Setter Property="Padding" Value="0,4"/>
+  </Style>
   <Style Selector="Border.au-git-row">
-    <Setter Property="Padding" Value="4,3"/>
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Padding" Value="6,2,8,2"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
-    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusXs}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusMd}"/>
+    <Setter Property="BorderThickness" Value="2,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-git-row">
-    <Setter Property="Padding" Value="4,3"/>
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Padding" Value="6,2,8,2"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
   </Style>
   <Style Selector="Border.gitNodeRow">
-    <Setter Property="Padding" Value="4,3"/>
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Padding" Value="6,2,8,2"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
-    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusXs}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusMd}"/>
+    <Setter Property="BorderThickness" Value="2,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
   </Style>
   <Style Selector="TextBlock.gitNodeRow">
-    <Setter Property="Padding" Value="4,3"/>
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Padding" Value="6,2,8,2"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="Border.au-git-tree-guide">
+    <Setter Property="Width" Value="{DynamicResource AgentUpSpace5}"/>
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="BorderThickness" Value="1,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-tree-guide">
+    <Setter Property="Width" Value="{DynamicResource AgentUpSpace5}"/>
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="Border.gitTreeGuide">
+    <Setter Property="Width" Value="{DynamicResource AgentUpSpace5}"/>
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="BorderThickness" Value="1,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.gitTreeGuide">
+    <Setter Property="Width" Value="{DynamicResource AgentUpSpace5}"/>
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-tree-toggle">
+    <Setter Property="Width" Value="14"/>
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-tree-toggle /template/ ContentPresenter">
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="Button.gitTreeToggle">
+    <Setter Property="Width" Value="14"/>
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="Button.gitTreeToggle /template/ ContentPresenter">
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-tree-toggle:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-tree-toggle:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.gitTreeToggle:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.gitTreeToggle:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-tree-toggle--expanded">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-tree-toggle--expanded /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-tree-toggle--collapsed">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-tree-toggle--collapsed /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
+  <Style Selector="Button.gitTreeToggleCollapsed">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
+  <Style Selector="Button.gitTreeToggleCollapsed /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
   <Style Selector="Border.au-git-row:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
@@ -1086,22 +1196,87 @@
   </Style>
   <Style Selector="Border.au-git-row--selected">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+    <Setter Property="BorderThickness" Value="2,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-git-row--selected">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
   </Style>
-  <Style Selector="TextBlock.au-git-add">
+  <Style Selector="Border.gitNodeRowSelected">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+    <Setter Property="BorderThickness" Value="2,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.gitNodeRowSelected">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-change-name">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
+  </Style>
+  <Style Selector="TextBlock.gitChangeName">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-change-name--directory">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="TextBlock.gitChangeNameDirectory">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-status">
+    <Setter Property="Width" Value="14"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-status--added">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
   </Style>
-  <Style Selector="TextBlock.au-git-delete">
+  <Style Selector="TextBlock.au-git-status--untracked">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorStatusHealthyBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-status--deleted">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorStatusDangerBrush}"/>
   </Style>
-  <Style Selector="TextBlock.au-git-rename">
+  <Style Selector="TextBlock.au-git-status--modified">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorStatusInfoBrush}"/>
   </Style>
-  <Style Selector="TextBlock.au-git-conflict">
+  <Style Selector="TextBlock.au-git-status--renamed">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextInfoBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-status--conflicted">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorStatusWarningBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-status--directory">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-insertions">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-deletions">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-insertions--on-primary">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorOnAccentBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-deletions--on-primary">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorOnAccentBrush}"/>
   </Style>
   <Style Selector="Border.au-audit-header">
     <Setter Property="Padding" Value="12,8"/>
@@ -1731,6 +1906,460 @@
   <Style Selector="TextBlock.au-chat-transcript">
     <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="Border.au-file-viewer">
+    <Setter Property="MinHeight" Value="256"/>
+    <Setter Property="MinWidth" Value="288"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceOverlayBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusXl}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer">
+    <Setter Property="MinHeight" Value="256"/>
+    <Setter Property="MinWidth" Value="288"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceOverlayBrush}"/>
+  </Style>
+  <Style Selector="Border.au-file-viewer-header">
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Padding" Value="16,12"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-header">
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Padding" Value="16,12"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-path">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-status">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
+    <Setter Property="LetterSpacing" Value="0.66"/>
+  </Style>
+  <Style Selector="Border.au-file-viewer-nav">
+    <Setter Property="Padding" Value="16,8"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-nav">
+    <Setter Property="Padding" Value="16,8"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+  </Style>
+  <Style Selector="Button.au-file-viewer-jump">
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="Button.au-file-viewer-jump /template/ ContentPresenter">
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="Button.au-file-viewer-jump:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.au-file-viewer-jump:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="TextBox.au-file-viewer-goto">
+    <Setter Property="Width" Value="72"/>
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceInputBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="Border.au-file-viewer-body">
+    <Setter Property="MinHeight" Value="160"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-body">
+    <Setter Property="MinHeight" Value="160"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="Border.au-file-viewer-line">
+    <Setter Property="MinHeight" Value="22"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="BorderThickness" Value="2,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-line">
+    <Setter Property="MinHeight" Value="22"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+  </Style>
+  <Style Selector="Border.au-file-viewer-line:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-line:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="Border.au-file-viewer-line--added">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedSoftBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-line--added">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedSoftBrush}"/>
+  </Style>
+  <Style Selector="Border.au-file-viewer-line--deleted">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-line--deleted">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
+  </Style>
+  <Style Selector="Border.au-file-viewer-line--hunk">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-line--hunk">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextInfoBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+  </Style>
+  <Style Selector="Border.au-file-viewer-line--meta">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-line--meta">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+  </Style>
+  <Style Selector="Border.au-file-viewer-line--current">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+    <Setter Property="BorderThickness" Value="2,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-line--current">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+  </Style>
+  <Style Selector="Border.fileViewerLineCurrent">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+    <Setter Property="BorderThickness" Value="2,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.fileViewerLineCurrent">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-gutter">
+    <Setter Property="Width" Value="52"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-prefix">
+    <Setter Property="Width" Value="14"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-prefix--added">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-prefix--deleted">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer-code">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+  </Style>
+  <Style Selector="TextBlock.au-syntax-plain">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-syntax-keyword">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextInfoBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-syntax-type">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorStatusInfoBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-syntax-string">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextWarningBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-syntax-comment">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="FontStyle" Value="Italic"/>
+  </Style>
+  <Style Selector="TextBlock.au-syntax-number">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorStatusWarningBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-syntax-function">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-syntax-property">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-syntax-punctuation">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-syntax-operator">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+  </Style>
+  <Style Selector="Border.au-git-log">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusLg}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="Border.au-git-log-detail">
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-detail">
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+  </Style>
+  <Style Selector="Border.gitLogDetail">
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.gitLogDetail">
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+  </Style>
+  <Style Selector="Border.au-git-log-track">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-track">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="Border.au-git-log-graph-scroll">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-graph-scroll">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="Border.au-git-log-row">
+    <Setter Property="MinHeight" Value="28"/>
+    <Setter Property="Padding" Value="12,0"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusMd}"/>
+    <Setter Property="BorderThickness" Value="2,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-row">
+    <Setter Property="MinHeight" Value="28"/>
+    <Setter Property="Padding" Value="12,0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
+  <Style Selector="Border.gitLogRow">
+    <Setter Property="MinHeight" Value="28"/>
+    <Setter Property="Padding" Value="12,0"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusMd}"/>
+    <Setter Property="BorderThickness" Value="2,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.gitLogRow">
+    <Setter Property="MinHeight" Value="28"/>
+    <Setter Property="Padding" Value="12,0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
+  <Style Selector="Border.au-git-log-row:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-row:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="Border.gitLogRow:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.gitLogRow:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="ListBoxItem:pointerover Border.au-git-log-row">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="ListBoxItem:pointerover Border.gitLogRow">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="Border.au-git-log-row--selected">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+    <Setter Property="BorderThickness" Value="2,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-row--selected">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+  </Style>
+  <Style Selector="ListBoxItem:selected Border.gitLogRow">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+    <Setter Property="BorderThickness" Value="2,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+  </Style>
+  <Style Selector="Border.au-git-log-graph">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-graph">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="Border.gitLogGraph">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.gitLogGraph">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-lane-0">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorGitLane0Brush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-lane-1">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorGitLane1Brush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-lane-2">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorGitLane2Brush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-lane-3">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorGitLane3Brush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-lane-4">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorGitLane4Brush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-lane-5">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorGitLane5Brush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-lane-6">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorGitLane6Brush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-lane-7">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorGitLane7Brush}"/>
+  </Style>
+  <Style Selector="Border.au-git-log-body">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-body">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-subject">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-author">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-time">
+    <Setter Property="Width" Value="108"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+  </Style>
+  <Style Selector="Button.au-git-log-ref">
+    <Setter Property="MinHeight" Value="20"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="CornerRadius" Value="999"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-log-ref /template/ ContentPresenter">
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="Button.gitLogRef">
+    <Setter Property="MinHeight" Value="20"/>
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="CornerRadius" Value="999"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="Button.gitLogRef /template/ ContentPresenter">
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-log-ref:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-log-ref:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.gitLogRef:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.gitLogRef:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-log-ref--head">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSelectedBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-log-ref--head /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSelectedBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-log-ref--remote">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextInfoBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-log-ref--remote /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextInfoBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-log-ref--tag">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
+  <Style Selector="Button.au-git-log-ref--tag /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
+  <Style Selector="Border.au-git-log-node">
+    <Setter Property="Width" Value="8"/>
+    <Setter Property="Height" Value="8"/>
+    <Setter Property="CornerRadius" Value="999"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log-node">
+    <Setter Property="Width" Value="8"/>
+    <Setter Property="Height" Value="8"/>
   </Style>
   <Style Selector="Border.au-product-frame">
     <Setter Property="MinWidth" Value="0"/>

@@ -154,6 +154,19 @@ public sealed class WorkspaceRegistry : IHostedService
         return workspace;
     }
 
+    public async Task<bool> UpdateGitIdentityAsync(string id, string branch, string commit)
+    {
+        if (!_workspaces.TryGetValue(id, out var workspace))
+            return false;
+
+        workspace.Branch = branch;
+        workspace.Commit = commit;
+        TouchActivity(workspace);
+        await _repository.SaveAllAsync(GetAll());
+        _bus.PublishWorkspaceChange(workspace);
+        return true;
+    }
+
     public async Task<bool> UpdateStateAsync(string id, WorkspaceState state)
     {
         if (!_workspaces.TryGetValue(id, out var workspace))

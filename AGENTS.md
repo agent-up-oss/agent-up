@@ -25,6 +25,64 @@ If code or docs are derived from the current state of `AGENTS.md`, update `AGENT
 
 Do not leave implementation, `AGENTS.md`, and docs disagreeing. If the requested change intentionally supersedes existing guidance, update the guidance first or as part of the same commit.
 
+Product names that appear in more than one surface:
+
+- Desktop Git chrome is the **Commit** tab; the heading inside it is **Git changes**. Mobile chrome is the **Git** tab, with inner **Review** and **History** pages. Do not call the Desktop tab "Git" or the Mobile tab "Commit".
+- The human Git slice is working-tree review. The agent queue is the **commit queue** (legacy local) or **proposal queue** when `commits.enabled` is true. Desktop Commit and Mobile Review display that queue; they do not mutate it.
+- Desktop chrome for the live ACP session is the **Agent** tab. Mobile chrome for the picker is the **Agents** tab.
+- The installed CLI is `agent-up`. Do not document `agentup` or `agent-up register`.
+- Packaged Server URL is `http://localhost:5000`. The repository launch profile is `http://localhost:5001`.
+- MCP clients connect to named servers (`/mcp/orchestration`, `/mcp/browser`, `/mcp/audit`, `/mcp/commits`, `/mcp/verification`), never a shared `/mcp`.
+
+Client and platform names (Desktop, Mobile, Server, CLI, Packaging, CI) are glossary and chrome terms. They cannot be sidebar categories. Slice documentation lives on User General and Developer General pages; see Docs IA.
+
+# Docs IA
+
+User Docs (`docs/user-docs/`) and the Developer Guide (`docs/developer-guide/`) share one slice taxonomy. A slice is a user-meaningful capability. Clients (Desktop, Mobile, CLI, MCP) and platforms (Server, CI, Packaging) are never sidebar category names.
+
+Shared slice order:
+
+1. Workspaces
+2. Applications
+3. Git
+4. Commits
+5. Agents
+6. Browser
+7. Diagnostics
+8. Verification
+9. Configuration
+
+Each slice dropdown's first item is **General**:
+
+- User: `docs/user-docs/<slice>/index.md`
+- Developer: `docs/developer-guide/<slice>/index.md`
+
+One non-slice category is allowed:
+
+- User Docs: **Start** — Downloads, Setup, Releases, Limitations, Roadmap
+- Developer Guide: **Repo** — architecture rules, testing, packaging, CI, mobile store shipping, `au-debug`, design-system consumption, telemetry
+
+Definition sources for a slice are that pair of General pages, not a client-named page. MCP is a protocol: each developer General lists that slice's tools and routes. A one-line attach note lives on the Developer Guide index.
+
+## Page standard
+
+Every General uses this reading order, encoded as design-system docs components:
+
+1. `DocEyebrow` — slice name plus `Available` / `Preview` / `Experimental` / `Planned`
+2. page title — larger than product chrome (`clamp(2.25rem, 4vw, 2.75rem)`, weight 700)
+3. `DocWhat` — what this page is, for a first-time reader, three sentences max. This is the dek under the title. Do not open with a Remember pane.
+4. Developer only: `DocMeta` — owner, tests, MCP, REST as a quiet definition list, not a card
+5. optional `DocCallout` / `DocFocus` — a rule that only makes sense after the dek. Never the first content. A warning may hold `DocFact` rows when the caution is a list, such as packaged versus repository Server URLs. Do not put those gotchas in `DocFacts`.
+6. `DocSpine` — three equal beats. No default highlight. Highlight a beat only when it is the current step of an in-page procedure.
+7. `DocContract` — the one featured command, JSON key, or route
+8. optional `DocFork`, `DocFacts`, `DocSurfaces` — only where they add information the dek did not already say
+9. body sections as `h2`s — `DocSteps`, `DocFacts`, and `DocCallout` instead of undifferentiated paragraphs and CLI dumps
+10. `DocNext` — last on the page, after the body
+
+Subpages in a slice dropdown may assume the slice name from General, not the whole General. They still open with what *this* page is.
+
+Give each structural block enough space and a distinct treatment so it reads as one unit. Do not box every component the same way. Do not open with a project list. User Generals never explain Avalonia, Expo, or solution layout.
+
 # Architecture
 
 Agent-Up is organized around one rule:
@@ -109,6 +167,15 @@ AgentUp.AUDebug/
 AgentUp.CommitPolicy/
   AgentUp.CommitPolicy.csproj
 
+AgentUp.Verification/
+  AgentUp.Verification.csproj
+
+AgentUp.Tray/
+  AgentUp.Tray.csproj
+
+AgentUp.InstallerConfig/
+  AgentUp.InstallerConfig.csproj
+
 AgentUp.InstallerApp/
   AgentUp.InstallerApp.csproj
 
@@ -163,6 +230,15 @@ AgentUp.AUDebug.Tests/
 AgentUp.CommitPolicy.Tests/
   AgentUp.CommitPolicy.Tests.csproj
 
+AgentUp.Verification.Tests/
+  AgentUp.Verification.Tests.csproj
+
+AgentUp.Tray.Tests/
+  AgentUp.Tray.Tests.csproj
+
+AgentUp.InstallerConfig.Tests/
+  AgentUp.InstallerConfig.Tests.csproj
+
 AgentUp.Architecture.Tests/
   AgentUp.Architecture.Tests.csproj
 
@@ -187,14 +263,16 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Capabilities.Codex` | First-party Codex ACP adapter, Codex CLI discovery, validation, and ACP launch planning |
 | `AgentUp.Capabilities.Cursor` | First-party Cursor ACP adapter, Cursor Agent CLI discovery, validation, and ACP launch planning |
 | `AgentUp.Capabilities.Claude` | First-party Claude ACP adapter, Claude Code CLI discovery, validation, and ACP launch planning |
-| `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded/shared browser views |
+| `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded WebView browser views |
 | `AgentUp.Mobile/` | Expo and React Native client for Android, iOS, and the installable web PWA; displays Server-owned state and submits user requests |
 | `AgentUp.DesignSystem/` | Canonical HTML/CSS product, documentation, and marketing design contract; generates the React Native, CommonJS, and Avalonia resource and style bindings consumed by Agent-Up surfaces and external marketing repositories |
 | `AgentUp.WebAudit/` | Publishable `@agent-up/audit` TypeScript browser client for sending managed frontend audit events to the Server; owns no audit state |
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities; its legacy independent local commit queue remains only for repositories that have not enabled the Server-owned Git proposal queue |
 | `AgentUp.AUDebug` | Maintainer visual-debug CLI (`au-debug`) that hosts repo Desktop, Mobile, and docs together for screenshot and UI-flow inspection |
 | `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues |
-| `AgentUp.Verification` | Owns `agent-up.json`'s `verification` schema, the static path-rule check resolver, and the content-addressed receipt ledger used by the Server MCP verification tools and the `agentup verify` CLI. Never reads the commit queue, which is what keeps the commit module optional |
+| `AgentUp.Verification` | Owns `agent-up.json`'s `verification` schema, the static path-rule check resolver, and the content-addressed receipt ledger used by the Server MCP verification tools and the `agent-up verify` CLI. Never reads the commit queue, which is what keeps the commit module optional |
+| `AgentUp.Tray` | Installed Server companion that keeps a login autostart entry and heartbeats `POST /api/tray/heartbeat` so the Server knows a workstation session is present |
+| `AgentUp.InstallerConfig` | Agent-Up product installer identity and repository `.env` loading used by Server, Desktop, and CLI |
 | `LocalInstaller.Core` | Product-neutral installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
 | `LocalInstaller.App` | Product-neutral Avalonia installer dashboard over platform installer adapters and installer-owned capability catalog state; no compile-time dependency on `AgentUp.Capabilities.*` |
 | `LocalInstaller.Packaging` | Product-neutral release artifact staging, package metadata generation, and native packaging tool orchestration |
@@ -204,7 +282,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.PackageSmoke` | Thin Agent-Up smoke entrypoint that registers the Agent-Up smoke manifest through LocalInstaller |
 | MCP clients | Automation interface; no local orchestration |
 
-Read the full architecture guide before making structural changes: `docs/developer-guide/architecture.md`.
+Read the full architecture guide before making structural changes: `docs/developer-guide/repo/architecture.md`.
 
 # New Architecture
 
@@ -237,7 +315,7 @@ AgentUp.Server/
       Interfaces/
       Providers/
       Services/
-    Git/              (working-tree change tree, per-file diffs, selective commits)
+    Git/              (working-tree change tree, per-file diffs, selective commits, remotes, fetch/pull/push, commit log)
       Controllers/
       DTOs/
       Interfaces/
@@ -281,7 +359,7 @@ AgentUp.Desktop/
     Console/          (console output/logs for the selected application)
       Providers/
       ViewModels/
-    Git/              (right-hand Git panel: change tree, file diff modal, commit box)
+    Git/              (Commit tab Git changes surface: change tree, file diff modal, commit box, history, proposal-queue display)
       Controllers/
       DTOs/
       Interfaces/
@@ -307,7 +385,7 @@ AgentUp.CLI/
       Models/
       Providers/
       Services/
-    Commits/          (local vertical-slice commit staging queue, no Server dependency)
+    Commits/          (legacy local queue when commits.enabled is absent; otherwise a thin client of the Server proposal queue)
       Controllers/
       DTOs/
       Interfaces/
@@ -320,7 +398,7 @@ AgentUp.AUDebug/
     Host/             (au-debug up/down/status, session, log mux, 30s readiness watchdog)
     Desktop/          (desktop screenshot, login, start-workspace)
     Mobile/           (mobile screenshot, login)
-    Docs/             (docs screenshot)
+    Docs/             (docs screenshot of a hosted page, optional path/heading/full-page)
     Test/             (scoped and full visual-iteration test runs)
 
 LocalInstaller.Core/
@@ -498,7 +576,7 @@ The Server owns all orchestration:
 - Workspace registry.
 - Project path identity and optional Git worktree metadata.
 - Managed source clones and their storage root.
-- Git working-tree change trees, per-file diffs, and selective commits.
+- Git working-tree change trees, per-file diffs, selective commits, remote-tracking branches, fetch/pull/push, and a bounded commit log.
 - Process lifecycle.
 - Port allocation.
 - Authenticated HTTPS forwarding of allocated HTTP application ports.
@@ -528,7 +606,7 @@ CLI load a repository-root `.env` file when present; see `.env.example`.
 MCP routes remain unauthenticated and must accept connections only from a
 loopback address, even when the REST listener is exposed to another subnet.
 
-Full guide: `docs/developer-guide/server.md`.
+Full guide: `docs/developer-guide/workspaces/index.md`.
 
 # Client Rules
 
@@ -538,7 +616,7 @@ The Desktop is an Avalonia client for humans. It displays workspaces, browser ta
 
 Applications declared in `desktopApplications` are displayed in session-ticketed streamed application tabs. Desktop must not launch their virtual displays, capture frames, or own input/session state. Existing HTTP application tabs continue to connect directly to their allocated ports and do not use the streaming path.
 
-It connects to one Server at a time and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. It must not own runtime state; its Git panel displays the Server-owned proposal queue, including entry order, messages, and verification state. Full guide: `docs/developer-guide/desktop.md`.
+It connects to one Server at a time and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. It must not own runtime state; its Commit tab Git changes surface displays the Server-owned proposal queue, including entry order, messages, and verification state. Full guide: `docs/developer-guide/workspaces/index.md` and `docs/developer-guide/applications/index.md`.
 
 Installed Desktop packages must install or depend on a local Server service rather than embedding orchestration in the Desktop process.
 
@@ -546,13 +624,13 @@ Installed Desktop packages must install or depend on a local Server service rath
 
 The CLI is a thin developer convenience wrapper over Server capabilities.
 
-It should forward commands such as restart, stop, status, and logs to the Server. User guide: `docs/user-docs/cli.md`.
+It should forward commands such as restart, stop, status, and logs to the Server. User guide: `docs/user-docs/workspaces/index.md`.
 
 ## AUDebug
 
 `AgentUp.AUDebug` (`au-debug`) is a maintainer visual-debug CLI. It hosts the repository Server, Desktop, Mobile web export, and docs site together so agents can screenshot and drive login/workspace flows without using a packaged install. It is not an orchestration owner and is not a packaged product.
 
-Full guide: `docs/developer-guide/au-debug.md`.
+Full guide: `docs/developer-guide/repo/au-debug.md`.
 
 ## Mobile
 
@@ -564,19 +642,19 @@ Mobile application spaces load each application's HTTP interface in a native Web
 
 Mobile renders `desktopApplications` through the same session-ticketed Server viewer as Desktop: `react-native-webview` on Android/iOS and an iframe in the PWA. It must not proxy or own the display stream.
 
-Mobile's Git changes panel reads and displays the Server-owned proposal queue. It must not reconstruct queue ancestry or infer verification state locally.
+Each workspace has a local bottom bar with Apps, Git, and Agents overview tabs. The Git tab overview lists uncommitted changes and hosts Reload, Fetch, Pull, Push, and a History action. Force push is offered only after a rejected non-fast-forward push. Inner Git Review, History, application, and agent-chat pages return through the nav-bar back button. Mobile's Git Review page reads and displays the Server-owned proposal queue. It must not reconstruct queue ancestry or infer verification state locally.
 
 Agent sign-in on every client goes through `AgentUp.AgentAuth` (`@agent-up/agent-auth`). It branches on the transport the Server reports - `poll`, `code`, or `redirect` - and never on which agent is signing in, so the real Claude, Codex, and Cursor CLIs and the test agents drive one code path rather than parallel ones. Platform behavior lives in an adapter behind a port; the state machine stays free of React and React Native imports so it is tested under plain Node.
 
 The `redirect` transport must open an in-app WebView, not the system browser. The agent CLI's callback is bound to loopback on the Server host, so a client only completes that sign-in by observing the navigation and posting it to `POST agent/login/callback`; `Linking.openURL` hands the URL to Safari or Chrome and nothing comes back. A client must not open a sign-in link the user did not ask it to open.
 
-Developer guides: `docs/developer-guide/mobile.md`, `docs/developer-guide/mobile-store-release.md` for the store pipeline, and `docs/developer-guide/agent-sign-in.md` for the sign-in transports.
+Developer guides: `docs/developer-guide/workspaces/index.md`, `docs/developer-guide/repo/mobile-store-release.md` for the store pipeline, and `docs/developer-guide/agents/sign-in.md` for the sign-in transports.
 
 ## MCP
 
 MCP is the primary automation interface for AI agents.
 
-Agents should use MCP directly instead of shelling through the CLI when browser inspection, interaction, diagnostics, logs, screenshots, or Playwright generation are needed. Full guide: `docs/developer-guide/mcp.md`.
+Agents should use MCP directly instead of shelling through the CLI when browser inspection, interaction, diagnostics, logs, screenshots, or Playwright generation are needed. Full guide: `docs/developer-guide/index.md` and the slice Generals.
 
 Agent-Up MCP initialization instructions must tell clients to use `start_workspace` immediately when users ask to deploy, run, start, launch, serve, bring up, or open an app/workspace with Agent-Up; this means starting the local managed development environment, not deploying to cloud infrastructure. Agents should not call `list_workspaces` or `get_workspace_status` first when the current repository/worktree is known.
 
@@ -598,8 +676,8 @@ The optional root `display` object in `agent-up.json` is only for Desktop visual
 
 User docs:
 
-- `docs/user-docs/configuration.md`
-- `docs/user-docs/agent-up-json.md`
+- `docs/user-docs/configuration/index.md`
+- `docs/user-docs/configuration/reference.md`
 
 # Port Allocation
 
@@ -607,7 +685,7 @@ The Server owns all ports.
 
 Each workspace receives a dedicated contiguous port range. Applications consume only environment variables such as `WEB_PORT`, `API_PORT`, and `AUTH_PORT`.
 
-Workspace guide: `docs/user-docs/workspace.md`.
+Workspace guide: `docs/user-docs/workspaces/index.md`.
 
 # Browser Model
 
@@ -617,8 +695,8 @@ The Server manages headless browser lifecycle and stores automation state under 
 
 User docs:
 
-- `docs/user-docs/browser.md`
-- `docs/user-docs/browser-profiles.md`
+- `docs/user-docs/browser/index.md`
+- `docs/user-docs/browser/validation.md`
 
 # Browser Automation
 
@@ -628,8 +706,8 @@ Prefer structured inspection and accessibility data over raw HTML. Every interac
 
 Developer guides:
 
-- `docs/developer-guide/event-recording.md`
-- `docs/developer-guide/playwright.md`
+- `docs/developer-guide/diagnostics/events.md`
+- `docs/developer-guide/browser/validation.md`
 
 # Diagnostics
 
@@ -646,9 +724,9 @@ storage, and paginated per-application queries. Desktop renders that audit trail
 with native Avalonia controls next to each application's Console tab.
 
 Product crash reporting for Server, Desktop, CLI, and Mobile is separate from
-workspace diagnostics. See `docs/developer-guide/telemetry.md`.
+workspace diagnostics. See `docs/developer-guide/repo/telemetry.md`.
 
-Full guide: `docs/developer-guide/diagnostics.md`.
+Full guide: `docs/developer-guide/diagnostics/index.md`.
 
 # Error Handling And Validation
 
@@ -694,6 +772,9 @@ This applies to every production/test project pair once created:
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
 | `AgentUp.AUDebug` | `AgentUp.AUDebug.Tests` |
 | `AgentUp.Verification` | `AgentUp.Verification.Tests` |
+| `AgentUp.CommitPolicy` | `AgentUp.CommitPolicy.Tests` |
+| `AgentUp.Tray` | `AgentUp.Tray.Tests` |
+| `AgentUp.InstallerConfig` | `AgentUp.InstallerConfig.Tests` |
 | `AgentUp.TestAgents` | `AgentUp.TestAgents.Tests` |
 | `LocalInstaller.Core` | `LocalInstaller.Core.Tests` |
 | `LocalInstaller.App` | `LocalInstaller.App.Tests` |
@@ -718,7 +799,7 @@ All architecture rules must pass. Fix any violation before considering the task 
 
 The app it drives is `AgentUp.Mobile.E2E.App`: the real `AgentUp.Chat` and `AgentUp.AgentAuth` modules mounted with nothing around them. It exists so the suite tests sign-in rather than navigation - reaching the chat in the full client took four taps through the sidebar, a workspace list and a dashboard, every one of them a way for an unrelated change to fail this suite - and so the app it compiles is small enough to build often. The code under test is the same module the shipping client mounts; only the shell around it is missing.
 
-`AgentUp.Chat` is that module: the transcript, the permission prompts and the subscription sign-in, with no import from any app. Which workspace, which Server, and what sits behind the Changes tab all arrive as props, which is what lets the client and the harness run one implementation instead of two. It reaches a Server through `AgentUp.ServerClient`, the transport the client's own slices use.
+`AgentUp.Chat` is that module: the transcript, the permission prompts and the subscription sign-in, with no import from any app. Which workspace, which Server, and an optional Git changes panel all arrive as props, which is what lets the client and the harness run one implementation instead of two. Shipping Mobile mounts the chat without that panel. It reaches a Server through `AgentUp.ServerClient`, the transport the client's own slices use.
 
 The disposable native sign-in harness permits cleartext traffic only so its Android emulator and iOS simulator can reach ephemeral Server and identity-provider processes on the CI host. Production Mobile transport policy must not inherit that exception.
 
@@ -840,7 +921,7 @@ Avoid duplicate tests that assert the same rule through multiple layers.
 ## Test Authoring
 
 Test data is built through builders, not production constructors. `AgentUp.Verification.Tests`
-is the worked example; [Testing](docs/developer-guide/testing.md) has the detail. In short:
+is the worked example; [Testing](docs/developer-guide/repo/testing.md) has the detail. In short:
 
 - Each test project keeps its builders and its shared domain vocabulary in `Support/`:
   `ServerDomain`, `CliDomain`, `DesktopDomain`, `DebugDomain`, `VerificationDomain`. Tests
@@ -869,6 +950,8 @@ CI additionally enforces Linux Release wall-clock budgets in an independent watc
 
 # Verification
 
+The JSON field contract lives in `docs/user-docs/configuration/reference.md`. The MCP and CLI surface summary lives in `docs/developer-guide/verification/index.md`.
+
 Test selection is not an agent decision. The `verification` section of `agent-up.json` maps
 changed paths to named checks through static glob rules, and the runtime resolves them; an
 agent can see the required set but cannot narrow it.
@@ -882,11 +965,11 @@ Use the MCP verification tools on the `/mcp/verification` server:
 | `run_verification_check` | Re-run one check by id after a targeted fix |
 | `guard_verification` | Report whether every required check has a passing receipt matching the current file contents |
 
-`agentup verify coverage` has no MCP tool of its own: it runs as the `patch-coverage`
+`agent-up verify coverage` has no MCP tool of its own: it runs as the `patch-coverage`
 check inside `run_verification`, so an agent gets it automatically rather than choosing it.
 
-Developers use the CLI equivalents: `agentup verify plan`, `agentup verify run [<check-id>]`,
-and `agentup verify guard [--run] [--format hook]`.
+Developers use the CLI equivalents: `agent-up verify plan`, `agent-up verify run [<check-id>]`,
+and `agent-up verify guard [--run] [--format hook]`.
 
 ## Receipts
 
@@ -912,7 +995,7 @@ it is cheap enough to wire into a client-side `Stop` hook:
     {
       "matcher": "",
       "hooks": [
-        { "type": "command", "command": "agentup verify guard --format hook" }
+        { "type": "command", "command": "agent-up verify guard --format hook" }
       ]
     }
   ]
@@ -931,7 +1014,7 @@ Every change to mapped production code must cover at least the percentage in
 gated: on a codebase this size it barely moves per change, while patch coverage moves
 immediately.
 
-`agentup verify coverage [--min N]` measures it. The gate reads the Cobertura reports a
+`agent-up verify coverage [--min N]` measures it. The gate reads the Cobertura reports a
 test run wrote - it does not run tests itself - so the suites must collect coverage first.
 The `verification.checks` test commands already do, writing into
 `artifacts/coverage/<check>`, and `patch-coverage` carries `order: 100` so it runs after
@@ -982,7 +1065,7 @@ It is complementary, not a substitute: Codecov cannot gate a local run.
 
 ## Per-slice coverage
 
-`agentup verify slices [--min N]` reports total line coverage for every feature slice,
+`agent-up verify slices [--min N]` reports total line coverage for every feature slice,
 worst first, and fails a slice below `coverage.sliceMinimum`. Patch coverage keeps each
 change honest but says nothing about a slice that was thin before the gate existed; this is
 where that debt is visible.
@@ -1000,8 +1083,8 @@ suite additionally rejects an entry naming a slice that no longer exists.
 The check is `ciOnly`, and not out of convenience: the architecture suite instruments every
 production assembly and records no hits for code it never executes, so on a dev machine,
 where only the suites a change selects have run, a slice whose own suite was not selected
-reads as uncovered. Run it by hand after a full sweep - `agentup verify run` then
-`agentup verify slices` - and let CI enforce it.
+reads as uncovered. Run it by hand after a full sweep - `agent-up verify run` then
+`agent-up verify slices` - and let CI enforce it.
 
 `AgentUp.Architecture.Tests/Rules/SliceTestCoverage.cs` is the structural half: tests exist
 in the matching test-kind folder, and more than one of them. It cannot measure coverage,
@@ -1039,21 +1122,57 @@ receipts are the only record of what was proven.
 
 The sections below intentionally introduce each concept briefly and point to the canonical docs page. Keep AGENTS.md concise; detailed specifications belong in `docs/`.
 
-## Workspace
+## Workspaces
 
 A workspace is the unit of isolation for an agent or developer session. It is identified by project path and may include repository/worktree metadata, branch, commit, browser profile, Docker infrastructure, running processes, allocated ports, diagnostics, and event history. Non-Git project paths are valid and should display as `not on a git branch`.
 
 Workspaces may also be created by Agent-Up itself. The Server's `SourceClones` slice clones a repository at a branch into a Server-owned source clones root (`AGENTUP_SOURCE_CLONES_ROOT`, otherwise `sources` under the data directory) and registers the result, so Desktop and Mobile both list it. Only `http`, `https`, `ssh`, and `git` remotes plus the `user@host:path` form are accepted; `file://` and transport-helper remotes are rejected so a REST caller cannot make the Server read arbitrary local repositories.
 
-Read: `docs/user-docs/workspace.md`.
+Read: `docs/user-docs/workspaces/index.md` and `docs/developer-guide/workspaces/index.md`.
 
-## Git Changes
+## Applications
 
-The Server's `Git` slice exposes the selected workspace's uncommitted changes as a directory tree, per-file diffs, and a commit that stages only the requested paths. It is the human review-and-commit surface rendered by the Desktop Git panel and the Mobile Git tab, and it is deliberately separate from the `Commits` slice, which owns the agent-facing commit queue described under Commit Workflow.
+Managed applications are local processes, Docker services, and hosted Linux GUI processes. They consume allocated ports through environment variables, not hardcoded localhost values. Console, metrics, and the database explorer are application subfeatures.
+
+Read: `docs/user-docs/applications/index.md` and `docs/developer-guide/applications/index.md`.
+
+## Git
+
+The Server's `Git` slice exposes the selected workspace's uncommitted changes as a directory tree, per-file diffs, a commit that stages only the requested paths, remote-tracking branches, fetch/pull/push, and a bounded commit log. It is the human review-and-commit surface rendered by the Desktop Commit tab and the Mobile Git tab, and it is deliberately separate from the `Commits` slice, which owns the agent-facing commit queue described under Commit Workflow.
 
 Coding agents must still use the commit queue tools. The `Git` slice is a product surface for humans, not an escape hatch around `enqueue_commit`.
 
-Read: `docs/user-docs/git-changes.md`.
+Read: `docs/user-docs/git/index.md` and `docs/developer-guide/git/index.md`.
+
+## Commits
+
+The agent queue is the **commit queue** (legacy local) or **proposal queue** when `commits.enabled` is true. Desktop Commit and Mobile Review display that queue; they do not mutate it. Agents enqueue through MCP.
+
+Read: `docs/user-docs/commits/index.md` and `docs/developer-guide/commits/index.md`.
+
+## Agents
+
+Each workspace has one ACP agent session. Desktop chrome for the live session is the **Agent** tab; Mobile chrome for the picker is the **Agents** tab. Subscription sign-in is Server-owned.
+
+Read: `docs/user-docs/agents/index.md` and `docs/developer-guide/agents/index.md`.
+
+## Browser
+
+Agent-Up keeps browser sessions tied to workspaces. Developers use Desktop or Mobile WebViews; agents use the Server headless profile. Those surfaces do not share cookies, storage, or navigation state. Restarting applications should reload the existing surface for that workspace rather than create more tabs.
+
+Read: `docs/user-docs/browser/index.md` and `docs/developer-guide/browser/index.md`.
+
+## Diagnostics
+
+Diagnostics make AI validation practical by exposing process, browser, network, console, health, and performance information from the live workspace.
+
+Read: `docs/user-docs/diagnostics/index.md` and `docs/developer-guide/diagnostics/index.md`.
+
+## Verification
+
+Path-rule checks, receipts, and coverage stay in Verification. Verification never reads the commit queue.
+
+Read: `docs/user-docs/verification/index.md` and `docs/developer-guide/verification/index.md`.
 
 ## Configuration
 
@@ -1061,65 +1180,13 @@ Agent-Up uses declarative repository configuration through `agent-up.json`. Appl
 
 Capability sections such as `dotnet` and `docker` are the preferred shape for ecosystem-aware requirements. Capability adapters discover system and Agent-Up-managed versions, reconcile declared requirements, return structured mismatch status, and produce Server-owned launch plans. The legacy `applications` list remains supported for executable-plus-arguments commands, and legacy Docker `services` remain supported for compatibility.
 
-Read: `docs/user-docs/configuration.md` and `docs/user-docs/agent-up-json.md`.
-
-## Browser
-
-Agent-Up keeps browser sessions tied to workspaces so developers and agents share authentication and navigation state. Restarting applications should reload the existing workspace browser session rather than create more tabs.
-
-Read: `docs/user-docs/browser.md` and `docs/user-docs/browser-profiles.md`.
-
-## Server
-
-The Server is the runtime authority for Agent-Up. It owns orchestration, state, lifecycle, diagnostics, MCP, and REST APIs.
-
-Read: `docs/developer-guide/server.md`.
-
-## Desktop
-
-The Desktop is the Avalonia UI for humans. It presents Server-owned workspace state and manages its own embedded WebView browser sessions separately from Server headless automation profiles.
-
-**Per-workspace browser isolation:** Each workspace gets a Server-owned browser profile and headless automation session for MCP tools. Desktop displays running applications through a direct embedded WebView connection to the allocated HTTP port and must not own browser lifecycle, profile storage, or automation viewport policy.
-
-Read: `docs/developer-guide/desktop.md`.
-
-## CLI
-
-The CLI is a convenience client for humans. It forwards commands to the Server and owns no runtime state.
-
-Read: `docs/user-docs/cli.md`.
+Read: `docs/user-docs/configuration/index.md` and `docs/developer-guide/configuration/index.md`.
 
 ## AUDebug
 
-`au-debug` hosts repo Desktop, Mobile, and docs for visual comparison. One-shot commands use a 30 second watchdog. Probe the host with `au-debug status` instead of curling ports or searching windows. Run visual-iteration checks with `au-debug test <suite>` or `au-debug test`. Rebuild generated design-system bindings with `au-debug build design-system`, and Mobile typecheck plus web export with `au-debug build mobile`. Do not invoke those npm or `dotnet test` commands directly when an `au-debug` wrap exists. Read: `docs/developer-guide/au-debug.md`.
+`au-debug` hosts repo Desktop, Mobile, and docs for visual comparison. One-shot commands use a 30 second watchdog. Probe the host with `au-debug status` instead of curling ports or searching windows. Capture a hosted docs page with `au-debug docs screenshot [path]`; add `--heading <text>` to scroll that heading into view, or `--full-page` to capture the whole document. Run visual-iteration checks with `au-debug test <suite>` or `au-debug test`. Rebuild generated design-system bindings with `au-debug build design-system`, and Mobile typecheck plus web export with `au-debug build mobile`. Do not invoke those npm or `dotnet test` commands directly when an `au-debug` wrap exists. Read: `docs/developer-guide/repo/au-debug.md`.
 
-## MCP
-
-The MCP servers are the main automation interface for AI agents. The Server exposes Orchestration MCP at `/mcp/orchestration` for workspace resources, orchestration tools, and live workspace console snapshots; Browser MCP at `/mcp/browser` for browser automation; Audit MCP at `/mcp/audit` for durable action history and artifacts; and Commits MCP at `/mcp/commits` for commit queue tools. Clients must connect to the specific MCP server they need instead of the former shared `/mcp` endpoint.
-
-Agent-Up validation is a feedback loop: call `start_workspace`, use the returned workspace id and allocated ports for Browser MCP validation, and if browser navigation, inspection, waiting, screenshots, or interaction fails or times out, inspect the workspace console first through Orchestration MCP `get_workspace_console`. If that tool is unavailable, query Audit MCP for recent `application` events from `process` for the workspace before trying more browser actions. Console output is the first diagnostic source for missing dependencies, failed commands, port binding errors, Docker startup failures, and build/runtime crashes.
-
-Read: `docs/developer-guide/mcp.md`.
-
-## Event Recording
-
-Every browser interaction and relevant runtime signal should become an event. The event stream is the canonical history used for diagnostics, workflow inference, and future automation.
-
-Browser navigation is restricted to loopback URLs on the workspace's allocated HTTP application ports unless an explicit external allowlist is introduced for flows such as OAuth providers. Browser screenshots are Server-managed audit artifacts. Screenshot tools should return bounded MCP image content for immediate agent inspection plus an opaque artifact id for later Audit MCP lookup, not temporary filesystem paths. Captured application console lines should be mirrored into durable audit events without breaking the active workspace session if audit recording fails.
-
-Read: `docs/developer-guide/event-recording.md`.
-
-## Playwright Generation
-
-Playwright tests should be generated from recorded intent and outcomes, not brittle raw click replay. Prefer semantic locators and inferred assertions.
-
-Read: `docs/developer-guide/playwright.md`.
-
-## Diagnostics
-
-Diagnostics make AI validation practical by exposing process, browser, network, console, health, and performance information from the live workspace.
-
-Read: `docs/developer-guide/diagnostics.md`.
+MCP is a protocol, not a slice. Attach to `/mcp/orchestration`, `/mcp/browser`, `/mcp/audit`, `/mcp/commits`, and `/mcp/verification`. Each developer General lists that slice's tools. See `docs/developer-guide/index.md`.
 
 ## Product telemetry
 
@@ -1128,17 +1195,17 @@ Workspace and application diagnostics stay in Server audit. Unset DSN is a
 no-op. Do not mint Sentry tokens at runtime. Cluster Helm DSNs are written
 by the GitOps sentry-configurator Job, not by the Sentry UI.
 
-Read: `docs/developer-guide/telemetry.md`.
+Read: `docs/developer-guide/repo/telemetry.md`.
 
 ## Workflows
 
 The target AI workflow is: modify code, restart workspace, wait until healthy, inspect page, interact, validate, screenshot, generate Playwright, commit.
 
-Read: `docs/developer-guide/workflows.md`.
+Read: `docs/developer-guide/workspaces/workflows.md`.
 
 ## Commit Workflow
 
-Coding agents must not run `git commit`, `git add`, or `git stash` directly. Instead, use the MCP `enqueue_commit` tool to declare each vertical-slice commit at the end of a task. Use `enqueue_review_fix_commit` when fixing a pull request review issue; each queued review-fix entry must represent exactly one review issue id. The developer then runs `agentup commits next` to stage each entry in isolation, reviews the diff in their editor, and commits manually.
+Coding agents must not run `git commit`, `git add`, or `git stash` directly. Instead, use the MCP `enqueue_commit` tool to declare each vertical-slice commit at the end of a task. Use `enqueue_review_fix_commit` when fixing a pull request review issue; each queued review-fix entry must represent exactly one review issue id. The developer then runs `agent-up commits next` to stage each entry in isolation, reviews the diff in their editor, and commits manually.
 
 Agent responsibility: manage queue entries only through structured MCP commit queue tools. Never `commits next`, never `git add`, never `git commit`, never `git stash`. After all enqueue or queue-editing calls, run `get_commits_status` so the developer can see the queue — then stop. The developer runs `commits next` themselves.
 
@@ -1146,9 +1213,9 @@ Before starting a new coding task, agents should run the structured MCP `guard_c
 
 Agents should use structured commit queue MCP tools for enqueue, queue inspection, metadata edits, file assignment, edit sessions, archive/restore, clear, and guard operations instead of shelling through commit CLI commands. `commits next` remains developer-only because it stages files and advances the review queue.
 
-The MCP `enqueue_commit` tool intentionally restores tracked files to their pre-change state after saving the queued patch. Agents must treat that restoration as expected queue behavior and must not re-apply or modify those files after a successful enqueue; the queue owns them until the developer runs `agentup commits next`.
+The MCP `enqueue_commit` tool intentionally restores tracked files to their pre-change state after saving the queued patch. Agents must treat that restoration as expected queue behavior and must not re-apply or modify those files after a successful enqueue; the queue owns them until the developer runs `agent-up commits next`.
 
-MCP servers cannot register server-side post-job lifecycle hooks. Claude Code users can wire a client-side `Stop` hook to run `agentup commits guard` and print a reminder when tracked files are dirty but not assigned to a queued entry:
+MCP servers cannot register server-side post-job lifecycle hooks. Claude Code users can wire a client-side `Stop` hook to run `agent-up commits guard` and print a reminder when tracked files are dirty but not assigned to a queued entry:
 
 ```json
 "hooks": {
@@ -1158,7 +1225,7 @@ MCP servers cannot register server-side post-job lifecycle hooks. Claude Code us
       "hooks": [
         {
           "type": "command",
-          "command": "agentup commits guard 2>/dev/null | grep -q 'modified file(s) are not assigned' && echo '[agent-up] Unqueued changes detected - run: agentup commits enqueue' || true"
+          "command": "agent-up commits guard 2>/dev/null | grep -q 'modified file(s) are not assigned' && echo '[agent-up] Unqueued changes detected - run: agent-up commits enqueue' || true"
         }
       ]
     }
@@ -1179,33 +1246,33 @@ One `enqueue` call per logical vertical slice. All files for a slice go in a sin
 
 Mutating commit queue operations are blocked while Git has an active merge, rebase, cherry-pick, revert, or bisect in progress. Finish or abort that Git operation before changing or advancing the queue.
 
-Use `agentup commits changes` to inspect the working tree and queue assignment instead of composing raw `git ls-files`, `find`, `grep`, `tr`, or similar shell pipelines.
+Use `agent-up commits changes` to inspect the working tree and queue assignment instead of composing raw `git ls-files`, `find`, `grep`, `tr`, or similar shell pipelines.
 
 Queued entries must be manipulated through the commit queue commands:
 
 ```bash
-agentup commits inspect <entry>
-agentup commits message <entry> --message "<conventional commit message>"
-agentup commits files <entry> --add <file1> [file2 ...]
-agentup commits files <entry> --remove <file1> [file2 ...]
-agentup commits remove <entry>
-agentup commits restore <entry-id>
+agent-up commits inspect <entry>
+agent-up commits message <entry> --message "<conventional commit message>"
+agent-up commits files <entry> --add <file1> [file2 ...]
+agent-up commits files <entry> --remove <file1> [file2 ...]
+agent-up commits remove <entry>
+agent-up commits restore <entry-id>
 ```
 
 To change an existing queued patch, use an explicit edit session:
 
 ```bash
-agentup commits edit begin <entry>
+agent-up commits edit begin <entry>
 # modify only files owned by that entry
-agentup commits edit save
+agent-up commits edit save
 ```
 
-The working tree must be clean before starting an edit session. `edit save` rejects cross-cutting changes outside the entry's file list; add same-slice files with `agentup commits files <entry> --add ...` before saving. Use `agentup commits edit abort` to discard the working-tree edit and keep the original queued patch.
+The working tree must be clean before starting an edit session. `edit save` rejects cross-cutting changes outside the entry's file list; add same-slice files with `agent-up commits files <entry> --add ...` before saving. Use `agent-up commits edit abort` to discard the working-tree edit and keep the original queued patch.
 
 Before any operation that would publish work outside the local workspace, run:
 
 ```bash
-agentup commits guard
+agent-up commits guard
 ```
 
 If the guard reports queued entries, an active edit session, staged changes, or unassigned changes, stop and ask the developer to commit or resolve the queued work first.
@@ -1228,9 +1295,9 @@ Scope commit messages to the queued slice, for example `fix(UbuntuInstallation):
 
 ## Packaging And Installers
 
-The Agent-Up main release workflow publishes `@agent-up/audit` to npm with the planned release version when `NPM_TOKEN` is configured. The same release also publishes the Server container and `agent-up-helm` chart to Docker Hub (`themassiveone/agent-up-server` and `themassiveone/agent-up-helm`) when `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are configured. Android and iOS store binaries ship from `.github/workflows/mobile-ci.yaml` on `workflow_dispatch`; see `docs/developer-guide/mobile-store-release.md`. Path-filtered pushes of that workflow only smoke-build and sign. Helm `capabilities` values list every first-party capability as an object with `disabled` and `versions`, plus optional `command`, `arguments`, and `versionArguments` for ACP adapters, then write enabled entries to Agent-Up capability inventory the same way NixOS `services.agent-up.capabilities` does. The Server image includes `git` and the Codex, Cursor, and Claude ACP CLIs from a repository-locked npm install and checksum-verified Node and Cursor archives, and links the nested `codex` CLI next to `codex-acp` for ChatGPT device-code subscription login; chart defaults enable those three ACP capabilities against `/opt/agent-up/bin`.
+The Agent-Up main release workflow publishes `@agent-up/audit` to npm with the planned release version when `NPM_TOKEN` is configured. The same release also publishes the Server container and `agent-up-helm` chart to Docker Hub (`themassiveone/agent-up-server` and `themassiveone/agent-up-helm`) when `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are configured. Android and iOS store binaries ship from `.github/workflows/mobile-ci.yaml` on `workflow_dispatch`; see `docs/developer-guide/repo/mobile-store-release.md`. Path-filtered pushes of that workflow only smoke-build and sign. Helm `capabilities` values list every first-party capability as an object with `disabled` and `versions`, plus optional `command`, `arguments`, and `versionArguments` for ACP adapters, then write enabled entries to Agent-Up capability inventory the same way NixOS `services.agent-up.capabilities` does. The Server image includes `git` and the Codex, Cursor, and Claude ACP CLIs from a repository-locked npm install and checksum-verified Node and Cursor archives, and links the nested `codex` CLI next to `codex-acp` for ChatGPT device-code subscription login; chart defaults enable those three ACP capabilities against `/opt/agent-up/bin`.
 
-Installer and packaging behavior is testable product behavior. `agentup verify run linux-smoke` publishes the Linux payloads and packaging/smoke tools, creates the Ubuntu package, and validates the packaged Server and CLI locally; because it performs full self-contained publishes it belongs to the `platform` tier rather than the fast tier. macOS and Windows smoke checks remain CI-only because they consume cross-published artifacts on their native runners. Shared installer planning, payload, adapter, progress, validation, per-component install/update/uninstall/repair, and platform install contracts belong in `LocalInstaller.Core`, with matching tests in `LocalInstaller.Core.Tests`. The shared InstallerApp UX belongs in `LocalInstaller.App`, with Avalonia headless tests in `LocalInstaller.App.Tests` and native-display Agent-Up flow tests in `AgentUp.Tests`; the dashboard includes an explicit refresh action that rechecks installed component and capability-module state for newly available versions. Product entrypoints use the LocalInstaller fluent API to register typed product and artifact manifests; each installable executable owns its artifact manifest, and `Program.cs` files should stay limited to product, installer option, and app startup configuration with no platform-specific installer plumbing. Multiple installer options may share a target category such as CLI or Server, but each option must have a unique artifact ID and payload directory. The installer app uses real platform adapters by default when `AGENTUP_INSTALLER_PAYLOAD_ROOT` points at a staged payload, supports noninteractive operation smoke through `AgentUp.InstallerApp --smoke-installer-operations --payload-root <payload-root>` that exercises individual component operations before bundled core install, treats Server as including tray payload and login autostart, and tests opt into fake adapters with `AGENTUP_INSTALLER_FAKE=1`. Native package formats should wrap or launch that dashboard rather than owning divergent install flows. Ubuntu package postinstall must install the dashboard launcher without auto-launching it; Ubuntu Desktop and InstallerApp launchers declare `StartupWMClass` for taskbar icon matching. Windows installer-owned tray autostart is machine-level so elevated install context does not register only the administrator user. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `LocalInstaller.Packaging`, with matching tests in `LocalInstaller.Packaging.Tests`; thin `AgentUp.Packaging` only registers Agent-Up product metadata and delegates to LocalInstaller. CI packaging must use prebuilt InstallerApp, Desktop, Server, CLI, Tray, Packaging, PackageSmoke, and AgentUp.Tests artifacts from the Ubuntu .NET payload job so native release runners do not restore, build, or test product .NET projects. Native package jobs wait on the payload, test, GUI test, and coverage jobs plus version. CI builds `Plugins/Jetbrains` with the planned release version injected through Gradle and publishes `agent-up-jetbrains-plugin.zip` as a GitHub release asset. When `JETBRAINS_MARKETPLACE_TOKEN` is configured, CI also publishes the JetBrains plugin to Marketplace after the GitHub release succeeds. Shared package and installed-service smoke validation belongs in `LocalInstaller.Smoke`, with matching tests in `LocalInstaller.Smoke.Tests`; thin `AgentUp.PackageSmoke` only registers Agent-Up smoke product metadata and delegates to LocalInstaller. PackageSmoke accepts `--product-manifest <path>` so package, installed-service, and installer-flow smoke can run for a second product without recompilation. Installed-service smoke installs the native package, runs the installed InstallerApp with its installed payload root and `--install-core`, then delegates service, CLI, diagnostics, and uninstall checks to PackageSmoke. Native package assets stay under `packaging/` and should consume shared installer contracts rather than accumulating untested script-only behavior.
+Installer and packaging behavior is testable product behavior. `agent-up verify run linux-smoke` publishes the Linux payloads and packaging/smoke tools, creates the Ubuntu package, and validates the packaged Server and CLI locally; because it performs full self-contained publishes it belongs to the `platform` tier rather than the fast tier. macOS and Windows smoke checks remain CI-only because they consume cross-published artifacts on their native runners. Shared installer planning, payload, adapter, progress, validation, per-component install/update/uninstall/repair, and platform install contracts belong in `LocalInstaller.Core`, with matching tests in `LocalInstaller.Core.Tests`. The shared InstallerApp UX belongs in `LocalInstaller.App`, with Avalonia headless tests in `LocalInstaller.App.Tests` and native-display Agent-Up flow tests in `AgentUp.Tests`; the dashboard includes an explicit refresh action that rechecks installed component and capability-module state for newly available versions. Product entrypoints use the LocalInstaller fluent API to register typed product and artifact manifests; each installable executable owns its artifact manifest, and `Program.cs` files should stay limited to product, installer option, and app startup configuration with no platform-specific installer plumbing. Multiple installer options may share a target category such as CLI or Server, but each option must have a unique artifact ID and payload directory. The installer app uses real platform adapters by default when `AGENTUP_INSTALLER_PAYLOAD_ROOT` points at a staged payload, supports noninteractive operation smoke through `AgentUp.InstallerApp --smoke-installer-operations --payload-root <payload-root>` that exercises individual component operations before bundled core install, treats Server as including tray payload and login autostart, and tests opt into fake adapters with `AGENTUP_INSTALLER_FAKE=1`. Native package formats should wrap or launch that dashboard rather than owning divergent install flows. Ubuntu package postinstall must install the dashboard launcher without auto-launching it; Ubuntu Desktop and InstallerApp launchers declare `StartupWMClass` for taskbar icon matching. Windows installer-owned tray autostart is machine-level so elevated install context does not register only the administrator user. Release artifact staging, package metadata generation, and native packaging tool orchestration belongs in `LocalInstaller.Packaging`, with matching tests in `LocalInstaller.Packaging.Tests`; thin `AgentUp.Packaging` only registers Agent-Up product metadata and delegates to LocalInstaller. CI packaging must use prebuilt InstallerApp, Desktop, Server, CLI, Tray, Packaging, PackageSmoke, and AgentUp.Tests artifacts from the Ubuntu .NET payload job so native release runners do not restore, build, or test product .NET projects. Native package jobs wait on the payload, test, GUI test, and coverage jobs plus version. CI builds `Plugins/Jetbrains` with the planned release version injected through Gradle and publishes `agent-up-jetbrains-plugin.zip` as a GitHub release asset. When `JETBRAINS_MARKETPLACE_TOKEN` is configured, CI also publishes the JetBrains plugin to Marketplace after the GitHub release succeeds. Shared package and installed-service smoke validation belongs in `LocalInstaller.Smoke`, with matching tests in `LocalInstaller.Smoke.Tests`; thin `AgentUp.PackageSmoke` only registers Agent-Up smoke product metadata and delegates to LocalInstaller. PackageSmoke accepts `--product-manifest <path>` so package, installed-service, and installer-flow smoke can run for a second product without recompilation. Installed-service smoke installs the native package, runs the installed InstallerApp with its installed payload root and `--install-core`, then delegates service, CLI, diagnostics, and uninstall checks to PackageSmoke. Native package assets stay under `packaging/` and should consume shared installer contracts rather than accumulating untested script-only behavior.
 
 The standalone LocalInstaller repository owns the LocalInstaller release workflow. It plans versions with semantic-release using `localinstaller-v${version}` tags, builds/tests/packs `localinstaller.sln` with the planned `LocalInstallerVersion`, publishes self-contained `LocalInstaller.Sample.*` payloads from the Ubuntu build leg, packages those sample payloads on native Ubuntu, macOS, and Windows runners through `LocalInstaller.Sample.Packager`, smoke-validates them through `LocalInstaller.Sample.Smoke`, and creates a `main`-only GitHub release containing `LocalInstaller.*.nupkg` plus sample native installer assets. NuGet publishing is optional and must run only when `NUGET_API_KEY` is configured.
 
@@ -1248,7 +1315,7 @@ macOS `.pkg` artifacts install only `Agent-Up Installer.app`. The installer app 
 
 Packaging from NixOS or other non-native hosts should use the wrapper scripts in `scripts/package-*.sh`, which enter target-specific shells from `packaging/nix/` before delegating to the packaging entrypoint. NixOS installs Agent-Up declaratively through generated NixOS/Home Manager module options; `AgentUp.InstallerApp` is still shipped as a lookup-only dashboard through `agent-up-installer`, with install/update/uninstall actions disabled and capability versions read from Agent-Up capability inventory. Runtime capability lookup reads `AGENTUP_CAPABILITY_INVENTORY_PATH` when set, then `/etc/agent-up/capabilities.json`, `~/.config/agent-up/capabilities.local.json`, `~/.config/agent-up/capabilities.json`, and `.agent-up-dev/capabilities.json` walking up from the Server working directory, merging entries by capability id. Earlier files win for a field; later files fill unspecified fields, so the user overlay takes precedence over the user installment file. Server and Desktop installments share that inventory; entries may declare `command`, `arguments`, and `versionArguments` so Codex, Cursor, and Claude adapters launch a PATH name or a rooted version on disk instead of a hardcoded executable. First-party .NET and Docker discovery still probes common platform package-manager records. `nix-shell shell.nix` writes a local inventory under `.agent-up-dev` for workstation ACP testing. Installed-service smoke launches one .NET app and one Docker app through capability declarations and validates individual app stop/start plus workspace stop unless `AGENTUP_CAPABILITY_SMOKE_SKIP_REAL=1` is set for constrained runs; the generated .NET smoke app is restored and built before `agent-up start` so lifecycle validation does not depend on first-run SDK restore/build timing. The Docker sample uses `nginx:alpine` on Linux and macOS and a matching Windows IIS image on Windows runners, with `AGENTUP_CAPABILITY_SMOKE_DOCKER_IMAGE` available for CI pre-pull/override. macOS packaging still requires Darwin because Apple package, signing, and notarization tools are not available on Linux.
 
-Read: `docs/developer-guide/packaging.md`.
+Read: `docs/developer-guide/repo/packaging.md`.
 
 ## Design Principles
 
@@ -1272,12 +1339,12 @@ surface, and accent-tinted hover states are retired. Public claims must follow t
 `AgentUp.DesignSystem/brand/voice.json`. Real current product screenshots are
 preferred over reconstructed interfaces; planned UI must be labeled visibly.
 
-Read: `docs/developer-guide/design-system.md`.
+Read: `docs/developer-guide/repo/design-system.md`.
 
-Read: `docs/developer-guide/design-principles.md`.
+Read: `docs/developer-guide/repo/design-principles.md`.
 
 ## Roadmap
 
 Agent-Up should evolve into the runtime operating system for AI-assisted development while Git manages source, Docker manages containers, and IDEs manage editing.
 
-Read: `docs/user-docs/roadmap.md`.
+Read: `docs/user-docs/start/roadmap.md`.

@@ -149,7 +149,7 @@ public sealed class HostControllerTests
         var mobile = new MobileController(
             new MobileCommandService(new FakeWebScreenshotDriver(), new FakeMobileSurfaceDriver(), new FakeWorkspaceClient(), sessions, new FakeEnvironment()));
         var docs = new DocsController(
-            new DocsCommandService(new FakeWebScreenshotDriver(), sessions));
+            new DocsCommandService(new FakeDocsPageCapture(), sessions));
         var testController = new TestController(
             new TestCommandService(new DebugTestSuiteCatalog(), tests ?? new FakeTestProcessRunner(), output));
         return new HostController(host, desktop, mobile, docs, testController, new DebugArgParser(), debugOutput);

@@ -4,37 +4,95 @@ const sidebars = {
     'index',
     {
       type: 'category',
-      label: 'Getting Started',
+      label: 'Start',
+      collapsed: true,
       items: [
-        'downloads',
-        'setup',
-        'workspace',
-        'configuration',
-        {
-          type: 'category',
-          label: 'agent-up.json',
-          items: [
-            'agent-up-json',
-            'agent-up-json-reference',
-            'agent-up-json-environment',
-            'agent-up-json-examples',
-          ],
-        },
-        'releases',
-        'limitations',
+        'start/downloads',
+        'start/setup',
+        'start/releases',
+        'start/limitations',
+        'start/roadmap',
       ],
     },
     {
       type: 'category',
-      label: 'Using Workspaces',
+      label: 'Workspaces',
+      collapsed: true,
       items: [
-        'cli',
-        'git-changes',
-        'browser',
-        'browser-profiles',
+        { type: 'doc', id: 'workspaces/index', label: 'General' },
       ],
     },
-    'roadmap',
+    {
+      type: 'category',
+      label: 'Applications',
+      collapsed: true,
+      items: [
+        { type: 'doc', id: 'applications/index', label: 'General' },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Git',
+      collapsed: true,
+      items: [
+        { type: 'doc', id: 'git/index', label: 'General' },
+        'git/review',
+        'git/history',
+        'git/remotes',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Commits',
+      collapsed: true,
+      items: [
+        { type: 'doc', id: 'commits/index', label: 'General' },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Agents',
+      collapsed: true,
+      items: [
+        { type: 'doc', id: 'agents/index', label: 'General' },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Browser',
+      collapsed: true,
+      items: [
+        { type: 'doc', id: 'browser/index', label: 'General' },
+        'browser/validation',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Diagnostics',
+      collapsed: true,
+      items: [
+        { type: 'doc', id: 'diagnostics/index', label: 'General' },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Verification',
+      collapsed: true,
+      items: [
+        { type: 'doc', id: 'verification/index', label: 'General' },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Configuration',
+      collapsed: true,
+      items: [
+        { type: 'doc', id: 'configuration/index', label: 'General' },
+        'configuration/reference',
+        'configuration/environment',
+        'configuration/examples',
+      ],
+    },
   ],
 };
 

@@ -7,17 +7,27 @@ export function AppNavBar() {
   const insets = useSafeAreaInsets();
   const { config, openSidebar } = useAppShell();
   const rightAction = config.rightAction;
+  const backAction = config.backAction;
 
   return (
     <View style={[styles.bar, { paddingTop: insets.top + 8 }]}>
-      <Pressable
-        testID="open-sidebar"
-        accessibilityRole="button"
-        accessibilityLabel="Open sidebar"
-        onPress={openSidebar}
-        style={styles.stackButton}>
-        <Text style={styles.stackIcon}>☰</Text>
-      </Pressable>
+      {backAction
+        ? <Pressable
+            testID="nav-back"
+            accessibilityRole="button"
+            accessibilityLabel={backAction.accessibilityLabel ?? backAction.label}
+            onPress={backAction.onPress}
+            style={styles.stackButton}>
+            <Text style={styles.stackIcon}>‹</Text>
+          </Pressable>
+        : <Pressable
+            testID="open-sidebar"
+            accessibilityRole="button"
+            accessibilityLabel="Open sidebar"
+            onPress={openSidebar}
+            style={styles.stackButton}>
+            <Text style={styles.stackIcon}>☰</Text>
+          </Pressable>}
       <Text accessibilityRole="header" numberOfLines={1} style={styles.title}>{config.title}</Text>
       {rightAction
         ? <Pressable

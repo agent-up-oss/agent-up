@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { Workspace } from '@/features/workspaces/models/Workspace';
@@ -14,13 +13,6 @@ type ApplicationSpaceScreenProps = { workspace: Workspace; applicationName: stri
 
 /** Displays an HTTP application through the Server proxy, or a desktop application through the ticketed viewer. */
 export function ApplicationSpaceScreen({ workspace, applicationName }: ApplicationSpaceScreenProps) {
-  const shellConfig = useMemo(() => ({
-    title: applicationName,
-    rightAction: null,
-    sidebarContent: null,
-  }), [applicationName]);
-  useShellConfig(shellConfig);
-
   const { server } = useWorkspaces();
   const { activeServer } = useServers();
   const application = workspace.applications?.find(entry => entry.name === applicationName);

@@ -1,0 +1,319 @@
+---
+title: Architecture
+---
+
+# Architecture
+
+Agent-Up has core runtime component areas plus product-specific installer entrypoints:
+
+- `AgentUp.Server`
+- `AgentUp.Browser.Streaming`
+- `AgentUp.Desktop`
+- `AgentUp.Mobile`
+- `AgentUp.Chat`
+- `AgentUp.AgentAuth`
+- `AgentUp.Verification`
+- `AgentUp.Tray`
+- `AgentUp.InstallerConfig`
+- `AgentUp.CommitPolicy`
+- `AgentUp.DesignSystem`
+- `AgentUp.WebAudit`
+- `AgentUp.CLI`
+- `AgentUp.AUDebug`
+- `AgentUp.InstallerApp`
+- `AgentUp.Packaging`
+- `AgentUp.PackageSmoke`
+- MCP clients
+
+The Server is the single source of truth for runtime orchestration. Desktop, CLI, MCP clients, and future integrations are clients of the Server. Product-neutral installer, packaging, and package-smoke infrastructure lives in `LocalInstaller.*`; the Agent-Up installer entrypoints only register Agent-Up product configuration and delegate to that infrastructure.
+
+## Solution Layout
+
+Project directories live directly at the repository root and are included in the root solution. Agent-Up does not use `src/` or `tests/` wrapper directories.
+
+```text
+agent-up.sln
+
+AgentUp.Server/
+  AgentUp.Server.csproj
+
+AgentUp.Browser.Streaming/
+  AgentUp.Browser.Streaming.csproj
+
+AgentUp.Capabilities.Abstractions/
+  AgentUp.Capabilities.Abstractions.csproj
+
+AgentUp.Capabilities.Common/
+  AgentUp.Capabilities.Common.csproj
+
+AgentUp.Capabilities.Dotnet/
+  AgentUp.Capabilities.Dotnet.csproj
+
+AgentUp.Capabilities.Docker/
+  AgentUp.Capabilities.Docker.csproj
+
+AgentUp.Capabilities.Codex/
+  AgentUp.Capabilities.Codex.csproj
+
+AgentUp.Capabilities.Cursor/
+  AgentUp.Capabilities.Cursor.csproj
+
+AgentUp.Capabilities.Claude/
+  AgentUp.Capabilities.Claude.csproj
+
+AgentUp.Desktop/
+  AgentUp.Desktop.csproj
+
+AgentUp.Chat/
+  package.json
+
+AgentUp.AgentAuth/
+  package.json
+
+AgentUp.ServerClient/
+  package.json
+
+AgentUp.TestAgents/
+  AgentUp.TestAgents.csproj
+
+AgentUp.TestAgents.Tests/
+  AgentUp.TestAgents.Tests.csproj
+
+AgentUp.DesignSystem/
+  package.json
+
+AgentUp.WebAudit/
+  package.json
+
+AgentUp.CLI/
+  AgentUp.CLI.csproj
+
+AgentUp.AUDebug/
+  AgentUp.AUDebug.csproj
+
+AgentUp.CommitPolicy/
+  AgentUp.CommitPolicy.csproj
+
+AgentUp.Verification/
+  AgentUp.Verification.csproj
+
+AgentUp.Tray/
+  AgentUp.Tray.csproj
+
+AgentUp.InstallerConfig/
+  AgentUp.InstallerConfig.csproj
+
+AgentUp.InstallerApp/
+  AgentUp.InstallerApp.csproj
+
+AgentUp.Packaging/
+  AgentUp.Packaging.csproj
+
+AgentUp.PackageSmoke/
+  AgentUp.PackageSmoke.csproj
+
+AgentUp.Server.Tests/
+  AgentUp.Server.Tests.csproj
+
+AgentUp.Browser.Streaming.Tests/
+  AgentUp.Browser.Streaming.Tests.csproj
+
+AgentUp.Browser.Streaming.Benchmarks/
+  AgentUp.Browser.Streaming.Benchmarks.csproj
+
+AgentUp.Server.Benchmarks/
+  AgentUp.Server.Benchmarks.csproj
+
+AgentUp.Capabilities.Abstractions.Tests/
+  AgentUp.Capabilities.Abstractions.Tests.csproj
+
+AgentUp.Capabilities.Common.Tests/
+  AgentUp.Capabilities.Common.Tests.csproj
+
+AgentUp.Capabilities.Dotnet.Tests/
+  AgentUp.Capabilities.Dotnet.Tests.csproj
+
+AgentUp.Capabilities.Docker.Tests/
+  AgentUp.Capabilities.Docker.Tests.csproj
+
+AgentUp.Capabilities.Codex.Tests/
+  AgentUp.Capabilities.Codex.Tests.csproj
+
+AgentUp.Capabilities.Cursor.Tests/
+  AgentUp.Capabilities.Cursor.Tests.csproj
+
+AgentUp.Capabilities.Claude.Tests/
+  AgentUp.Capabilities.Claude.Tests.csproj
+
+AgentUp.Desktop.Tests/
+  AgentUp.Desktop.Tests.csproj
+
+AgentUp.CLI.Tests/
+  AgentUp.CLI.Tests.csproj
+
+AgentUp.AUDebug.Tests/
+  AgentUp.AUDebug.Tests.csproj
+
+AgentUp.CommitPolicy.Tests/
+  AgentUp.CommitPolicy.Tests.csproj
+
+AgentUp.Verification.Tests/
+  AgentUp.Verification.Tests.csproj
+
+AgentUp.Tray.Tests/
+  AgentUp.Tray.Tests.csproj
+
+AgentUp.InstallerConfig.Tests/
+  AgentUp.InstallerConfig.Tests.csproj
+
+AgentUp.Architecture.Tests/
+  AgentUp.Architecture.Tests.csproj
+
+AgentUp.Tests/
+  AgentUp.Tests.csproj
+```
+
+`AgentUp.Mobile/` also lives at the repository root, but it is an Expo project
+and is not referenced by `agent-up.sln`.
+
+`AgentUp.DesignSystem/` is the repository's canonical HTML/CSS product,
+documentation, and marketing contract. It is outside `agent-up.sln`; Desktop
+includes its generated Avalonia resources **and inferred styles**, while Mobile
+and docs consume it as the local `@agent-up/design-system` package. External
+marketing repositories may consume the same package through a Git submodule and
+`file:` dependency instead of copying styles or brand rules.
+
+`AgentUp.WebAudit/` is the separately publishable `@agent-up/audit` TypeScript
+browser client and is also outside `agent-up.sln`. It submits events only; the
+Server remains the owner of audit identity, persistence, and queries.
+Managed user applications remain package-independent. The first-party Mobile
+client is the sole explicit exception and may consume this state-free transport
+because it is an Agent-Up product client.
+
+The exact project list may evolve, but the ownership boundaries should remain stable. `agent-up.sln` references only Agent-Up projects; Agent-Up projects consume LocalInstaller through `LocalInstaller.*` NuGet packages pinned by `$(LocalInstallerVersion)`. The LocalInstaller source, tests, samples, and `localinstaller.sln` live in the sibling LocalInstaller repository.
+
+## Code Organization
+
+Every production .NET project uses capability-oriented vertical slices under `Features/`. Root project folders should contain only project entry/configuration files such as `Program.cs`, project files, Avalonia `App.axaml` files, and SDK/tooling-required files such as `Properties/launchSettings.json`.
+
+Feature slice names should describe a product, customer, operator, or maintainer capability. Do not promote tiny technical mechanisms into top-level slices when they only support a larger capability. For example, installer payload selection, PATH planning, uninstall planning, and post-install validation belong inside the meaningful installation slice unless they grow into independently owned behavior.
+
+Inside a feature slice, use only these type folders:
+
+- `Models/` for persistence or internal representation.
+- `Repositories/` for storage abstraction and persistence access.
+- `Services/` for domain-specific behavior and orchestration inside the slice.
+- `Controllers/` for routing external calls to slice services.
+- `DTOs/` for external data representation contracts.
+- `Providers/` for low-level actions behind domain-specific interfaces, such as HTTP clients, command runners, file-system adapters, platform adapters, and Git readers.
+- `Interfaces/` for justified slice-local interfaces.
+- `Factories/` for object-selection or adapter-selection factories.
+
+Avalonia UI projects may additionally use `Views/` and `ViewModels/` inside feature slices.
+
+MCP is a protocol surface, not a feature slice. MCP tools and resources live in the owning feature slice's `Controllers/` folder as thin protocol adapters over that slice's controllers/services. Cross-capability workspace management and context tools belong to the `Orchestration` slice. Slice-specific tools, such as commit queue tools, belong to their owning slice.
+
+Tests and benchmarks must stay feature-sliced and use clear test-kind folders. Feature checks live under `Features/<Slice>/<TestKind>/` with `Unit/`, `Controller/`, `HTTP/`, `Repository/`, `Provider/`, `Headless/`, `E2E/`, or `Benchmark/`. Root-level test support folders are limited to documented support areas such as `Support/`, `Fixtures/`, `Fake/`, `Architecture/`, or root `E2E/`; test-kind names such as `Controller/` and `Benchmark/` must not appear at a project root. Use `Controller/` for slice-external communication boundaries such as controllers, command parsers, CLI command surfaces, MCP tools, and MCP resources. `Unit/` tests must stay in memory and must not use real filesystem, process, socket, current-directory, or environment mutation APIs; use `Repository/` or `Provider/` for tests that verify real directory state, platform adapters, command providers, package writers/stagers, probes, or process-style command shapes.
+
+Performance gates are intentionally limited to repeated in-process hot paths: streamed pointer-input decoding, live agent-event framing, and Mobile transcript/Git-tree projection. BenchmarkDotNet and Mobile timing results are compared with versioned numeric baselines and fail above their relative time or allocation tolerances. Exact-file verification rules select the owning `slow` check, while CI runs all gates. Architecture enforcement validates baseline coverage and gate selection rather than accepting benchmark folder or method presence. One-shot operations, constant-return paths, OS-counter sampling, no-op fakes, and external browser I/O are not microbenchmark targets; use profiling or soak tests for those workloads.
+
+An independent CI watchdog job applies wall-clock budgets to the Linux Release test tiers after build: 60 seconds for combined Server/Desktop `Unit`, 75 seconds for `Provider`, and 180 seconds for cross-product `E2E`. It bounds background Chromium installation at 120 seconds, runs display-dependent Provider and E2E tests under Xvfb, verifies from TRX output that every filter executed tests, and uploads those results for failure diagnosis. These are suite-tier budgets, separate from NUnit's per-test timeout and testhost hang detection. Native packaging and release jobs depend on both the performance gates and watchdog, so either failure prevents publishing artifacts.
+
+`AgentUp.Architecture.Tests` owns executable architecture and review-hygiene rules. Use ArchUnitNET there for assembly/type dependency rules, and use narrowly scoped filesystem/source checks there for physical folder rules and generic source-quality rules that assembly analysis cannot see. Slices that receive same-project inbound traffic must expose a concrete `*Controller` boundary, and architecture rules should verify that controllers and services do not bypass sibling slice boundaries through implementation-folder imports.
+
+Architecture rules also enforce review-prone structural limits deterministically: production source must not use nested types or nested delegates, controllers must not depend on providers/repositories/factories, controller methods must stay thin with low cyclomatic complexity and no loops/switch/try blocks, sibling-slice imports must use only target `Controllers/` or `DTOs/`, and feature slices with controllers, services/models, or providers must have matching `Controller/`, `Unit/`, or `Provider/` test-kind coverage. Existing coverage and cross-slice dependency gaps are tracked as explicit architecture-test debt baselines; do not add new entries to those baselines when adding or expanding a slice.
+
+Review-hygiene rules should catch recurring patterns generically: generic or empty catch blocks, unsafe path construction, missing disposable ownership, sync-over-async in production startup/UI/composition paths, ambiguous timeout cancellation filters, static controller composition wrappers, and nondeterministic tests that skip coverage based on live platform privilege or filesystem state.
+
+Do not add broad technical buckets such as root-level `Controllers/`, `Services/`, `Models/`, `Http/`, `Commands/`, or `Git/`. Put the code in the owning feature slice and then in the appropriate type folder.
+
+If a low-level abstraction is genuinely used by multiple slices in the same project, put it under a project-level `Shared/` folder with the same strict type-folder naming. Do not make one feature slice the hidden owner of generic command, file-system, platform, or network helpers that unrelated slices import directly.
+
+## Service And Provider Rule
+
+Services own domain lifecycle and orchestration behind controllers. Services may call same-slice repositories, providers, factories, and models, but they must stay domain-specific.
+
+Services must not contain low-level parsing, command construction, filesystem/archive operations, native tool invocation, environment lookup, HTTP/network mechanics, process execution, platform API calls, XML/manifest serialization mechanics, or string-scanning helpers for external tool output. Put that behavior behind same-slice `Providers/` with names that describe the user/operator capability where practical, such as `PackageCommandParser`, `DpkgDebPackageTool`, `WindowsWixPackagingTool`, `MacOsPackageArchiveProvider`, or `DockerPrerequisiteProvider`.
+
+Use `Models/` for data definitions and pure internal representations that stay inside the slice, including generated manifest/script/XML text when the code is defining package or installer data rather than performing I/O. Use `DTOs/` only for data crossing external or controller boundaries.
+
+Provider interfaces are justified when they hide low-level providers from services, are faked by tests, or select runtime adapters. A service depending on `IUbuntuPackageTool` is acceptable; a service building `new CommandSpec("dpkg-deb", ...)` is not. A controller or service parsing raw `string[] args` is not acceptable; use a parser provider that returns a DTO/result.
+
+## Interface Rule
+
+Do not add interfaces for 1:1 concrete mappings. An interface is justified only when tests create fakes, runtime code selects among multiple adapters, or the boundary intentionally hides low-level providers such as command execution, file systems, platform APIs, storage, or network calls. Place justified interfaces in the owning slice's `Interfaces/` folder.
+
+## Slice Lifecycle
+
+Project entrypoints such as `Program.cs`, host routes, CLI commands, MCP tools, and UI event handlers should enter a feature through `Controllers/`, either directly or through the project composition root that exposes those controllers. Controllers receive dependencies through constructors; they must not create services or providers. Keep controllers thin: they map external calls and DTO arguments to injected services. Controllers must not import providers, repositories, or factories directly, must not be static composition wrappers, and must not expose another slice's internal services, providers, repositories, factories, interfaces, or models as return types.
+
+Services own domain lifecycle and orchestration behind controllers. Follow the service/provider rule above for the boundary between domain orchestration and low-level implementation.
+
+Slices should not import another slice's internal `Services/`, `Models/`, `Providers/`, `Interfaces/`, `Repositories/`, `Factories/`, `Tools/`, `Views/`, or `ViewModels/`. Cross-slice communication should go through the target slice's `Controllers/` boundary and exchange IDs or `DTOs`. If read-only access or low-level abstractions need a non-controller contract, move that contract to a project-level `Shared/` folder instead of exposing a feature-owned interface.
+
+## Component Responsibilities
+
+`AgentUp.Capabilities.*` projects define ecosystem adapters outside the Server's product slices. `AgentUp.Capabilities.Abstractions` is the stable contract for first-party and future external capability packages. `AgentUp.Capabilities.Common` owns shared catalog parsing, checksum validation, tool-cache layout, install planning, CLI executable discovery, and capability inventory. First-party adapters such as `AgentUp.Capabilities.Dotnet`, `AgentUp.Capabilities.Docker`, `AgentUp.Capabilities.Codex`, `AgentUp.Capabilities.Cursor`, and `AgentUp.Capabilities.Claude` own ecosystem discovery, version reconciliation, validation, and launch planning. Codex, Cursor, and Claude launch plans come from inventory-declared `command`/`arguments` shared by Server and Desktop installments, not from hardcoded executable names.
+
+`LocalInstaller.App` is the product-neutral Avalonia installer dashboard. It presents independent component management cards plus a standardized capability-module catalog and version-management UI. Capability modules provide data and validation metadata, not custom UI. The app owns its installer-facing catalog and installed-module contracts and must not take compile-time dependencies on `AgentUp.Capabilities.*` projects. Product entrypoints such as `AgentUp.InstallerApp` register typed LocalInstaller manifests through the fluent API and should keep `Program.cs` limited to product and installer-option configuration.
+
+`AgentUp.Server` performs orchestration:
+
+- Workspace registry.
+- Managed source clones.
+- Git working-tree change trees, per-file diffs, selective commits, remotes, fetch/pull/push, and a bounded commit log.
+- Optional Git-backed dependent proposal queue and its managed worktree.
+- Process lifecycle.
+- Port allocation.
+- Authenticated HTTPS forwarding of allocated HTTP application ports.
+- Hosted Linux desktop application sessions.
+- Docker lifecycle.
+- Capability reconciliation and status.
+- Browser lifecycle.
+- Browser profile management.
+- Event recording.
+- Diagnostics and health monitoring.
+- Playwright generation.
+- ACP agent scheduling, with at most one agent process and session per workspace.
+- MCP servers.
+- REST API.
+
+`AgentUp.Desktop` displays state and browser sessions. It does not own runtime state.
+
+Desktop and Mobile render the workspace agent conversation and send prompts and
+permission decisions through the authenticated Server API. Clients present ACP
+session updates as conversation, thought, tool progress, context chrome, and
+permission decisions rather than as an untyped event log. The Server owns the
+ACP subprocess, subscription login for those agents, session identity, prompt serialization, cancellation, and event
+history. Clients must not start an agent CLI directly.
+
+`AgentUp.Mobile/` is an Expo and React Native client outside the .NET solution. One TypeScript codebase targets Android, iOS, and an installable web PWA. Like the Desktop, it displays Server-owned state and must not own orchestration.
+
+Expo Router entrypoints live under `AgentUp.Mobile/src/app/`. Product UI and client behavior live in feature-oriented slices under `AgentUp.Mobile/src/features/`, following the same capability-oriented organization used by the .NET clients.
+
+Mobile development environment and platform commands are documented in [Workspaces](/developer-guide/workspaces).
+Android and iOS native CI and store shipping are documented in [Mobile store release](mobile-store-release.md).
+
+`AgentUp.CLI` is a developer convenience wrapper. It forwards commands to the Server and owns no runtime or orchestration state. The legacy local commit queue file is the documented exception until `commits.enabled` migration finishes.
+
+`AgentUp.AUDebug` (`au-debug`) is a maintainer visual-debug CLI. It hosts the repository Desktop, Mobile web export, and docs site for screenshot and UI-flow inspection. It is not packaged and does not own Server orchestration. See [AUDebug](au-debug.md).
+
+`LocalInstaller.Core` owns testable installer prerequisite, component-selection, payload, adapter, progress, PATH, validation, and uninstall planning contracts. Native package assets consume or mirror those contracts.
+
+Generic installer code must stay product-neutral. Architecture tests scan `LocalInstaller.*` source and allow literal `agent-up`, `Agent-Up`, and `dev.agent-up` product identity strings only in explicitly `AgentUp*` configuration files. Generic component categories such as Desktop, Server, CLI, and Tray are permitted infrastructure concepts, but generic installer services/providers must derive product names, slugs, service names, package names, and module paths from the active product manifest.
+
+`LocalInstaller.App` owns the shared Avalonia installer dashboard. It delegates platform-specific execution to installer adapters. On NixOS the adapter is lookup-only: components and capability status can be inspected, but installs and version changes are made through NixOS or Home Manager configuration.
+
+`LocalInstaller.Packaging` owns testable release artifact staging, package metadata generation, and orchestration of native packaging tools such as `dpkg-deb`, WiX, `pkgbuild`, and `productbuild`. `AgentUp.Packaging` is a thin product entrypoint that registers the Agent-Up package manifest through the LocalInstaller API.
+
+Each installable executable owns a typed LocalInstaller artifact manifest in that executable project. InstallerApp, Packager, and Smoke entrypoints consume those manifests with `UseProductManifest<T>()`, `InstallerApplication<T>()`, and `InstallerOption*<T>()` calls. Multiple options may share a target category such as CLI or Server, but each option must have a globally unique artifact ID and payload directory; target aliases are only valid when they resolve to one registered option.
+
+Packaging must expose package-owned request and product DTOs. It may map those DTOs to explicit platform installer contracts, but it must not depend on installer workflow product/session internals. Product identity values that become artifact names, path components, filenames, WiX identity, service names, server URLs, or command arguments must be validated at request or path-construction boundaries. Installer GUID seeds for fixed components, shortcuts, and bundles must include product identity, with any legacy unscoped compatibility path made explicit and covered by architecture tests.
+
+`LocalInstaller.Smoke` owns the shared package and installed-service smoke validator used by CI smoke scripts. It validates the same abstract package, service, CLI, and uninstall properties through platform adapters while keeping shell scripts focused on selecting arguments and runner setup. `AgentUp.PackageSmoke` is a thin product entrypoint that registers the Agent-Up smoke manifest through the LocalInstaller API.
+
+MCP clients are the primary automation clients. AI agents should use MCP directly instead of shelling through the CLI.
+
+## Boundary Rule
+
+All orchestration belongs in the Server. Clients may request actions and render state, but they should not decide how workspaces, ports, processes, Docker, browsers, diagnostics, or event streams are managed.

@@ -5,4 +5,6 @@ internal interface IGitChangeNodeHost
     Task OpenFileAsync(GitChangeNodeViewModel node);
 
     void NodeSelectionChanged(GitChangeNodeViewModel node);
+
+    void NodeExpansionChanged(GitChangeNodeViewModel node);
 }

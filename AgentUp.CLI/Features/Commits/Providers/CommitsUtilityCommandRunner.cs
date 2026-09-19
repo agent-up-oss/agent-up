@@ -64,7 +64,7 @@ public sealed class CommitsUtilityCommandRunner(
                 "save" => output.WriteEdit(await service.SaveEditAsync(cancellationToken), format),
                 "abort" => output.WriteEdit(await service.AbortEditAsync(cancellationToken), format),
                 "status" => output.WriteStatus(await service.GetStatusAsync(cancellationToken), format),
-                _ => output.WriteError("Usage: agentup commits edit <begin|save|abort|status>", format)
+                _ => output.WriteError("Usage: agent-up commits edit <begin|save|abort|status>", format)
             };
         }
         catch (InvalidOperationException ex)

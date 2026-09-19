@@ -13,25 +13,19 @@ Agent-Up is an experimental development preview. Interfaces, configuration, and 
 
 ## Local Checks
 
-Build:
+Prefer the `au-debug` wrappers from `AGENTS.md`. After production changes:
 
 ```bash
-dotnet build agent-up.sln
+./au-debug test architecture
 ```
 
-Run tests:
+When `AgentUp.Mobile/` changed:
 
 ```bash
-dotnet test agent-up.sln
+./au-debug test mobile
 ```
 
-On NixOS or headless Linux setups, use the provided shell for native UI dependencies:
-
-```bash
-nix-shell shell.nix --run "dotnet test agent-up.sln"
-```
-
-Docs:
+Do not invoke the wrapped `dotnet test` or Mobile npm commands directly when an `au-debug` wrap exists. Docs:
 
 ```bash
 npm --prefix docs install

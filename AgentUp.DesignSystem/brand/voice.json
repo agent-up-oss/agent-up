@@ -16,7 +16,7 @@
     "server": "Agent-Up Server",
     "desktop": "Agent-Up Desktop",
     "mobile": "Agent-Up Mobile",
-    "cli": "agentup",
+    "cli": "agent-up",
     "configuration": "agent-up.json"
   },
   "lifecycle": {

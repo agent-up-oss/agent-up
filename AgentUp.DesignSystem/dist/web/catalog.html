@@ -6,6 +6,7 @@
   <title>Agent-Up design catalog</title>
   <link rel="stylesheet" href="./agent-up.css" />
   <link rel="stylesheet" href="./marketing.css" />
+  <link rel="stylesheet" href="./docs.css" />
 </head>
 <body class="au-theme">
   <section data-au-surface="foundations" data-au-title="Foundations" data-au-intro="Near-black is the environment. Off-white carries hierarchy. Alpha hairlines create structure. Interaction (hover, pressed) is a neutral white layer; green is reserved for action, selection, progress, and health.">
@@ -29,7 +30,7 @@
       <h1 class="au-page-title">Workspaces</h1>
       <h2 class="au-heading">See the runtime. Trust the review.</h2>
       <p class="au-muted">Product screens use page title, not the marketing display size. Monospace is reserved for commands, paths, ports, logs, and diffs.</p>
-      <code class="au-mono">agentup start · localhost:11200 · feat/checkout</code>
+      <code class="au-mono">agent-up start · localhost:11200 · feat/checkout</code>
     </article>
   </section>
 
@@ -127,7 +128,7 @@
       <aside class="au-callout"><strong>Browser ownership:</strong> Desktop WebViews and Server automation are separate sessions bound to the same workspace runtime.</aside>
     </article>
     <article data-au-component="code" data-au-title="Code surface" data-au-note="Code blocks use a neutral border. Do not force syntax into green." data-au-avalonia="TextBlock" data-au-class="au-code">
-      <pre class="au-code">agentup start --worktree /srv/checkout-fix</pre>
+      <pre class="au-code">agent-up start --worktree /srv/checkout-fix</pre>
     </article>
   </section>
 
@@ -271,15 +272,129 @@ ready in 842 ms</pre>
     </article>
   </section>
 
-  <section data-au-surface="git" data-au-title="Git changes" data-au-intro="The Git panel is the human review surface for the working tree. Coding agents still use the commit queue.">
-    <article data-au-component="git-row" data-au-title="Change tree" data-au-note="Status color is additive: added, deleted, renamed, conflicted. Directories stay muted." data-au-avalonia="Border" data-au-class="au-git-row" data-au-desktop-class="gitNodeRow">
-      <div class="au-stack">
-        <div class="au-git-row au-git-row--selected">src/</div>
-        <div class="au-git-row au-git-add">+ AgentChatScreen.tsx</div>
-        <div class="au-git-row au-git-delete">− obsolete.css</div>
-        <div class="au-git-row au-git-rename">pricing.tsx → storefront.tsx</div>
-        <div class="au-git-row au-git-conflict">! agent-up.json</div>
+  <section data-au-surface="git" data-au-title="Git changes" data-au-intro="The Git panel is the human review surface for the working tree. The change list is a directory tree: checkbox selects, the filename opens the file, and the status glyph carries the kind color. Coding agents still use the commit queue.">
+    <article data-au-component="git-change-list" data-au-title="Change list" data-au-note="The tree sits on a pane, not a full-bleed slab. Directory depth uses catalog guides. Collapse chevrons hide nested rows; a collapsed directory checkbox still selects every file beneath it." data-au-avalonia="Border" data-au-class="au-git-change-list">
+      <div class="au-git-change-list" style="padding: 0.5rem;">
+        <div class="au-cluster" style="margin-bottom: 0.5rem;">
+          <button class="au-button au-button--secondary au-button--compact" type="button">Review <span class="au-git-insertions">+12</span> <span class="au-git-deletions">−4</span></button>
+          <button class="au-button au-button--compact" type="button">Commit <span class="au-git-insertions au-git-insertions--on-primary">+12</span> <span class="au-git-deletions au-git-deletions--on-primary">−4</span></button>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox au-checkbox--checked"></span>
+          <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
+          <span class="au-git-change-name au-git-change-name--directory">Changes</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox au-checkbox--checked"></span>
+          <span class="au-git-tree-guide"></span>
+          <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
+          <span class="au-git-change-name au-git-change-name--directory">src</span>
+        </div>
+        <div class="au-git-row au-git-row--selected">
+          <span class="au-checkbox au-checkbox--checked"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-change-name">AgentChatScreen.tsx</span>
+          <span class="au-git-status au-git-status--modified">M</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-change-name">new-view.ts</span>
+          <span class="au-git-status au-git-status--added">+</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-change-name">scratch.md</span>
+          <span class="au-git-status au-git-status--untracked">?</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
+          <button class="au-git-tree-toggle au-git-tree-toggle--collapsed" type="button">▸</button>
+          <span class="au-git-change-name au-git-change-name--directory">legacy</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-change-name">obsolete.css</span>
+          <span class="au-git-status au-git-status--deleted">−</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-change-name">storefront.tsx</span>
+          <span class="au-git-status au-git-status--renamed">→</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-change-name">agent-up.json</span>
+          <span class="au-git-status au-git-status--conflicted">!</span>
+        </div>
       </div>
+    </article>
+    <article data-au-component="git-tree-guide" data-au-title="Tree guide" data-au-note="Vertical guides mark directory depth. Use the catalog hairline, never a painted hex. Checkboxes stay left of the indent." data-au-avalonia="Border" data-au-class="au-git-tree-guide" data-au-desktop-class="gitTreeGuide">
+      <div class="au-git-row">
+        <span class="au-checkbox"></span>
+        <span class="au-git-tree-guide"></span>
+        <span class="au-git-tree-guide"></span>
+        <span class="au-git-change-name">AgentChatScreen.tsx</span>
+      </div>
+    </article>
+    <article data-au-component="git-tree-toggle" data-au-title="Expanded directory" data-au-note="An expanded chevron shows nested files. The triangle is the collapse control; the checkbox still selects every file beneath the directory." data-au-avalonia="Button" data-au-class="au-git-tree-toggle" data-au-desktop-class="gitTreeToggle">
+      <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
+    </article>
+    <article data-au-component="git-tree-toggle-collapsed" data-au-title="Collapsed directory" data-au-note="A collapsed directory uses the dropdown chevron and hides nested rows. Checking it still selects every file under it." data-au-avalonia="Button" data-au-class="au-git-tree-toggle--collapsed" data-au-desktop-class="gitTreeToggleCollapsed">
+      <button class="au-git-tree-toggle au-git-tree-toggle--collapsed" type="button">▸</button>
+    </article>
+    <article data-au-component="git-row" data-au-title="Change row" data-au-note="Checkbox and filename are separate hit targets. Hover is the neutral state layer. The open file takes the selected tint plus a 2px accent rule; checked boxes do not." data-au-avalonia="Border" data-au-class="au-git-row" data-au-desktop-class="gitNodeRow">
+      <div class="au-git-row au-git-row--selected">
+        <span class="au-checkbox au-checkbox--checked"></span>
+        <span class="au-git-change-name">AgentChatScreen.tsx</span>
+        <span class="au-git-status au-git-status--modified">M</span>
+      </div>
+    </article>
+    <article data-au-component="git-row-selected" data-au-title="Open change" data-au-note="Opening a file is the primary selection on this list. Many-of-many checkboxes stay on the checkbox itself." data-au-avalonia="Border" data-au-class="au-git-row--selected" data-au-desktop-class="gitNodeRowSelected">
+      <div class="au-git-row au-git-row--selected">
+        <span class="au-checkbox au-checkbox--checked"></span>
+        <span class="au-git-change-name">AgentChatScreen.tsx</span>
+        <span class="au-git-status au-git-status--modified">M</span>
+      </div>
+    </article>
+    <article data-au-component="git-change-name" data-au-title="File name" data-au-note="Filenames stay primary. Do not paint the whole row in the status color." data-au-avalonia="TextBlock" data-au-class="au-git-change-name" data-au-desktop-class="gitChangeName">
+      <span class="au-git-change-name">AgentChatScreen.tsx</span>
+    </article>
+    <article data-au-component="git-change-name-directory" data-au-title="Directory name" data-au-note="Directories are grouping chrome: muted, slightly stronger weight, no status glyph." data-au-avalonia="TextBlock" data-au-class="au-git-change-name--directory" data-au-desktop-class="gitChangeNameDirectory">
+      <span class="au-git-change-name au-git-change-name--directory">src</span>
+    </article>
+    <article data-au-component="git-status" data-au-title="Status glyph" data-au-note="Modified M is info blue, added + is accent green, untracked ? is healthy, deleted − is danger, renamed → is info text, conflicted ! is warning. Directories stay muted." data-au-avalonia="TextBlock" data-au-class="au-git-status">
+      <div class="au-cluster">
+        <span class="au-git-status au-git-status--modified">M</span>
+        <span class="au-git-status au-git-status--added">+</span>
+        <span class="au-git-status au-git-status--untracked">?</span>
+        <span class="au-git-status au-git-status--deleted">−</span>
+        <span class="au-git-status au-git-status--renamed">→</span>
+        <span class="au-git-status au-git-status--conflicted">!</span>
+        <span class="au-git-status au-git-status--directory">▸</span>
+      </div>
+    </article>
+    <article data-au-component="git-insertions" data-au-title="Insertions" data-au-note="Added-file counts next to Review. Green here is change meaning, not chrome." data-au-avalonia="TextBlock" data-au-class="au-git-insertions">
+      <span class="au-git-insertions">+12</span>
+    </article>
+    <article data-au-component="git-deletions" data-au-title="Deletions" data-au-note="Deleted-file counts stay danger red." data-au-avalonia="TextBlock" data-au-class="au-git-deletions">
+      <span class="au-git-deletions">−4</span>
+    </article>
+    <article data-au-component="git-insertions-on-primary" data-au-title="Insertions on primary" data-au-note="Counts on a primary Commit button use on-accent. Accent-on-accent is unreadable." data-au-avalonia="TextBlock" data-au-class="au-git-insertions--on-primary">
+      <button class="au-button" type="button">Commit <span class="au-git-insertions au-git-insertions--on-primary">+12</span></button>
+    </article>
+    <article data-au-component="git-deletions-on-primary" data-au-title="Deletions on primary" data-au-note="Deleted counts on a primary Commit button use the same inverse on-accent as the label." data-au-avalonia="TextBlock" data-au-class="au-git-deletions--on-primary">
+      <button class="au-button" type="button">Commit <span class="au-git-deletions au-git-deletions--on-primary">−4</span></button>
     </article>
   </section>
 
@@ -401,6 +516,100 @@ ready in 842 ms</pre>
     </article>
   </section>
 
+  <section data-au-surface="documentation" data-au-title="Documentation" data-au-intro="A real title, then what the page is, then optional caution. Meta is a quiet list. The spine is an equal numbered map. Highlight a beat only as in-page progress. The contract is the one featured block. Next is last.">
+    <article data-au-component="doc-kicker" data-au-title="Kicker" data-au-note="Slice name as a field-label plus Available, Preview, Experimental, or Planned from voice.json. Not marketing eyebrow type." data-au-avalonia="Border" data-au-class="au-doc-kicker">
+      <p class="au-cluster au-doc-kicker"><span class="au-field-label">Workspaces</span> <span class="au-badge au-doc-lifecycle au-doc-lifecycle--available">Available</span></p>
+    </article>
+    <article data-au-component="doc-what" data-au-title="What it is" data-au-note="The dek under the title. Three sentences for a first-time reader. No field-label. Do not open with Remember." data-au-avalonia="Border" data-au-class="au-doc-what">
+      <div class="au-doc-what">
+        <div class="au-doc-what__body">
+          <p>A workspace is the unit of isolation for a developer or agent session. Start it from the directory that contains <code class="au-mono">agent-up.json</code>.</p>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="doc-meta" data-au-title="Owner meta" data-au-note="Developer Generals only. Owner, tests, MCP, and REST after the dek, never before the reader knows what the page is." data-au-avalonia="Border" data-au-class="au-doc-meta">
+      <div class="au-doc-meta">
+        <div class="au-doc-meta__row"><p class="au-field-label">Owner</p><p class="au-doc-meta__value">AgentUp.Server</p></div>
+        <div class="au-doc-meta__row"><p class="au-field-label">MCP</p><p class="au-doc-meta__value">/mcp/orchestration</p></div>
+      </div>
+    </article>
+    <article data-au-component="doc-focus" data-au-title="Focus pane" data-au-note="Optional caution after the dek. Compose au-pane. Never the first content on a page." data-au-avalonia="Border" data-au-class="au-doc-focus">
+      <aside class="au-pane au-doc-focus">
+        <p class="au-field-label">Watch</p>
+        <div class="au-doc-focus__body">Run verification before enqueue. Verification never reads the commit queue.</div>
+      </aside>
+    </article>
+    <article data-au-component="doc-spine" data-au-title="Spine" data-au-note="Equal numbered map. Highlight a beat only when it is the current step of an in-page procedure, never the first item by default." data-au-avalonia="Border" data-au-class="au-doc-spine">
+      <div class="au-doc-spine">
+        <ol class="au-doc-spine__list">
+          <li class="au-doc-spine__beat"><span class="au-doc-spine__n"></span><div><p class="au-doc-spine__title">Start the workspace</p></div></li>
+          <li class="au-doc-spine__beat"><span class="au-doc-spine__n"></span><div><p class="au-doc-spine__title">Open Review</p></div></li>
+          <li class="au-doc-spine__beat"><span class="au-doc-spine__n"></span><div><p class="au-doc-spine__title">Commit the selected paths</p></div></li>
+        </ol>
+      </div>
+    </article>
+    <article data-au-component="doc-contract" data-au-title="Contract" data-au-note="One command, JSON key, or route. Field-label plus au-code. Not a dump of every endpoint." data-au-avalonia="Border" data-au-class="au-doc-contract">
+      <div class="au-doc-contract">
+        <p class="au-field-label">Command</p>
+        <pre class="au-code">agent-up start</pre>
+      </div>
+    </article>
+    <article data-au-component="doc-fork" data-au-title="Fork" data-au-note="One question, two collapsed paths. Unused path stays closed, the same idea as the agent work log." data-au-avalonia="Border" data-au-class="au-doc-fork">
+      <div class="au-doc-fork">
+        <p class="au-doc-fork__question">Which queue?</p>
+        <details class="au-doc-fork__path" open>
+          <summary>Proposal queue</summary>
+          <p class="au-muted"><code class="au-mono">commits.enabled</code> is true. Agents enqueue into a managed worktree.</p>
+        </details>
+        <details class="au-doc-fork__path">
+          <summary>Legacy local queue</summary>
+          <p class="au-muted">The setting is absent. The CLI still owns an independent patch file.</p>
+        </details>
+      </div>
+    </article>
+    <article data-au-component="doc-facts" data-au-title="Facts" data-au-note="Glossary pairs the reader must keep in view: CLI name, packaged versus repository URL, chrome names." data-au-avalonia="Border" data-au-class="au-doc-facts">
+      <div class="au-doc-facts">
+        <p class="au-field-label">Keep in view</p>
+        <div class="au-doc-facts__list">
+          <div class="au-doc-fact"><p class="au-field-label">CLI</p><p class="au-doc-fact__value">agent-up</p></div>
+          <div class="au-doc-fact"><p class="au-field-label">Packaged</p><p class="au-doc-fact__value">http://localhost:5000</p></div>
+          <div class="au-doc-fact"><p class="au-field-label">Repository</p><p class="au-doc-fact__value">http://localhost:5001</p></div>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="doc-surfaces" data-au-title="Surface hints" data-au-note="Field-labeled Desktop, Mobile, CLI, and MCP rows. They appear on a beat. Never a three-column client layout and never mute chips." data-au-avalonia="Border" data-au-class="au-doc-surfaces">
+      <div class="au-doc-surfaces-wrap">
+        <p class="au-field-label">Where it differs</p>
+        <div class="au-doc-surfaces">
+          <div class="au-doc-surface"><p class="au-field-label">Desktop</p><div class="au-doc-surface__body">Open Review from the Commit tab.</div></div>
+          <div class="au-doc-surface"><p class="au-field-label">Mobile</p><div class="au-doc-surface__body">Open Review from the Git tab.</div></div>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="doc-steps" data-au-title="Steps" data-au-note="Numbered how-to for body sections. Distinct from the three-beat spine on the General lead." data-au-avalonia="Border" data-au-class="au-doc-steps">
+      <ol class="au-doc-steps">
+        <li class="au-doc-step"><span class="au-doc-step__n"></span><div><p class="au-doc-step__title">Connect</p><div class="au-doc-step__body"><p class="au-muted">Use the Server URL first. Only one Server is active.</p></div></div></li>
+        <li class="au-doc-step"><span class="au-doc-step__n"></span><div><p class="au-doc-step__title">Start</p><div class="au-doc-step__body"><p class="au-muted">Run <code class="au-mono">agent-up start</code> from the workspace root.</p></div></div></li>
+      </ol>
+    </article>
+    <article data-au-component="doc-callout" data-au-title="Callout" data-au-note="Compose au-callout. Warning and danger use status color. Green remains meaning, not chrome. A warning may hold labeled rows when the caution is a list, not a paragraph." data-au-avalonia="Border" data-au-class="au-doc-callout">
+      <aside class="au-callout au-callout--warning au-doc-callout">
+        <p class="au-field-label">Watch</p>
+        <div class="au-doc-callout__body">
+          <div class="au-doc-fact"><p class="au-field-label">Packaged</p><p class="au-doc-fact__value">http://localhost:5000</p></div>
+          <div class="au-doc-fact"><p class="au-field-label">Repository</p><p class="au-doc-fact__value">http://localhost:5001</p></div>
+        </div>
+      </aside>
+    </article>
+    <article data-au-component="doc-next" data-au-title="Next in slice" data-au-note="Last on the page, after body sections. Field-label plus one link." data-au-avalonia="Border" data-au-class="au-doc-next">
+      <div class="au-doc-next">
+        <p class="au-field-label">Next in this slice</p>
+        <a class="au-doc-next__link" href="/docs/applications">Applications</a>
+        <p class="au-doc-next__hint">Processes that run inside a workspace.</p>
+      </div>
+    </article>
+  </section>
+
   <section data-au-surface="marketing" data-au-title="Marketing" data-au-intro="The product is the illustration. One headline, one outcome, and a visible Available / Preview / Experimental / Planned label.">
     <article data-au-component="product-frame" data-au-title="Product frame" data-au-note="Campaign crops should come from this chrome, not an invented dashboard." data-au-avalonia="Border" data-au-class="au-product-frame">
       <div class="au-product-frame">
@@ -442,6 +651,285 @@ import { agentUpTheme } from '@agent-up/design-system/native';
 &lt;StyleInclude Source="/DesignSystem/AgentUpStyles.axaml" /&gt;</pre>
     </article>
   </section>
+
+  <section data-au-surface="file-viewer" data-au-title="File viewer" data-au-intro="A readonly inspection window for a Server-owned file or diff. The catalog owns chrome, gutter, line kinds, hunk markers, and syntax token colors. Clients virtualize the line list instead of dumping the file into one text node.">
+    <article data-au-component="file-viewer" data-au-title="Inspection window" data-au-note="Compose the overlay panel. Header carries path and change status. Close returns to the change list. Do not turn this into an editor." data-au-avalonia="Border" data-au-class="au-file-viewer">
+      <div class="au-overlay-panel au-file-viewer" style="max-width: 42rem;">
+        <div class="au-file-viewer-header">
+          <span class="au-file-viewer-path">AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx</span>
+          <span class="au-file-viewer-status">Modified</span>
+          <button class="au-button au-button--secondary au-button--compact" type="button">Close</button>
+        </div>
+        <div class="au-file-viewer-nav">
+          <button class="au-file-viewer-jump" type="button">@@ −48,6 +48,18 @@</button>
+          <button class="au-file-viewer-jump" type="button">@@ −265,12 +277,40 @@</button>
+          <input class="au-file-viewer-goto" value="52" readonly aria-label="Go to line" />
+        </div>
+        <div class="au-file-viewer-body">
+          <div class="au-file-viewer-line au-file-viewer-line--meta">
+            <span class="au-file-viewer-gutter"></span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code">diff --git a/GitChangesPanel.tsx b/GitChangesPanel.tsx</span>
+          </div>
+          <div class="au-file-viewer-line au-file-viewer-line--hunk">
+            <span class="au-file-viewer-gutter"></span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code">@@ −48,6 +48,18 @@ export function GitChangesPanel</span>
+          </div>
+          <div class="au-file-viewer-line">
+            <span class="au-file-viewer-gutter">48</span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code"><span class="au-syntax-keyword">const</span> [diff, setDiff] = <span class="au-syntax-function">useState</span>(<span class="au-syntax-keyword">null</span>);</span>
+          </div>
+          <div class="au-file-viewer-line au-file-viewer-line--deleted">
+            <span class="au-file-viewer-gutter">49</span>
+            <span class="au-file-viewer-prefix au-file-viewer-prefix--deleted">−</span>
+            <span class="au-file-viewer-code"><span class="au-syntax-keyword">return</span> &lt;<span class="au-syntax-type">Text</span>&gt;{diffText(diff)}&lt;/<span class="au-syntax-type">Text</span>&gt;;</span>
+          </div>
+          <div class="au-file-viewer-line au-file-viewer-line--added au-file-viewer-line--current">
+            <span class="au-file-viewer-gutter">52</span>
+            <span class="au-file-viewer-prefix au-file-viewer-prefix--added">+</span>
+            <span class="au-file-viewer-code"><span class="au-syntax-keyword">return</span> &lt;<span class="au-syntax-type">GitFileViewer</span> diff={diff} <span class="au-syntax-property">onClose</span>={close} /&gt;;</span>
+          </div>
+          <div class="au-file-viewer-line">
+            <span class="au-file-viewer-gutter">53</span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code"><span class="au-syntax-plain">    </span><span class="au-syntax-keyword">return</span> foo;</span>
+          </div>
+          <div class="au-file-viewer-line">
+            <span class="au-file-viewer-gutter">54</span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code"><span class="au-syntax-comment">// Filename opens inspection. Checkbox stays selection.</span></span>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="file-viewer-header" data-au-title="Viewer header" data-au-note="Path is monospace. Status is a muted label, not a colored filename. Close is a secondary control." data-au-avalonia="Border" data-au-class="au-file-viewer-header">
+      <div class="au-file-viewer-header">
+        <span class="au-file-viewer-path">src/app/main.cs</span>
+        <span class="au-file-viewer-status">Added</span>
+        <button class="au-button au-button--secondary au-button--compact" type="button">Close</button>
+      </div>
+    </article>
+    <article data-au-component="file-viewer-path" data-au-title="Path" data-au-note="The inspected path stays primary monospace. Do not paint it with the change kind." data-au-avalonia="TextBlock" data-au-class="au-file-viewer-path">
+      <span class="au-file-viewer-path">AgentUp.Server/Features/Git/Controllers/GitChangesController.cs</span>
+    </article>
+    <article data-au-component="file-viewer-status" data-au-title="Change status" data-au-note="Status is a caption next to the path. Kind color still lives on the change-list glyph." data-au-avalonia="TextBlock" data-au-class="au-file-viewer-status">
+      <span class="au-file-viewer-status">Modified</span>
+    </article>
+    <article data-au-component="file-viewer-nav" data-au-title="Hunk navigation" data-au-note="Jump chips list hunk headers. Go-to-line is a compact mono field. These are navigation, not editing." data-au-avalonia="Border" data-au-class="au-file-viewer-nav">
+      <div class="au-file-viewer-nav">
+        <button class="au-file-viewer-jump" type="button">@@ −1,4 +1,9 @@</button>
+        <input class="au-file-viewer-goto" value="12" readonly aria-label="Go to line" />
+      </div>
+    </article>
+    <article data-au-component="file-viewer-jump" data-au-title="Hunk chip" data-au-note="Hunk markers are raised chips. Hover is the neutral state layer." data-au-avalonia="Button" data-au-class="au-file-viewer-jump">
+      <button class="au-file-viewer-jump" type="button">@@ −48,6 +48,18 @@</button>
+    </article>
+    <article data-au-component="file-viewer-line" data-au-title="Context line" data-au-note="Unchanged lines sit on the canvas. The gutter is tabular. Hover is a neutral state layer." data-au-avalonia="Border" data-au-class="au-file-viewer-line">
+      <div class="au-file-viewer-line">
+        <span class="au-file-viewer-gutter">48</span>
+        <span class="au-file-viewer-prefix"> </span>
+        <span class="au-file-viewer-code"><span class="au-syntax-keyword">public</span> <span class="au-syntax-keyword">sealed</span> <span class="au-syntax-keyword">class</span> <span class="au-syntax-type">GitFileDiff</span></span>
+      </div>
+    </article>
+    <article data-au-component="file-viewer-line-added" data-au-title="Added line" data-au-note="Insertions use the selected-soft fill. Green is change meaning, not chrome." data-au-avalonia="Border" data-au-class="au-file-viewer-line--added">
+      <div class="au-file-viewer-line au-file-viewer-line--added">
+        <span class="au-file-viewer-gutter">52</span>
+        <span class="au-file-viewer-prefix au-file-viewer-prefix--added">+</span>
+        <span class="au-file-viewer-code"><span class="au-syntax-keyword">return</span> viewer;</span>
+      </div>
+    </article>
+    <article data-au-component="file-viewer-line-deleted" data-au-title="Deleted line" data-au-note="Deletions use the danger surface. The prefix carries danger text." data-au-avalonia="Border" data-au-class="au-file-viewer-line--deleted">
+      <div class="au-file-viewer-line au-file-viewer-line--deleted">
+        <span class="au-file-viewer-gutter">49</span>
+        <span class="au-file-viewer-prefix au-file-viewer-prefix--deleted">−</span>
+        <span class="au-file-viewer-code"><span class="au-syntax-keyword">return</span> diffText;</span>
+      </div>
+    </article>
+    <article data-au-component="file-viewer-line-hunk" data-au-title="Hunk marker" data-au-note="@@ headers are info-colored on a quiet surface so they read as structure, not as code." data-au-avalonia="Border" data-au-class="au-file-viewer-line--hunk">
+      <div class="au-file-viewer-line au-file-viewer-line--hunk">
+        <span class="au-file-viewer-gutter"></span>
+        <span class="au-file-viewer-prefix"> </span>
+        <span class="au-file-viewer-code">@@ −48,6 +48,18 @@</span>
+      </div>
+    </article>
+    <article data-au-component="file-viewer-line-current" data-au-title="Current line" data-au-note="Jump target and the open line use the selected tint plus a 2px accent rule." data-au-avalonia="Border" data-au-class="au-file-viewer-line--current" data-au-desktop-class="fileViewerLineCurrent">
+      <div class="au-file-viewer-line au-file-viewer-line--current">
+        <span class="au-file-viewer-gutter">52</span>
+        <span class="au-file-viewer-prefix au-file-viewer-prefix--added">+</span>
+        <span class="au-file-viewer-code">setDiffPath(node.path);</span>
+      </div>
+    </article>
+    <article data-au-component="file-viewer-gutter" data-au-title="Line number" data-au-note="Gutter digits are faint, tabular, and right-aligned so columns hold still while scrolling." data-au-avalonia="TextBlock" data-au-class="au-file-viewer-gutter">
+      <span class="au-file-viewer-gutter">128</span>
+    </article>
+    <article data-au-component="syntax-keyword" data-au-title="Syntax tokens" data-au-note="Highlighting reuses text-info, warning, muted, and primary. Do not force syntax into green — green is reserved for added lines." data-au-avalonia="TextBlock" data-au-class="au-syntax-keyword">
+      <div class="au-cluster">
+        <span class="au-syntax-keyword">async</span>
+        <span class="au-syntax-type">string</span>
+        <span class="au-syntax-string">"ws-1"</span>
+        <span class="au-syntax-comment">// Server-owned</span>
+        <span class="au-syntax-number">2500</span>
+        <span class="au-syntax-function">getFileDiff</span>
+      </div>
+    </article>
+    <article data-au-component="syntax-string" data-au-title="String token" data-au-note="Strings use warning amber so they never compete with insertion green." data-au-avalonia="TextBlock" data-au-class="au-syntax-string">
+      <span class="au-syntax-string">"Agent-Up"</span>
+    </article>
+    <article data-au-component="syntax-comment" data-au-title="Comment token" data-au-note="Comments stay muted italic. They are structure, not action." data-au-avalonia="TextBlock" data-au-class="au-syntax-comment">
+      <span class="au-syntax-comment">// Clients display Server-owned diffs.</span>
+    </article>
+  </section>
+
+  <section data-au-surface="git-log" data-au-title="Git history" data-au-intro="Mobile history is graph-first: a pinned timestamp column and a horizontally scrollable graph. Selecting a row puts subject, author, branches, and tags in a sticky header. Checkout is a confirmed header action, not a chip tap. Green is selection, not decoration.">
+    <article data-au-component="git-log-detail" data-au-title="Selected commit" data-au-note="The sticky header is the only place for commit message, author, refs, and a confirmed checkout. Ref chips are labels. Rows stay timestamp plus graph." data-au-avalonia="Border" data-au-class="au-git-log-detail" data-au-desktop-class="gitLogDetail">
+      <div class="au-git-log-detail">
+        <span class="au-git-log-subject">fix(packaging): seal platform verification gaps</span>
+        <span class="au-git-log-author">Daniel Mass</span>
+        <div class="au-cluster">
+          <span class="au-git-log-ref au-git-log-ref--head">HEAD</span>
+          <span class="au-git-log-ref">369-mobile</span>
+          <span class="au-git-log-ref au-git-log-ref--remote">origin/main</span>
+          <span class="au-git-log-ref au-git-log-ref--tag">v3.47.0</span>
+          <button class="au-button au-button--secondary au-button--compact" type="button">Checkout</button>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="git-log-row" data-au-title="History row" data-au-note="Every row is a fixed-width timestamp plus the graph. Selection is an accent tint plus a 2px leading accent rule on the timestamp only. The graph column stays unselected so lane colors stay readable. Hover stays a neutral state layer. When the graph is wider than the pane, only the graph region scrolls horizontally." data-au-avalonia="Border" data-au-class="au-git-log-row" data-au-desktop-class="gitLogRow" data-au-desktop-host="ListBoxItem">
+      <div class="au-git-log">
+        <div class="au-git-log-track">
+          <div>
+            <div class="au-git-log-row au-git-log-row--selected">
+              <span class="au-git-log-time">16.09.26 05:16</span>
+            </div>
+            <div class="au-git-log-row">
+              <span class="au-git-log-time">16.09.26 05:14</span>
+            </div>
+            <div class="au-git-log-row">
+              <span class="au-git-log-time">16.09.26 05:10</span>
+            </div>
+            <div class="au-git-log-row">
+              <span class="au-git-log-time">15.09.26 18:26</span>
+            </div>
+          </div>
+          <div class="au-git-log-graph-scroll">
+            <div class="au-git-log-row">
+              <svg class="au-git-log-graph" width="70" height="28" viewBox="0 0 70 28" aria-hidden="true">
+                <g class="au-git-log-lane-0">
+                  <path class="au-git-log-graph-edge" d="M 7 0 L 7 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 7 14 L 7 28"></path>
+                  <circle class="au-git-log-graph-node au-git-log-graph-node--filled" cx="7" cy="14" r="3.5"></circle>
+                </g>
+                <g class="au-git-log-lane-1">
+                  <path class="au-git-log-graph-edge" d="M 21 0 L 21 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 21 14 L 21 28"></path>
+                </g>
+                <g class="au-git-log-lane-2">
+                  <path class="au-git-log-graph-edge" d="M 35 0 L 35 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 35 14 L 35 28"></path>
+                </g>
+                <g class="au-git-log-lane-3">
+                  <path class="au-git-log-graph-edge" d="M 49 0 L 49 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 49 14 C 49 21, 63 21, 63 28"></path>
+                </g>
+              </svg>
+            </div>
+            <div class="au-git-log-row">
+              <svg class="au-git-log-graph" width="70" height="28" viewBox="0 0 70 28" aria-hidden="true">
+                <g class="au-git-log-lane-0">
+                  <path class="au-git-log-graph-edge" d="M 7 0 L 7 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 7 14 L 7 28"></path>
+                  <circle class="au-git-log-graph-node au-git-log-graph-node--filled" cx="7" cy="14" r="3.5"></circle>
+                </g>
+                <g class="au-git-log-lane-1">
+                  <path class="au-git-log-graph-edge" d="M 21 0 L 21 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 21 14 L 21 28"></path>
+                </g>
+                <g class="au-git-log-lane-2">
+                  <path class="au-git-log-graph-edge" d="M 35 0 L 35 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 35 14 L 35 28"></path>
+                </g>
+                <g class="au-git-log-lane-3">
+                  <path class="au-git-log-graph-edge" d="M 63 0 L 63 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 63 14 L 63 28"></path>
+                </g>
+              </svg>
+            </div>
+            <div class="au-git-log-row">
+              <svg class="au-git-log-graph" width="70" height="28" viewBox="0 0 70 28" aria-hidden="true">
+                <g class="au-git-log-lane-0">
+                  <path class="au-git-log-graph-edge" d="M 7 0 L 7 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 7 14 L 7 28"></path>
+                </g>
+                <g class="au-git-log-lane-1">
+                  <path class="au-git-log-graph-edge" d="M 21 0 L 21 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 21 14 L 21 28"></path>
+                  <circle class="au-git-log-graph-node au-git-log-graph-node--filled" cx="21" cy="14" r="3.5"></circle>
+                </g>
+                <g class="au-git-log-lane-2">
+                  <path class="au-git-log-graph-edge" d="M 35 0 L 35 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 35 14 L 35 28"></path>
+                </g>
+                <g class="au-git-log-lane-3">
+                  <path class="au-git-log-graph-edge" d="M 63 0 L 63 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 63 14 L 63 28"></path>
+                </g>
+              </svg>
+            </div>
+            <div class="au-git-log-row">
+              <svg class="au-git-log-graph" width="70" height="28" viewBox="0 0 70 28" aria-hidden="true">
+                <g class="au-git-log-lane-0">
+                  <path class="au-git-log-graph-edge" d="M 7 0 L 7 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 7 14 L 7 28"></path>
+                </g>
+                <g class="au-git-log-lane-1">
+                  <path class="au-git-log-graph-edge" d="M 21 0 L 21 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 21 14 L 21 28"></path>
+                </g>
+                <g class="au-git-log-lane-2">
+                  <path class="au-git-log-graph-edge" d="M 35 0 L 35 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 35 14 L 35 28"></path>
+                  <circle class="au-git-log-graph-node au-git-log-graph-node--filled" cx="35" cy="14" r="3.5"></circle>
+                </g>
+                <g class="au-git-log-lane-3">
+                  <path class="au-git-log-graph-edge" d="M 63 0 L 63 14"></path>
+                  <path class="au-git-log-graph-edge" d="M 63 14 L 63 28"></path>
+                </g>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="git-log-graph" data-au-title="Commit graph" data-au-note="Lanes are a closed design-system palette. First parents continue; additional parents curve into a new lane. Do not draw ASCII | * | glyphs." data-au-avalonia="Border" data-au-class="au-git-log-graph" data-au-desktop-class="gitLogGraph">
+      <svg class="au-git-log-graph" width="42" height="112" viewBox="0 0 42 112" aria-hidden="true">
+        <g class="au-git-log-lane-0">
+          <path class="au-git-log-graph-edge" d="M 7 14 L 7 28"></path>
+          <path class="au-git-log-graph-edge" d="M 7 28 L 7 42"></path>
+          <circle class="au-git-log-graph-node au-git-log-graph-node--filled" cx="7" cy="14" r="3.5"></circle>
+          <circle class="au-git-log-graph-node" cx="7" cy="42" r="3.5"></circle>
+        </g>
+        <g class="au-git-log-lane-1">
+          <path class="au-git-log-graph-edge" d="M 7 14 C 7 21, 21 21, 21 28"></path>
+          <path class="au-git-log-graph-edge" d="M 21 28 L 21 42"></path>
+          <path class="au-git-log-graph-edge" d="M 21 42 L 21 56"></path>
+          <path class="au-git-log-graph-edge" d="M 7 42 C 7 49, 21 49, 21 56"></path>
+          <path class="au-git-log-graph-edge" d="M 21 56 L 21 70"></path>
+          <circle class="au-git-log-graph-node au-git-log-graph-node--filled" cx="21" cy="70" r="3.5"></circle>
+        </g>
+      </svg>
+    </article>
+    <article data-au-component="git-log-ref" data-au-title="Ref chips" data-au-note="Local branches, remotes, tags, and HEAD are pills in the sticky header. Chips label the selected commit; checkout is a confirmed header action, not a chip tap." data-au-avalonia="Button" data-au-class="au-git-log-ref" data-au-desktop-class="gitLogRef">
+      <div class="au-cluster">
+        <span class="au-git-log-ref au-git-log-ref--head">HEAD</span>
+        <span class="au-git-log-ref">369-mobile</span>
+        <span class="au-git-log-ref au-git-log-ref--remote">origin/main</span>
+        <span class="au-git-log-ref au-git-log-ref--tag">v3.47.0</span>
+      </div>
+    </article>
+  </section>
+
 </body>
 </html>
 

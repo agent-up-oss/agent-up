@@ -62,13 +62,22 @@ while [ "$attempt" -le 60 ]; do
   "$adb" shell wm dismiss-keyguard >/dev/null 2>&1 || true
 
   # mCurrentFocus is null while nothing holds focus, which is the state Espresso gives up on.
+  # An Application Not Responding dialog also reports a focused window, but it is the system
+  # ANR surface, not a usable launcher or app. Treat that as still waking, dismiss it, and
+  # force-stop the named package so the next attempt can reach a real window.
   focus="$("$adb" shell dumpsys window 2>/dev/null | grep -m 1 'mCurrentFocus' || true)"
   case "$focus" in
     *"Application Not Responding"*|*"com.google.android.googlesdksetup"*|*"com.google.android.setupwizard"*)
+      echo "Dismissing emulator setup or ANR: ${focus## }"
+      pkg="$(printf '%s\n' "$focus" | sed -n 's/.*Application Not Responding: \([^}]*\).*/\1/p' | tr -d '[:space:]')"
+      if [ -n "$pkg" ]; then
+        "$adb" shell am force-stop "$pkg" >/dev/null 2>&1 || true
+      fi
       "$adb" shell am force-stop com.google.android.googlesdksetup >/dev/null 2>&1 || true
       "$adb" shell am force-stop com.google.android.setupwizard >/dev/null 2>&1 || true
-      # BACK closes some ANR dialogs when force-stop has not yet taken the window.
+      "$adb" shell input keyevent KEYCODE_ESCAPE >/dev/null 2>&1 || true
       "$adb" shell input keyevent KEYCODE_BACK >/dev/null 2>&1 || true
+      "$adb" shell input keyevent KEYCODE_HOME >/dev/null 2>&1 || true
       ;;
   esac
 

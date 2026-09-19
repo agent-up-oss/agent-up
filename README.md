@@ -31,38 +31,21 @@ Agent-Up is built to make those parallel workspaces reviewable without process, 
 
 ## What Currently Works
 
-- Server-owned workspace registration and state.
-- Source-first CLI commands for registering, listing, starting, stopping, and checking workspaces.
-- Application and Docker service definitions from `agent-up.json`.
-- Per-workspace port allocation.
-- Desktop workspace list and application tabs.
-- Console/log display for selected applications.
-- Isolated browser URL/profile state in the desktop client.
-- Feature-sliced .NET solution with server, desktop, CLI, and tests.
-- Preliminary NixOS shell support for native desktop dependencies.
+See [User docs](docs/user-docs/index.md) for the product map and [Current Limitations](docs/user-docs/start/limitations.md) for status labels. Shipped surfaces include Server-owned workspaces, Desktop, Mobile, CLI, Git review, ACP agents, five MCP servers, and development-preview packages.
 
 ## Current Limitations
 
-- Source-first development preview.
-- Installers are preliminary and not yet a stable update channel.
-- Platform verification is expanding through native package smoke tests.
-- MCP functionality is incomplete.
-- REST, MCP, and configuration contracts are unstable.
-- Browser behavior, diagnostics, and event recording are still experimental.
-- Some documentation describes intended direction and is labeled accordingly.
-- No production support commitment.
-
-See [Current Limitations](docs/user-docs/limitations.md) for the longer list.
+Agent-Up is a development preview: packages exist, but they are not a stable update channel. REST, MCP, and `agent-up.json` contracts may change. Browser isolation, diagnostics, event recording, and validation-flow export are Preview or Experimental as labeled in the limitations page. There is no production support commitment.
 
 ## Architecture
 
 `AgentUp.Server` is the single source of truth. Desktop, CLI, MCP clients, and future integrations are clients of the Server: they may display state and request actions, but they must not own runtime state or duplicate orchestration logic.
 
-Contributor architecture details live in the [Developer Guide](docs/developer-guide/index.md), especially [Architecture](docs/developer-guide/architecture.md), [Server](docs/developer-guide/server.md), [Desktop](docs/developer-guide/desktop.md), and [Packaging And Installers](docs/developer-guide/packaging.md).
+Contributor architecture details live in the [Developer Guide](docs/developer-guide/index.md), especially [Architecture](docs/developer-guide/repo/architecture.md), [Workspaces](docs/developer-guide/workspaces/index.md), and [Packaging](docs/developer-guide/repo/packaging.md).
 
 ## Requirements
 
-- .NET SDK 10.0 preview or compatible SDK for the current target framework.
+- .NET SDK 10.0 or a compatible SDK for the current target framework.
 - Git.
 - Docker and Docker Compose for repositories that declare Docker services.
 - Node.js and npm for the documentation site.
@@ -71,6 +54,8 @@ Contributor architecture details live in the [Developer Guide](docs/developer-gu
 Agent-Up may work on additional platforms, but the current development setup has only been verified on NixOS.
 
 ## Running From Source
+
+Source lives at `https://github.com/themassiveone/agent-up`. Development-preview packages are published from `https://github.com/agent-up-oss/agent-up/releases`.
 
 Restore and build:
 
@@ -85,7 +70,7 @@ Start the server:
 dotnet run --project AgentUp.Server
 ```
 
-The server launch profile currently uses `http://localhost:5000`.
+The repository launch profile currently uses `http://localhost:5001`. Packaged Server services listen on `http://localhost:5000`.
 
 Start the desktop:
 
@@ -102,7 +87,7 @@ On NixOS, use:
 Register a repository that contains an `agent-up.json`:
 
 ```bash
-dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:5000
+dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:5001
 ```
 
 ## Example `agent-up.json`
@@ -126,16 +111,21 @@ dotnet run --project /path/to/AgentUp.CLI -- start --server http://localhost:500
 ## Documentation
 
 - [User docs](docs/user-docs/index.md)
-- [Setup](docs/user-docs/setup.md)
-- [Downloads](docs/user-docs/downloads.md)
-- [Workspace](docs/user-docs/workspace.md)
-- [Configuration](docs/user-docs/configuration.md)
-- [Browser](docs/user-docs/browser.md)
-- [CLI](docs/user-docs/cli.md)
-- [Current limitations](docs/user-docs/limitations.md)
-- [Roadmap](docs/user-docs/roadmap.md)
+- [Setup](docs/user-docs/start/setup.md)
+- [Downloads](docs/user-docs/start/downloads.md)
+- [Workspaces](docs/user-docs/workspaces/index.md)
+- [Applications](docs/user-docs/applications/index.md)
+- [Git](docs/user-docs/git/index.md)
+- [Commits](docs/user-docs/commits/index.md)
+- [Agents](docs/user-docs/agents/index.md)
+- [Browser](docs/user-docs/browser/index.md)
+- [Diagnostics](docs/user-docs/diagnostics/index.md)
+- [Verification](docs/user-docs/verification/index.md)
+- [Configuration](docs/user-docs/configuration/index.md)
+- [Current limitations](docs/user-docs/start/limitations.md)
+- [Roadmap](docs/user-docs/start/roadmap.md)
 - [Developer guide](docs/developer-guide/index.md)
-- [Design system](docs/developer-guide/design-system.md)
+- [Design system](docs/developer-guide/repo/design-system.md)
 
 ## Design And Marketing
 
@@ -144,7 +134,7 @@ documentation, screenshots, and marketing presentation. Its canonical HTML/CSS
 catalog compiles to React Native objects and Avalonia resources and styles
 consumed by Mobile and Desktop. The public responsive showcase is linked from the
 documentation navbar at `/design-system`; implementation and external-repository
-usage are defined in the [design-system developer guide](docs/developer-guide/design-system.md).
+usage are defined in the [design-system developer guide](docs/developer-guide/repo/design-system.md).
 
 Build the docs locally:
 

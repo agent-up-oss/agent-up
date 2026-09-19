@@ -90,6 +90,28 @@ public class WorkspaceRegistryTests
     }
 
     [Test]
+    public async Task UpdateGitIdentity_SetsTheLiveBranchAndCommit()
+    {
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("A")
+            .WithRepositoryPath("/r")
+            .WithWorktreePath("/r/a")
+            .Build());
+
+        var updated = await _registry.UpdateGitIdentityAsync(workspace.Id, "topic", "def456");
+
+        Assert.That(updated, Is.True);
+        Assert.That(_registry.GetById(workspace.Id)!.Branch, Is.EqualTo("topic"));
+        Assert.That(_registry.GetById(workspace.Id)!.Commit, Is.EqualTo("def456"));
+    }
+
+    [Test]
+    public async Task UpdateGitIdentity_ReturnsFalseForAnUnknownWorkspace()
+    {
+        Assert.That(await _registry.UpdateGitIdentityAsync("missing", "topic", "def456"), Is.False);
+    }
+
+    [Test]
     public async Task Register_SameWorktreePath_ResetsStateTo_Stopped()
     {
         var first = await _registry.RegisterAsync(ServerDomain.Workspace().Build());

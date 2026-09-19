@@ -82,4 +82,45 @@ public sealed class McpEndpointExposure
             .Where(value => value.Length > 0)
             .ToHashSet(StringComparer.Ordinal);
     }
+
+    [Test]
+    public void Mcp_catalog_names_only_declared_tools()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var declared = DeclaredToolNames(root);
+        var markdown = SliceToolCatalog(root);
+        var named = System.Text.RegularExpressions.Regex.Matches(markdown, "`([a-z][a-z0-9]*(?:_[a-z0-9]+)+)`")
+            .Select(match => match.Groups[1].Value)
+            .Distinct(StringComparer.Ordinal)
+            .Where(name => !declared.Contains(name))
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.That(named, Is.Empty,
+            "Developer Guide slice pages named MCP tools that no [McpServerTool] declares.");
+    }
+
+    [Test]
+    public void Mcp_catalog_documents_verification_server()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var markdown = SliceToolCatalog(root);
+        Assert.That(markdown, Does.Contain("/mcp/verification"));
+    }
+
+    private static string SliceToolCatalog(string root)
+    {
+        var slices = new[]
+        {
+            "workspaces", "applications", "git", "commits", "agents",
+            "browser", "diagnostics", "verification", "configuration",
+        };
+        var files = slices
+            .Select(slice => Path.Join(root, "docs/developer-guide", slice))
+            .Where(Directory.Exists)
+            .SelectMany(directory => Directory.EnumerateFiles(directory, "*.md", SearchOption.AllDirectories))
+            .Where(file => !file.EndsWith("-assessment.md", StringComparison.Ordinal))
+            .Append(Path.Join(root, "docs/developer-guide/index.md"));
+        return string.Join('\n', files.Select(File.ReadAllText));
+    }
 }
