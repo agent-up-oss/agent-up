@@ -25,3 +25,9 @@ tmp/
 # Expo generates these for native builds; they are not committed (AGENTS.md, Mobile client rules).
 AgentUp.Mobile/ios/
 AgentUp.Mobile/android/
+vendor/bundle
+.bundle/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/README.md
+google-fastlane.json

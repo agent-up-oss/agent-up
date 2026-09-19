@@ -67,8 +67,9 @@ push (path-filtered) or workflow_dispatch
 
 Push runs when `AgentUp.Mobile`, `AgentUp.Chat`, `AgentUp.AgentAuth`,
 `AgentUp.ServerClient`, `AgentUp.DesignSystem`, `AgentUp.WebAudit`, this
-workflow, the iOS certs workflow, or the mobile helper scripts change. Changing
-only `ci.yml` does not start Mobile CI.
+workflow, the iOS certs workflow, the mobile helper scripts, Fastlane,
+`Gemfile`, `Gemfile.lock`, or `.ruby-version` change. Changing only `ci.yml`
+does not start Mobile CI.
 
 The Android and iOS jobs both require the shared Mobile test job to pass. Android
 failure does not cancel iOS, and the reverse. A second dispatch on the same ref
@@ -105,8 +106,10 @@ not commit `android/` or `ios/`. Store `icon.png` and `adaptive-icon.png` under
 `AgentUp.Mobile/assets/` are 1024px scales of
 `AgentUp.Mobile/public/agent-up-icon-512.png`.
 
-GitHub-hosted store jobs invoke Expo and Fastlane directly. Do not add public
-Mobile npm scripts for those commands; local scripts still enter `shell.nix`.
+GitHub-hosted store jobs invoke Expo and Fastlane directly. Fastlane, `Gemfile`,
+`Gemfile.lock`, and `.ruby-version` live at the repository root; `expo prebuild`
+still runs in `AgentUp.Mobile`. Do not add public Mobile npm scripts for those
+commands; local scripts still enter `shell.nix`.
 
 ## First-run console steps
 

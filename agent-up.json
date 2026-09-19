@@ -805,6 +805,30 @@
         ]
       },
       {
+        "match": "fastlane/**",
+        "checks": [
+          "mobile"
+        ]
+      },
+      {
+        "match": "Gemfile",
+        "checks": [
+          "mobile"
+        ]
+      },
+      {
+        "match": "Gemfile.lock",
+        "checks": [
+          "mobile"
+        ]
+      },
+      {
+        "match": ".ruby-version",
+        "checks": [
+          "mobile"
+        ]
+      },
+      {
         "match": "AgentUp.WebAudit/**",
         "checks": [
           "web-audit",

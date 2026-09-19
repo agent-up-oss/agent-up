@@ -24,6 +24,10 @@ on:
       - .github/scripts/verify-mobile-artifact.test.mjs
       - .github/scripts/android-emulator-focus.mjs
       - .github/scripts/android-emulator-focus.test.mjs
+      - fastlane/**
+      - Gemfile
+      - Gemfile.lock
+      - .ruby-version
   workflow_dispatch:
     inputs:
       channel:
@@ -163,7 +167,6 @@ jobs:
         with:
           ruby-version: "3.3"
           bundler-cache: true
-          working-directory: AgentUp.Mobile
 
       - uses: android-actions/setup-android@v3
         with:
@@ -214,7 +217,6 @@ jobs:
         run: bash ../.github/scripts/install-android-ndk.sh android
 
       - name: Build signed AAB
-        working-directory: AgentUp.Mobile
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/android-upload.keystore
           ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
@@ -259,7 +261,6 @@ jobs:
 
       - name: Upload to Google Play
         if: ${{ github.event_name == 'workflow_dispatch' }}
-        working-directory: AgentUp.Mobile
         env:
           ANDROID_AAB_PATH: ${{ github.workspace }}/artifacts/mobile/${{ needs.version.outputs.artifact_name }}.aab
           ANDROID_PACKAGE_NAME: net.themassiveone.agentup.android
@@ -314,7 +315,6 @@ jobs:
         with:
           ruby-version: "3.3"
           bundler-cache: true
-          working-directory: AgentUp.Mobile
 
       - name: Require iOS secrets
         env:
@@ -341,7 +341,6 @@ jobs:
         run: npx expo prebuild --platform ios --clean --non-interactive
 
       - name: Build signed IPA
-        working-directory: AgentUp.Mobile
         env:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
@@ -367,7 +366,6 @@ jobs:
 
       - name: Upload to App Store Connect
         if: ${{ github.event_name == 'workflow_dispatch' }}
-        working-directory: AgentUp.Mobile
         env:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
