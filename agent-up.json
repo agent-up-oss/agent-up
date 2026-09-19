@@ -407,7 +407,8 @@
         "workingDirectory": "AgentUp.Mobile.E2E",
         "tier": "fast",
         "inputs": [
-          "AgentUp.Mobile.E2E"
+          "AgentUp.Mobile.E2E",
+          "AgentUp.Mobile.E2E.App"
         ]
       }
     },
@@ -1010,6 +1011,12 @@
       },
       {
         "match": "AgentUp.Mobile.E2E/**",
+        "checks": [
+          "mobile-e2e-harness"
+        ]
+      },
+      {
+        "match": "AgentUp.Mobile.E2E.App/**",
         "checks": [
           "mobile-e2e-harness"
         ]

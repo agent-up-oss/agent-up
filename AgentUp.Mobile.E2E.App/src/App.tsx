@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import * as Linking from 'expo-linking';
 import { AgentChatScreen } from '@agent-up/chat';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
+import { parseConnectLaunchUrl } from './connectLaunch';
 
 /**
  * A harness, not a product.
@@ -16,11 +18,24 @@ import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
  * So this app is the chat module and the sign-in module and nothing else. It takes the Server and
  * the workspace it should talk about, and mounts the chat directly. The code under test is the
  * same module the real client mounts - the only thing missing here is the app around it.
+ *
+ * Native Detox opens agent-up-chat://connect so those two values arrive without the form. The
+ * form stays for the installable web suite and for a person running the harness.
  */
 export function App() {
   const [url, setUrl] = useState('');
   const [workspaceId, setWorkspaceId] = useState('');
   const [connected, setConnected] = useState<{ url: string; workspaceId: string } | null>(null);
+
+  useEffect(() => {
+    const apply = (href: string | null) => {
+      const next = parseConnectLaunchUrl(href);
+      if (next) setConnected(next);
+    };
+    const subscription = Linking.addEventListener('url', event => apply(event.url));
+    void Linking.getInitialURL().then(apply);
+    return () => subscription.remove();
+  }, []);
 
   if (connected) {
     return <SafeAreaProvider>

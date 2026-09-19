@@ -15,6 +15,7 @@
  */
 const SERVER_DLL = process.env.AGENTUP_E2E_SERVER_DLL;
 const TEST_AGENT = process.env.AGENTUP_E2E_TEST_AGENT;
+const { connectLaunchUrl } = require('../../AgentUp.Mobile.E2E.App/src/connectLaunch');
 
 // Named here rather than imported, so the matrix is readable without opening the harness.
 const SCENARIOS = [
@@ -58,16 +59,16 @@ describe('agent sign-in', () => {
       await stack.control.reset();
       // Fresh app state per case: a credential left over from a previous one would make this pass
       // for the wrong reason.
-      await device.launchApp({ delete: true, newInstance: true });
-      // The chat holds a server-sent event stream open for as long as it is mounted, and Detox
-      // treats an in-flight network request as the app being busy: it will not return from an
-      // action until the app goes idle. That stream is designed never to end, so the very tap that
-      // mounts the chat never reports back and every scenario dies on the hook timeout - which is
-      // exactly what happened the first time these suites reached a simulator. Excluding the
-      // stream from synchronisation costs nothing else: every wait in these tests is a condition
-      // on Server state or on an element being visible, never on Detox's idle heuristic.
+      await device.launchApp({
+        delete: true,
+        newInstance: true,
+        url: connectLaunchUrl(stack.serverOriginForClient, stack.workspace.id),
+        // The chat mounts during this launch, so the never-ending event stream has to be excluded
+        // here. setURLBlacklist after launch is too late: Detox waits for idle that cannot come.
+        launchArgs: { detoxURLBlacklistRegex: '.*/agent/events.*' },
+      });
       await device.setURLBlacklist(['.*/agent/events.*']);
-      await connectTo(stack.serverOriginForClient, stack.workspace.id);
+      await ensureConnected(stack.serverOriginForClient, stack.workspace.id);
     });
 
     it('signs the agent in and leaves the session ready', async () => {
@@ -113,11 +114,38 @@ describe('agent sign-in', () => {
   });
 });
 
+async function ensureConnected(serverUrl, workspaceId) {
+  // Launch may have mounted the chat already. The prompt renders before getAgent returns, so it
+  // is the signal that the connect form is gone. If the deep link did not land, fill the form.
+  await waitFor(element(by.id('server-url-input').or(by.text('Choose an ACP agent'))))
+    .toBeVisible()
+    .withTimeout(60_000);
+  if (await isVisible('server-url-input')) await connectTo(serverUrl, workspaceId);
+}
+
 async function connectTo(serverUrl, workspaceId) {
   await waitFor(element(by.id('server-url-input'))).toBeVisible().withTimeout(60_000);
-  await element(by.id('server-url-input')).replaceText(serverUrl);
-  await element(by.id('workspace-id-input')).replaceText(workspaceId);
+  await fill('server-url-input', serverUrl);
+  await fill('workspace-id-input', workspaceId);
   await tap('server-connect');
+  await waitFor(element(by.id('server-url-input'))).not.toBeVisible().withTimeout(15_000);
+}
+
+/** Android Fabric's replaceText does not fire onChangeText, so Connect would no-op. */
+async function fill(testId, value) {
+  const field = element(by.id(testId));
+  await field.tap();
+  await field.clearText();
+  await field.typeText(value);
+}
+
+async function isVisible(testId) {
+  try {
+    await waitFor(element(by.id(testId))).toBeVisible().withTimeout(500);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Every interaction waits for visibility first; nothing taps on faith. */

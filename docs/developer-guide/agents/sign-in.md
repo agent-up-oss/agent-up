@@ -80,6 +80,13 @@ is how the installable-web suite approved a challenge with no code. See the Test
 The disposable native harness enables cleartext transport because its simulator and emulator must
 reach Server and identity-provider processes on ephemeral CI-host ports. That exception is applied
 by the harness config plugin only; it must not be copied into the production Mobile application.
+The plugin also writes a network-security-config that permits `10.0.2.2` and loopback, because a
+generated config that forbids cleartext wins over `usesCleartextTraffic` on API 28+.
+
+Native Detox launches the harness through `agent-up-chat://connect` instead of typing into the
+connect form. Android Fabric's `replaceText` does not update React state, so Connect was a no-op
+and the suite timed out on a picker the chat never mounted. The installable-web suite still fills
+the form.
 
 ### Keeping the suites quick
 

@@ -108,6 +108,37 @@ public sealed class LoopbackListenerTests
         });
     }
 
+    // Prefixes.Add rejects this before Start runs. That is the ArgumentException path, and it
+    // must fall through rather than fail the named port.
+    [Test]
+    public void Start_fallsBackWhenThePrefixIsNotAValidHttpListenerPrefix()
+    {
+        var (listener, port) = LoopbackListener.Start(0, _ => ["not-a-prefix"], Prefixes);
+        using var bound = listener;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(listener.IsListening, Is.True);
+            Assert.That(listener.Prefixes.Single(), Is.EqualTo($"http://127.0.0.1:{port}/agentup-test/"));
+        });
+    }
+
+    [Test]
+    public void TryStart_returnsNullWhenAddRejectsThePrefix()
+        => Assert.That(LoopbackListener.TryStart(["not-a-prefix"]), Is.Null);
+
+    [Test]
+    public void TryStart_returnsNullWhenStartThrowsSocketException()
+        => Assert.That(
+            LoopbackListener.TryStart(["http://127.0.0.1:1/"], _ => throw new SocketException()),
+            Is.Null);
+
+    [Test]
+    public void TryStart_returnsNullWhenStartThrowsTheLinuxWildcardArgumentNullException()
+        => Assert.That(
+            LoopbackListener.TryStart(["http://+:1/"], _ => throw new ArgumentNullException()),
+            Is.Null);
+
     private static IEnumerable<string> Prefixes(int port) => [$"http://127.0.0.1:{port}/agentup-test/"];
 
     private static IEnumerable<string> Wildcard(int port) => [$"http://+:{port}/"];

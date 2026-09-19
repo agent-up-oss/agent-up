@@ -5,6 +5,11 @@ using Avalonia.ReactiveUI;
 using Avalonia.Themes.Fluent;
 
 [assembly: AvaloniaTestApplication(typeof(AgentUp.Desktop.Tests.Support.TestApp))]
+// PerTest isolation rebuilds Application and Dispatcher every method, then DefaultRenderLoop.Add
+// runs on a worker that does not own that Dispatcher. Content_autoSelectsFirstWorkspace_whenMultipleLoaded
+// fails as VerifyAccess. One session for the assembly keeps compositor and dispatcher together.
+[assembly: AvaloniaTestIsolation(AvaloniaTestIsolationLevel.PerAssembly)]
+[assembly: NonParallelizable]
 
 namespace AgentUp.Desktop.Tests.Support;
 

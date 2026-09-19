@@ -51,30 +51,66 @@ public static class LoopbackListener
     {
         foreach (var preference in preferences)
         {
-            var listener = new HttpListener();
-            try
-            {
-                foreach (var prefix in preference(port))
-                    listener.Prefixes.Add(prefix);
-
-                listener.Start();
+            var listener = TryStart(preference(port));
+            if (listener is not null)
                 return listener;
-            }
-            catch (HttpListenerException)
-            {
-                listener.Close();
-            }
-            catch (SocketException)
-            {
-                listener.Close();
-            }
-            catch (ArgumentException)
-            {
-                listener.Close();
-            }
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Starts one prefix set, or returns null when that set cannot be used on this host.
+    /// <paramref name="start"/> is the listener start so a test can throw the bind failures
+    /// Linux will not produce for a prefix that actually starts.
+    /// </summary>
+    internal static HttpListener? TryStart(IEnumerable<string> prefixes, Action<HttpListener>? start = null)
+    {
+        var listener = new HttpListener();
+        try
+        {
+            foreach (var prefix in prefixes)
+                listener.Prefixes.Add(prefix);
+
+            if (start is null)
+                listener.Start();
+            else
+                start(listener);
+
+            return listener;
+        }
+        catch (HttpListenerException)
+        {
+            Abandon(listener);
+            return null;
+        }
+        catch (SocketException)
+        {
+            Abandon(listener);
+            return null;
+        }
+        catch (ArgumentException)
+        {
+            Abandon(listener);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Closes a listener that never became the bound result. Prefix removal can throw the same
+    /// <see cref="HttpListenerException"/> Start just threw, and that must not escape and kill
+    /// the process.
+    /// </summary>
+    private static void Abandon(HttpListener listener)
+    {
+        try
+        {
+            listener.Close();
+        }
+        catch (HttpListenerException)
+        {
+            return;
+        }
     }
 
     /// <summary>
