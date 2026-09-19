@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-STORE_ID = "com.massivecreationlab.agentup"
+STORE_ID = "net.themassiveone.agent-up.ios"
 MATCH_BRANCH = "master"
 UPLOAD_ATTEMPTS = 3
 
