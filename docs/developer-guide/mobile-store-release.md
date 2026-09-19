@@ -13,9 +13,10 @@ to Play or App Store Connect and does not create `android-v*` / `ios-v*` GitHub
 releases. Dispatch the same workflow on the branch that already has a product
 `vX.Y.Z` tag to publish.
 
-The workflow does not run product tests, does not call semantic-release, and does
-not use `.releaserc.json`. Android compiles on Ubuntu. iOS compiles on macOS
-because CocoaPods and `xcodebuild` cannot run on Linux.
+The workflow runs Mobile typechecking, provider and script tests, and a web
+export in a dedicated Ubuntu job before either native build. It does not call
+semantic-release or use `.releaserc.json`. Android compiles on Ubuntu. iOS
+compiles on macOS because CocoaPods and `xcodebuild` cannot run on Linux.
 
 ## Inputs
 
@@ -57,17 +58,19 @@ pushes entirely, so desktop CI would never start on this branch.
 ```text
 push (path-filtered) or workflow_dispatch
   version (ubuntu)
-    android (ubuntu)
-    ios (macos-15)
+    tests (ubuntu)
+      android (ubuntu)
+      ios (macos-15)
 ```
 
 Push runs when `AgentUp.Mobile`, `AgentUp.DesignSystem`, `AgentUp.WebAudit`, this
 workflow, the iOS certs workflow, or the mobile helper scripts change. Changing
 only `ci.yml` does not start Mobile CI.
 
-Android failure does not cancel iOS, and the reverse. A second dispatch on the
-same ref waits; it does not cancel an in-flight store upload. A newer push on the
-same ref cancels an in-flight smoke, not a dispatch.
+The Android and iOS jobs both require the shared Mobile test job to pass. Android
+failure does not cancel iOS, and the reverse. A second dispatch on the same ref
+waits; it does not cancel an in-flight store upload. A newer push on the same ref
+cancels an in-flight smoke, not a dispatch.
 
 ## Signing
 
