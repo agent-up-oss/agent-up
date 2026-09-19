@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 const require = createRequire(import.meta.url);
-const { canvasColor, createMobileExpoConfig, storeId } = require('./mobile-expo-config.js');
+const { canvasColor, createMobileExpoConfig, iosBundleId, androidPackageName } = require('./mobile-expo-config.js');
 const { agentUpTheme } = require('../../AgentUp.DesignSystem/dist/web/tokens.cjs');
 const appJson = require('../app.json');
 
@@ -22,8 +22,9 @@ function pngSize(path) {
   };
 }
 
-test('uses the design-system canvas token and MassiveCreationLab store id', () => {
-  assert.equal(storeId, 'com.massivecreationlab.agentup');
+test('uses the design-system canvas token and the themassiveone store ids', () => {
+  assert.equal(iosBundleId, 'net.themassiveone.agent-up.ios');
+  assert.equal(androidPackageName, 'net.themassiveone.agentup.android');
   assert.equal(canvasColor, agentUpTheme.colors.canvas);
 });
 
@@ -31,10 +32,10 @@ test('keeps local app.json version and a local version code of 1', () => {
   const config = createMobileExpoConfig(appJson, {});
 
   assert.equal(config.expo.version, '0.1.0');
-  assert.equal(config.expo.ios.bundleIdentifier, storeId);
+  assert.equal(config.expo.ios.bundleIdentifier, iosBundleId);
   assert.equal(config.expo.ios.buildNumber, '1');
   assert.equal(config.expo.ios.infoPlist.ITSAppUsesNonExemptEncryption, false);
-  assert.equal(config.expo.android.package, storeId);
+  assert.equal(config.expo.android.package, androidPackageName);
   assert.equal(config.expo.android.versionCode, 1);
   assert.equal(config.expo.android.adaptiveIcon.backgroundColor, canvasColor);
   assert.equal(config.expo.splash.backgroundColor, canvasColor);

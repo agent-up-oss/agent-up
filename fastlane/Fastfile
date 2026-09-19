@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 STORE_ID = "net.themassiveone.agent-up.ios"
+ANDROID_PACKAGE = "net.themassiveone.agentup.android"
 MATCH_BRANCH = "master"
 UPLOAD_ATTEMPTS = 3
 
@@ -22,7 +23,7 @@ def ios_bundle_id
 end
 
 def android_package_name
-  ENV.fetch("ANDROID_PACKAGE_NAME", STORE_ID)
+  ENV.fetch("ANDROID_PACKAGE_NAME", ANDROID_PACKAGE)
 end
 
 def configure_app_store_connect_api_key

@@ -2,7 +2,8 @@
 
 const { agentUpTheme } = require('../../AgentUp.DesignSystem/dist/web/tokens.cjs');
 
-const storeId = 'com.massivecreationlab.agentup';
+const iosBundleId = 'net.themassiveone.agent-up.ios';
+const androidPackageName = 'net.themassiveone.agentup.android';
 const canvasColor = agentUpTheme.colors.canvas;
 const versionPattern = /^\d+\.\d+\.\d+$/;
 const versionCodePattern = /^[1-9][0-9]*$/;
@@ -32,7 +33,7 @@ function createMobileExpoConfig(appJson, env = {}) {
       },
       ios: {
         ...expo.ios,
-        bundleIdentifier: storeId,
+        bundleIdentifier: iosBundleId,
         buildNumber: versionCodeRaw,
         icon: './assets/icon.png',
         infoPlist: {
@@ -42,7 +43,7 @@ function createMobileExpoConfig(appJson, env = {}) {
       },
       android: {
         ...expo.android,
-        package: storeId,
+        package: androidPackageName,
         versionCode: Number(versionCodeRaw),
         adaptiveIcon: {
           foregroundImage: './assets/adaptive-icon.png',
@@ -56,5 +57,6 @@ function createMobileExpoConfig(appJson, env = {}) {
 module.exports = {
   canvasColor,
   createMobileExpoConfig,
-  storeId,
+  iosBundleId,
+  androidPackageName,
 };

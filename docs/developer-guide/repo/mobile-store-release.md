@@ -88,7 +88,7 @@ iOS uses Fastlane Match against the shared private
 (`master`). Deploy lanes set `readonly: true` and
 `force_for_new_certificates: false` so a release cannot mint a new Apple
 certificate. New Agent-Up work creates **profiles only** for
-`com.massivecreationlab.agentup`.
+`net.themassiveone.agent-up.ios`.
 
 One-time bootstrap is [Mobile iOS certificates](https://github.com/themassiveone/agent-up/actions/workflows/mobile-ios-certs.yaml):
 
@@ -103,13 +103,15 @@ holds the app signing key.
 
 ## Expo identity
 
-Store ID is `com.massivecreationlab.agentup` on both platforms.
+iOS is `net.themassiveone.agent-up.ios`. Android is
+`net.themassiveone.agentup.android`.
 [`AgentUp.Mobile/app.config.js`](../../../AgentUp.Mobile/app.config.js) overlays
-that identifier plus `AGENTUP_MOBILE_VERSION` and
-`AGENTUP_MOBILE_VERSION_CODE` onto `app.json`. CI runs `expo prebuild` and does
-not commit `android/` or `ios/`. Store `icon.png` and `adaptive-icon.png` under
-`AgentUp.Mobile/assets/` are 1024px scales of
-`AgentUp.Mobile/public/agent-up-icon-512.png`.
+those identifiers plus `AGENTUP_MOBILE_VERSION` and
+`AGENTUP_MOBILE_VERSION_CODE` onto `app.json`. Play `package_name` must match the
+Android package baked at prebuild; a different id is a hard Play API failure.
+CI runs `expo prebuild` and does not commit `android/` or `ios/`. Store
+`icon.png` and `adaptive-icon.png` under `AgentUp.Mobile/assets/` are 1024px
+scales of `AgentUp.Mobile/public/agent-up-icon-512.png`.
 
 GitHub-hosted store jobs invoke Expo and Fastlane directly. Fastlane, `Gemfile`,
 `Gemfile.lock`, and `.ruby-version` live at the repository root; `expo prebuild`
@@ -124,10 +126,10 @@ These cannot be automated in the workflow:
    Agent-Up GitHub repository. Names are listed in
    [CI Configuration](./ci-configuration.md).
 2. Run Mobile iOS certificates `init_ci`, then `sync`, and confirm
-   `AppStore_com.massivecreationlab.agentup.mobileprovision` landed in
+   `AppStore_net.themassiveone.agent-up.ios.mobileprovision` landed in
    certificates without a new Apple certificate.
-3. Create the App Store Connect app with bundle ID `com.massivecreationlab.agentup`.
-4. Create the Play Console app with package `com.massivecreationlab.agentup`,
+3. Create the App Store Connect app with bundle ID `net.themassiveone.agent-up.ios`.
+4. Create the Play Console app with package `net.themassiveone.agentup.android`,
    enable Play App Signing, register the upload keystore, and grant the Play
    Developer API to the service account.
 5. Dispatch Mobile CI with `channel: beta` after a product `vX.Y.Z` tag exists
