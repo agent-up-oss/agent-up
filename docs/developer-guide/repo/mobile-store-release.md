@@ -18,7 +18,8 @@ export in a dedicated Ubuntu job before either native build. Dependency
 installation runs the design-system generator with `--check` so stale committed
 outputs fail instead of being rewritten. It does not call
 semantic-release or use `.releaserc.json`. Android compiles on Ubuntu. iOS
-compiles on macOS because CocoaPods and `xcodebuild` cannot run on Linux.
+compiles on `macos-26` with Xcode 26.4 because CocoaPods and `xcodebuild` cannot
+run on Linux, and Expo SDK 57 rejects Xcode 16.
 
 ## Inputs
 
@@ -62,7 +63,7 @@ push (path-filtered) or workflow_dispatch
   version (ubuntu)
     tests (ubuntu)
       android (ubuntu)
-      ios (macos-15)
+      ios (macos-26)
 ```
 
 Push runs when `AgentUp.Mobile`, `AgentUp.Chat`, `AgentUp.AgentAuth`,

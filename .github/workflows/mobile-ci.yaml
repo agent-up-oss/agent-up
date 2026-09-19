@@ -285,7 +285,7 @@ jobs:
     name: iOS
     needs: [version, tests]
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'ios' }}
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 150
     permissions:
       contents: write
@@ -309,7 +309,7 @@ jobs:
 
       - uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: "16.4"
+          xcode-version: "26.4"
 
       - uses: ruby/setup-ruby@v1
         with:
