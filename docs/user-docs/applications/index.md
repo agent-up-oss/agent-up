@@ -28,7 +28,7 @@ Applications consume ports through environment variables such as `WEB_PORT`. The
 
 <DocSurfaces>
 <DocSurface desktop>Selecting an application opens Console, Metrics, Diagnostics, and, when `database` is true, a Postgres explorer. HTTP ports keep a native view. `desktopApplications` use a ticketed streamed viewer.</DocSurface>
-<DocSurface mobile>Apps lists the same applications and opens each as an inner page. HTTP UIs load through the Server proxy. `desktopApplications` use the streamed viewer.</DocSurface>
+<DocSurface mobile>Apps shows workspace start/stop and live health above the application list, then opens each application as an inner page. HTTP UIs load through the Server proxy. `desktopApplications` use the streamed viewer.</DocSurface>
 </DocSurfaces>
 
 ## Application tabs

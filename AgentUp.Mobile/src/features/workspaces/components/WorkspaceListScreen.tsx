@@ -3,6 +3,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, Text
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
 import { canCloneWorkspace } from '../providers/CloneInputProvider';
+import { statusDotStyle, workspaceLedState } from '../providers/WorkspaceStatusProvider';
 import { EntitlementCard } from '@/features/entitlements/components/EntitlementCard';
 import { isFeatureAvailable, presentEntitlements, workspaceCreateFeature, workspaceCreateUnavailableMessage, type EntitlementCard as EntitlementCardModel } from '@/features/entitlements/models/Entitlements';
 import { getEntitlements } from '@/features/entitlements/providers/EntitlementsApiProvider';
@@ -75,7 +76,7 @@ export function WorkspaceListScreen() {
           accessibilityLabel={`Select workspace ${workspace.displayName}`}
           onPress={() => selectWorkspace(workspace.id)}
           style={[styles.row, isSelected && styles.selectedRow]}>
-          <View style={stateDot(workspace.state)} />
+          <View style={statusDotStyle(workspaceLedState(workspace.state, workspace.healthState))} />
           <View style={styles.cardHeader}>
             <Text numberOfLines={1} style={styles.cardTitle}>{workspace.displayName}</Text>
             <Text numberOfLines={1} style={styles.cardBranch}>{workspace.branch}</Text>
@@ -125,13 +126,6 @@ export function WorkspaceListScreen() {
       </View>
     </Modal>
   </SafeAreaView>;
-}
-
-function stateDot(state: string) {
-  if (state === 'Running') return auBox('statusDot', 'statusDotHealthy');
-  if (state === 'Starting' || state === 'Stopping') return auBox('statusDot', 'statusDotWarning');
-  if (state === 'Failed') return auBox('statusDot', 'statusDotDanger');
-  return auBox('statusDot');
 }
 
 const styles = StyleSheet.create({

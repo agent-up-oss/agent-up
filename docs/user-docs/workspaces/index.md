@@ -97,7 +97,7 @@ Switching servers drops that client's local workspace state.
 </DocSteps>
 
 <DocSurfaces>
-<DocSurface mobile>After connect, the sidebar lists workspaces for the active Server. Each workspace has a bottom bar with Apps, Git, and Agents.</DocSurface>
+<DocSurface mobile>After connect, the sidebar lists workspaces for the active Server. Each workspace has a bottom bar with Apps, Git, and Agents. The Apps tab start/stop control requests the Server-owned lifecycle and shows live health.</DocSurface>
 </DocSurfaces>
 
 ## CLI workspace commands
