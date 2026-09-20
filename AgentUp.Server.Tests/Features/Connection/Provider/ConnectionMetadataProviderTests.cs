@@ -24,4 +24,17 @@ public sealed class ConnectionMetadataProviderTests
         var dto = new ConnectionMetadataProvider(new ConfigurationBuilder().Build()).Current();
         Assert.That(dto.Authentication.Prompt, Does.Contain("administrator password"));
     }
+
+    [Test]
+    public void Current_ReportsDisabledModeFromAuthMode()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?> { ["AGENTUP_AUTH_MODE"] = "disabled" }).Build();
+        var dto = new ConnectionMetadataProvider(configuration).Current();
+        Assert.Multiple(() =>
+        {
+            Assert.That(dto.Authentication.Mode, Is.EqualTo("disabled"));
+            Assert.That(dto.Authentication.Prompt, Does.Contain("credential issued for this Server"));
+        });
+    }
 }

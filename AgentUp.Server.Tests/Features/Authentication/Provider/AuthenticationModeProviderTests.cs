@@ -29,4 +29,12 @@ public sealed class AuthenticationModeProviderTests
             new Dictionary<string, string?> { ["AGENTUP_AUTH_MODE"] = "externalBearer" }).Build();
         Assert.That(new AuthenticationModeProvider(configuration).Current.ToString(), Is.EqualTo("ExternalBearer"));
     }
+
+    [Test]
+    public void DisabledModeCanBeSelectedWithoutTheLegacyFlag()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?> { ["AGENTUP_AUTH_MODE"] = "disabled" }).Build();
+        Assert.That(new AuthenticationModeProvider(configuration).Current.ToString(), Is.EqualTo("Disabled"));
+    }
 }

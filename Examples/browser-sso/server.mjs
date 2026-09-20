@@ -92,7 +92,7 @@ async function route(request, response, url) {
       write(response, 400, { title: 'Invalid redirect_uri', detail: 'redirect_uri must be a loopback http(s) URL.' });
       return;
     }
-    writeHtml(response, 200, signInPage(redirectUri));
+    writeHtml(response, 200, signInPage());
     return;
   }
 
@@ -156,8 +156,7 @@ export function isLoopbackRedirect(value) {
   }
 }
 
-function signInPage(redirectUri) {
-  const encoded = escapeHtml(redirectUri);
+function signInPage() {
   return `<!doctype html>
 <html lang="en">
 <meta charset="utf-8">
@@ -166,17 +165,23 @@ function signInPage(redirectUri) {
   <h1>Sign in to ${DISPLAY_NAME}</h1>
   <p>This example identity front door issues a one-time Agent-Up access token. It is not an identity vendor SDK.</p>
   <form method="post" action="/api/auth/sso">
-    <input type="hidden" name="redirect_uri" value="${encoded}">
+    <input type="hidden" name="redirect_uri" id="sso-redirect">
     <button id="sso-continue" type="submit">Continue</button>
   </form>
+  <script>
+    document.getElementById('sso-redirect').value =
+      new URLSearchParams(window.location.search).get('redirect_uri') ?? '';
+  </script>
 </body>
 </html>`;
 }
 
 function bearerToken(request) {
   const header = request.headers.authorization ?? '';
-  const match = /^Bearer\s+(.+)$/i.exec(header);
-  return match?.[1] ?? '';
+  const space = header.indexOf(' ');
+  if (space < 0) return '';
+  if (header.slice(0, space).toLowerCase() !== 'bearer') return '';
+  return header.slice(space + 1).trim();
 }
 
 function corsHeaders() {
@@ -204,14 +209,6 @@ function writeHtml(response, status, html) {
     ...corsHeaders(),
   });
   response.end(html);
-}
-
-function escapeHtml(value) {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('"', '&quot;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;');
 }
 
 async function readBody(request) {

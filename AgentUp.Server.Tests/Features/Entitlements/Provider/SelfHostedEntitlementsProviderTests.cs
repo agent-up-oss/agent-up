@@ -24,4 +24,13 @@ public sealed class SelfHostedEntitlementsProviderTests
             Assert.That(dto.Features[OperationPermissions.WorkspaceCreate].Available, Is.True);
         });
     }
+
+    [Test]
+    public void ForSubject_UsesConfiguredRevision()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?> { ["AGENTUP_ENTITLEMENT_REVISION"] = "rev-9" }).Build();
+        var dto = new SelfHostedEntitlementsProvider(configuration).ForSubject("admin");
+        Assert.That(dto.Revision, Is.EqualTo("rev-9"));
+    }
 }

@@ -32,7 +32,21 @@ public sealed class EntitlementsControllerTests
         Assert.That(dto!.Features.Keys, Is.EquivalentTo(OperationPermissions.All));
     }
 
-    private static EntitlementsController CreateController()
+    [Test]
+    public void Get_FallsBackToTheIdentityNameWhenNameIdentifierIsMissing()
+    {
+        var dto = CreateController(new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "named-user")]))).Get().Value;
+        Assert.That(dto!.Subject, Is.EqualTo("named-user"));
+    }
+
+    [Test]
+    public void Get_FallsBackToAdminWhenTheCallerHasNoName()
+    {
+        var dto = CreateController(new ClaimsPrincipal(new ClaimsIdentity())).Get().Value;
+        Assert.That(dto!.Subject, Is.EqualTo("admin"));
+    }
+
+    private static EntitlementsController CreateController(ClaimsPrincipal? user = null)
     {
         var controller = new EntitlementsController(
             new EntitlementsService(new SelfHostedEntitlementsProvider(new ConfigurationBuilder().Build())));
@@ -40,7 +54,7 @@ public sealed class EntitlementsControllerTests
         {
             HttpContext = new DefaultHttpContext
             {
-                User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, "admin")]))
+                User = user ?? new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, "admin")]))
             }
         };
         return controller;
