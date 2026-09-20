@@ -73,7 +73,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
     try {
       const target = resolvePresetServerUrl(presetServerUrl, cloudServer?.url);
       if (target.kind === 'cloud') {
-        if (hasSavedSignIn(cloudServer)) {
+        if (cloudServer && hasSavedSignIn(cloudServer)) {
           selectServer(cloudServer.id);
           router.replace(workspaceHref(presetWorkspaceId));
           return;
@@ -82,7 +82,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
         return;
       }
       const saved = savedServers.find(server => server.url === target.url);
-      if (hasSavedSignIn(saved)) {
+      if (saved && hasSavedSignIn(saved)) {
         selectServer(saved.id);
         router.replace(workspaceHref(presetWorkspaceId));
         return;
@@ -202,7 +202,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
 
   const cloudName = cloudServer?.displayName ?? 'Agent-Up Cloud';
   const showServers = true;
-  const currentLabel = hasSavedSignIn(activeServer)
+  const currentLabel = activeServer && hasSavedSignIn(activeServer)
     ? (activeServer.isRecommended ? (activeServer.displayName ?? cloudName) : activeServer.url)
     : 'No server selected';
 
