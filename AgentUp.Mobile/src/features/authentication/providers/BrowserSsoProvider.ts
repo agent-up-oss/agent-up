@@ -4,8 +4,17 @@ export function usesBrowserSso(connection: { authentication?: { mode?: string } 
   return connection?.authentication?.mode === 'browserSso';
 }
 
-export function browserSsoStartUrl(serverUrl: string, redirectUri: string): string {
-  return `${serverUrl.replace(/\/$/, '')}/api/auth/sso?redirect_uri=${encodeURIComponent(redirectUri)}`;
+export function browserSsoStartUrl(serverUrl: string, redirectUri: string): URL {
+  const target = new URL(serverUrl);
+  if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+    throw new Error('Server URLs must use http or https.');
+  }
+
+  target.pathname = `${target.pathname.replace(/\/+$/, '')}/api/auth/sso`;
+  target.search = '';
+  target.hash = '';
+  target.searchParams.set('redirect_uri', redirectUri);
+  return target;
 }
 
 export function readAccessToken(href: string): string | null {

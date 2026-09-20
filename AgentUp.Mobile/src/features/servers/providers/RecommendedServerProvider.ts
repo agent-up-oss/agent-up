@@ -11,7 +11,7 @@ export type RecommendedServer = {
   displayName: string;
 };
 
-export function readRecommendedServer(env: NodeJS.ProcessEnv = process.env): RecommendedServer | null {
+export function readRecommendedServer(env: Record<string, string | undefined> = process.env): RecommendedServer | null {
   const url = env.EXPO_PUBLIC_RECOMMENDED_SERVER_URL ?? env.AGENTUP_RECOMMENDED_SERVER_URL;
   if (!url?.trim()) return null;
 

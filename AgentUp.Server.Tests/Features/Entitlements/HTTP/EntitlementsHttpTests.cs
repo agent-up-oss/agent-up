@@ -23,7 +23,8 @@ public sealed class EntitlementsHttpTests
     [Test]
     public async Task Entitlements_ReturnCommunityFeaturesAfterLogin()
     {
-        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        using var root = new WebApplicationFactory<Program>();
+        using var factory = root.WithWebHostBuilder(builder =>
             builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
                 new Dictionary<string, string?> { ["AGENTUP_ADMIN_PASSWORD"] = "test-password" })));
         using var client = factory.CreateClient();

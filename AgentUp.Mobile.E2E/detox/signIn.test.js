@@ -117,10 +117,16 @@ describe('agent sign-in', () => {
 async function ensureConnected(serverUrl, workspaceId) {
   // Launch may have mounted the chat already. The prompt renders before getAgent returns, so it
   // is the signal that the connect form is gone. If the deep link did not land, fill the form.
-  await waitFor(element(by.id('server-url-input').or(by.text('Choose an ACP agent'))))
-    .toBeVisible()
-    .withTimeout(60_000);
-  if (await isVisible('server-url-input')) await connectTo(serverUrl, workspaceId);
+  // Detox matchers do not expose `.or` on every platform, so poll the two signals separately.
+  const deadline = Date.now() + 60_000;
+  while (Date.now() < deadline) {
+    if (await isVisible('server-url-input')) {
+      await connectTo(serverUrl, workspaceId);
+      return;
+    }
+    if (await isVisibleText('Choose an ACP agent')) return;
+  }
+  throw new Error('Timed out waiting for the connect form or the agent picker.');
 }
 
 async function connectTo(serverUrl, workspaceId) {
@@ -142,6 +148,15 @@ async function fill(testId, value) {
 async function isVisible(testId) {
   try {
     await waitFor(element(by.id(testId))).toBeVisible().withTimeout(500);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function isVisibleText(text) {
+  try {
+    await waitFor(element(by.text(text))).toBeVisible().withTimeout(500);
     return true;
   } catch {
     return false;

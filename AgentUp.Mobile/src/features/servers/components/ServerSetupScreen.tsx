@@ -167,11 +167,16 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
   };
 
   const startSso = (serverUrl: string) => {
-    rememberSsoServer(serverUrl);
     rememberPresetWorkspace(presetWorkspaceId);
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const redirect = `${window.location.origin}${window.location.pathname}`;
-      window.location.assign(browserSsoStartUrl(serverUrl, redirect));
+      try {
+        const redirect = `${window.location.origin}${window.location.pathname}`;
+        const target = browserSsoStartUrl(serverUrl, redirect);
+        rememberSsoServer(serverUrl);
+        window.location.assign(target.href);
+      } catch {
+        setStatus('The server URL is invalid. Please check it and try again.');
+      }
       return;
     }
     setStatus('Continue sign-in in the browser from the web client.');
