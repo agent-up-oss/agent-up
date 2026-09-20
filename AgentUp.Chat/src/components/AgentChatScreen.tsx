@@ -83,18 +83,29 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
 
   useEffect(() => {
     if (!server) return;
-    let disposed = false;
     lastSequence.current = 0;
-    void getAgent(server, workspace.id).then(value => { if (!disposed) setSession(current => mergeAgentSession(current, value)); }).catch(cause => { if (!disposed) setError(readError(cause)); });
     const controller = new AbortController();
+    const load = async () => {
+      while (!controller.signal.aborted) {
+        try {
+          const value = await getAgent(server, workspace.id);
+          if (!controller.signal.aborted) setSession(current => mergeAgentSession(current, value));
+          return;
+        }
+        catch (cause) {
+          if (!controller.signal.aborted) { setError(readError(cause)); await delay(1500); }
+        }
+      }
+    };
     const connect = async () => {
       while (!controller.signal.aborted) {
         try { await streamAgentEvents(server, workspace.id, lastSequence.current, applyEvent, controller.signal); if (!controller.signal.aborted) await delay(500); }
         catch (cause) { if (!controller.signal.aborted) { setError(readError(cause)); await delay(1500); } }
       }
     };
+    void load();
     void connect();
-    return () => { disposed = true; controller.abort(); };
+    return () => { controller.abort(); };
   }, [server, workspace.id, applyEvent]);
 
   // Adapts this client's own authenticated transport into the shared module's interface, so the
