@@ -36,6 +36,7 @@ public sealed class EntitlementsHttpTests
         {
             Assert.That(entitlements!.Source, Is.EqualTo("selfHosted"));
             Assert.That(entitlements.Features["agent.prompt"].Available, Is.True);
+            Assert.That(entitlements.Features["workspace.create"].Available, Is.True);
         });
     }
 }

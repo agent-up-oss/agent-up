@@ -613,6 +613,10 @@ operation permissions such as `agent.prompt` and `git.write`, not product
 editions. A self-hosted Server always returns the community document with every
 operation available.
 
+`Examples/browser-sso` is a runnable identity front door that advertises `browserSso`
+and returns a restricted entitlement document. The OSS Server itself never emits
+`browserSso`.
+
 Desktop and Mobile may list a recommended connection from
 `AGENTUP_RECOMMENDED_SERVER_URL` / `EXPO_PUBLIC_RECOMMENDED_SERVER_URL`. When
 set, that URL stays in the connection list and cannot be removed. Leave it
@@ -850,7 +854,7 @@ The three end-to-end jobs hold a runner for tens of minutes, one of them macOS. 
 
 Expo generates `AgentUp.Mobile/ios/` and `AgentUp.Mobile/android/` during those jobs and they stay uncommitted. `.github/scripts/install-mobile-deps.sh` installs mobile dependencies for CI without the `nix-shell` wrapper the repository npm scripts use: those runners have no Nix and do have Xcode and Android toolchains that the wrapper's replaced `PATH` would break. It runs the same underlying commands, including `AgentUp.DesignSystem/scripts/build.mjs --check` so stale committed design-system outputs fail instead of being rewritten; only the shell wrapper is skipped. This is the second documented exception alongside `build:cloudflare`.
 
-Changes under `AgentUp.Mobile/` must run `./au-debug test mobile` (typecheck, tests, and web export). Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
+Changes under `AgentUp.Mobile/` must run `./au-debug test mobile` (typecheck, tests, web export, and the browser-SSO example HTTP tests). Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
 
 Every public mobile npm script must invoke its Expo or TypeScript command through the repository `shell.nix`, except `build:cloudflare`, which runs the shared web-export entrypoint directly in Cloudflare Pages' Node.js build image. GitHub Actions jobs in `.github/workflows/mobile-ci.yaml` also invoke Expo from `AgentUp.Mobile` and Fastlane from the repository root on GitHub-hosted runners that do not enter `shell.nix`; do not add matching public npm scripts. Do not add other duplicate direct or `:nix` script variants. Expo commands must use the local `node_modules/.bin` CLI, and TypeScript commands must use `npx`; `nix-shell` replaces `PATH`, so a bare `expo` or `tsc` binary is not available. Keep Node.js, `zip`, `unzip`, `NIX_LD`, `patchelf`, the DotSlash DevTools preparation, and the React Native DevTools Electron runtime libraries in `shell.nix` so NixOS launches use the same reproducible environment.
 

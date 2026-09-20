@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { browserSsoStartUrl, readAccessToken } from './BrowserSsoProvider';
+import { browserSsoStartUrl, readAccessToken, usesBrowserSso } from './BrowserSsoProvider';
+
+test('usesBrowserSso follows connection authentication mode', () => {
+  assert.equal(usesBrowserSso({ authentication: { mode: 'browserSso' } }), true);
+  assert.equal(usesBrowserSso({ authentication: { mode: 'localAdministrator' } }), false);
+  assert.equal(usesBrowserSso(null), false);
+});
 
 test('browserSsoStartUrl points at the server SSO start route', () => {
   assert.equal(

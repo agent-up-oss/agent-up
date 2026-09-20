@@ -1,5 +1,9 @@
 const pendingServerKey = 'agent-up.sso.server';
 
+export function usesBrowserSso(connection: { authentication?: { mode?: string } } | null | undefined): boolean {
+  return connection?.authentication?.mode === 'browserSso';
+}
+
 export function browserSsoStartUrl(serverUrl: string, redirectUri: string): string {
   return `${serverUrl.replace(/\/$/, '')}/api/auth/sso?redirect_uri=${encodeURIComponent(redirectUri)}`;
 }

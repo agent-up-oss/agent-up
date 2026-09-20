@@ -11,6 +11,7 @@ on:
       - AgentUp.Chat/**
       - AgentUp.AgentAuth/**
       - AgentUp.ServerClient/**
+      - Examples/browser-sso/**
       - .github/workflows/mobile-ci.yaml
       - .github/workflows/mobile-ios-certs.yaml
       - .github/scripts/install-android-ndk.sh
@@ -131,6 +132,16 @@ jobs:
       - name: Export web application
         working-directory: AgentUp.Mobile
         run: node scripts/export-web.mjs
+
+      - name: Browser SSO example
+        working-directory: Examples/browser-sso
+        env:
+          AGENTUP_MOBILE_WEB_EXPORT: ${{ github.workspace }}/AgentUp.Mobile/dist
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm test
+          npx playwright test --config e2e/playwright.config.mjs
 
   android:
     name: Android

@@ -7,10 +7,10 @@ import { resolvePresetServerUrl, rememberPresetWorkspace, takePendingWorkspace, 
 import { normalizeServerUrl, probeServer } from '../providers/ServerUrlProvider';
 import { recordServerConnectionAudit } from '../providers/MobileAuditProvider';
 import { getAuthenticationStatus, getConnection, login, ensureCredentialTransportAllowed } from '../../authentication/providers/AuthenticationProvider';
-import { browserSsoStartUrl, readAccessToken, rememberSsoServer, takePendingSsoServer } from '../../authentication/providers/BrowserSsoProvider';
+import { browserSsoStartUrl, readAccessToken, rememberSsoServer, takePendingSsoServer, usesBrowserSso } from '../../authentication/providers/BrowserSsoProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
-type FormMode = 'add' | 'password' | 'cloud';
+type FormMode = 'add' | 'password' | 'cloud' | 'sso';
 
 export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { presetServerUrl?: string; presetWorkspaceId?: string }) {
   const router = useRouter();
@@ -21,6 +21,8 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
   const [password, setPassword] = useState('');
   const [loginUrl, setLoginUrl] = useState<string | null>(cloudServer?.url ?? null);
   const [formMode, setFormMode] = useState<FormMode>(cloudServer ? 'cloud' : 'add');
+  const [ssoDisplayName, setSsoDisplayName] = useState('this Server');
+  const [ssoPrompt, setSsoPrompt] = useState('');
   const connectionInFlight = useRef(false);
   const appliedPreset = useRef(false);
 
@@ -38,6 +40,16 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
     setLoginUrl(cloudServer.url);
     setPassword('');
     setUrl('');
+    setStatus('');
+  };
+
+  const showBrowserSso = (serverUrl: string, displayName: string, prompt: string) => {
+    setFormMode('sso');
+    setLoginUrl(serverUrl);
+    setSsoDisplayName(displayName || 'this Server');
+    setSsoPrompt(prompt);
+    setUrl(serverUrl);
+    setPassword('');
     setStatus('');
   };
 
@@ -111,6 +123,10 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
       const auth = await getAuthenticationStatus(normalized);
       if (auth.authenticationRequired) {
         ensureCredentialTransportAllowed(normalized);
+        if (usesBrowserSso(connection) && connection) {
+          showBrowserSso(normalized, connection.displayName, connection.authentication.prompt);
+          return;
+        }
         setUrl(normalized);
         setLoginUrl(normalized);
         setFormMode('password');
@@ -163,7 +179,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
 
   const signIn = async () => {
     if (!loginUrl || busy) return;
-    if (formMode === 'cloud') {
+    if (formMode === 'cloud' || formMode === 'sso') {
       startSso(loginUrl);
       return;
     }
@@ -188,7 +204,15 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
       {formMode === 'cloud' ? <>
         <Text style={styles.eyebrow}>{cloudName.toUpperCase()}</Text>
         <Text accessibilityRole="header" style={styles.title}>Login via {cloudName}</Text>
-        <Pressable accessibilityRole="button" disabled={busy} onPress={() => void signIn()}
+        <Pressable testID="server-sso-continue" accessibilityRole="button" disabled={busy} onPress={() => void signIn()}
+          style={[styles.button, busy && styles.disabled]}>
+          {busy ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.buttonText}>Continue</Text>}
+        </Pressable>
+      </> : formMode === 'sso' ? <>
+        <Text style={styles.eyebrow}>BROWSER SIGN-IN</Text>
+        <Text accessibilityRole="header" style={styles.title}>Sign in to {ssoDisplayName}</Text>
+        <Text style={styles.subtitle}>{ssoPrompt || 'Continue in the browser to receive an access token.'}</Text>
+        <Pressable testID="server-sso-continue" accessibilityRole="button" disabled={busy} onPress={() => void signIn()}
           style={[styles.button, busy && styles.disabled]}>
           {busy ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.buttonText}>Continue</Text>}
         </Pressable>

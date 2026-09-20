@@ -3,7 +3,8 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, Text
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
 import { canCloneWorkspace } from '../providers/CloneInputProvider';
-import { isFeatureAvailable, workspaceCreateFeature } from '@/features/entitlements/models/Entitlements';
+import { EntitlementCard } from '@/features/entitlements/components/EntitlementCard';
+import { isFeatureAvailable, presentEntitlements, workspaceCreateFeature, workspaceCreateUnavailableMessage, type EntitlementCard as EntitlementCardModel } from '@/features/entitlements/models/Entitlements';
 import { getEntitlements } from '@/features/entitlements/providers/EntitlementsApiProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
@@ -14,23 +15,27 @@ export function WorkspaceEmptyScreen() {
   const [branch, setBranch] = useState('main');
   const [cloning, setCloning] = useState(false);
   const [cloneError, setCloneError] = useState<string | null>(null);
-  const [canCreate, setCanCreate] = useState(true);
+  const [edition, setEdition] = useState<EntitlementCardModel | null>(null);
+  const [canCreate, setCanCreate] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!server) {
+      setEdition(null);
       setCanCreate(true);
       return;
     }
     let cancelled = false;
     void getEntitlements(server).then(document => {
-      if (!cancelled) setCanCreate(isFeatureAvailable(document, workspaceCreateFeature));
+      if (cancelled) return;
+      setEdition(presentEntitlements(document));
+      setCanCreate(isFeatureAvailable(document, workspaceCreateFeature));
     });
     return () => { cancelled = true; };
   }, [server]);
 
   const shellConfig = useMemo(() => ({
     title: 'Workspaces',
-    rightAction: canCreate ? {
+    rightAction: canCreate === true ? {
       label: 'Add',
       accessibilityLabel: 'Add workspace',
       onPress: () => { setRepository(''); setBranch('main'); setCloneError(null); setAdding(true); },
@@ -60,7 +65,8 @@ export function WorkspaceEmptyScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
           <Text accessibilityRole="header" style={styles.title}>No workspaces</Text>
-          <Text style={styles.empty}>{canCreate ? 'Clone a repository with Add to get started.' : 'Create a workspace on the Agent-Up Cloud website.'}</Text>
+          {edition && <EntitlementCard card={edition} />}
+          <Text style={styles.empty}>{canCreate === false ? workspaceCreateUnavailableMessage : 'Clone a repository with Add to get started.'}</Text>
           <Text style={styles.subtitle}>
             {server ? `Connected to ${server.url}` : 'Connect to a server to manage workspaces.'}
           </Text>

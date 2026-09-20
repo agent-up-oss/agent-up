@@ -21,6 +21,7 @@ public sealed class ConnectionHttpTests
         {
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(body!.Kind, Is.EqualTo("selfHosted"));
+            Assert.That(body.Authentication.Mode, Is.Not.EqualTo("browserSso"));
         });
     }
 

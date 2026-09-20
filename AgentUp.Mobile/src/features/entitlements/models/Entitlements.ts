@@ -29,6 +29,8 @@ export type EntitlementCard = {
 };
 
 export const workspaceCreateFeature = 'workspace.create';
+export const workspaceCreateUnavailableMessage =
+  'This Server does not allow adding workspaces from the client.';
 
 export function isFeatureAvailable(document: Entitlements | null, feature: string): boolean {
   return document?.features?.[feature]?.available === true;

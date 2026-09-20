@@ -4,7 +4,7 @@ import type { EntitlementCard as EntitlementCardModel } from '../models/Entitlem
 
 export function EntitlementCard({ card }: { card: EntitlementCardModel }) {
   return (
-    <View style={styles.card}>
+    <View testID="entitlement-card" style={styles.card}>
       <Text style={styles.label}>Edition</Text>
       <Text style={styles.title}>{card.displayName}</Text>
       {!!card.billing && <Text style={styles.muted}>{card.billing}</Text>}

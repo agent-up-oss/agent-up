@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
 import { canCloneWorkspace } from '../providers/CloneInputProvider';
 import { EntitlementCard } from '@/features/entitlements/components/EntitlementCard';
-import { isFeatureAvailable, presentEntitlements, workspaceCreateFeature, type EntitlementCard as EntitlementCardModel } from '@/features/entitlements/models/Entitlements';
+import { isFeatureAvailable, presentEntitlements, workspaceCreateFeature, workspaceCreateUnavailableMessage, type EntitlementCard as EntitlementCardModel } from '@/features/entitlements/models/Entitlements';
 import { getEntitlements } from '@/features/entitlements/providers/EntitlementsApiProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
@@ -16,7 +16,7 @@ export function WorkspaceListScreen() {
   const [cloning, setCloning] = useState(false);
   const [cloneError, setCloneError] = useState<string | null>(null);
   const [edition, setEdition] = useState<EntitlementCardModel | null>(null);
-  const [canCreate, setCanCreate] = useState(true);
+  const [canCreate, setCanCreate] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!server) {
@@ -54,7 +54,7 @@ export function WorkspaceListScreen() {
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.headerRow}>
         <Text accessibilityRole="header" style={styles.title}>Workspaces</Text>
-        {canCreate ? (
+        {canCreate === true ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Add workspace" onPress={openDialog} style={styles.addButton} hitSlop={12}>
             <Text style={styles.addIcon}>+</Text>
           </Pressable>
@@ -84,7 +84,7 @@ export function WorkspaceListScreen() {
       })}
 
       {!loading && !error && workspaces.length === 0 &&
-        <Text style={styles.empty}>{canCreate ? 'No workspaces yet. Use + to clone a repository.' : 'No workspaces yet. Create one on the Agent-Up Cloud website.'}</Text>}
+        <Text style={styles.empty}>{canCreate === false ? workspaceCreateUnavailableMessage : 'No workspaces yet. Use + to clone a repository.'}</Text>}
 
       <Pressable accessibilityRole="button" accessibilityLabel="Reload workspaces" onPress={() => void refresh()} style={styles.secondaryButton}>
         <Text style={styles.secondaryButtonText}>Reload</Text>
