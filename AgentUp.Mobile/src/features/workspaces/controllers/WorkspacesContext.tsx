@@ -2,6 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import type { ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import type { CloneSourceRequest, Workspace } from '../models/Workspace';
+import { applyWorkspaceEvent } from '../providers/WorkspaceEventApplyProvider';
+import { streamWorkspaceEvents } from '../providers/WorkspaceEventsApiProvider';
+import { createWorkspaceEventSubscription, type WorkspaceEventSubscription } from '../providers/WorkspaceEventsSubscriptionProvider';
 import { cloneSourceRepository, listWorkspaces, startWorkspace, stopWorkspace } from '../providers/WorkspacesApiProvider';
 import { createWorkspaceActions, type WorkspaceActions } from '../providers/WorkspaceActionsProvider';
 import { createWorkspaceRefresh, type WorkspaceRefresher } from '../providers/WorkspaceRefreshProvider';
@@ -36,6 +39,11 @@ export function WorkspacesProvider({ children }: PropsWithChildren) {
     [serverUrl, accessToken],
   );
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const workspacesRef = useRef<Workspace[]>([]);
+  const replaceWorkspaces = (next: Workspace[]) => {
+    workspacesRef.current = next;
+    setWorkspaces(next);
+  };
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
@@ -52,22 +60,22 @@ export function WorkspacesProvider({ children }: PropsWithChildren) {
       if (!loadingNow) setReady(true);
     },
     onWorkspaces: loaded => {
-      setWorkspaces(loaded);
+      replaceWorkspaces(loaded);
       setError(null);
       setSelectedId(current => (current && loaded.some(w => w.id === current) ? current : loaded[0]?.id ?? null));
     },
     onError: message => {
-      setWorkspaces([]);
+      replaceWorkspaces([]);
       setError(message);
     },
     onUnauthorized: () => {
       expireActiveCredential();
-      setWorkspaces([]);
+      replaceWorkspaces([]);
       setSelectedId(null);
       setError(null);
     },
     onDisconnected: () => {
-      setWorkspaces([]);
+      replaceWorkspaces([]);
       setSelectedId(null);
       setError(null);
     },
@@ -80,12 +88,44 @@ export function WorkspacesProvider({ children }: PropsWithChildren) {
     { onSelect: setSelectedId },
   );
 
+  const serverRef = useRef(server);
+  serverRef.current = server;
+
+  const eventsRef = useRef<WorkspaceEventSubscription | null>(null);
+  eventsRef.current ??= createWorkspaceEventSubscription({
+    onEvent: event => {
+      const next = applyWorkspaceEvent(workspacesRef.current, event);
+      if (!next.applied) return false;
+      replaceWorkspaces(next.workspaces);
+      return true;
+    },
+    onMiss: () => {
+      const current = serverRef.current;
+      if (current) void refresherRef.current!.refresh(current);
+    },
+    onUnauthorized: () => {
+      expireActiveCredential();
+      replaceWorkspaces([]);
+      setSelectedId(null);
+      setError(null);
+    },
+  }, streamWorkspaceEvents);
+
   const refresh = useCallback(() => refresherRef.current!.refresh(server), [server]);
 
   useEffect(() => {
     if (requiresSignIn) return;
     void refresh();
   }, [refresh, requiresSignIn]);
+
+  useEffect(() => {
+    if (requiresSignIn || !server) {
+      eventsRef.current?.stop();
+      return;
+    }
+    eventsRef.current!.start(server);
+    return () => eventsRef.current?.stop();
+  }, [server, requiresSignIn]);
 
   const controller = useMemo<WorkspacesController>(() => ({
     server,

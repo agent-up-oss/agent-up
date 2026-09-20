@@ -4,15 +4,9 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
+import { statusDotStyle, workspaceLedState } from '@/features/workspaces/providers/WorkspaceStatusProvider';
 import { useAppShell } from '../controllers/AppShellContext';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
-
-function workspaceDot(state: string) {
-  if (state === 'Running') return auBox('statusDot', 'statusDotHealthy');
-  if (state === 'Starting' || state === 'Stopping') return auBox('statusDot', 'statusDotWarning');
-  if (state === 'Failed') return auBox('statusDot', 'statusDotDanger');
-  return auBox('statusDot');
-}
 
 function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const router = useRouter();
@@ -38,7 +32,7 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
                 onNavigate();
               }}
               style={[styles.workspaceRow, isSelected && styles.workspaceRowSelected]}>
-              <View style={workspaceDot(workspace.state)} />
+              <View style={statusDotStyle(workspaceLedState(workspace.state, workspace.healthState))} />
               <View style={styles.workspaceText}>
                 <Text numberOfLines={1} style={styles.workspaceName}>{workspace.displayName}</Text>
                 <Text numberOfLines={1} style={styles.workspaceBranch}>{workspace.branch}</Text>
