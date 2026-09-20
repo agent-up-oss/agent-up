@@ -160,7 +160,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
             {context.usage ? <Text style={styles.chip}>{context.usage}</Text> : null}
             {context.compacting ? <Text style={styles.chip}>Compacting context</Text> : null}
           </View>}
-          {!session?.agent && <View style={styles.picker}><Text style={styles.prompt}>Choose an ACP agent</Text>{session?.agents?.map(agent =>
+          {!session?.agent && <View style={styles.picker}><Text testID="agent-picker-prompt" style={styles.prompt}>Choose an ACP agent</Text>{session?.agents?.map(agent =>
             <Pressable key={agent.agent} testID={`agent-picker-${agent.agent}`} disabled={!agent.available || waiting} onPress={() => void choose(agent.agent)} style={[styles.agentButton, !agent.available && auBox('choiceDisabled')]}><Text style={styles.agentText}>{agent.displayName}</Text><Text style={agent.available ? styles.available : styles.unavailable}>{agent.available ? 'Available' : 'Not installed'}</Text></Pressable>)}</View>}
           {(session?.state === 'authentication_required' || session?.state === 'authenticating') && <View style={styles.auth}>
             <Text style={styles.permissionTitle}>Sign in to {session.agent}</Text>

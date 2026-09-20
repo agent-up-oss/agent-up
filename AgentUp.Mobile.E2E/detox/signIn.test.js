@@ -65,9 +65,12 @@ describe('agent sign-in', () => {
         url: connectLaunchUrl(stack.serverOriginForClient, stack.workspace.id),
         // The chat mounts during this launch, so the never-ending event stream has to be excluded
         // here. setURLBlacklist after launch is too late: Detox waits for idle that cannot come.
-        launchArgs: { detoxURLBlacklistRegex: '.*/agent/events.*' },
+        launchArgs: { detoxURLBlacklistRegex: '\\(".*agent/events.*"\\)' },
       });
-      await device.setURLBlacklist(['.*/agent/events.*']);
+      await device.setURLBlacklist(['.*agent/events.*']);
+      // iOS often opens the stream before the launch-arg blacklist is applied, so waitFor never
+      // sees idle. Drop sync for the rest of the case: every wait already has its own timeout.
+      await device.disableSynchronization();
       await ensureConnected(stack.serverOriginForClient, stack.workspace.id);
     });
 
@@ -101,6 +104,7 @@ describe('agent sign-in', () => {
         // that was never delivered rather than as anything the client did, and it is exactly how
         // this scenario failed while the other three passed: they never return to the app.
         await device.launchApp({ newInstance: false });
+        await device.disableSynchronization();
 
         // The pasted-code shape: the value travels back through the client, exactly as a user
         // carries it out of the browser.
@@ -117,16 +121,18 @@ describe('agent sign-in', () => {
 async function ensureConnected(serverUrl, workspaceId) {
   // Launch may have mounted the chat already. The prompt renders before getAgent returns, so it
   // is the signal that the connect form is gone. If the deep link did not land, fill the form.
-  // Detox matchers do not expose `.or` on every platform, so poll the two signals separately.
-  const deadline = Date.now() + 60_000;
-  while (Date.now() < deadline) {
-    if (await isVisible('server-url-input')) {
-      await connectTo(serverUrl, workspaceId);
-      return;
-    }
-    if (await isVisibleText('Choose an ACP agent')) return;
+  // Detox matchers do not expose `.or` on every platform, so wait for the two signals separately.
+  try {
+    await waitFor(element(by.id('agent-picker-prompt'))).toBeVisible().withTimeout(15_000);
+    return;
+  } catch {
+    // Deep link missed; the connect form is the fallback.
   }
-  throw new Error('Timed out waiting for the connect form or the agent picker.');
+  if (await isVisible('server-url-input')) {
+    await connectTo(serverUrl, workspaceId);
+    return;
+  }
+  await waitFor(element(by.id('agent-picker-prompt'))).toBeVisible().withTimeout(45_000);
 }
 
 async function connectTo(serverUrl, workspaceId) {
@@ -148,15 +154,6 @@ async function fill(testId, value) {
 async function isVisible(testId) {
   try {
     await waitFor(element(by.id(testId))).toBeVisible().withTimeout(500);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function isVisibleText(text) {
-  try {
-    await waitFor(element(by.text(text))).toBeVisible().withTimeout(500);
     return true;
   } catch {
     return false;
