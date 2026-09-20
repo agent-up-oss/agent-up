@@ -9,7 +9,7 @@ public class ApplicationPanelBehaviorTests
     [AvaloniaTest]
     public async Task Panel_autoSelectsFirstApplication_whenWorkspaceHasApplications()
     {
-        var workspace = WorkspaceFixtures.WithApplications();
+        var workspace = DesktopDomain.WorkspaceWithApplications().Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(workspace);
 
         Assert.That(app.Content.HasApplications, Is.True);
@@ -19,7 +19,7 @@ public class ApplicationPanelBehaviorTests
     [AvaloniaTest]
     public async Task Panel_showsNoApplicationsMessage_whenNoneConfigured()
     {
-        var app = await AppDriver.LaunchWithWorkspaceAsync(WorkspaceFixtures.Single());
+        var app = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
 
         Assert.That(app.Content.HasApplications, Is.False);
         Assert.That(app.Content.SelectedApplicationName, Is.Null);
@@ -30,8 +30,8 @@ public class ApplicationPanelBehaviorTests
     {
         var workspaces = new List<AgentUp.Desktop.Features.Workspaces.DTOs.WorkspaceDto>
         {
-            WorkspaceFixtures.WithApplications(),
-            WorkspaceFixtures.Single() with { Id = "ws-2", DisplayName = "Other" },
+            DesktopDomain.WorkspaceWithApplications().Build(),
+            DesktopDomain.Workspace().Build() with { Id = "ws-2", DisplayName = "Other" },
         };
         var app = await AppDriver.LaunchWithWorkspacesAsync(workspaces);
 

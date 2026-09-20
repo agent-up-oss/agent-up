@@ -3,6 +3,7 @@ using AgentUp.AUDebug.Features.Test.Controllers;
 using AgentUp.AUDebug.Features.Test.Providers;
 using AgentUp.AUDebug.Features.Test.Services;
 using AgentUp.AUDebug.Tests.Fake;
+using AgentUp.AUDebug.Tests.Support;
 
 namespace AgentUp.AUDebug.Tests.Features.Test.Controller;
 
@@ -13,7 +14,9 @@ public sealed class TestControllerTests
     public async Task Run_unknownSuite_fails()
     {
         var result = await Controller().RunAsync(
-            new DebugCommandDto("test", null, null, null, null, TimeSpan.FromSeconds(30), false, "nope"),
+            DebugDomain.Verb("test")
+                .WithSuite("nope")
+                .Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));
@@ -24,7 +27,9 @@ public sealed class TestControllerTests
     public async Task Run_scopedSuite_succeeds()
     {
         var result = await Controller().RunAsync(
-            new DebugCommandDto("test", null, null, null, null, TimeSpan.FromSeconds(30), false, "au-debug"),
+            DebugDomain.Verb("test")
+                .WithSuite("au-debug")
+                .Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(0));
@@ -35,7 +40,9 @@ public sealed class TestControllerTests
     public async Task Run_unknownBuildTarget_fails()
     {
         var result = await Controller().RunAsync(
-            new DebugCommandDto("build", null, null, null, null, TimeSpan.FromSeconds(30), false, "desktop"),
+            DebugDomain.Verb("build")
+                .WithSuite("desktop")
+                .Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));

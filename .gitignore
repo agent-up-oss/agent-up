@@ -1,10 +1,14 @@
 .idea/
 node_modules
 AgentUp.Mobile/.expo/
+AgentUp.Mobile/android/
+AgentUp.Mobile/ios/
 AgentUp.Mobile/dist/
+AgentUp.Mobile/dist-native/
 docs/build
 .docusaurus
 artifacts/
+BenchmarkDotNet.Artifacts/
 release-artifacts/
 # dotnet test writes here when no --results-directory is given.
 TestResults/
@@ -18,3 +22,12 @@ tmp/
 .agent-up-dev/
 *.tgz
 **/TestResults/**
+# Expo generates these for native builds; they are not committed (AGENTS.md, Mobile client rules).
+AgentUp.Mobile/ios/
+AgentUp.Mobile/android/
+vendor/bundle
+.bundle/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/README.md
+google-fastlane.json

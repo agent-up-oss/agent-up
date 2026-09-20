@@ -1,6 +1,7 @@
 using AgentUp.Server.Features.Authentication.DTOs;
 using AgentUp.Server.Features.Authentication.Providers;
 using AgentUp.Server.Features.Authentication.Services;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Configuration;
 
 namespace AgentUp.Server.Tests.Features.Authentication.Unit;

@@ -21,6 +21,17 @@ public sealed class GitApiClient(HttpClient http) : IGitApiProvider
         return await response.Content.ReadFromJsonAsync<GitChangeTreeDto>(Options, ct);
     }
 
+    public async Task<CommitQueueDto?> GetCommitQueueAsync(string workspaceId, CancellationToken ct = default)
+    {
+        using var response = await http.GetAsync(
+            $"/api/workspaces/{Uri.EscapeDataString(workspaceId)}/commit-queue", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<CommitQueueDto>(Options, ct);
+    }
+
     public async Task<GitFileDiffDto?> GetFileDiffAsync(string workspaceId, string path, CancellationToken ct = default)
     {
         using var response = await http.GetAsync(
@@ -55,6 +66,29 @@ public sealed class GitApiClient(HttpClient http) : IGitApiProvider
     public Task<GitMutationResultDto> SwitchBranchAsync(string workspaceId, GitBranchRequestDto request, CancellationToken ct = default)
         => PostMutationAsync(workspaceId, "branch", request, ct);
 
+    public Task<GitMutationResultDto> CheckoutRemoteAsync(string workspaceId, GitCheckoutRequestDto request, CancellationToken ct = default)
+        => PostMutationAsync(workspaceId, "checkout", request, ct);
+
+    public Task<GitSyncResultDto> FetchAsync(string workspaceId, GitFetchRequestDto request, CancellationToken ct = default)
+        => PostSyncAsync(workspaceId, "fetch", request, ct);
+
+    public Task<GitSyncResultDto> PullAsync(string workspaceId, GitPullRequestDto request, CancellationToken ct = default)
+        => PostSyncAsync(workspaceId, "pull", request, ct);
+
+    public Task<GitSyncResultDto> PushAsync(string workspaceId, GitPushRequestDto request, CancellationToken ct = default)
+        => PostSyncAsync(workspaceId, "push", request, ct);
+
+    public async Task<GitLogDto?> GetLogAsync(string workspaceId, int max = 100, CancellationToken ct = default)
+    {
+        using var response = await http.GetAsync(
+            $"/api/workspaces/{Uri.EscapeDataString(workspaceId)}/git/log?max={max}", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<GitLogDto>(Options, ct);
+    }
+
     private async Task<GitMutationResultDto> PostMutationAsync<T>(string workspaceId, string action, T body, CancellationToken ct)
     {
         using var response = await http.PostAsJsonAsync(
@@ -67,6 +101,20 @@ public sealed class GitApiClient(HttpClient http) : IGitApiProvider
 
         var result = await response.Content.ReadFromJsonAsync<GitMutationResultDto>(Options, ct);
         return result ?? new GitMutationResultDto(true, false, "The server returned an empty Git result.");
+    }
+
+    private async Task<GitSyncResultDto> PostSyncAsync<T>(string workspaceId, string action, T body, CancellationToken ct)
+    {
+        using var response = await http.PostAsJsonAsync(
+            $"/api/workspaces/{Uri.EscapeDataString(workspaceId)}/git/{action}", body, ct);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return new GitSyncResultDto(false, false, "This workspace is no longer registered.", null);
+
+        if (!response.IsSuccessStatusCode)
+            return new GitSyncResultDto(true, false, await ReadProblemDetailAsync(response), null);
+
+        var result = await response.Content.ReadFromJsonAsync<GitSyncResultDto>(Options, ct);
+        return result ?? new GitSyncResultDto(true, false, "The server returned an empty Git result.", null);
     }
 
     private static async Task<string> ReadProblemDetailAsync(HttpResponseMessage response)

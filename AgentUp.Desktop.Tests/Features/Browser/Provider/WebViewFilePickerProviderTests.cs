@@ -58,6 +58,27 @@ public sealed class WebViewFilePickerProviderTests
         });
     }
 
+    // The trust check is what stops a page popping a native chooser by scripting input.click().
+    // It only does that if the engine's default action is already gone by the time the check
+    // returns: WebKitGTK and WKWebView decline a scripted click anyway, but Chromium honours it,
+    // so a preventDefault that came after the check left Windows opening a real modal chooser
+    // with the user touching nothing -- and a modal chooser on the UI thread hangs the app.
+    [Test]
+    public void InstallScript_takesTheEnginesChooserAwayBeforeItAsksWhetherTheClickWasTrusted()
+    {
+        var script = WebViewFilePickerProvider.InstallScript;
+        var preventDefault = script.IndexOf("e.preventDefault()", StringComparison.Ordinal);
+        var trustCheck = script.IndexOf("if(!e.isTrusted)return", StringComparison.Ordinal);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(preventDefault, Is.GreaterThanOrEqualTo(0), "The handler must suppress the engine's default chooser.");
+            Assert.That(trustCheck, Is.GreaterThanOrEqualTo(0), "The handler must still refuse to raise a request for an untrusted click.");
+            Assert.That(preventDefault, Is.LessThan(trustCheck),
+                "An untrusted click must lose the engine's chooser, not be handed back to it.");
+        });
+    }
+
     // Avalonia's IStorageFile cannot be implemented outside Avalonia, so the file-reading
     // contract is covered here at its stream boundary and end to end against the real platform
     // storage provider in AgentUp.Tests.

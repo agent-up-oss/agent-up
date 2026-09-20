@@ -1,7 +1,7 @@
-import { useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { WorkspaceBranchPicker } from '@/features/git/components/WorkspaceBranchPicker';
+import { useRouter } from 'expo-router';
+import { WorkspaceTabBar } from '@/features/shell/components/WorkspaceTabBar';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import type { Workspace, WorkspaceApplication } from '../models/Workspace';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
@@ -14,10 +14,6 @@ type WorkspaceDashboardScreenProps = {
 export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreenProps) {
   const router = useRouter();
   const { loading, error, refresh } = useWorkspaces();
-
-  const openAgent = useCallback(() => {
-    router.push(`/(main)/workspace/${workspace.id}/agent`);
-  }, [router, workspace.id]);
 
   const openApplication = useCallback((applicationName: string) => {
     router.push(`/(main)/workspace/${workspace.id}/application/${encodeURIComponent(applicationName)}`);
@@ -36,50 +32,30 @@ export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreen
   useShellConfig(shellConfig);
 
   const applications = workspace.applications ?? [];
-  const agents = [{ id: 'workspace-agent', name: 'Workspace agent', detail: 'Primary coding agent for this workspace' }];
 
   return (
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.subtitle}>{workspace.state}</Text>
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Text style={styles.subtitle}>{workspace.state}</Text>
 
-      {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}
-      {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
+        {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}
+        {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
 
-      <Pressable accessibilityRole="button" accessibilityLabel="Open workspace agent chat" onPress={openAgent} style={styles.agentCard}>
-        <Text style={styles.agentTitle}>Workspace agent</Text>
-        <Text style={styles.agentDetail}>Open the agent chat for this workspace.</Text>
-        <Text style={styles.agentAction}>Open chat →</Text>
-      </Pressable>
-
-      <View style={styles.section}>
-        <WorkspaceBranchPicker workspaceId={workspace.id} />
-        <Text style={styles.sectionTitle}>Applications</Text>
-        {applications.length === 0
-          ? <Text style={styles.empty}>No applications configured.</Text>
-          : applications.map(application => (
-            <ApplicationRow
-              key={application.name}
-              application={application}
-              onPress={() => openApplication(application.name)}
-            />
-          ))}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Agents</Text>
-        {agents.map(agent => (
-          <Pressable
-            key={agent.id}
-            accessibilityRole="button"
-            accessibilityLabel={`Open ${agent.name}`}
-            onPress={openAgent}
-            style={styles.listCard}>
-            <Text style={styles.listTitle}>{agent.name}</Text>
-            <Text style={styles.listDetail}>{agent.detail}</Text>
-          </Pressable>
-        ))}
-      </View>
-    </ScrollView>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Applications</Text>
+          {applications.length === 0
+            ? <Text style={styles.empty}>No applications configured.</Text>
+            : applications.map(application => (
+              <ApplicationRow
+                key={application.name}
+                application={application}
+                onPress={() => openApplication(application.name)}
+              />
+            ))}
+        </View>
+      </ScrollView>
+      <WorkspaceTabBar workspaceId={workspace.id} active="apps" />
+    </View>
   );
 }
 
@@ -103,13 +79,10 @@ function applicationDot(state: string) {
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
   content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: 16, maxWidth: 672, width: '100%', alignSelf: 'center' },
   subtitle: auText('muted'),
   error: auText('badgeDanger'),
-  agentCard: { ...auBox('card'), gap: agentUpTheme.spacing[2], alignSelf: 'stretch' },
-  agentTitle: auText('pageTitle'),
-  agentDetail: auText('muted'),
-  agentAction: auText('accent'),
   section: { gap: 10 },
   sectionTitle: auText('fieldLabel'),
   empty: auText('muted'),

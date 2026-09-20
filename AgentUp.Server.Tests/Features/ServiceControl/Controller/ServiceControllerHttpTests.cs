@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using AgentUp.Server.Features.ServiceControl.Controllers;
 using AgentUp.Server.Features.ServiceControl.Interfaces;
+using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

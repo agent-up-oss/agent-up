@@ -76,6 +76,22 @@
   <SolidColorBrush x:Key="AgentUpColorOverlayBrush" Color="{StaticResource AgentUpColorOverlay}"/>
   <Color x:Key="AgentUpColorTransparent">#00000000</Color>
   <SolidColorBrush x:Key="AgentUpColorTransparentBrush" Color="{StaticResource AgentUpColorTransparent}"/>
+  <Color x:Key="AgentUpColorGitLane0">#2bf27a</Color>
+  <SolidColorBrush x:Key="AgentUpColorGitLane0Brush" Color="{StaticResource AgentUpColorGitLane0}"/>
+  <Color x:Key="AgentUpColorGitLane1">#4fa3d8</Color>
+  <SolidColorBrush x:Key="AgentUpColorGitLane1Brush" Color="{StaticResource AgentUpColorGitLane1}"/>
+  <Color x:Key="AgentUpColorGitLane2">#e0a128</Color>
+  <SolidColorBrush x:Key="AgentUpColorGitLane2Brush" Color="{StaticResource AgentUpColorGitLane2}"/>
+  <Color x:Key="AgentUpColorGitLane3">#00a8e8</Color>
+  <SolidColorBrush x:Key="AgentUpColorGitLane3Brush" Color="{StaticResource AgentUpColorGitLane3}"/>
+  <Color x:Key="AgentUpColorGitLane4">#8bb7ff</Color>
+  <SolidColorBrush x:Key="AgentUpColorGitLane4Brush" Color="{StaticResource AgentUpColorGitLane4}"/>
+  <Color x:Key="AgentUpColorGitLane5">#ffd66b</Color>
+  <SolidColorBrush x:Key="AgentUpColorGitLane5Brush" Color="{StaticResource AgentUpColorGitLane5}"/>
+  <Color x:Key="AgentUpColorGitLane6">#00d66b</Color>
+  <SolidColorBrush x:Key="AgentUpColorGitLane6Brush" Color="{StaticResource AgentUpColorGitLane6}"/>
+  <Color x:Key="AgentUpColorGitLane7">#c2d2ca</Color>
+  <SolidColorBrush x:Key="AgentUpColorGitLane7Brush" Color="{StaticResource AgentUpColorGitLane7}"/>
   <FontFamily x:Key="AgentUpFontSans">Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif</FontFamily>
   <FontFamily x:Key="AgentUpFontMono">JetBrains Mono, SFMono-Regular, Consolas, Liberation Mono, monospace</FontFamily>
   <x:Double x:Key="AgentUpFontSizeXs">12</x:Double>

@@ -4,3 +4,9 @@
 
 expo-env.d.ts
 # @end expo-cli
+
+android/
+ios/
+dist-native/
+*.jks
+*.keystore

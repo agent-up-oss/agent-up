@@ -4,6 +4,7 @@ using AgentUp.Server.Features.Git.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Git.Unit;
 
@@ -173,13 +174,52 @@ public sealed class GitChangeTreeServiceTests
     public async Task SwitchBranchAsync_createsTheRequestedBranch()
     {
         var git = new FakeGitWorkingTreeProvider();
-        var (service, workspaceId) = await CreateServiceAsync(git);
+        var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
+        var workspace = await workspaces.RegisterAsync(ServerDomain.Workspace()
+            .Named("widgets")
+            .At(WorktreePath)
+            .AtCommit("abc123")
+            .Build());
+        var service = CreateService(workspaces, git);
 
-        var result = await service.SwitchBranchAsync(workspaceId, new GitBranchRequest("topic", true));
+        var result = await service.SwitchBranchAsync(workspace.Id, new GitBranchRequest("topic", true));
 
         Assert.That(result.Succeeded, Is.True);
         Assert.That(git.SwitchedBranch, Is.EqualTo("topic"));
         Assert.That(git.CreatedBranch, Is.True);
+        Assert.That(workspaces.GetById(workspace.Id)!.Branch, Is.EqualTo("topic"));
+    }
+
+    [Test]
+    public async Task CheckoutRemoteAsync_checksOutTheRequestedRemoteBranch()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        git.RemoteBranches.Add(new GitRemoteBranch("origin", "topic"));
+        var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
+        var workspace = await workspaces.RegisterAsync(ServerDomain.Workspace()
+            .Named("widgets")
+            .At(WorktreePath)
+            .AtCommit("abc123")
+            .Build());
+        var service = CreateService(workspaces, git);
+
+        var result = await service.CheckoutRemoteAsync(workspace.Id, new GitCheckoutRequest("topic"));
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(git.CheckedOutBranch, Is.EqualTo("topic"));
+        Assert.That(workspaces.GetById(workspace.Id)!.Branch, Is.EqualTo("topic"));
+    }
+
+    [Test]
+    public async Task CheckoutRemoteAsync_reportsGitFailures()
+    {
+        var git = new FakeGitWorkingTreeProvider { Failure = "No remote-tracking branch" };
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var result = await service.CheckoutRemoteAsync(workspaceId, new GitCheckoutRequest("missing"));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Does.Contain("No remote-tracking branch"));
     }
 
     [Test]
@@ -217,6 +257,19 @@ public sealed class GitChangeTreeServiceTests
         var result = await service.SwitchBranchAsync("missing", new GitBranchRequest("topic", false));
 
         Assert.That(result.Found, Is.False);
+    }
+
+    [Test]
+    public async Task CommitAsync_treatsANullRequestAsAnEmptySelection()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var result = await service.CommitAsync(workspaceId, null!);
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(git.CommittedFiles, Is.Empty);
+        Assert.That(git.CommittedMessage, Is.EqualTo(string.Empty));
     }
 
     [Test]
@@ -272,6 +325,102 @@ public sealed class GitChangeTreeServiceTests
     }
 
     [Test]
+    public async Task FetchAsync_fetchesTheRequestedRemote()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var result = await service.FetchAsync(workspaceId, new GitFetchRequest("origin"));
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(git.FetchedRemote, Is.EqualTo("origin"));
+        Assert.That(result.Head, Is.Not.Null);
+    }
+
+    [Test]
+    public async Task PullAsync_rejectsWhileAPromptIsRunning()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (service, workspaceId) = await CreateServiceAsync(git, new FakeWorkspacePromptGuard { Running = true });
+
+        var result = await service.PullAsync(workspaceId, new GitPullRequest(false));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Does.Contain("processing a prompt"));
+        Assert.That(git.PulledRebase, Is.Null);
+    }
+
+    [Test]
+    public async Task PushAsync_forceWithLeaseAndSetUpstream()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var result = await service.PushAsync(workspaceId, new GitPushRequest(true, true));
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(git.PushedForceWithLease, Is.True);
+        Assert.That(git.PushedSetUpstream, Is.True);
+    }
+
+    [Test]
+    public async Task GetLogAsync_returnsProviderCommits()
+    {
+        var git = new FakeGitWorkingTreeProvider
+        {
+            Log = new GitLog([new GitLogCommit("abc", "abc", [], "initial", "Agent Up", "2026-01-01T00:00:00Z", ["main"])])
+        };
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var log = await service.GetLogAsync(workspaceId, 50);
+
+        Assert.That(log!.Commits, Has.Count.EqualTo(1));
+        Assert.That(log.Commits[0].Subject, Is.EqualTo("initial"));
+        Assert.That(git.LogMax, Is.EqualTo(50));
+    }
+
+    [Test]
+    public async Task GetLogAsync_forwardsSkipAndUntil()
+    {
+        var git = new FakeGitWorkingTreeProvider
+        {
+            Log = new GitLog([new GitLogCommit("def", "def", [], "older", "Agent Up", "2026-01-01T00:00:00Z", [])], HasMore: true)
+        };
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        var log = await service.GetLogAsync(workspaceId, 200, CancellationToken.None, 200, "def");
+
+        Assert.That(log!.HasMore, Is.True);
+        Assert.That(git.LogSkip, Is.EqualTo(200));
+        Assert.That(git.LogUntil, Is.EqualTo("def"));
+    }
+
+    [Test]
+    public async Task GetLogAsync_returnsNullForAnUnknownWorkspaceAndAnEmptyLogWhenGitFails()
+    {
+        var git = new FakeGitWorkingTreeProvider { Failure = "not a git repository" };
+        var (service, workspaceId) = await CreateServiceAsync(git);
+
+        Assert.That(await service.GetLogAsync("missing", 10), Is.Null);
+        var log = await service.GetLogAsync(workspaceId, 10);
+        Assert.That(log, Is.Not.Null);
+        Assert.That(log!.Commits, Is.Empty);
+    }
+
+    [Test]
+    public async Task FetchAsync_reportsNotFoundForAnUnknownWorkspace()
+    {
+        var service = CreateService(
+            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()),
+            new FakeGitWorkingTreeProvider());
+
+        var result = await service.FetchAsync("missing", new GitFetchRequest("origin"));
+
+        Assert.That(result.Found, Is.False);
+        Assert.That(GitSyncResult.NotFound().Succeeded, Is.False);
+    }
+
+    [Test]
     public async Task SwitchBranchAsync_waitsUntilAnInFlightDiscardCompletes()
     {
         var git = new FakeGitWorkingTreeProvider
@@ -301,12 +450,7 @@ public sealed class GitChangeTreeServiceTests
         IWorkspacePromptGuard? prompts = null)
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
-        var workspace = await workspaces.RegisterAsync(new RegisterWorkspaceRequest(
-            DisplayName: "widgets",
-            RepositoryPath: WorktreePath,
-            WorktreePath: WorktreePath,
-            Branch: "main",
-            Commit: "abc123"));
+        var workspace = await workspaces.RegisterAsync(ServerDomain.Workspace().Named("widgets").At(WorktreePath).AtCommit("abc123").Build());
 
         return (CreateService(workspaces, git, prompts), workspace.Id);
     }

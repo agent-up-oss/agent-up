@@ -1,6 +1,7 @@
 using AgentUp.AUDebug.Features.Host.DTOs;
 using AgentUp.AUDebug.Features.Host.Services;
 using AgentUp.AUDebug.Tests.Fake;
+using AgentUp.AUDebug.Tests.Support;
 
 namespace AgentUp.AUDebug.Tests.Features.Host.Unit;
 
@@ -212,5 +213,8 @@ public sealed class HostCommandServiceTests
         => new(sessions, supervisor, probe, windows ?? new FakeDesktopWindowDriver(), new DebugOutputService(new StringWriter()));
 
     private static DebugCommandDto Command(TimeSpan? timeout = null, bool detach = false)
-        => new("up", null, null, null, null, timeout ?? TimeSpan.FromSeconds(30), detach);
+    {
+        var command = DebugDomain.Verb("up").TimingOutAfter(timeout ?? DebugDomain.Timeout);
+        return (detach ? command.Detached() : command).Build();
+    }
 }

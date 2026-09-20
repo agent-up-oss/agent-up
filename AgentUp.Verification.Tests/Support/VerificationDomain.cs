@@ -19,7 +19,7 @@ internal static class VerificationDomain
     public const string SharedPolicySource = "AgentUp.CommitPolicy/Features/CommitPolicy/Providers/CommitPolicyProvider.cs";
     public const string MobileSource = "AgentUp.Mobile/src/features/servers/providers/ServerUrlProvider.ts";
     public const string PackagingSource = "packaging/linux/agent-up.service";
-    public const string DocumentationSource = "docs/developer-guide/testing.md";
+    public const string DocumentationSource = "docs/developer-guide/repo/testing.md";
     public const string UnmappedSource = "Experiments/scratch/Prototype.cs";
 
     public const string ArchitectureCheck = "architecture";

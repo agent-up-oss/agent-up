@@ -185,7 +185,7 @@ public sealed class VerificationControllerTests
         Assert.Multiple(() =>
         {
             Assert.That(code, Is.EqualTo(1));
-            Assert.That(error.ToString(), Does.Contain("Usage: agentup verify"));
+            Assert.That(error.ToString(), Does.Contain("Usage: agent-up verify"));
         });
     }
 

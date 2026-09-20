@@ -172,8 +172,8 @@ public sealed class VerifyOutputService(TextWriter output, TextWriter error)
 
         var target = report.ShouldBlock ? error : output;
         target.WriteLine(report.ShouldBlock
-            ? "Unproven checks remain. Run 'agentup verify run'."
-            : "Unproven checks remain (enforcement is warn). Run 'agentup verify run'.");
+            ? "Unproven checks remain. Run 'agent-up verify run'."
+            : "Unproven checks remain (enforcement is warn). Run 'agent-up verify run'.");
 
         return report.ShouldBlock ? BlockingExitCode : 0;
     }
@@ -192,7 +192,7 @@ public sealed class VerifyOutputService(TextWriter output, TextWriter error)
             error.WriteLine($"[agent-up]   {verdict.CheckId} - {verdict.Detail}");
 
         WriteUnmatched(report.UnmatchedFiles, error, "[agent-up]   ");
-        error.WriteLine("[agent-up] Call the run_verification MCP tool, or run 'agentup verify run'.");
+        error.WriteLine("[agent-up] Call the run_verification MCP tool, or run 'agent-up verify run'.");
         return BlockingExitCode;
     }
 

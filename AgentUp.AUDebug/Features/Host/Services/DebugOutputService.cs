@@ -49,7 +49,10 @@ public sealed class DebugOutputService
               mobile open-agent <name>   Open the named workspace agent route and screenshot it.
 
             Docs:
-              docs screenshot            Capture the design-system docs page and print the file path.
+              docs screenshot [path]     Capture a hosted docs page (default /docs/) and print the file path.
+                                         Path may be /docs/..., /developer-guide/..., or /design-system.
+                                         Use --heading <text> to scroll a heading into view, --full-page
+                                         to capture the whole document instead of the 1440x900 viewport.
 
             Tests:
               test                       Run every visual-iteration suite.
@@ -68,6 +71,8 @@ public sealed class DebugOutputService
                                          Default 30s; test and build default to 180s, all to 600s.
               --detach                   After up is ready, return without following logs.
               --password <pw>            Admin password for login commands (else $AGENTUP_ADMIN_PASSWORD).
+              --heading <text>           Scroll that heading into view (docs screenshot).
+              --full-page                Capture the whole docs page, not just the viewport.
             """);
         return 0;
     }

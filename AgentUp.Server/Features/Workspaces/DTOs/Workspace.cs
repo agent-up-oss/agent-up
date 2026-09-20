@@ -8,8 +8,8 @@ public class Workspace
     public required string DisplayName { get; init; }
     public required string RepositoryPath { get; init; }
     public required string WorktreePath { get; init; }
-    public required string Branch { get; init; }
-    public required string Commit { get; init; }
+    public required string Branch { get; set; }
+    public required string Commit { get; set; }
     public WorkspaceState State { get; set; } = WorkspaceState.Stopped;
     public string? LastError { get; set; }
     public DateTimeOffset LastActivityAtUtc { get; set; } = DateTimeOffset.UtcNow;

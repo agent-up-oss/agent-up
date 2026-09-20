@@ -7,7 +7,7 @@ namespace AgentUp.Server.Features.Orchestration.Services;
 public sealed class OrchestrationWorkspaceService
 {
     private const string MissingConfigurationGuidance =
-        "agent-up.json was not found. Inspect docs/user-docs/agent-up-json.md, search the repository for an existing agent-up.json, or ask the user before creating one.";
+        "agent-up.json was not found. Inspect docs/user-docs/configuration/index.md, search the repository for an existing agent-up.json, or ask the user before creating one.";
 
     private readonly WorkspaceQueryController _workspaces;
     private readonly WorkspaceStateController _states;

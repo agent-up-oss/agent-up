@@ -28,6 +28,7 @@ using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Interfaces;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -74,6 +75,9 @@ public sealed class InstalledAgentCapabilityHttpTests
         builder.Services.AddSingleton<IAgentClaudeCredentialStore, AgentClaudeCredentialStore>();
         builder.Services.AddSingleton<IAgentProcessEnvironmentProvider, AgentProcessEnvironmentProvider>();
         builder.Services.AddSingleton<AgentLoginCommandProvider>();
+        builder.Services.AddSingleton<AgentLoginFlowProvider>();
+        builder.Services.AddHttpClient("agent-login-callback");
+        builder.Services.AddSingleton<AgentLoginCallbackRelay>();
         builder.Services.AddSingleton<IAgentSubscriptionLoginProvider, AgentSubscriptionLoginProvider>();
         builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
         builder.Services.AddSingleton<AgentEventFrameProvider>();
@@ -142,7 +146,7 @@ public sealed class InstalledAgentCapabilityHttpTests
     }
 
     private Task<Workspace> RegisterAsync() => _app.Services.GetRequiredService<WorkspaceQueryController>().RegisterAsync(
-        new RegisterWorkspaceRequest("Workspace", "/repo", "/repo", "main", "abc"));
+        ServerDomain.Workspace().Named("Workspace").At("/repo").AtCommit("abc").Build());
 
     private static string CapabilityId(AgentKind kind) => kind switch
     {

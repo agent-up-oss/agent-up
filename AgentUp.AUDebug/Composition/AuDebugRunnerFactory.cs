@@ -2,6 +2,7 @@ using AgentUp.AUDebug.Features.Desktop.Controllers;
 using AgentUp.AUDebug.Features.Desktop.Providers;
 using AgentUp.AUDebug.Features.Desktop.Services;
 using AgentUp.AUDebug.Features.Docs.Controllers;
+using AgentUp.AUDebug.Features.Docs.Providers;
 using AgentUp.AUDebug.Features.Docs.Services;
 using AgentUp.AUDebug.Features.Host.Controllers;
 using AgentUp.AUDebug.Features.Host.DTOs;
@@ -57,7 +58,10 @@ public static class AuDebugRunnerFactory
                 workspaces,
                 sessions,
                 environment));
-        var docs = new DocsController(new DocsCommandService(screenshots, sessions));
+        var docs = new DocsController(
+            new DocsCommandService(
+                new ChromiumDocsPageDriver(processes, environment, paths),
+                sessions));
         var tests = new TestController(
             new TestCommandService(
                 new DebugTestSuiteCatalog(),

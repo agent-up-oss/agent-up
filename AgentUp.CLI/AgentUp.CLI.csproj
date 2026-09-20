@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <PackageReference Include="LocalInstaller.Core" Version="1.1.0" />
+    <PackageReference Include="LocalInstaller.Core" Version="$(LocalInstallerVersion)" />
     <PackageReference Include="Sentry" Version="6.11.0" />
   </ItemGroup>
 

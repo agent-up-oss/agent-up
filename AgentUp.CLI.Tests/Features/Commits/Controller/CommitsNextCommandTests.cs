@@ -1,3 +1,4 @@
+using AgentUp.CLI.Tests.Support;
 using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using System.Text.Json;
 using AgentUp.CLI.Features.Commits.Controllers;
@@ -26,10 +27,10 @@ public sealed class CommitsNextCommandTests
     [Test]
     public async Task RunAsync_singleEntry_stagesFilesAndReturnsZero()
     {
-        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs", "b.cs"]);
+        var entry = CliDomain.CommitEntry().For("Slice").Saying("feat(Slice): msg").Touching(["a.cs", "b.cs"]).Build();
         var git = new FakeCommitsGitProvider();
         using var output = new StringWriter();
-        var command = BuildCommand(output, new CommitsQueue(1, [entry]), git);
+        var command = BuildCommand(output, CliDomain.Queue().AtVersion(1).With(entry).Build(), git);
 
         var code = await command.RunAsync();
 
@@ -40,9 +41,9 @@ public sealed class CommitsNextCommandTests
     [Test]
     public async Task RunAsync_singleEntry_outputContainsSliceAndMessage()
     {
-        var entry = new CommitEntry("MySlice", "feat(Slice): msg", ["a.cs"]);
+        var entry = CliDomain.CommitEntry().For("MySlice").Saying("feat(Slice): msg").Touching(["a.cs"]).Build();
         using var output = new StringWriter();
-        var command = BuildCommand(output, new CommitsQueue(1, [entry]));
+        var command = BuildCommand(output, CliDomain.Queue().AtVersion(1).With(entry).Build());
 
         await command.RunAsync();
 
@@ -54,9 +55,9 @@ public sealed class CommitsNextCommandTests
     [Test]
     public async Task RunAsync_singleEntry_outputSuggestsGitCommitCommand()
     {
-        var entry = new CommitEntry("Slice", "feat(Slice): the feature", ["a.cs"]);
+        var entry = CliDomain.CommitEntry().For("Slice").Saying("feat(Slice): the feature").Touching(["a.cs"]).Build();
         using var output = new StringWriter();
-        var command = BuildCommand(output, new CommitsQueue(1, [entry]));
+        var command = BuildCommand(output, CliDomain.Queue().AtVersion(1).With(entry).Build());
 
         await command.RunAsync();
 
@@ -66,10 +67,11 @@ public sealed class CommitsNextCommandTests
     [Test]
     public async Task RunAsync_multipleEntries_popsFirstAndShowsRemaining()
     {
-        var queue = new CommitsQueue(1, [
-            new CommitEntry("First", "fix(First): first", ["a.cs"]),
-            new CommitEntry("Second", "fix(Second): second", ["b.cs"])
-        ]);
+        var queue = CliDomain.Queue()
+            .AtVersion(1)
+            .With(CliDomain.CommitEntry().For("First").Saying("fix(First): first").Touching(["a.cs"]).Build())
+            .With(CliDomain.CommitEntry().For("Second").Saying("fix(Second): second").Touching(["b.cs"]).Build())
+            .Build();
         using var output = new StringWriter();
         var command = BuildCommand(output, queue);
 
@@ -83,10 +85,11 @@ public sealed class CommitsNextCommandTests
     [Test]
     public async Task RunAsync_multipleEntries_doesNotStageSecondEntryFiles()
     {
-        var queue = new CommitsQueue(1, [
-            new CommitEntry("First", "fix(First): first", ["a.cs"]),
-            new CommitEntry("Second", "fix(Second): second", ["b.cs"])
-        ]);
+        var queue = CliDomain.Queue()
+            .AtVersion(1)
+            .With(CliDomain.CommitEntry().For("First").Saying("fix(First): first").Touching(["a.cs"]).Build())
+            .With(CliDomain.CommitEntry().For("Second").Saying("fix(Second): second").Touching(["b.cs"]).Build())
+            .Build();
         var git = new FakeCommitsGitProvider();
         using var output = new StringWriter();
         var command = BuildCommand(output, queue, git);
@@ -99,9 +102,9 @@ public sealed class CommitsNextCommandTests
     [Test]
     public async Task RunAsync_lastEntry_outputIndicatesQueueIsEmpty()
     {
-        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"]);
+        var entry = CliDomain.CommitEntry().For("Slice").Saying("feat(Slice): msg").Touching(["a.cs"]).Build();
         using var output = new StringWriter();
-        var command = BuildCommand(output, new CommitsQueue(1, [entry]));
+        var command = BuildCommand(output, CliDomain.Queue().AtVersion(1).With(entry).Build());
 
         await command.RunAsync();
 
@@ -112,9 +115,9 @@ public sealed class CommitsNextCommandTests
     public async Task RunAsync_whenStagedChangesExist_returnsOneWithError()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"]);
+        var entry = CliDomain.CommitEntry().For("Slice").Saying("feat(Slice): msg").Touching(["a.cs"]).Build();
         var git = new FakeCommitsGitProvider(hasStagedChanges: true);
-        var command = BuildCommand(output, new CommitsQueue(1, [entry]), git);
+        var command = BuildCommand(output, CliDomain.Queue().AtVersion(1).With(entry).Build(), git);
 
         var code = await command.RunAsync();
 
@@ -126,8 +129,8 @@ public sealed class CommitsNextCommandTests
     public async Task RunAsync_jsonFormat_singleEntry_writesCommitMessageAndRemainingCount()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "fix(Slice): msg", ["a.cs"]);
-        var command = BuildCommand(output, new CommitsQueue(1, [entry]));
+        var entry = CliDomain.CommitEntry().For("Slice").Saying("fix(Slice): msg").Touching(["a.cs"]).Build();
+        var command = BuildCommand(output, CliDomain.Queue().AtVersion(1).With(entry).Build());
 
         var code = await command.RunAsync(["--format", "json"]);
 
@@ -160,9 +163,9 @@ public sealed class CommitsNextCommandTests
     public async Task RunAsync_jsonFormat_whenStagedChangesExist_returnsBlockedResult()
     {
         using var output = new StringWriter();
-        var entry = new CommitEntry("Slice", "feat(Slice): msg", ["a.cs"]);
+        var entry = CliDomain.CommitEntry().For("Slice").Saying("feat(Slice): msg").Touching(["a.cs"]).Build();
         var git = new FakeCommitsGitProvider(hasStagedChanges: true);
-        var command = BuildCommand(output, new CommitsQueue(1, [entry]), git);
+        var command = BuildCommand(output, CliDomain.Queue().AtVersion(1).With(entry).Build(), git);
 
         var code = await command.RunAsync(["--format", "json"]);
 

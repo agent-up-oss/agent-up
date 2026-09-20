@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { GitChangesPanel } from './GitChangesPanel';
 import { agentUpTheme } from '@agent-up/design-system/native';
 
-/** @deprecated Use GitChangesPanel inside the agent Changes tab. */
+/** @deprecated Use GitChangesPanel on the Git Review page. */
 export function GitChangesScreen() {
   return (
     <SafeAreaView style={styles.screen}>

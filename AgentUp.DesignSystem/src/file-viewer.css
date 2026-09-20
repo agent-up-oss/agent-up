@@ -1,0 +1,166 @@
+/*
+ * Readonly file inspection viewer. Separate from the Git change list so that
+ * surface can keep evolving independently. Syntax colors reuse existing text
+ * and status roles — never a second palette, and never green for decoration.
+ */
+
+.au-file-viewer {
+  display: flex;
+  flex-direction: column;
+  min-height: 16rem;
+  min-width: 18rem;
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-overlay);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-xl);
+}
+
+.au-file-viewer-header {
+  display: flex;
+  align-items: center;
+  gap: var(--au-space-3);
+  min-height: var(--au-control-height-compact);
+  padding: var(--au-space-3) var(--au-space-4);
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-raised);
+  border-bottom: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-xl) var(--au-radius-xl) 0 0;
+}
+
+.au-file-viewer-path {
+  flex: 1;
+  overflow: hidden;
+  color: var(--au-color-text-primary);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-md);
+  font-weight: var(--au-weight-ui-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.au-file-viewer-status {
+  color: var(--au-color-text-muted);
+  font-size: var(--au-font-size-ui-xs);
+  font-weight: var(--au-weight-ui);
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.au-file-viewer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--au-space-2);
+  padding: var(--au-space-2) var(--au-space-4);
+  color: var(--au-color-text-secondary);
+  background: var(--au-color-surface);
+  border-bottom: 1px solid var(--au-color-border-subtle);
+}
+
+.au-file-viewer-jump {
+  min-height: var(--au-control-height-compact);
+  padding: 0 var(--au-space-2);
+  color: var(--au-color-text-secondary);
+  background: var(--au-color-surface-raised);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-sm);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-xs);
+  font-variant-numeric: tabular-nums;
+}
+.au-file-viewer-jump:hover { background: var(--au-color-state-hover); }
+
+.au-file-viewer-goto {
+  width: 4.5rem;
+  min-height: var(--au-control-height-compact);
+  padding: 0 var(--au-space-2);
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-input);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-sm);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.au-file-viewer-body {
+  overflow: auto;
+  min-height: 10rem;
+  color: var(--au-color-text-secondary);
+  background: var(--au-color-canvas);
+}
+
+.au-file-viewer-line {
+  display: flex;
+  align-items: stretch;
+  min-height: 1.375rem;
+  padding: 0 var(--au-space-2);
+  color: var(--au-color-text-secondary);
+  background: var(--au-color-transparent);
+  border: 0;
+  border-left: 2px solid var(--au-color-transparent);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: pre;
+}
+.au-file-viewer-line:hover { background: var(--au-color-state-hover); }
+.au-file-viewer-line--added {
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-selected-soft);
+}
+.au-file-viewer-line--deleted {
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-danger);
+}
+.au-file-viewer-line--hunk {
+  color: var(--au-color-text-info);
+  background: var(--au-color-surface);
+}
+.au-file-viewer-line--meta {
+  color: var(--au-color-text-muted);
+  background: var(--au-color-surface);
+}
+.au-file-viewer-line--current {
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-selected);
+  border-left: 2px solid var(--au-color-accent-line);
+}
+
+.au-file-viewer-gutter {
+  width: 3.25rem;
+  color: var(--au-color-text-faint);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.au-file-viewer-prefix {
+  width: 0.875rem;
+  color: var(--au-color-text-faint);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-xs);
+  text-align: center;
+}
+.au-file-viewer-prefix--added { color: var(--au-color-accent-soft); }
+.au-file-viewer-prefix--deleted { color: var(--au-color-text-danger); }
+
+.au-file-viewer-code {
+  color: var(--au-color-text-secondary);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-xs);
+  white-space: pre;
+}
+
+.au-syntax-plain { color: var(--au-color-text-secondary); white-space: pre; }
+.au-syntax-keyword { color: var(--au-color-text-info); }
+.au-syntax-type { color: var(--au-color-status-info); }
+.au-syntax-string { color: var(--au-color-text-warning); }
+.au-syntax-comment { color: var(--au-color-text-muted); font-style: italic; }
+.au-syntax-number { color: var(--au-color-status-warning); }
+.au-syntax-function { color: var(--au-color-text-primary); }
+.au-syntax-property { color: var(--au-color-text-secondary); }
+.au-syntax-punctuation { color: var(--au-color-text-faint); }
+.au-syntax-operator { color: var(--au-color-text-secondary); }

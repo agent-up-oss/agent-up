@@ -10,10 +10,13 @@ public sealed class ValidationPanelTests
     [AvaloniaTest]
     public async Task Validation_sidebar_isOpen_forTheSelectedWorkspace()
     {
-        var app = await AppDriver.LaunchWithWorkspacesAsync([WorkspaceFixtures.WithApplications()]);
+        var app = await AppDriver.LaunchWithWorkspacesAsync([DesktopDomain.WorkspaceWithApplications().Build()]);
         var viewModel = (MainViewModel)app.Window.DataContext!;
 
         await HeadlessExtensions.FlushAsync();
+
+        Assert.That(() => viewModel.Git.IsLoading, Is.False.After(1000).PollEvery(20));
+        Assert.That(viewModel.Git.ErrorMessage, Is.Null);
 
         Assert.Multiple(() =>
         {
@@ -27,7 +30,7 @@ public sealed class ValidationPanelTests
     [AvaloniaTest]
     public async Task Validation_sidebar_collapsesFromItsHeaderToggle()
     {
-        var app = await AppDriver.LaunchWithWorkspacesAsync([WorkspaceFixtures.WithApplications()]);
+        var app = await AppDriver.LaunchWithWorkspacesAsync([DesktopDomain.WorkspaceWithApplications().Build()]);
         var viewModel = (MainViewModel)app.Window.DataContext!;
         var toggle = app.Window.FindControl<Button>("ValidationToggle")!;
 

@@ -13,12 +13,13 @@
   "dependencies": {
     "@agent-up/design-system": "file:../AgentUp.DesignSystem",
     "@docusaurus/core": "^3.6.3",
+    "@docusaurus/plugin-client-redirects": "^3.6.3",
     "@docusaurus/preset-classic": "^3.6.3",
     "@mdx-js/react": "^3.0.0",
     "clsx": "^2.1.1",
     "prism-react-renderer": "^2.4.1",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.6.3"

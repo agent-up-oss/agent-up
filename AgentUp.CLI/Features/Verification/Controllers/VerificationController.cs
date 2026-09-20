@@ -4,7 +4,7 @@ using AgentUp.CLI.Features.Verification.Services;
 namespace AgentUp.CLI.Features.Verification.Controllers;
 
 /// <summary>
-/// Routes <c>agentup verify</c> subcommands.
+/// Routes <c>agent-up verify</c> subcommands.
 /// </summary>
 public sealed class VerificationController(
     VerifyPlanCommand plan,
@@ -75,7 +75,7 @@ public sealed class VerificationController(
     private static int WriteHelp(VerifyOutputService output)
         => output.WriteError(
             """
-            Usage: agentup verify <command>
+            Usage: agent-up verify <command>
 
               plan                     Show the checks the current changes require
               run [<check-id>]         Run the required checks (or one of them) and record receipts

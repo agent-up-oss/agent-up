@@ -23,6 +23,13 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
     private const string NavigationTokenScript = "(function(){return window.__nav || 'none';})()";
 
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
+    // Showing the window attaches the platform WebView through a native control host on the UI
+    // thread. A backend that never finishes initializing never returns, and the dispatcher call
+    // below has nothing of its own to time out on, so bound it here rather than hang the run.
+    private static readonly TimeSpan LaunchTimeout = TimeSpan.FromSeconds(90);
+    // A single engine call that never answers must not outlive the loop waiting on it.
+    private static readonly TimeSpan EvaluationTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan UiThreadTimeout = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan NavigationAttemptTimeout = TimeSpan.FromSeconds(8);
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
 
@@ -48,12 +55,11 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
     internal static async Task<DesktopBrowserHarness> LaunchAsync(int applicationPort)
     {
         var webViews = new List<NativeWebView>();
-        var window = await Dispatcher.UIThread.InvokeAsync(async () =>
-            await CreateWindowAsync(
-                new Uri("http://localhost:5000"),
-                webViews,
-                selectHttpPort: true,
-                new DesktopServerStub(WorkspaceId, applicationPort)));
+        var window = await ShowWindowAsync(() => CreateWindowAsync(
+            new Uri("http://localhost:5000"),
+            webViews,
+            selectHttpPort: true,
+            new DesktopServerStub(WorkspaceId, applicationPort)));
 
         return new DesktopBrowserHarness(window, webViews);
     }
@@ -63,8 +69,7 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
         string? desktopApplication = null)
     {
         var webViews = new List<NativeWebView>();
-        var window = await Dispatcher.UIThread.InvokeAsync(async () =>
-            await CreateWindowAsync(serverUrl, webViews, selectHttpPort: false));
+        var window = await ShowWindowAsync(() => CreateWindowAsync(serverUrl, webViews, selectHttpPort: false));
 
         var harness = new DesktopBrowserHarness(window, webViews);
         if (desktopApplication is not null)
@@ -72,6 +77,43 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
         await harness.WaitForWorkspaceWebViewAsync();
         return harness;
     }
+
+    // A local async function so this is a real Task whatever InvokeAsync hands back, and so the
+    // deadline applies to the whole UI-thread operation rather than to any one await inside it.
+    private static async Task<MainWindow> ShowWindowAsync(Func<Task<MainWindow>> create)
+    {
+        async Task<MainWindow> OnUiThread() => await Dispatcher.UIThread.InvokeAsync(create);
+
+        TestContext.Progress.WriteLine("Desktop harness: asking the UI thread to show MainWindow.");
+        var launch = OnUiThread();
+        if (await Task.WhenAny(launch, Task.Delay(LaunchTimeout)) != launch)
+            throw new TimeoutException(
+                $"Desktop never finished showing its MainWindow within {LaunchTimeout.TotalSeconds:0} seconds. "
+                + "The platform WebView attaches through a native control host on the Avalonia UI thread, so a "
+                + "WebView backend that never finishes initializing stops the run here with no test having started.");
+
+        TestContext.Progress.WriteLine("Desktop harness: MainWindow shown.");
+        return await launch;
+    }
+
+    // Everything the harness does to the window runs on the Avalonia UI thread, and the platform
+    // WebView runs there too, so an engine call that never returns takes the calling test with
+    // it. Give every hop its own deadline; the callers' poll loops only re-check between
+    // iterations and would never reach their own deadline behind a stuck call.
+    private static async Task<T> OnUiThreadAsync<T>(Func<T> work, string what, DispatcherPriority priority = default)
+    {
+        async Task<T> Invoke() => await Dispatcher.UIThread.InvokeAsync(work, priority);
+
+        var operation = Invoke();
+        if (await Task.WhenAny(operation, Task.Delay(UiThreadTimeout)) != operation)
+            throw new TimeoutException(
+                $"{what} did not return from the Avalonia UI thread within {UiThreadTimeout.TotalSeconds:0} seconds.");
+
+        return await operation;
+    }
+
+    private static Task OnUiThreadAsync(Action work, string what, DispatcherPriority priority = default)
+        => OnUiThreadAsync(() => { work(); return true; }, what, priority);
 
     private static async Task<MainWindow> CreateWindowAsync(
         Uri serverUrl,
@@ -95,8 +137,11 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
             webViews.Add(webView);
             return webView;
         };
+        TestContext.Progress.WriteLine("Desktop harness: MainWindow.Show() -- attaching the platform WebView.");
         mainWindow.Show();
+        TestContext.Progress.WriteLine("Desktop harness: MainWindow.Show() returned; initializing the view model.");
         await viewModel.InitializeAsync();
+        TestContext.Progress.WriteLine("Desktop harness: view model initialized.");
         if (selectHttpPort)
             SelectHttpPortTab(viewModel);
         return mainWindow;
@@ -123,7 +168,7 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
         var deadline = DateTimeOffset.UtcNow + DefaultTimeout;
         while (DateTimeOffset.UtcNow < deadline)
         {
-            var selected = await Dispatcher.UIThread.InvokeAsync(() =>
+            var selected = await OnUiThreadAsync(() =>
             {
                 var viewModel = (MainViewModel)Window.DataContext!;
                 var application = viewModel.Applications.Applications
@@ -133,7 +178,7 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
 
                 viewModel.SelectedApplicationTab = application;
                 return viewModel.ShowDesktopView;
-            });
+            }, $"Selecting desktop application '{applicationName}'");
             if (selected)
                 return;
 
@@ -144,18 +189,32 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
     }
 
     private async Task<string> DescribeApplicationStateAsync()
-        => await Dispatcher.UIThread.InvokeAsync(() =>
+        => await OnUiThreadAsync(() =>
         {
             var viewModel = (MainViewModel)Window.DataContext!;
             var names = string.Join(", ", viewModel.Applications.Applications.Select(item => item.Name));
             return $"Shell={viewModel.SelectedShellTab}, ShowDesktopView={viewModel.ShowDesktopView}, "
                 + $"SelectedSubTab={viewModel.SelectedSubTab?.GetType().Name ?? "(null)"}, "
                 + $"Applications=[{names}]";
-        });
+        }, "Describing Desktop application state");
 
     // Runs script inside the live workspace page and returns its result as the Desktop
     // browser controller sees it.
-    internal Task<string?> EvalAsync(string script) => Window.EvalAsync(WorkspaceId, script);
+    internal Task<string?> EvalAsync(string script) => EvalWithinAsync(script, EvaluationTimeout);
+
+    // The platform engine can accept an evaluation and never answer it: a scripted click that
+    // reaches a native modal chooser takes the UI thread's message pump with it, and nothing
+    // queued behind it -- including this harness's own dispatcher calls -- runs again. Bound
+    // every evaluation so that surfaces as a failure naming the script instead of a dead run.
+    private async Task<string?> EvalWithinAsync(string script, TimeSpan timeout)
+    {
+        var evaluation = Window.EvalAsync(WorkspaceId, script);
+        if (await Task.WhenAny(evaluation, Task.Delay(timeout)) != evaluation)
+            throw new TimeoutException(
+                $"The Desktop WebView accepted '{script}' but did not answer within {timeout.TotalSeconds:0} seconds.");
+
+        return await evaluation;
+    }
 
     // Polls the live page until script produces expected. The WebView loads, injects Desktop's
     // page scripts, and completes navigations asynchronously in the platform engine, so tests
@@ -182,7 +241,8 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
         {
             try
             {
-                last = await EvalAsync(script);
+                var remaining = deadline - DateTimeOffset.UtcNow;
+                last = await EvalWithinAsync(script, remaining < EvaluationTimeout ? remaining : EvaluationTimeout);
                 evaluationError = null;
                 if (string.Equals(last, expected, StringComparison.Ordinal))
                     return (true, last, null);
@@ -209,7 +269,7 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
     {
         try
         {
-            await EvalAsync(script);
+            await EvalWithinAsync(script, EvaluationTimeout);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -233,7 +293,7 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
         (bool Matched, string? Last, string? Error) attempt = default;
         while (DateTimeOffset.UtcNow < deadline)
         {
-            await Dispatcher.UIThread.InvokeAsync(() => Window.NavigateTo(WorkspaceId, target));
+            await OnUiThreadAsync(() => Window.NavigateTo(WorkspaceId, target), "Navigating the workspace WebView");
             attempt = await TryWaitForScriptAsync(NavigationTokenScript, token, NavigationAttemptTimeout);
             if (attempt.Matched)
                 return token;
@@ -275,7 +335,7 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
         if (window is null)
             return;
 
-        await Dispatcher.UIThread.InvokeAsync(() => window.Close());
-        await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
+        await OnUiThreadAsync(() => window.Close(), "Closing the Desktop window");
+        await OnUiThreadAsync(() => { }, "Draining the Avalonia dispatcher", DispatcherPriority.Background);
     }
 }

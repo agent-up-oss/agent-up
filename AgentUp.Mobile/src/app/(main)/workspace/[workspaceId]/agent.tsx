@@ -1,20 +1,37 @@
-import { Redirect, useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react';
-import { AgentChatScreen } from '@/features/agents/components/AgentChatScreen';
+import { AgentChatScreen } from '@agent-up/chat';
+import { WorkspaceRouteGate } from '@/features/workspaces/components/WorkspaceRouteGate';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
-import { ShellLoading } from '@/features/shell/components/ShellLoading';
+import { useInnerShell } from '@/features/shell/hooks/useInnerShell';
+import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
+import { useCallback, useMemo, useState } from 'react';
 
 export default function WorkspaceAgentRoute() {
-  const { workspaceId } = useLocalSearchParams<{ workspaceId: string }>();
-  const { workspaces, selectedWorkspace, selectWorkspace, ready } = useWorkspaces();
-  const workspace = workspaces.find(entry => entry.id === workspaceId) ?? null;
+  const { server } = useWorkspaces();
+  return (
+    <WorkspaceRouteGate>
+      {workspace => <WorkspaceAgentChat workspaceId={workspace.id} displayName={workspace.displayName} server={server} />}
+    </WorkspaceRouteGate>
+  );
+}
 
-  useEffect(() => {
-    if (workspace && selectedWorkspace?.id !== workspace.id) selectWorkspace(workspace.id);
-  }, [workspace, selectedWorkspace?.id, selectWorkspace]);
+function WorkspaceAgentChat({
+  workspaceId,
+  displayName,
+  server,
+}: {
+  workspaceId: string;
+  displayName: string;
+  server: ReturnType<typeof useWorkspaces>['server'];
+}) {
+  const [title, setTitle] = useState('Workspace agent');
+  const present = useCallback((value: { title: string }) => setTitle(value.title), []);
+  const inner = useInnerShell(title, `/(main)/workspace/${workspaceId}/agents`);
+  const config = useMemo(() => ({ ...inner, title }), [inner, title]);
+  useShellConfig(config);
 
-  if (!ready) return <ShellLoading />;
-  if (!workspace) return <Redirect href="/(main)/workspace" />;
-
-  return <AgentChatScreen workspace={workspace} />;
+  return <AgentChatScreen
+    workspace={{ id: workspaceId, displayName }}
+    server={server}
+    onPresent={present}
+  />;
 }

@@ -1,0 +1,84 @@
+name: Mobile iOS certificates
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: One-time Match bootstrap or profile sync
+        type: choice
+        required: true
+        options:
+          - init_ci
+          - sync
+
+concurrency:
+  group: mobile-ios-certs
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  init-ci:
+    name: Initialize Match deploy key
+    if: ${{ inputs.action == 'init_ci' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Require secrets
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+          MATCH_REPOSITORY: ${{ secrets.MATCH_REPOSITORY }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        run: bash .github/scripts/require-env.sh GH_PAT MATCH_REPOSITORY MATCH_PASSWORD
+
+      - name: Create writable Match deploy key
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+          MATCH_REPOSITORY: ${{ secrets.MATCH_REPOSITORY }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        run: bundle exec fastlane ios init_ci --verbose
+
+  sync:
+    name: Sync Match profiles
+    if: ${{ inputs.action == 'sync' }}
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MATCH_DEPLOY_KEY }}
+
+      - name: Require secrets
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_P8: ${{ secrets.APPSTORE_P8 }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_REPOSITORY: ${{ secrets.MATCH_REPOSITORY }}
+          MATCH_DEPLOY_KEY: ${{ secrets.MATCH_DEPLOY_KEY }}
+        run: bash .github/scripts/require-env.sh APPSTORE_KEY_ID APPSTORE_ISSUER_ID APPSTORE_P8 MATCH_PASSWORD MATCH_REPOSITORY MATCH_DEPLOY_KEY
+
+      - name: Sync certificates and profiles
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_P8: ${{ secrets.APPSTORE_P8 }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_REPOSITORY: ${{ secrets.MATCH_REPOSITORY }}
+          IOS_BUNDLE_ID: net.themassiveone.agent-up.ios
+        run: bundle exec fastlane ios sync_certificates

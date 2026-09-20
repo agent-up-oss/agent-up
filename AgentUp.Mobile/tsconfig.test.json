@@ -10,10 +10,11 @@
     "src/features/authentication/**/*.ts",
     "src/features/workspaces/**/*.ts",
     "src/features/git/**/*.ts",
-    "src/features/agents/**/*.ts",
     "src/features/applications/**/*.ts",
     "src/features/telemetry/**/*.ts",
-    "src/features/entitlements/**/*.ts"
+    "src/features/entitlements/**/*.ts",
+    "src/features/agents/benchmark/MobilePerformanceGate.ts",
+    "src/features/shell/**/*.ts"
   ],
   "exclude": []
 }

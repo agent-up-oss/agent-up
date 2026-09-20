@@ -1,23 +1,30 @@
 import { Redirect, useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react';
 import { ApplicationSpaceScreen } from '@/features/applications/components/ApplicationSpaceScreen';
-import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
-import { ShellLoading } from '@/features/shell/components/ShellLoading';
+import { WorkspaceRouteGate } from '@/features/workspaces/components/WorkspaceRouteGate';
+import { useInnerShell } from '@/features/shell/hooks/useInnerShell';
+import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 
 export default function ApplicationSpaceRoute() {
-  const { workspaceId, applicationName } = useLocalSearchParams<{ workspaceId: string; applicationName: string }>();
-  const { workspaces, selectedWorkspace, selectWorkspace, ready } = useWorkspaces();
-  const workspace = workspaces.find(entry => entry.id === workspaceId) ?? null;
-  // useLocalSearchParams already returns decoded route parameters; decoding again would throw
-  // URIError on a legitimate name that contains a percent sign, such as "100%".
+  const { applicationName } = useLocalSearchParams<{ applicationName: string }>();
   const name = applicationName ?? '';
 
-  useEffect(() => {
-    if (workspace && selectedWorkspace?.id !== workspace.id) selectWorkspace(workspace.id);
-  }, [workspace, selectedWorkspace?.id, selectWorkspace]);
+  return (
+    <WorkspaceRouteGate>
+      {workspace => {
+        if (!name) return <Redirect href={`/(main)/workspace/${workspace.id}`} />;
+        return <ApplicationInner workspace={workspace} applicationName={name} />;
+      }}
+    </WorkspaceRouteGate>
+  );
+}
 
-  if (!ready) return <ShellLoading />;
-  if (!workspace || !name) return <Redirect href="/(main)/workspace" />;
-
-  return <ApplicationSpaceScreen workspace={workspace} applicationName={name} />;
+function ApplicationInner({
+  workspace,
+  applicationName,
+}: {
+  workspace: Parameters<typeof ApplicationSpaceScreen>[0]['workspace'];
+  applicationName: string;
+}) {
+  useShellConfig(useInnerShell(applicationName, `/(main)/workspace/${workspace.id}`));
+  return <ApplicationSpaceScreen workspace={workspace} applicationName={applicationName} />;
 }

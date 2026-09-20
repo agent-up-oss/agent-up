@@ -15,6 +15,8 @@ public class ContentPanelBehaviorTests
         var app = await AppDriver.LaunchEmptyAsync();
 
         Assert.That(app.Content.ShowsEmptyState, Is.True);
+        Assert.That(app.Content.EmptyStateHint, Does.Contain("agent-up start"));
+        Assert.That(app.Content.EmptyStateHint, Does.Not.Contain("register"));
         Assert.That(app.Content.ShowsWorkspaceDetail, Is.False);
         Assert.That(app.Content.ShowsError, Is.False);
     }
@@ -22,7 +24,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task Content_showsWorkspaceDetail_whenWorkspaceIsSelected()
     {
-        var workspace = WorkspaceFixtures.Single();
+        var workspace = DesktopDomain.Workspace().Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(workspace);
 
         Assert.That(app.Content.ShowsWorkspaceDetail, Is.True);
@@ -33,7 +35,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task Content_displaysCorrectWorkspaceName_inDetailPanel()
     {
-        var workspace = WorkspaceFixtures.Single();
+        var workspace = DesktopDomain.Workspace().Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(workspace);
 
         Assert.That(app.Content.DisplayedWorkspaceName, Is.EqualTo(workspace.DisplayName));
@@ -42,7 +44,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task Content_updatesDetail_whenDifferentWorkspaceSelected()
     {
-        var workspaces = WorkspaceFixtures.Multiple();
+        var workspaces = DesktopDomain.Workspaces();
         var app = await AppDriver.LaunchWithWorkspacesAsync(workspaces);
 
         // Sidebar order after load is Running-first then alphabetical: API Gateway, My App, Auth Service.
@@ -65,7 +67,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task Content_autoSelectsFirstWorkspace_whenMultipleLoaded()
     {
-        var workspaces = WorkspaceFixtures.Multiple();
+        var workspaces = DesktopDomain.Workspaces();
         var app = await AppDriver.LaunchWithWorkspacesAsync(workspaces);
 
         // Sidebar order after load is Running-first then alphabetical: API Gateway, My App, Auth Service.
@@ -76,7 +78,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task Content_showsOverviewBranchPicker_whenWorkspaceIsSelected()
     {
-        var workspace = WorkspaceFixtures.Single();
+        var workspace = DesktopDomain.Workspace().Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(workspace);
         var viewModel = (MainViewModel)app.Window.DataContext!;
         for (var i = 0; i < 40 && viewModel.Overview.IsLoading; i++)
@@ -86,7 +88,24 @@ public class ContentPanelBehaviorTests
         }
 
         Assert.That(app.Window.FindControl<ComboBox>("WorkspaceBranchCombo")!.IsVisible, Is.True);
+        Assert.That(app.Window.FindControl<Button>("GitFetchButton")!.IsVisible, Is.True);
+        Assert.That(app.Window.FindControl<Button>("GitPullButton")!.IsVisible, Is.True);
+        Assert.That(app.Window.FindControl<Button>("GitPushButton")!.IsVisible, Is.True);
         Assert.That(viewModel.Git.Branch, Is.EqualTo(workspace.Branch));
+    }
+
+    [AvaloniaTest]
+    public async Task Content_showsOverviewMetrics_whenWorkspaceIsSelected()
+    {
+        var workspace = DesktopDomain.Workspace().Build();
+        var app = await AppDriver.LaunchWithWorkspaceAsync(workspace);
+        var viewModel = (MainViewModel)app.Window.DataContext!;
+        for (var i = 0; i < 40 && viewModel.Overview.IsLoading; i++)
+        {
+            await Task.Delay(25);
+            await HeadlessExtensions.FlushAsync();
+        }
+
         Assert.That(app.Window.FindControl<Grid>("OverviewMetrics")!.IsVisible, Is.True);
         Assert.That(
             app.Window.FindControl<Grid>("OverviewMetrics")!
@@ -95,6 +114,20 @@ public class ContentPanelBehaviorTests
                 .Count(border => border.Classes.Contains("metricsSummaryCard")),
             Is.EqualTo(6));
         Assert.That(app.Window.FindControl<Grid>("OverviewSkeleton")!.IsVisible, Is.False);
+    }
+
+    [AvaloniaTest]
+    public async Task Content_keepsOverviewBesideValidation_whenWorkspaceIsSelected()
+    {
+        var workspace = DesktopDomain.Workspace().Build();
+        var app = await AppDriver.LaunchWithWorkspaceAsync(workspace);
+        var viewModel = (MainViewModel)app.Window.DataContext!;
+        for (var i = 0; i < 40 && viewModel.Overview.IsLoading; i++)
+        {
+            await Task.Delay(25);
+            await HeadlessExtensions.FlushAsync();
+        }
+
         Assert.That(app.Window.FindControl<Border>("GitPanel")!.IsVisible, Is.False);
         Assert.That(app.Window.FindControl<Border>("ValidationPanel")!.IsVisible, Is.True);
         Assert.That(app.Content.ShowsAddressNavBar, Is.False);
@@ -103,7 +136,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task Content_showsAddressNavBar_withDefaultUrl_whenHttpPortTabSelected()
     {
-        var workspace = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var workspace = DesktopDomain.WorkspaceServing(3000).Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(
             workspace,
             () => throw new InvalidOperationException("no WebKit"));
@@ -116,7 +149,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task Content_showsNavButtons_forHttpPortTabs()
     {
-        var workspace = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var workspace = DesktopDomain.WorkspaceServing(3000).Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(
             workspace,
             () => throw new InvalidOperationException("no WebKit"));
@@ -130,7 +163,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task Content_blursAddressBar_whenClickingOutsideIt()
     {
-        var workspace = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var workspace = DesktopDomain.WorkspaceServing(3000).Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(
             workspace,
             () => throw new InvalidOperationException("no WebKit"));
@@ -147,7 +180,7 @@ public class ContentPanelBehaviorTests
     [AvaloniaTest]
     public async Task ApplicationSubTabs_keepHoverOnTheRoundedBorder_notTheLabel()
     {
-        var workspace = WorkspaceFixtures.WithHttpPort("ws-1", 3000);
+        var workspace = DesktopDomain.WorkspaceServing(3000).Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(
             workspace,
             () => throw new InvalidOperationException("no WebKit"));

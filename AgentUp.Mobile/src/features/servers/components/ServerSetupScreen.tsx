@@ -201,7 +201,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
             : 'Sign in to a saved Agent-Up Server, or enter a URL.'}
         </Text>
         <Text style={styles.label}>Server URL</Text>
-        <TextInput accessibilityLabel="Server URL" autoCapitalize="none" autoCorrect={false} keyboardType="url"
+        <TextInput testID="server-url-input" accessibilityLabel="Server URL" autoCapitalize="none" autoCorrect={false} keyboardType="url"
           placeholder="https://agent-up.example.com" placeholderTextColor={agentUpTheme.colors.textFaint} value={url} onChangeText={setUrl}
           editable={!busy} onSubmitEditing={() => void tryAndSave()} style={styles.input} />
         {formMode === 'password' && <>
@@ -210,7 +210,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
             editable={!busy} onSubmitEditing={() => void signIn()} style={styles.input} />
         </>}
         {formMode === 'add'
-          ? <Pressable accessibilityRole="button" disabled={busy || !url.trim()} onPress={() => void tryAndSave()}
+          ? <Pressable testID="server-connect" accessibilityRole="button" disabled={busy || !url.trim()} onPress={() => void tryAndSave()}
               style={[styles.button, (busy || !url.trim()) && styles.disabled]}>
               {busy ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.buttonText}>Try and save</Text>}
             </Pressable>

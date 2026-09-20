@@ -23,7 +23,8 @@ internal static class ArchitectureFixture
         "AgentUp.Desktop",
         "AgentUp.CLI",
         "AgentUp.AUDebug",
-        "AgentUp.InstallerConfig"
+        "AgentUp.InstallerConfig",
+        "AgentUp.TestAgents"
     ];
 
     /// <summary>
@@ -69,7 +70,14 @@ internal static class ArchitectureFixture
         "AgentUp.CLI.Tests",
         "AgentUp.AUDebug.Tests",
         "AgentUp.Tests",
+        "AgentUp.TestAgents.Tests",
         "AgentUp.Architecture.Tests"
+    ];
+
+    public static readonly string[] BenchmarkProjects =
+    [
+        "AgentUp.Browser.Streaming.Benchmarks",
+        "AgentUp.Server.Benchmarks"
     ];
 
     public static readonly string[] AllowedFeatureTypeFolders =
@@ -97,6 +105,7 @@ internal static class ArchitectureFixture
 
     public static readonly string[] AllowedTestKindFolders =
     [
+        "Benchmark",
         "Controller",
         "E2E",
         "Fake",
@@ -164,6 +173,7 @@ internal static class ArchitectureFixture
 
     public static IEnumerable<string> TestSourceFiles(string repositoryRoot)
         => TestProjects
+            .Concat(BenchmarkProjects)
             .Where(project => Directory.Exists(Path.Join(repositoryRoot, project)))
             .SelectMany(project => ProjectSourceFiles(repositoryRoot, project));
 

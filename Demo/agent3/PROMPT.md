@@ -2,7 +2,7 @@
 
 You are recording a five-minute Agent-Up click demo from `Demo/agent3`.
 
-Use Agent-Up MCP only. Start this workspace, then stay inside the allocated local HTTP ports.
+Use Agent-Up MCP only. Attach `/mcp/orchestration` then `/mcp/browser` (and `/mcp/audit` if querying history). Start this workspace, then stay inside the allocated local HTTP ports.
 
 Click-first rules:
 

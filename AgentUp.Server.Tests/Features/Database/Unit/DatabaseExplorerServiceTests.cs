@@ -9,6 +9,7 @@ using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Database.Unit;
 
@@ -19,13 +20,12 @@ public class DatabaseExplorerServiceTests
     public async Task ListDatabasesAsync_ReturnsNull_WhenApplicationIsNotDatabaseEnabled()
     {
         var registry = await CreateRegistryAsync();
-        var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest("Demo", "/repo", "/repo", "main", "abc")
-        {
-            Services =
-            [
-                new DockerServiceDefinition("Database", "postgres:16", [new PortDeclaration("POSTGRES_PORT", 5432, "tcp")])
-            ]
-        });
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Demo")
+            .At("/repo")
+            .AtCommit("abc")
+            .WithService(new DockerServiceDefinition("Database", "postgres:16", [ServerDomain.Port().Named("POSTGRES_PORT").On(5432).WithProtocol("tcp").Build()]))
+            .Build());
 
         var service = CreateService(registry);
         var result = await service.ListDatabasesAsync(workspace.Id, "Database");

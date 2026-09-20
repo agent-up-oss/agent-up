@@ -33,6 +33,18 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Server.Tests.Fake;
 
+/// <summary>
+/// Composes the Server object graphs that are too large to assemble at every test: the
+/// workspace registry, the lifecycle service and their collaborators.
+/// </summary>
+/// <remarks>
+/// It composes services only. Test data is built through the <c>Support/</c> builders, so
+/// nothing here decides what a subject is asked about - only what it is wired to. Every
+/// parameter that changes behaviour under test is required rather than defaulted here, so
+/// reading a call still tells you what the subject was given; the parameterless overloads
+/// name the plain composition they stand for instead of hiding a choice inside a
+/// null-coalescing default.
+/// </remarks>
 internal static class ServerTestComposition
 {
     public static IServiceCollection AddWorkspaceLifecycleSupport(this IServiceCollection services)
@@ -59,19 +71,25 @@ internal static class ServerTestComposition
         services.AddSingleton<WorkspaceLifecycleController>();
         return services;
     }
+    /// <summary>A registry with no capability adapters and an event bus of its own.</summary>
+    public static WorkspaceRegistry CreateRegistry() => CreateRegistry([], new WorkspaceEventBus());
+
     public static WorkspaceRegistry CreateRegistry(
-        IReadOnlyList<ICapabilityAdapter>? adapters = null,
-        WorkspaceEventBus? bus = null)
+        IReadOnlyList<ICapabilityAdapter> adapters,
+        WorkspaceEventBus bus)
         => new(
             new InMemoryWorkspaceRepository(),
             new PortsController(new InMemoryPortAllocationService()),
-            new CapabilitiesController(new CapabilityReconciliationService(adapters ?? [])),
-            bus ?? new WorkspaceEventBus());
+            new CapabilitiesController(new CapabilityReconciliationService(adapters)),
+            bus);
+
+    public static ProcessesController CreateProcessesController(IWorkspaceProcessManager processes)
+        => CreateProcessesController(processes, new InMemoryOutputRepository());
 
     public static ProcessesController CreateProcessesController(
         IWorkspaceProcessManager processes,
-        IOutputRepository? output = null)
-        => new(processes, new ProcessOutputService(output ?? new InMemoryOutputRepository()));
+        IOutputRepository output)
+        => new(processes, new ProcessOutputService(output));
 
     public static OrchestrationWorkspaceController CreateOrchestrationWorkspaceController(
         WorkspaceRegistry registry,
@@ -81,24 +99,47 @@ internal static class ServerTestComposition
         => new(new OrchestrationWorkspaceService(
             new WorkspaceQueryController(registry),
             new WorkspaceStateController(registry, new WorkspaceEventBus()),
-            new WorkspaceLifecycleController(CreateWorkspaceLifecycleService(registry, processes, configuration, identity)),
+            new WorkspaceLifecycleController(CreateWorkspaceLifecycleService(
+                registry, processes, configuration, identity, OperatingSystem.IsLinux)),
             new OrchestrationRegistrationService(
                 configuration,
                 identity)));
 
-    public static WorkspaceLifecycleController CreateWorkspaceLifecycleController(
+    /// <summary>
+    /// The lifecycle service on the real configuration and identity providers, running as
+    /// the host platform does.
+    /// </summary>
+    public static WorkspaceLifecycleService CreateWorkspaceLifecycleService(
+        WorkspaceRegistry registry,
+        IWorkspaceProcessManager processes)
+        => CreateWorkspaceLifecycleService(
+            registry,
+            processes,
+            new AgentUpConfigurationProvider(),
+            new GitWorkspaceIdentityProvider(),
+            OperatingSystem.IsLinux);
+
+    /// <summary>
+    /// The lifecycle service with the platform branch stated rather than read from the
+    /// machine the suite happens to run on.
+    /// </summary>
+    public static WorkspaceLifecycleService CreateWorkspaceLifecycleService(
         WorkspaceRegistry registry,
         IWorkspaceProcessManager processes,
-        IAgentUpConfigurationProvider? configuration = null,
-        IWorkspaceIdentityProvider? identity = null)
-        => new(CreateWorkspaceLifecycleService(registry, processes, configuration, identity));
+        Func<bool> isLinux)
+        => CreateWorkspaceLifecycleService(
+            registry,
+            processes,
+            new AgentUpConfigurationProvider(),
+            new GitWorkspaceIdentityProvider(),
+            isLinux);
 
     public static WorkspaceLifecycleService CreateWorkspaceLifecycleService(
         WorkspaceRegistry registry,
         IWorkspaceProcessManager processes,
-        IAgentUpConfigurationProvider? configuration = null,
-        IWorkspaceIdentityProvider? identity = null,
-        Func<bool>? isLinux = null)
+        IAgentUpConfigurationProvider configuration,
+        IWorkspaceIdentityProvider identity,
+        Func<bool> isLinux)
     {
         var display = new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance);
         var eventBus = new BrowserEventBus();
@@ -125,9 +166,7 @@ internal static class ServerTestComposition
             new DesktopViewerTicketProvider(),
             new FakeHostedDesktopNativeLibraryProvider(),
             NullLogger<DesktopSessionService>.Instance));
-        var registration = new OrchestrationRegistrationService(
-            configuration ?? new AgentUpConfigurationProvider(),
-            identity ?? new GitWorkspaceIdentityProvider());
+        var registration = new OrchestrationRegistrationService(configuration, identity);
         return new WorkspaceLifecycleService(
             registry,
             CreateProcessesController(processes),
@@ -138,22 +177,20 @@ internal static class ServerTestComposition
             new WorkspaceStreamStateController(streamState),
             new OrchestrationRegistrationController(registration),
             NullLogger<WorkspaceLifecycleService>.Instance,
-            isLinux ?? OperatingSystem.IsLinux);
+            isLinux);
     }
 
     public static WorkspaceStateController CreateWorkspaceStateController(WorkspaceRegistry registry)
         => new(registry, new WorkspaceEventBus());
 
-    public static WorkspaceStreamStateController CreateStreamStateController(
-        BrowserEventBus? eventBus = null,
-        WorkspaceRegistry? registry = null)
-        => new(CreateStreamState(eventBus, registry));
+    /// <summary>Stream state over a fresh registry and browser event bus.</summary>
+    public static WorkspaceStreamStateService CreateStreamState()
+        => CreateStreamState(new BrowserEventBus(), CreateRegistry());
 
     public static WorkspaceStreamStateService CreateStreamState(
-        BrowserEventBus? eventBus = null,
-        WorkspaceRegistry? registry = null)
+        BrowserEventBus eventBus,
+        WorkspaceRegistry registry)
     {
-        registry ??= CreateRegistry();
         var queryController = new WorkspaceQueryController(registry);
         var healthCheckService = new AppHealthCheckService(
             queryController,
@@ -162,22 +199,41 @@ internal static class ServerTestComposition
             NullLogger<AppHealthCheckService>.Instance);
         var healthChecks = new AppHealthController(healthCheckService);
         return new WorkspaceStreamStateService(
-            eventBus ?? new BrowserEventBus(),
+            eventBus,
             healthChecks,
             queryController,
             CreateAuditController(),
             NullLogger<WorkspaceStreamStateService>.Instance);
     }
 
+    /// <summary>The audit controller over in-memory storage and a fresh registry.</summary>
+    public static AuditController CreateAuditController()
+        => CreateAuditController(CreateRegistry());
+
+    /// <summary>The audit controller over in-memory storage, reading the given registry.</summary>
+    public static AuditController CreateAuditController(WorkspaceRegistry registry)
+        => CreateAuditController(registry, new InMemoryAuditEventRepository());
+
     public static AuditController CreateAuditController(
-        WorkspaceRegistry? registry = null,
-        IAuditEventRepository? events = null,
-        IAuditArtifactRepository? artifacts = null,
-        FakeAuditIdentityProvider? identity = null)
+        WorkspaceRegistry registry,
+        IAuditEventRepository events)
+        => CreateAuditController(registry, events, new InMemoryAuditArtifactRepository());
+
+    public static AuditController CreateAuditController(
+        WorkspaceRegistry registry,
+        IAuditEventRepository events,
+        IAuditArtifactRepository artifacts)
+        => CreateAuditController(registry, events, artifacts, new FakeAuditIdentityProvider());
+
+    public static AuditController CreateAuditController(
+        WorkspaceRegistry registry,
+        IAuditEventRepository events,
+        IAuditArtifactRepository artifacts,
+        FakeAuditIdentityProvider identity)
         => new(new AuditService(
-            events ?? new InMemoryAuditEventRepository(),
-            artifacts ?? new InMemoryAuditArtifactRepository(),
-            identity ?? new FakeAuditIdentityProvider(),
-            new WorkspaceQueryController(registry ?? CreateRegistry()),
+            events,
+            artifacts,
+            identity,
+            new WorkspaceQueryController(registry),
             new AuditEventBus()));
 }

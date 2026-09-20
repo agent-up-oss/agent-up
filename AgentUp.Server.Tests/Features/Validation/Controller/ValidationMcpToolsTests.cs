@@ -14,4 +14,15 @@ public sealed class ValidationMcpToolsTests
             Assert.That(description, Does.Contain("re-record"));
         });
     }
+
+    [Test]
+    public void Replay_guidance_describes_visible_expectations_and_failure_reporting()
+    {
+        var description = typeof(ValidationMcpTools).GetMethod(nameof(ValidationMcpTools.Play))!
+            .GetCustomAttributes(typeof(System.ComponentModel.DescriptionAttribute), false)
+            .Cast<System.ComponentModel.DescriptionAttribute>().Single().Description;
+
+        Assert.That(description, Does.Contain("user can watch"));
+        Assert.That(description, Does.Contain("staged mouse movement"));
+    }
 }

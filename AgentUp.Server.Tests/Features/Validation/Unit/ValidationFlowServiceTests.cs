@@ -10,6 +10,7 @@ using AgentUp.Server.Features.Validation.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 namespace AgentUp.Server.Tests.Features.Validation.Unit;
 public sealed class ValidationFlowServiceTests
@@ -305,10 +306,12 @@ public sealed class ValidationFlowServiceTests
     public async Task Save_accepts_desktop_coordinates_and_running_expectations_without_a_web_path()
     {
         var registry = ServerTestComposition.CreateRegistry();
-        var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest("Workspace", "/repo", "/repo", "main", "abc")
-        {
-            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
-        });
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Workspace")
+            .At("/repo")
+            .AtCommit("abc")
+            .WithDesktopApplication(new DesktopApplicationDefinition("Editor", "dotnet run", "."))
+            .Build());
         var service = new ValidationFlowService(
             new MemoryRepository(), new WorkspaceQueryController(registry), null!, new PlaywrightFlowExporter());
         var request = new SaveValidationFlowRequest(
@@ -374,10 +377,12 @@ public sealed class ValidationFlowServiceTests
     public async Task Run_rejectsUnsupportedDesktopSteps()
     {
         var registry = ServerTestComposition.CreateRegistry();
-        var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest("Workspace", "/repo", "/repo", "main", "abc")
-        {
-            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
-        });
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Workspace")
+            .At("/repo")
+            .AtCommit("abc")
+            .WithDesktopApplication(new DesktopApplicationDefinition("Editor", "dotnet run", "."))
+            .Build());
         var controller = new DesktopApplicationsController(new DesktopSessionService(
             new FakeDesktopDisplayProvider(),
             new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance),
@@ -415,10 +420,12 @@ public sealed class ValidationFlowServiceTests
         ValidationExpectation initialKind = ValidationExpectation.Running)
     {
         var registry = ServerTestComposition.CreateRegistry();
-        var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest("Workspace", "/repo", "/repo", "main", "abc")
-        {
-            DesktopApplications = [new DesktopApplicationDefinition("Editor", "dotnet run", ".")]
-        });
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Workspace")
+            .At("/repo")
+            .AtCommit("abc")
+            .WithDesktopApplication(new DesktopApplicationDefinition("Editor", "dotnet run", "."))
+            .Build());
         DesktopApplicationsController? desktopController = null;
         DesktopMcpTools? tools = null;
         if (includeDesktopTools)
@@ -458,14 +465,12 @@ public sealed class ValidationFlowServiceTests
     private static async Task<(ValidationFlowService Service, string WorkspaceId)> CreateAsync(string? secondApplication = null)
     {
         var registry = ServerTestComposition.CreateRegistry();
-        List<ApplicationDefinition> applications = [new ApplicationDefinition("web", "npm start", ".")];
+        List<ApplicationDefinition> applications = [new ApplicationDefinitionBuilder("web", "npm start").At(".").Build()];
         if (secondApplication is not null)
-            applications.Add(new ApplicationDefinition(secondApplication, "npm start", "."));
+            applications.Add(new ApplicationDefinitionBuilder(secondApplication, "npm start").At(".").Build());
 
-        var workspace = await registry.RegisterAsync(new RegisterWorkspaceRequest("Workspace", "/repo", "/repo", "main", "abc")
-        {
-            Applications = applications
-        });
+        var workspace = await registry.RegisterAsync(
+            ServerDomain.Workspace().At(ServerDomain.RepositoryPath).WithApplications(applications).Build());
 
         var service = new ValidationFlowService(
             new MemoryRepository(), new WorkspaceQueryController(registry), null!, new PlaywrightFlowExporter());

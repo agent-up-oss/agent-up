@@ -3,6 +3,8 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
+    <!-- Only embedded in the Windows apphost; ignored for the linux and osx runtimes. -->
+    <ApplicationManifest>../windows-app.manifest</ApplicationManifest>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>AgentUp.Desktop</RootNamespace>
@@ -21,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="LocalInstaller.Core" Version="1.1.0" />
+    <PackageReference Include="LocalInstaller.Core" Version="$(LocalInstallerVersion)" />
     <PackageReference Include="Sentry" Version="6.11.0" />
     <PackageReference Include="Avalonia" Version="12.1.2" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
@@ -37,6 +39,7 @@
 
   <ItemGroup>
     <Compile Include="../AgentUp.DesignSystem/dist/dotnet/AgentUpThemeColors.g.cs" Link="Shared/Models/AgentUpThemeColors.g.cs" />
+    <Compile Include="../AgentUp.DesignSystem/dist/dotnet/AgentUpSyntaxGrammars.g.cs" Link="Shared/Models/AgentUpSyntaxGrammars.g.cs" />
     <AvaloniaResource Include="../media/logo.png" Link="media/logo.png" />
     <AvaloniaResource Include="../AgentUp.DesignSystem/dist/avalonia/AgentUpTheme.axaml" Link="DesignSystem/AgentUpTheme.axaml" />
     <AvaloniaResource Include="../AgentUp.DesignSystem/dist/avalonia/AgentUpStyles.axaml" Link="DesignSystem/AgentUpStyles.axaml" />

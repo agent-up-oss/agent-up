@@ -8,6 +8,7 @@ using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Shared.Providers;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Server.Tests.Features.Diagnostics.Controller;
@@ -20,8 +21,11 @@ public sealed class DiagnosticsMcpToolsBehaviorTests
     {
         var registry = ServerTestComposition.CreateRegistry();
         await registry.StartAsync(CancellationToken.None);
-        var workspace = await registry.RegisterAsync(new AgentUp.Server.Features.Workspaces.DTOs.RegisterWorkspaceRequest(
-            "Shop", "/repo", "/repo", "main", "abc"));
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Shop")
+            .At(ServerDomain.RepositoryPath)
+            .AtCommit("abc")
+            .Build());
         var audit = ServerTestComposition.CreateAuditController(registry);
         var health = new AppHealthController(new AppHealthCheckService(
             new WorkspaceQueryController(registry),

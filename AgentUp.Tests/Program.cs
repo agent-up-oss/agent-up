@@ -10,12 +10,47 @@ namespace AgentUp.Tests;
 
 public static class E2ETestRunner
 {
+    // Three Task-based deadlines in this harness have failed to fire on a wedged Windows run:
+    // whatever stops it also stops the test thread running its own continuations, so nothing
+    // built on Task.Delay can rescue it. A plain thread that only sleeps and writes is immune
+    // to that, and turns a silent ten-minute CI timeout into a log that says what happened.
+    private static readonly TimeSpan WatchdogTimeout = TimeSpan.FromMinutes(4);
+
     public static int Main(string[] args)
     {
+        StartWatchdog();
+
         if (OperatingSystem.IsMacOS())
             return RunMacOs(args);
 
         return RunTests(args);
+    }
+
+    private static void StartWatchdog()
+    {
+        var watchdog = new Thread(() =>
+        {
+            Thread.Sleep(WatchdogTimeout);
+            var notice =
+                $"E2E watchdog: no result after {WatchdogTimeout.TotalMinutes:0} minutes. The run is wedged "
+                + "-- a platform engine call has not returned and the test thread cannot run its own "
+                + "timeouts. Forcing exit so the log survives.";
+            Console.Out.WriteLine(notice);
+            Console.Error.WriteLine(notice);
+            Console.Out.Flush();
+            Console.Error.Flush();
+
+            // The first run of this watchdog exited so promptly that the notice never reached the
+            // log through the runner's pipe. Give it a moment to drain before killing the process.
+            Thread.Sleep(TimeSpan.FromSeconds(3));
+            Environment.Exit(99);
+        })
+        {
+            IsBackground = true,
+            Name = "Agent-Up E2E watchdog"
+        };
+
+        watchdog.Start();
     }
 
     private static int RunMacOs(string[] args)

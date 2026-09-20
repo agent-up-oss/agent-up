@@ -6,4 +6,7 @@ public sealed record CommitEntryDto(
     IReadOnlyList<string> Files,
     string Id,
     string PatchId,
-    string? ReviewIssueId = null);
+    string? ReviewIssueId = null,
+    string? ParentCommit = null,
+    string? ProposalCommit = null,
+    string State = "draft");

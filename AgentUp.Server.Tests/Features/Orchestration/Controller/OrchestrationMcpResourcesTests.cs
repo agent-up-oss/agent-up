@@ -7,6 +7,7 @@ using AgentUp.Server.Features.Orchestration.Services;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Orchestration.Controller;
 
@@ -67,23 +68,23 @@ public sealed class OrchestrationMcpResourcesTests
     [Test]
     public async Task WorkspacesResource_ReturnsRegisteredWorkspaces()
     {
-        await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "abc"));
+        await _registry.RegisterAsync(ServerDomain.Workspace().AtCommit("abc").Build());
 
         var json = _resources.ListWorkspaces();
 
-        Assert.That(json, Does.Contain("\"displayName\": \"A\""));
-        Assert.That(json, Does.Contain("\"worktreePath\": \"/r/a\""));
+        Assert.That(json, Does.Contain($"\"displayName\": \"{ServerDomain.WorkspaceName}\""));
+        Assert.That(json, Does.Contain($"\"worktreePath\": \"{ServerDomain.WorktreePath}\""));
     }
 
     [Test]
     public async Task WorkspaceResource_ReturnsRegisteredWorkspace()
     {
-        var workspace = await _registry.RegisterAsync(new RegisterWorkspaceRequest("A", "/r", "/r/a", "main", "abc"));
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace().AtCommit("abc").Build());
 
         var json = _resources.GetWorkspace(workspace.Id);
 
         Assert.That(json, Does.Contain($"\"id\": \"{workspace.Id}\""));
-        Assert.That(json, Does.Contain("\"displayName\": \"A\""));
+        Assert.That(json, Does.Contain($"\"displayName\": \"{ServerDomain.WorkspaceName}\""));
     }
 
     [Test]

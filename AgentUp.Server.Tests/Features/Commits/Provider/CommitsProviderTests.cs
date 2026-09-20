@@ -1,6 +1,7 @@
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Models;
 using AgentUp.Server.Features.Commits.Providers;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Commits.Provider;
 
@@ -153,7 +154,16 @@ public sealed class CommitsProviderTests
     {
         var repositoryPath = await CreateRepositoryAsync();
         var provider = new CommitsQueueProvider(new FixedRootGitProvider(repositoryPath), _tempRoot);
-        var queue = new CommitsQueue(1, [new CommitEntry("Slice", "feat(Slice): thing", ["a.cs"], "entry-1", "patch-1")]);
+        var queue = ServerDomain.Queue()
+            .AtVersion(1)
+            .With(ServerDomain.CommitEntry()
+            .For("Slice")
+            .Saying("feat(Slice): thing")
+            .Touching(["a.cs"])
+            .WithId("entry-1")
+            .WithPatchId("patch-1")
+            .Build())
+            .Build();
 
         await provider.WriteAsync(repositoryPath, queue);
         await provider.SavePatchAsync(repositoryPath, "patch-1", "diff --git a/a.cs b/a.cs\n");
@@ -192,8 +202,14 @@ public sealed class CommitsProviderTests
             [lowerRoot] = lowerRoot
         }), _tempRoot);
 
-        await provider.WriteAsync(upperRoot, new CommitsQueue(1, [new CommitEntry("Upper", "m", ["a.cs"])]));
-        await provider.WriteAsync(lowerRoot, new CommitsQueue(1, [new CommitEntry("Lower", "m", ["b.cs"])]));
+        await provider.WriteAsync(upperRoot, ServerDomain.Queue()
+            .AtVersion(1)
+            .With(ServerDomain.CommitEntry().For("Upper").Saying("m").Touching(["a.cs"]).Build())
+            .Build());
+        await provider.WriteAsync(lowerRoot, ServerDomain.Queue()
+            .AtVersion(1)
+            .With(ServerDomain.CommitEntry().For("Lower").Saying("m").Touching(["b.cs"]).Build())
+            .Build());
 
         Assert.That((await provider.ReadAsync(upperRoot)).Commits[0].Slice, Is.EqualTo("Upper"));
         Assert.That((await provider.ReadAsync(lowerRoot)).Commits[0].Slice, Is.EqualTo("Lower"));

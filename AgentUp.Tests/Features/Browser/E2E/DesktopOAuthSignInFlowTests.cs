@@ -29,8 +29,11 @@ public sealed class DesktopOAuthSignInFlowTests
     [OneTimeSetUp]
     public async Task StartDesktop()
     {
+        TestContext.Progress.WriteLine("OAuth E2E: starting the loopback OAuth server.");
         _oauth = new OAuthTestServer();
+        TestContext.Progress.WriteLine($"OAuth E2E: loopback OAuth server listening on {_oauth.Port}.");
         _desktop = await DesktopBrowserHarness.LaunchAsync(_oauth.Port);
+        TestContext.Progress.WriteLine("OAuth E2E: Desktop harness ready.");
     }
 
     [OneTimeTearDown]

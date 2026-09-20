@@ -1,4 +1,5 @@
 using Avalonia.Headless.NUnit;
+using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Workspaces.Headless;
@@ -6,13 +7,24 @@ namespace AgentUp.Desktop.Tests.Features.Workspaces.Headless;
 [TestFixture]
 public class WorkspaceLifecycleTests
 {
-    // WorkspaceFixtures.Multiple() sorts to [API Gateway (Running), My App (Running), Auth Service (Stopped)]
+    // DesktopDomain.Workspaces() sorts to [API Gateway (Running), My App (Running), Auth Service (Stopped)]
     // once loaded: active workspaces first, ties broken alphabetically.
+
+    [AvaloniaTest]
+    public async Task Launch_loadsTheProposalQueueWithoutFailingTheWorkspace()
+    {
+        var app = await AppDriver.LaunchWithWorkspacesAsync(DesktopDomain.Workspaces());
+        var viewModel = (MainViewModel)app.Window.DataContext!;
+
+        Assert.That(() => viewModel.Git.IsLoading, Is.False.After(1000).PollEvery(20));
+        Assert.That(viewModel.Git.ErrorMessage, Is.Null);
+        Assert.That(viewModel.Git.HasQueuedProposals, Is.False);
+    }
 
     [AvaloniaTest]
     public async Task StartButton_startsStoppedWorkspace()
     {
-        var workspaces = WorkspaceFixtures.Multiple();
+        var workspaces = DesktopDomain.Workspaces();
         var (app, handler) = await AppDriver.LaunchWithMutableWorkspacesAsync(workspaces);
 
         await app.Sidebar.ClickStartOnWorkspaceAtIndexAsync(2);
@@ -27,7 +39,7 @@ public class WorkspaceLifecycleTests
     [AvaloniaTest]
     public async Task StopButton_stopsRunningWorkspace()
     {
-        var workspaces = WorkspaceFixtures.Multiple();
+        var workspaces = DesktopDomain.Workspaces();
         var (app, handler) = await AppDriver.LaunchWithMutableWorkspacesAsync(workspaces);
 
         await app.Sidebar.ClickStopOnWorkspaceAtIndexAsync(1);
@@ -42,7 +54,7 @@ public class WorkspaceLifecycleTests
     [AvaloniaTest]
     public async Task DeleteButton_showsConfirmationOverlay_andRemovesWorkspaceAfterConfirm()
     {
-        var workspaces = WorkspaceFixtures.Multiple();
+        var workspaces = DesktopDomain.Workspaces();
         var (app, handler) = await AppDriver.LaunchWithMutableWorkspacesAsync(workspaces);
 
         await app.Sidebar.ClickDeleteOnWorkspaceAtIndexAsync(2);
@@ -66,7 +78,7 @@ public class WorkspaceLifecycleTests
     [AvaloniaTest]
     public async Task DeleteConfirmation_cancel_hidesOverlayWithoutRemovingWorkspace()
     {
-        var workspaces = WorkspaceFixtures.Multiple();
+        var workspaces = DesktopDomain.Workspaces();
         var (app, _) = await AppDriver.LaunchWithMutableWorkspacesAsync(workspaces);
 
         await app.Sidebar.ClickDeleteOnWorkspaceAtIndexAsync(1);

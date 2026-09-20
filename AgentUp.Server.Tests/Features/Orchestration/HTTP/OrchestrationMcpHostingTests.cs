@@ -40,6 +40,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.AspNetCore;
 using ModelContextProtocol.Server;
+using Microsoft.AspNetCore.TestHost;
+using System.Net.Http.Json;
+using AgentUp.Server.Features.Commits.Models;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Orchestration.HTTP;
 
@@ -47,7 +51,87 @@ namespace AgentUp.Server.Tests.Features.Orchestration.HTTP;
 public sealed class OrchestrationMcpHostingTests
 {
     [Test]
-    public void MapMcp_MapsSeparateStreamableHttpAndLegacySseEndpoints()
+    public async Task CommitsTransport_GuardReturnsManagedWorktreeAsStructuredJsonRpcData()
+    {
+        var queue = new TransportQueueProvider(ServerDomain.Queue()
+            .AtVersion(3)
+            .With(ServerDomain.CommitEntry()
+                .For("Commits")
+                .Saying("feat(commits): queued")
+                .Touching(["a.cs"])
+                .WithId("entry")
+                .WithPatchId("patch")
+                .WithParentCommit("base")
+                .WithProposalCommit("tip")
+                .InState("ready")
+                .Build())
+            .WithBaseCommit("base")
+            .WithTipCommit("tip")
+            .InWorktree("/managed/queue")
+            .AtGeneration(1)
+            .Build());
+        await using var app = BuildMcpApp(queue, new TransportGitProvider());
+        app.MapMcp("/mcp/commits");
+        await app.StartAsync();
+        using var client = app.GetTestClient();
+        client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+        client.DefaultRequestHeaders.Accept.ParseAdd("text/event-stream");
+
+        using var initialize = await client.PostAsJsonAsync("/mcp/commits", new
+        {
+            jsonrpc = "2.0",
+            id = 1,
+            method = "initialize",
+            @params = new { protocolVersion = "2025-06-18", capabilities = new { }, clientInfo = new { name = "mock-acp", version = "1" } }
+        });
+        initialize.EnsureSuccessStatusCode();
+        var session = initialize.Headers.GetValues("Mcp-Session-Id").Single();
+
+        using var call = new HttpRequestMessage(HttpMethod.Post, "/mcp/commits")
+        {
+            Content = JsonContent.Create(new
+            {
+                jsonrpc = "2.0",
+                id = 2,
+                method = "tools/call",
+                @params = new { name = "guard_commits", arguments = new { worktreePath = "/repos/app" } }
+            })
+        };
+        call.Headers.Add("Mcp-Session-Id", session);
+        call.Headers.Accept.ParseAdd("application/json");
+        call.Headers.Accept.ParseAdd("text/event-stream");
+        using var response = await client.SendAsync(call);
+        var payload = await response.Content.ReadAsStringAsync();
+
+        response.EnsureSuccessStatusCode();
+        Assert.That(payload, Does.Contain("/managed/queue"));
+        Assert.That(payload, Does.Contain("continueWorktreePath"));
+        Assert.That(payload, Does.Contain("Continue dependent work"));
+    }
+
+    // Every MCP server gets its own route prefix with both transports under it, rather than
+    // one shared "/mcp" that would expose every slice's tools to every client.
+    [TestCase("/mcp/commits")]
+    [TestCase("/mcp/orchestration")]
+    [TestCase("/mcp/browser")]
+    [TestCase("/mcp/audit")]
+    public void MapMcp_MapsStreamableHttpAndLegacySseUnderEachServerPrefix(string prefix)
+    {
+        var endpoints = MappedEndpoints();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(endpoints, Does.Contain(prefix));
+            Assert.That(endpoints, Does.Contain($"{prefix}/sse"));
+            Assert.That(endpoints, Does.Contain($"{prefix}/message"));
+        });
+    }
+
+    [Test]
+    public void MapMcp_DoesNotMapASharedRootEndpoint()
+        => Assert.That(MappedEndpoints(), Does.Not.Contain("/mcp"));
+
+    private static string[] MappedEndpoints()
     {
         using var app = BuildMcpApp();
         app.MapMcp("/mcp/commits");
@@ -55,22 +139,10 @@ public sealed class OrchestrationMcpHostingTests
         app.MapMcp("/mcp/browser");
         app.MapMcp("/mcp/audit");
 
-        var endpoints = ((IEndpointRouteBuilder)app).DataSources.SelectMany(source => source.Endpoints)
+        return ((IEndpointRouteBuilder)app).DataSources.SelectMany(source => source.Endpoints)
             .OfType<RouteEndpoint>()
             .Select(endpoint => NormalizeRoutePattern(endpoint.RoutePattern.RawText))
             .ToArray();
-
-        Assert.That(endpoints, Does.Not.Contain("/mcp"));
-        Assert.That(endpoints, Does.Contain("/mcp/commits"));
-        Assert.That(endpoints, Does.Contain("/mcp/commits/sse"));
-        Assert.That(endpoints, Does.Contain("/mcp/commits/message"));
-        Assert.That(endpoints, Does.Contain("/mcp/orchestration"));
-        Assert.That(endpoints, Does.Contain("/mcp/orchestration/sse"));
-        Assert.That(endpoints, Does.Contain("/mcp/orchestration/message"));
-        Assert.That(endpoints, Does.Contain("/mcp/browser"));
-        Assert.That(endpoints, Does.Contain("/mcp/audit"));
-        Assert.That(endpoints, Does.Contain("/mcp/audit/sse"));
-        Assert.That(endpoints, Does.Contain("/mcp/audit/message"));
     }
 
     [Test]
@@ -134,9 +206,10 @@ public sealed class OrchestrationMcpHostingTests
         Assert.That(options.ResourceCollection?.PrimitiveNames ?? [], Is.Empty);
     }
 
-    private static WebApplication BuildMcpApp()
+    private static WebApplication BuildMcpApp(ICommitsQueueProvider? queue = null, ICommitsGitProvider? commitsGit = null)
     {
         var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
         builder.Services.AddMcpServer(options =>
             {
                 options.ServerInstructions = AgentUpMcpGuidance.ServerInstructions;
@@ -207,8 +280,9 @@ public sealed class OrchestrationMcpHostingTests
         builder.Services.AddSingleton<OrchestrationWorkspaceController>();
         builder.Services.AddSingleton<OrchestrationContextController>();
         builder.Services.AddSingleton<OrchestrationConsoleController>();
-        builder.Services.AddSingleton<ICommitsGitProvider, CommitsGitProvider>();
-        builder.Services.AddSingleton<ICommitsQueueProvider, CommitsQueueProvider>();
+        var gitProvider = commitsGit ?? new CommitsGitProvider();
+        builder.Services.AddSingleton<ICommitsGitProvider>(gitProvider);
+        builder.Services.AddSingleton<ICommitsQueueProvider>(queue ?? new CommitsQueueProvider(gitProvider));
         builder.Services.AddSingleton<CommitPolicyProvider>();
         builder.Services.AddSingleton<CommitsService>();
         builder.Services.AddSingleton<CommitsController>();
@@ -219,6 +293,30 @@ public sealed class OrchestrationMcpHostingTests
         builder.Services.AddSingleton<McpEndpointSessionProvider>();
 
         return builder.Build();
+    }
+
+    private sealed class TransportQueueProvider(CommitsQueue stored) : ICommitsQueueProvider
+    {
+        public Task<CommitsQueue> ReadAsync(string worktreePath, CancellationToken cancellationToken = default) => Task.FromResult(stored);
+        public Task WriteAsync(string worktreePath, CommitsQueue queue, CancellationToken cancellationToken = default) { stored = queue; return Task.CompletedTask; }
+        public Task SavePatchAsync(string worktreePath, string patchKey, string patch, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<string?> ReadPatchAsync(string worktreePath, string patchKey, CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+        public Task DeletePatchAsync(string worktreePath, string patchKey, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<T> WithLockAsync<T>(string worktreePath, Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default) => operation(cancellationToken);
+    }
+
+    private sealed class TransportGitProvider : ICommitsGitProvider
+    {
+        public Task<string> GetRepoRootAsync(string worktreePath, CancellationToken cancellationToken = default) => Task.FromResult(worktreePath);
+        public Task<string> GetRepositoryIdentityAsync(string worktreePath, CancellationToken cancellationToken = default) => Task.FromResult(worktreePath);
+        public Task<IReadOnlyList<string>> GetModifiedFilesAsync(string worktreePath, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<string>>([]);
+        public Task<IReadOnlyList<string>> GetStagedFilesAsync(string worktreePath, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<string>>([]);
+        public Task<IReadOnlyList<string>> GetUntrackedFilesAsync(string worktreePath, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<string>>([]);
+        public Task<string> GetDiffAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default) => Task.FromResult(string.Empty);
+        public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default) => Task.FromResult(false);
+        public Task<GitOperationState> GetOperationStateAsync(string worktreePath, CancellationToken cancellationToken = default) => Task.FromResult(GitOperationState.None);
+        public Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task RestoreFilesAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     private static string NormalizeRoutePattern(string? routePattern)
