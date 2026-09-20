@@ -83,7 +83,7 @@ The REST API uses authentication by default for every REST endpoint unless the e
 `AGENTUP_AUTH_MODE` selects how credentials are validated:
 
 - `localAdministrator` (default): `AGENTUP_ADMIN_PASSWORD` for `POST /api/auth/login`, which returns an in-memory bearer token.
-- `externalBearer`: login is rejected. Present a signed JWT whose `iss`, `aud`, and HMAC key match `AGENTUP_EXTERNAL_ISSUER`, `AGENTUP_EXTERNAL_AUDIENCE`, and `AGENTUP_EXTERNAL_SIGNING_KEY`. Optional claims: `workspace`, `tenant`, and repeated `permissions` values. A `workspace` claim binds the caller to that workspace id.
+- `externalBearer`: login is rejected. Present a signed JWT whose `iss`, `aud`, and HMAC key match `AGENTUP_EXTERNAL_ISSUER`, `AGENTUP_EXTERNAL_AUDIENCE`, and `AGENTUP_EXTERNAL_SIGNING_KEY`. Optional claims: `workspace`, `tenant`, and repeated `permissions` values. A `workspace` claim binds the caller to that workspace id. Protected operations require the matching `permissions` claim; a token with none can still read `GET /api/entitlements`.
 - `disabled`, or `AGENTUP_AUTH_DISABLED=true`: REST authentication is off.
 
 `GET /api/connection` returns anonymous connection metadata: `kind` (`selfHosted`), `workspacePresentation` (`serverScoped`), and `authentication` (`mode`, `prompt`, `identifierRequired`). Clients use `mode` and `prompt` to render sign-in; they must not infer capabilities from `kind`. `localAdministrator` is a password form. `browserSso` opens the server's `/api/auth/sso` start URL in a browser. The OSS Server never emits `browserSso`. `Examples/browser-sso` is a runnable identity front door that does, so Mobile can be exercised against that contract. `identifierRequired` is unused.
