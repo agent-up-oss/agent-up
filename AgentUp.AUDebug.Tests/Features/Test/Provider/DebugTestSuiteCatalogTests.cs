@@ -35,11 +35,12 @@ public sealed class DebugTestSuiteCatalogTests
     {
         Assert.That(_catalog.TryResolve("mobile", out var suites, out var error), Is.True);
         Assert.That(error, Is.Null);
-        Assert.That(suites[0].Steps.Select(step => step.Arguments), Is.EqualTo(new[]
+        Assert.That(suites[0].Steps.Select(step => (step.WorkingDirectory, string.Join(' ', step.Arguments))), Is.EqualTo(new[]
         {
-            new[] { "run", "typecheck" },
-            new[] { "test" },
-            new[] { "run", "build:web" },
+            ("AgentUp.Mobile", "run typecheck"),
+            ("AgentUp.Mobile", "test"),
+            ("AgentUp.Mobile", "run build:web"),
+            ("Examples/browser-sso", "test"),
         }));
     }
 

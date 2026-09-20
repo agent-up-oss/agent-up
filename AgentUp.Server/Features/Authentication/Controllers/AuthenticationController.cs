@@ -16,7 +16,7 @@ public sealed class AuthenticationController(AuthenticationService authenticatio
     [HttpPost("login")]
     public ActionResult<LoginResponse> Login(LoginRequest request)
     {
-        var response = authentication.Login(request.Password);
+        var response = authentication.Login(request);
         return response is null
             ? Problem(statusCode: StatusCodes.Status401Unauthorized, title: "Invalid password")
             : response;

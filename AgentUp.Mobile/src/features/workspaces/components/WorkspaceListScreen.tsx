@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
 import { canCloneWorkspace } from '../providers/CloneInputProvider';
 import { statusDotStyle, workspaceLedState } from '../providers/WorkspaceStatusProvider';
+import { EntitlementCard } from '@/features/entitlements/components/EntitlementCard';
+import { isFeatureAvailable, presentEntitlements, workspaceCreateFeature, workspaceCreateUnavailableMessage, type EntitlementCard as EntitlementCardModel } from '@/features/entitlements/models/Entitlements';
+import { getEntitlements } from '@/features/entitlements/providers/EntitlementsApiProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 export function WorkspaceListScreen() {
@@ -13,6 +16,23 @@ export function WorkspaceListScreen() {
   const [branch, setBranch] = useState('main');
   const [cloning, setCloning] = useState(false);
   const [cloneError, setCloneError] = useState<string | null>(null);
+  const [edition, setEdition] = useState<EntitlementCardModel | null>(null);
+  const [canCreate, setCanCreate] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!server) {
+      setEdition(null);
+      setCanCreate(true);
+      return;
+    }
+    let cancelled = false;
+    void getEntitlements(server).then(document => {
+      if (cancelled) return;
+      setEdition(presentEntitlements(document));
+      setCanCreate(isFeatureAvailable(document, workspaceCreateFeature));
+    });
+    return () => { cancelled = true; };
+  }, [server]);
 
   const openDialog = () => { setRepository(''); setBranch('main'); setCloneError(null); setAdding(true); };
 
@@ -35,13 +55,16 @@ export function WorkspaceListScreen() {
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.headerRow}>
         <Text accessibilityRole="header" style={styles.title}>Workspaces</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Add workspace" onPress={openDialog} style={styles.addButton} hitSlop={12}>
-          <Text style={styles.addIcon}>+</Text>
-        </Pressable>
+        {canCreate === true ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Add workspace" onPress={openDialog} style={styles.addButton} hitSlop={12}>
+            <Text style={styles.addIcon}>+</Text>
+          </Pressable>
+        ) : null}
       </View>
       <Text style={styles.subtitle}>
         {server ? `Connected to ${server.url}` : 'No server selected. Add one on the Servers tab.'}
       </Text>
+      {edition && <EntitlementCard card={edition} />}
 
       {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
@@ -62,7 +85,7 @@ export function WorkspaceListScreen() {
       })}
 
       {!loading && !error && workspaces.length === 0 &&
-        <Text style={styles.empty}>No workspaces yet. Use + to clone a repository.</Text>}
+        <Text style={styles.empty}>{canCreate === false ? workspaceCreateUnavailableMessage : 'No workspaces yet. Use + to clone a repository.'}</Text>}
 
       <Pressable accessibilityRole="button" accessibilityLabel="Reload workspaces" onPress={() => void refresh()} style={styles.secondaryButton}>
         <Text style={styles.secondaryButtonText}>Reload</Text>

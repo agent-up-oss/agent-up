@@ -47,8 +47,9 @@ test('the Android build asks for that Detox by version rather than by range', ()
 
 // Removing this reintroduces a crash, not a slowdown, so it is worth a test of its own: without it
 // Detox builds its network idling resource at startup, reflects into React Native for a field the
-// New Architecture does not have, and takes the app down before any scenario runs.
-test('Android launches with Detox synchronisation off', async () => {
+// New Architecture does not have, and takes the app down before any scenario runs. iOS does not
+// crash, but waiting for idle during launchApp cancelled getAgent and left the picker empty.
+test('native platforms launch with Detox synchronisation off', async () => {
   const { default: config } = await import('../.detoxrc.js');
 
   assert.equal(
@@ -57,11 +58,9 @@ test('Android launches with Detox synchronisation off', async () => {
     'Android must launch with detoxEnableSynchronization 0; see the comment in .detoxrc.js.',
   );
 
-  // iOS keeps synchronisation, and excludes only the event stream at runtime, so this says so
-  // rather than leaving the difference between the two platforms to be rediscovered.
   assert.equal(
-    config.apps['ios.release'].launchArgs,
-    undefined,
-    'iOS synchronises normally; only the agent event stream is excluded, in the suite itself.',
+    config.apps['ios.release'].launchArgs?.detoxEnableSynchronization,
+    0,
+    'iOS must launch with detoxEnableSynchronization 0; the chat never goes idle after launch.',
   );
 });

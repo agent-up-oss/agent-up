@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using AgentUp.Server.Features.Authentication.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
@@ -9,16 +10,13 @@ public sealed class AgentUpAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options,
     ILoggerFactory logger,
     UrlEncoder encoder,
-    AuthenticationProvider authentication)
+    CredentialValidationService credentials)
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
     public const string SchemeName = "AgentUpBearer";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!authentication.IsRequired)
-            return Task.FromResult(Success());
-
         var authorization = Request.Headers.Authorization.ToString();
         const string prefix = "Bearer ";
         var token = authorization.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
@@ -26,15 +24,22 @@ public sealed class AgentUpAuthenticationHandler(
             : WebSocketAuthenticationProtocol.ReadToken(
                 Request.HttpContext.WebSockets.IsWebSocketRequest,
                 Request.Headers.SecWebSocketProtocol.ToString());
-        if (!authentication.IsAuthenticated(token))
+        var principal = credentials.Validate(token);
+        if (principal is null)
             return Task.FromResult(AuthenticateResult.NoResult());
 
-        return Task.FromResult(Success());
-    }
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.Name, principal.Subject),
+            new(ClaimTypes.NameIdentifier, principal.Subject)
+        };
+        if (!string.IsNullOrWhiteSpace(principal.Tenant))
+            claims.Add(new Claim("tenant", principal.Tenant));
+        if (!string.IsNullOrWhiteSpace(principal.Workspace))
+            claims.Add(new Claim("workspace", principal.Workspace));
+        claims.AddRange(principal.Permissions.Select(permission => new Claim("permissions", permission)));
 
-    private AuthenticateResult Success()
-    {
-        var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, "admin")], SchemeName);
-        return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName));
+        var identity = new ClaimsIdentity(claims, SchemeName);
+        return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName)));
     }
 }

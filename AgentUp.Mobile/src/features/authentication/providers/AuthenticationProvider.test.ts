@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ensureCredentialTransportAllowed, getAuthenticationStatus, login } from './AuthenticationProvider';
+import { ensureCredentialTransportAllowed, getAuthenticationStatus, getConnection, login } from './AuthenticationProvider';
 
 test('reads whether authentication is required', async () => {
   const result = await getAuthenticationStatus('http://server', (async () =>
@@ -8,7 +8,7 @@ test('reads whether authentication is required', async () => {
   assert.equal(result.authenticationRequired, false);
 });
 
-test('login posts the password and returns a token', async () => {
+test('login posts the password only', async () => {
   let body = '';
   const result = await login('http://localhost:5000', 'secret', (async (_url, init) => {
     body = String(init?.body);
@@ -31,6 +31,21 @@ test('login allows loopback http urls', () => {
 
 test('login allows remote https urls', () => {
   assert.doesNotThrow(() => ensureCredentialTransportAllowed('https://agent-up.example.com'));
+});
+
+test('reads connection metadata when the server publishes it', async () => {
+  const connection = await getConnection('http://server', (async () =>
+    new Response(JSON.stringify({
+      kind: 'selfHosted',
+      authentication: { mode: 'localAdministrator', prompt: 'Enter the administrator password to continue.', identifierRequired: false },
+    }))) as typeof fetch);
+  assert.equal(connection?.kind, 'selfHosted');
+});
+
+test('rejects connection metadata without an authentication document', async () => {
+  const connection = await getConnection('http://server', (async () =>
+    new Response(JSON.stringify({ kind: 'selfHosted' }))) as typeof fetch);
+  assert.equal(connection, null);
 });
 
 test('login disables redirects for credential-bearing requests', async () => {

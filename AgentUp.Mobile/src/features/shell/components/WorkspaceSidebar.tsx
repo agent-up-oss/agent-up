@@ -3,6 +3,7 @@ import { type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useServers } from '@/features/servers/controllers/ServersContext';
+import { hasSavedSignIn } from '@/features/servers/models/ConfiguredServer';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import { statusDotStyle, workspaceLedState } from '@/features/workspaces/providers/WorkspaceStatusProvider';
 import { useAppShell } from '../controllers/AppShellContext';
@@ -10,8 +11,14 @@ import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const router = useRouter();
-  const { activeServer, servers, selectServer } = useServers();
+  const { activeServer, savedServers, cloudServer, selectServer } = useServers();
   const { workspaces, selectedWorkspace, selectWorkspace } = useWorkspaces();
+  const openConnect = (signedIn: boolean, serverUrl?: string) => {
+    router.replace(signedIn
+      ? '/(main)/workspace'
+      : { pathname: '/connect', params: serverUrl ? { server: serverUrl } : {} });
+    onNavigate();
+  };
 
   return (
     <View style={styles.defaultContent}>
@@ -45,7 +52,21 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
       </ScrollView>
       <View style={styles.serverFooter}>
         <Text style={styles.sectionLabel}>Server</Text>
-        {servers.map(server => {
+        {cloudServer && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: activeServer?.isRecommended === true }}
+            accessibilityLabel={cloudServer.displayName ?? 'Agent-Up Cloud'}
+            onPress={() => {
+              selectServer(cloudServer.id);
+              openConnect(hasSavedSignIn(cloudServer), cloudServer.url);
+            }}
+            style={[styles.serverRow, activeServer?.isRecommended && styles.serverRowSelected]}>
+            <Text numberOfLines={1} style={styles.serverUrl}>{cloudServer.displayName ?? 'Agent-Up Cloud'}</Text>
+            <Text style={styles.serverMeta}>{activeServer?.isRecommended ? 'Current' : 'Switch'}</Text>
+          </Pressable>
+        )}
+        {savedServers.map(server => {
           const isActive = server.id === activeServer?.id;
           return (
             <Pressable
@@ -55,8 +76,7 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
               accessibilityLabel={`Switch to ${server.url}`}
               onPress={() => {
                 selectServer(server.id);
-                router.replace('/(main)/workspace');
-                onNavigate();
+                openConnect(hasSavedSignIn(server), server.url);
               }}
               style={[styles.serverRow, isActive && styles.serverRowSelected]}>
               <Text numberOfLines={2} style={styles.serverUrl}>{server.url}</Text>
@@ -64,7 +84,7 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
             </Pressable>
           );
         })}
-        {servers.length === 0 &&
+        {!cloudServer && savedServers.length === 0 &&
           <Text numberOfLines={2} style={styles.serverUrl}>{activeServer?.url ?? 'Not connected'}</Text>}
         <Pressable
           accessibilityRole="button"

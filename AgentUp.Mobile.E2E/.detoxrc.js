@@ -22,6 +22,10 @@ module.exports = {
     'ios.release': {
       type: 'ios.app',
       binaryPath: '../AgentUp.Mobile.E2E.App/ios/build/Build/Products/Release-iphonesimulator/AgentUpChatHarness.app',
+      // Same reason as Android: the chat mounts on launch and never goes idle (event stream,
+      // reconnect timers, main-queue work). Waiting for idle during launchApp cancelled the first
+      // getAgent (HTTP 499) and left the picker without buttons.
+      launchArgs: { detoxEnableSynchronization: 0 },
       build:
         'xcodebuild -workspace ../AgentUp.Mobile.E2E.App/ios/AgentUpChatHarness.xcworkspace ' +
         '-scheme AgentUpChatHarness -configuration Release -sdk iphonesimulator ' +
@@ -40,9 +44,9 @@ module.exports = {
       // Detox 20.51.4 compiles that constructor to the same bytes, so upgrading is not the answer.
       // This argument is read before any idling resource is built - it is the one way past it from
       // outside Detox - and nothing here wants those resources anyway: every wait in these suites
-      // is on an element being visible or on Server state, never on Detox's idea of idle. That is
-      // the same reason iOS excludes the agent event stream from synchronisation, which is a
-      // stream designed never to end.
+      // is on an element being visible or on Server state, never on Detox's idea of idle. iOS
+      // launches the same way: the chat mounts on launch and never goes idle, so waiting for
+      // synchronisation cancelled getAgent (HTTP 499) and left the picker without buttons.
       launchArgs: { detoxEnableSynchronization: 0 },
       testBinaryPath:
         '../AgentUp.Mobile.E2E.App/android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk',
