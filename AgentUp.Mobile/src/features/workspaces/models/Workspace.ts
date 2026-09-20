@@ -16,6 +16,7 @@ export type Workspace = {
   branch: string;
   commit: string;
   state: string;
+  healthState?: string;
   applications?: WorkspaceApplication[];
 };
 

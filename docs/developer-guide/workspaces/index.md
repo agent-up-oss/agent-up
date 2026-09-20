@@ -16,7 +16,7 @@ Packaged installations run `agent-up-server` on `http://localhost:5000`; the rep
   owner="AgentUp.Server"
   tests="AgentUp.Server.Tests/Features/Workspaces/ and SourceClones/"
   mcp="/mcp/orchestration"
-  rest="/api/workspaces, /api/source-clones, /api/auth"
+  rest="/api/workspaces, /api/workspaces/events, /api/source-clones, /api/auth"
 />
 
 <DocSpine>
@@ -118,7 +118,7 @@ Desktop displays workspaces, connects to one Server at a time, and may remember 
 
 On first start, Desktop shows a required setup tutorial over the normal application shell unless the user has already completed or skipped it. Native Desktop E2E tests set `AGENTUP_SKIP_FIRST_RUN_TUTORIAL=1`. Installed Desktop artifacts connect to `http://localhost:5000` by default.
 
-Mobile displays Server-owned workspace state and submits requests. Route entrypoints stay under `src/app/`; product UI lives under `src/features/`. Remote servers must use HTTPS; loopback HTTP remains for local development. Run `./au-debug test mobile` before submitting mobile client changes. Maintainer visual comparison uses [`au-debug`](/developer-guide/repo/au-debug).
+Mobile displays Server-owned workspace state and submits requests. It subscribes to `GET /api/workspaces/events` so Apps-tab start/stop controls and status LEDs follow Server lifecycle and port health. Route entrypoints stay under `src/app/`; product UI lives under `src/features/`. Remote servers must use HTTPS; loopback HTTP remains for local development. Run `./au-debug test mobile` before submitting mobile client changes. Maintainer visual comparison uses [`au-debug`](/developer-guide/repo/au-debug).
 
 <DocNext href="/developer-guide/workspaces/workflows" title="Workflows">
 Modify, restart, inspect, validate.
