@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using AgentUp.Server.Features.Authentication.Providers;
+using AgentUp.Server.Features.Authentication.Interfaces;
 
 namespace AgentUp.Server.Tests.Features.Authentication.Provider;
 

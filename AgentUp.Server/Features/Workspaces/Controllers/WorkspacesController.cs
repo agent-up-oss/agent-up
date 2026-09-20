@@ -1,4 +1,4 @@
-using AgentUp.Server.Features.Authentication.Providers;
+using AgentUp.Server.Features.Authentication.Interfaces;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using Microsoft.AspNetCore.Mvc;

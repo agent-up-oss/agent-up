@@ -1,6 +1,6 @@
 using System.Security.Claims;
 
-namespace AgentUp.Server.Features.Authentication.Providers;
+namespace AgentUp.Server.Features.Authentication.Interfaces;
 
 public static class BoundWorkspaceFilter
 {
