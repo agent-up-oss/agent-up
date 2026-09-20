@@ -1,6 +1,9 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using AgentUp.Sdk.Runtime;
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Capabilities.Controllers;
+using AgentUp.Server.Features.Capabilities.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Workspaces.DTOs;
 
@@ -9,10 +12,14 @@ namespace AgentUp.Server.Features.Processes.Providers;
 public sealed partial class DockerProcessProvider : IDockerProcessProvider
 {
     private readonly string _auditEndpoint;
+    private readonly CapabilityModulesController? _capabilities;
 
-    public DockerProcessProvider(ApplicationAuditEndpointProvider? auditEndpoint = null)
+    public DockerProcessProvider(
+        ApplicationAuditEndpointProvider? auditEndpoint = null,
+        CapabilityModulesController? capabilities = null)
     {
         _auditEndpoint = auditEndpoint?.GetRecordEndpoint() ?? "http://127.0.0.1:5000/api/audit/record";
+        _capabilities = capabilities;
     }
 
     public string GetContainerName(string workspaceId, string appName)
@@ -24,6 +31,17 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
 
     public IReadOnlyList<string> CreateRunArguments(string containerName, Workspace workspace, ApplicationInstance app)
     {
+        var runtime = _capabilities?.GetRuntime("docker");
+        if (runtime is not null && string.Equals(app.CapabilityId, "docker", StringComparison.OrdinalIgnoreCase))
+        {
+            var host = runtime.Host(CreateHostRequest(containerName, workspace, app));
+            if (!host.CanRun)
+                throw new InvalidOperationException(host.Messages.Count == 0
+                    ? $"Capability 'docker' cannot host '{app.Name}'."
+                    : string.Join(" ", host.Messages));
+            return host.Arguments;
+        }
+
         var runArgs = new List<string> { "run", "-d", "--name", containerName };
         AddHostGatewayAlias(runArgs);
         AddDockerPortArgs(runArgs, app);
@@ -40,12 +58,9 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
     {
         var logProcess = new Process
         {
-            StartInfo = CreateDockerStartInfo(),
+            StartInfo = CreateDockerStartInfo("logs", "-f", containerName),
             EnableRaisingEvents = true
         };
-        logProcess.StartInfo.ArgumentList.Add("logs");
-        logProcess.StartInfo.ArgumentList.Add("-f");
-        logProcess.StartInfo.ArgumentList.Add(containerName);
         return logProcess;
     }
 
@@ -53,10 +68,8 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
     {
         using var process = new Process
         {
-            StartInfo = CreateDockerStartInfo()
+            StartInfo = CreateDockerStartInfo(args)
         };
-        foreach (var arg in args)
-            process.StartInfo.ArgumentList.Add(arg);
 
         try
         {
@@ -79,15 +92,48 @@ public sealed partial class DockerProcessProvider : IDockerProcessProvider
         return int.TryParse(result.Stdout.Trim(), out var code) ? code : 1;
     }
 
-    private static ProcessStartInfo CreateDockerStartInfo()
-        => new()
+    private ProcessStartInfo CreateDockerStartInfo(params string[] args)
+    {
+        var wrapped = _capabilities?.WrapModule("docker", "docker", args) ?? new CapabilityLaunchWrapDto("docker", args);
+        var startInfo = new ProcessStartInfo
         {
-            FileName = "docker",
+            FileName = wrapped.FileName,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true
         };
+        foreach (var argument in wrapped.Arguments)
+            startInfo.ArgumentList.Add(argument);
+        return startInfo;
+    }
+
+    private RuntimeHostRequest CreateHostRequest(string containerName, Workspace workspace, ApplicationInstance app)
+    {
+        var portVariables = CreateWorkspacePortVariableMap(workspace, app);
+        var environment = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (key, value) in app.Environment ?? new Dictionary<string, string>())
+            environment[key] = InterpolateWorkspacePorts(value, portVariables);
+
+        var environmentFiles = (app.EnvironmentFiles ?? [])
+            .Select(path => EnvironmentFilePathProvider.ResolveExistingWorkspaceFile(workspace.WorktreePath, path))
+            .ToArray();
+        var ports = app.AllocatedPorts
+            .Select(mapping => new RuntimePortMapping(mapping.Variable, mapping.DefaultPort, mapping.AllocatedPort))
+            .ToArray();
+        return new RuntimeHostRequest(
+            app.Name,
+            app.CapabilityVersionRequirement,
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["image"] = app.Image ?? "" },
+            environment,
+            ports,
+            app.Volumes ?? [],
+            app.Args ?? [],
+            workspace.Id,
+            containerName,
+            environmentFiles,
+            _auditEndpoint);
+    }
 
     private static void AddDockerPortArgs(List<string> runArgs, ApplicationInstance app)
     {

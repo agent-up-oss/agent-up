@@ -3,9 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace AgentUp.Server.Features.Agents.DTOs;
 
-public enum AgentKind { Codex, Cursor, Claude }
-
-public sealed record ScheduleAgentRequest(AgentKind Agent);
+public sealed record ScheduleAgentRequest([Required, MinLength(1)] string Agent);
 public sealed record AgentPromptRequest([Required, MaxLength(100_000)] string Message);
 public sealed record AgentPermissionResponse(
     [Required, MinLength(1)] string RequestId,
@@ -53,10 +51,10 @@ public sealed record AgentLoginChallengeDto(
     bool CanSubmitCode = false,
     DateTimeOffset? ExpiresAt = null,
     string? RedirectUri = null);
-public sealed record AgentDescriptor(AgentKind Agent, bool Available, string DisplayName);
+public sealed record AgentDescriptor(string Agent, bool Available, string DisplayName);
 public sealed record AgentSessionDto(
     string WorkspaceId,
-    AgentKind? Agent,
+    string? Agent,
     string State,
     string? SessionId,
     string? Error,

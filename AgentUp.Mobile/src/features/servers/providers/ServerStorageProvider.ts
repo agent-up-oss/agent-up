@@ -71,6 +71,15 @@ export function clearActiveCredential(selection: ServerSelection): ServerSelecti
   };
 }
 
+export function logoutActiveServer(selection: ServerSelection): ServerSelection {
+  if (!selection.activeServerId) return { ...selection, activeServerId: null };
+  return {
+    servers: selection.servers.map(server =>
+      server.id === selection.activeServerId ? { ...server, accessToken: undefined } : server),
+    activeServerId: null,
+  };
+}
+
 export function removeServer(selection: ServerSelection, id: string): ServerSelection {
   const servers = selection.servers.filter(server => server.id !== id);
   const activeServerId = selection.activeServerId === id

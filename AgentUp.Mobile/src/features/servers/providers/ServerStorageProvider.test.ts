@@ -4,6 +4,7 @@ import {
   browserServerStorage,
   clearActiveCredential,
   loadServerSelection,
+  logoutActiveServer,
   removeServer,
   saveServerSelection,
   selectServer,
@@ -74,6 +75,14 @@ test('clearActiveCredential drops the saved token but keeps the server', () => {
   assert.equal(next.servers.length, 1);
   assert.equal(next.servers[0].accessToken, undefined);
   assert.equal(next.activeServerId, saved.activeServerId);
+});
+
+test('logoutActiveServer drops the token and the active selection', () => {
+  const saved = upsertServer(empty, 'http://localhost:5000', 'token-1');
+  const next = logoutActiveServer(saved);
+  assert.equal(next.servers.length, 1);
+  assert.equal(next.servers[0].accessToken, undefined);
+  assert.equal(next.activeServerId, null);
 });
 
 test('removeServer drops the entry and repoints the active selection', () => {

@@ -78,12 +78,3 @@ fi
 ln -sfn "$prefix/cursor-agent/cursor-agent" "$prefix/bin/agent"
 
 chmod -R a+rX "$prefix"
-
-mkdir -p /etc/agent-up
-cat > /etc/agent-up/capabilities.json <<'EOF'
-[
-  { "id": "codex", "versions": ["bundled"], "command": "/opt/agent-up/bin/codex-acp", "arguments": [] },
-  { "id": "cursor", "versions": ["bundled"], "command": "/opt/agent-up/bin/agent", "arguments": ["acp"] },
-  { "id": "claude", "versions": ["bundled"], "command": "/opt/agent-up/bin/claude-agent-acp", "arguments": [] }
-]
-EOF

@@ -104,8 +104,8 @@ export function ServerSetupScreen() {
       {!!status && <Text accessibilityRole="alert" style={requiresSignIn ? styles.errorStatus : styles.status}>{status}</Text>}
     </View>
     {servers.length > 0 && <View style={styles.card}>
-      <Text style={styles.heading}>Saved servers</Text>
-      <Text style={styles.detail}>Switching replaces this client's local workspace and browser state. Saved sign-in tokens stay on this device.</Text>
+      <Text style={styles.heading}>Recent servers</Text>
+      <Text style={styles.detail}>Only one Server is signed in at a time. Choosing another replaces this client's local workspace state.</Text>
       {servers.map(server => {
         const isActive = server.id === activeServer?.id;
         return (
@@ -124,10 +124,10 @@ export function ServerSetupScreen() {
         );
       })}
     </View>}
-    <View style={styles.current}>
+    {activeServer && <View style={styles.current}>
       <Text style={styles.currentLabel}>Current server</Text>
-      <Text style={styles.currentUrl}>{activeServer?.url ?? 'No server selected'}</Text>
-    </View>
+      <Text style={styles.currentUrl}>{activeServer.url}</Text>
+    </View>}
   </ScrollView></SafeAreaView>;
 }
 

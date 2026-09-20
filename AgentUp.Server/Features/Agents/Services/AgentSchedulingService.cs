@@ -4,6 +4,7 @@ using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Features.Agents.Interfaces;
+using AgentUp.Server.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Workspaces.Controllers;
 
 namespace AgentUp.Server.Features.Agents.Services;
@@ -20,9 +21,10 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     private readonly AgentEventFrameProvider payloads;
     private readonly AgentEventService events;
     private readonly ILogger<AgentSchedulingService> logger;
+    private readonly IEnabledCapabilityPackages? packages;
     private readonly ConcurrentDictionary<string, AgentSessionState> _sessions = new();
-    private IReadOnlyList<AgentDescriptor> _descriptors = Enum.GetValues<AgentKind>()
-        .Select(kind => new AgentDescriptor(kind, false, DisplayName(kind)))
+    private IReadOnlyList<AgentDescriptor> _descriptors = FirstPartyAgents
+        .Select(agent => new AgentDescriptor(agent, false, DisplayName(agent)))
         .ToArray();
 
     public AgentSchedulingService(
@@ -35,7 +37,8 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         AgentSubscriptionAuth auth,
         AgentEventFrameProvider payloads,
         AgentEventService events,
-        ILogger<AgentSchedulingService> logger)
+        ILogger<AgentSchedulingService> logger,
+        IEnabledCapabilityPackages? packages = null)
     {
         this.workspaces = workspaces;
         this.processes = processes;
@@ -47,6 +50,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         this.payloads = payloads;
         this.events = events;
         this.logger = logger;
+        this.packages = packages;
         workspaces.WorkspaceRemoved += HandleWorkspaceRemoved;
     }
 
@@ -62,31 +66,32 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     {
         if (workspaces.GetById(workspaceId) is null) return null;
         var session = _sessions.GetValueOrDefault(workspaceId);
-        return new AgentSessionDto(workspaceId, session?.Kind, session?.State ?? "idle",
+        return new AgentSessionDto(workspaceId, session?.Agent, session?.State ?? "idle",
             session?.AcpSessionId, session?.Error, _descriptors, session?.AuthMethods ?? [], session?.LoginChallenge);
     }
 
-    public async Task<AgentScheduleResult> ScheduleAsync(string workspaceId, AgentKind kind, CancellationToken cancellationToken)
+    public async Task<AgentScheduleResult> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken)
     {
-        if (!Enum.IsDefined(kind)) return new AgentScheduleResult(null, true, "The requested agent kind is not supported.");
-        try { return await ScheduleCoreAsync(workspaceId, kind, cancellationToken); }
+        if (string.IsNullOrWhiteSpace(agent)) return new AgentScheduleResult(null, true, "The requested agent is not supported.");
+        try { return await ScheduleCoreAsync(workspaceId, agent, cancellationToken); }
         catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception or IOException or UnauthorizedAccessException)
         { return new AgentScheduleResult(null, true, exception.Message); }
     }
 
-    private async Task<AgentScheduleResult> ScheduleCoreAsync(string workspaceId, AgentKind kind, CancellationToken cancellationToken)
+    private async Task<AgentScheduleResult> ScheduleCoreAsync(string workspaceId, string agent, CancellationToken cancellationToken)
     {
         var workspace = workspaces.GetById(workspaceId);
         if (workspace is null) return new AgentScheduleResult(null, false, null);
-        if (!await commands.IsAvailableAsync(kind, cancellationToken)) throw new InvalidOperationException($"{kind} ACP executable is not installed or is not on PATH.");
+        var agentId = NormalizeAgentId(agent);
+        if (!await commands.IsAvailableAsync(agentId, cancellationToken)) throw new InvalidOperationException($"{agentId} ACP executable is not installed or is not on PATH.");
         if (_sessions.ContainsKey(workspaceId)) throw new InvalidOperationException("This workspace already has an agent. Stop it before selecting another agent.");
 
-        var state = new AgentSessionState(kind, workspace.WorktreePath, processes.Create());
+        var state = new AgentSessionState(agentId, workspace.WorktreePath, processes.Create());
         if (!_sessions.TryAdd(workspaceId, state)) throw new InvalidOperationException("This workspace already has an agent.");
         BindProcess(workspaceId, state, state.Process);
         try
         {
-            await state.Process.StartAsync(kind, workspace.WorktreePath, environment.EnvironmentFor(kind), cancellationToken);
+            await state.Process.StartAsync(agentId, workspace.WorktreePath, environment.EnvironmentFor(agentId), cancellationToken);
             await InitializeAsync(workspaceId, state, cancellationToken);
             await CreateSessionAsync(state, cancellationToken);
             var scheduled = await GetAsync(workspaceId, cancellationToken);
@@ -100,7 +105,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             ShouldOfferLogin(state, exception))
         {
             if (state.AuthMethods.Count == 0)
-                state.AuthMethods = auth.Defaults(kind);
+                state.AuthMethods = auth.Defaults(agentId);
             state.State = "authentication_required";
             state.Error = exception.Message;
             var pendingAuth = await GetAsync(workspaceId, cancellationToken);
@@ -163,11 +168,11 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     {
         try
         {
-            var acpCommand = await commands.ResolveAsync(state.Kind, state.Lifetime.Token)
-                ?? throw new InvalidOperationException($"{state.Kind} ACP executable is not installed or is not on PATH.");
+            var acpCommand = await commands.ResolveAsync(state.Agent, state.Lifetime.Token)
+                ?? throw new InvalidOperationException($"{state.Agent} ACP executable is not installed or is not on PATH.");
             var inbox = state.LoginInbox ??= new AgentLoginInbox();
             var result = await login.LoginAsync(
-                state.Kind,
+                state.Agent,
                 acpCommand,
                 methodId,
                 challenge =>
@@ -227,7 +232,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             throw new InvalidOperationException("The configured agent does not support ACP protocol version 1.");
         var advertised = payloads.AuthMethods(initialized);
         var subscription = auth.KeepSubscription(advertised);
-        state.AuthMethods = subscription.Count > 0 ? subscription : advertised.Count > 0 ? auth.Defaults(state.Kind) : state.AuthMethods;
+        state.AuthMethods = subscription.Count > 0 ? subscription : advertised.Count > 0 ? auth.Defaults(state.Agent) : state.AuthMethods;
         events.Publish(workspaceId, "initialized", initialized);
     }
 
@@ -241,7 +246,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         var next = processes.Create();
         state.Process = next;
         BindProcess(workspaceId, state, next);
-        await next.StartAsync(state.Kind, state.WorkingDirectory, environment.EnvironmentFor(state.Kind), state.Lifetime.Token);
+        await next.StartAsync(state.Agent, state.WorkingDirectory, environment.EnvironmentFor(state.Agent), state.Lifetime.Token);
     }
 
     private void BindProcess(string workspaceId, AgentSessionState state, IAgentProcessProvider process)
@@ -405,19 +410,47 @@ public sealed class AgentSchedulingService : IAsyncDisposable
 
     private async Task<IReadOnlyList<AgentDescriptor>> DescriptorsAsync(CancellationToken cancellationToken)
     {
-        var descriptors = Enum.GetValues<AgentKind>().Select(async kind =>
-            new AgentDescriptor(kind, await commands.IsAvailableAsync(kind, cancellationToken), DisplayName(kind)));
+        var enabled = packages?.ListAgents() ?? [];
+        if (enabled.Count > 0)
+        {
+            return await Task.WhenAll(enabled.Select(async agent =>
+                new AgentDescriptor(
+                    agent.Identity.Id,
+                    agent.CanRun && await commands.IsAvailableAsync(agent.Identity.Id, cancellationToken),
+                    agent.Identity.DisplayName)));
+        }
+
+        return await LoadLegacyDescriptorsAsync(cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<AgentDescriptor>> LoadLegacyDescriptorsAsync(CancellationToken cancellationToken)
+    {
+        var descriptors = FirstPartyAgents.Select(async agent =>
+            new AgentDescriptor(agent, await commands.IsAvailableAsync(agent, cancellationToken), DisplayName(agent)));
         return await Task.WhenAll(descriptors);
+    }
+
+    private string NormalizeAgentId(string agent)
+    {
+        var listed = _descriptors.FirstOrDefault(descriptor =>
+            descriptor.Agent.Equals(agent, StringComparison.OrdinalIgnoreCase));
+        if (listed is not null)
+            return listed.Agent;
+        return packages?.GetAgent(agent)?.Identity.Id
+               ?? FirstPartyAgents.FirstOrDefault(id => id.Equals(agent, StringComparison.OrdinalIgnoreCase))
+               ?? agent;
     }
 
     private const string MissingSessionId = "The ACP agent did not return a session ID.";
 
-    private static string DisplayName(AgentKind kind) => kind switch
+    private static readonly string[] FirstPartyAgents = ["codex", "cursor", "claude"];
+
+    private static string DisplayName(string agent) => agent.ToLowerInvariant() switch
     {
-        AgentKind.Codex => "Codex",
-        AgentKind.Cursor => "Cursor",
-        AgentKind.Claude => "Claude",
-        _ => $"{kind}"
+        "codex" => "Codex",
+        "cursor" => "Cursor",
+        "claude" => "Claude",
+        _ => agent
     };
 
     public async ValueTask DisposeAsync()

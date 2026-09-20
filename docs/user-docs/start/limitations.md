@@ -18,7 +18,7 @@ Agent-Up is an experimental development preview. It is intended for early techni
 
 - The current development setup has been verified on NixOS first.
 - Agent-Up may work on additional platforms, but they should be treated as unverified until tested.
-- Preliminary NixOS support exists through `shell.nix` and `run-desktop.sh`.
+- Native Windows Server is not a first-class Nix host. Run Server on WSL2 or Linux. There is no second non-Nix capability install path.
 
 ## Feature Status
 

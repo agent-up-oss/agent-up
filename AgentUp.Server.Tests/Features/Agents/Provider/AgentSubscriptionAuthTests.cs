@@ -30,10 +30,10 @@ public sealed class AgentSubscriptionAuthTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(auth.Defaults(AgentKind.Codex).Single().Id, Is.EqualTo("chatgpt"));
-            Assert.That(auth.Defaults(AgentKind.Cursor).Single().Id, Is.EqualTo("cursor_login"));
-            Assert.That(auth.Defaults(AgentKind.Claude).Single().Name, Is.EqualTo("Claude Pro"));
-            Assert.That(auth.Defaults((AgentKind)99), Is.Empty);
+            Assert.That(auth.Defaults("codex").Single().Id, Is.EqualTo("chatgpt"));
+            Assert.That(auth.Defaults("cursor").Single().Id, Is.EqualTo("cursor_login"));
+            Assert.That(auth.Defaults("claude").Single().Name, Is.EqualTo("Claude Pro"));
+            Assert.That(auth.Defaults("unknown"), Is.Empty);
             Assert.That(auth.LooksLikeAuthenticationFailure("Authentication required."), Is.True);
             Assert.That(auth.LooksLikeAuthenticationFailure("spawn failed"), Is.False);
         });

@@ -1,0 +1,31 @@
+  <section data-au-surface="capabilities" data-au-title="Capability modules" data-au-intro="Capability modules are Server-owned packages. Desktop lists them in overlay chrome. Mobile lists them in the workspace Settings tab. Clients never call the remote registry. Green is ready, not decoration.">
+    <article data-au-component="capability-catalog" data-au-title="Module catalog" data-au-note="Desktop uses an overlay panel. Mobile places the same cards in Settings. Enable is the primary action; disable is secondary." data-au-avalonia="Border" data-au-class="au-overlay-panel">
+      <div class="au-overlay-panel" style="padding: 1.25rem; max-width: 36rem;">
+        <p class="au-page-title">Capability modules</p>
+        <p class="au-muted">Enable packages on this Server. Clients never talk to the remote registry.</p>
+        <div class="au-stack" style="margin-top: 1rem;">
+          <div class="au-card">
+            <strong>.NET</strong>
+            <p class="au-muted">Ready · toolchain</p>
+            <div class="au-cluster">
+              <button class="au-button au-button--secondary au-button--compact" type="button">Disable</button>
+            </div>
+          </div>
+          <div class="au-card">
+            <strong>Docker</strong>
+            <p class="au-muted">Not enabled</p>
+            <div class="au-cluster">
+              <button class="au-button au-button--compact" type="button">Enable</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="capability-card" data-au-title="Module card" data-au-note="Identity, state, and one enable or disable action. Do not outline idle cards in accent green. Ready uses the healthy badge; blocked uses muted copy." data-au-avalonia="Border" data-au-class="au-card">
+      <div class="au-card">
+        <strong>Codex</strong>
+        <p class="au-muted">agent-up · 1.0.0</p>
+        <span class="au-badge au-badge--healthy"><span class="au-status-dot au-status-dot--healthy"></span>Ready</span>
+      </div>
+    </article>
+  </section>

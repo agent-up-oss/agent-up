@@ -10,7 +10,7 @@ import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const router = useRouter();
-  const { activeServer, servers, selectServer } = useServers();
+  const { activeServer, logout } = useServers();
   const { workspaces, selectedWorkspace, selectWorkspace } = useWorkspaces();
 
   return (
@@ -45,34 +45,20 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
       </ScrollView>
       <View style={styles.serverFooter}>
         <Text style={styles.sectionLabel}>Server</Text>
-        {servers.map(server => {
-          const isActive = server.id === activeServer?.id;
-          return (
-            <Pressable
-              key={server.id}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isActive }}
-              accessibilityLabel={`Switch to ${server.url}`}
-              onPress={() => {
-                selectServer(server.id);
-                router.replace('/(main)/workspace');
-                onNavigate();
-              }}
-              style={[styles.serverRow, isActive && styles.serverRowSelected]}>
-              <Text numberOfLines={2} style={styles.serverUrl}>{server.url}</Text>
-              <Text style={styles.serverMeta}>{isActive ? 'Current' : 'Switch'}</Text>
-            </Pressable>
-          );
-        })}
-        {servers.length === 0 &&
-          <Text numberOfLines={2} style={styles.serverUrl}>{activeServer?.url ?? 'Not connected'}</Text>}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Connect to another server"
-          onPress={() => router.push('/connect')}
-          style={styles.footerButton}>
-          <Text style={styles.footerButtonText}>Add server</Text>
-        </Pressable>
+        <View style={styles.sessionRow}>
+          <Text numberOfLines={2} style={styles.serverUrl}>{activeServer?.url ?? 'Not connected'}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Log out of this server"
+            onPress={() => {
+              logout();
+              onNavigate();
+              router.replace('/connect');
+            }}
+            style={styles.logoutButton}>
+            <Text style={styles.logoutText}>Logout</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -125,17 +111,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: agentUpTheme.colors.borderSubtle,
   },
-  serverRow: {
-    ...auBox('workspace'),
-    gap: 2,
-  },
-  serverRowSelected: auBox('workspaceSelected'),
-  serverUrl: { ...auText('workspaceName'), fontSize: agentUpTheme.typography.sizeXs, lineHeight: 16 },
-  serverMeta: auText('workspaceBranch'),
-  footerButton: {
-    ...auBox('button', 'buttonSecondary'),
+  sessionRow: {
+    ...auBox('sessionRow'),
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: agentUpTheme.spacing[2],
   },
-  footerButtonText: auText('buttonSecondary'),
+  serverUrl: { ...auText('workspaceName'), flex: 1, fontSize: agentUpTheme.typography.sizeXs, lineHeight: 16 },
+  logoutButton: auBox('sessionLogout'),
+  logoutText: auText('sessionLogout'),
 });

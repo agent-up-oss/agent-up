@@ -10,19 +10,19 @@ public sealed class CapabilitiesControllerTests
     [Test]
     public async Task ReconcileDotnetAsync_returns_the_service_application_contract()
     {
-        var controller = new CapabilitiesController(new CapabilityReconciliationService([]));
+        var controller = new CapabilitiesController(new CapabilityReconciliationService());
 
         var result = await controller.ReconcileDotnetAsync(
             new DotnetApplicationDefinition("web", null, new DotnetRunDefinition("Web.csproj")), [], []);
 
         Assert.That(result.CapabilityId, Is.EqualTo("dotnet"));
-        Assert.That(result.CapabilityStatus!.Messages.Single(), Does.Contain("not installed"));
+        Assert.That(result.CapabilityStatus!.Messages.Single(), Does.Contain("not enabled"));
     }
 
     [Test]
     public async Task ReconcileDockerAsync_returns_the_service_application_contract()
     {
-        var controller = new CapabilitiesController(new CapabilityReconciliationService([]));
+        var controller = new CapabilitiesController(new CapabilityReconciliationService());
 
         var result = await controller.ReconcileDockerAsync(
             new DockerCapabilityDefinition("cache", "redis:7"), [], []);

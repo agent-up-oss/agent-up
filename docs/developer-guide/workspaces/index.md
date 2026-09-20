@@ -118,7 +118,7 @@ Desktop displays workspaces, connects to one Server at a time, and may remember 
 
 On first start, Desktop shows a required setup tutorial over the normal application shell unless the user has already completed or skipped it. Native Desktop E2E tests set `AGENTUP_SKIP_FIRST_RUN_TUTORIAL=1`. Installed Desktop artifacts connect to `http://localhost:5000` by default.
 
-Mobile displays Server-owned workspace state and submits requests. It subscribes to `GET /api/workspaces/events` so Apps-tab start/stop controls and status LEDs follow Server lifecycle and port health. Route entrypoints stay under `src/app/`; product UI lives under `src/features/`. Remote servers must use HTTPS; loopback HTTP remains for local development. Run `./au-debug test mobile` before submitting mobile client changes. Maintainer visual comparison uses [`au-debug`](/developer-guide/repo/au-debug).
+Mobile displays Server-owned workspace state and submits requests. It signs in to one Server; the sidebar Server row shows that URL and Logout, which returns to the connect screen and its recent-server list. Workspace chrome is Apps, Git, Agents, and Settings; Settings hosts capability modules. It subscribes to `GET /api/workspaces/events` so Apps-tab start/stop controls and status LEDs follow Server lifecycle and port health. Route entrypoints stay under `src/app/`; product UI lives under `src/features/`. Remote servers must use HTTPS; loopback HTTP remains for local development. Run `./au-debug test mobile` before submitting mobile client changes. Maintainer visual comparison uses [`au-debug`](/developer-guide/repo/au-debug).
 
 <DocNext href="/developer-guide/workspaces/workflows" title="Workflows">
 Modify, restart, inspect, validate.

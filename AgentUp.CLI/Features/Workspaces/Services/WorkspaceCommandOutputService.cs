@@ -50,9 +50,16 @@ public sealed class WorkspaceCommandOutputService
         _output.WriteLine($"  Commit:  {workspace.Commit}");
 
         WriteSection("Applications", started.Applications, app => $"{app.Name}: {app.Command}");
+        WriteSection("Desktop applications", started.DesktopApplications, app => $"{app.Name}: {app.Command}");
         WriteSection("Services", started.Services, service => $"{service.Name}: {service.Image}");
         WriteSection(".NET", started.Dotnet, app => $"{app.Name}: dotnet run --project {app.Run.Project}");
         WriteSection("Docker", started.Docker, service => $"{service.Name}: {service.Image}");
+        foreach (var section in started.RuntimeSections.Where(section =>
+                     !section.ModuleId.Equals("dotnet", StringComparison.OrdinalIgnoreCase)
+                     && !section.ModuleId.Equals("docker", StringComparison.OrdinalIgnoreCase)))
+        {
+            WriteSection(section.ModuleId, section.Items, item => FormatRuntimeItem(item));
+        }
 
         return 0;
     }
@@ -104,6 +111,17 @@ public sealed class WorkspaceCommandOutputService
             _output.WriteLine($"  [{entry.State}] {entry.Category}/{entry.Severity}{context}: {entry.Message}");
         }
         return 0;
+    }
+
+    private static string FormatRuntimeItem(RuntimeSectionItem item)
+    {
+        if (item.Parameters?.TryGetValue("image", out var image) == true && !string.IsNullOrWhiteSpace(image))
+            return $"{item.Name}: {image}";
+        if (item.Parameters?.TryGetValue("project", out var project) == true && !string.IsNullOrWhiteSpace(project))
+            return $"{item.Name}: {project}";
+        if (item.Parameters?.TryGetValue("script", out var script) == true && !string.IsNullOrWhiteSpace(script))
+            return $"{item.Name}: {script}";
+        return item.Name;
     }
 
     private void WriteSection<T>(string title, IReadOnlyList<T> items, Func<T, string> format)

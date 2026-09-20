@@ -17,10 +17,10 @@ import sys
 from pathlib import Path
 
 text = Path(sys.argv[1]).read_text()
-marker = "capabilities.json: |"
+marker = "enabled.json: |"
 start = text.find(marker)
 if start < 0:
-    raise SystemExit("capabilities ConfigMap is missing capabilities.json")
+    raise SystemExit("capabilities ConfigMap is missing enabled.json")
 
 body = []
 for line in text[start + len(marker):].splitlines()[1:]:
@@ -31,19 +31,14 @@ for line in text[start + len(marker):].splitlines()[1:]:
         continue
     break
 
-inventory = json.loads("\n".join(body))
-by_id = {entry["id"]: entry for entry in inventory}
-expected = {
-    "codex": "/opt/agent-up/bin/codex-acp",
-    "cursor": "/opt/agent-up/bin/agent",
-    "claude": "/opt/agent-up/bin/claude-agent-acp",
-}
-if set(by_id) != set(expected):
-    raise SystemExit(f"default inventory ids {sorted(by_id)} != {sorted(expected)}")
-for capability_id, command in expected.items():
-    if by_id[capability_id].get("command") != command:
-        raise SystemExit(f"{capability_id} command is {by_id[capability_id].get('command')!r}, expected {command!r}")
-if by_id["cursor"].get("arguments") != ["acp"]:
-    raise SystemExit(f"cursor arguments are {by_id['cursor'].get('arguments')!r}, expected ['acp']")
-print("Helm default capability inventory enables bundled Codex, Cursor, and Claude ACP commands.")
+enabled = json.loads("\n".join(body))
+modules = enabled.get("modules") or []
+by_id = {entry["id"]: entry for entry in modules}
+expected = {"dotnet", "docker", "codex", "cursor", "claude"}
+if set(by_id) != expected:
+    raise SystemExit(f"default enabled ids {sorted(by_id)} != {sorted(expected)}")
+for capability_id in expected:
+    if not by_id[capability_id].get("version"):
+        raise SystemExit(f"{capability_id} is missing a version")
+print("Helm default enabled.json seeds first-party capability packages.")
 PY

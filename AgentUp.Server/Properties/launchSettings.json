@@ -6,8 +6,11 @@
       "dotnetRunMessages": true,
       "launchBrowser": false,
       "applicationUrl": "http://localhost:5001",
+      "workingDirectory": "..",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "AGENTUP_CAPABILITY_REGISTRY_PATH": ".agent-up-dev/capability-registry",
+        "AGENTUP_CAPABILITY_ENABLED_PATH": ".agent-up-dev/enabled.json"
       }
     }
   }

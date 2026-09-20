@@ -4,7 +4,7 @@
  */
 import type { AgentLoginChallenge, AgentLoginTransport } from '@agent-up/agent-auth';
 
-export type AgentKind = 'Codex' | 'Cursor' | 'Claude';
+export type AgentKind = string;
 export type AgentDescriptor = { agent: AgentKind; available: boolean; displayName: string };
 export type AgentAuthMethod = { id: string; name: string; description: string | null };
 export type { AgentLoginChallenge, AgentLoginTransport };

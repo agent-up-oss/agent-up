@@ -9,7 +9,7 @@ title: Configuration
 <DocWhat>
 `agent-up.json` is the repository contract the Server reads at workspace start. It declares applications, services, capability requirements, ports, verification, and optional `commits.enabled`.
 
-Applications do not reference Agent-Up packages. Capability inventory is how Server and Desktop discover ACP commands.
+Named `agent-up.json` sections match enabled runtime-kind module ids. First-party `dotnet[]` and `docker[]` bind through that same generic path. Enablement is Server-owned (`capabilities/enabled.json` stores package id plus package version); Desktop and Mobile never call the remote registry.
 </DocWhat>
 
 <DocMeta
@@ -21,7 +21,7 @@ Applications do not reference Agent-Up packages. Capability inventory is how Ser
 <DocSpine>
 <DocBeat>Read `get_agent_up_json_format` when the schema is unknown</DocBeat>
 <DocBeat>Prefer capability sections over legacy executable strings</DocBeat>
-<DocBeat>Reconcile declared versions with discovered inventory</DocBeat>
+<DocBeat>Enable the matching registry package on the Server</DocBeat>
 </DocSpine>
 
 <DocContract label="Tool">get_agent_up_json_format</DocContract>
@@ -31,11 +31,11 @@ Applications do not reference Agent-Up packages. Capability inventory is how Ser
 <DocFact label="context">agent-up://context</DocFact>
 </DocFacts>
 
-## Capability inventory
+## Capability registry
 
-Server and Desktop installments share inventory files, merged by capability id. Lookup order is `AGENTUP_CAPABILITY_INVENTORY_PATH` when set, then `/etc/agent-up/capabilities.json`, then a user overlay at `~/.config/agent-up/capabilities.local.json`, then `~/.config/agent-up/capabilities.json`, then `.agent-up-dev/capabilities.json` walking up from the Server's working directory. Earlier files win for a field; later files fill unspecified fields.
+The Server reads enabled packages from its local registry directory (`AGENTUP_CAPABILITY_REGISTRY_PATH`) and the enabled set (`AGENTUP_CAPABILITY_ENABLED_PATH` seeds `capabilities/enabled.json` under the Server data directory). The repository launch profile in `AgentUp.Server/Properties/launchSettings.json` sets those paths to `.agent-up-dev/capability-registry` and `.agent-up-dev/enabled.json` with the working directory at the repository root. When that path is unset, a development Server also uses `.agent-up-dev/capability-registry` if `scripts/pack-first-party-capabilities.sh` has written `index.json` there. Helm and NixOS write that enabled-set seed. Runtime enable/disable through REST and MCP updates the Server copy without rebuilding the image.
 
-Server operators can still override a command or its arguments in `appsettings.json` under `Agents:Codex`, `Agents:Cursor`, or `Agents:Claude`. Services may have a different `PATH` from an interactive terminal, so use an absolute command path when the installed service cannot discover an adapter.
+`dotnet[]` and `docker[]` are named runtime sections parsed only when that runtime module is enabled. Any other enabled runtime-kind module id can appear as a root array and is bound with that module's extra-attribute schema: unknown extra keys fail, and missing required extra keys fail. `agent-up start` forwards those named arrays as `runtimeSections` without binding them. Package version (`dotnet@1.0.0` in `enabled.json`) is the module contract. Technology version (`sdk: "10.0.x"`) is an input to `IRuntimeCapability.Deliver`. ACP agent packages implement `IAgentCapability`; Server lists them from enabled agent-kind modules by module id and wraps each launch in that module's Nix environment. When a packed DLL is missing, the manifest `Launch` template remains a fallback so enablement still works. There is no second non-Nix install path. Native Windows Server hosts must use WSL2/Linux.
 
 <DocNext href="/docs/configuration/reference" title="User reference">
 The JSON field contract.

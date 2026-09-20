@@ -5,6 +5,7 @@ using System.Reactive.Subjects;
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Agents.ViewModels;
+using AgentUp.Desktop.Features.Capabilities.ViewModels;
 using AgentUp.Desktop.Features.Audit.ViewModels;
 using AgentUp.Desktop.Features.Authentication.ViewModels;
 using AgentUp.Desktop.Features.Console.ViewModels;
@@ -57,8 +58,10 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public LoginViewModel Login { get; }
     public WindowChromeViewModel Chrome { get; } = new();
     public ValidationViewModel? Validation { get; }
+    public CapabilityModulesViewModel? Modules { get; }
     internal IValidationReplayConnector? ValidationReplay { get; }
     public bool IsValidationOpen => Validation is { IsCollapsed: false };
+    public bool IsModulesCatalogOpen => Modules is { IsOpen: true };
 
     public ObservableCollection<WorkspaceShellTabItemViewModel> ShellTabs { get; } =
     [
@@ -171,7 +174,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         LoginViewModel login,
         PortsController ports,
         ValidationViewModel? validation = null,
-        IValidationReplayConnector? validationReplay = null)
+        IValidationReplayConnector? validationReplay = null,
+        CapabilityModulesViewModel? modules = null)
     {
         Sidebar = sidebar;
         Applications = applications;
@@ -187,10 +191,14 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         _ports = ports;
         Validation = validation;
         ValidationReplay = validationReplay;
+        Modules = modules;
         _validationController = validation is null ? null : new ValidationController(validation);
         if (validation is not null)
             validation.WhenAnyValue(x => x.IsCollapsed)
                 .Subscribe(_ => this.RaisePropertyChanged(nameof(IsValidationOpen)));
+        if (modules is not null)
+            modules.WhenAnyValue(x => x.IsOpen)
+                .Subscribe(_ => this.RaisePropertyChanged(nameof(IsModulesCatalogOpen)));
         NavigateAddressCommand = ReactiveCommand.Create(NavigateAddress);
         BrowserBackCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Back));
         BrowserForwardCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Forward));
@@ -691,7 +699,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     }
 
     private static ApplicationViewModel CreateApplicationViewModel(WorkspaceApplicationViewModel app) =>
-        new(app.Name, app.Command, app.State, app.AllocatedPorts, app.Database, app.IsDesktop);
+        new(app.Name, app.Command, app.State, app.AllocatedPorts, app.Database, app.IsDesktop, app.CapabilityStatus);
 
     public async Task InitializeAsync()
     {
@@ -765,6 +773,15 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             15,
             Sidebar.RefreshCommand,
             "Reload workspaces");
+        if (Modules is not null)
+        {
+            yield return new ChromeIconButtonViewModel(
+                "CapabilityModulesButton",
+                "⌘",
+                14,
+                Modules.OpenCommand,
+                "Capability modules");
+        }
         yield return _chromeServerStatus;
     }
 

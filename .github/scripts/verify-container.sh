@@ -26,5 +26,6 @@ docker run --rm --user 1654 --entrypoint /bin/sh "${IMAGE_BASE}:test" -c '
   /opt/agent-up/bin/codex --version >/dev/null
   /opt/agent-up/bin/agent --version >/dev/null
   /opt/agent-up/bin/claude-agent-acp --version >/dev/null
-  test -f /etc/agent-up/capabilities.json
+  command -v nix >/dev/null
+  test -d /nix
 '

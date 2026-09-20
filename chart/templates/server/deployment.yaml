@@ -53,8 +53,10 @@ spec:
               value: production
             - name: SENTRY_RELEASE
               value: {{ default .Chart.AppVersion .Values.server.image.tag | quote }}
-            - name: AGENTUP_CAPABILITY_INVENTORY_PATH
-              value: /etc/agent-up/capabilities.json
+            - name: AGENTUP_CAPABILITY_REGISTRY_PATH
+              value: {{ printf "%s/capability-registry" .Values.server.dataDirectory | quote }}
+            - name: AGENTUP_CAPABILITY_ENABLED_PATH
+              value: /etc/agent-up/enabled.json
           livenessProbe:
             httpGet:
               path: /api/auth/status
@@ -70,9 +72,12 @@ spec:
           volumeMounts:
             - name: agent-up-server-data
               mountPath: {{ .Values.server.dataDirectory }}
+            - name: agent-up-server-data
+              mountPath: /nix
+              subPath: nix
             - name: agent-up-capabilities
-              mountPath: /etc/agent-up/capabilities.json
-              subPath: capabilities.json
+              mountPath: /etc/agent-up/enabled.json
+              subPath: enabled.json
               readOnly: true
       volumes:
         - name: agent-up-server-data

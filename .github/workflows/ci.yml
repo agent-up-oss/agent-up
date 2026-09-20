@@ -367,12 +367,16 @@ jobs:
             AgentUp.Architecture.Tests \
             AgentUp.CLI.Tests \
             AgentUp.Capabilities.Abstractions.Tests \
+            AgentUp.Sdk.Common.Tests \
+            AgentUp.Sdk.Runtime.Tests \
+            AgentUp.Sdk.Agent.Tests \
             AgentUp.Capabilities.Common.Tests \
             AgentUp.Capabilities.Claude.Tests \
             AgentUp.Capabilities.Codex.Tests \
             AgentUp.Capabilities.Cursor.Tests \
             AgentUp.Capabilities.Docker.Tests \
             AgentUp.Capabilities.Dotnet.Tests \
+            AgentUp.Registry.Tests \
             AgentUp.Browser.Streaming.Tests \
             AgentUp.CommitPolicy.Tests \
             AgentUp.Desktop.Tests \
@@ -414,6 +418,39 @@ jobs:
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_abstractions_tests }}
           flags: agentup-capabilities-abstractions-tests
           name: AgentUp.Capabilities.Abstractions.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Sdk.Common.Tests coverage
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_sdk_common_tests }}
+          flags: agentup-sdk-common-tests
+          name: AgentUp.Sdk.Common.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Sdk.Runtime.Tests coverage
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_sdk_runtime_tests }}
+          flags: agentup-sdk-runtime-tests
+          name: AgentUp.Sdk.Runtime.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Sdk.Agent.Tests coverage
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_sdk_agent_tests }}
+          flags: agentup-sdk-agent-tests
+          name: AgentUp.Sdk.Agent.Tests
           fail_ci_if_error: true
           disable_search: true
 
@@ -546,6 +583,17 @@ jobs:
           files: ${{ steps.coverage-reports.outputs.agentup_verification_tests }}
           flags: agentup-verification-tests
           name: AgentUp.Verification.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Registry.Tests coverage
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_registry_tests }}
+          flags: agentup-registry-tests
+          name: AgentUp.Registry.Tests
           fail_ci_if_error: true
           disable_search: true
 

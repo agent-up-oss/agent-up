@@ -40,6 +40,15 @@ AgentUp.Server/
 AgentUp.Browser.Streaming/
   AgentUp.Browser.Streaming.csproj
 
+AgentUp.Sdk.Common/
+  AgentUp.Sdk.Common.csproj
+
+AgentUp.Sdk.Runtime/
+  AgentUp.Sdk.Runtime.csproj
+
+AgentUp.Sdk.Agent/
+  AgentUp.Sdk.Agent.csproj
+
 AgentUp.Capabilities.Abstractions/
   AgentUp.Capabilities.Abstractions.csproj
 
@@ -60,6 +69,9 @@ AgentUp.Capabilities.Cursor/
 
 AgentUp.Capabilities.Claude/
   AgentUp.Capabilities.Claude.csproj
+
+AgentUp.Registry/
+  AgentUp.Registry.csproj
 
 AgentUp.Desktop/
   AgentUp.Desktop.csproj
@@ -124,6 +136,15 @@ AgentUp.Browser.Streaming.Benchmarks/
 AgentUp.Server.Benchmarks/
   AgentUp.Server.Benchmarks.csproj
 
+AgentUp.Sdk.Common.Tests/
+  AgentUp.Sdk.Common.Tests.csproj
+
+AgentUp.Sdk.Runtime.Tests/
+  AgentUp.Sdk.Runtime.Tests.csproj
+
+AgentUp.Sdk.Agent.Tests/
+  AgentUp.Sdk.Agent.Tests.csproj
+
 AgentUp.Capabilities.Abstractions.Tests/
   AgentUp.Capabilities.Abstractions.Tests.csproj
 
@@ -144,6 +165,9 @@ AgentUp.Capabilities.Cursor.Tests/
 
 AgentUp.Capabilities.Claude.Tests/
   AgentUp.Capabilities.Claude.Tests.csproj
+
+AgentUp.Registry.Tests/
+  AgentUp.Registry.Tests.csproj
 
 AgentUp.Desktop.Tests/
   AgentUp.Desktop.Tests.csproj
@@ -253,9 +277,9 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 
 ## Component Responsibilities
 
-`AgentUp.Capabilities.*` projects define ecosystem adapters outside the Server's product slices. `AgentUp.Capabilities.Abstractions` is the stable contract for first-party and future external capability packages. `AgentUp.Capabilities.Common` owns shared catalog parsing, checksum validation, tool-cache layout, install planning, CLI executable discovery, and capability inventory. First-party adapters such as `AgentUp.Capabilities.Dotnet`, `AgentUp.Capabilities.Docker`, `AgentUp.Capabilities.Codex`, `AgentUp.Capabilities.Cursor`, and `AgentUp.Capabilities.Claude` own ecosystem discovery, version reconciliation, validation, and launch planning. Codex, Cursor, and Claude launch plans come from inventory-declared `command`/`arguments` shared by Server and Desktop installments, not from hardcoded executable names.
+`AgentUp.Sdk.Common` owns kind, identity, Nix declaration, and registration types. `AgentUp.Sdk.Runtime` and `AgentUp.Sdk.Agent` are MSBuild SDKs plus `IRuntimeCapability` / `IAgentCapability`. First-party `AgentUp.Capabilities.*` projects consume those SDKs and pack registry packages (`capability.json`, `default.nix`, and the module DLL). `AgentUp.Capabilities.Abstractions` is the `capability.json` contract, launch plans, and validation records. `AgentUp.Capabilities.Common` owns the generic Nix invocation and index merge. `AgentUp.Registry` owns the local directory store and remote HTTP catalog. Server enablement persists `capabilities/enabled.json` (package id plus package version), loads enabled DLLs, and dispatches by kind. `agent-up.json` root arrays whose names match enabled runtime-kind module ids are bound through `IRuntimeCapability`; first-party `dotnet[]` and `docker[]` use that path. Technology versions such as `sdk` are inputs to `Deliver`. Desktop enables modules in overlay chrome. Mobile enables them in the workspace Settings tab. Clients never call the remote registry.
 
-`LocalInstaller.App` is the product-neutral Avalonia installer dashboard. It presents independent component management cards plus a standardized capability-module catalog and version-management UI. Capability modules provide data and validation metadata, not custom UI. The app owns its installer-facing catalog and installed-module contracts and must not take compile-time dependencies on `AgentUp.Capabilities.*` projects. Product entrypoints such as `AgentUp.InstallerApp` register typed LocalInstaller manifests through the fluent API and should keep `Program.cs` limited to product and installer-option configuration.
+`LocalInstaller.App` is the product-neutral Avalonia installer dashboard. It presents independent component management cards. Agent-Up does not ship installer zip-modules; capability packages live in the Server registry and are enabled through Server APIs. The app owns its installer-facing catalog contracts and must not take compile-time dependencies on `AgentUp.Capabilities.*` projects. Product entrypoints such as `AgentUp.InstallerApp` register typed LocalInstaller manifests through the fluent API and should keep `Program.cs` limited to product and installer-option configuration.
 
 `AgentUp.Server` performs orchestration:
 
@@ -294,7 +318,7 @@ Expo Router entrypoints live under `AgentUp.Mobile/src/app/`. Product UI and cli
 Mobile development environment and platform commands are documented in [Workspaces](/developer-guide/workspaces).
 Android and iOS native CI and store shipping are documented in [Mobile store release](mobile-store-release.md).
 
-`AgentUp.CLI` is a developer convenience wrapper. It forwards commands to the Server and owns no runtime or orchestration state. The legacy local commit queue file is the documented exception until `commits.enabled` migration finishes.
+`AgentUp.CLI` is a developer convenience wrapper. It forwards commands to the Server and owns no runtime or orchestration state. `agent-up start` forwards legacy `applications`, `desktopApplications`, and `services` plus every other `agent-up.json` root array as `runtimeSections`; the Server binds those names to enabled runtime-kind modules. The legacy local commit queue file is the documented exception until `commits.enabled` migration finishes.
 
 `AgentUp.AUDebug` (`au-debug`) is a maintainer visual-debug CLI. It hosts the repository Desktop, Mobile web export, and docs site for screenshot and UI-flow inspection. It is not packaged and does not own Server orchestration. See [AUDebug](au-debug.md).
 

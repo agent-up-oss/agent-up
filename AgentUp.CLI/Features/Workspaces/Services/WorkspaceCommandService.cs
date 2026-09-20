@@ -39,7 +39,9 @@ public sealed class WorkspaceCommandService
         var displayName = string.IsNullOrWhiteSpace(config.Display?.Name) ? config.Name : config.Display.Name;
         var branch = string.IsNullOrWhiteSpace(config.Display?.Branch) ? git.Branch : config.Display.Branch;
         var applications = config.Applications ?? [];
+        var desktopApplications = config.DesktopApplications ?? [];
         var services = config.Services ?? [];
+        var runtimeSections = config.RuntimeSections ?? [];
         var dotnet = config.Dotnet ?? [];
         var docker = config.Docker ?? [];
 
@@ -54,9 +56,9 @@ public sealed class WorkspaceCommandService
                 Commit: git.Commit)
             {
                 Applications = applications,
+                DesktopApplications = desktopApplications,
                 Services = services,
-                Dotnet = dotnet,
-                Docker = docker
+                RuntimeSections = runtimeSections
             });
         }
         catch (AuthenticationRequiredException ex)
@@ -89,7 +91,9 @@ public sealed class WorkspaceCommandService
         return WorkspaceCommandResult<StartedWorkspace>.Success(new StartedWorkspace(
             workspace,
             applications,
+            desktopApplications,
             services,
+            runtimeSections,
             dotnet,
             docker));
     }
@@ -211,6 +215,8 @@ public sealed record WorkspaceCommandResult<T>(bool Succeeded, T? Value, string?
 public sealed record StartedWorkspace(
     WorkspaceDto Workspace,
     IReadOnlyList<ApplicationDefinition> Applications,
+    IReadOnlyList<DesktopApplicationDefinition> DesktopApplications,
     IReadOnlyList<DockerServiceDefinition> Services,
+    IReadOnlyList<RuntimeSectionDefinition> RuntimeSections,
     IReadOnlyList<DotnetApplicationDefinition> Dotnet,
     IReadOnlyList<DockerCapabilityDefinition> Docker);

@@ -23,6 +23,10 @@ public class ApplicationInstance
     // Docker fields: extra arguments appended after the image, overriding the container's default command.
     public IReadOnlyList<string>? Args { get; init; }
 
+    // Capability-hosted launch: Server executes this spec without re-parsing a command string.
+    public string? LaunchFileName { get; init; }
+    public IReadOnlyList<string>? LaunchArguments { get; init; }
+
     // Capability reconciliation fields
     public string? CapabilityId { get; init; }
     public string? CapabilityVersionRequirement { get; init; }

@@ -40,7 +40,7 @@ export function WorkspaceListScreen() {
         </Pressable>
       </View>
       <Text style={styles.subtitle}>
-        {server ? `Connected to ${server.url}` : 'No server selected. Add one on the Servers tab.'}
+        {server ? `Connected to ${server.url}` : 'No server selected. Connect from the login screen.'}
       </Text>
 
       {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}

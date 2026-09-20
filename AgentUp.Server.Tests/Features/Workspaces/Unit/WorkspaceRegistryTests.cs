@@ -1,6 +1,5 @@
-using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
-using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Workspaces.DTOs;
@@ -18,7 +17,7 @@ public class WorkspaceRegistryTests
     [SetUp]
     public void SetUp()
     {
-        _registry = CreateRegistry([new FakeCapabilityAdapter("dotnet"), new FakeCapabilityAdapter("docker")]);
+        _registry = CreateRegistry(FakeEnabledCapabilityPackages.FirstParty());
     }
 
     [Test]
@@ -230,7 +229,7 @@ public class WorkspaceRegistryTests
     {
         var bus = new WorkspaceEventBus();
         var registry = ServerTestComposition.CreateRegistry(
-            [new FakeCapabilityAdapter("dotnet"), new FakeCapabilityAdapter("docker")],
+            FakeEnabledCapabilityPackages.FirstParty(),
             bus);
         var workspace = await registry.RegisterAsync(ServerDomain.Workspace().Build());
         await using var subscription = bus.Subscribe();
@@ -252,7 +251,7 @@ public class WorkspaceRegistryTests
     {
         var bus = new WorkspaceEventBus();
         var registry = ServerTestComposition.CreateRegistry(
-            [new FakeCapabilityAdapter("dotnet"), new FakeCapabilityAdapter("docker")],
+            FakeEnabledCapabilityPackages.FirstParty(),
             bus);
         await using var subscription = bus.Subscribe();
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
@@ -383,7 +382,7 @@ public class WorkspaceRegistryTests
         var app = workspace.Applications.Single();
         Assert.That(app.CapabilityId, Is.EqualTo("dotnet"));
         Assert.That(app.CapabilityVersionRequirement, Is.EqualTo("10.0.x"));
-        Assert.That(app.Command, Is.EqualTo("dotnet launch Api"));
+        Assert.That(app.Command, Is.EqualTo("dotnet run --project src/Api/Api.csproj --no-launch-profile"));
         Assert.That(app.CapabilityStatus!.CanRun, Is.True);
         Assert.That(app.AllocatedPorts.Single().Variable, Is.EqualTo("API_PORT"));
     }
@@ -496,30 +495,6 @@ public class WorkspaceRegistryTests
         Assert.That(error!.Message, Does.Contain("window width must be between 320 and 3840"));
     }
 
-    private static WorkspaceRegistry CreateRegistry(IReadOnlyList<ICapabilityAdapter> adapters) =>
-        ServerTestComposition.CreateRegistry(adapters, new WorkspaceEventBus());
-
-    private sealed class FakeCapabilityAdapter(string capabilityId) : ICapabilityAdapter
-    {
-        public CapabilityDescriptor Descriptor { get; } =
-            new(capabilityId, capabilityId, "1.0.0", true, ["linux", "macos", "windows"]);
-
-        public Task<IReadOnlyList<CapabilityInstalledVersion>> DiscoverAsync(CancellationToken cancellationToken) =>
-            Task.FromResult<IReadOnlyList<CapabilityInstalledVersion>>(
-            [
-                new CapabilityInstalledVersion(capabilityId, "1.0.0", capabilityId, CapabilityVersionSource.System, false)
-            ]);
-
-        public Task<CapabilityValidationResult> ValidateAsync(
-            CapabilityDeclaration declaration,
-            IReadOnlyList<CapabilityInstalledVersion> installedVersions,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(CapabilityValidationResult.Success());
-
-        public Task<CapabilityLaunchPlan> CreateLaunchPlanAsync(
-            CapabilityDeclaration declaration,
-            IReadOnlyList<CapabilityInstalledVersion> installedVersions,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(new CapabilityLaunchPlan($"{capabilityId} launch {declaration.Name}"));
-    }
+    private static WorkspaceRegistry CreateRegistry(IEnabledCapabilityPackages packages) =>
+        ServerTestComposition.CreateRegistry(packages, new WorkspaceEventBus());
 }

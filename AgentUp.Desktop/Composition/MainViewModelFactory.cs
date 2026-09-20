@@ -39,6 +39,10 @@ using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.Services;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Browser.Controllers;
+using AgentUp.Desktop.Features.Capabilities.Controllers;
+using AgentUp.Desktop.Features.Capabilities.Providers;
+using AgentUp.Desktop.Features.Capabilities.Services;
+using AgentUp.Desktop.Features.Capabilities.ViewModels;
 using AgentUp.Desktop.Features.Validation.Providers;
 using AgentUp.Desktop.Features.Validation.Services;
 using AgentUp.Desktop.Features.Validation.ViewModels;
@@ -77,6 +81,11 @@ public static class MainViewModelFactory
         BaseAddress = new Uri("http://127.0.0.1:5000")
     };
 
+    private static readonly HttpClient DefaultCapabilityHttpClient = new()
+    {
+        BaseAddress = new Uri("http://127.0.0.1:5000")
+    };
+
     public static MainViewModel Create(
         WorkspaceApiClient workspaceClient,
         ConsoleApiClient consoleClient,
@@ -87,7 +96,8 @@ public static class MainViewModelFactory
         FirstRunTutorialViewModel? tutorial = null,
         GitApiClient? gitClient = null,
         AgentApiClient? agentClient = null,
-        LoginViewModel? login = null)
+        LoginViewModel? login = null,
+        CapabilityModulesApiClient? capabilityModulesClient = null)
     {
         var workspaces = new WorkspacesController(new WorkspaceListService(workspaceClient));
         var applications = new ApplicationsController(new ApplicationSelectionService());
@@ -104,6 +114,9 @@ public static class MainViewModelFactory
         var agents = new AgentsController(new AgentChatService(agentClient ?? new AgentApiClient(DefaultGitHttpClient)));
         var validationApi = validationClient ?? new ValidationFlowApiClient(DefaultValidationHttpClient);
         var validationReplay = new ValidationFlowReplayService(validationApi, new BrowserInteractionController());
+        var modules = new CapabilityModulesViewModel(
+            new CapabilityModulesController(new CapabilityModulesCatalogService(
+                capabilityModulesClient ?? new CapabilityModulesApiClient(DefaultCapabilityHttpClient))));
 
         return new MainViewModel(
             new WorkspaceListViewModel(workspaces),
@@ -123,7 +136,8 @@ public static class MainViewModelFactory
             login ?? CreateLogin(DefaultAuthHttpClient),
             ports,
             new ValidationViewModel(validationApi, validationReplay),
-            validationReplay);
+            validationReplay,
+            modules);
     }
 
     public static MainViewModel Create(HttpClient http, LoginViewModel? login = null)
@@ -136,6 +150,7 @@ public static class MainViewModelFactory
             new ApplicationAuditApiClient(http),
             new ValidationFlowApiClient(http),
             gitClient: new GitApiClient(http),
+            capabilityModulesClient: new CapabilityModulesApiClient(http),
             agentClient: new AgentApiClient(http, new HttpClient
             {
                 BaseAddress = http.BaseAddress,
