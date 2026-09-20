@@ -44,9 +44,9 @@ module.exports = {
       // Detox 20.51.4 compiles that constructor to the same bytes, so upgrading is not the answer.
       // This argument is read before any idling resource is built - it is the one way past it from
       // outside Detox - and nothing here wants those resources anyway: every wait in these suites
-      // is on an element being visible or on Server state, never on Detox's idea of idle. That is
-      // the same reason iOS excludes the agent event stream from synchronisation, which is a
-      // stream designed never to end.
+      // is on an element being visible or on Server state, never on Detox's idea of idle. iOS
+      // launches the same way: the chat mounts on launch and never goes idle, so waiting for
+      // synchronisation cancelled getAgent (HTTP 499) and left the picker without buttons.
       launchArgs: { detoxEnableSynchronization: 0 },
       testBinaryPath:
         '../AgentUp.Mobile.E2E.App/android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk',
