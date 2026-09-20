@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.Authentication.DTOs;
 using AgentUp.Server.Features.Authentication.Providers;
 using AgentUp.Server.Features.Authentication.Services;
 using Microsoft.Extensions.Configuration;
@@ -10,11 +11,9 @@ public sealed class AuthenticationServiceTests
     [Test]
     public void Login_ReturnsDisabledStatusWithoutAToken_WhenAuthenticationIsDisabled()
     {
-        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
-            new Dictionary<string, string?> { ["AGENTUP_AUTH_DISABLED"] = "true" }).Build();
-        var service = new AuthenticationService(new AuthenticationProvider(configuration));
+        var service = Create(("AGENTUP_AUTH_DISABLED", "true"));
 
-        var result = service.Login("unused");
+        var result = service.Login(new LoginRequest("unused"));
 
         Assert.Multiple(() =>
         {
@@ -22,5 +21,22 @@ public sealed class AuthenticationServiceTests
             Assert.That(result!.AuthenticationRequired, Is.False);
             Assert.That(result.AccessToken, Is.Null);
         });
+    }
+
+    [Test]
+    public void Login_RejectsPasswordWhenExternalBearerModeIsConfigured()
+    {
+        var service = Create(
+            ("AGENTUP_AUTH_MODE", "externalBearer"),
+            ("AGENTUP_ADMIN_PASSWORD", "secret"));
+
+        Assert.That(service.Login(new LoginRequest("secret")), Is.Null);
+    }
+
+    private static AuthenticationService Create(params (string Key, string Value)[] values)
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            values.ToDictionary(value => value.Key, value => (string?)value.Value)).Build();
+        return new AuthenticationService(new AuthenticationProvider(configuration), new AuthenticationModeProvider(configuration));
     }
 }

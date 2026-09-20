@@ -12,7 +12,8 @@
     "src/features/git/**/*.ts",
     "src/features/agents/**/*.ts",
     "src/features/applications/**/*.ts",
-    "src/features/telemetry/**/*.ts"
+    "src/features/telemetry/**/*.ts",
+    "src/features/entitlements/**/*.ts"
   ],
   "exclude": []
 }

@@ -26,6 +26,10 @@ using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Authentication.Providers;
 using AgentUp.Server.Features.Authentication.Interfaces;
 using AgentUp.Server.Features.Authentication.Services;
+using AgentUp.Server.Features.Connection.Providers;
+using AgentUp.Server.Features.Connection.Services;
+using AgentUp.Server.Features.Entitlements.Providers;
+using AgentUp.Server.Features.Entitlements.Services;
 using AgentUp.Server.Features.Applications.Providers;
 using AgentUp.Server.Features.Applications.Services;
 using AgentUp.Server.Features.Agents.Controllers;
@@ -112,7 +116,16 @@ public static class ServiceRegistration
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
         builder.Services.AddSingleton<AuthenticationProvider>();
+        builder.Services.AddSingleton<AuthenticationModeProvider>();
+        builder.Services.AddSingleton<LocalAdministratorCredentialValidator>();
+        builder.Services.AddSingleton<ExternalBearerCredentialValidator>();
+        builder.Services.AddSingleton<CredentialValidationService>();
         builder.Services.AddSingleton<AuthenticationService>();
+        builder.Services.AddTransient<IWorkspaceBindingMiddleware, WorkspaceBindingMiddleware>();
+        builder.Services.AddSingleton<ConnectionMetadataProvider>();
+        builder.Services.AddSingleton<ConnectionService>();
+        builder.Services.AddSingleton<SelfHostedEntitlementsProvider>();
+        builder.Services.AddSingleton<EntitlementsService>();
         builder.Services.AddTransient<IMcpNetworkRestrictionMiddleware, McpNetworkRestrictionMiddleware>();
         builder.Services.AddAuthentication(AgentUpAuthenticationHandler.SchemeName)
             .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, AgentUpAuthenticationHandler>(

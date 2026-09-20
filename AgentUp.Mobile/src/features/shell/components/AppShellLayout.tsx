@@ -7,8 +7,8 @@ import { WorkspaceSidebar } from './WorkspaceSidebar';
 import { agentUpTheme } from '@agent-up/design-system/native';
 
 function AuthenticatedShell() {
-  const { activeServer } = useServers();
-  if (!activeServer) return <Redirect href="/connect" />;
+  const { hasValidLogin } = useServers();
+  if (!hasValidLogin) return <Redirect href="/connect" />;
 
   return (
     <AppShellProvider>

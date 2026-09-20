@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
 import { canCloneWorkspace } from '../providers/CloneInputProvider';
+import { isFeatureAvailable, workspaceCreateFeature } from '@/features/entitlements/models/Entitlements';
+import { getEntitlements } from '@/features/entitlements/providers/EntitlementsApiProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 export function WorkspaceEmptyScreen() {
@@ -12,16 +14,29 @@ export function WorkspaceEmptyScreen() {
   const [branch, setBranch] = useState('main');
   const [cloning, setCloning] = useState(false);
   const [cloneError, setCloneError] = useState<string | null>(null);
+  const [canCreate, setCanCreate] = useState(true);
+
+  useEffect(() => {
+    if (!server) {
+      setCanCreate(true);
+      return;
+    }
+    let cancelled = false;
+    void getEntitlements(server).then(document => {
+      if (!cancelled) setCanCreate(isFeatureAvailable(document, workspaceCreateFeature));
+    });
+    return () => { cancelled = true; };
+  }, [server]);
 
   const shellConfig = useMemo(() => ({
     title: 'Workspaces',
-    rightAction: {
+    rightAction: canCreate ? {
       label: 'Add',
       accessibilityLabel: 'Add workspace',
       onPress: () => { setRepository(''); setBranch('main'); setCloneError(null); setAdding(true); },
-    },
+    } : null,
     sidebarContent: null,
-  }), []);
+  }), [canCreate]);
 
   useShellConfig(shellConfig);
 
@@ -45,7 +60,7 @@ export function WorkspaceEmptyScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
           <Text accessibilityRole="header" style={styles.title}>No workspaces</Text>
-          <Text style={styles.empty}>Clone a repository with Add to get started.</Text>
+          <Text style={styles.empty}>{canCreate ? 'Clone a repository with Add to get started.' : 'Create a workspace on the Agent-Up Cloud website.'}</Text>
           <Text style={styles.subtitle}>
             {server ? `Connected to ${server.url}` : 'Connect to a server to manage workspaces.'}
           </Text>

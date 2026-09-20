@@ -112,17 +112,43 @@ Packaged services bind to `http://127.0.0.1:5000` by default. Service definition
 
 ## Authentication and network boundaries
 
-The REST API uses a single administrator account. Authentication is required
-by default for every REST endpoint unless the endpoint explicitly opts out; this
-makes newly added routes protected by default. `AGENTUP_ADMIN_PASSWORD` supplies
-the administrator password for `POST /api/auth/login`, which returns an in-memory
-bearer token. `GET /api/auth/status` and the login endpoint are anonymous so
-Desktop, Mobile, and other clients can decide whether to display login. Bearer
-sessions expire after 24 hours by default; override with
+The REST API uses authentication by default for every REST endpoint unless the
+endpoint explicitly opts out; this makes newly added routes protected by
+default. `GET /api/auth/status` and `POST /api/auth/login` are anonymous so
+Desktop, Mobile, and other clients can decide whether to display sign-in.
+
+`AGENTUP_AUTH_MODE` selects how credentials are validated:
+
+- `localAdministrator` (default): `AGENTUP_ADMIN_PASSWORD` for
+  `POST /api/auth/login`, which returns an in-memory bearer token.
+- `externalBearer`: login is rejected. Present a signed JWT whose `iss`,
+  `aud`, and HMAC key match `AGENTUP_EXTERNAL_ISSUER`,
+  `AGENTUP_EXTERNAL_AUDIENCE`, and `AGENTUP_EXTERNAL_SIGNING_KEY`. Optional
+  claims: `workspace`, `tenant`, and repeated `permissions` values. A
+  `workspace` claim binds the caller to that workspace id.
+- `disabled`, or `AGENTUP_AUTH_DISABLED=true`: REST authentication is off.
+
+Bearer sessions expire after 24 hours by default; override with
 `AGENTUP_SESSION_LIFETIME_SECONDS`.
 
+`GET /api/connection` returns anonymous connection metadata: `kind`
+(`selfHosted`), `workspacePresentation` (`serverScoped`), and
+`authentication` (`mode`, `prompt`, `identifierRequired`). Clients use
+`mode` and `prompt` to render sign-in; they must not infer capabilities
+from `kind`. `localAdministrator` is a password form. `browserSso` opens
+the server's `/api/auth/sso` start URL in a browser. The OSS Server never
+emits `browserSso`. `identifierRequired` is unused.
+
+`GET /api/entitlements` returns the authenticated permission document.
+Feature keys are operation permissions (`workspace.read`, `agent.prompt`,
+`git.write`, and the rest of the Server operation set). A self-hosted Server
+always returns `source: selfHosted`, `edition: community`, `billing: free`,
+and every operation `available: true`. Clients render this document; they
+must not branch on edition names.
+
 The Server starts even when `AGENTUP_ADMIN_PASSWORD` is unset. REST routes remain
-protected in that mode, but login cannot succeed until the password is configured.
+protected in that mode, but local administrator login cannot succeed until the
+password is configured.
 
 For local development, copy `.env.example` to `.env` in the repository root.
 Server, Desktop, and CLI load that file on startup when present. Existing shell

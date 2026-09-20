@@ -214,7 +214,8 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 - Playwright generation.
 - ACP agent scheduling, with at most one agent process and session per workspace.
 - MCP server.
-- REST API.
+- REST API, including anonymous connection metadata and the authenticated
+  entitlement document keyed by operation permissions.
 
 `AgentUp.Desktop` displays state and browser sessions. It does not own runtime state.
 

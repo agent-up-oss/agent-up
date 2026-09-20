@@ -53,7 +53,7 @@ public static class MobileLoginScriptProvider
               };
               const save = await waitEnabled('Try and save', 8000);
               save.click();
-              const secret = await waitFor('input[aria-label="Admin password"]', 20000);
+              const secret = await waitFor('input[aria-label="Password"], input[aria-label="Admin password"]', 20000);
               const waitSignIn = async (timeoutMs) => {
                 const start = Date.now();
                 while (Date.now() - start < timeoutMs) {

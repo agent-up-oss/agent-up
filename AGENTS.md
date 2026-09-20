@@ -489,9 +489,28 @@ The Server owns all orchestration:
 
 No orchestration logic belongs in Desktop, CLI, or MCP clients.
 
-The Server requires its single administrator to log in with the password from
-`AGENTUP_ADMIN_PASSWORD` when authentication is enabled. REST authorization is
-required by default for every route unless the endpoint explicitly opts out.
+The Server requires authentication by default. `GET /api/auth/status` and
+`POST /api/auth/login` are anonymous so clients can decide whether to display
+sign-in. Password login is for `localAdministrator` mode using
+`AGENTUP_ADMIN_PASSWORD`. Set `AGENTUP_AUTH_MODE=externalBearer` to accept a
+signed bearer token instead of the local administrator password; configure
+`AGENTUP_EXTERNAL_ISSUER`, `AGENTUP_EXTERNAL_AUDIENCE`, and
+`AGENTUP_EXTERNAL_SIGNING_KEY`. A token may include `workspace`, `tenant`, and
+repeated `permissions` claims. When `workspace` is present, the Server refuses
+other workspace ids under `/api/workspaces`.
+
+`GET /api/connection` is anonymous connection metadata (`kind`, authentication
+mode, sign-in prompt, whether a username is required). `GET /api/entitlements`
+is the authenticated permission document clients render: feature keys are
+operation permissions such as `agent.prompt` and `git.write`, not product
+editions. A self-hosted Server always returns the community document with every
+operation available.
+
+Desktop and Mobile may list a recommended connection from
+`AGENTUP_RECOMMENDED_SERVER_URL` / `EXPO_PUBLIC_RECOMMENDED_SERVER_URL`. When
+set, that URL stays in the connection list and cannot be removed. Leave it
+unset for a local-only client.
+
 Set `AGENTUP_AUTH_DISABLED=true` only for an intentionally unauthenticated Server.
 The Server starts even when `AGENTUP_ADMIN_PASSWORD` is unset; login succeeds only
 after that password is configured. For local development, Server, Desktop, and
