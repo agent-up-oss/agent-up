@@ -22,6 +22,10 @@ module.exports = {
     'ios.release': {
       type: 'ios.app',
       binaryPath: '../AgentUp.Mobile.E2E.App/ios/build/Build/Products/Release-iphonesimulator/AgentUpChatHarness.app',
+      // Same reason as Android: the chat mounts on launch and never goes idle (event stream,
+      // reconnect timers, main-queue work). Waiting for idle during launchApp cancelled the first
+      // getAgent (HTTP 499) and left the picker without buttons.
+      launchArgs: { detoxEnableSynchronization: 0 },
       build:
         'xcodebuild -workspace ../AgentUp.Mobile.E2E.App/ios/AgentUpChatHarness.xcworkspace ' +
         '-scheme AgentUpChatHarness -configuration Release -sdk iphonesimulator ' +
