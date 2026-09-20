@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useServers } from '../controllers/ServersContext';
+import { hasSavedSignIn } from '../models/ConfiguredServer';
 import { resolvePresetServerUrl, rememberPresetWorkspace, takePendingWorkspace, workspaceHref } from '../providers/PresetServerProvider';
 import { normalizeServerUrl, probeServer } from '../providers/ServerUrlProvider';
 import { recordServerConnectionAudit } from '../providers/MobileAuditProvider';
@@ -72,7 +73,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
     try {
       const target = resolvePresetServerUrl(presetServerUrl, cloudServer?.url);
       if (target.kind === 'cloud') {
-        if (cloudServer?.accessToken) {
+        if (hasSavedSignIn(cloudServer)) {
           selectServer(cloudServer.id);
           router.replace(workspaceHref(presetWorkspaceId));
           return;
@@ -81,7 +82,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
         return;
       }
       const saved = savedServers.find(server => server.url === target.url);
-      if (saved?.accessToken) {
+      if (hasSavedSignIn(saved)) {
         selectServer(saved.id);
         router.replace(workspaceHref(presetWorkspaceId));
         return;
@@ -147,7 +148,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
   const openSaved = (id: string) => {
     const saved = savedServers.find(server => server.id === id);
     if (!saved || busy) return;
-    if (saved.accessToken) {
+    if (hasSavedSignIn(saved)) {
       selectServer(saved.id);
       router.replace(workspaceHref(presetWorkspaceId));
       return;
@@ -158,7 +159,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
 
   const openCloud = () => {
     if (!cloudServer || busy) return;
-    if (cloudServer.accessToken) {
+    if (hasSavedSignIn(cloudServer)) {
       selectServer(cloudServer.id);
       router.replace(workspaceHref(presetWorkspaceId));
       return;
@@ -201,7 +202,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
 
   const cloudName = cloudServer?.displayName ?? 'Agent-Up Cloud';
   const showServers = true;
-  const currentLabel = activeServer?.accessToken
+  const currentLabel = hasSavedSignIn(activeServer)
     ? (activeServer.isRecommended ? (activeServer.displayName ?? cloudName) : activeServer.url)
     : 'No server selected';
 
@@ -263,7 +264,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
           <View style={styles.savedButton}>
             <Text numberOfLines={2} style={styles.savedUrl}>{cloudName}</Text>
             <Text style={styles.savedMeta}>
-              {activeServer?.isRecommended ? 'Current' : cloudServer.accessToken ? 'Saved sign-in' : 'Sign in'}
+              {activeServer?.isRecommended ? 'Current' : hasSavedSignIn(cloudServer) ? 'Saved sign-in' : 'Sign in'}
             </Text>
           </View>
         </Pressable>
@@ -277,7 +278,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
               disabled={busy} style={styles.savedButton}>
               <Text numberOfLines={2} style={styles.savedUrl}>{server.url}</Text>
               <Text style={styles.savedMeta}>
-                {isActive ? 'Current' : server.accessToken ? 'Saved sign-in' : 'No saved sign-in'}
+                {isActive ? 'Current' : hasSavedSignIn(server) ? 'Saved sign-in' : 'No saved sign-in'}
               </Text>
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${server.url}`}

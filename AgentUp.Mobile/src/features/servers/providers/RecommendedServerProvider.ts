@@ -35,6 +35,7 @@ export function cloudServer(selection: ServerSelection, recommended: Recommended
     url: recommended.url,
     displayName: recommended.displayName,
     accessToken: saved?.accessToken,
+    openAccess: saved?.openAccess,
     isRecommended: true,
     canRemove: false,
   };

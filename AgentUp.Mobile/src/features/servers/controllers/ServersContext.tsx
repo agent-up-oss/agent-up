@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react';
-import type { ConfiguredServer } from '../models/ConfiguredServer';
+import { hasSavedSignIn, type ConfiguredServer } from '../models/ConfiguredServer';
 import {
   browserServerStorage,
   clearActiveCredential,
@@ -53,8 +53,8 @@ export function ServersProvider({ children }: PropsWithChildren) {
     const fromStore = selection.servers.find(server => server.id === selection.activeServerId);
     const activeServer = fromStore
       ? servers.find(server => server.id === fromStore.id) ?? (fromStore.url === cloud?.url ? cloud : fromStore)
-      : servers.find(server => server.accessToken) ?? null;
-    const hasValidLogin = !!activeServer && !requiresSignIn && (!!activeServer.accessToken || activeServer.openAccess === true);
+      : servers.find(hasSavedSignIn) ?? null;
+    const hasValidLogin = !!activeServer && !requiresSignIn && hasSavedSignIn(activeServer);
     return {
       servers,
       savedServers,

@@ -3,6 +3,7 @@ import { type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useServers } from '@/features/servers/controllers/ServersContext';
+import { hasSavedSignIn } from '@/features/servers/models/ConfiguredServer';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import { statusDotStyle, workspaceLedState } from '@/features/workspaces/providers/WorkspaceStatusProvider';
 import { useAppShell } from '../controllers/AppShellContext';
@@ -58,7 +59,7 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
             accessibilityLabel={cloudServer.displayName ?? 'Agent-Up Cloud'}
             onPress={() => {
               selectServer(cloudServer.id);
-              openConnect(!!cloudServer.accessToken, cloudServer.url);
+              openConnect(hasSavedSignIn(cloudServer), cloudServer.url);
             }}
             style={[styles.serverRow, activeServer?.isRecommended && styles.serverRowSelected]}>
             <Text numberOfLines={1} style={styles.serverUrl}>{cloudServer.displayName ?? 'Agent-Up Cloud'}</Text>
@@ -75,7 +76,7 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
               accessibilityLabel={`Switch to ${server.url}`}
               onPress={() => {
                 selectServer(server.id);
-                openConnect(!!server.accessToken, server.url);
+                openConnect(hasSavedSignIn(server), server.url);
               }}
               style={[styles.serverRow, isActive && styles.serverRowSelected]}>
               <Text numberOfLines={2} style={styles.serverUrl}>{server.url}</Text>

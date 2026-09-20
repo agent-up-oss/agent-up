@@ -7,3 +7,7 @@ export type ConfiguredServer = {
   isRecommended?: boolean;
   canRemove?: boolean;
 };
+
+export function hasSavedSignIn(server: Pick<ConfiguredServer, 'accessToken' | 'openAccess'> | null | undefined): boolean {
+  return Boolean(server?.accessToken) || server?.openAccess === true;
+}

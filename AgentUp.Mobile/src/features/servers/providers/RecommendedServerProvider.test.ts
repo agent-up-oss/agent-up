@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { cloudServer, defaultCloudDisplayName, listSavedServers, listServers, readRecommendedServer } from './RecommendedServerProvider';
+import { hasSavedSignIn } from '../models/ConfiguredServer';
 import type { ServerSelection } from './ServerStorageProvider';
 
 test('readRecommendedServer returns null when no URL is configured', () => {
@@ -53,4 +54,24 @@ test('listServers puts Cloud ahead of saved servers', () => {
   assert.equal(listed[0].isRecommended, true);
   assert.equal(listed[0].displayName, 'Agent-Up Cloud');
   assert.equal(listed[1].url, 'http://127.0.0.1:5100');
+});
+
+test('cloudServer keeps persisted open access', () => {
+  const cloud = cloudServer(
+    {
+      servers: [{ id: 'saved-cloud', url: 'http://127.0.0.1:5288', openAccess: true }],
+      activeServerId: 'saved-cloud',
+    },
+    { id: 'recommended', url: 'http://127.0.0.1:5288', displayName: 'Agent-Up Cloud' },
+  );
+  assert.equal(cloud?.openAccess, true);
+  assert.equal(hasSavedSignIn(cloud), true);
+});
+
+test('hasSavedSignIn treats a token or open access as signed in', () => {
+  assert.equal(hasSavedSignIn({ accessToken: 'token' }), true);
+  assert.equal(hasSavedSignIn({ openAccess: true }), true);
+  assert.equal(hasSavedSignIn({ accessToken: 'token', openAccess: false }), true);
+  assert.equal(hasSavedSignIn({}), false);
+  assert.equal(hasSavedSignIn(null), false);
 });
