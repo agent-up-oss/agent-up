@@ -107,6 +107,8 @@ async function route(request, response, url) {
     tokens.add(token);
     const target = new URL(redirectUri);
     target.searchParams.set('access_token', token);
+    const state = body.get('state') ?? '';
+    if (state) target.searchParams.set('state', state);
     response.writeHead(302, { location: target.toString(), ...corsHeaders() });
     response.end();
     return;
@@ -165,11 +167,13 @@ const SIGN_IN_PAGE = `<!doctype html>
   <p>This example identity front door issues a one-time Agent-Up access token. It is not an identity vendor SDK.</p>
   <form method="post" action="/api/auth/sso">
     <input type="hidden" name="redirect_uri" id="sso-redirect">
+    <input type="hidden" name="state" id="sso-state">
     <button id="sso-continue" type="submit">Continue</button>
   </form>
   <script>
-    document.getElementById('sso-redirect').value =
-      new URLSearchParams(window.location.search).get('redirect_uri') ?? '';
+    const params = new URLSearchParams(window.location.search);
+    document.getElementById('sso-redirect').value = params.get('redirect_uri') ?? '';
+    document.getElementById('sso-state').value = params.get('state') ?? '';
   </script>
 </body>
 </html>`;

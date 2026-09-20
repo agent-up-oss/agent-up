@@ -19,7 +19,8 @@ export function loadServerSelection(storage: KeyValueStorage | null): ServerSele
     const servers = Array.isArray(parsed?.servers)
       ? parsed.servers.filter((server): server is ConfiguredServer =>
           typeof server?.id === 'string' && typeof server?.url === 'string'
-          && (server.accessToken === undefined || typeof server.accessToken === 'string'))
+          && (server.accessToken === undefined || typeof server.accessToken === 'string')
+          && (server.openAccess === undefined || typeof server.openAccess === 'boolean'))
       : [];
     const activeServerId = servers.some(server => server.id === parsed?.activeServerId)
       ? parsed?.activeServerId ?? null
@@ -43,7 +44,11 @@ export function upsertServer(selection: ServerSelection, url: string, accessToke
   if (existing) {
     return {
       servers: selection.servers.map(server => server.id === existing.id
-        ? { ...server, accessToken: accessToken !== undefined ? accessToken : server.accessToken }
+        ? {
+            ...server,
+            accessToken: accessToken !== undefined ? accessToken : server.accessToken,
+            openAccess: accessToken !== undefined ? false : server.openAccess ?? true,
+          }
         : server),
       activeServerId: existing.id,
     };
@@ -53,6 +58,7 @@ export function upsertServer(selection: ServerSelection, url: string, accessToke
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     url,
     accessToken,
+    openAccess: accessToken === undefined,
   };
   return { servers: [...selection.servers, server], activeServerId: server.id };
 }

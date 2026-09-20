@@ -54,7 +54,7 @@ export function ServersProvider({ children }: PropsWithChildren) {
     const activeServer = fromStore
       ? servers.find(server => server.id === fromStore.id) ?? (fromStore.url === cloud?.url ? cloud : fromStore)
       : servers.find(server => server.accessToken) ?? null;
-    const hasValidLogin = !!activeServer?.accessToken && !requiresSignIn;
+    const hasValidLogin = !!activeServer && !requiresSignIn && (!!activeServer.accessToken || activeServer.openAccess === true);
     return {
       servers,
       savedServers,

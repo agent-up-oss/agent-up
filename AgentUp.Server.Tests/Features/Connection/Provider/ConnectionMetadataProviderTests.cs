@@ -34,7 +34,7 @@ public sealed class ConnectionMetadataProviderTests
         Assert.Multiple(() =>
         {
             Assert.That(dto.Authentication.Mode, Is.EqualTo("disabled"));
-            Assert.That(dto.Authentication.Prompt, Does.Contain("credential issued for this Server"));
+            Assert.That(dto.Authentication.Prompt, Does.Contain("not required"));
         });
     }
 }

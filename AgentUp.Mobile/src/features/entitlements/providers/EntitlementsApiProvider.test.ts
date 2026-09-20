@@ -37,3 +37,9 @@ test('getEntitlements returns null when unauthorized', async () => {
     new Response('{}', { status: 401 })) as typeof fetch);
   assert.equal(document, null);
 });
+
+test('getEntitlements returns null when features are not a document', async () => {
+  const document = await getEntitlements({ url: 'http://localhost:5000', accessToken: 't' }, (async () =>
+    new Response(JSON.stringify({ displayName: 'Broken', features: [null] }))) as typeof fetch);
+  assert.equal(document, null);
+});

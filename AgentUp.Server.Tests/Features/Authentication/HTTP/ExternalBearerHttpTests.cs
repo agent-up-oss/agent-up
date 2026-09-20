@@ -17,31 +17,12 @@ public sealed class ExternalBearerHttpTests
 {
     private const string SigningKey = "unit-test-signing-key-32-bytes!!";
 
-    private WebApplicationFactory<Program> _root = null!;
-    private WebApplicationFactory<Program> _factory = null!;
-
-    [SetUp]
-    public void SetUp()
-    {
-        _root = new WebApplicationFactory<Program>();
-        _factory = _root.WithWebHostBuilder(builder =>
-            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
-                new Dictionary<string, string?>
-                {
-                    ["AGENTUP_AUTH_MODE"] = "externalBearer",
-                    ["AGENTUP_EXTERNAL_ISSUER"] = "https://issuer.test",
-                    ["AGENTUP_EXTERNAL_AUDIENCE"] = "environment-1",
-                    ["AGENTUP_EXTERNAL_SIGNING_KEY"] = SigningKey
-                })));
-    }
-
-    [TearDown]
-    public void TearDown() => _root.Dispose();
-
     [Test]
     public async Task RestRoutes_AcceptExternalBearerTokensWithWorkspaceBinding()
     {
-        using var client = _factory.CreateClient();
+        using var root = new WebApplicationFactory<Program>();
+        using var factory = CreateFactory(root);
+        using var client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", IssueToken(tenant: "ten-1", workspace: "ws-a"));
 
@@ -60,17 +41,30 @@ public sealed class ExternalBearerHttpTests
     [Test]
     public async Task WebSocketRoutes_AcceptTheAuthenticationSubprotocol()
     {
+        using var root = new WebApplicationFactory<Program>();
+        using var factory = CreateFactory(root);
         var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(IssueToken(workspace: "ws-a")))
             .TrimEnd('=')
             .Replace('+', '-')
             .Replace('/', '_');
-        var wsClient = _factory.Server.CreateWebSocketClient();
+        var wsClient = factory.Server.CreateWebSocketClient();
         wsClient.ConfigureRequest = request =>
             request.Headers["Sec-WebSocket-Protocol"] = $"{WebSocketAuthenticationProtocol.Prefix}{encoded}";
 
         using var socket = await wsClient.ConnectAsync(new Uri("ws://localhost/api/browser/rdp/ws-a"), CancellationToken.None);
         Assert.That(socket.State, Is.EqualTo(WebSocketState.Open));
     }
+
+    private static WebApplicationFactory<Program> CreateFactory(WebApplicationFactory<Program> root)
+        => root.WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["AGENTUP_AUTH_MODE"] = "externalBearer",
+                    ["AGENTUP_EXTERNAL_ISSUER"] = "https://issuer.test",
+                    ["AGENTUP_EXTERNAL_AUDIENCE"] = "environment-1",
+                    ["AGENTUP_EXTERNAL_SIGNING_KEY"] = SigningKey
+                })));
 
     private static string IssueToken(string? tenant = null, string? workspace = null)
     {

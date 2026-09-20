@@ -12,8 +12,10 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const router = useRouter();
   const { activeServer, savedServers, cloudServer, selectServer } = useServers();
   const { workspaces, selectedWorkspace, selectWorkspace } = useWorkspaces();
-  const openConnect = (signedIn: boolean) => {
-    router.replace(signedIn ? '/(main)/workspace' : '/connect');
+  const openConnect = (signedIn: boolean, serverUrl?: string) => {
+    router.replace(signedIn
+      ? '/(main)/workspace'
+      : { pathname: '/connect', params: serverUrl ? { server: serverUrl } : {} });
     onNavigate();
   };
 
@@ -56,7 +58,7 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
             accessibilityLabel={cloudServer.displayName ?? 'Agent-Up Cloud'}
             onPress={() => {
               selectServer(cloudServer.id);
-              openConnect(!!cloudServer.accessToken);
+              openConnect(!!cloudServer.accessToken, cloudServer.url);
             }}
             style={[styles.serverRow, activeServer?.isRecommended && styles.serverRowSelected]}>
             <Text numberOfLines={1} style={styles.serverUrl}>{cloudServer.displayName ?? 'Agent-Up Cloud'}</Text>
@@ -73,7 +75,7 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
               accessibilityLabel={`Switch to ${server.url}`}
               onPress={() => {
                 selectServer(server.id);
-                openConnect(!!server.accessToken);
+                openConnect(!!server.accessToken, server.url);
               }}
               style={[styles.serverRow, isActive && styles.serverRowSelected]}>
               <Text numberOfLines={2} style={styles.serverUrl}>{server.url}</Text>

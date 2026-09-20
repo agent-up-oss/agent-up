@@ -13,10 +13,29 @@ export async function getAuthenticationStatus(url: string, request: typeof fetch
 }
 
 export async function getConnection(url: string, request: typeof fetch = fetch): Promise<ConnectionMetadata | null> {
-  const response = await request(`${url}/api/connection`, { headers: { Accept: 'application/json' } });
-  if (!response.ok) return null;
-  const connection = await response.json() as ConnectionMetadata;
-  return connection.kind ? connection : null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await request(`${url}/api/connection`, {
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    });
+    if (!response.ok) return null;
+    const connection = await response.json() as Partial<ConnectionMetadata>;
+    return isConnectionMetadata(connection) ? connection : null;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError')
+      throw new Error('The server did not respond in time.');
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function isConnectionMetadata(value: Partial<ConnectionMetadata> | null | undefined): value is ConnectionMetadata {
+  return !!value?.kind
+    && typeof value.authentication?.mode === 'string'
+    && typeof value.authentication.prompt === 'string';
 }
 
 export async function login(

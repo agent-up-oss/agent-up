@@ -7,7 +7,7 @@ import { resolvePresetServerUrl, rememberPresetWorkspace, takePendingWorkspace, 
 import { normalizeServerUrl, probeServer } from '../providers/ServerUrlProvider';
 import { recordServerConnectionAudit } from '../providers/MobileAuditProvider';
 import { getAuthenticationStatus, getConnection, login, ensureCredentialTransportAllowed } from '../../authentication/providers/AuthenticationProvider';
-import { browserSsoStartUrl, readAccessToken, rememberSsoServer, takePendingSsoServer, usesBrowserSso } from '../../authentication/providers/BrowserSsoProvider';
+import { browserSsoStartUrl, createSsoState, readSsoCallback, rememberSsoStart, takePendingSsoStart, usesBrowserSso } from '../../authentication/providers/BrowserSsoProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 type FormMode = 'add' | 'password' | 'cloud' | 'sso';
@@ -55,11 +55,11 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const token = readAccessToken(window.location.href);
-    if (!token) return;
-    const server = takePendingSsoServer() ?? cloudServer?.url;
-    if (!server) return;
-    saveServer(server, token);
+    const callback = readSsoCallback(window.location.href);
+    if (!callback) return;
+    const pending = takePendingSsoStart();
+    if (!pending || pending.state !== callback.state) return;
+    saveServer(pending.serverUrl, callback.accessToken);
     window.history.replaceState({}, '', window.location.pathname + window.location.hash);
     router.replace(workspaceHref(takePendingWorkspace() ?? presetWorkspaceId));
   }, []);
@@ -171,8 +171,9 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       try {
         const redirect = `${window.location.origin}${window.location.pathname}`;
-        const target = browserSsoStartUrl(serverUrl, redirect);
-        rememberSsoServer(serverUrl);
+        const state = createSsoState();
+        const target = browserSsoStartUrl(serverUrl, redirect, state);
+        rememberSsoStart(serverUrl, state);
         window.location.assign(target.href);
       } catch {
         setStatus('The server URL is invalid. Please check it and try again.');

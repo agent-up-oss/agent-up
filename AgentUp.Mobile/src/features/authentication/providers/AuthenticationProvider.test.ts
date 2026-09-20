@@ -42,6 +42,12 @@ test('reads connection metadata when the server publishes it', async () => {
   assert.equal(connection?.kind, 'selfHosted');
 });
 
+test('rejects connection metadata without an authentication document', async () => {
+  const connection = await getConnection('http://server', (async () =>
+    new Response(JSON.stringify({ kind: 'selfHosted' }))) as typeof fetch);
+  assert.equal(connection, null);
+});
+
 test('login disables redirects for credential-bearing requests', async () => {
   let redirect: RequestRedirect | undefined;
   await login('http://localhost:5000', 'secret', (async (_url, init) => {

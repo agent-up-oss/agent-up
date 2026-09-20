@@ -41,6 +41,17 @@ test('the example advertises browserSso and issues a restricted entitlement docu
     assert.equal(location.origin, 'http://127.0.0.1:8081');
     assert.equal(location.pathname, '/connect');
 
+    const withState = await fetch(`${example.origin}/api/auth/sso`, {
+      method: 'POST',
+      redirect: 'manual',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        redirect_uri: 'http://127.0.0.1:8081/connect',
+        state: 'abc123',
+      }),
+    });
+    assert.equal(new URL(withState.headers.get('location')).searchParams.get('state'), 'abc123');
+
     const entitlements = await getJson(example.origin, '/api/entitlements', token);
     assert.equal(entitlements.displayName, 'Shared Server');
     assert.equal(entitlements.features['workspace.create'].available, false);

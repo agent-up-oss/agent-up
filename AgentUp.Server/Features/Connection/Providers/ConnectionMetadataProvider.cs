@@ -38,7 +38,10 @@ public sealed class ConnectionMetadataProvider(IConfiguration configuration)
     }
 
     private static string Prompt(string mode)
-        => mode == "localAdministrator"
-            ? "Enter the administrator password to continue."
-            : "Sign in with a credential issued for this Server.";
+        => mode switch
+        {
+            "localAdministrator" => "Enter the administrator password to continue.",
+            "disabled" => "Authentication is not required for this Server.",
+            _ => "Sign in with a credential issued for this Server."
+        };
 }
