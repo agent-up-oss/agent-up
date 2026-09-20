@@ -61,6 +61,7 @@ export function createWorkspaceEventSubscription(
       try {
         await stream(server, event => {
           if (signal.aborted || ticket !== generation) return;
+          backoff = WORKSPACE_EVENT_RECONNECT_MIN_MS;
           const applied = sink.onEvent(event);
           if (applied || event.state === 'Removed') return;
           scheduleMiss(event.workspaceId);
@@ -99,11 +100,15 @@ export function abortableDelay(ms: number, signal: AbortSignal): Promise<void> {
       reject(abortError());
       return;
     }
-    const timer = setTimeout(resolve, ms);
-    signal.addEventListener('abort', () => {
+    const onAbort = () => {
       clearTimeout(timer);
       reject(abortError());
-    }, { once: true });
+    };
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    signal.addEventListener('abort', onAbort, { once: true });
   });
 }
 
