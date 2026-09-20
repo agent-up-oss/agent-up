@@ -5,6 +5,7 @@ using System.Net.WebSockets;
 using System.Security.Claims;
 using System.Text;
 using AgentUp.Server;
+using AgentUp.Server.Features.Authentication.DTOs;
 using AgentUp.Server.Features.Authentication.Providers;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -24,7 +25,10 @@ public sealed class ExternalBearerHttpTests
         using var factory = CreateFactory(root);
         using var client = factory.CreateClient();
         client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", IssueToken(tenant: "ten-1", workspace: "ws-a"));
+            new AuthenticationHeaderValue("Bearer", IssueToken(
+                tenant: "ten-1",
+                workspace: "ws-a",
+                permissions: [OperationPermissions.WorkspaceRead]));
 
         var list = await client.GetAsync("/api/workspaces");
         var forbidden = await client.GetAsync("/api/workspaces/ws-b");
@@ -43,7 +47,9 @@ public sealed class ExternalBearerHttpTests
     {
         using var root = new WebApplicationFactory<Program>();
         using var factory = CreateFactory(root);
-        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(IssueToken(workspace: "ws-a")))
+        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(IssueToken(
+                workspace: "ws-a",
+                permissions: [OperationPermissions.BrowserControl])))
             .TrimEnd('=')
             .Replace('+', '-')
             .Replace('/', '_');
@@ -53,6 +59,25 @@ public sealed class ExternalBearerHttpTests
 
         using var socket = await wsClient.ConnectAsync(new Uri("ws://localhost/api/browser/rdp/ws-a"), CancellationToken.None);
         Assert.That(socket.State, Is.EqualTo(WebSocketState.Open));
+    }
+
+    [Test]
+    public async Task RestRoutes_ForbidExternalBearerTokensWithoutTheOperationPermission()
+    {
+        using var root = new WebApplicationFactory<Program>();
+        using var factory = CreateFactory(root);
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", IssueToken(workspace: "ws-a"));
+
+        var list = await client.GetAsync("/api/workspaces");
+        var entitlements = await client.GetAsync("/api/entitlements");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(list.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+            Assert.That(entitlements.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        });
     }
 
     private static WebApplicationFactory<Program> CreateFactory(WebApplicationFactory<Program> root)
@@ -66,13 +91,18 @@ public sealed class ExternalBearerHttpTests
                     ["AGENTUP_EXTERNAL_SIGNING_KEY"] = SigningKey
                 })));
 
-    private static string IssueToken(string? tenant = null, string? workspace = null)
+    private static string IssueToken(
+        string? tenant = null,
+        string? workspace = null,
+        IReadOnlyList<string>? permissions = null)
     {
         var claims = new List<Claim> { new("sub", "user-1") };
         if (tenant is not null)
             claims.Add(new Claim("tenant", tenant));
         if (workspace is not null)
             claims.Add(new Claim("workspace", workspace));
+        foreach (var permission in permissions ?? [])
+            claims.Add(new Claim("permissions", permission));
 
         var token = new JwtSecurityToken(
             "https://issuer.test",

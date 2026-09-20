@@ -100,7 +100,6 @@ using AgentUp.Server.Features.Workspaces.Providers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Shared.Providers;
-using Microsoft.AspNetCore.Authorization;
 using AgentUp.Verification.Shared.Providers;
 
 namespace AgentUp.Server.Composition;
@@ -109,7 +108,7 @@ public static class ServiceRegistration
 {
     public static void Configure(WebApplicationBuilder builder, string dataDir)
     {
-        builder.Services.AddControllers()
+        builder.Services.AddControllers(options => options.Conventions.Add(new OperationPermissionConvention()))
             .AddApplicationPart(typeof(ServiceRegistration).Assembly)
             .AddJsonOptions(opts =>
                 opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -130,10 +129,7 @@ public static class ServiceRegistration
         builder.Services.AddAuthentication(AgentUpAuthenticationHandler.SchemeName)
             .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, AgentUpAuthenticationHandler>(
                 AgentUpAuthenticationHandler.SchemeName, _ => { });
-        builder.Services.AddAuthorization(options =>
-            options.FallbackPolicy = new AuthorizationPolicyBuilder()
-                .RequireAuthenticatedUser()
-                .Build());
+        builder.Services.AddAuthorization(OperationAuthorization.Configure);
         builder.Services.AddCors(options => options.AddPolicy(
             WebClientOriginProvider.PolicyName,
             policy => policy
