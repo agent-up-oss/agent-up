@@ -92,7 +92,7 @@ async function route(request, response, url) {
       write(response, 400, { title: 'Invalid redirect_uri', detail: 'redirect_uri must be a loopback http(s) URL.' });
       return;
     }
-    writeHtml(response, 200, signInPage());
+    writeSignInPage(response);
     return;
   }
 
@@ -156,13 +156,12 @@ export function isLoopbackRedirect(value) {
   }
 }
 
-function signInPage() {
-  return `<!doctype html>
+const SIGN_IN_PAGE = `<!doctype html>
 <html lang="en">
 <meta charset="utf-8">
-<title>Sign in to ${DISPLAY_NAME}</title>
+<title>Sign in to Shared Server</title>
 <body>
-  <h1>Sign in to ${DISPLAY_NAME}</h1>
+  <h1>Sign in to Shared Server</h1>
   <p>This example identity front door issues a one-time Agent-Up access token. It is not an identity vendor SDK.</p>
   <form method="post" action="/api/auth/sso">
     <input type="hidden" name="redirect_uri" id="sso-redirect">
@@ -174,7 +173,6 @@ function signInPage() {
   </script>
 </body>
 </html>`;
-}
 
 function bearerToken(request) {
   const header = request.headers.authorization ?? '';
@@ -202,13 +200,13 @@ function write(response, status, body) {
   response.end(payload);
 }
 
-function writeHtml(response, status, html) {
-  response.writeHead(status, {
+function writeSignInPage(response) {
+  response.writeHead(200, {
     'content-type': 'text/html; charset=utf-8',
-    'content-length': Buffer.byteLength(html),
+    'content-length': Buffer.byteLength(SIGN_IN_PAGE),
     ...corsHeaders(),
   });
-  response.end(html);
+  response.end(SIGN_IN_PAGE);
 }
 
 async function readBody(request) {
