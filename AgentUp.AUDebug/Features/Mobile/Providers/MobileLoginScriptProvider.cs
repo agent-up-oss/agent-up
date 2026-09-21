@@ -39,6 +39,9 @@ public static class MobileLoginScriptProvider
                 if (button.getAttribute('aria-disabled') === 'true') throw new Error('Button is disabled: ' + text);
                 button.click();
               };
+              if (!document.querySelector('input[aria-label="Server URL"], textarea[aria-label="Server URL"]')) {
+                clickByText('Add server');
+              }
               const url = await waitFor('input[aria-label="Server URL"], textarea[aria-label="Server URL"]', 10000);
               setValue(url, {{JsonSerializer.Serialize(serverUrl)}});
               const waitEnabled = async (text, timeoutMs) => {
@@ -53,7 +56,7 @@ public static class MobileLoginScriptProvider
               };
               const save = await waitEnabled('Try and save', 8000);
               save.click();
-              const secret = await waitFor('input[aria-label="Admin password"]', 20000);
+              const secret = await waitFor('input[aria-label="Password"], input[aria-label="Admin password"]', 20000);
               const waitSignIn = async (timeoutMs) => {
                 const start = Date.now();
                 while (Date.now() - start < timeoutMs) {

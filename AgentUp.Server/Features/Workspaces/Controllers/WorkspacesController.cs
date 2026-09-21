@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.Authentication.Interfaces;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -17,7 +18,8 @@ public sealed class WorkspacesController(
         => eventStream.WriteAsync(Response, ct);
 
     [HttpGet]
-    public IActionResult GetAll() => Ok(registry.GetAll());
+    public IActionResult GetAll()
+        => Ok(BoundWorkspaceFilter.Visible(User, registry.GetAll(), workspace => workspace.Id));
 
     [HttpGet("{id}")]
     public IActionResult GetById(string id)

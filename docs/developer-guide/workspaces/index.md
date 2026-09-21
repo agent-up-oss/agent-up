@@ -16,7 +16,7 @@ Packaged installations run `agent-up-server` on `http://localhost:5000`; the rep
   owner="AgentUp.Server"
   tests="AgentUp.Server.Tests/Features/Workspaces/ and SourceClones/"
   mcp="/mcp/orchestration"
-  rest="/api/workspaces, /api/workspaces/events, /api/source-clones, /api/auth"
+  rest="/api/workspaces, /api/workspaces/events, /api/source-clones, /api/auth, /api/connection, /api/entitlements"
 />
 
 <DocSpine>
@@ -68,16 +68,29 @@ MCP remains unauthenticated for local automation, but `/mcp` requests from a non
 
 ## Authentication and network boundaries
 
-The REST API uses a single administrator account. Authentication is required by default for every REST endpoint unless the endpoint explicitly opts out.
+The REST API uses authentication by default for every REST endpoint unless the endpoint explicitly opts out. `GET /api/auth/status` and `POST /api/auth/login` are anonymous so Desktop, Mobile, and other clients can decide whether to display sign-in.
 
 <DocFacts>
 <DocFact label="Password">AGENTUP_ADMIN_PASSWORD</DocFact>
+<DocFact label="Mode">AGENTUP_AUTH_MODE</DocFact>
 <DocFact label="Login">POST /api/auth/login</DocFact>
 <DocFact label="Status">GET /api/auth/status (anonymous)</DocFact>
+<DocFact label="Connection">GET /api/connection (anonymous)</DocFact>
+<DocFact label="Entitlements">GET /api/entitlements</DocFact>
 <DocFact label="Lifetime">24 hours, or AGENTUP_SESSION_LIFETIME_SECONDS</DocFact>
 </DocFacts>
 
-The Server starts even when `AGENTUP_ADMIN_PASSWORD` is unset. REST routes remain protected in that mode, but login cannot succeed until the password is configured.
+`AGENTUP_AUTH_MODE` selects how credentials are validated:
+
+- `localAdministrator` (default): `AGENTUP_ADMIN_PASSWORD` for `POST /api/auth/login`, which returns an in-memory bearer token.
+- `externalBearer`: login is rejected. Present a signed JWT whose `iss`, `aud`, and HMAC key match `AGENTUP_EXTERNAL_ISSUER`, `AGENTUP_EXTERNAL_AUDIENCE`, and `AGENTUP_EXTERNAL_SIGNING_KEY`. Optional claims: `workspace`, `tenant`, and repeated `permissions` values. A `workspace` claim binds the caller to that workspace id. Protected operations require the matching `permissions` claim; a token with none can still read `GET /api/entitlements`.
+- `disabled`, or `AGENTUP_AUTH_DISABLED=true`: REST authentication is off.
+
+`GET /api/connection` returns anonymous connection metadata: `kind` (`selfHosted`), `workspacePresentation` (`serverScoped`), and `authentication` (`mode`, `prompt`, `identifierRequired`). Clients use `mode` and `prompt` to render sign-in; they must not infer capabilities from `kind`. `localAdministrator` is a password form. `browserSso` opens the server's `/api/auth/sso` start URL in a browser. The OSS Server never emits `browserSso`. `Examples/browser-sso` is a runnable identity front door that does, so Mobile can be exercised against that contract. `identifierRequired` is unused.
+
+`GET /api/entitlements` returns the authenticated permission document. Feature keys are operation permissions (`workspace.read`, `agent.prompt`, `git.write`, and the rest of the Server operation set). A self-hosted Server always returns `source: selfHosted`, `edition: community`, `billing: free`, and every operation `available: true`. Clients render this document; they must not branch on edition names.
+
+The Server starts even when `AGENTUP_ADMIN_PASSWORD` is unset. REST routes remain protected in that mode, but local administrator login cannot succeed until the password is configured.
 
 For local development, copy `.env.example` to `.env` in the repository root. Server, Desktop, and CLI load that file on startup when present. Existing shell environment variables are not overridden.
 
@@ -118,7 +131,7 @@ Desktop displays workspaces, connects to one Server at a time, and may remember 
 
 On first start, Desktop shows a required setup tutorial over the normal application shell unless the user has already completed or skipped it. Native Desktop E2E tests set `AGENTUP_SKIP_FIRST_RUN_TUTORIAL=1`. Installed Desktop artifacts connect to `http://localhost:5000` by default.
 
-Mobile displays Server-owned workspace state and submits requests. It signs in to one Server; the sidebar Server row shows that URL and Logout, which returns to the connect screen and its recent-server list. Workspace chrome is Apps, Git, Agents, and Settings; Settings hosts capability modules. It subscribes to `GET /api/workspaces/events` so Apps-tab start/stop controls and status LEDs follow Server lifecycle and port health. Route entrypoints stay under `src/app/`; product UI lives under `src/features/`. Remote servers must use HTTPS; loopback HTTP remains for local development. Run `./au-debug test mobile` before submitting mobile client changes. Maintainer visual comparison uses [`au-debug`](/developer-guide/repo/au-debug).
+Mobile displays Server-owned workspace state and submits requests. The sidebar Server section lists the saved connections and offers Logout, which returns to the connect screen. Workspace chrome is Apps, Git, Agents, and Settings; Settings hosts capability modules. It subscribes to `GET /api/workspaces/events` so Apps-tab start/stop controls and status LEDs follow Server lifecycle and port health. Route entrypoints stay under `src/app/`; product UI lives under `src/features/`. Remote servers must use HTTPS; loopback HTTP remains for local development. When `EXPO_PUBLIC_RECOMMENDED_SERVER_URL` or `AGENTUP_RECOMMENDED_SERVER_URL` is set, that connection is always listed first and cannot be removed. If login is required, Mobile reads `GET /api/connection` for the sign-in prompt and whether to open `/api/auth/sso` or the password form. The workspace list renders `GET /api/entitlements` as an edition card keyed by operation permissions and hides Add workspace when `workspace.create` is unavailable. Run `./au-debug test mobile` before submitting mobile client changes. Maintainer visual comparison uses [`au-debug`](/developer-guide/repo/au-debug).
 
 <DocNext href="/developer-guide/workspaces/workflows" title="Workflows">
 Modify, restart, inspect, validate.

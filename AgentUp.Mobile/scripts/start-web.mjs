@@ -12,6 +12,10 @@ const result = spawnSync(resolveExpoCli(), ['start', '--web', '--lan', '--port',
     EXPO_PUBLIC_AGENT_UP_WORKSPACE_ID: process.env.AGENT_UP_WORKSPACE_ID,
     EXPO_PUBLIC_AGENT_UP_APPLICATION: process.env.AGENT_UP_APPLICATION,
     EXPO_PUBLIC_AGENT_UP_AUDIT_ENDPOINT: process.env.AGENT_UP_AUDIT_ENDPOINT,
+    EXPO_PUBLIC_RECOMMENDED_SERVER_URL:
+      process.env.EXPO_PUBLIC_RECOMMENDED_SERVER_URL ?? process.env.AGENTUP_RECOMMENDED_SERVER_URL,
+    EXPO_PUBLIC_RECOMMENDED_SERVER_NAME:
+      process.env.EXPO_PUBLIC_RECOMMENDED_SERVER_NAME ?? process.env.AGENTUP_RECOMMENDED_SERVER_NAME,
   },
   stdio: 'inherit',
   shell: false,

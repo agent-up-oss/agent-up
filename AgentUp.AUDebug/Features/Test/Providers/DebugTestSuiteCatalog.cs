@@ -17,10 +17,11 @@ public sealed class DebugTestSuiteCatalog : IDebugTestSuiteCatalog
         Suite("desktop", "Desktop tests", Dotnet("AgentUp.Desktop.Tests")),
         Suite(
             "mobile",
-            "Mobile typecheck, tests, and web export",
+            "Mobile typecheck, tests, web export, and browser-SSO example",
             Npm("AgentUp.Mobile", "run", "typecheck"),
             Npm("AgentUp.Mobile"),
-            Npm("AgentUp.Mobile", "run", "build:web")),
+            Npm("AgentUp.Mobile", "run", "build:web"),
+            Npm("Examples/browser-sso")),
         Suite("au-debug", "AUDebug tests", Dotnet("AgentUp.AUDebug.Tests")),
         Suite("architecture", "Architecture tests", Dotnet("AgentUp.Architecture.Tests")),
     ];

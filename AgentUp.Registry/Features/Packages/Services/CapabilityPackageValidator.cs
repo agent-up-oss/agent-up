@@ -43,8 +43,10 @@ public sealed class CapabilityPackageValidator
         {
             if (string.IsNullOrWhiteSpace(pin.Rev))
                 messages.Add("Capability package nix.nixpkgs.rev is required when nixpkgs is set.");
-            if (string.IsNullOrWhiteSpace(pin.Sha256))
-                messages.Add("Capability package nix.nixpkgs.sha256 is required when nixpkgs is set.");
+            // Optional, because nothing resolves packages by it. Checked only for shape, so a
+            // publisher that records one cannot record something that is not a hash at all.
+            if (pin.Sha256 is { } sha256 && !sha256.StartsWith("sha256-", StringComparison.Ordinal))
+                messages.Add("Capability package nix.nixpkgs.sha256 must be an SRI hash.");
         }
 
         messages.AddRange(nix.Packages

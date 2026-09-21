@@ -14,6 +14,7 @@ public sealed class MobileLoginScriptProviderTests
 
         Assert.That(script, Does.Contain("http://localhost:5001"));
         Assert.That(script, Does.Contain("Try and save"));
+        Assert.That(script, Does.Contain("Add server"));
         Assert.That(script, Does.Contain("Sign in"));
         Assert.That(script, Does.Contain("waitSignIn"));
         Assert.That(script, Does.Contain("\"test\""));

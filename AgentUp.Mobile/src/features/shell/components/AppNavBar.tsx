@@ -31,6 +31,7 @@ export function AppNavBar() {
       <Text accessibilityRole="header" numberOfLines={1} style={styles.title}>{config.title}</Text>
       {rightAction
         ? <Pressable
+            testID="shell-right-action"
             accessibilityRole="button"
             accessibilityLabel={rightAction.accessibilityLabel ?? rightAction.label}
             onPress={rightAction.onPress}

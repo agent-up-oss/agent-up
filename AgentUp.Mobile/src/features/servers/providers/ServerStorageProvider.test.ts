@@ -56,6 +56,12 @@ test('upsertServer adds a new server and selects it', () => {
   assert.equal(next.activeServerId, next.servers[0].id);
 });
 
+test('upsertServer marks a tokenless server as open access', () => {
+  const next = upsertServer(empty, 'http://localhost:5000');
+  assert.equal(next.servers[0].openAccess, true);
+  assert.equal(upsertServer(next, 'http://localhost:5000', 'token-1').servers[0].openAccess, false);
+});
+
 test('upsertServer keeps the saved token when reconnecting without a new one', () => {
   const saved = upsertServer(empty, 'http://localhost:5000', 'token-1');
   const next = upsertServer(saved, 'http://localhost:5000');

@@ -10,7 +10,6 @@ internal static class RegistryDomain
     public const string Publisher = "agent-up";
     public const string SchemaVersion = "1";
     public const string NixpkgsRev = "b134951a4c9f3c995fd7be05f9a8dafa8c4ffb90";
-    public const string NixpkgsSha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
     public static CapabilityPackageManifest DotnetPackage()
         => new()
@@ -24,7 +23,7 @@ internal static class RegistryDomain
             Platforms = ["linux", "macos"],
             Nix = new CapabilityNixSpec
             {
-                Nixpkgs = new CapabilityNixpkgsPin { Rev = NixpkgsRev, Sha256 = NixpkgsSha256 },
+                Nixpkgs = new CapabilityNixpkgsPin { Rev = NixpkgsRev },
                 Packages = ["dotnet-sdk_10"]
             },
             Provides = ["dotnet"],

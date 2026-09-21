@@ -619,14 +619,37 @@ The Server owns all orchestration:
 - Health monitoring.
 - Playwright generation.
 - One ACP agent session per workspace, including process lifecycle, prompts, permission decisions, and event streaming.
-- MCP server.
-- REST API.
+- MCP servers.
+- REST API, including anonymous connection metadata and the authenticated entitlement document keyed by operation permissions.
 
 No orchestration logic belongs in Desktop, CLI, or MCP clients.
 
-The Server requires its single administrator to log in with the password from
-`AGENTUP_ADMIN_PASSWORD` when authentication is enabled. REST authorization is
-required by default for every route unless the endpoint explicitly opts out.
+The Server requires authentication by default. `GET /api/auth/status` and
+`POST /api/auth/login` are anonymous so clients can decide whether to display
+sign-in. Password login is for `localAdministrator` mode using
+`AGENTUP_ADMIN_PASSWORD`. Set `AGENTUP_AUTH_MODE=externalBearer` to accept a
+signed bearer token instead of the local administrator password; configure
+`AGENTUP_EXTERNAL_ISSUER`, `AGENTUP_EXTERNAL_AUDIENCE`, and
+`AGENTUP_EXTERNAL_SIGNING_KEY`. A token may include `workspace`, `tenant`, and
+repeated `permissions` claims. When `workspace` is present, the Server refuses
+other workspace ids under `/api/workspaces`.
+
+`GET /api/connection` is anonymous connection metadata (`kind`, authentication
+mode, sign-in prompt, whether a username is required). `GET /api/entitlements`
+is the authenticated permission document clients render: feature keys are
+operation permissions such as `agent.prompt` and `git.write`, not product
+editions. A self-hosted Server always returns the community document with every
+operation available.
+
+`Examples/browser-sso` is a runnable identity front door that advertises `browserSso`
+and returns a restricted entitlement document. The OSS Server itself never emits
+`browserSso`.
+
+Desktop and Mobile may list a recommended connection from
+`AGENTUP_RECOMMENDED_SERVER_URL` / `EXPO_PUBLIC_RECOMMENDED_SERVER_URL`. When
+set, that URL stays in the connection list and cannot be removed. Leave it
+unset for a local-only client.
+
 Set `AGENTUP_AUTH_DISABLED=true` only for an intentionally unauthenticated Server.
 The Server starts even when `AGENTUP_ADMIN_PASSWORD` is unset; login succeeds only
 after that password is configured. For local development, Server, Desktop, and
@@ -664,7 +687,7 @@ Full guide: `docs/developer-guide/repo/au-debug.md`.
 
 The mobile client is a single Expo and React Native TypeScript project that targets Android, iOS, and an installable web PWA. It lives in `AgentUp.Mobile/` at the repository root and is not part of `agent-up.sln`.
 
-Mobile route entrypoints stay thin under `src/app/`; product UI and client behavior live in capability-oriented slices under `src/features/`. Do not commit Expo-generated `android/` or `ios/` projects unless native customization is intentionally adopted. Native signed Android and iOS binaries are built by `.github/workflows/mobile-ci.yaml`: a shared Mobile test job gates both native builds, path-filtered pushes smoke build and sign, and `workflow_dispatch` publishes to the stores. They are not part of the `ci.yml` desktop release. The mobile client displays Server-owned state and must not own orchestration. It can save multiple Server URLs. Only one is signed in; Logout on the sidebar Server row returns to the connect screen, where recent Servers can be opened one at a time. Switching drops client-local workspace state.
+Mobile route entrypoints stay thin under `src/app/`; product UI and client behavior live in capability-oriented slices under `src/features/`. Do not commit Expo-generated `android/` or `ios/` projects unless native customization is intentionally adopted. Native signed Android and iOS binaries are built by `.github/workflows/mobile-ci.yaml`: a shared Mobile test job gates both native builds, path-filtered pushes smoke build and sign, and `workflow_dispatch` publishes to the stores. They are not part of the `ci.yml` desktop release. The mobile client displays Server-owned state and must not own orchestration. It can save multiple Server URLs and switch among them; sign-in tokens stay on the device per connection. Only one is active, and switching drops client-local workspace state. Logout on the sidebar Server section returns to the connect screen.
 
 Mobile application spaces load each application's HTTP interface in a native WebView (or web iframe). The Server reverse-proxies that traffic over the authenticated HTTPS Server origin so dynamically allocated loopback ports stay private to the Server host and are never published through the public reverse proxy. Mobile first requests a short-lived single-use ticket over Bearer REST, then navigates the WebView to the ticket bootstrap URL. Native WebViews send that ticket in the `X-Agent-Up-Ticket` header; the installable web client places it in the URL fragment so it is not logged as a query string. The Server ignores query-string tickets, sets an HttpOnly cookie, and redirects to `/` so the application is rendered at origin root. Subsequent document, asset, and WebSocket requests on unmatched Server paths use that cookie. Token-bearing ticket requests and ticket or session acceptance reject remote plaintext HTTP except for loopback development URLs. The Server decides that from the TLS connection or loopback peer, not from a client-supplied forwarded scheme header.
 
@@ -865,7 +888,7 @@ The three end-to-end jobs hold a runner for tens of minutes, one of them macOS. 
 
 Expo generates `AgentUp.Mobile/ios/` and `AgentUp.Mobile/android/` during those jobs and they stay uncommitted. `.github/scripts/install-mobile-deps.sh` installs mobile dependencies for CI without the `nix-shell` wrapper the repository npm scripts use: those runners have no Nix and do have Xcode and Android toolchains that the wrapper's replaced `PATH` would break. It runs the same underlying commands, including `AgentUp.DesignSystem/scripts/build.mjs --check` so stale committed design-system outputs fail instead of being rewritten; only the shell wrapper is skipped. This is the second documented exception alongside `build:cloudflare`.
 
-Changes under `AgentUp.Mobile/` must run `./au-debug test mobile` (typecheck, tests, and web export). Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
+Changes under `AgentUp.Mobile/` must run `./au-debug test mobile` (typecheck, tests, web export, and the browser-SSO example HTTP tests). Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
 
 Every public mobile npm script must invoke its Expo or TypeScript command through the repository `shell.nix`, except `build:cloudflare`, which runs the shared web-export entrypoint directly in Cloudflare Pages' Node.js build image. GitHub Actions jobs in `.github/workflows/mobile-ci.yaml` also invoke Expo from `AgentUp.Mobile` and Fastlane from the repository root on GitHub-hosted runners that do not enter `shell.nix`; do not add matching public npm scripts. Do not add other duplicate direct or `:nix` script variants. Expo commands must use the local `node_modules/.bin` CLI, and TypeScript commands must use `npx`; `nix-shell` replaces `PATH`, so a bare `expo` or `tsc` binary is not available. Keep Node.js, `zip`, `unzip`, `NIX_LD`, `patchelf`, the DotSlash DevTools preparation, and the React Native DevTools Electron runtime libraries in `shell.nix` so NixOS launches use the same reproducible environment.
 

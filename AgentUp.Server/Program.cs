@@ -31,6 +31,7 @@ app.UseCors(AgentUp.Server.Shared.Providers.WebClientOriginProvider.PolicyName);
 app.UseMiddleware<IMcpNetworkRestrictionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<IWorkspaceBindingMiddleware>();
 app.MapControllers();
 app.MapMcp("/mcp/commits").WithMetadata(new AllowAnonymousAttribute());
 app.MapMcp("/mcp/verification").WithMetadata(new AllowAnonymousAttribute());

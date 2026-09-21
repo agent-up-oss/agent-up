@@ -1,0 +1,15 @@
+{
+  "name": "agent-up-browser-sso-example",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Identity front door that speaks the Agent-Up browserSso connection contract",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test server.test.mjs",
+    "test:e2e": "playwright test --config e2e/playwright.config.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.1"
+  }
+}

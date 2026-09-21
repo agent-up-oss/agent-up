@@ -5,9 +5,10 @@ namespace AgentUp.Capabilities.Common.Features.NixRuntime.Models;
 public static class FirstPartyNixPin
 {
     public const string Rev = "b134951a4c9f3c995fd7be05f9a8dafa8c4ffb90";
-    public const string Sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
-    public static CapabilityNixpkgsPin Nixpkgs { get; } = new() { Rev = Rev, Sha256 = Sha256 };
+    // The commit is the pin. First-party packages record no sha256 rather than the placeholder
+    // they used to ship to satisfy a check that nothing verified.
+    public static CapabilityNixpkgsPin Nixpkgs { get; } = new() { Rev = Rev };
 
     public static string DefaultNix(IReadOnlyList<string> packages)
     {
