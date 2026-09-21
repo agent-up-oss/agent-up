@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using AgentUp.Registry.Shared.Providers;
 
 namespace AgentUp.Registry.Features.RemoteCatalog.Providers;
 
@@ -20,18 +21,12 @@ public sealed class PackageArchiveProvider
 
     public string Unzip(byte[] archive, string destinationRoot, string id, string version)
     {
-        var destination = Path.Join(destinationRoot, Encode(id), Encode(version));
+        var root = Path.GetFullPath(destinationRoot);
+        var destination = Path.Join(root, RegistryPathValidator.Segment(id), RegistryPathValidator.Segment(version));
         Directory.CreateDirectory(destination);
         using var stream = new MemoryStream(archive);
         using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
         zip.ExtractToDirectory(destination, overwriteFiles: true);
         return destination;
-    }
-
-    private static string Encode(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value) || value.Contains('/') || value.Contains('\\') || value.Contains('\0'))
-            throw new InvalidOperationException("Capability package id and version must not contain path separators.");
-        return value;
     }
 }

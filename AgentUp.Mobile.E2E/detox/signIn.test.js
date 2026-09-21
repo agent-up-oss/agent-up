@@ -19,10 +19,10 @@ const { connectLaunchUrl } = require('../../AgentUp.Mobile.E2E.App/src/connectLa
 
 // Named here rather than imported, so the matrix is readable without opening the harness.
 const SCENARIOS = [
-  { name: 'device code', flow: 'device', codexSchema: 'device', kind: 'Codex', transport: 'code' },
-  { name: 'pasted code', flow: 'paste', codexSchema: 'device', kind: 'Claude', transport: 'code' },
-  { name: 'poll until approved', flow: 'poll', codexSchema: 'device', kind: 'Cursor', transport: 'poll' },
-  { name: 'loopback redirect', flow: 'redirect', codexSchema: 'redirect', kind: 'Codex', transport: 'redirect' },
+  { name: 'device code', flow: 'device', codexSchema: 'device', agentId: 'codex', transport: 'code' },
+  { name: 'pasted code', flow: 'paste', codexSchema: 'device', agentId: 'claude', transport: 'code' },
+  { name: 'poll until approved', flow: 'poll', codexSchema: 'device', agentId: 'cursor', transport: 'poll' },
+  { name: 'loopback redirect', flow: 'redirect', codexSchema: 'redirect', agentId: 'codex', transport: 'redirect' },
 ];
 
 describe('agent sign-in', () => {
@@ -76,7 +76,7 @@ describe('agent sign-in', () => {
       await flow.beforeStart?.({ control: stack.control });
 
       // The harness mounts the chat directly, so the agent picker is the first thing here.
-      await tap(`agent-picker-${scenario.kind}`, 60_000);
+      await tap(`agent-picker-${scenario.agentId}`, 60_000);
 
       const offered = await harness.waitForAgentState(stack.serverUrl, stack.workspace.id, 'authentication_required');
       const methodId = offered.authMethods?.[0]?.id;

@@ -134,16 +134,18 @@ public sealed class RuntimeCapabilityValidationE2ETests
         var registry = PackRuntimeCapabilities(root);
         var enabledPath = Path.Join(registry, "enabled.json");
         await File.WriteAllTextAsync(enabledPath, """{"schemaVersion":"1","modules":[]}""");
+        Stage($"Capability registry ready at {registry}.");
 
         var started = Stopwatch.StartNew();
         Server = await DesktopStreamingServer.StartAsync(registry, enabledPath);
         Server.Client.Timeout = WorkspaceHttpTimeout;
-        TestContext.Progress.WriteLine($"Runtime capability Server listening at {Server.BaseUri}.");
+        Stage($"Runtime capability Server listening at {Server.BaseUri}.");
 
         Desktop = await DesktopBrowserHarness.LaunchAgainstServerAsync(
             Server.BaseUri,
             waitForWebView: false,
             httpTimeout: WorkspaceHttpTimeout);
+        Stage("Desktop mounted against the Server.");
         await Dispatcher.UIThread.InvokeAsync(async () =>
         {
             var modules = Desktop.ViewModel.Modules
@@ -155,6 +157,7 @@ public sealed class RuntimeCapabilityValidationE2ETests
             AssertEnabledOnUi("docker");
             modules.Close();
         });
+        Stage("Desktop enabled the dotnet and docker capability modules.");
 
         var request = await Server.GetRequiredService<OrchestrationRegistrationService>().BuildAsync(root, CancellationToken.None);
         Assert.That(request, Is.Not.Null);
@@ -169,6 +172,7 @@ public sealed class RuntimeCapabilityValidationE2ETests
         using var body = JsonDocument.Parse(await created.Content.ReadAsStringAsync());
         var workspaceId = body.RootElement.GetProperty("id").GetString()
             ?? throw new InvalidOperationException("The Server did not return a workspace id.");
+        Stage($"Registered workspace {workspaceId}; starting it from Desktop.");
 
         var startError = await Dispatcher.UIThread.InvokeAsync(async () =>
         {
@@ -182,6 +186,7 @@ public sealed class RuntimeCapabilityValidationE2ETests
         if (!string.IsNullOrWhiteSpace(startError))
             Assert.Fail($"{startError}{await FormatWorkspaceOutputAsync(workspaceId)}");
 
+        Stage("Desktop started the workspace; waiting for its applications.");
         await WaitForWorkspaceApplicationsAsync(workspaceId);
         await WaitForAllocatedHttpPortAsync(workspaceId, "Docs");
         await WaitForAllocatedHttpPortAsync(workspaceId, ExampleWeb);
@@ -190,8 +195,17 @@ public sealed class RuntimeCapabilityValidationE2ETests
             (await WaitForHealthyAsync(health)).Dispose();
         await WaitForApplicationTabAsync(ExampleWeb);
         await Desktop.WaitForWorkspaceWebViewAsync(TimeSpan.FromMinutes(2));
-        TestContext.Progress.WriteLine($"Root agent-up.json workspace is running after {started.Elapsed}.");
+        Stage($"Root agent-up.json workspace is running after {started.Elapsed}.");
         return workspaceId;
+    }
+
+    // Most of this fixture runs before the first assertion, so when the run dies inside it the
+    // only account of how far it got is what was printed on the way. Progress alone is not enough:
+    // it reaches the console only at detailed verbosity, which is why the CI job asks for it.
+    private static void Stage(string message)
+    {
+        TestContext.Progress.WriteLine(message);
+        TestContext.Out.WriteLine(message);
     }
 
     private static async Task<int> WaitForAllocatedHttpPortAsync(string workspaceId, string application)

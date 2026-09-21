@@ -8,13 +8,13 @@ import { AGENT_PROFILES, hostOriginFor, profilesFor, serverEnvironment } from '.
 import { freePort, portWindow } from '../harness/stack.mjs';
 import { waitFor } from '../harness/wait.mjs';
 
-test('each stack serves three agent kinds, with the Codex slot chosen explicitly', () => {
+test('each stack serves three agent modules, with the codex slot chosen explicitly', () => {
   const device = profilesFor('device');
   const redirect = profilesFor('redirect');
 
-  assert.deepEqual(device.map(p => p.kind).sort(), ['Claude', 'Codex', 'Cursor']);
-  assert.equal(device.find(p => p.kind === 'Codex').agent, 'test-agent2');
-  assert.equal(redirect.find(p => p.kind === 'Codex').agent, 'test-agent1');
+  assert.deepEqual(device.map(p => p.agentId).sort(), ['claude', 'codex', 'cursor']);
+  assert.equal(device.find(p => p.agentId === 'codex').agent, 'test-agent2');
+  assert.equal(redirect.find(p => p.agentId === 'codex').agent, 'test-agent1');
   assert.throws(() => profilesFor('poll'), /takes 'device' or 'redirect'/);
 });
 
@@ -28,20 +28,20 @@ test('the Server is told each agent command, login command, and the transport it
     urls: 'http://0.0.0.0:9100',
   });
 
-  assert.equal(environment.Agents__Codex__Command, '/tmp/bin/test-agent2');
-  assert.equal(environment.Agents__Codex__Arguments__0, 'acp');
-  assert.equal(environment.Agents__Codex__LoginCommand, '/tmp/bin/test-agent2');
-  assert.equal(environment.Agents__Codex__LoginArguments__0, 'login');
-  assert.equal(environment.Agents__Codex__LoginTransport, 'device');
-  assert.equal(environment.Agents__Claude__LoginTransport, 'paste');
-  assert.equal(environment.Agents__Cursor__LoginTransport, 'poll');
+  assert.equal(environment.Agents__codex__Command, '/tmp/bin/test-agent2');
+  assert.equal(environment.Agents__codex__Arguments__0, 'acp');
+  assert.equal(environment.Agents__codex__LoginCommand, '/tmp/bin/test-agent2');
+  assert.equal(environment.Agents__codex__LoginArguments__0, 'login');
+  assert.equal(environment.Agents__codex__LoginTransport, 'device');
+  assert.equal(environment.Agents__claude__LoginTransport, 'paste');
+  assert.equal(environment.Agents__cursor__LoginTransport, 'poll');
   // The login process needs to know which provider to sign in against and which agent it is.
-  assert.equal(environment.Agents__Claude__LoginEnvironment__AGENTUP_TEST_IDP_URL, 'http://localhost:9000');
-  assert.equal(environment.Agents__Claude__LoginEnvironment__AGENTUP_TEST_AGENT, 'test-agent3');
+  assert.equal(environment.Agents__claude__LoginEnvironment__AGENTUP_TEST_IDP_URL, 'http://localhost:9000');
+  assert.equal(environment.Agents__claude__LoginEnvironment__AGENTUP_TEST_AGENT, 'test-agent3');
   // And where the person reaches it, which on a device is somewhere else entirely. Without this
   // an agent prints a link on its own origin and the device cannot open it.
   assert.equal(
-    environment.Agents__Claude__LoginEnvironment__AGENTUP_TEST_IDP_PUBLIC_ORIGIN,
+    environment.Agents__claude__LoginEnvironment__AGENTUP_TEST_IDP_PUBLIC_ORIGIN,
     'http://10.0.2.2:9000',
   );
   // Agent sign-in is the subject; Server sign-in is not.
@@ -76,8 +76,8 @@ test('the Server is given deadlines short enough to fail a hung sign-in legibly'
     completionTimeoutSeconds: 45,
   });
 
-  assert.equal(environment.Agents__Codex__LoginChallengeTimeoutSeconds, '15');
-  assert.equal(environment.Agents__Codex__LoginCompletionTimeoutSeconds, '45');
+  assert.equal(environment.Agents__codex__LoginChallengeTimeoutSeconds, '15');
+  assert.equal(environment.Agents__codex__LoginCompletionTimeoutSeconds, '45');
 });
 
 // An Android emulator is a separate network namespace. Getting this wrong is not a flake, it is a

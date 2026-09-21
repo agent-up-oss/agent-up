@@ -39,6 +39,43 @@ public sealed class RegistryCatalogHttpTests
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 
+    /// <summary>
+    /// A push must land under the registry the configuration names.
+    /// </summary>
+    /// <remarks>
+    /// A test host applies its configuration while the host is being built, so a registry root
+    /// read any earlier falls back to the content root - which, when the Registry runs from its
+    /// own project, is the working copy. That is how packages ended up committed under
+    /// <c>AgentUp.Registry/</c>.
+    /// </remarks>
+    [Test]
+    public async Task Authorized_push_stores_the_package_under_the_configured_registry()
+    {
+        var registry = CreateRegistryRoot();
+        using var factory = CreateFactory(registry);
+        using var client = factory.CreateClient();
+        using var content = new ByteArrayContent(ZipDotnetPackage());
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/zip");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "secret-token");
+
+        using var push = await client.PutAsync(
+            $"/packages/{RegistryDomain.DotnetId}/{RegistryDomain.DotnetVersion}",
+            content);
+
+        Assert.That(push.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        Assert.Multiple(() =>
+        {
+            Assert.That(
+                File.Exists(Path.Join(registry, "packages", RegistryDomain.DotnetId, RegistryDomain.DotnetVersion, "capability.json")),
+                Is.True,
+                "the pushed package belongs to the configured registry root");
+            Assert.That(
+                Directory.Exists(Path.Join(registry, "staging")),
+                Is.True,
+                "the archive is staged inside the registry root, not beside the running project");
+        });
+    }
+
     [Test]
     public async Task Authorized_push_then_list_and_download_round_trips_the_package()
     {
@@ -75,11 +112,14 @@ public sealed class RegistryCatalogHttpTests
         return stream.ToArray();
     }
 
-    private static WebApplicationFactory<AgentUp.Registry.Program> CreateFactory()
+    private static string CreateRegistryRoot()
+        => Directory.CreateDirectory(
+            Path.Join(Path.GetTempPath(), "agent-up-http-registry-" + Guid.NewGuid().ToString("N"))).FullName;
+
+    private static WebApplicationFactory<AgentUp.Registry.Program> CreateFactory(string? registryRoot = null)
         => new WebApplicationFactory<AgentUp.Registry.Program>().WithWebHostBuilder(builder =>
         {
-            var registry = Path.Join(Path.GetTempPath(), "agent-up-http-registry-" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(registry);
+            var registry = registryRoot ?? CreateRegistryRoot();
             builder.ConfigureAppConfiguration((_, config) =>
             {
                 config.AddInMemoryCollection(new Dictionary<string, string?>

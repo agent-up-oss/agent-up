@@ -1,4 +1,5 @@
 using AgentUp.Registry.Features.RemoteCatalog.DTOs;
+using AgentUp.Registry.Shared.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgentUp.Registry.Features.RemoteCatalog.Controllers;
@@ -7,7 +8,7 @@ namespace AgentUp.Registry.Features.RemoteCatalog.Controllers;
 [Route("packages")]
 public sealed class RegistryCatalogHttpController(
     RemoteCatalogController catalog,
-    IWebHostEnvironment environment,
+    IRegistryPathValidator paths,
     IConfiguration configuration)
     : ControllerBase
 {
@@ -42,5 +43,7 @@ public sealed class RegistryCatalogHttpController(
         return stream.ToArray();
     }
 
-    private string StagingRoot() => Path.Join(environment.ContentRootPath, "staging");
+    // The registry root, not the content root: staging beside the running project writes a pushed
+    // package into the working copy when the Registry runs from its own project directory.
+    private string StagingRoot() => Path.Join(paths.RegistryRoot, "staging");
 }

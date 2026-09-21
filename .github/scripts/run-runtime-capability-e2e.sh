@@ -36,13 +36,21 @@ run_xvfb() {
 }
 
 mkdir -p artifacts/test-results/runtime-capability-e2e
+# This flow spends most of its time inside the fixture, before any assertion: starting the
+# Server, mounting Desktop, enabling modules, then installing and launching five applications.
+# At the default verbosity none of the fixture's progress reaches the job log, so a test host
+# that dies takes the only account of how far it got with it - which is what "Test host process
+# crashed" and nothing else looked like. The detailed logger prints that progress as it happens,
+# and --blame-crash leaves a dump in the results directory the job already uploads.
 test_cmd=(
   dotnet test "AgentUp.Tests/AgentUp.Tests.csproj"
   --configuration Release
   --results-directory "artifacts/test-results/runtime-capability-e2e"
   --settings "coverlet.runsettings"
   --logger "trx;LogFileName=runtime-capability-e2e.trx"
+  --logger "console;verbosity=detailed"
   --filter "Category=RuntimeCapabilityE2E"
+  --blame-crash
   --blame-hang
   --blame-hang-timeout 25m
 )
