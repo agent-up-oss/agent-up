@@ -193,7 +193,7 @@ jobs:
         if: ${{ steps.restored.outputs.usable != 'true' }}
         run: ./.github/scripts/install-android-ndk.sh AgentUp.Mobile.E2E.App
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
         if: ${{ steps.restored.outputs.usable != 'true' }}
         with:
           # Off by default on anything but the default branch, which means a branch never seeds
