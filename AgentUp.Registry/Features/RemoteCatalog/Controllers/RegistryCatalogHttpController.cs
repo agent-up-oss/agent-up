@@ -25,7 +25,7 @@ public sealed class RegistryCatalogHttpController(
         if (!IsAuthorized())
             return Unauthorized();
 
-        catalog.Import(new RemotePackageBytesDto(id, version, await ReadBodyAsync(cancellationToken)), StagingRoot());
+        catalog.Import(new RemotePackageBytesDto(id, version, await ReadBodyAsync(cancellationToken)), paths.StagingRoot);
         return NoContent();
     }
 
@@ -42,8 +42,4 @@ public sealed class RegistryCatalogHttpController(
         await Request.Body.CopyToAsync(stream, cancellationToken);
         return stream.ToArray();
     }
-
-    // The registry root, not the content root: staging beside the running project writes a pushed
-    // package into the working copy when the Registry runs from its own project directory.
-    private string StagingRoot() => Path.Join(paths.RegistryRoot, "staging");
 }

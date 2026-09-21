@@ -19,7 +19,7 @@ public sealed class RemoteCatalogControllerTests
     public void ListLocal_returns_the_service_catalog()
     {
         var controller = new RemoteCatalogController(
-            new RemoteCatalogService(CreateLocal(), new PackageArchiveProvider()));
+            new RemoteCatalogService(CreateLocal(), new PackageArchiveProvider(RegistryDomain.Paths(RegistryDomain.RegistryRoot))));
 
         Assert.That(controller.ListLocal().Packages, Is.Empty);
     }
@@ -28,7 +28,7 @@ public sealed class RemoteCatalogControllerTests
     public void Export_throws_when_the_package_is_missing()
     {
         var controller = new RemoteCatalogController(
-            new RemoteCatalogService(CreateLocal(), new PackageArchiveProvider()));
+            new RemoteCatalogService(CreateLocal(), new PackageArchiveProvider(RegistryDomain.Paths(RegistryDomain.RegistryRoot))));
 
         Assert.That(
             () => controller.Export(RegistryDomain.DotnetId, RegistryDomain.DotnetVersion),

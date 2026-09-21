@@ -28,7 +28,7 @@ public sealed class RemoteCatalogServiceTests
                     RegistryDomain.Publisher,
                     "runtime")
             ]);
-        var service = new RemoteCatalogService(CreateLocal(), new PackageArchiveProvider(), remote);
+        var service = new RemoteCatalogService(CreateLocal(), new PackageArchiveProvider(RegistryDomain.Paths(RegistryDomain.RegistryRoot)), remote);
 
         var list = await service.RefreshFromRemoteAsync(CancellationToken.None);
 
@@ -38,7 +38,7 @@ public sealed class RemoteCatalogServiceTests
     [Test]
     public void RefreshFromRemoteAsync_requires_a_configured_client()
     {
-        var service = new RemoteCatalogService(CreateLocal(), new PackageArchiveProvider());
+        var service = new RemoteCatalogService(CreateLocal(), new PackageArchiveProvider(RegistryDomain.Paths(RegistryDomain.RegistryRoot)));
 
         Assert.That(
             async () => await service.RefreshFromRemoteAsync(CancellationToken.None),
@@ -49,7 +49,7 @@ public sealed class RemoteCatalogServiceTests
     public void PushToRemoteAsync_requires_a_local_package()
     {
         var remote = new CapturingRemote();
-        var service = new RemoteCatalogService(CreateLocal(), new PackageArchiveProvider(), remote);
+        var service = new RemoteCatalogService(CreateLocal(), new PackageArchiveProvider(RegistryDomain.Paths(RegistryDomain.RegistryRoot)), remote);
 
         Assert.That(
             async () => await service.PushToRemoteAsync(RegistryDomain.DotnetId, RegistryDomain.DotnetVersion, "token", CancellationToken.None),

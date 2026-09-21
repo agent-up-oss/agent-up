@@ -24,7 +24,29 @@ public sealed class RegistryPathValidator : IRegistryPathValidator
     /// derived from the content root is the working copy when the Registry runs from its own
     /// project directory.
     /// </summary>
-    public string ResolveStagingDirectory(string id, string version) => Resolve("staging", id, version);
+    public string StagingRoot => Path.Join(RegistryRoot, "staging");
+
+    /// <summary>
+    /// The canonical form of a path the registry is about to read from or write to, rejected
+    /// when it resolves outside the registry root.
+    /// </summary>
+    /// <remarks>
+    /// Package directories and staging roots are registry storage. Checking containment where
+    /// the path is used, and not only where it was built, keeps a caller that assembles one
+    /// itself from reaching the filesystem with it.
+    /// </remarks>
+    public string RequireWithinRoot(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            throw new InvalidOperationException("Capability registry path is required.");
+
+        var full = Path.GetFullPath(path);
+        var root = RegistryRoot.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        if (!full.StartsWith(root, StringComparison.Ordinal))
+            throw new InvalidOperationException("Capability package path escaped the registry root.");
+
+        return full;
+    }
 
     private string Resolve(string area, string id, string version)
     {

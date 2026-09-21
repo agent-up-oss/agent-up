@@ -1,4 +1,5 @@
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
+using AgentUp.Registry.Shared.Providers;
 
 namespace AgentUp.Registry.Tests.Support;
 
@@ -10,6 +11,14 @@ internal static class RegistryDomain
     public const string Publisher = "agent-up";
     public const string SchemaVersion = "1";
     public const string NixpkgsRev = "b134951a4c9f3c995fd7be05f9a8dafa8c4ffb90";
+
+    /// <summary>
+    /// A registry root for a test whose subject never touches the filesystem, so that the path
+    /// validator every storage provider now requires has one name across the project.
+    /// </summary>
+    public static string RegistryRoot => Path.Join(Path.GetTempPath(), "agent-up-registry");
+
+    public static RegistryPathValidator Paths(string registryRoot) => new(registryRoot);
 
     public static CapabilityPackageManifest DotnetPackage()
         => new()

@@ -25,25 +25,27 @@ public sealed class RemoteCatalogDownloadTests
         var root = Directory.CreateDirectory(Path.Join(Path.GetTempPath(), "agent-up-remote-" + Guid.NewGuid().ToString("N"))).FullName;
         try
         {
-            var staged = Path.Join(root, "staged");
+            var registryRoot = Path.Join(root, "registry");
+            var paths = RegistryDomain.Paths(registryRoot);
+            var staged = Path.Join(registryRoot, "staging", "staged");
             Directory.CreateDirectory(staged);
             File.WriteAllText(
                 Path.Join(staged, "capability.json"),
                 JsonSerializer.Serialize(RegistryDomain.DotnetPackage(), new JsonSerializerOptions(JsonSerializerDefaults.Web)));
-            var archives = new PackageArchiveProvider();
+            var archives = new PackageArchiveProvider(paths);
             var remote = new BytesRemote(new RemotePackageBytesDto(
                 RegistryDomain.DotnetId,
                 RegistryDomain.DotnetVersion,
                 archives.ZipDirectory(staged)));
             var local = new LocalRegistryController(new LocalRegistryService(
-                new LocalRegistryDirectoryStore(new RegistryPathValidator(Path.Join(root, "registry"))),
+                new LocalRegistryDirectoryStore(paths),
                 new CapabilityPackageController(new CapabilityPackageValidator(), new CapabilityTemplateRenderer())));
             var service = new RemoteCatalogService(local, archives, remote);
 
             var installed = await service.DownloadFromRemoteAsync(
                 RegistryDomain.DotnetId,
                 RegistryDomain.DotnetVersion,
-                Path.Join(root, "download"),
+                Path.Join(registryRoot, "staging"),
                 CancellationToken.None);
 
             Assert.That(installed.Manifest.Id, Is.EqualTo(RegistryDomain.DotnetId));
@@ -58,10 +60,16 @@ public sealed class RemoteCatalogDownloadTests
     [Test]
     public void DownloadFromRemoteAsync_requires_a_configured_client()
     {
-        var service = new RemoteCatalogService(CreateLocal(), new PackageArchiveProvider());
+        var service = new RemoteCatalogService(
+            CreateLocal(),
+            new PackageArchiveProvider(RegistryDomain.Paths(RegistryDomain.RegistryRoot)));
 
         Assert.That(
-            async () => await service.DownloadFromRemoteAsync("dotnet", "1.0.0", "/tmp", CancellationToken.None),
+            async () => await service.DownloadFromRemoteAsync(
+                "dotnet",
+                "1.0.0",
+                Path.Join(RegistryDomain.RegistryRoot, "staging"),
+                CancellationToken.None),
             Throws.InvalidOperationException.With.Message.Contains("remote"));
     }
 

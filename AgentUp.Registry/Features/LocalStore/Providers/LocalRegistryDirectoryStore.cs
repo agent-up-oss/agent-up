@@ -20,10 +20,22 @@ public sealed class LocalRegistryDirectoryStore(IRegistryPathValidator paths) : 
         return JsonSerializer.Deserialize<CapabilityRegistryIndex>(json, Json) ?? new CapabilityRegistryIndex();
     }
 
+    /// <summary>
+    /// Reads a package the index lists. An id and version that name no index entry read as
+    /// absent, so a directory sitting under the registry root that the registry never recorded
+    /// is not served.
+    /// </summary>
+    /// <remarks>
+    /// The directory is built from the index entry rather than from the arguments, so a caller's
+    /// strings only ever select a recorded entry and never reach a path. These arguments arrive
+    /// from an HTTP route.
+    /// </remarks>
     public LocalRegistryPackageDto? ReadPackage(string id, string version)
     {
-        var directory = paths.ResolvePackageDirectory(id, version);
-        return TryRead(directory);
+        var entry = ReadIndex().Packages.FirstOrDefault(listed =>
+            listed.Id.Equals(id, StringComparison.OrdinalIgnoreCase)
+            && listed.Version.Equals(version, StringComparison.Ordinal));
+        return entry is null ? null : TryRead(paths.ResolvePackageDirectory(entry.Id, entry.Version));
     }
 
     public LocalRegistryPackageDto ReadStagedPackage(string packageDirectory)
