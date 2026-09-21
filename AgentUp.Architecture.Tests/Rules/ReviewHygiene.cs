@@ -8,6 +8,8 @@ namespace AgentUp.Architecture.Tests.Rules;
 [TestFixture]
 public sealed class ReviewHygiene
 {
+    private const string RuntimeSkipBaseline = "AgentUp.Architecture.Tests/Baselines/runtime-coverage-skip-debt.txt";
+
     private static readonly string[] DisposableTypeNames =
     [
         "HttpClient",
@@ -155,19 +157,24 @@ public sealed class ReviewHygiene
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
         var violations = ArchitectureFixture.TestSourceFiles(root)
             .SelectMany(path => Invocations(root, path)
-                .Where(item => IsAssumeThatInvocation(item.Invocation))
-                .Where(item =>
-                {
-                    var text = item.Invocation.ToString();
-                    return text.Contains("OperatingSystem.", StringComparison.Ordinal)
-                           || text.Contains("Environment.IsPrivilegedProcess", StringComparison.Ordinal)
-                           || text.Contains("/Library", StringComparison.Ordinal);
-                })
-                .Select(item => $"{item.Location}: platform/privilege/system-state Assume.That"))
+                .Where(item => IsRuntimeCoverageSkipInvocation(item.Invocation))
+                .Select(item => RuntimeCoverageSkipKey(root, path, item.Invocation)))
             .ToArray();
+        var baseline = ArchitectureFixture.LoadBaseline(root, RuntimeSkipBaseline);
+        var additions = violations.Where(violation => !baseline.Contains(violation)).ToArray();
+        var stale = baseline.Where(entry => !violations.Contains(entry, StringComparer.Ordinal)).ToArray();
+        var duplicates = DuplicateRuntimeCoverageSkipKeys(violations);
 
-        Assert.That(violations, Is.Empty,
-            "Tests must use seams/fakes to cover platform, privilege, and filesystem branches deterministically instead of skipping them on CI.");
+        Assert.Multiple(() =>
+        {
+            Assert.That(additions, Is.Empty,
+                "Tests must use seams/fakes to cover platform, privilege, and filesystem branches deterministically instead of skipping them on CI. "
+                + "Do not add new entries to the debt baseline.");
+            Assert.That(stale, Is.Empty,
+                "These baseline entries no longer describe a runtime coverage skip. Delete them so the debt can only shrink.");
+            Assert.That(duplicates, Is.Empty,
+                "Identical runtime coverage skips in one member share a baseline key and can conceal new debt. Make each skip deterministic or remove it.");
+        });
     }
 
     private static IEnumerable<(CatchClauseSyntax CatchClause, string Location)> FindCatchClauses(string root, string path)
@@ -470,15 +477,69 @@ public sealed class ReviewHygiene
                                     && identifier.Identifier.Text == target.Identifier.Text) == true;
     }
 
-    private static bool IsAssumeThatInvocation(InvocationExpressionSyntax invocation)
+    internal static bool IsRuntimeCoverageSkipInvocation(InvocationExpressionSyntax invocation)
     {
-        if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess
-            || memberAccess.Name.Identifier.Text != "That")
-        {
+        if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
             return false;
-        }
 
-        var receiver = memberAccess.Expression.ToString();
-        return receiver == "Assume";
+        var receiver = FinalExpressionSegment(memberAccess.Expression);
+        if (receiver == "Assume" && memberAccess.Name.Identifier.Text == "That")
+            return ContainsLivePlatformState(invocation.ToString());
+
+        if (receiver != "Assert" || memberAccess.Name.Identifier.Text != "Ignore")
+            return false;
+
+        var hasLiveControlFlow = invocation.Ancestors().Any(ancestor => ancestor switch
+        {
+            IfStatementSyntax statement => ContainsLivePlatformState(statement.Condition.ToString()),
+            CatchClauseSyntax clause => ContainsLivePlatformState(clause.Declaration?.Type.ToString() ?? "")
+                                        || ContainsLivePlatformState(clause.Filter?.FilterExpression.ToString() ?? ""),
+            _ => false
+        });
+
+        return hasLiveControlFlow
+               || ContainsLivePlatformState(invocation.ArgumentList.ToString());
+    }
+
+    private static string FinalExpressionSegment(ExpressionSyntax expression)
+        => expression switch
+        {
+            IdentifierNameSyntax identifier => identifier.Identifier.Text,
+            MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.Text,
+            _ => ""
+        };
+
+    internal static string[] DuplicateRuntimeCoverageSkipKeys(IEnumerable<string> violations)
+        => violations.GroupBy(violation => violation, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToArray();
+
+    private static bool ContainsLivePlatformState(string text)
+    {
+        string[] markers =
+        [
+            "OperatingSystem.", "Environment.IsPrivilegedProcess", "Environment.GetEnvironmentVariable",
+            "File.Exists", "Directory.Exists", "DllNotFoundException", "PlatformNotSupportedException",
+            "UnauthorizedAccessException", "Win32Exception", "/Library", "platform", "Windows", "POSIX",
+            "Unix", "libX", "ldd", "shell.nix", "session display", "Examples/"
+        ];
+        return markers.Any(marker => text.Contains(marker, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string RuntimeCoverageSkipKey(string root, string path, InvocationExpressionSyntax invocation)
+    {
+        var method = invocation.Ancestors().OfType<BaseMethodDeclarationSyntax>().FirstOrDefault();
+        var memberName = method switch
+        {
+            MethodDeclarationSyntax declaration => declaration.Identifier.Text,
+            ConstructorDeclarationSyntax constructor => constructor.Identifier.Text,
+            _ => "<unknown>"
+        };
+        var invocationName = invocation.Expression is MemberAccessExpressionSyntax memberAccess
+            ? $"{memberAccess.Expression}.{memberAccess.Name.Identifier.Text}"
+            : invocation.Expression.ToString();
+        var reason = invocation.ArgumentList.Arguments.FirstOrDefault()?.Expression.ToString() ?? "<no reason>";
+        return $"{ArchitectureFixture.Relative(root, path).Replace('\\', '/')}::{memberName}::{invocationName}::{reason}";
     }
 }

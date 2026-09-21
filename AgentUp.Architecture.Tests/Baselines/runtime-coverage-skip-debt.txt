@@ -1,0 +1,15 @@
+# Platform, privilege, and live-system-state skips that predate the Assert.Ignore rule.
+# Entries are removed when their test gains a deterministic seam or becomes a platforms-declaring
+# verification check. The architecture test rejects both additions and entries that are already clean.
+AgentUp.Capabilities.Common.Tests/Features/CapabilityDiscovery/Provider/CapabilityExecutableProbeTests.cs::IsExecutable_requiresTheUnixExecuteBit::Assert.Ignore::"Unix execute bits are not used on Windows."
+AgentUp.Capabilities.Common.Tests/Features/CapabilityDiscovery/Provider/CapabilitySearchPathProviderTests.cs::Directories_skipCursorAgentVersionsWhenTheRootIsUnreadable::Assert.Ignore::"Unix directory modes are not used on Windows."
+AgentUp.Server.Tests/Features/DesktopApplications/Provider/HostedDesktopNativeLibraryProviderTests.cs::CreateEnvironment_ResolvesSkiaSharpNativeDependenciesWhenTheServerHasNoInheritedLibraryPath::Assert.Ignore::"Examples/linux-desktop was not found next to agent-up.sln."
+AgentUp.Server.Tests/Features/DesktopApplications/Provider/HostedDesktopNativeLibraryProviderTests.cs::CreateEnvironment_ResolvesSkiaSharpNativeDependenciesWhenTheServerHasNoInheritedLibraryPath::Assert.Ignore::"ldd is not available to inspect SkiaSharp native dependencies."
+AgentUp.Server.Tests/Features/DesktopApplications/Provider/HostedDesktopNativeLibraryProviderTests.cs::PrepareAsync_StartsTheSampleAvaloniaAppWhenTheServerHasNoInheritedLibraryPath::Assert.Ignore::"Examples/linux-desktop was not found next to agent-up.sln."
+AgentUp.Server.Tests/Features/DesktopApplications/Provider/HostedDesktopNativeLibraryProviderTests.cs::PrepareAsync_StartsTheSampleAvaloniaAppWhenTheServerHasNoInheritedLibraryPath::Assert.Ignore::ex.Message
+AgentUp.Server.Tests/Features/DesktopApplications/Provider/LinuxDesktopDisplayE2ETests.cs::Captures_and_controls_a_real_x11_application::Assert.Ignore::"libX11 is not available. On NixOS run this suite through nix-shell shell.nix."
+AgentUp.Server.Tests/Features/DesktopApplications/Provider/LinuxDesktopDisplayE2ETests.cs::Captures_and_controls_a_real_x11_application::Assert.Ignore::"libXtst is not available. On NixOS run this suite through nix-shell shell.nix."
+AgentUp.Server.Tests/Features/Processes/Provider/WorkspaceProcessManagerTests.cs::CreateWorkspaceDirectoryAlias_RejectsExistingSymlinkToDifferentWorkspaceDirectory::Assert.Ignore::"Symbolic link creation is not available on this platform."
+AgentUp.Server.Tests/Features/Processes/Provider/WorkspaceProcessManagerTests.cs::KillApplicationAsync_marksIntentionalLocalProcessExitAsStopped::Assert.Ignore::"Local process stop race coverage uses Linux process tools."
+AgentUp.Tests/Features/Browser/E2E/LinuxDesktopFixtureIsolationTests.cs::AssertIsolationIsExpected::Assert.Ignore::"Session display opt-in is active."
+AgentUp.Tests/Features/DesktopApplications/E2E/DesktopApplicationStreamingE2ETests.cs::StartStreamedDesktopAsync::Assert.Ignore::"Examples/linux-desktop was not found next to agent-up.sln."

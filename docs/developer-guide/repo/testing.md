@@ -108,9 +108,11 @@ Splitting usually means either `[TestCase]` per instance of the same rule:
 public async Task Prepare_putsTheHostedDisplayIntoTheApplicationEnvironment(string name, string expected)
 ```
 
-or one test per concern over a shared local helper. `Assume.That` counts towards the cap: a
-test that decides at runtime whether it applies reports success without having run. Cover
-platform and CI branches through an injected capability provider instead.
+or one test per concern over a shared local helper. `Assume.That` counts towards the cap. Neither
+`Assume.That` nor `Assert.Ignore` may decide at runtime that platform, privilege, or live system
+state makes a test inapplicable: that reports success without having run. Cover those branches
+through an injected capability provider instead; pre-existing runtime skips are held in a ratchet
+baseline that rejects additions and stale entries.
 
 ## Rules assert properties, not membership
 
