@@ -351,7 +351,7 @@ jobs:
       # summary names the tests; this keeps the full TRX for anything the summary does not say.
       - name: Keep test results on failure
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dotnet-coverage-test-results
           path: "**/*.trx"
