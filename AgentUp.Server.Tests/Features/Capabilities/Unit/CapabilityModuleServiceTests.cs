@@ -121,4 +121,86 @@ public sealed class CapabilityModuleServiceTests
             Kind = "agent",
             Launch = new CapabilityLaunchTemplate { Command = "codex-acp", Arguments = [] }
         };
+
+    // Enablement is Server-owned state, and the catalog Desktop and Mobile render is this list.
+    [Test]
+    public void List_reports_a_registry_package_as_disabled_until_it_is_enabled()
+    {
+        var service = CapabilityModuleHarness.CreateService();
+
+        var listed = service.List().Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(listed.Id, Is.EqualTo("dotnet"));
+            Assert.That(listed.Version, Is.EqualTo("1.0.0"));
+            Assert.That(listed.Enabled, Is.False);
+            Assert.That(listed.State, Is.EqualTo("disabled"));
+            Assert.That(listed.CanRun, Is.False);
+        });
+    }
+
+    [Test]
+    public void Enable_then_Disable_round_trips_the_enabled_set()
+    {
+        var service = CapabilityModuleHarness.CreateService();
+
+        var enabled = service.Enable("dotnet", "1.0.0");
+        Assert.Multiple(() =>
+        {
+            Assert.That(enabled.Enabled, Is.True);
+            Assert.That(service.GetEnabled("dotnet")?.Id, Is.EqualTo("dotnet"));
+        });
+
+        var disabled = service.Disable("dotnet");
+        Assert.Multiple(() =>
+        {
+            Assert.That(disabled.Enabled, Is.False);
+            Assert.That(service.GetEnabled("dotnet"), Is.Null);
+        });
+    }
+
+    [Test]
+    public void Enable_without_a_version_takes_the_one_in_the_registry()
+    {
+        var service = CapabilityModuleHarness.CreateService();
+
+        Assert.That(service.Enable("dotnet", null).Version, Is.EqualTo("1.0.0"));
+    }
+
+    // Enablement names a package that has to be there, so an id the registry does not carry is an
+    // error rather than an empty enabled set that fails much later at workspace start.
+    [Test]
+    public void Enable_rejects_a_package_the_local_registry_does_not_have()
+    {
+        var service = CapabilityModuleHarness.CreateService();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(() => service.Enable("python", null), Throws.InvalidOperationException);
+            Assert.That(() => service.Enable("dotnet", "9.9.9"), Throws.InvalidOperationException);
+        });
+    }
+
+    [Test]
+    public void GetEnabled_returns_nothing_for_a_package_that_is_not_enabled()
+    {
+        Assert.That(CapabilityModuleHarness.CreateService().GetEnabled("dotnet"), Is.Null);
+    }
+
+    [Test]
+    public void List_explains_an_enabled_module_that_cannot_run_without_nix()
+    {
+        var service = CapabilityModuleHarness.CreateService(nixAvailable: false, enabled: true);
+
+        var listed = service.List().Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(listed.Enabled, Is.True);
+            Assert.That(listed.CanRun, Is.False);
+            Assert.That(listed.State, Is.EqualTo("error"));
+            Assert.That(listed.Messages, Is.Not.Empty);
+        });
+    }
 }

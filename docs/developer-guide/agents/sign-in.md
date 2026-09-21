@@ -15,7 +15,7 @@ The Server declares which shape an agent CLI implements and reports it on the si
 | `code` | The user carries a value: either a user code typed into the provider page, or an authorization code pasted back out of it. | a code, sometimes | yes |
 | `redirect` | The provider redirects to a loopback address the CLI is listening on. | the redirect URL | only with an in-app WebView |
 
-Defaults come from that agent module's `Login` spec when present. First-party Codex, Cursor, and Claude module ids keep a CLI fallback when that spec is absent. Listing stays by module id; there is no public `AgentKind`. Those defaults live in `AgentLoginFlowProvider`, matching the login command `AgentLoginCommandProvider` runs:
+Defaults come from that agent module's `Login` spec when present. First-party Codex, Cursor, and Claude module ids keep a CLI fallback when that spec is absent. Listing stays by module id; there is no public `AgentKind` on either side of the wire - the client's own type is `AgentId`, a module id. Those defaults live in `AgentLoginFlowProvider`, matching the login command `AgentLoginCommandProvider` runs:
 
 - **Codex** — `codex login --device-auth`, so `code` with a user code.
 - **Cursor** — `agent login` on the ACP binary, so `poll`.
