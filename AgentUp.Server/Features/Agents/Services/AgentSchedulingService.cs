@@ -6,6 +6,7 @@ using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Features.Agents.Interfaces;
 using AgentUp.Server.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Workspaces.Controllers;
+using AgentUp.Server.Shared.Providers;
 
 namespace AgentUp.Server.Features.Agents.Services;
 
@@ -392,9 +393,9 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         if (!ReferenceEquals(current.Process, process)) return;
         state.State = "stopped"; state.Error = error;
         if (error is null)
-            logger.LogInformation("Agent for workspace {WorkspaceId} exited.", workspaceId);
+            logger.LogInformation("Agent for workspace {WorkspaceId} exited.", LogSafeIdentifier.Of(workspaceId));
         else
-            logger.LogInformation("Agent for workspace {WorkspaceId} exited with an error.", workspaceId);
+            logger.LogInformation("Agent for workspace {WorkspaceId} exited with an error.", LogSafeIdentifier.Of(workspaceId));
         var snapshot = Get(workspaceId);
         if (snapshot is not null) events.Publish(workspaceId, "state", snapshot);
     }
@@ -405,7 +406,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     {
         try { await StopAsync(workspaceId, CancellationToken.None); }
         catch (Exception exception) when (exception is InvalidOperationException or IOException)
-        { logger.LogWarning(exception, "Could not stop the agent for removed workspace {WorkspaceId}.", workspaceId); }
+        { logger.LogWarning(exception, "Could not stop the agent for removed workspace {WorkspaceId}.", LogSafeIdentifier.Of(workspaceId)); }
     }
 
     private async Task<IReadOnlyList<AgentDescriptor>> DescriptorsAsync(CancellationToken cancellationToken)
