@@ -89,7 +89,7 @@ jobs:
 
       # The browser is a fixed ~140MB download that changes only when Playwright does.
       - name: Restore the browser
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('AgentUp.Mobile.E2E/package.json') }}
@@ -163,7 +163,7 @@ jobs:
       # last run compiled instead of spending ten minutes reaching the same bytes.
       - name: Restore the app under test
         id: apk
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: AgentUp.Mobile.E2E.App/android/app/build/outputs/apk
           key: android-app-${{ steps.app.outputs.key }}
@@ -214,14 +214,14 @@ jobs:
       # happening and speed matters most.
       - name: Keep the app under test
         if: ${{ steps.restored.outputs.usable != 'true' }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: AgentUp.Mobile.E2E.App/android/app/build/outputs/apk
           key: android-app-${{ steps.app.outputs.key }}
 
       - name: Restore the emulator
         id: avd
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.android/avd/*
@@ -321,7 +321,7 @@ jobs:
       # last run compiled instead of spending eighteen minutes reaching the same bytes.
       - name: Restore the app under test
         id: built-app
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: AgentUp.Mobile.E2E.App/ios/build/Build/Products/Release-iphonesimulator
           key: ios-app-${{ steps.app.outputs.key }}
@@ -350,7 +350,7 @@ jobs:
       - name: Restore the pods and their objects
         if: ${{ steps.restored.outputs.usable != 'true' }}
         id: pods
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             AgentUp.Mobile.E2E.App/ios/Pods
@@ -394,14 +394,14 @@ jobs:
       # happening and speed matters most.
       - name: Keep the app under test
         if: ${{ steps.restored.outputs.usable != 'true' }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: AgentUp.Mobile.E2E.App/ios/build/Build/Products/Release-iphonesimulator
           key: ios-app-${{ steps.app.outputs.key }}
 
       - name: Keep the pods and their objects
         if: ${{ steps.restored.outputs.usable != 'true' && steps.pods.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: |
             AgentUp.Mobile.E2E.App/ios/Pods
