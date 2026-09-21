@@ -163,6 +163,7 @@ public sealed class ReviewHygiene
         var baseline = ArchitectureFixture.LoadBaseline(root, RuntimeSkipBaseline);
         var additions = violations.Where(violation => !baseline.Contains(violation)).ToArray();
         var stale = baseline.Where(entry => !violations.Contains(entry, StringComparer.Ordinal)).ToArray();
+        var duplicates = DuplicateRuntimeCoverageSkipKeys(violations);
 
         Assert.Multiple(() =>
         {
@@ -171,6 +172,8 @@ public sealed class ReviewHygiene
                 + "Do not add new entries to the debt baseline.");
             Assert.That(stale, Is.Empty,
                 "These baseline entries no longer describe a runtime coverage skip. Delete them so the debt can only shrink.");
+            Assert.That(duplicates, Is.Empty,
+                "Identical runtime coverage skips in one member share a baseline key and can conceal new debt. Make each skip deterministic or remove it.");
         });
     }
 
@@ -476,30 +479,41 @@ public sealed class ReviewHygiene
 
     internal static bool IsRuntimeCoverageSkipInvocation(InvocationExpressionSyntax invocation)
     {
-        if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess
-            || memberAccess.Expression is not IdentifierNameSyntax receiver)
-        {
+        if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
             return false;
-        }
 
-        if (receiver.Identifier.Text == "Assume" && memberAccess.Name.Identifier.Text == "That")
+        var receiver = FinalExpressionSegment(memberAccess.Expression);
+        if (receiver == "Assume" && memberAccess.Name.Identifier.Text == "That")
             return ContainsLivePlatformState(invocation.ToString());
 
-        if (receiver.Identifier.Text != "Assert" || memberAccess.Name.Identifier.Text != "Ignore")
+        if (receiver != "Assert" || memberAccess.Name.Identifier.Text != "Ignore")
             return false;
 
-        var controlFlow = invocation.Ancestors()
-            .Select(ancestor => ancestor switch
-            {
-                IfStatementSyntax statement => statement.Condition.ToString(),
-                CatchClauseSyntax clause => clause.Declaration?.Type.ToString() ?? clause.Filter?.FilterExpression.ToString() ?? "",
-                _ => ""
-            })
-            .FirstOrDefault(text => text.Length > 0);
+        var hasLiveControlFlow = invocation.Ancestors().Any(ancestor => ancestor switch
+        {
+            IfStatementSyntax statement => ContainsLivePlatformState(statement.Condition.ToString()),
+            CatchClauseSyntax clause => ContainsLivePlatformState(clause.Declaration?.Type.ToString() ?? "")
+                                        || ContainsLivePlatformState(clause.Filter?.FilterExpression.ToString() ?? ""),
+            _ => false
+        });
 
-        return ContainsLivePlatformState(controlFlow ?? "")
+        return hasLiveControlFlow
                || ContainsLivePlatformState(invocation.ArgumentList.ToString());
     }
+
+    private static string FinalExpressionSegment(ExpressionSyntax expression)
+        => expression switch
+        {
+            IdentifierNameSyntax identifier => identifier.Identifier.Text,
+            MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.Text,
+            _ => ""
+        };
+
+    internal static string[] DuplicateRuntimeCoverageSkipKeys(IEnumerable<string> violations)
+        => violations.GroupBy(violation => violation, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToArray();
 
     private static bool ContainsLivePlatformState(string text)
     {

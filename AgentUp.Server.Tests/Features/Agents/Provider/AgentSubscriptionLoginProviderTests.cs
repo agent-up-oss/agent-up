@@ -90,7 +90,13 @@ public sealed class AgentSubscriptionLoginProviderTests
         var echoed = Path.Join(Path.GetTempPath(), $"agent-login-code-{Guid.NewGuid():N}.txt");
         var script = WriteScript(
             OperatingSystem.IsWindows()
-                ? $"echo Visit https://claude.ai/oauth/authorize?code=true& <nul set /p=\"Paste code here: \"& set /p given=& <nul set /p=\"%given%\" > \"{echoed}\"& echo sk-ant-oat01-exchanged"
+                ? $"""
+                  echo Visit https://claude.ai/oauth/authorize?code=true
+                  <nul set /p="Paste code here: "
+                  set /p given=
+                  <nul set /p "=%given%" > "{echoed}"
+                  echo sk-ant-oat01-exchanged
+                  """
                 : $"echo 'Visit https://claude.ai/oauth/authorize?code=true'; printf 'Paste code here: '; read given; printf '%s' \"$given\" > '{echoed}'; echo 'sk-ant-oat01-exchanged'");
         try
         {
