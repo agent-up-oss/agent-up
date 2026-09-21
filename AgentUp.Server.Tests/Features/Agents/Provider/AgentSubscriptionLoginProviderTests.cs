@@ -87,12 +87,11 @@ public sealed class AgentSubscriptionLoginProviderTests
     [Test]
     public async Task LoginAsync_writesASubmittedCodeToTheCliStandardInput()
     {
-        if (OperatingSystem.IsWindows())
-            Assert.Ignore("The shell script form of this fixture is POSIX only.");
-
         var echoed = Path.Join(Path.GetTempPath(), $"agent-login-code-{Guid.NewGuid():N}.txt");
         var script = WriteScript(
-            $"echo 'Visit https://claude.ai/oauth/authorize?code=true'; printf 'Paste code here: '; read given; printf '%s' \"$given\" > '{echoed}'; echo 'sk-ant-oat01-exchanged'");
+            OperatingSystem.IsWindows()
+                ? $"echo Visit https://claude.ai/oauth/authorize?code=true& <nul set /p=\"Paste code here: \"& set /p given=& <nul set /p=\"%given%\" > \"{echoed}\"& echo sk-ant-oat01-exchanged"
+                : $"echo 'Visit https://claude.ai/oauth/authorize?code=true'; printf 'Paste code here: '; read given; printf '%s' \"$given\" > '{echoed}'; echo 'sk-ant-oat01-exchanged'");
         try
         {
             var provider = CreateProvider(script);

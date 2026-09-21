@@ -8,6 +8,8 @@ namespace AgentUp.Architecture.Tests.Rules;
 [TestFixture]
 public sealed class ReviewHygiene
 {
+    private const string RuntimeSkipBaseline = "AgentUp.Architecture.Tests/Baselines/runtime-coverage-skip-debt.txt";
+
     private static readonly string[] DisposableTypeNames =
     [
         "HttpClient",
@@ -155,19 +157,21 @@ public sealed class ReviewHygiene
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
         var violations = ArchitectureFixture.TestSourceFiles(root)
             .SelectMany(path => Invocations(root, path)
-                .Where(item => IsAssumeThatInvocation(item.Invocation))
-                .Where(item =>
-                {
-                    var text = item.Invocation.ToString();
-                    return text.Contains("OperatingSystem.", StringComparison.Ordinal)
-                           || text.Contains("Environment.IsPrivilegedProcess", StringComparison.Ordinal)
-                           || text.Contains("/Library", StringComparison.Ordinal);
-                })
-                .Select(item => $"{item.Location}: platform/privilege/system-state Assume.That"))
+                .Where(item => IsRuntimeCoverageSkipInvocation(item.Invocation))
+                .Select(item => RuntimeCoverageSkipKey(root, path, item.Invocation)))
             .ToArray();
+        var baseline = ArchitectureFixture.LoadBaseline(root, RuntimeSkipBaseline);
+        var additions = violations.Where(violation => !baseline.Contains(violation)).ToArray();
+        var stale = baseline.Where(entry => !violations.Contains(entry, StringComparer.Ordinal)).ToArray();
 
-        Assert.That(violations, Is.Empty,
-            "Tests must use seams/fakes to cover platform, privilege, and filesystem branches deterministically instead of skipping them on CI.");
+        Assert.Multiple(() =>
+        {
+            Assert.That(additions, Is.Empty,
+                "Tests must use seams/fakes to cover platform, privilege, and filesystem branches deterministically instead of skipping them on CI. "
+                + "Do not add new entries to the debt baseline.");
+            Assert.That(stale, Is.Empty,
+                "These baseline entries no longer describe a runtime coverage skip. Delete them so the debt can only shrink.");
+        });
     }
 
     private static IEnumerable<(CatchClauseSyntax CatchClause, string Location)> FindCatchClauses(string root, string path)
@@ -470,15 +474,58 @@ public sealed class ReviewHygiene
                                     && identifier.Identifier.Text == target.Identifier.Text) == true;
     }
 
-    private static bool IsAssumeThatInvocation(InvocationExpressionSyntax invocation)
+    internal static bool IsRuntimeCoverageSkipInvocation(InvocationExpressionSyntax invocation)
     {
         if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess
-            || memberAccess.Name.Identifier.Text != "That")
+            || memberAccess.Expression is not IdentifierNameSyntax receiver)
         {
             return false;
         }
 
-        var receiver = memberAccess.Expression.ToString();
-        return receiver == "Assume";
+        if (receiver.Identifier.Text == "Assume" && memberAccess.Name.Identifier.Text == "That")
+            return ContainsLivePlatformState(invocation.ToString());
+
+        if (receiver.Identifier.Text != "Assert" || memberAccess.Name.Identifier.Text != "Ignore")
+            return false;
+
+        var controlFlow = invocation.Ancestors()
+            .Select(ancestor => ancestor switch
+            {
+                IfStatementSyntax statement => statement.Condition.ToString(),
+                CatchClauseSyntax clause => clause.Declaration?.Type.ToString() ?? clause.Filter?.FilterExpression.ToString() ?? "",
+                _ => ""
+            })
+            .FirstOrDefault(text => text.Length > 0);
+
+        return ContainsLivePlatformState(controlFlow ?? "")
+               || ContainsLivePlatformState(invocation.ArgumentList.ToString());
+    }
+
+    private static bool ContainsLivePlatformState(string text)
+    {
+        string[] markers =
+        [
+            "OperatingSystem.", "Environment.IsPrivilegedProcess", "Environment.GetEnvironmentVariable",
+            "File.Exists", "Directory.Exists", "DllNotFoundException", "PlatformNotSupportedException",
+            "UnauthorizedAccessException", "Win32Exception", "/Library", "platform", "Windows", "POSIX",
+            "Unix", "libX", "ldd", "shell.nix", "session display", "Examples/"
+        ];
+        return markers.Any(marker => text.Contains(marker, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string RuntimeCoverageSkipKey(string root, string path, InvocationExpressionSyntax invocation)
+    {
+        var method = invocation.Ancestors().OfType<BaseMethodDeclarationSyntax>().FirstOrDefault();
+        var memberName = method switch
+        {
+            MethodDeclarationSyntax declaration => declaration.Identifier.Text,
+            ConstructorDeclarationSyntax constructor => constructor.Identifier.Text,
+            _ => "<unknown>"
+        };
+        var invocationName = invocation.Expression is MemberAccessExpressionSyntax memberAccess
+            ? $"{memberAccess.Expression}.{memberAccess.Name.Identifier.Text}"
+            : invocation.Expression.ToString();
+        var reason = invocation.ArgumentList.Arguments.FirstOrDefault()?.Expression.ToString() ?? "<no reason>";
+        return $"{ArchitectureFixture.Relative(root, path).Replace('\\', '/')}::{memberName}::{invocationName}::{reason}";
     }
 }
