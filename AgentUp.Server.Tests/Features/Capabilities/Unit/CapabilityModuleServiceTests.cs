@@ -19,6 +19,17 @@ public sealed class CapabilityModuleServiceTests
     }
 
     [Test]
+    public void WrapLaunch_leaves_commands_no_enabled_runtime_provides()
+    {
+        var service = CapabilityModuleHarness.CreateService(nixAvailable: true, enabled: true);
+
+        var wrap = service.WrapLaunch("npm", ["install"]);
+
+        Assert.That(wrap.FileName, Is.EqualTo("npm"));
+        Assert.That(wrap.Arguments, Is.EqualTo(new[] { "install" }));
+    }
+
+    [Test]
     public void WrapLaunch_leaves_commands_unchanged_when_nix_is_missing()
     {
         var service = CapabilityModuleHarness.CreateService(nixAvailable: false, enabled: true);

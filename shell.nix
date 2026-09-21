@@ -148,8 +148,9 @@ pkgs.mkShell {
       fi
     done
 
-    # Workspace ACP adapters are not hardcoded in C#. Cache them locally and
-    # declare command/arguments in a repo inventory shared by Server and Desktop.
+    # Workspace ACP adapters are capability packages. A runtime E2E that only
+    # enables docker/dotnet must not download Cursor/Codex/Claude as a shell side effect.
+    if [ -z "''${AGENTUP_SKIP_DEV_AGENT_BOOTSTRAP-}" ]; then
     devRoot="$PWD/.agent-up-dev"
     mkdir -p "$devRoot/bin" "$devRoot/npm" "$devRoot/cursor-agent"
     if [ ! -d "$devRoot/npm/node_modules/@agentclientprotocol/codex-acp" ] \
@@ -214,5 +215,6 @@ pkgs.mkShell {
     " || echo "warning: failed to write .agent-up-dev/enabled.json"
     export AGENTUP_CAPABILITY_ENABLED_PATH="$devRoot/enabled.json"
     export AGENTUP_CAPABILITY_REGISTRY_PATH="$devRoot/capability-registry"
+    fi
   '';
 }

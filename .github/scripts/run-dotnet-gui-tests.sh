@@ -28,7 +28,7 @@ for attempt in 1 2; do
     --collect:"XPlat Code Coverage" \
     --blame-hang \
     --blame-hang-timeout 120s \
-    --filter "Category!=HeadlessE2E"; then
+    --filter "Category!=HeadlessE2E&Category!=RuntimeCapabilityE2E"; then
     test_status=0
     break
   else

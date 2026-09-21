@@ -46,7 +46,7 @@ public sealed class CapabilityModulesCatalogServiceTests
     }
 
     internal static CapabilityModuleDto DotnetModule(bool enabled)
-        => new("dotnet", "1.0.0", ".NET", "agent-up", ["toolchain"], enabled, enabled ? "ready" : "disabled", enabled, enabled ? [] : ["not enabled"]);
+        => new("dotnet", "1.0.0", ".NET", "agent-up", "runtime", enabled, enabled ? "ready" : "disabled", enabled, enabled ? [] : ["not enabled"]);
 }
 
 internal sealed class FakeCapabilityModulesApiProvider : ICapabilityModulesApiProvider

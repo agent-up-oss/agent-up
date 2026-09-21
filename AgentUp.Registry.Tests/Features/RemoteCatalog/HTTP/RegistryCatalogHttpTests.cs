@@ -75,8 +75,8 @@ public sealed class RegistryCatalogHttpTests
         return stream.ToArray();
     }
 
-    private static WebApplicationFactory<Program> CreateFactory()
-        => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+    private static WebApplicationFactory<AgentUp.Registry.Program> CreateFactory()
+        => new WebApplicationFactory<AgentUp.Registry.Program>().WithWebHostBuilder(builder =>
         {
             var registry = Path.Join(Path.GetTempPath(), "agent-up-http-registry-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(registry);

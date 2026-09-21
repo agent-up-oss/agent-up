@@ -63,7 +63,8 @@ public sealed class CapabilityModuleService(
     public CapabilityLaunchWrapDto WrapLaunch(string fileName, IReadOnlyList<string> arguments)
     {
         var environments = EnabledPackages()
-            .Where(package => package.Manifest.Kind.Equals("runtime", StringComparison.Ordinal))
+            .Where(package => package.Manifest.Kind.Equals("runtime", StringComparison.Ordinal)
+                              && ProvidesCommand(package.Manifest, fileName))
             .Select(ToEnvironment)
             .ToArray();
         if (environments.Length == 0 || !nix.IsAvailable)
@@ -159,6 +160,9 @@ public sealed class CapabilityModuleService(
 
     public string? RuntimeRoot()
         => runtime.DevRoot(paths?.RegistryRoot);
+
+    private static bool ProvidesCommand(CapabilityPackageManifest manifest, string fileName)
+        => manifest.Provides.Any(name => name.Equals(fileName, StringComparison.OrdinalIgnoreCase));
 
     private LocalRegistryPackageDto ResolvePackage(string id, string? version)
     {

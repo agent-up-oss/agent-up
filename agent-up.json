@@ -14,19 +14,6 @@
       ]
     },
     {
-      "name": "Mobile",
-      "command": "npm run serve:web",
-      "install": "npm run install:agent-up",
-      "path": "AgentUp.Mobile",
-      "ports": [
-        {
-          "variable": "WEB_PORT",
-          "defaultPort": 8081,
-          "protocol": "http"
-        }
-      ]
-    },
-    {
       "name": "Example Web",
       "command": "npm run dev",
       "install": "npm install --package-lock=false",
@@ -38,12 +25,17 @@
           "protocol": "http"
         }
       ]
-    },
+    }
+  ],
+  "dotnet": [
     {
       "name": "Example API",
-      "command": "npm run dev",
-      "install": "npm install --package-lock=false",
+      "sdk": "10.0.x",
       "path": "Examples/full-stack-react/api",
+      "run": {
+        "project": "ExampleApi.csproj",
+        "arguments": ["--no-launch-profile"]
+      },
       "environmentFiles": [
         "Examples/full-stack-react/database.env"
       ],
@@ -58,20 +50,7 @@
       ]
     }
   ],
-  "desktopApplications": [
-    {
-      "name": "Sample Desktop",
-      "command": "dotnet run --project Examples/linux-desktop/LinuxDesktop.csproj --no-launch-profile",
-      "install": "dotnet build Examples/linux-desktop/LinuxDesktop.csproj --nologo --no-incremental",
-      "path": ".",
-      "runtime": "linux",
-      "window": {
-        "width": 800,
-        "height": 600
-      }
-    }
-  ],
-  "services": [
+  "docker": [
     {
       "name": "Database",
       "image": "postgres:16",
@@ -89,6 +68,19 @@
       "volumes": [
         "agent-up-full-stack-pgdata:/var/lib/postgresql/data"
       ]
+    }
+  ],
+  "desktopApplications": [
+    {
+      "name": "Sample Desktop",
+      "command": "dotnet run --project Examples/linux-desktop/LinuxDesktop.csproj --no-launch-profile",
+      "install": "dotnet build Examples/linux-desktop/LinuxDesktop.csproj --nologo --no-incremental",
+      "path": ".",
+      "runtime": "linux",
+      "window": {
+        "width": 800,
+        "height": 600
+      }
     }
   ],
   "prompts": {
@@ -327,13 +319,30 @@
         ]
       },
       "cross-product-e2e": {
-        "command": "dotnet test AgentUp.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/cross-product-e2e",
+        "command": "dotnet test AgentUp.Tests --filter Category!=RuntimeCapabilityE2E --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/cross-product-e2e",
         "tier": "slow",
         "inputs": [
           "AgentUp.Tests",
           "AgentUp.Desktop",
           "AgentUp.Server",
           "AgentUp.InstallerApp"
+        ]
+      },
+      "runtime-capability-e2e": {
+        "command": "./.github/scripts/run-runtime-capability-e2e.sh",
+        "tier": "slow",
+        "platforms": [
+          "linux"
+        ],
+        "ciOnly": true,
+        "inputs": [
+          "agent-up.json",
+          "Examples/full-stack-react",
+          "AgentUp.Tests",
+          "AgentUp.Desktop",
+          "AgentUp.Server",
+          "AgentUp.Capabilities.Dotnet",
+          "AgentUp.Capabilities.Docker"
         ]
       },
       "mobile": {
@@ -823,6 +832,7 @@
         "match": "AgentUp.Tests/**",
         "checks": [
           "cross-product-e2e",
+          "runtime-capability-e2e",
           "patch-coverage"
         ]
       },
@@ -1005,6 +1015,7 @@
           "verification",
           "cli",
           "server",
+          "runtime-capability-e2e",
           "patch-coverage"
         ]
       },
@@ -1036,8 +1047,20 @@
         "checks": []
       },
       {
+        "match": ".github/scripts/run-runtime-capability-e2e.sh",
+        "checks": [
+          "runtime-capability-e2e"
+        ]
+      },
+      {
         "match": ".github/**",
         "checks": []
+      },
+      {
+        "match": "Examples/full-stack-react/**",
+        "checks": [
+          "runtime-capability-e2e"
+        ]
       },
       {
         "match": "Examples/**",

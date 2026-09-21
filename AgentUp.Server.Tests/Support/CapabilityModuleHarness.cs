@@ -47,6 +47,7 @@ internal static class CapabilityModuleHarness
             DisplayName = ".NET",
             Publisher = "agent-up",
             Kind = "runtime",
+            Provides = ["dotnet"],
             Launch = new CapabilityLaunchTemplate
             {
                 Command = "dotnet",

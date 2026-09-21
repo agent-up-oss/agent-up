@@ -20,6 +20,10 @@ public sealed class DotnetCapabilityPackerTests
     [Test]
     public void DefaultNix_pins_the_dotnet_sdk_package()
     {
-        Assert.That(new DotnetCapabilityPacker().DefaultNix(), Does.Contain("dotnet-sdk_10"));
+        var nix = new DotnetCapabilityPacker().DefaultNix();
+
+        Assert.That(nix, Does.Contain("dotnet-sdk_10"));
+        Assert.That(nix, Does.Contain("DOTNET_ROOT=\"${pkgs.dotnet-sdk_10}/share/dotnet\""));
+        Assert.That(nix, Does.Contain("unset MSBuildSDKsPath"));
     }
 }
