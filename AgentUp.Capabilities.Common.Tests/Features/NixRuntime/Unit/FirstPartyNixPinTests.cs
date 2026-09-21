@@ -56,4 +56,22 @@ public sealed class FirstPartyNixPinTests
         Assert.That(nix, Does.Contain("import <nixpkgs> {}"));
         Assert.That(nix, Does.Not.Contain("fetchTarball"));
     }
+
+    // The pin is fetched now rather than decorative, so a value that is not a commit is a broken
+    // package rather than a cosmetic problem. This catches a truncated or mistyped rev; a rev that
+    // is well-formed but absent from nixpkgs can only be caught by fetching it, which is what the
+    // runtime capability E2E does - and is how the mangled nixos-24.05 head that shipped here was
+    // found, by GitHub answering 404.
+    [Test]
+    public void The_recorded_commit_is_a_full_git_object_name()
+    {
+        Assert.That(FirstPartyNixPin.Rev, Has.Length.EqualTo(40));
+        Assert.That(FirstPartyNixPin.Rev, Does.Match("^[0-9a-f]{40}$"));
+    }
+
+    [Test]
+    public void The_recorded_commit_is_the_one_the_packed_manifest_carries()
+    {
+        Assert.That(FirstPartyNixPin.Nixpkgs.Rev, Is.EqualTo(FirstPartyNixPin.Rev));
+    }
 }

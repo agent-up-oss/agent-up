@@ -4,7 +4,15 @@ namespace AgentUp.Capabilities.Common.Features.NixRuntime.Models;
 
 public static class FirstPartyNixPin
 {
-    public const string Rev = "b134951a4c9f3c995fd7be05f9a8dafa8c4ffb90";
+    /// <summary>The nixpkgs commit every first-party package resolves its tools from.</summary>
+    /// <remarks>
+    /// The head of the nixos-26.05 release branch, which carries `dotnet-sdk_10`, `docker` and
+    /// `nodejs_22` - the three attributes the first-party packages name. It has to be a commit
+    /// that really exists: the shell fetches this tarball now, where the value used to be
+    /// decorative because `import &lt;nixpkgs&gt;` ignored it. The previous value was a mangled copy
+    /// of the nixos-24.05 head, sharing its first 25 characters, and GitHub answered 404 for it.
+    /// </remarks>
+    public const string Rev = "6d663c0533ff269008fb84e45930151e37c99db9";
 
     // The commit is the pin. First-party packages record no sha256 rather than the placeholder
     // they used to ship to satisfy a check that nothing verified.

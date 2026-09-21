@@ -10,7 +10,7 @@ internal static class RegistryDomain
     public const string DotnetDisplayName = ".NET";
     public const string Publisher = "agent-up";
     public const string SchemaVersion = "1";
-    public const string NixpkgsRev = "b134951a4c9f3c995fd7be05f9a8dafa8c4ffb90";
+    public const string NixpkgsRev = "6d663c0533ff269008fb84e45930151e37c99db9";
 
     /// <summary>
     /// A registry root for a test whose subject never touches the filesystem, so that the path
