@@ -73,7 +73,7 @@ describe('agent sign-in', () => {
       });
       await device.setURLBlacklist(['.*agent/events.*']);
       await device.disableSynchronization();
-      await ensureConnected(stack.serverOriginForClient, stack.workspace.id, scenario.kind);
+      await ensureConnected(stack.serverOriginForClient, stack.workspace.id, scenario.agentId);
     });
 
     it('signs the agent in and leaves the session ready', async () => {
@@ -81,7 +81,7 @@ describe('agent sign-in', () => {
       await flow.beforeStart?.({ control: stack.control });
 
       // The harness mounts the chat directly, so the agent picker is the first thing here.
-      await tap(`agent-picker-${scenario.agentId}`, 60_000);
+      await tap(pickerFor(scenario.agentId, scenario.name), 60_000);
 
       const offered = await harness.waitForAgentState(stack.serverUrl, stack.workspace.id, 'authentication_required');
       const methodId = offered.authMethods?.[0]?.id;
@@ -120,10 +120,22 @@ describe('agent sign-in', () => {
   });
 });
 
-async function ensureConnected(serverUrl, workspaceId, kind) {
+// A scenario with no agentId would build `agent-picker-undefined`, which Detox and Playwright
+// both report only as a matcher that never matched - sixty seconds later, naming neither the
+// scenario nor the missing field. A rename that misses one table should say so at once.
+function pickerFor(agentId, scenarioName) {
+  if (!agentId) {
+    throw new Error(
+      `Scenario '${scenarioName}' has no agentId, so the agent picker id cannot be built. `
+      + 'Agents are listed by capability module id (codex, cursor, claude).');
+  }
+  return `agent-picker-${agentId}`;
+}
+
+async function ensureConnected(serverUrl, workspaceId, agentId) {
   // The prompt renders before getAgent returns; the picker buttons do not. Wait for the button
   // this case will tap, so a cancelled first fetch cannot look like a connected chat.
-  const picker = `agent-picker-${kind}`;
+  const picker = pickerFor(agentId, 'ensureConnected');
   try {
     await waitFor(element(by.id(picker))).toBeVisible().withTimeout(15_000);
     return;

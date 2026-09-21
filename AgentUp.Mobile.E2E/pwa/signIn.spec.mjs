@@ -20,6 +20,18 @@ const SCENARIOS = [
 
 const EXPORT_DIR = process.env.AGENTUP_E2E_WEB_EXPORT ?? '../AgentUp.Mobile.E2E.App/dist';
 
+// A scenario with no agentId would build `agent-picker-undefined`, which Detox and Playwright
+// both report only as a matcher that never matched - sixty seconds later, naming neither the
+// scenario nor the missing field. A rename that misses one table should say so at once.
+function pickerFor(agentId, scenarioName) {
+  if (!agentId) {
+    throw new Error(
+      `Scenario '${scenarioName}' has no agentId, so the agent picker id cannot be built. `
+      + 'Agents are listed by capability module id (codex, cursor, claude).');
+  }
+  return `agent-picker-${agentId}`;
+}
+
 for (const scenario of SCENARIOS) {
   test.describe(scenario.name, () => {
     let stack;
@@ -53,7 +65,7 @@ for (const scenario of SCENARIOS) {
       await page.getByTestId('server-url-input').fill(stack.serverOriginForClient);
       await page.getByTestId('workspace-id-input').fill(stack.workspace.id);
       await page.getByTestId('server-connect').click();
-      await page.getByTestId(`agent-picker-${scenario.agentId}`).click();
+      await page.getByTestId(pickerFor(scenario.agentId, scenario.name)).click();
 
       const offered = await waitForAgentState(stack.serverUrl, stack.workspace.id, 'authentication_required');
       const methodId = offered.authMethods?.[0]?.id;
