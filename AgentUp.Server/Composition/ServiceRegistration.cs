@@ -174,6 +174,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
         builder.Services.AddSingleton<AgentEventFrameProvider>();
         builder.Services.AddSingleton<AgentEventService>();
+        builder.Services.AddSingleton(_ => new AgentSessionRepository(dataDir));
         builder.Services.AddSingleton<AgentSchedulingService>();
         builder.Services.AddSingleton<AgentsController>();
         builder.Services.AddSingleton<WorkspaceEventFrameProvider>();

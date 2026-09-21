@@ -252,7 +252,7 @@ The exact project list may evolve, but ownership must not drift:
 
 | Area | Owns |
 |---|---|
-| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, the optional Git-backed dependent proposal queue and its managed worktree, process lifecycle, ports, authenticated HTTPS forwarding of allocated HTTP application ports, Docker, browser lifecycle, hosted Linux desktop application sessions, one authenticated ACP agent session per workspace, diagnostics, event recording, MCP, REST API |
+| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, the optional Git-backed dependent proposal queue and its managed worktree, process lifecycle, ports, authenticated HTTPS forwarding of allocated HTTP application ports, Docker, browser lifecycle, hosted Linux desktop application sessions, one active authenticated ACP agent session plus workspace-scoped saved session history, diagnostics, event recording, MCP, REST API |
 | `AgentUp.Browser.Streaming` | Reusable remote-display viewer and bounded multi-subscriber frame/input transport for Server-owned graphical sessions |
 | `AgentUp.Browser.Streaming.Benchmarks` | BenchmarkDotNet measurements for designated performance-sensitive browser streaming paths; runs as a receipt-backed slow verification check |
 | `AgentUp.Server.Benchmarks` | BenchmarkDotNet measurements and stored regression baseline for live agent event framing |
@@ -1178,7 +1178,7 @@ Read: `docs/user-docs/commits/index.md` and `docs/developer-guide/commits/index.
 
 ## Agents
 
-Each workspace has one ACP agent session. Desktop chrome for the live session is the **Agent** tab; Mobile chrome for the picker is the **Agents** tab. Subscription sign-in is Server-owned.
+Each workspace has one active ACP agent session and a separate saved session history. Desktop chrome for the live session is the **Agent** tab; Mobile chrome for the picker is the **Agents** tab. Subscription sign-in is Server-owned.
 
 Read: `docs/user-docs/agents/index.md` and `docs/developer-guide/agents/index.md`.
 

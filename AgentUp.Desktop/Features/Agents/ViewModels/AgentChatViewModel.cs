@@ -26,6 +26,7 @@ public sealed class AgentChatViewModel : ReactiveObject
     public IEnumerable<AgentChatItemViewModel> Messages => Transcript.OfType<AgentChatItemViewModel>()
         .Concat(Transcript.OfType<AgentRunViewModel>().SelectMany(run => run.Items));
     public ObservableCollection<AgentDescriptorDto> Agents { get; } = [];
+    public ObservableCollection<AgentSessionSummaryDto> Sessions { get; } = [];
     public ObservableCollection<AgentOptionViewModel> PermissionOptions { get; } = [];
     public ObservableCollection<AgentOptionViewModel> AuthenticationOptions { get; } = [];
     public string? SelectedAgent { get => _selectedAgent; private set => this.RaiseAndSetIfChanged(ref _selectedAgent, value); }
@@ -59,6 +60,7 @@ public sealed class AgentChatViewModel : ReactiveObject
         ? $"{SelectedAgentDisplayName} · {ActivityLabel}"
         : ActivityLabel;
     public ReactiveCommand<string, Unit> SelectAgentCommand { get; }
+    public ReactiveCommand<string, Unit> ResumeSessionCommand { get; }
     public ReactiveCommand<Unit, Unit> SendCommand { get; }
     public ReactiveCommand<Unit, Unit> StopCommand { get; }
 
@@ -66,6 +68,7 @@ public sealed class AgentChatViewModel : ReactiveObject
     {
         _controller = controller;
         SelectAgentCommand = ReactiveCommand.CreateFromTask<string>(SelectAsync);
+        ResumeSessionCommand = ReactiveCommand.CreateFromTask<string>(ResumeAsync);
         SendCommand = ReactiveCommand.CreateFromTask(SendAsync);
         StopCommand = ReactiveCommand.CreateFromTask(StopAsync);
         Transcript.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(HasMessages));
@@ -82,7 +85,7 @@ public sealed class AgentChatViewModel : ReactiveObject
         _lastSequence = 0;
         Transcript.Clear();
         _currentRun = null;
-        PermissionOptions.Clear(); AuthenticationOptions.Clear(); SelectedAgent = null; State = "idle"; Error = null; Agents.Clear();
+        PermissionOptions.Clear(); AuthenticationOptions.Clear(); SelectedAgent = null; State = "idle"; Error = null; Agents.Clear(); Sessions.Clear();
         SessionTitle = Mode = Usage = PermissionTitle = PermissionDetail = LoginUrl = LoginCode = LoginInstructions = _hintKind = _hintTool = null;
         NotifyComputedChatState();
         RefreshActivity();
@@ -102,6 +105,7 @@ public sealed class AgentChatViewModel : ReactiveObject
     }
 
     private async Task SelectAsync(string agent) => await RunAsync(async id => Apply(await _controller.ScheduleAsync(id, agent, CancellationToken.None)));
+    private async Task ResumeAsync(string sessionId) => await RunAsync(async id => Apply(await _controller.ResumeAsync(id, sessionId, CancellationToken.None)));
     private async Task SendAsync()
     {
         var text = Message?.Trim(); if (string.IsNullOrEmpty(text) || HasPermission) return;
@@ -128,6 +132,12 @@ public sealed class AgentChatViewModel : ReactiveObject
         AuthenticationOptions.Clear();
         if (session is not null)
         {
+            Sessions.Clear();
+            foreach (var saved in session.Sessions ?? [])
+            {
+                saved.IsCurrent = saved.SessionId == session.SessionId;
+                Sessions.Add(saved);
+            }
             if (session.Agents.Count > 0)
             {
                 Agents.Clear();

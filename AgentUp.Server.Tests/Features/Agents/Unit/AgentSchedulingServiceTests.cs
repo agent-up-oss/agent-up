@@ -62,7 +62,7 @@ public sealed class AgentSchedulingServiceTests
     public async Task TearDown() => await _service.DisposeAsync();
 
     [Test]
-    public async Task Schedule_initializesAcpInWorktreeAndEnforcesOneSession()
+    public async Task Schedule_initializesAcpInWorktreeAndReplacesTheActiveSession()
     {
         var first = await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
         var second = await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
@@ -71,8 +71,9 @@ public sealed class AgentSchedulingServiceTests
             Assert.That(first.Session!.SessionId, Is.EqualTo("session-1"));
             Assert.That(_process.WorkingDirectory, Is.EqualTo("/repo"));
             Assert.That(_process.Environment!["HOME"], Is.EqualTo("/data/agent-cli-home"));
-            Assert.That(_process.Methods, Is.EqualTo(new[] { "initialize", "session/new" }));
-            Assert.That(second.Error, Does.Contain("already has an agent"));
+            Assert.That(_process.Methods, Is.EqualTo(new[] { "initialize", "session/new", "initialize", "session/new" }));
+            Assert.That(_process.StopCalls, Is.EqualTo(1));
+            Assert.That(second.Error, Is.Null);
         });
     }
 

@@ -7,6 +7,7 @@ public sealed class AgentsController(AgentChatService service)
 {
     public Task<AgentSessionDto?> GetAsync(string id, CancellationToken cancellationToken) => service.GetAsync(id, cancellationToken);
     public Task<AgentSessionDto?> ScheduleAsync(string id, string agent, CancellationToken cancellationToken) => service.ScheduleAsync(id, agent, cancellationToken);
+    public Task<AgentSessionDto?> ResumeAsync(string id, string sessionId, CancellationToken cancellationToken) => service.ResumeAsync(id, sessionId, cancellationToken);
     public Task SendAsync(string id, string message, CancellationToken cancellationToken) => service.SendAsync(id, message, cancellationToken);
     public Task AuthenticateAsync(string id, string methodId, CancellationToken cancellationToken) => service.AuthenticateAsync(id, methodId, cancellationToken);
     public Task DecideAsync(string id, string request, string option, CancellationToken cancellationToken) => service.DecideAsync(id, request, option, cancellationToken);

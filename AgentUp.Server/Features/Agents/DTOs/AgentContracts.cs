@@ -54,6 +54,7 @@ public sealed record AgentLoginChallengeDto(
     DateTimeOffset? ExpiresAt = null,
     string? RedirectUri = null);
 public sealed record AgentDescriptor(AgentKind Agent, bool Available, string DisplayName);
+public sealed record AgentSessionSummaryDto(string SessionId, AgentKind Agent, string Description, string Branch, DateTimeOffset LastUsedAt);
 public sealed record AgentSessionDto(
     string WorkspaceId,
     AgentKind? Agent,
@@ -62,7 +63,8 @@ public sealed record AgentSessionDto(
     string? Error,
     IReadOnlyList<AgentDescriptor> Agents,
     IReadOnlyList<AgentAuthMethodDto> AuthMethods,
-    AgentLoginChallengeDto? LoginChallenge = null);
+    AgentLoginChallengeDto? LoginChallenge = null,
+    IReadOnlyList<AgentSessionSummaryDto>? Sessions = null);
 public sealed record AgentEventDto(long Sequence, string Type, JsonElement Payload, DateTimeOffset Timestamp);
 public sealed record AgentScheduleResult(AgentSessionDto? Session, bool Found, string? Error);
 public sealed record AgentActionResult(bool Found, string? Error)

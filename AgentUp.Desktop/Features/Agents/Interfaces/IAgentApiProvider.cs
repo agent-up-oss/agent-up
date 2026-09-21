@@ -6,6 +6,8 @@ public interface IAgentApiProvider
 {
     Task<AgentSessionDto?> GetAsync(string workspaceId, CancellationToken cancellationToken);
     Task<AgentSessionDto?> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken);
+    Task<AgentSessionDto?> ResumeAsync(string workspaceId, string sessionId, CancellationToken cancellationToken) =>
+        Task.FromException<AgentSessionDto?>(new NotSupportedException("Session resume is not supported by this provider."));
     Task SendAsync(string workspaceId, string message, CancellationToken cancellationToken);
     Task AuthenticateAsync(string workspaceId, string methodId, CancellationToken cancellationToken);
     Task DecideAsync(string workspaceId, string requestId, string optionId, CancellationToken cancellationToken);
