@@ -117,9 +117,10 @@ public sealed class FakeServerMessageHandlerTests
             BaseAddress = new Uri(FakeServerIdentity.Url)
         };
 
+        using var promptBody = new StringContent("""{"message":"status?"}""", Encoding.UTF8, "application/json");
         using var prompt = await http.PostAsync(
             "/api/workspaces/harbor-shop/agent/messages",
-            new StringContent("""{"message":"status?"}""", Encoding.UTF8, "application/json"));
+            promptBody);
         using var response = await http.GetAsync(
             "/api/workspaces/harbor-shop/agent/events?after=0",
             HttpCompletionOption.ResponseHeadersRead);
@@ -159,7 +160,8 @@ public sealed class FakeServerMessageHandlerTests
         };
 
         using var html = await http.GetAsync("/apps/harbor-shop/storefront");
-        using var audit = await http.PostAsync("/api/audit/record", new StringContent("{}"));
+        using var auditBody = new StringContent("{}");
+        using var audit = await http.PostAsync("/api/audit/record", auditBody);
         var htmlBody = await html.Content.ReadAsStringAsync();
 
         Assert.Multiple(() =>
