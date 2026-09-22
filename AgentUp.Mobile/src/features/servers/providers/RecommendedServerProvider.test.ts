@@ -47,6 +47,8 @@ test('listServers includes Demo when no Cloud URL is configured', () => {
   assert.equal(listed[0].displayName, 'Demo');
   assert.equal(listed[0].canRemove, false);
 });
+
+test('listServers includes Demo before Cloud and saved servers', () => {
   const listed = listServers(
     {
       servers: [
@@ -62,14 +64,6 @@ test('listServers includes Demo when no Cloud URL is configured', () => {
   assert.equal(listed[1].isRecommended, true);
   assert.equal(listed[1].displayName, 'Agent-Up Cloud');
   assert.equal(listed[2].url, 'http://127.0.0.1:5100');
-});
-
-test('listServers includes Demo when no Cloud URL is configured', () => {
-  const listed = listServers({ servers: [], activeServerId: null }, null);
-  assert.equal(listed.length, 1);
-  assert.equal(listed[0].isFake, true);
-  assert.equal(listed[0].displayName, 'Demo');
-  assert.equal(listed[0].canRemove, false);
 });
 
 test('cloudServer keeps persisted open access', () => {

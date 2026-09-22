@@ -9,6 +9,7 @@ import { normalizeServerUrl, probeServer } from '../providers/ServerUrlProvider'
 import { recordServerConnectionAudit } from '../providers/MobileAuditProvider';
 import { getAuthenticationStatus, getConnection, login, ensureCredentialTransportAllowed } from '../../authentication/providers/AuthenticationProvider';
 import { browserSsoStartUrl, createSsoState, readSsoCallback, rememberSsoStart, takePendingSsoStart, usesBrowserSso } from '../../authentication/providers/BrowserSsoProvider';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { fakeServers } from '@/features/fake-server/controllers/FakeServerController';
 import { fakeServerDisplayName } from '@/features/fake-server/models/FakeServerIdentity';
 
