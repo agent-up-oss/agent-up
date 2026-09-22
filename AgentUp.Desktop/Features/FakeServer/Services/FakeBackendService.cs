@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using AgentUp.Desktop.Features.FakeServer.DTOs;
 using AgentUp.Desktop.Features.FakeServer.Models;
@@ -478,21 +479,21 @@ public sealed class FakeBackendService
         if (workspace is not JsonObject obj)
             return "";
         var applications = new JsonArray(
-            (obj["applications"] as JsonArray ?? [])
+            [.. (obj["applications"] as JsonArray ?? [])
                 .OfType<JsonObject>()
                 .Select(app => new JsonObject
                 {
                     ["name"] = app["name"]?.DeepClone(),
                     ["state"] = app["state"]?.DeepClone(),
                     ["portHealth"] = new JsonArray(
-                        (app["allocatedPorts"] as JsonArray ?? [])
+                        [.. (app["allocatedPorts"] as JsonArray ?? [])
                             .Where(port => port?["allocatedPort"] is not null)
                             .Select(port => new JsonObject
                             {
                                 ["allocatedPort"] = port!["allocatedPort"]!.DeepClone(),
                                 ["healthState"] = "Healthy"
-                            }))
-                }));
+                            })])
+                })]);
 
         var payload = new JsonObject
         {
