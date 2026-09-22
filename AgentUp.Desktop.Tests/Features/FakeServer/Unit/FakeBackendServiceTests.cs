@@ -249,7 +249,7 @@ public sealed class FakeBackendServiceTests
         var pull = Json(backend, Post("/api/workspaces/harbor-shop/git/pull"));
         var push = Json(backend, Post("/api/workspaces/harbor-shop/git/push"));
         var other = Json(backend, Post("/api/workspaces/harbor-shop/git/status"));
-        var emptyConsole = Json(backend, Get("/api/workspaces/harbor-shop/output"));
+        var emptyConsole = Json(backend, Get("/api/workspaces/harbor-shop/app/output"));
 
         Assert.That(pull["head"]!["branch"]!.GetValue<string>(), Is.EqualTo("main"));
         Assert.That(push["succeeded"]!.GetValue<bool>(), Is.True);
