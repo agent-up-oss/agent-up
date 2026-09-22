@@ -74,4 +74,34 @@ public sealed class FirstPartyNixPinTests
     {
         Assert.That(FirstPartyNixPin.Nixpkgs.Rev, Is.EqualTo(FirstPartyNixPin.Rev));
     }
+
+    // A .NET application aborts at startup when the runtime cannot load ICU - the Example API and
+    // Sample Desktop both died on "Please see https://aka.ms/dotnet-missing-libicu" until the
+    // module delivered it. The SDK is not enough on its own.
+    [Test]
+    public void DefaultNix_delivers_icu_alongside_the_dotnet_sdk()
+    {
+        var nix = FirstPartyNixPin.DefaultNix(["dotnet-sdk_10"]);
+
+        Assert.That(nix, Does.Contain("packages = [ pkgs.dotnet-sdk_10 pkgs.icu ];"));
+        Assert.That(nix, Does.Contain("export LD_LIBRARY_PATH=\"${pkgs.icu}/lib"));
+    }
+
+    // Only a dotnet module needs it; a docker or node module must not grow an unrelated input.
+    [Test]
+    public void DefaultNix_leaves_a_module_without_the_sdk_alone()
+    {
+        var nix = FirstPartyNixPin.DefaultNix(["nodejs_22"]);
+
+        Assert.That(nix, Does.Not.Contain("icu"));
+    }
+
+    // The expansion has to reach the shell, not the Nix evaluator, so it carries the '' escape.
+    [Test]
+    public void DefaultNix_escapes_the_library_path_expansion_for_nix()
+    {
+        var nix = FirstPartyNixPin.DefaultNix(["dotnet-sdk_10"]);
+
+        Assert.That(nix, Does.Contain("''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"));
+    }
 }

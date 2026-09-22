@@ -35,19 +35,26 @@ public static class FirstPartyNixPin
     /// </remarks>
     public static string DefaultNix(IReadOnlyList<string> packages, string? nixpkgsRev)
     {
-        var pkgs = string.Join(" ", packages.Select(package => "pkgs." + package));
+        var dotnetSdkPackage = packages.FirstOrDefault(package => package.StartsWith("dotnet-sdk", StringComparison.Ordinal));
+        // A .NET application aborts at startup when it cannot load ICU, so a module that delivers
+        // the SDK has to deliver globalization with it.
+        var shellPackages = string.IsNullOrWhiteSpace(dotnetSdkPackage)
+            ? packages
+            : [.. packages, "icu"];
+        var pkgs = string.Join(" ", shellPackages.Select(package => "pkgs." + package));
         var nixpkgs = string.IsNullOrWhiteSpace(nixpkgsRev)
             ? "import <nixpkgs> {}"
             : "import (builtins.fetchTarball {\n"
               + "    url = \"https://github.com/NixOS/nixpkgs/archive/" + nixpkgsRev.Trim() + ".tar.gz\";\n"
               + "  }) {}";
-        var dotnetSdk = packages.FirstOrDefault(package => package.StartsWith("dotnet-sdk", StringComparison.Ordinal));
+        var dotnetSdk = dotnetSdkPackage;
         var dotnetRoot = string.IsNullOrWhiteSpace(dotnetSdk)
             ? ""
             : $$"""
 
                 export DOTNET_ROOT="${pkgs.{{dotnetSdk}}}/share/dotnet"
                 export DOTNET_HOST_PATH="$DOTNET_ROOT/dotnet"
+                export LD_LIBRARY_PATH="${pkgs.icu}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
                 unset MSBuildSDKsPath
                 unset MSBUILD_EXE_PATH
                 unset DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR
