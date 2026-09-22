@@ -225,11 +225,8 @@ public sealed class FakeBackendService
             workspace["state"] = state;
             if (workspace["applications"] is JsonArray applications)
             {
-                foreach (var application in applications)
-                {
-                    if (application is JsonObject app)
-                        app["state"] = state == "Running" ? "Running" : "Stopped";
-                }
+                foreach (var app in applications.OfType<JsonObject>())
+                    app["state"] = state == "Running" ? "Running" : "Stopped";
             }
         }
 
@@ -330,14 +327,11 @@ public sealed class FakeBackendService
         PublishAgent(workspaceId, "user_message", new JsonObject { ["text"] = message });
         var scripted = (session["scripts"] as JsonArray ?? [])
             .SelectMany(script => script?["events"] as JsonArray ?? [])
-            .OfType<JsonObject>();
+            .OfType<JsonObject>()
+            .Select(ev => (Type: ev["type"]?.GetValue<string>(), Payload: ev["payload"]))
+            .Where(item => !string.IsNullOrWhiteSpace(item.Type) && item.Payload is not null);
         foreach (var ev in scripted)
-        {
-            var type = ev["type"]?.GetValue<string>();
-            if (string.IsNullOrWhiteSpace(type) || ev["payload"] is not JsonNode payload)
-                continue;
-            PublishAgent(workspaceId, type, payload.DeepClone());
-        }
+            PublishAgent(workspaceId, ev.Type!, ev.Payload!.DeepClone());
 
         return new FakeBackendResponseDto(204, "application/json");
     }

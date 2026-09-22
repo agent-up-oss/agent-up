@@ -159,12 +159,9 @@ public sealed class ServerConnectionService(
             || selection.Servers.Any(server =>
                 server.Id == selection.ActiveServerId && FakeServerIdentity.Matches(server.Url));
         var servers = new List<SavedServerDto> { ToFakeDto(fakeActive) };
-        foreach (var server in selection.Servers)
-        {
-            if (FakeServerIdentity.Matches(server.Url) || server.Id == FakeServerIdentity.Id)
-                continue;
-            servers.Add(ToDto(server, selection.ActiveServerId));
-        }
+        servers.AddRange(selection.Servers
+            .Where(server => !FakeServerIdentity.Matches(server.Url) && server.Id != FakeServerIdentity.Id)
+            .Select(server => ToDto(server, selection.ActiveServerId)));
 
         var current = servers.FirstOrDefault(server => server.IsActive)?.Url
             ?? servers.FirstOrDefault(server => !server.IsFake)?.Url
