@@ -96,7 +96,7 @@ public sealed class RuntimeCapabilityValidationE2ETests
         var workspaceId = await EnsureRuntimeWorkspaceAsync();
         var port = await WaitForAllocatedHttpPortAsync(workspaceId, ExampleApi);
         using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
-        using var response = await WaitForHealthyAsync(client);
+        using var response = await WaitForHealthyAsync(client, workspaceId);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>(Json);
 
         Assert.That(body.GetProperty("ok").GetBoolean(), Is.True);
@@ -192,7 +192,7 @@ public sealed class RuntimeCapabilityValidationE2ETests
         await WaitForAllocatedHttpPortAsync(workspaceId, ExampleWeb);
         var apiPort = await WaitForAllocatedHttpPortAsync(workspaceId, ExampleApi);
         using (var health = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{apiPort}") })
-            (await WaitForHealthyAsync(health)).Dispose();
+            (await WaitForHealthyAsync(health, workspaceId)).Dispose();
         await WaitForApplicationTabAsync(ExampleWeb);
         await Desktop.WaitForWorkspaceWebViewAsync(TimeSpan.FromMinutes(2));
         Stage($"Root agent-up.json workspace is running after {started.Elapsed}.");
@@ -231,14 +231,28 @@ public sealed class RuntimeCapabilityValidationE2ETests
             await Task.Delay(500);
         }
 
-        Assert.Fail($"Workspace '{workspaceId}' never allocated an HTTP port for '{application}'.");
+        Assert.Fail(
+            $"Workspace '{workspaceId}' never allocated an HTTP port for '{application}'."
+            + await FormatWorkspaceOutputAsync(workspaceId));
         return 0;
     }
 
-    private static async Task<HttpResponseMessage> WaitForHealthyAsync(HttpClient client)
+    /// <summary>
+    /// Waits for the capability-hosted API to answer, and says what the application printed when
+    /// it never does.
+    /// </summary>
+    /// <remarks>
+    /// An application that dies on startup looks exactly like one that is slow: the poll reports
+    /// "Connection refused" either way, and a bare "did not become ready" names neither the
+    /// application nor its error. The console is the only place the reason exists, so the failure
+    /// carries it. Identical poll errors are reported once rather than every 500ms, because six
+    /// hundred copies of one line is what buried the real output last time.
+    /// </remarks>
+    private static async Task<HttpResponseMessage> WaitForHealthyAsync(HttpClient client, string workspaceId)
     {
         var deadline = DateTimeOffset.UtcNow + TimeSpan.FromMinutes(3);
         HttpResponseMessage? last = null;
+        var lastReported = "";
         while (DateTimeOffset.UtcNow < deadline)
         {
             last?.Dispose();
@@ -250,13 +264,17 @@ public sealed class RuntimeCapabilityValidationE2ETests
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
             {
-                TestContext.Progress.WriteLine(ex.Message);
+                if (!string.Equals(ex.Message, lastReported, StringComparison.Ordinal))
+                    Stage($"Example API /health is not answering yet: {ex.Message}");
+                lastReported = ex.Message;
             }
 
             await Task.Delay(500);
         }
 
-        Assert.Fail($"Example API /health did not become ready. Last status was '{last?.StatusCode}'.");
+        Assert.Fail(
+            $"Example API /health did not become ready. Last status was '{last?.StatusCode}'."
+            + await FormatWorkspaceOutputAsync(workspaceId));
         return last!;
     }
 
@@ -340,7 +358,8 @@ public sealed class RuntimeCapabilityValidationE2ETests
 
         Assert.Fail(
             "Root agent-up.json did not start every declared application. "
-            + $"Expected [{string.Join(", ", WorkspaceApplications)}], saw [{string.Join(", ", names.Order(StringComparer.Ordinal))}].");
+            + $"Expected [{string.Join(", ", WorkspaceApplications)}], saw [{string.Join(", ", names.Order(StringComparer.Ordinal))}]."
+            + await FormatWorkspaceOutputAsync(workspaceId));
     }
 
     private static string PackRuntimeCapabilities(string repoRoot)
