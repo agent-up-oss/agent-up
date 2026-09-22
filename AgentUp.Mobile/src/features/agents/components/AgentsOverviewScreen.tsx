@@ -77,7 +77,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
           <Text style={styles.sectionTitle}>Workspace sessions</Text>
           {(session?.sessions ?? []).length === 0 && <Text style={styles.detail}>No saved sessions yet.</Text>}
           {(session?.sessions ?? []).map(item => {
-            const active = item.sessionId === session?.sessionId;
+            const active = item.sessionId === session?.sessionId && session?.state !== 'stopped';
             return <Pressable key={item.sessionId} testID={`agent-session-${item.sessionId}`} accessibilityRole="button"
               accessibilityLabel={`${active ? 'Open' : 'Resume'} ${item.agent} session`} disabled={busy}
               onPress={() => active ? openChat() : void resume(item.sessionId)} style={styles.current}>

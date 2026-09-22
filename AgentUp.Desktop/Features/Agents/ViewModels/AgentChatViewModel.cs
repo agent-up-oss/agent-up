@@ -134,10 +134,7 @@ public sealed class AgentChatViewModel : ReactiveObject
         {
             Sessions.Clear();
             foreach (var saved in session.Sessions ?? [])
-            {
-                saved.IsCurrent = saved.SessionId == session.SessionId;
                 Sessions.Add(saved);
-            }
             if (session.Agents.Count > 0)
             {
                 Agents.Clear();

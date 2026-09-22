@@ -590,7 +590,7 @@ The Server owns all orchestration:
 - Diagnostics.
 - Health monitoring.
 - Playwright generation.
-- One ACP agent session per workspace, including process lifecycle, prompts, permission decisions, and event streaming.
+- One active ACP agent session plus workspace-scoped saved session history, including process lifecycle, prompts, permission decisions, and event streaming.
 - MCP servers.
 - REST API, including anonymous connection metadata and the authenticated entitlement document keyed by operation permissions.
 

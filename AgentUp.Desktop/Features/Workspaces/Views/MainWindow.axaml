@@ -1239,7 +1239,7 @@
                                     </Grid>
                                     <StackPanel Grid.Row="1" Spacing="8" HorizontalAlignment="Stretch">
                                         <TextBlock Classes="au-field-label" Text="Workspace sessions"/>
-                                        <ItemsControl ItemsSource="{Binding Agent.Sessions}">
+                                        <ItemsControl x:Name="AgentSessionList" ItemsSource="{Binding Agent.Sessions}">
                                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
