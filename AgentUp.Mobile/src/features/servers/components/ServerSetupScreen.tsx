@@ -9,13 +9,14 @@ import { normalizeServerUrl, probeServer } from '../providers/ServerUrlProvider'
 import { recordServerConnectionAudit } from '../providers/MobileAuditProvider';
 import { getAuthenticationStatus, getConnection, login, ensureCredentialTransportAllowed } from '../../authentication/providers/AuthenticationProvider';
 import { browserSsoStartUrl, createSsoState, readSsoCallback, rememberSsoStart, takePendingSsoStart, usesBrowserSso } from '../../authentication/providers/BrowserSsoProvider';
-import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
+import { fakeServers } from '@/features/fake-server/controllers/FakeServerController';
+import { fakeServerDisplayName } from '@/features/fake-server/models/FakeServerIdentity';
 
 type FormMode = 'add' | 'password' | 'cloud' | 'sso';
 
 export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { presetServerUrl?: string; presetWorkspaceId?: string }) {
   const router = useRouter();
-  const { activeServer, savedServers, cloudServer, saveServer, selectServer, removeServer, requiresSignIn, ready } = useServers();
+  const { activeServer, savedServers, cloudServer, servers, saveServer, selectServer, removeServer, requiresSignIn, ready } = useServers();
   const [url, setUrl] = useState('');
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
@@ -116,6 +117,13 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
     setPassword('');
     try {
       const normalized = normalizeServerUrl(candidate);
+      if (fakeServers.matches(normalized)) {
+        saveServer(normalized);
+        setUrl('');
+        setStatus('Connected to Demo');
+        router.replace(workspaceHref(presetWorkspaceId));
+        return;
+      }
       if (cloudServer && normalized === cloudServer.url) {
         showCloudLogin();
         return;
@@ -146,8 +154,13 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
   };
 
   const openSaved = (id: string) => {
-    const saved = savedServers.find(server => server.id === id);
+    const saved = servers.find(server => server.id === id);
     if (!saved || busy) return;
+    if (saved.isFake) {
+      selectServer(saved.id);
+      router.replace(workspaceHref(presetWorkspaceId));
+      return;
+    }
     if (hasSavedSignIn(saved)) {
       selectServer(saved.id);
       router.replace(workspaceHref(presetWorkspaceId));
@@ -202,8 +215,8 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
 
   const cloudName = cloudServer?.displayName ?? 'Agent-Up Cloud';
   const showServers = true;
-  const currentLabel = activeServer && hasSavedSignIn(activeServer)
-    ? (activeServer.isRecommended ? (activeServer.displayName ?? cloudName) : activeServer.url)
+  const currentLabel = activeServer && (hasSavedSignIn(activeServer) || activeServer.isFake)
+    ? (activeServer.displayName ?? (activeServer.isRecommended ? cloudName : activeServer.url))
     : 'No server selected';
 
   return <SafeAreaView style={styles.screen}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -252,9 +265,24 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
       </>}
       {!!status && <Text accessibilityRole="alert" style={requiresSignIn ? styles.errorStatus : styles.status}>{status}</Text>}
     </View>
-    {showServers && <View style={styles.card}>
+      {showServers && <View style={styles.card}>
       <Text style={styles.heading}>Servers</Text>
       <Text style={styles.detail}>Switching replaces this client's local workspace and browser state. Saved sign-in tokens stay on this device.</Text>
+      {servers.filter(server => server.isFake).map(server => {
+        const isActive = server.id === activeServer?.id && formMode !== 'cloud';
+        return (
+          <Pressable key={server.id} accessibilityRole="button"
+            accessibilityState={{ selected: isActive }}
+            accessibilityLabel={fakeServerDisplayName}
+            onPress={() => openSaved(server.id)} disabled={busy}
+            style={[styles.savedRow, isActive && styles.savedRowActive]}>
+            <View style={styles.savedButton}>
+              <Text numberOfLines={2} style={styles.savedUrl}>{fakeServerDisplayName}</Text>
+              <Text style={styles.savedMeta}>{isActive ? 'Current' : 'In-app demo'}</Text>
+            </View>
+          </Pressable>
+        );
+      })}
       {cloudServer && (
         <Pressable accessibilityRole="button"
           accessibilityState={{ selected: formMode === 'cloud' || activeServer?.id === cloudServer.id }}
@@ -274,17 +302,19 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
         return (
           <View key={server.id} style={[styles.savedRow, isActive && styles.savedRowActive]}>
             <Pressable accessibilityRole="button" accessibilityState={{ selected: isActive }}
-              accessibilityLabel={`Use server ${server.url}`} onPress={() => openSaved(server.id)}
+              accessibilityLabel={`Use server ${server.displayName ?? server.url}`} onPress={() => openSaved(server.id)}
               disabled={busy} style={styles.savedButton}>
-              <Text numberOfLines={2} style={styles.savedUrl}>{server.url}</Text>
+              <Text numberOfLines={2} style={styles.savedUrl}>{server.displayName ?? server.url}</Text>
               <Text style={styles.savedMeta}>
                 {isActive ? 'Current' : hasSavedSignIn(server) ? 'Saved sign-in' : 'No saved sign-in'}
               </Text>
             </Pressable>
+            {server.canRemove !== false && (
             <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${server.url}`}
               onPress={() => removeServer(server.id)} disabled={busy} style={styles.removeButton}>
               <Text style={styles.removeText}>Remove</Text>
             </Pressable>
+            )}
           </View>
         );
       })}

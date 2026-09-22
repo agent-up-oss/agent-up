@@ -85,6 +85,9 @@ Switching workspaces should restore the relevant running applications and browse
 ## Connect and login
 
 <DocSteps>
+<DocStep title="Open Demo to try the product">
+Desktop and Mobile always list a built-in Demo server. It is sample state inside the client, not a running Agent-Up Server.
+</DocStep>
 <DocStep title="Connect with the Server URL">
 Saved servers stay on the client; only one is active.
 </DocStep>

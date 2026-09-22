@@ -596,8 +596,12 @@
                                                         HorizontalAlignment="Stretch"
                                                         HorizontalContentAlignment="Left">
                                                     <StackPanel Spacing="2">
-                                                        <TextBlock Text="{Binding Url}"
+                                                        <TextBlock Text="{Binding DisplayName}"
                                                                    TextWrapping="Wrap"/>
+                                                        <TextBlock Classes="au-muted"
+                                                                   Text="In-app demo"
+                                                                   FontSize="11"
+                                                                   IsVisible="{Binding IsFake}"/>
                                                         <TextBlock Classes="au-muted"
                                                                    Text="Saved sign-in"
                                                                    FontSize="11"
@@ -609,7 +613,8 @@
                                                         Command="{Binding DataContext.Login.RemoveSavedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                         CommandParameter="{Binding Id}"
                                                         ToolTip.Tip="Remove saved server"
-                                                        Content="Remove"/>
+                                                        Content="Remove"
+                                                        IsVisible="{Binding CanRemove}"/>
                                             </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>

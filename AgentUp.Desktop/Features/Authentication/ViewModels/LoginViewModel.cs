@@ -223,9 +223,13 @@ public sealed class LoginViewModel : ReactiveObject
 
     private void RemoveSaved(string id)
     {
+        var selected = SavedServers.FirstOrDefault(server => server.Id == id);
+        if (selected is { CanRemove: false })
+            return;
+
         _authentication.RemoveServer(id);
         RefreshSavedServers();
-        if (SavedServers.Count == 0)
+        if (SavedServers.All(server => server.IsFake))
             ServerUrl = _authentication.CurrentServerUrl();
     }
 

@@ -112,7 +112,7 @@ On NixOS:
 
 The script runs the desktop inside `shell.nix`, which provides the native libraries needed on Linux.
 
-On first launch, Desktop shows a setup tutorial that can create two sample workspaces. Skip persists, so the overlay does not return on the next start. Native tests set `AGENTUP_SKIP_FIRST_RUN_TUTORIAL=1`; users do not need that variable.
+On first launch, Desktop and Mobile list a built-in **Demo** server. Connecting to it uses only in-app sample state — a Harbor Shop workspace, storefront and Orders API pages, git changes, and scripted agent replies. It is not a running Agent-Up Server. Disconnect and connect to a real Server without restarting the client.
 
 See [Workspaces](/docs/workspaces) for connect, start, and the Mobile workspace list.
 

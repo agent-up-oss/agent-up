@@ -122,7 +122,7 @@ public sealed class LoginViewModelTests
         using var http = new DisposableTestHttpClient(_ =>
             Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
         var store = new InMemoryServerConnectionStore();
-        var connections = new ServerConnectionService(store, http.Client);
+        var connections = FakeServerTestComposition.Connections(store, http.Client);
         connections.Save("http://127.0.0.1:5000", "saved-token");
         var login = new LoginViewModel(AuthenticationTestController.Create(http, store));
         login.ShowSwitcher();
@@ -339,7 +339,7 @@ public sealed class LoginViewModelTests
         using var http = new DisposableTestHttpClient(_ =>
             Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
         var store = new InMemoryServerConnectionStore();
-        var connections = new ServerConnectionService(store, http.Client);
+        var connections = FakeServerTestComposition.Connections(store, http.Client);
         var saved = connections.Save("http://127.0.0.1:5100", null);
         var login = new LoginViewModel(AuthenticationTestController.Create(http, store));
         login.ShowSwitcher();
@@ -372,7 +372,7 @@ public sealed class LoginViewModelTests
         using var http = new DisposableTestHttpClient(_ =>
             Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
         var store = new InMemoryServerConnectionStore();
-        var connections = new ServerConnectionService(store, http.Client);
+        var connections = FakeServerTestComposition.Connections(store, http.Client);
         var saved = connections.Save("http://127.0.0.1:5100", "token-1");
         var login = new LoginViewModel(AuthenticationTestController.Create(http, store));
         login.ShowSwitcher();
@@ -382,7 +382,7 @@ public sealed class LoginViewModelTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(login.SavedServers, Is.Empty);
+            Assert.That(login.SavedServers.All(server => server.IsFake), Is.True);
             Assert.That(login.ServerUrl, Is.EqualTo(login.CurrentServerUrl));
         });
     }
@@ -393,7 +393,7 @@ public sealed class LoginViewModelTests
         using var http = new DisposableTestHttpClient(_ =>
             Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
         var store = new InMemoryServerConnectionStore();
-        var connections = new ServerConnectionService(store, http.Client);
+        var connections = FakeServerTestComposition.Connections(store, http.Client);
         var first = connections.Save("http://127.0.0.1:5000", "first");
         var second = connections.Save("http://127.0.0.1:5100", "second");
         var login = new LoginViewModel(AuthenticationTestController.Create(http, store));
@@ -403,9 +403,46 @@ public sealed class LoginViewModelTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(login.SavedServers, Has.Count.EqualTo(1));
-            Assert.That(login.SavedServers[0].Id, Is.EqualTo(second.Id));
+            Assert.That(login.SavedServers.Count(server => !server.IsFake), Is.EqualTo(1));
+            Assert.That(login.SavedServers.Single(server => !server.IsFake).Id, Is.EqualTo(second.Id));
         });
+    }
+
+    [Test]
+    public async Task ConnectCommand_ConnectsToTheBuiltInFakeServerWithoutAPassword()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        using var http = FakeServerTestComposition.Client(backend);
+        var store = new InMemoryServerConnectionStore();
+        var login = new LoginViewModel(new AuthenticationController(
+            new AuthenticationService(new AuthenticationApiClient(http)),
+            FakeServerTestComposition.Connections(store, http, backend)));
+        login.ShowSwitcher();
+        login.ServerUrl = "http://127.0.0.1:9";
+
+        await login.ConnectCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.IsVisible, Is.False);
+            Assert.That(login.NeedsPassword, Is.False);
+            Assert.That(login.CurrentServerUrl, Is.EqualTo("http://127.0.0.1:9"));
+            Assert.That(login.SavedServers[0].IsFake, Is.True);
+            Assert.That(login.SavedServers[0].IsActive, Is.True);
+        });
+    }
+
+    [Test]
+    public void RemoveSavedCommand_LeavesTheBuiltInFakeServer()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var login = new LoginViewModel(CreateController(http));
+        login.ShowSwitcher();
+
+        login.RemoveSavedCommand.Execute("fake").Subscribe();
+
+        Assert.That(login.SavedServers[0].IsFake, Is.True);
     }
 
     private static AuthenticationController CreateController(DisposableTestHttpClient http)

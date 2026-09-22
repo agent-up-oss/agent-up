@@ -660,6 +660,13 @@
         ]
       },
       {
+        "match": "AgentUp.FakeServer/**",
+        "checks": [
+          "desktop",
+          "mobile"
+        ]
+      },
+      {
         "match": "AgentUp.Desktop/**",
         "checks": [
           "desktop",

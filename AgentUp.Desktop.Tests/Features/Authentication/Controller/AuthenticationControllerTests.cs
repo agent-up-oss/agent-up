@@ -42,7 +42,7 @@ public sealed class AuthenticationControllerTests
         Assert.Multiple(() =>
         {
             Assert.That(saved.Url, Is.EqualTo("http://127.0.0.1:5100"));
-            Assert.That(controller.ListSavedServers().Servers, Has.Count.EqualTo(1));
+            Assert.That(controller.ListSavedServers().Servers.Count(server => !server.IsFake), Is.EqualTo(1));
             Assert.That(controller.CurrentServerUrl(), Is.EqualTo("http://127.0.0.1:5100"));
         });
     }
@@ -78,7 +78,7 @@ public sealed class AuthenticationControllerTests
 
         controller.RemoveServer(saved.Id);
 
-        Assert.That(controller.ListSavedServers().Servers, Is.Empty);
+        Assert.That(controller.ListSavedServers().Servers.All(server => server.IsFake), Is.True);
     }
 
     [Test]

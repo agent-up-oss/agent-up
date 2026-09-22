@@ -1,6 +1,7 @@
 using AgentUp.Desktop.Features.Authentication.Models;
 using AgentUp.Desktop.Features.Authentication.Providers;
 using AgentUp.Desktop.Features.Authentication.Services;
+using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Authentication.Unit;
 
@@ -12,7 +13,7 @@ public sealed class ServerConnectionServiceTests
     {
         var store = new InMemoryServerConnectionStore();
         using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var service = new ServerConnectionService(store, http);
+        var service = FakeServerTestComposition.Connections(store, http);
 
         var saved = service.Save("http://127.0.0.1:5100/", "token-1");
 
@@ -23,7 +24,7 @@ public sealed class ServerConnectionServiceTests
             Assert.That(saved.IsActive, Is.True);
             Assert.That(http.BaseAddress, Is.EqualTo(new Uri("http://127.0.0.1:5100/")));
             Assert.That(http.DefaultRequestHeaders.Authorization?.Parameter, Is.EqualTo("token-1"));
-            Assert.That(service.List().Servers, Has.Count.EqualTo(1));
+            Assert.That(UserServers(service), Has.Count.EqualTo(1));
         });
     }
 
@@ -32,7 +33,7 @@ public sealed class ServerConnectionServiceTests
     {
         var store = new InMemoryServerConnectionStore();
         using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var service = new ServerConnectionService(store, http);
+        var service = FakeServerTestComposition.Connections(store, http);
         var first = service.Save("http://127.0.0.1:5100", "token-1");
 
         var second = service.Save("http://127.0.0.1:5100/", "token-2");
@@ -40,7 +41,7 @@ public sealed class ServerConnectionServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(second.Id, Is.EqualTo(first.Id));
-            Assert.That(service.List().Servers, Has.Count.EqualTo(1));
+            Assert.That(UserServers(service), Has.Count.EqualTo(1));
             Assert.That(http.DefaultRequestHeaders.Authorization?.Parameter, Is.EqualTo("token-2"));
         });
     }
@@ -50,7 +51,7 @@ public sealed class ServerConnectionServiceTests
     {
         var store = new InMemoryServerConnectionStore();
         using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var service = new ServerConnectionService(store, http);
+        var service = FakeServerTestComposition.Connections(store, http);
         var local = service.Save("http://127.0.0.1:5000", "local-token");
         var remote = service.Save("https://agent-up.example.com", "remote-token");
 
@@ -59,10 +60,10 @@ public sealed class ServerConnectionServiceTests
         Assert.That(http.DefaultRequestHeaders.Authorization?.Parameter, Is.EqualTo("local-token"));
 
         service.Remove(local.Id);
-        var remaining = service.List();
-        Assert.That(remaining.Servers, Has.Count.EqualTo(1));
-        Assert.That(remaining.Servers[0].Id, Is.EqualTo(remote.Id));
-        Assert.That(remaining.Servers[0].IsActive, Is.True);
+        var remaining = UserServers(service);
+        Assert.That(remaining, Has.Count.EqualTo(1));
+        Assert.That(remaining[0].Id, Is.EqualTo(remote.Id));
+        Assert.That(remaining[0].IsActive, Is.True);
     }
 
     [Test]
@@ -70,11 +71,11 @@ public sealed class ServerConnectionServiceTests
     {
         var store = new InMemoryServerConnectionStore();
         using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var service = new ServerConnectionService(store, http);
+        var service = FakeServerTestComposition.Connections(store, http);
         service.Save("https://agent-up.example.com", "remote-token");
 
         using var restored = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var next = new ServerConnectionService(store, restored);
+        var next = FakeServerTestComposition.Connections(store, restored);
         next.RestoreActive();
 
         Assert.That(restored.BaseAddress, Is.EqualTo(new Uri("https://agent-up.example.com/")));
@@ -86,7 +87,7 @@ public sealed class ServerConnectionServiceTests
     {
         var store = new InMemoryServerConnectionStore();
         using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var service = new ServerConnectionService(store, http);
+        var service = FakeServerTestComposition.Connections(store, http);
         service.Save("http://127.0.0.1:5000", "token-1");
 
         var saved = service.Save("http://127.0.0.1:5000", null);
@@ -100,7 +101,7 @@ public sealed class ServerConnectionServiceTests
     {
         var store = new InMemoryServerConnectionStore();
         using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var service = new ServerConnectionService(store, http);
+        var service = FakeServerTestComposition.Connections(store, http);
 
         Assert.That(
             () => service.Activate("missing"),
@@ -112,7 +113,7 @@ public sealed class ServerConnectionServiceTests
     {
         var store = new InMemoryServerConnectionStore();
         using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var service = new ServerConnectionService(store, http);
+        var service = FakeServerTestComposition.Connections(store, http);
 
         service.RestoreActive();
 
@@ -137,7 +138,7 @@ public sealed class ServerConnectionServiceTests
             ]
         });
         using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var service = new ServerConnectionService(store, http);
+        var service = FakeServerTestComposition.Connections(store, http);
 
         service.RestoreActive();
 
@@ -150,7 +151,7 @@ public sealed class ServerConnectionServiceTests
     {
         var store = new InMemoryServerConnectionStore();
         using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var service = new ServerConnectionService(store, http);
+        var service = FakeServerTestComposition.Connections(store, http);
         service.Save("http://127.0.0.1:5100", "saved-token");
 
         service.Prepare("http://127.0.0.1:5100/");
@@ -164,7 +165,7 @@ public sealed class ServerConnectionServiceTests
     {
         var store = new InMemoryServerConnectionStore();
         using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var service = new ServerConnectionService(store, http);
+        var service = FakeServerTestComposition.Connections(store, http);
         var saved = service.Save("http://127.0.0.1:5100", "token-1");
 
         service.Remove(saved.Id);
@@ -172,7 +173,7 @@ public sealed class ServerConnectionServiceTests
         var remaining = service.List();
         Assert.Multiple(() =>
         {
-            Assert.That(remaining.Servers, Is.Empty);
+            Assert.That(remaining.Servers.All(server => server.IsFake), Is.True);
             Assert.That(remaining.CurrentUrl, Is.EqualTo(""));
         });
     }
@@ -182,8 +183,60 @@ public sealed class ServerConnectionServiceTests
     {
         var store = new InMemoryServerConnectionStore();
         using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5100/") };
-        var service = new ServerConnectionService(store, http);
+        var service = FakeServerTestComposition.Connections(store, http);
 
         Assert.That(service.CurrentUrl(), Is.EqualTo("http://127.0.0.1:5100"));
     }
+
+    [Test]
+    public void List_alwaysIncludesTheBuiltInFakeServer()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var service = FakeServerTestComposition.Connections(store, http);
+
+        var listed = service.List().Servers;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(listed[0].IsFake, Is.True);
+            Assert.That(listed[0].CanRemove, Is.False);
+            Assert.That(listed[0].DisplayName, Is.EqualTo("Demo"));
+            Assert.That(listed[0].Url, Is.EqualTo("http://127.0.0.1:9"));
+        });
+    }
+
+    [Test]
+    public void Save_fakeServerAppliesTheInProcessBackendWithoutAPassword()
+    {
+        var store = new InMemoryServerConnectionStore();
+        var backend = FakeServerTestComposition.Backend();
+        using var http = FakeServerTestComposition.Client(backend);
+        var service = FakeServerTestComposition.Connections(store, http, backend);
+
+        var saved = service.Save("http://127.0.0.1:9", null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(saved.IsFake, Is.True);
+            Assert.That(saved.IsActive, Is.True);
+            Assert.That(service.CurrentUrl(), Is.EqualTo("http://127.0.0.1:9"));
+        });
+    }
+
+    [Test]
+    public void Remove_refusesTheBuiltInFakeServer()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var service = FakeServerTestComposition.Connections(store, http);
+
+        service.Remove("fake");
+
+        Assert.That(service.List().Servers[0].IsFake, Is.True);
+    }
+
+    private static List<AgentUp.Desktop.Features.Authentication.DTOs.SavedServerDto> UserServers(
+        ServerConnectionService service)
+        => service.List().Servers.Where(server => !server.IsFake).ToList();
 }
