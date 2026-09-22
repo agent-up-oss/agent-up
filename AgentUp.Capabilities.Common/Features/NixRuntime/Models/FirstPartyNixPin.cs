@@ -18,6 +18,21 @@ public static class FirstPartyNixPin
     // they used to ship to satisfy a check that nothing verified.
     public static CapabilityNixpkgsPin Nixpkgs { get; } = new() { Rev = Rev };
 
+    /// <summary>
+    /// Native libraries the .NET host resolves with <c>dlopen</c> by soname instead of through a
+    /// linked RPATH, so nixpkgs cannot patch them into the binaries and the shell has to put them
+    /// on the library search path itself.
+    /// </summary>
+    /// <remarks>
+    /// Missing either one aborts the process at startup rather than failing one request.
+    /// Globalization dies in <c>CultureInfo.CurrentCulture</c> pointing at
+    /// aka.ms/dotnet-missing-libicu, and TLS dies with "No usable version of libssl was found" the
+    /// first time a connection negotiates - which for the Example API is its first Postgres
+    /// connection, before it has served anything. <c>openssl</c> lists its <c>bin</c> output
+    /// first, so the expression names <c>.out</c> to reach the one that holds <c>lib</c>.
+    /// </remarks>
+    private static readonly string[] DotnetNativeLibraries = ["icu", "openssl.out"];
+
     public static string DefaultNix(IReadOnlyList<string> packages) => DefaultNix(packages, Rev);
 
     /// <summary>
@@ -36,11 +51,10 @@ public static class FirstPartyNixPin
     public static string DefaultNix(IReadOnlyList<string> packages, string? nixpkgsRev)
     {
         var dotnetSdkPackage = packages.FirstOrDefault(package => package.StartsWith("dotnet-sdk", StringComparison.Ordinal));
-        // A .NET application aborts at startup when it cannot load ICU, so a module that delivers
-        // the SDK has to deliver globalization with it.
+        // A module that delivers the SDK delivers what the SDK's own runtime opens by hand.
         var shellPackages = string.IsNullOrWhiteSpace(dotnetSdkPackage)
             ? packages
-            : [.. packages, "icu"];
+            : [.. packages, .. DotnetNativeLibraries];
         var pkgs = string.Join(" ", shellPackages.Select(package => "pkgs." + package));
         var nixpkgs = string.IsNullOrWhiteSpace(nixpkgsRev)
             ? "import <nixpkgs> {}"
@@ -48,13 +62,14 @@ public static class FirstPartyNixPin
               + "    url = \"https://github.com/NixOS/nixpkgs/archive/" + nixpkgsRev.Trim() + ".tar.gz\";\n"
               + "  }) {}";
         var dotnetSdk = dotnetSdkPackage;
+        var nativeLibraryPath = string.Join(":", DotnetNativeLibraries.Select(name => "${pkgs." + name + "}/lib"));
         var dotnetRoot = string.IsNullOrWhiteSpace(dotnetSdk)
             ? ""
             : $$"""
 
                 export DOTNET_ROOT="${pkgs.{{dotnetSdk}}}/share/dotnet"
                 export DOTNET_HOST_PATH="$DOTNET_ROOT/dotnet"
-                export LD_LIBRARY_PATH="${pkgs.icu}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+                export LD_LIBRARY_PATH="{{nativeLibraryPath}}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
                 unset MSBuildSDKsPath
                 unset MSBUILD_EXE_PATH
                 unset DOTNET_MSBUILD_SDK_RESOLVER_SDKS_DIR
@@ -64,7 +79,11 @@ public static class FirstPartyNixPin
             """;
         return $$"""
             { pkgs ? {{nixpkgs}} }:
-            pkgs.mkShell {
+            # A capability shell runs tools, it does not compile C. mkShell would pull the whole
+            # stdenv - gcc, binutils, isl, perl, gnumake, the autotools hooks - into every host
+            # that enables a module, and on a cold runner that closure is downloaded before the
+            # first application can start.
+            pkgs.mkShellNoCC {
               packages = [ {{pkgs}} ];
               shellHook = ''
                 extraBin="${toString ./bin}"

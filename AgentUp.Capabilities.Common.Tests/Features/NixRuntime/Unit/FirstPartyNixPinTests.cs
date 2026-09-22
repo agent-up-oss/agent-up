@@ -75,25 +75,54 @@ public sealed class FirstPartyNixPinTests
         Assert.That(FirstPartyNixPin.Nixpkgs.Rev, Is.EqualTo(FirstPartyNixPin.Rev));
     }
 
-    // A .NET application aborts at startup when the runtime cannot load ICU - the Example API and
-    // Sample Desktop both died on "Please see https://aka.ms/dotnet-missing-libicu" until the
-    // module delivered it. The SDK is not enough on its own.
+    // The runtime opens these two by soname rather than through a linked RPATH, so nixpkgs cannot
+    // patch them in and the shell has to. The Example API and Sample Desktop died on
+    // "https://aka.ms/dotnet-missing-libicu", and once that was delivered the API died on
+    // "No usable version of libssl was found" connecting to Postgres. The SDK is not enough on
+    // its own.
     [Test]
-    public void DefaultNix_delivers_icu_alongside_the_dotnet_sdk()
+    public void DefaultNix_delivers_the_dlopened_native_libraries_alongside_the_dotnet_sdk()
     {
         var nix = FirstPartyNixPin.DefaultNix(["dotnet-sdk_10"]);
 
-        Assert.That(nix, Does.Contain("packages = [ pkgs.dotnet-sdk_10 pkgs.icu ];"));
-        Assert.That(nix, Does.Contain("export LD_LIBRARY_PATH=\"${pkgs.icu}/lib"));
+        Assert.That(nix, Does.Contain("packages = [ pkgs.dotnet-sdk_10 pkgs.icu pkgs.openssl.out ];"));
+        Assert.That(
+            nix,
+            Does.Contain("export LD_LIBRARY_PATH=\"${pkgs.icu}/lib:${pkgs.openssl.out}/lib"));
     }
 
-    // Only a dotnet module needs it; a docker or node module must not grow an unrelated input.
+    // openssl lists its bin output first, so a bare ${pkgs.openssl} would name a store path with
+    // no lib directory in it and resolve nothing.
+    [Test]
+    public void DefaultNix_names_the_openssl_output_that_holds_the_libraries()
+    {
+        var nix = FirstPartyNixPin.DefaultNix(["dotnet-sdk_10"]);
+
+        Assert.That(nix, Does.Not.Contain("${pkgs.openssl}"));
+    }
+
+    // Only a dotnet module needs them; a docker or node module must not grow an unrelated input.
     [Test]
     public void DefaultNix_leaves_a_module_without_the_sdk_alone()
     {
         var nix = FirstPartyNixPin.DefaultNix(["nodejs_22"]);
 
-        Assert.That(nix, Does.Not.Contain("icu"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(nix, Does.Not.Contain("icu"));
+            Assert.That(nix, Does.Not.Contain("openssl"));
+        });
+    }
+
+    // A capability shell runs tools. Pulling stdenv in meant every host that enabled a module
+    // downloaded gcc, binutils, perl and the autotools hooks before the first application started.
+    [Test]
+    public void DefaultNix_builds_a_shell_without_the_c_toolchain()
+    {
+        var nix = FirstPartyNixPin.DefaultNix(["dotnet-sdk_10"]);
+
+        Assert.That(nix, Does.Contain("pkgs.mkShellNoCC {"));
+        Assert.That(nix, Does.Not.Contain("pkgs.mkShell {"));
     }
 
     // The expansion has to reach the shell, not the Nix evaluator, so it carries the '' escape.
