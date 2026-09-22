@@ -14,19 +14,6 @@
       ]
     },
     {
-      "name": "Mobile",
-      "command": "npm run serve:web",
-      "install": "npm run install:agent-up",
-      "path": "AgentUp.Mobile",
-      "ports": [
-        {
-          "variable": "WEB_PORT",
-          "defaultPort": 8081,
-          "protocol": "http"
-        }
-      ]
-    },
-    {
       "name": "Example Web",
       "command": "npm run dev",
       "install": "npm install --package-lock=false",
@@ -38,12 +25,17 @@
           "protocol": "http"
         }
       ]
-    },
+    }
+  ],
+  "dotnet": [
     {
       "name": "Example API",
-      "command": "npm run dev",
-      "install": "npm install --package-lock=false",
+      "sdk": "10.0.x",
       "path": "Examples/full-stack-react/api",
+      "run": {
+        "project": "ExampleApi.csproj",
+        "arguments": ["--no-launch-profile"]
+      },
       "environmentFiles": [
         "Examples/full-stack-react/database.env"
       ],
@@ -58,20 +50,7 @@
       ]
     }
   ],
-  "desktopApplications": [
-    {
-      "name": "Sample Desktop",
-      "command": "dotnet run --project Examples/linux-desktop/LinuxDesktop.csproj --no-launch-profile",
-      "install": "dotnet build Examples/linux-desktop/LinuxDesktop.csproj --nologo --no-incremental",
-      "path": ".",
-      "runtime": "linux",
-      "window": {
-        "width": 800,
-        "height": 600
-      }
-    }
-  ],
-  "services": [
+  "docker": [
     {
       "name": "Database",
       "image": "postgres:16",
@@ -89,6 +68,19 @@
       "volumes": [
         "agent-up-full-stack-pgdata:/var/lib/postgresql/data"
       ]
+    }
+  ],
+  "desktopApplications": [
+    {
+      "name": "Sample Desktop",
+      "command": "dotnet run --project Examples/linux-desktop/LinuxDesktop.csproj --no-launch-profile",
+      "install": "dotnet build Examples/linux-desktop/LinuxDesktop.csproj --nologo --no-incremental",
+      "path": ".",
+      "runtime": "linux",
+      "window": {
+        "width": 800,
+        "height": 600
+      }
     }
   ],
   "prompts": {
@@ -118,6 +110,15 @@
           "AgentUp.Verification.Tests"
         ]
       },
+      "registry": {
+        "command": "dotnet test AgentUp.Registry.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/registry",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Registry",
+          "AgentUp.Registry.Tests",
+          "AgentUp.Capabilities.Abstractions"
+        ]
+      },
       "commit-policy": {
         "command": "dotnet test AgentUp.CommitPolicy.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/commit-policy",
         "tier": "fast",
@@ -132,6 +133,32 @@
         "inputs": [
           "AgentUp.Capabilities.Abstractions",
           "AgentUp.Capabilities.Abstractions.Tests"
+        ]
+      },
+      "sdk-common": {
+        "command": "dotnet test AgentUp.Sdk.Common.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/sdk-common",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Sdk.Common",
+          "AgentUp.Sdk.Common.Tests"
+        ]
+      },
+      "sdk-runtime": {
+        "command": "dotnet test AgentUp.Sdk.Runtime.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/sdk-runtime",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Sdk.Runtime",
+          "AgentUp.Sdk.Runtime.Tests",
+          "AgentUp.Sdk.Common"
+        ]
+      },
+      "sdk-agent": {
+        "command": "dotnet test AgentUp.Sdk.Agent.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/sdk-agent",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Sdk.Agent",
+          "AgentUp.Sdk.Agent.Tests",
+          "AgentUp.Sdk.Common"
         ]
       },
       "capabilities-common": {
@@ -150,7 +177,9 @@
           "AgentUp.Capabilities.Dotnet",
           "AgentUp.Capabilities.Dotnet.Tests",
           "AgentUp.Capabilities.Abstractions",
-          "AgentUp.Capabilities.Common"
+          "AgentUp.Capabilities.Common",
+          "AgentUp.Sdk.Common",
+          "AgentUp.Sdk.Runtime"
         ]
       },
       "capabilities-docker": {
@@ -160,7 +189,9 @@
           "AgentUp.Capabilities.Docker",
           "AgentUp.Capabilities.Docker.Tests",
           "AgentUp.Capabilities.Abstractions",
-          "AgentUp.Capabilities.Common"
+          "AgentUp.Capabilities.Common",
+          "AgentUp.Sdk.Common",
+          "AgentUp.Sdk.Runtime"
         ]
       },
       "installer-config": {
@@ -194,7 +225,9 @@
           "AgentUp.Capabilities.Codex",
           "AgentUp.Capabilities.Codex.Tests",
           "AgentUp.Capabilities.Abstractions",
-          "AgentUp.Capabilities.Common"
+          "AgentUp.Capabilities.Common",
+          "AgentUp.Sdk.Common",
+          "AgentUp.Sdk.Agent"
         ]
       },
       "capabilities-cursor": {
@@ -204,7 +237,9 @@
           "AgentUp.Capabilities.Cursor",
           "AgentUp.Capabilities.Cursor.Tests",
           "AgentUp.Capabilities.Abstractions",
-          "AgentUp.Capabilities.Common"
+          "AgentUp.Capabilities.Common",
+          "AgentUp.Sdk.Common",
+          "AgentUp.Sdk.Agent"
         ]
       },
       "capabilities-claude": {
@@ -214,7 +249,9 @@
           "AgentUp.Capabilities.Claude",
           "AgentUp.Capabilities.Claude.Tests",
           "AgentUp.Capabilities.Abstractions",
-          "AgentUp.Capabilities.Common"
+          "AgentUp.Capabilities.Common",
+          "AgentUp.Sdk.Common",
+          "AgentUp.Sdk.Agent"
         ]
       },
       "server": {
@@ -229,11 +266,10 @@
           "AgentUp.InstallerConfig",
           "AgentUp.Capabilities.Abstractions",
           "AgentUp.Capabilities.Common",
-          "AgentUp.Capabilities.Dotnet",
-          "AgentUp.Capabilities.Docker",
-          "AgentUp.Capabilities.Codex",
-          "AgentUp.Capabilities.Cursor",
-          "AgentUp.Capabilities.Claude"
+          "AgentUp.Registry",
+          "AgentUp.Sdk.Common",
+          "AgentUp.Sdk.Runtime",
+          "AgentUp.Sdk.Agent"
         ]
       },
       "server-benchmarks": {
@@ -283,13 +319,30 @@
         ]
       },
       "cross-product-e2e": {
-        "command": "dotnet test AgentUp.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/cross-product-e2e",
+        "command": "dotnet test AgentUp.Tests --filter Category!=RuntimeCapabilityE2E --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/cross-product-e2e",
         "tier": "slow",
         "inputs": [
           "AgentUp.Tests",
           "AgentUp.Desktop",
           "AgentUp.Server",
           "AgentUp.InstallerApp"
+        ]
+      },
+      "runtime-capability-e2e": {
+        "command": "./.github/scripts/run-runtime-capability-e2e.sh",
+        "tier": "slow",
+        "platforms": [
+          "linux"
+        ],
+        "ciOnly": true,
+        "inputs": [
+          "agent-up.json",
+          "Examples/full-stack-react",
+          "AgentUp.Tests",
+          "AgentUp.Desktop",
+          "AgentUp.Server",
+          "AgentUp.Capabilities.Dotnet",
+          "AgentUp.Capabilities.Docker"
         ]
       },
       "mobile": {
@@ -506,6 +559,21 @@
         ]
       },
       {
+        "match": "AgentUp.Registry/**",
+        "checks": [
+          "registry",
+          "server",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Registry.Tests/**",
+        "checks": [
+          "registry",
+          "patch-coverage"
+        ]
+      },
+      {
         "match": "AgentUp.CommitPolicy/**",
         "checks": [
           "commit-policy",
@@ -522,6 +590,63 @@
         ]
       },
       {
+        "match": "AgentUp.Sdk.Common/**",
+        "checks": [
+          "sdk-common",
+          "sdk-runtime",
+          "sdk-agent",
+          "capabilities-dotnet",
+          "capabilities-docker",
+          "capabilities-codex",
+          "capabilities-cursor",
+          "capabilities-claude",
+          "server",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Sdk.Common.Tests/**",
+        "checks": [
+          "sdk-common",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Sdk.Runtime/**",
+        "checks": [
+          "sdk-runtime",
+          "capabilities-dotnet",
+          "capabilities-docker",
+          "server",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Sdk.Runtime.Tests/**",
+        "checks": [
+          "sdk-runtime",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Sdk.Agent/**",
+        "checks": [
+          "sdk-agent",
+          "capabilities-codex",
+          "capabilities-cursor",
+          "capabilities-claude",
+          "server",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Sdk.Agent.Tests/**",
+        "checks": [
+          "sdk-agent",
+          "patch-coverage"
+        ]
+      },
+      {
         "match": "AgentUp.Capabilities.Abstractions/**",
         "checks": [
           "capabilities-abstractions",
@@ -531,6 +656,7 @@
           "capabilities-codex",
           "capabilities-cursor",
           "capabilities-claude",
+          "registry",
           "server",
           "cli",
           "patch-coverage"
@@ -706,6 +832,7 @@
         "match": "AgentUp.Tests/**",
         "checks": [
           "cross-product-e2e",
+          "runtime-capability-e2e",
           "patch-coverage"
         ]
       },
@@ -888,6 +1015,7 @@
           "verification",
           "cli",
           "server",
+          "runtime-capability-e2e",
           "patch-coverage"
         ]
       },
@@ -919,8 +1047,20 @@
         "checks": []
       },
       {
+        "match": ".github/scripts/run-runtime-capability-e2e.sh",
+        "checks": [
+          "runtime-capability-e2e"
+        ]
+      },
+      {
         "match": ".github/**",
         "checks": []
+      },
+      {
+        "match": "Examples/full-stack-react/**",
+        "checks": [
+          "runtime-capability-e2e"
+        ]
       },
       {
         "match": "Examples/**",
@@ -1036,6 +1176,10 @@
       "AgentUp.CommitPolicy/**/*.cs",
       "AgentUp.Capabilities.Abstractions/**/*.cs",
       "AgentUp.Capabilities.Common/**/*.cs",
+      "AgentUp.Registry/**/*.cs",
+      "AgentUp.Sdk.Common/**/*.cs",
+      "AgentUp.Sdk.Runtime/**/*.cs",
+      "AgentUp.Sdk.Agent/**/*.cs",
       "AgentUp.Capabilities.Dotnet/**/*.cs",
       "AgentUp.Capabilities.Docker/**/*.cs",
       "AgentUp.Capabilities.Codex/**/*.cs",

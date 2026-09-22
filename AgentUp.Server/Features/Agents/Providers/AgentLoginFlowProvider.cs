@@ -1,36 +1,42 @@
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Models;
+using AgentUp.Server.Features.Capabilities.Interfaces;
 
 namespace AgentUp.Server.Features.Agents.Providers;
 
 /// <summary>
-/// Resolves the sign-in flow for an agent kind. Defaults match the login commands
-/// <see cref="AgentLoginCommandProvider"/> runs; <c>Agents:{kind}:LoginTransport</c> overrides
-/// them when a deployment points a kind at a different CLI or a different login subcommand.
+/// Resolves the sign-in flow for an agent module. Defaults come from that module's
+/// <c>Login</c> spec when present; <c>Agents:{agent}:LoginTransport</c> overrides
+/// them when a deployment points an agent at a different CLI or a different login subcommand.
 /// </summary>
-public sealed class AgentLoginFlowProvider(IConfiguration configuration)
+public sealed class AgentLoginFlowProvider(IConfiguration configuration, IEnabledCapabilityPackages? packages = null)
 {
-    public AgentLoginFlow Resolve(AgentKind kind)
+    public AgentLoginFlow Resolve(string agent)
     {
-        var configured = configuration[$"Agents:{kind}:LoginTransport"];
-        var flow = string.IsNullOrWhiteSpace(configured) ? Default(kind) : FromName(configured);
+        var configured = configuration[$"Agents:{agent}:LoginTransport"];
+        var flow = string.IsNullOrWhiteSpace(configured) ? Default(agent) : FromName(configured);
         return flow with
         {
-            ChallengeTimeout = ReadTimeout($"Agents:{kind}:LoginChallengeTimeoutSeconds") ?? flow.ChallengeTimeout,
-            CompletionTimeout = ReadTimeout($"Agents:{kind}:LoginCompletionTimeoutSeconds") ?? flow.CompletionTimeout
+            ChallengeTimeout = ReadTimeout($"Agents:{agent}:LoginChallengeTimeoutSeconds") ?? flow.ChallengeTimeout,
+            CompletionTimeout = ReadTimeout($"Agents:{agent}:LoginCompletionTimeoutSeconds") ?? flow.CompletionTimeout
         };
     }
 
-    internal static AgentLoginFlow Default(AgentKind kind) => kind switch
+    internal AgentLoginFlow Default(string agent)
     {
-        // codex login --device-auth: prints a link and a user code, then polls.
-        AgentKind.Codex => AgentLoginFlow.DeviceCode(),
-        // cursor login: prints a link tied to a login id, then polls on its own.
-        AgentKind.Cursor => AgentLoginFlow.Poll(),
-        // claude setup-token: prints a link, then blocks on stdin for the pasted code.
-        AgentKind.Claude => AgentLoginFlow.PastedCode(),
-        _ => AgentLoginFlow.Poll()
-    };
+        var transport = packages?.GetAgent(agent)?.Login?.Transport;
+        if (!string.IsNullOrWhiteSpace(transport))
+            return FromName(transport);
+
+        // First-party module ids only, used when an enabled module has no Login spec.
+        return agent.ToLowerInvariant() switch
+        {
+            "codex" => AgentLoginFlow.DeviceCode(),
+            "cursor" => AgentLoginFlow.Poll(),
+            "claude" => AgentLoginFlow.PastedCode(),
+            _ => AgentLoginFlow.Poll()
+        };
+    }
 
     private TimeSpan? ReadTimeout(string key)
     {

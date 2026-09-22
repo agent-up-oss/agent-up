@@ -26,6 +26,10 @@ comment:
 # comment; extra entries here are fine, because agent-up.json scopes itself with
 # "coverage.include" instead.
 ignore:
+  # agent-up.json scopes the local gate with "coverage.include" globs that are all "**/*.cs".
+  # Codecov has no include list, so without this it measures Avalonia markup the local gate
+  # never looked at, and a change to a view fails a pull request the local gate passed.
+  - "**/*.axaml"
   - "**/Composition/**"
   - "**/Program.cs"
   - "**/App.axaml.cs"

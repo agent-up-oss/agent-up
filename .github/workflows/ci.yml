@@ -319,6 +319,56 @@ jobs:
           fail_ci_if_error: true
           disable_search: true
 
+  runtime-capability-e2e:
+    name: Runtime capability E2E
+    runs-on: ubuntu-latest
+    needs: version
+    permissions:
+      contents: read
+      checks: write
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      # The workspace runs `npm install` for Docs before it can serve, which is most of a minute
+      # of the job on a cold runner. Example Web installs with --package-lock=false and so has no
+      # lockfile to key on, but it shares the same warmed ~/.npm.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
+      - uses: DeterminateSystems/nix-installer-action@v23
+
+      - name: Install Ubuntu browser test dependencies
+        shell: bash
+        run: ./.github/scripts/install-ubuntu-browser-test-deps.sh
+
+      - name: Run runtime capability validation
+        shell: bash
+        run: ./.github/scripts/run-runtime-capability-e2e.sh
+
+      - name: Test Report
+        uses: dorny/test-reporter@v3
+        if: ${{ !cancelled() }}
+        with:
+          name: Runtime Capability E2E (Agent-Up)
+          path: artifacts/test-results/runtime-capability-e2e/*.trx
+          reporter: dotnet-trx
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: runtime-capability-e2e-results
+          path: artifacts/test-results/runtime-capability-e2e
+          if-no-files-found: error
+          retention-days: 7
+
   dotnet-coverage:
     name: .NET coverage
     runs-on: ubuntu-latest
@@ -351,7 +401,7 @@ jobs:
       # summary names the tests; this keeps the full TRX for anything the summary does not say.
       - name: Keep test results on failure
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dotnet-coverage-test-results
           path: "**/*.trx"
@@ -367,12 +417,16 @@ jobs:
             AgentUp.Architecture.Tests \
             AgentUp.CLI.Tests \
             AgentUp.Capabilities.Abstractions.Tests \
+            AgentUp.Sdk.Common.Tests \
+            AgentUp.Sdk.Runtime.Tests \
+            AgentUp.Sdk.Agent.Tests \
             AgentUp.Capabilities.Common.Tests \
             AgentUp.Capabilities.Claude.Tests \
             AgentUp.Capabilities.Codex.Tests \
             AgentUp.Capabilities.Cursor.Tests \
             AgentUp.Capabilities.Docker.Tests \
             AgentUp.Capabilities.Dotnet.Tests \
+            AgentUp.Registry.Tests \
             AgentUp.Browser.Streaming.Tests \
             AgentUp.CommitPolicy.Tests \
             AgentUp.Desktop.Tests \
@@ -414,6 +468,39 @@ jobs:
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_abstractions_tests }}
           flags: agentup-capabilities-abstractions-tests
           name: AgentUp.Capabilities.Abstractions.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Sdk.Common.Tests coverage
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_sdk_common_tests }}
+          flags: agentup-sdk-common-tests
+          name: AgentUp.Sdk.Common.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Sdk.Runtime.Tests coverage
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_sdk_runtime_tests }}
+          flags: agentup-sdk-runtime-tests
+          name: AgentUp.Sdk.Runtime.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Sdk.Agent.Tests coverage
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_sdk_agent_tests }}
+          flags: agentup-sdk-agent-tests
+          name: AgentUp.Sdk.Agent.Tests
           fail_ci_if_error: true
           disable_search: true
 
@@ -546,6 +633,17 @@ jobs:
           files: ${{ steps.coverage-reports.outputs.agentup_verification_tests }}
           flags: agentup-verification-tests
           name: AgentUp.Verification.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Registry.Tests coverage
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_registry_tests }}
+          flags: agentup-registry-tests
+          name: AgentUp.Registry.Tests
           fail_ci_if_error: true
           disable_search: true
 
@@ -995,7 +1093,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [platform, performance-gates, test-kind-watchdog, docs, jetbrains-plugin, version, helm-chart]
+    needs: [platform, runtime-capability-e2e, performance-gates, test-kind-watchdog, docs, jetbrains-plugin, version, helm-chart]
     if: ${{ github.ref == 'refs/heads/main' && needs.version.outputs.publish == 'true' }}
     permissions:
       actions: write

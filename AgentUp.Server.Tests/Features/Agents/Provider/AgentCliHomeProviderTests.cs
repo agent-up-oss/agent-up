@@ -96,8 +96,8 @@ public sealed class AgentCliHomeProviderTests
             store.Write("sk-ant-oat01-secret");
             var environment = new AgentProcessEnvironmentProvider(home, store);
 
-            var claude = environment.EnvironmentFor(AgentKind.Claude);
-            var cursor = environment.EnvironmentFor(AgentKind.Cursor);
+            var claude = environment.EnvironmentFor("claude");
+            var cursor = environment.EnvironmentFor("cursor");
 
             Assert.Multiple(() =>
             {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { getAgent, scheduleAgent, type AgentKind, type AgentSession } from '@agent-up/chat';
+import { getAgent, resumeAgent, scheduleAgent, type AgentId, type AgentSession } from '@agent-up/chat';
 import { WorkspaceTabBar } from '@/features/shell/components/WorkspaceTabBar';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useServers } from '@/features/servers/controllers/ServersContext';
@@ -42,7 +42,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
 
   const openChat = () => router.push(`/(main)/workspace/${workspaceId}/agent`);
 
-  const start = async (agent: AgentKind) => {
+  const start = async (agent: AgentId) => {
     if (!server || busy) return;
     setBusy(true);
     setError(null);
@@ -57,7 +57,14 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
     }
   };
 
-  const current = session?.agents.find(agent => agent.agent === session.agent);
+  const resume = async (sessionId: string) => {
+    if (!server || busy) return;
+    setBusy(true); setError(null);
+    try { setSession(await resumeAgent(server, workspaceId, sessionId)); openChat(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not resume the session.'); }
+    finally { setBusy(false); }
+  };
+
   const agents = session?.agents ?? [];
 
   return (
@@ -66,17 +73,20 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
         {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
         {busy && <ActivityIndicator color={agentUpTheme.colors.accent} />}
 
-        {session?.agent &&
-          <Pressable
-            testID="open-workspace-agent"
-            accessibilityRole="button"
-            accessibilityLabel="Open current agent session"
-            onPress={openChat}
-            style={styles.current}>
-            <Text style={styles.currentTitle}>{current?.displayName ?? session.agent}</Text>
-            <Text style={styles.detail}>Current session · {session.state}</Text>
-            <Text style={styles.action}>Open chat →</Text>
-          </Pressable>}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Workspace sessions</Text>
+          {(session?.sessions ?? []).length === 0 && <Text style={styles.detail}>No saved sessions yet.</Text>}
+          {(session?.sessions ?? []).map(item => {
+            const active = item.sessionId === session?.sessionId;
+            return <Pressable key={item.sessionId} testID={`agent-session-${item.sessionId}`} accessibilityRole="button"
+              accessibilityLabel={`${active ? 'Open' : 'Resume'} ${item.agent} session`} disabled={busy}
+              onPress={() => active ? openChat() : void resume(item.sessionId)} style={styles.current}>
+              <View style={styles.sessionHeading}><Text style={styles.tag}>{item.agent}</Text><Text style={styles.branch}>{item.branch}</Text></View>
+              <Text style={styles.currentTitle}>{item.description}</Text>
+              <Text style={styles.action}>{active ? `Current · ${session?.state}` : 'Resume session'} →</Text>
+            </Pressable>;
+          })}
+        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{session?.agent ? 'Start another session' : 'Start a session'}</Text>
@@ -119,4 +129,7 @@ const styles = StyleSheet.create({
   detail: auText('muted'),
   error: auText('badgeDanger'),
   disabled: { opacity: 0.38 },
+  sessionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  tag: { ...auText('badge'), color: agentUpTheme.colors.accent },
+  branch: auText('muted'),
 });

@@ -1,4 +1,3 @@
-using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Applications.Providers;
 using AgentUp.Server.Features.Applications.Services;
@@ -9,7 +8,10 @@ using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
+using AgentUp.Server.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Capabilities.Services;
+using AgentUp.Registry.Features.Packages.Controllers;
+using AgentUp.Registry.Features.Packages.Services;
 using AgentUp.Server.Features.DesktopApplications.Controllers;
 using AgentUp.Server.Features.DesktopApplications.Interfaces;
 using AgentUp.Server.Features.DesktopApplications.Providers;
@@ -71,17 +73,20 @@ internal static class ServerTestComposition
         services.AddSingleton<WorkspaceLifecycleController>();
         return services;
     }
-    /// <summary>A registry with no capability adapters and an event bus of its own.</summary>
-    public static WorkspaceRegistry CreateRegistry() => CreateRegistry([], new WorkspaceEventBus());
+    /// <summary>A registry with no enabled capability packages and an event bus of its own.</summary>
+    public static WorkspaceRegistry CreateRegistry() => CreateRegistry(null, new WorkspaceEventBus());
 
     public static WorkspaceRegistry CreateRegistry(
-        IReadOnlyList<ICapabilityAdapter> adapters,
+        IEnabledCapabilityPackages? packages,
         WorkspaceEventBus bus)
         => new(
             new InMemoryWorkspaceRepository(),
             new PortsController(new InMemoryPortAllocationService()),
-            new CapabilitiesController(new CapabilityReconciliationService(adapters)),
+            new CapabilitiesController(new CapabilityReconciliationService(packages, Templates())),
             bus);
+
+    private static CapabilityPackageController Templates() =>
+        new(new CapabilityPackageValidator(), new CapabilityTemplateRenderer());
 
     public static ProcessesController CreateProcessesController(IWorkspaceProcessManager processes)
         => CreateProcessesController(processes, new InMemoryOutputRepository());

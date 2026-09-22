@@ -19,6 +19,10 @@ public sealed class OperationPermissionMapTests
         => Assert.That(OperationPermissionMap.For("Workspaces", "Register"), Is.EqualTo(OperationPermissions.WorkspaceCreate));
 
     [Test]
+    public void For_RequiresAgentPromptToResumeASession()
+        => Assert.That(OperationPermissionMap.For("AgentsHttp", "Resume"), Is.EqualTo(OperationPermissions.AgentPrompt));
+
+    [Test]
     public void EntitlementsStayAuthenticatedWithoutAPermission()
     {
         Assert.Multiple(() =>

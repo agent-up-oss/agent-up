@@ -42,6 +42,7 @@ internal sealed class FakeAgentApiProvider : IAgentApiProvider
     public string? Stopped { get; private set; }
     public Task<AgentSessionDto?> GetAsync(string workspaceId, CancellationToken cancellationToken) => Task.FromResult<AgentSessionDto?>(null);
     public Task<AgentSessionDto?> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken) => Task.FromResult<AgentSessionDto?>(null);
+    public Task<AgentSessionDto?> ResumeAsync(string workspaceId, string sessionId, CancellationToken cancellationToken) => Task.FromResult<AgentSessionDto?>(null);
     public Task SendAsync(string workspaceId, string message, CancellationToken cancellationToken) { Sent = (workspaceId, message); return Task.CompletedTask; }
     public Task AuthenticateAsync(string workspaceId, string methodId, CancellationToken cancellationToken) { Authenticated = (workspaceId, methodId); return Task.CompletedTask; }
     public Task DecideAsync(string workspaceId, string requestId, string optionId, CancellationToken cancellationToken) { Decided = (workspaceId, requestId, optionId); return Task.CompletedTask; }

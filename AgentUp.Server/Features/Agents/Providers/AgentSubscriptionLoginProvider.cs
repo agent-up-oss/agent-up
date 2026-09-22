@@ -24,7 +24,7 @@ public sealed class AgentSubscriptionLoginProvider(
     private static readonly TimeSpan OutputIdle = TimeSpan.FromMilliseconds(250);
 
     public async Task<AgentSubscriptionLoginResult> LoginAsync(
-        AgentKind kind,
+        string agent,
         AgentCommand acpCommand,
         string methodId,
         Action<AgentLoginChallengeDto> onChallenge,
@@ -35,8 +35,8 @@ public sealed class AgentSubscriptionLoginProvider(
         AgentLoginFlow flow;
         try
         {
-            login = commands.Resolve(kind, acpCommand, methodId);
-            flow = flows.Resolve(kind);
+            login = commands.Resolve(agent, acpCommand, methodId);
+            flow = flows.Resolve(agent);
         }
         catch (InvalidOperationException exception)
         {
@@ -53,7 +53,7 @@ public sealed class AgentSubscriptionLoginProvider(
         };
         foreach (var argument in login.Arguments)
             start.ArgumentList.Add(argument);
-        foreach (var pair in environment.EnvironmentFor(kind))
+        foreach (var pair in environment.EnvironmentFor(agent))
             start.Environment[pair.Key] = pair.Value;
         foreach (var pair in login.Environment)
             start.Environment[pair.Key] = pair.Value;
@@ -107,7 +107,7 @@ public sealed class AgentSubscriptionLoginProvider(
 
         if (process.ExitCode != 0)
         {
-            logger.LogInformation("Subscription login for {AgentKind} exited with a non-zero status.", kind);
+            logger.LogInformation("Subscription login for {Agent} exited with a non-zero status.", agent);
             return AgentSubscriptionLoginResult.Failed(
                 $"Subscription login failed with exit code {process.ExitCode}. Open the printed link and finish signing in with your subscription.",
                 parser.Challenge);

@@ -7,7 +7,8 @@ public sealed class AgentsController(AgentSchedulingService scheduling, AgentEve
 {
     public Task<AgentSessionDto?> GetAsync(string workspaceId, CancellationToken cancellationToken) => scheduling.GetAsync(workspaceId, cancellationToken);
     public AgentSessionDto? Get(string workspaceId) => scheduling.Get(workspaceId);
-    public Task<AgentScheduleResult> ScheduleAsync(string workspaceId, AgentKind kind, CancellationToken cancellationToken) => scheduling.ScheduleAsync(workspaceId, kind, cancellationToken);
+    public Task<AgentScheduleResult> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken) => scheduling.ScheduleAsync(workspaceId, agent, cancellationToken);
+    public Task<AgentScheduleResult> ResumeAsync(string workspaceId, string sessionId, CancellationToken cancellationToken) => scheduling.ResumeAsync(workspaceId, sessionId, cancellationToken);
     public Task<AgentActionResult> PromptAsync(string workspaceId, string message, CancellationToken cancellationToken) => scheduling.PromptAsync(workspaceId, message, cancellationToken);
     public AgentActionResult Authenticate(string workspaceId, string methodId) => scheduling.Authenticate(workspaceId, methodId);
     public AgentActionResult SubmitLoginCode(string workspaceId, string code) => scheduling.SubmitLoginCode(workspaceId, code);

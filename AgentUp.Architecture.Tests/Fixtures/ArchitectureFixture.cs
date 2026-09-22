@@ -13,8 +13,12 @@ internal static class ArchitectureFixture
         "AgentUp.Browser.Streaming",
         "AgentUp.CommitPolicy",
         "AgentUp.Verification",
+        "AgentUp.Sdk.Common",
+        "AgentUp.Sdk.Runtime",
+        "AgentUp.Sdk.Agent",
         "AgentUp.Capabilities.Abstractions",
         "AgentUp.Capabilities.Common",
+        "AgentUp.Registry",
         "AgentUp.Capabilities.Dotnet",
         "AgentUp.Capabilities.Docker",
         "AgentUp.Capabilities.Codex",
@@ -35,7 +39,10 @@ internal static class ArchitectureFixture
     public static readonly string[] BareClassLibraries =
     [
         "AgentUp.Browser.Streaming",
-        "AgentUp.InstallerConfig"
+        "AgentUp.InstallerConfig",
+        "AgentUp.Sdk.Common",
+        "AgentUp.Sdk.Runtime",
+        "AgentUp.Sdk.Agent"
     ];
 
     /// <summary>
@@ -58,8 +65,12 @@ internal static class ArchitectureFixture
         "AgentUp.Tray.Tests",
         "AgentUp.CommitPolicy.Tests",
         "AgentUp.Verification.Tests",
+        "AgentUp.Sdk.Common.Tests",
+        "AgentUp.Sdk.Runtime.Tests",
+        "AgentUp.Sdk.Agent.Tests",
         "AgentUp.Capabilities.Abstractions.Tests",
         "AgentUp.Capabilities.Common.Tests",
+        "AgentUp.Registry.Tests",
         "AgentUp.Capabilities.Dotnet.Tests",
         "AgentUp.Capabilities.Docker.Tests",
         "AgentUp.Capabilities.Codex.Tests",

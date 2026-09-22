@@ -1,5 +1,4 @@
 using System.Text.Json;
-using AgentUp.CLI.Features.Workspaces.DTOs;
 using AgentUp.CLI.Features.Workspaces.Interfaces;
 using AgentUp.CLI.Features.Workspaces.Models;
 using AgentUp.CLI.Shared.Providers;
@@ -19,9 +18,7 @@ public sealed class WorkspaceConfigurationProvider : IWorkspaceConfigurationProv
         try
         {
             var json = await File.ReadAllTextAsync(configPath);
-            var config = JsonSerializer.Deserialize<AgentUpJson>(json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-                ?? throw new InvalidOperationException("agent-up.json is empty or null.");
+            var config = AgentUpJsonParser.Parse(json);
             return new WorkspaceConfigurationResult(config, workspaceRoot, null);
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException or InvalidOperationException)

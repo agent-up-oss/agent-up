@@ -53,12 +53,40 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
         }
     }
 
+    internal const string ImportNixFlag = "AGENTUP_E2E_IMPORT_NIX_SHELL";
+
+    /// <summary>
+    /// Whether this host's GTK, WebKit and Skia libraries have to come from <c>shell.nix</c>
+    /// rather than from the system loader.
+    /// </summary>
+    /// <remarks>
+    /// Importing the Nix closure is a NixOS accommodation: there the system loader has no GTK or
+    /// WebKit to find, so the fixture puts that closure on <c>LD_LIBRARY_PATH</c> and preloads it.
+    /// On a host that ships those libraries itself the import is not redundant but fatal - the
+    /// closure is linked against its own glibc, and mapping it beside the system copies Avalonia
+    /// has already loaded ends the process with SIGSEGV at whatever point the second copy is first
+    /// touched, which is why the crash moved between runs instead of naming one call. Nix merely
+    /// being installed is not the question: the runtime capability job installs it so capability
+    /// launches can wrap through it, and that runner's desktop still belongs to Ubuntu.
+    /// </remarks>
+    internal static bool ShouldImportNixEnvironment(Func<string, bool> fileExists, Func<string, string?> environment)
+    {
+        var requested = environment(ImportNixFlag);
+        if (!string.IsNullOrWhiteSpace(requested))
+            return requested.Trim() is "1" || bool.TryParse(requested.Trim(), out var parsed) && parsed;
+
+        return fileExists("/etc/NIXOS");
+    }
+
     // IDEs launch the testhost without nix-shell. System libfontconfig often loads, so we
     // must not treat that as "native libraries are ready" — WebKitGTK/GTK still need the
     // nix store paths from shell.nix. Changing LD_LIBRARY_PATH after process start does not
     // propagate to in-process dlopen on this NixOS setup, so preload by absolute path.
     private static void ImportNixShellEnvironment()
     {
+        if (!ShouldImportNixEnvironment(File.Exists, Environment.GetEnvironmentVariable))
+            return;
+
         var shellNix = FindShellNix();
         if (shellNix is null)
             return;

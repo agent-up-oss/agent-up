@@ -17,8 +17,9 @@ Property names are shown in the JSON form Agent-Up examples use. Existing config
 | `applications` | array of [Application](#application-object) | No | `[]` | Legacy local process applications launched directly from executable-plus-arguments commands. |
 | `desktopApplications` | array of [Desktop Application](#desktop-application-object) | No | `[]` | Linux graphical applications hosted on Server-owned virtual displays and streamed to Desktop and Mobile. |
 | `services` | array of [Docker Service](#docker-service-object) | No | `[]` | Legacy Docker service definitions. |
-| `dotnet` | array of [.NET Application](#net-application-object) | No | `[]` | .NET applications launched through the Agent-Up .NET capability. |
-| `docker` | array of [Docker Capability](#docker-capability-object) | No | `[]` | Docker containers launched through the Agent-Up Docker capability. |
+| `dotnet` | array of [.NET Application](#net-application-object) | No | `[]` | .NET applications hosted by the enabled `dotnet` runtime module. |
+| `docker` | array of [Docker Capability](#docker-capability-object) | No | `[]` | Docker containers hosted by the enabled `docker` runtime module. |
+| *(enabled runtime id)* | array of objects | No | omitted | Any other enabled runtime-kind module id may appear as a root array. Extra keys must match that module's schema. |
 | `prompts` | [Prompts](#prompts-object) | No | default Agent-Up guidance | Optional repository-specific guidance for AI agents. |
 | `commits` | [Commits](#commits-object) | No | legacy local queue | Optional `enabled` Server proposal queue, plus legacy local-queue test commands. |
 | `verification` | [Verification](#verification-object) | No | unset (no required checks) | Path-rule check selection and receipts for `agent-up verify` and `/mcp/verification`. |
@@ -200,7 +201,7 @@ Used in `dotnet`.
 | Property | Type | Required | Default | Description |
 |---|---:|---:|---:|---|
 | `name` | string | Yes | none | Application display name. |
-| `sdk` | string or null | No | no version requirement | Required .NET SDK version expression, such as `10.0.x`. The .NET capability validates this before launch. |
+| `sdk` | string or null | No | no version requirement | Required .NET SDK **technology** version, such as `10.0.x`. The enabled `dotnet` module delivers that version. Package version (`dotnet@1.0.0` in the enabled set) is the module contract, not the SDK version. |
 | `run` | [.NET Run](#net-run-object) | Yes | none | `dotnet run` launch inputs. |
 | `ports` | array of [Port](#port-object) | No | `[]` | Port declarations owned and allocated by the Server. |
 | `environment` | object of string values | No | `{}` | Inline environment variables for this process. |

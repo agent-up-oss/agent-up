@@ -384,6 +384,9 @@ internal sealed class StreamApiFake : IAgentApiProvider
         ], []));
     }
 
+    public Task<AgentSessionDto?> ResumeAsync(string workspaceId, string sessionId, CancellationToken cancellationToken) =>
+        Task.FromResult(Session);
+
     public Task SendAsync(string workspaceId, string message, CancellationToken cancellationToken)
     {
         Sent = (workspaceId, message);

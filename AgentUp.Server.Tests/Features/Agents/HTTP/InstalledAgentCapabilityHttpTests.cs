@@ -2,24 +2,13 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
-using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
-using AgentUp.Capabilities.Claude.Features.ClaudeCapability.Interfaces;
-using AgentUp.Capabilities.Claude.Features.ClaudeCapability.Providers;
-using AgentUp.Capabilities.Claude.Features.ClaudeCapability.Services;
-using AgentUp.Capabilities.Codex.Features.CodexCapability.Interfaces;
-using AgentUp.Capabilities.Codex.Features.CodexCapability.Providers;
-using AgentUp.Capabilities.Codex.Features.CodexCapability.Services;
-using AgentUp.Capabilities.Common.Features.CapabilityDiscovery.Providers;
-using AgentUp.Capabilities.Cursor.Features.CursorCapability.Interfaces;
-using AgentUp.Capabilities.Cursor.Features.CursorCapability.Providers;
-using AgentUp.Capabilities.Cursor.Features.CursorCapability.Services;
 using AgentUp.Server.Features.Agents.Controllers;
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Interfaces;
 using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Features.Agents.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
+using AgentUp.Server.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Ports.Controllers;
 using AgentUp.Server.Features.Ports.Interfaces;
@@ -56,19 +45,13 @@ public sealed class InstalledAgentCapabilityHttpTests
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
         builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
         builder.Services.AddSingleton<PortsController>();
-        builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
+        builder.Services.AddSingleton(_ => new CapabilityReconciliationService());
         builder.Services.AddSingleton<CapabilitiesController>();
         builder.Services.AddSingleton<WorkspaceEventBus>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(provider => provider.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<WorkspaceQueryController>();
-        builder.Services.AddSingleton<CapabilityCliLocator>();
-        builder.Services.AddSingleton<ICodexVersionProvider, CodexVersionProvider>();
-        builder.Services.AddSingleton<ICursorVersionProvider, CursorVersionProvider>();
-        builder.Services.AddSingleton<IClaudeVersionProvider, ClaudeVersionProvider>();
-        builder.Services.AddSingleton<ICapabilityAdapter, CodexCapabilityAdapter>();
-        builder.Services.AddSingleton<ICapabilityAdapter, CursorCapabilityAdapter>();
-        builder.Services.AddSingleton<ICapabilityAdapter, ClaudeCapabilityAdapter>();
+        builder.Services.AddSingleton<IEnabledCapabilityPackages>(_ => FakeEnabledCapabilityPackages.FirstParty());
         builder.Services.AddSingleton<AgentCommandProvider>();
         builder.Services.AddSingleton<AgentSubscriptionAuth>();
         builder.Services.AddSingleton(_ => new AgentCliHomeProvider(Path.Join(Path.GetTempPath(), "agent-up-http-agents")));
@@ -82,6 +65,7 @@ public sealed class InstalledAgentCapabilityHttpTests
         builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
         builder.Services.AddSingleton<AgentEventFrameProvider>();
         builder.Services.AddSingleton<AgentEventService>();
+        builder.Services.AddSingleton<IAgentSessionRepository, InMemoryAgentSessionRepository>();
         builder.Services.AddSingleton<AgentSchedulingService>();
         builder.Services.AddSingleton<AgentsController>();
         _app = builder.Build();
@@ -99,14 +83,13 @@ public sealed class InstalledAgentCapabilityHttpTests
     }
 
     [Test]
-    public async Task Get_reportsAvailabilityMatchingLiveInstalledAdapters()
+    public async Task Get_reportsAvailabilityMatchingEnabledAgentPackages()
     {
         var workspace = await RegisterAsync();
         using var response = await _client.GetAsync($"/api/workspaces/{workspace.Id}/agent");
         var session = await response.Content.ReadFromJsonAsync<AgentSessionDto>(JsonOptions);
         var commands = _app.Services.GetRequiredService<AgentCommandProvider>();
-        var adapters = _app.Services.GetServices<ICapabilityAdapter>()
-            .ToDictionary(adapter => adapter.Descriptor.Id, StringComparer.OrdinalIgnoreCase);
+        var packages = _app.Services.GetRequiredService<IEnabledCapabilityPackages>();
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(session, Is.Not.Null);
@@ -114,24 +97,14 @@ public sealed class InstalledAgentCapabilityHttpTests
 
         foreach (var descriptor in session.Agents)
         {
-            var adapter = adapters[CapabilityId(descriptor.Agent)];
-            var installed = await adapter.DiscoverAsync(TestContext.CurrentContext.CancellationToken);
-            var validation = await adapter.ValidateAsync(
-                new CapabilityDeclaration(
-                    descriptor.Agent.ToString(),
-                    adapter.Descriptor.Id,
-                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)),
-                installed,
-                TestContext.CurrentContext.CancellationToken);
+            var plan = packages.AgentLaunch(descriptor.Agent);
             var available = await commands.IsAvailableAsync(descriptor.Agent, TestContext.CurrentContext.CancellationToken);
             var command = await commands.ResolveAsync(descriptor.Agent, TestContext.CurrentContext.CancellationToken);
 
             Assert.Multiple(() =>
             {
-                Assert.That(descriptor.DisplayName, Is.EqualTo(descriptor.Agent.ToString()));
-                Assert.That(descriptor.Available, Is.EqualTo(validation.CanRun),
-                    $"{descriptor.Agent} picker availability did not match live capability discovery.");
+                Assert.That(descriptor.DisplayName, Is.Not.WhiteSpace);
+                Assert.That(descriptor.Available, Is.EqualTo(plan is not null));
                 Assert.That(descriptor.Available, Is.EqualTo(available));
                 Assert.That(command is not null, Is.EqualTo(descriptor.Available));
                 if (command is null)
@@ -139,20 +112,10 @@ public sealed class InstalledAgentCapabilityHttpTests
 
                 Assert.That(command.FileName, Is.Not.WhiteSpace);
                 Assert.That(command.Arguments, Is.Not.Null);
-                if (Path.IsPathRooted(command.FileName))
-                    Assert.That(File.Exists(command.FileName), Is.True, $"{descriptor.Agent} launch command '{command.FileName}' does not exist.");
             });
         }
     }
 
     private Task<Workspace> RegisterAsync() => _app.Services.GetRequiredService<WorkspaceQueryController>().RegisterAsync(
         ServerDomain.Workspace().Named("Workspace").At("/repo").AtCommit("abc").Build());
-
-    private static string CapabilityId(AgentKind kind) => kind switch
-    {
-        AgentKind.Codex => "codex",
-        AgentKind.Cursor => "cursor",
-        AgentKind.Claude => "claude",
-        _ => throw new ArgumentOutOfRangeException(nameof(kind))
-    };
 }

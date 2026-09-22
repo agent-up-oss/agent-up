@@ -1,22 +1,11 @@
 using System.Text.Json.Serialization;
 using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
-using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
-using AgentUp.Capabilities.Claude.Features.ClaudeCapability.Interfaces;
-using AgentUp.Capabilities.Claude.Features.ClaudeCapability.Providers;
-using AgentUp.Capabilities.Claude.Features.ClaudeCapability.Services;
-using AgentUp.Capabilities.Codex.Features.CodexCapability.Interfaces;
-using AgentUp.Capabilities.Codex.Features.CodexCapability.Providers;
-using AgentUp.Capabilities.Codex.Features.CodexCapability.Services;
-using AgentUp.Capabilities.Common.Features.CapabilityDiscovery.Providers;
-using AgentUp.Capabilities.Cursor.Features.CursorCapability.Interfaces;
-using AgentUp.Capabilities.Cursor.Features.CursorCapability.Providers;
-using AgentUp.Capabilities.Cursor.Features.CursorCapability.Services;
-using AgentUp.Capabilities.Docker.Features.DockerCapability.Interfaces;
-using AgentUp.Capabilities.Docker.Features.DockerCapability.Providers;
-using AgentUp.Capabilities.Docker.Features.DockerCapability.Services;
-using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Interfaces;
-using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Providers;
-using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Services;
+using AgentUp.Capabilities.Common.Features.NixRuntime.Controllers;
+using AgentUp.Capabilities.Common.Features.NixRuntime.Providers;
+using AgentUp.Capabilities.Common.Features.NixRuntime.Services;
+using AgentUp.Registry.Composition;
+using AgentUp.Registry.Features.RemoteCatalog.Interfaces;
+using AgentUp.Registry.Features.RemoteCatalog.Providers;
 using AgentUp.Server.Features.ApplicationProxy.Controllers;
 using AgentUp.Server.Features.ApplicationProxy.Interfaces;
 using AgentUp.Server.Features.ApplicationProxy.Providers;
@@ -42,14 +31,16 @@ using AgentUp.Server.Features.Audit.Providers;
 using AgentUp.Server.Features.Audit.Repositories;
 using AgentUp.Server.Features.Audit.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
-using AgentUp.Server.Features.ServiceControl.Interfaces;
-using AgentUp.Server.Features.TraySession.Services;
+using AgentUp.Server.Features.Capabilities.Interfaces;
+using AgentUp.Server.Features.Capabilities.Providers;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Browser.Streaming.Interfaces;
 using AgentUp.Server.Features.Browser.Providers;
 using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Browser.Services;
+using AgentUp.Server.Features.ServiceControl.Interfaces;
+using AgentUp.Server.Features.TraySession.Services;
 using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Verification.Controllers;
 using AgentUp.Server.Features.Verification.Services;
@@ -157,6 +148,7 @@ public static class ServiceRegistration
             .WithTools<ValidationMcpTools>()
             .WithTools<AuditMcpTools>()
             .WithTools<DiagnosticsMcpTools>()
+            .WithTools<CapabilityModulesMcpTools>()
             .WithResources<OrchestrationMcpResources>();
 #pragma warning restore MCP9004
 
@@ -174,6 +166,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
         builder.Services.AddSingleton<AgentEventFrameProvider>();
         builder.Services.AddSingleton<AgentEventService>();
+        builder.Services.AddSingleton<IAgentSessionRepository>(_ => new AgentSessionRepository(dataDir));
         builder.Services.AddSingleton<AgentSchedulingService>();
         builder.Services.AddSingleton<AgentsController>();
         builder.Services.AddSingleton<WorkspaceEventFrameProvider>();
@@ -228,23 +221,47 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<ApplicationProxyFallbackController>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
-        builder.Services.AddSingleton<IDotnetVersionProvider, DotnetVersionProvider>();
-        builder.Services.AddSingleton<IDockerVersionProvider, DockerVersionProvider>();
-        builder.Services.AddSingleton<CapabilityCliLocator>();
-        builder.Services.AddSingleton<ICodexVersionProvider, CodexVersionProvider>();
-        builder.Services.AddSingleton<ICursorVersionProvider, CursorVersionProvider>();
-        builder.Services.AddSingleton<IClaudeVersionProvider, ClaudeVersionProvider>();
-        builder.Services.AddSingleton<ICapabilityAdapter, DotnetCapabilityAdapter>();
-        builder.Services.AddSingleton<ICapabilityAdapter, DockerCapabilityAdapter>();
-        builder.Services.AddSingleton<ICapabilityAdapter, CodexCapabilityAdapter>();
-        builder.Services.AddSingleton<ICapabilityAdapter, CursorCapabilityAdapter>();
-        builder.Services.AddSingleton<ICapabilityAdapter, ClaudeCapabilityAdapter>();
+        var registryRoot = CapabilityRegistryRootResolver.Resolve(
+            builder.Configuration["AGENTUP_CAPABILITY_REGISTRY_PATH"]
+            ?? Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_REGISTRY_PATH"),
+            dataDir,
+            Environment.CurrentDirectory,
+            AppContext.BaseDirectory);
+        RegistryServiceRegistration.Configure(builder, registryRoot);
+        var remoteRegistryUrl = builder.Configuration["AGENTUP_CAPABILITY_REGISTRY_URL"]
+            ?? Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_REGISTRY_URL");
+        if (!string.IsNullOrWhiteSpace(remoteRegistryUrl))
+        {
+            builder.Services.AddHttpClient<IRemoteRegistryClient, RemoteRegistryHttpClient>(client =>
+            {
+                client.BaseAddress = new Uri(remoteRegistryUrl.TrimEnd('/') + "/");
+            });
+        }
+
+        builder.Services.AddSingleton<NixCapabilityCommandBuilder>();
+        builder.Services.AddSingleton<CapabilityIndexMergeProvider>();
+        builder.Services.AddSingleton<NixCapabilityEnvironmentService>();
+        builder.Services.AddSingleton<NixCapabilityEnvironmentController>();
+        builder.Services.AddSingleton<ICapabilityEnabledSetStore>(_ => new CapabilityEnabledSetStore(dataDir));
+        builder.Services.AddSingleton<INixPresenceProvider, NixPresenceProvider>();
+        builder.Services.AddSingleton<CapabilityRuntimePathProvider>();
+        builder.Services.AddSingleton<CapabilityModuleLoadProvider>();
+        builder.Services.AddSingleton<ICapabilityModuleLoader>(sp => sp.GetRequiredService<CapabilityModuleLoadProvider>());
+        builder.Services.AddSingleton<CapabilityModuleService>();
+        builder.Services.AddSingleton<IEnabledCapabilityPackages>(sp => sp.GetRequiredService<CapabilityModuleService>());
+        builder.Services.AddSingleton<CapabilityModulesController>();
         builder.Services.AddSingleton<CapabilityReconciliationService>();
         builder.Services.AddSingleton<CapabilitiesController>();
         builder.Services.AddSingleton<ConsoleSecretRedactor>();
         builder.Services.AddSingleton<ApplicationAuditEndpointProvider>();
-        builder.Services.AddSingleton<ILocalProcessProvider, LocalProcessProvider>();
-        builder.Services.AddSingleton<IDockerProcessProvider, DockerProcessProvider>();
+        builder.Services.AddSingleton<ILocalProcessProvider>(sp =>
+            new LocalProcessProvider(
+                sp.GetRequiredService<ApplicationAuditEndpointProvider>(),
+                sp.GetRequiredService<CapabilityModulesController>()));
+        builder.Services.AddSingleton<IDockerProcessProvider>(sp =>
+            new DockerProcessProvider(
+                sp.GetRequiredService<ApplicationAuditEndpointProvider>(),
+                sp.GetRequiredService<CapabilityModulesController>()));
         builder.Services.AddSingleton<ProcessOutputService>();
         builder.Services.AddSingleton<ProcessesController>();
         builder.Services.AddSingleton<PngFrameProvider>();

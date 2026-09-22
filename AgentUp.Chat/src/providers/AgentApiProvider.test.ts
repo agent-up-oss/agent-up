@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { authenticateAgent, parseSseFrames, scheduleAgent, streamAgentEvents } from './AgentApiProvider';
+import { authenticateAgent, parseSseFrames, resumeAgent, scheduleAgent, streamAgentEvents } from './AgentApiProvider';
 
 test('parses fragmented and multiline SSE events without losing the tail', () => {
   const first = parseSseFrames('id: 1\nevent: state\ndata: {"sequence":1,\n');
@@ -72,4 +72,15 @@ test('schedule and authenticate use workspace-scoped authenticated JSON requests
   assert.equal(new Headers(calls[0]?.init?.headers).get('Authorization'), 'Bearer token');
   assert.equal(calls[0]?.init?.body, '{"agent":"Codex"}');
   assert.equal(calls[1]?.init?.body, '{"methodId":"chatgpt"}');
+});
+
+test('resume addresses a saved session within its workspace', async () => {
+  let url = '';
+  const request = async (input: string | URL | Request) => {
+    url = String(input);
+    return new Response(JSON.stringify({ workspaceId: 'ws', agent: 'Claude', state: 'ready', sessionId: 'session/1', error: null, agents: [], sessions: [] }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  await resumeAgent({ url: 'https://server.example', accessToken: 'token' }, 'workspace/1', 'session/1', request as typeof fetch);
+  assert.equal(url, 'https://server.example/api/workspaces/workspace%2F1/agent/sessions/session%2F1/resume');
 });

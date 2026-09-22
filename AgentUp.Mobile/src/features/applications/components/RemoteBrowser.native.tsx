@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { agentUpTheme } from '@agent-up/design-system/native';
 import type { ApplicationProxySource } from '../providers/ApplicationBrowserProvider';
 
 /** Hosts the tunneled application HTTP response in the platform-native WebView. */
@@ -14,4 +15,4 @@ export function RemoteBrowser({ source }: { source: ApplicationProxySource }) {
   );
 }
 
-const styles = StyleSheet.create({ browser: { flex: 1, backgroundColor: '#050505' } });
+const styles = StyleSheet.create({ browser: { flex: 1, backgroundColor: agentUpTheme.colors.canvas } });

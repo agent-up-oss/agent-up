@@ -111,6 +111,20 @@ public sealed class AgentApiClientTests
     }
 
     [Test]
+    public async Task ResumeAsync_postsTheEscapedWorkspaceSessionRoute()
+    {
+        const string body = """{"workspaceId":"ws 1","agent":"Codex","state":"ready","sessionId":"session/1","error":null,"agents":[],"authMethods":[],"sessions":[]}""";
+        using var handler = new AgentHandler(HttpStatusCode.OK, body);
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new AgentApiClient(http);
+
+        var session = await client.ResumeAsync("ws 1", "session/1", CancellationToken.None);
+
+        Assert.That(handler.Uri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws%201/agent/sessions/session%2F1/resume"));
+        Assert.That(session!.SessionId, Is.EqualTo("session/1"));
+    }
+
+    [Test]
     public void ScheduleAsync_ignoresEmptyProblemBodies()
     {
         using var handler = new AgentHandler(HttpStatusCode.BadGateway, "");

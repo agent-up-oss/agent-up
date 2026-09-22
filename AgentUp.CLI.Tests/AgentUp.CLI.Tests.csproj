@@ -27,6 +27,10 @@
     <ProjectReference Include="..\AgentUp.CLI\AgentUp.CLI.csproj" />
     <ProjectReference Include="..\AgentUp.CommitPolicy\AgentUp.CommitPolicy.csproj" />
     <ProjectReference Include="..\AgentUp.Server\AgentUp.Server.csproj" />
+    <ProjectReference Include="..\AgentUp.Sdk.Common\AgentUp.Sdk.Common.csproj" />
+    <ProjectReference Include="..\AgentUp.Sdk.Runtime\AgentUp.Sdk.Runtime.csproj" />
+    <ProjectReference Include="..\AgentUp.Sdk.Agent\AgentUp.Sdk.Agent.csproj" />
+    <ProjectReference Include="..\AgentUp.Capabilities.Abstractions\AgentUp.Capabilities.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

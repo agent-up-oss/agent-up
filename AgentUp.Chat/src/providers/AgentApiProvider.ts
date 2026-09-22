@@ -1,14 +1,17 @@
 import type { ServerSession } from '@agent-up/server-client';
 import { ensureCredentialTransportAllowed, jsonBody, requestServerJson } from '@agent-up/server-client';
-import type { AgentEvent, AgentKind, AgentSession } from '../models/AgentSession';
+import type { AgentEvent, AgentId, AgentSession } from '../models/AgentSession';
 
 const root = (workspaceId: string) => `/api/workspaces/${encodeURIComponent(workspaceId)}/agent`;
 
 export async function getAgent(server: ServerSession, workspaceId: string, request: typeof fetch = fetch) {
   return requestServerJson<AgentSession>(server, root(workspaceId), {}, undefined, request);
 }
-export async function scheduleAgent(server: ServerSession, workspaceId: string, agent: AgentKind, request: typeof fetch = fetch) {
+export async function scheduleAgent(server: ServerSession, workspaceId: string, agent: AgentId, request: typeof fetch = fetch) {
   return requestServerJson<AgentSession>(server, root(workspaceId), jsonBody({ agent }), 120_000, request);
+}
+export async function resumeAgent(server: ServerSession, workspaceId: string, sessionId: string, request: typeof fetch = fetch) {
+  return requestServerJson<AgentSession>(server, `${root(workspaceId)}/sessions/${encodeURIComponent(sessionId)}/resume`, jsonBody({}), 120_000, request);
 }
 export async function sendAgentMessage(server: ServerSession, workspaceId: string, message: string, request: typeof fetch = fetch) {
   return requestServerJson<null>(server, `${root(workspaceId)}/messages`, jsonBody({ message }), undefined, request);

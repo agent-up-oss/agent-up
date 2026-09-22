@@ -42,7 +42,7 @@ public sealed class AgentsHttpTests
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
         builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
         builder.Services.AddSingleton<PortsController>();
-        builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
+        builder.Services.AddSingleton(_ => new CapabilityReconciliationService());
         builder.Services.AddSingleton<CapabilitiesController>();
         builder.Services.AddSingleton<WorkspaceEventBus>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
@@ -61,6 +61,7 @@ public sealed class AgentsHttpTests
         builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
         builder.Services.AddSingleton<AgentEventFrameProvider>();
         builder.Services.AddSingleton<AgentEventService>();
+        builder.Services.AddSingleton<IAgentSessionRepository, InMemoryAgentSessionRepository>();
         builder.Services.AddSingleton<AgentSchedulingService>();
         builder.Services.AddSingleton<AgentsController>();
         _app = builder.Build();
@@ -121,6 +122,15 @@ public sealed class AgentsHttpTests
     {
         var workspace = await RegisterAsync();
         using var response = await _client.DeleteAsync($"/api/workspaces/{workspace.Id}/agent");
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task Resume_unknownSavedSessionReturnsNotFound()
+    {
+        var workspace = await RegisterAsync();
+        using var response = await _client.PostAsJsonAsync(
+            $"/api/workspaces/{workspace.Id}/agent/sessions/missing/resume", new { });
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 

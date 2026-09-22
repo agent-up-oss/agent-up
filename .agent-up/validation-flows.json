@@ -254,6 +254,70 @@
       ],
       "updatedAtUtc": "2026-09-09T20:35:41.187019+00:00",
       "version": 1
+    },
+    {
+      "id": "b6e1c8a04f5d4e2f9a7c3d1e8b0f2468",
+      "application": "Example Web",
+      "name": "See live inventory from the capability-hosted API",
+      "description": "A developer opens the example dashboard and sees seeded Postgres inventory served by the .NET API, which proves the docker and dotnet capabilities started.",
+      "initialPath": "/",
+      "initialExpectations": [
+        {
+          "kind": "Title",
+          "value": "Agent-Up Full Stack React Example",
+          "target": null
+        },
+        {
+          "kind": "Text",
+          "value": "Operations Dashboard",
+          "target": null
+        },
+        {
+          "kind": "Text",
+          "value": "Live data",
+          "target": null
+        },
+        {
+          "kind": "Text",
+          "value": "Atlas Analytics Seat",
+          "target": null
+        },
+        {
+          "kind": "Text",
+          "value": "Northwind Traders",
+          "target": null
+        }
+      ],
+      "steps": [
+        {
+          "id": "refresh-live-inventory",
+          "description": "Refresh the dashboard",
+          "action": "Click",
+          "target": {
+            "role": "button",
+            "name": "Refresh",
+            "label": null,
+            "testId": null,
+            "text": "Refresh",
+            "selector": "button"
+          },
+          "value": null,
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Live data",
+              "target": null
+            },
+            {
+              "kind": "Text",
+              "value": "Beacon Edge Gateway",
+              "target": null
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-09-21T03:00:00.0000000+00:00",
+      "version": 1
     }
   ]
 }

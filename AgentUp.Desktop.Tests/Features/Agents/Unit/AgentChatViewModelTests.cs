@@ -150,6 +150,33 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
+    public async Task LoadAndResume_exposeWorkspaceSessionsAndSelectTheRequestedSession()
+    {
+        var sessions = new[]
+        {
+            new AgentSessionSummaryDto("old", "Claude", "Fix authentication", "feature/auth", DateTimeOffset.UtcNow),
+            new AgentSessionSummaryDto("current", "Codex", "Add tests", "main", DateTimeOffset.UtcNow)
+        };
+        var fake = new ChatApiFake
+        {
+            Session = new AgentSessionDto("ws-1", "Codex", "ready", "current", null, [], [], Sessions: sessions),
+            NextSession = new AgentSessionDto("ws-1", "Claude", "ready", "old", null, [], [], Sessions: sessions)
+        };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        await view.ResumeSessionCommand.Execute("old").FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fake.ResumedSessionId, Is.EqualTo("old"));
+            Assert.That(view.SelectedAgent, Is.EqualTo("Claude"));
+            Assert.That(view.Sessions.Select(item => item.Description), Is.EqualTo(new[] { "Fix authentication", "Add tests" }));
+            Assert.That(view.Sessions.Single(item => item.SessionId == "old").IsCurrent, Is.True);
+        });
+    }
+
+    [Test]
     public void ChatItem_usesDisplayRoleWhenPresent()
     {
         Assert.That(new AgentChatItemViewModel("Agent", "Working", displayRole: "Codex").Label, Is.EqualTo("Codex"));
@@ -322,6 +349,7 @@ internal sealed class ChatApiFake : IAgentApiProvider
     public TaskCompletionSource? FirstGetHang { get; set; }
     public Dictionary<string, Exception> GetFailures { get; } = new(StringComparer.Ordinal);
     public string? LastWorkspace { get; private set; }
+    public string? ResumedSessionId { get; private set; }
     private int _gets;
 
     public AgentSessionDto? Session { get; set; }
@@ -339,6 +367,12 @@ internal sealed class ChatApiFake : IAgentApiProvider
 
     public Task<AgentSessionDto?> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken)
         => Task.FromResult(NextSession ?? Session);
+
+    public Task<AgentSessionDto?> ResumeAsync(string workspaceId, string sessionId, CancellationToken cancellationToken)
+    {
+        ResumedSessionId = sessionId;
+        return Task.FromResult(NextSession ?? Session);
+    }
 
     public Task SendAsync(string workspaceId, string message, CancellationToken cancellationToken)
         => SendFailure is null ? Task.CompletedTask : Task.FromException(SendFailure);
