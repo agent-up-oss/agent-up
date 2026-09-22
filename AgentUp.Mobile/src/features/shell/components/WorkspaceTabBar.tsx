@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
+import { auBox, auText } from '@agent-up/design-system/native';
 import { WorkspaceNavIcon } from './WorkspaceNavIcon';
 import { workspaceTabHref, type WorkspaceOverviewTab } from '../providers/WorkspaceTabProvider';
 
@@ -22,7 +22,7 @@ export function WorkspaceTabBar({ workspaceId, active }: WorkspaceTabBarProps) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View accessibilityRole="tablist" style={[styles.bar, { paddingBottom: insets.bottom + 8 }]}>
+    <View accessibilityRole="tablist" style={[styles.bar, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
       {tabs.map(tab => {
         const selected = tab.id === active;
         return (
@@ -48,8 +48,6 @@ const styles = StyleSheet.create({
     ...auBox('mobileTabBar'),
     flexDirection: 'row',
     gap: 6,
-    paddingHorizontal: 10,
-    paddingTop: 8,
   },
   tab: {
     ...auBox('subtab'),

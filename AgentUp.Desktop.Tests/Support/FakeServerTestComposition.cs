@@ -9,8 +9,8 @@ namespace AgentUp.Desktop.Tests.Support;
 
 internal static class FakeServerTestComposition
 {
-    public static FakeBackendService Backend()
-        => new(new FakeServerDefinitionProvider().LoadEmbedded());
+    public static FakeBackendService Backend(Action<int, Action>? schedule = null)
+        => new(new FakeServerDefinitionProvider().LoadEmbedded(), schedule: schedule);
 
     public static FakeServerController Controller(FakeBackendService? backend = null)
         => new(backend ?? Backend());

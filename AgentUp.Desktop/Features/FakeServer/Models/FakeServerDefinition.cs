@@ -35,6 +35,8 @@ public sealed class FakeServerDefinition
 
     public JsonNode? Pages => Root["pages"];
 
+    public JsonNode? Capabilities => Root["capabilities"];
+
     public FakeServerDefinition Clone()
         => new(Root.DeepClone());
 

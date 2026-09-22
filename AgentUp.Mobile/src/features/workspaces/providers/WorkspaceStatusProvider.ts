@@ -31,12 +31,18 @@ export function statusLedRole(state: string | null | undefined): StatusLedRole {
 }
 
 export function workspaceLedState(state: string, healthState?: string | null): string {
-  return healthState || state;
+  // Leftover Healthy from a previous run must not paint Stopped or Failed green.
+  if (state === 'Running') return healthState || state;
+  return state;
 }
 
 export function workspaceStatusLabel(state: string, healthState?: string | null): string {
   if (state === 'Running' && healthState) return healthState;
   return state;
+}
+
+export function workspaceShowsApplications(state: string): boolean {
+  return state === 'Running' || state === 'Starting';
 }
 
 export function workspaceLifecycleControls(state: string): WorkspaceLifecycleControls {

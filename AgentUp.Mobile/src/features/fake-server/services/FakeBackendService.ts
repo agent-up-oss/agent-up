@@ -1,6 +1,25 @@
 import { cloneDefinition, type FakeServerDefinition } from '../models/FakeServerDefinition';
 import { fakeServerEventFrame, type FakeServerEvent } from '../models/FakeServerEvent';
 import { fakeServerId, fakeServerUrl, isFakeServerUrl } from '../models/FakeServerIdentity';
+import {
+  addAgentWorkingTreeFile,
+  checkoutGitRemote,
+  commitGitFiles,
+  discardGitFiles,
+  fetchGitRemote,
+  gitChangesPayload,
+  gitDiffPayload,
+  gitHeadPayload,
+  gitLogPayload,
+  gitQueuePayload,
+  loadFakeGitState,
+  pullGitRemote,
+  pushGitRemote,
+  switchGitBranch,
+  type FakeGitState,
+} from '../providers/FakeGitProvider';
+
+export const fakeWorkspaceStartPhaseMs = 1000;
 
 export type FakeBackendRequest = {
   method: string;
@@ -15,6 +34,8 @@ export type FakeBackendResponse = {
   body?: string;
   keepOpen?: boolean;
 };
+
+export type FakeScheduler = (delayMs: number, work: () => void) => () => void;
 
 type AgentListener = (event: FakeServerEvent) => void;
 type WorkspaceListener = (snapshot: string) => void;
@@ -37,17 +58,40 @@ type WorkspaceRecord = {
   }>;
 };
 
+type CapabilityRecord = {
+  id: string;
+  version: string;
+  displayName: string;
+  publisher: string;
+  kind: string;
+  enabled: boolean;
+  state: string;
+  canRun: boolean;
+  messages: string[];
+};
+
+const defaultScheduler: FakeScheduler = (delayMs, work) => {
+  const timer = setTimeout(work, delayMs);
+  return () => clearTimeout(timer);
+};
+
 export class FakeBackendService {
   private readonly template: FakeServerDefinition;
+  private readonly schedule: FakeScheduler;
   private state: FakeServerDefinition;
   private readonly agentEvents = new Map<string, FakeServerEvent[]>();
   private readonly agentListeners = new Map<string, AgentListener[]>();
   private readonly workspaceListeners: WorkspaceListener[] = [];
+  private readonly git = new Map<string, FakeGitState>();
+  private readonly appTemplates = new Map<string, NonNullable<WorkspaceRecord['applications']>>();
   private agentSequence = 0;
+  private cancelLifecycle: (() => void) | null = null;
 
-  constructor(definition: FakeServerDefinition) {
+  constructor(definition: FakeServerDefinition, schedule: FakeScheduler = defaultScheduler) {
     this.template = cloneDefinition(definition);
+    this.schedule = schedule;
     this.state = cloneDefinition(definition);
+    this.hydrate();
   }
 
   catalog(activeServerId?: string | null) {
@@ -64,9 +108,11 @@ export class FakeBackendService {
   }
 
   reset() {
+    this.cancelLifecycleWork();
     this.state = cloneDefinition(this.template);
     this.agentEvents.clear();
     this.agentSequence = 0;
+    this.hydrate();
   }
 
   applicationHtml(allocatedPort: number): string | null {
@@ -88,16 +134,17 @@ export class FakeBackendService {
       return json({ authenticationRequired: false, accessToken: 'fake-token' });
     if (method === 'GET' && path === '/api/connection') return json(this.state.connection);
     if (method === 'GET' && path === '/api/entitlements') return json(this.state.entitlements);
-    if (method === 'GET' && path === '/api/workspaces') return json(this.state.workspaces);
+    if (method === 'GET' && path === '/api/workspaces') return json(this.publicWorkspaces());
     if (method === 'GET' && path === '/api/workspaces/events')
       return { status: 200, contentType: 'text/event-stream', body: this.workspaceSnapshotSse(), keepOpen: true };
     if (method === 'POST' && path === '/api/workspaces/tutorial/cleanup') return { status: 204, contentType: 'application/json' };
     if (method === 'POST' && path === '/api/source-clones') return this.cloneWorkspace(request.body);
     if (method === 'POST' && path === '/api/apps/tickets') return this.issueTicket(request.body);
     if (method === 'POST' && path === '/api/audit/record') return { status: 204, contentType: 'application/json' };
-    if (method === 'GET' && path === '/api/capabilities') return json([]);
-    if (method === 'POST' && path === '/api/capabilities/enable') return json(capabilityModule(true));
-    if (method === 'POST' && path.startsWith('/api/capabilities/disable/')) return json(capabilityModule(false));
+    if (method === 'GET' && path === '/api/capabilities') return json(this.capabilities());
+    if (method === 'POST' && path === '/api/capabilities/enable') return this.enableCapability(request.body);
+    if (method === 'POST' && path.startsWith('/api/capabilities/disable/'))
+      return this.disableCapability(decodeURIComponent(path.slice('/api/capabilities/disable/'.length)));
     if (method === 'GET' && path.startsWith('/apps/')) return this.appPage(path);
 
     const workspacePath = parseWorkspacePath(path);
@@ -134,14 +181,15 @@ export class FakeBackendService {
   private handleWorkspace(method: string, workspaceId: string, rest: string, request: FakeBackendRequest): FakeBackendResponse {
     if (method === 'GET' && rest.length === 0) return this.workspaceJson(workspaceId);
     if (method === 'DELETE' && rest.length === 0) return this.deleteWorkspace(workspaceId);
-    if (method === 'POST' && rest === 'start') return this.setWorkspaceState(workspaceId, 'Running');
-    if (method === 'POST' && rest === 'stop') return this.setWorkspaceState(workspaceId, 'Stopped');
+    if (method === 'POST' && rest === 'start') return this.startWorkspace(workspaceId);
+    if (method === 'POST' && rest === 'stop') return this.stopWorkspace(workspaceId);
     if (method === 'GET' && rest === 'overview') return this.overview(workspaceId);
-    if (method === 'GET' && rest === 'git/changes') return this.gitNode(workspaceId, 'changes');
-    if (method === 'GET' && rest === 'git/log') return this.gitNode(workspaceId, 'log');
-    if (method === 'GET' && rest === 'commit-queue') return this.gitNode(workspaceId, 'queue');
+    if (method === 'GET' && rest === 'git/changes') return this.gitChanges(workspaceId);
+    if (method === 'GET' && rest === 'git/head') return this.gitHead(workspaceId);
+    if (method === 'GET' && rest === 'git/log') return this.gitLog(workspaceId);
+    if (method === 'GET' && rest === 'commit-queue') return this.gitQueue(workspaceId);
     if (method === 'GET' && rest.startsWith('git/file')) return this.gitDiff(workspaceId, request.query);
-    if (method === 'POST' && rest.startsWith('git/')) return this.gitMutation(workspaceId, rest.slice('git/'.length));
+    if (method === 'POST' && rest.startsWith('git/')) return this.gitMutation(workspaceId, rest.slice('git/'.length), request.body);
     if ((method === 'GET' || method === 'POST') && rest === 'agent') return this.agentSession(workspaceId);
     if (method === 'POST' && rest === 'agent/messages') return this.sendAgentMessage(workspaceId, request.body);
     if (method === 'GET' && rest === 'agent/events') return this.agentEventStream(workspaceId, request.query);
@@ -159,22 +207,49 @@ export class FakeBackendService {
 
   private workspaceJson(workspaceId: string): FakeBackendResponse {
     const workspace = this.findWorkspace(workspaceId);
-    return workspace ? json(workspace) : notFound();
+    return workspace ? json(this.publicWorkspace(workspace)) : notFound();
   }
 
   private deleteWorkspace(workspaceId: string): FakeBackendResponse {
     this.state.workspaces = this.state.workspaces.filter(item => workspaceIdOf(item) !== workspaceId);
+    this.git.delete(workspaceId);
+    this.appTemplates.delete(workspaceId);
     this.publishWorkspaces();
     return { status: 204, contentType: 'application/json' };
   }
 
-  private setWorkspaceState(workspaceId: string, state: string): FakeBackendResponse {
+  private startWorkspace(workspaceId: string): FakeBackendResponse {
     const workspace = this.findWorkspace(workspaceId);
     if (!workspace) return notFound();
-    workspace.state = state;
-    workspace.applications?.forEach(application => {
-      application.state = state === 'Running' ? 'Running' : 'Stopped';
-    });
+    this.cancelLifecycleWork();
+    this.applyWorkspacePhase(workspace, 'Starting', undefined, 'Starting');
+    this.publishWorkspaces();
+    const cancels: Array<() => void> = [];
+    const cancelAll = () => cancels.forEach(cancel => cancel());
+    this.cancelLifecycle = cancelAll;
+    cancels.push(this.schedule(fakeWorkspaceStartPhaseMs, () => {
+      const current = this.findWorkspace(workspaceId);
+      if (!current || current.state !== 'Starting') return;
+      this.applyWorkspacePhase(current, 'Running', 'Checking', 'Checking');
+      this.publishWorkspaces();
+      cancels.push(this.schedule(fakeWorkspaceStartPhaseMs, () => {
+        const ready = this.findWorkspace(workspaceId);
+        if (!ready || ready.state !== 'Running') return;
+        this.applyWorkspacePhase(ready, 'Running', 'Healthy', 'Running');
+        this.publishWorkspaces();
+        this.cancelLifecycle = null;
+      }));
+    }));
+    return { status: 204, contentType: 'application/json' };
+  }
+
+  private stopWorkspace(workspaceId: string): FakeBackendResponse {
+    const workspace = this.findWorkspace(workspaceId);
+    if (!workspace) return notFound();
+    this.cancelLifecycleWork();
+    workspace.state = 'Stopped';
+    workspace.healthState = undefined;
+    workspace.applications = [];
     this.publishWorkspaces();
     return { status: 204, contentType: 'application/json' };
   }
@@ -183,6 +258,7 @@ export class FakeBackendService {
     const workspace = this.findWorkspace(workspaceId);
     if (!workspace) return notFound();
     const overview = (this.state.overview?.[workspaceId] ?? {}) as Record<string, unknown>;
+    const live = this.publicWorkspace(workspace);
     return json({
       id: workspace.id,
       displayName: workspace.displayName,
@@ -195,35 +271,60 @@ export class FakeBackendService {
       memoryBytes: overview.memoryBytes ?? 0,
       storageBytes: overview.storageBytes ?? 0,
       processCount: overview.processCount ?? 0,
-      applicationCount: workspace.applications?.length ?? 0,
+      applicationCount: live.applications?.length ?? 0,
     });
   }
 
-  private gitNode(workspaceId: string, name: string): FakeBackendResponse {
-    const node = this.state.git?.[workspaceId]?.[name];
-    return node === undefined ? notFound() : json(node);
+  private gitChanges(workspaceId: string): FakeBackendResponse {
+    const git = this.git.get(workspaceId);
+    return git ? json(gitChangesPayload(git)) : notFound();
+  }
+
+  private gitHead(workspaceId: string): FakeBackendResponse {
+    const git = this.git.get(workspaceId);
+    return git ? json(gitHeadPayload(git)) : notFound();
+  }
+
+  private gitLog(workspaceId: string): FakeBackendResponse {
+    const git = this.git.get(workspaceId);
+    return git ? json(gitLogPayload(git)) : notFound();
+  }
+
+  private gitQueue(workspaceId: string): FakeBackendResponse {
+    const git = this.git.get(workspaceId);
+    return git ? json(gitQueuePayload(git)) : notFound();
   }
 
   private gitDiff(workspaceId: string, query: string): FakeBackendResponse {
     const path = queryValue(query, 'path');
-    if (!path) return notFound();
-    const diffs = this.state.git?.[workspaceId]?.diffs as Record<string, unknown> | undefined;
-    const diff = diffs?.[path];
-    return diff === undefined ? notFound() : json(diff);
+    const git = this.git.get(workspaceId);
+    if (!path || !git) return notFound();
+    const file = gitDiffPayload(git, path);
+    return file ? json({ path: file.path, status: file.status, isBinary: false, diff: file.diff }) : notFound();
   }
 
-  private gitMutation(workspaceId: string, action: string): FakeBackendResponse {
+  private gitMutation(workspaceId: string, action: string, body: string | null): FakeBackendResponse {
     const workspace = this.findWorkspace(workspaceId);
-    if (!workspace) return notFound();
-    if (action === 'commit')
-      return json({ found: true, succeeded: true, commit: 'f4ke0001', error: null });
-    if (action === 'fetch' || action === 'pull' || action === 'push') {
-      return json({
-        found: true,
-        succeeded: true,
-        error: null,
-        head: { branch: workspace.branch ?? 'main', localBranches: ['main'], commit: workspace.commit },
-      });
+    const git = this.git.get(workspaceId);
+    if (!workspace || !git) return notFound();
+    if (action === 'commit') {
+      const result = commitGitFiles(git, readJsonStringArray(body, 'files'), readJsonString(body, 'message') ?? '');
+      workspace.commit = git.commit;
+      return json(result);
+    }
+    if (action === 'discard') return json(discardGitFiles(git, readJsonStringArray(body, 'files')));
+    if (action === 'fetch') return json(fetchGitRemote(git));
+    if (action === 'pull') return json(pullGitRemote(git));
+    if (action === 'push') return json(pushGitRemote(git));
+    if (action === 'branch') {
+      const result = switchGitBranch(git, readJsonString(body, 'name') ?? '', readJsonBoolean(body, 'create'));
+      if (result.succeeded) workspace.branch = git.branch;
+      return json(result);
+    }
+    if (action === 'checkout') {
+      const result = checkoutGitRemote(git, readJsonString(body, 'name') ?? '');
+      if (result.succeeded) workspace.branch = git.branch;
+      return json(result);
     }
     return json({ found: true, succeeded: true, error: null });
   }
@@ -235,13 +336,23 @@ export class FakeBackendService {
 
   private sendAgentMessage(workspaceId: string, body: string | null): FakeBackendResponse {
     const session = this.state.agents?.[workspaceId];
+    const git = this.git.get(workspaceId);
     if (!session) return notFound();
     const message = readJsonString(body, 'message') ?? '';
+    const added = git ? addAgentWorkingTreeFile(git) : null;
+    const snapshot = session.session && typeof session.session === 'object'
+      ? session.session as Record<string, unknown>
+      : {};
     this.publishAgent(workspaceId, 'user_message', { text: message });
-    (session.scripts ?? []).flatMap(script => script.events ?? []).forEach(event => {
-      if (!event.type || event.payload === undefined) return;
-      this.publishAgent(workspaceId, event.type, structuredClone(event.payload));
+    this.publishAgent(workspaceId, 'state', { ...structuredClone(snapshot), state: 'running' });
+    const text = added
+      ? `I added \`${added.path}\` so the storefront can show the weekly harbor special. It is uncommitted in the working tree.`
+      : 'Harbor Shop is running locally.';
+    this.publishAgent(workspaceId, 'session_update', {
+      sessionUpdate: 'agent_message_chunk',
+      content: { type: 'text', text },
     });
+    this.publishAgent(workspaceId, 'state', { ...structuredClone(snapshot), state: 'ready' });
     return { status: 204, contentType: 'application/json' };
   }
 
@@ -273,6 +384,7 @@ export class FakeBackendService {
       applications: [],
     };
     this.state.workspaces.push(workspace);
+    this.appTemplates.set(workspace.id, []);
     this.publishWorkspaces();
     return { status: 201, contentType: 'application/json', body: JSON.stringify(workspace) };
   }
@@ -304,19 +416,93 @@ export class FakeBackendService {
     });
   }
 
+  private enableCapability(body: string | null): FakeBackendResponse {
+    const id = readJsonString(body, 'id');
+    const module = this.capabilities().find(item => item.id === id);
+    if (!module) return notFound();
+    this.setCapability(module.id, true);
+    return json(this.capabilities().find(item => item.id === module.id));
+  }
+
+  private disableCapability(id: string): FakeBackendResponse {
+    const module = this.capabilities().find(item => item.id === id);
+    if (!module) return notFound();
+    this.setCapability(id, false);
+    return json(this.capabilities().find(item => item.id === id));
+  }
+
+  private setCapability(id: string, enabled: boolean) {
+    const modules = this.capabilities();
+    const index = modules.findIndex(item => item.id === id);
+    if (index < 0) return;
+    modules[index] = {
+      ...modules[index],
+      enabled,
+      state: enabled ? 'ready' : 'disabled',
+      canRun: enabled,
+      messages: [],
+    };
+    this.state.capabilities = modules;
+  }
+
   private findWorkspace(workspaceId: string): WorkspaceRecord | undefined {
     return this.workspaces().find(workspace => workspace.id === workspaceId);
   }
 
   private findPageName(allocatedPort: number): string | undefined {
-    return this.workspaces()
-      .flatMap(workspace => workspace.applications ?? [])
+    return [...this.appTemplates.values()]
+      .flat()
       .find(application => application.allocatedPorts?.some(port => port.allocatedPort === allocatedPort))
       ?.page;
   }
 
   private workspaces(): WorkspaceRecord[] {
     return this.state.workspaces as WorkspaceRecord[];
+  }
+
+  private publicWorkspaces(): WorkspaceRecord[] {
+    return this.workspaces().map(workspace => this.publicWorkspace(workspace));
+  }
+
+  private publicWorkspace(workspace: WorkspaceRecord): WorkspaceRecord {
+    const live = workspace.state === 'Running' || workspace.state === 'Starting';
+    return {
+      ...workspace,
+      applications: live ? workspace.applications ?? [] : [],
+    };
+  }
+
+  private capabilities(): CapabilityRecord[] {
+    return (this.state.capabilities ?? []) as CapabilityRecord[];
+  }
+
+  private hydrate() {
+    this.git.clear();
+    this.appTemplates.clear();
+    for (const workspace of this.workspaces()) {
+      this.appTemplates.set(workspace.id, structuredClone(workspace.applications ?? []));
+      const loaded = loadFakeGitState(workspace.id, this.state.git?.[workspace.id] as Record<string, unknown> | undefined);
+      if (loaded) this.git.set(workspace.id, loaded);
+    }
+  }
+
+  private applyWorkspacePhase(
+    workspace: WorkspaceRecord,
+    state: string,
+    healthState: string | undefined,
+    applicationState: string,
+  ) {
+    workspace.state = state;
+    workspace.healthState = healthState;
+    workspace.applications = structuredClone(this.appTemplates.get(workspace.id) ?? []).map(application => ({
+      ...application,
+      state: applicationState,
+    }));
+  }
+
+  private cancelLifecycleWork() {
+    this.cancelLifecycle?.();
+    this.cancelLifecycle = null;
   }
 
   private publishAgent(workspaceId: string, type: string, payload: unknown) {
@@ -339,18 +525,21 @@ export class FakeBackendService {
   }
 
   private workspaceEventFrame(workspace: WorkspaceRecord): string {
-    const applications = (workspace.applications ?? []).map(application => ({
-      name: application.name,
-      state: application.state,
-      portHealth: (application.allocatedPorts ?? []).map(port => ({
-        allocatedPort: port.allocatedPort,
-        healthState: 'Healthy',
-      })),
-    }));
+    const live = workspace.state === 'Running' || workspace.state === 'Starting';
+    const applications = live
+      ? (workspace.applications ?? []).map(application => ({
+        name: application.name,
+        state: application.state,
+        portHealth: (application.allocatedPorts ?? []).map(port => ({
+          allocatedPort: port.allocatedPort,
+          healthState: workspace.healthState ?? application.state,
+        })),
+      }))
+      : [];
     return `data: ${JSON.stringify({
       workspaceId: workspace.id,
       state: workspace.state,
-      healthState: workspace.healthState ?? 'Healthy',
+      healthState: workspace.healthState ?? null,
       applications,
     })}\n\n`;
   }
@@ -380,42 +569,38 @@ function queryValue(query: string, name: string): string | null {
   return null;
 }
 
-function readJsonString(body: string | null, name: string): string | null {
+function parseBody(body: string | null): Record<string, unknown> | null {
   if (!body) return null;
   try {
-    const parsed = JSON.parse(body) as Record<string, unknown>;
-    return typeof parsed[name] === 'string' ? parsed[name] : null;
+    const parsed = JSON.parse(body) as unknown;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : null;
   } catch {
     return null;
   }
 }
 
+function readJsonString(body: string | null, name: string): string | null {
+  const parsed = parseBody(body);
+  return typeof parsed?.[name] === 'string' ? parsed[name] : null;
+}
+
 function readJsonNumber(body: string | null, name: string): number | null {
-  if (!body) return null;
-  try {
-    const parsed = JSON.parse(body) as Record<string, unknown>;
-    return typeof parsed[name] === 'number' ? parsed[name] : null;
-  } catch {
-    return null;
-  }
+  const parsed = parseBody(body);
+  return typeof parsed?.[name] === 'number' ? parsed[name] : null;
+}
+
+function readJsonBoolean(body: string | null, name: string): boolean {
+  const parsed = parseBody(body);
+  return parsed?.[name] === true;
+}
+
+function readJsonStringArray(body: string | null, name: string): string[] {
+  const parsed = parseBody(body);
+  return Array.isArray(parsed?.[name]) ? parsed[name].filter((item): item is string => typeof item === 'string') : [];
 }
 
 function workspaceIdOf(item: unknown): string | undefined {
   return item && typeof item === 'object' && 'id' in item && typeof item.id === 'string' ? item.id : undefined;
-}
-
-function capabilityModule(enabled: boolean) {
-  return {
-    id: 'demo',
-    version: '1.0.0',
-    displayName: 'Demo',
-    publisher: 'agent-up',
-    kind: 'runtime',
-    enabled,
-    state: enabled ? 'ready' : 'disabled',
-    canRun: false,
-    messages: ['Demo does not host capability modules.'],
-  };
 }
 
 function json(body: unknown): FakeBackendResponse {

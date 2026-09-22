@@ -10,18 +10,31 @@ public sealed class FakeBackendService
 {
     private readonly FakeServerDefinition _template;
     private readonly FakeApplicationPageProvider _pages;
+    private readonly Action<int, Action> _schedule;
     private readonly Lock _gate = new();
     private FakeServerDefinition _state;
     private readonly Dictionary<string, List<FakeServerEvent>> _agentEvents = new(StringComparer.Ordinal);
     private readonly Dictionary<string, List<Action<FakeServerEvent>>> _agentListeners = new(StringComparer.Ordinal);
     private readonly List<Action<string>> _workspaceListeners = [];
+    private readonly Dictionary<string, JsonArray> _appTemplates = new(StringComparer.Ordinal);
+    private int _lifecycleGeneration;
     private long _agentSequence;
 
-    public FakeBackendService(FakeServerDefinition definition, FakeApplicationPageProvider? pages = null)
+    public const int StartPhaseMilliseconds = 1000;
+
+    public FakeBackendService(
+        FakeServerDefinition definition,
+        FakeApplicationPageProvider? pages = null,
+        Action<int, Action>? schedule = null)
     {
         _template = definition;
         _state = definition.Clone();
         _pages = pages ?? new FakeApplicationPageProvider();
+        _schedule = schedule ?? ((delay, work) =>
+        {
+            _ = Task.Delay(TimeSpan.FromMilliseconds(delay)).ContinueWith(_ => work(), TaskScheduler.Default);
+        });
+        CaptureTemplates();
     }
 
     public FakeServerConnectionDto Catalog(string? activeServerId)
@@ -39,6 +52,8 @@ public sealed class FakeBackendService
             _state = _template.Clone();
             _agentEvents.Clear();
             _agentSequence = 0;
+            CancelLifecycle();
+            CaptureTemplates();
         }
     }
 
@@ -76,7 +91,7 @@ public sealed class FakeBackendService
         if (method == "GET" && path == "/api/entitlements")
             return Json(_state.Entitlements);
         if (method == "GET" && path == "/api/workspaces")
-            return Json(_state.Workspaces);
+            return ListWorkspaces();
         if (method == "GET" && path == "/api/workspaces/events")
             return new FakeBackendResponseDto(200, "text/event-stream", WorkspaceSnapshotSse(), KeepOpen: true);
         if (method == "POST" && path == "/api/workspaces/tutorial/cleanup")
@@ -88,11 +103,11 @@ public sealed class FakeBackendService
         if (method == "POST" && path == "/api/audit/record")
             return new FakeBackendResponseDto(204, "application/json");
         if (method == "GET" && path == "/api/capabilities")
-            return Json(new JsonArray());
+            return Json(Capabilities());
         if (method == "POST" && path == "/api/capabilities/enable")
-            return Json(CapabilityModule(true));
+            return EnableCapability(request.Body);
         if (method == "POST" && path.StartsWith("/api/capabilities/disable/", StringComparison.Ordinal))
-            return Json(CapabilityModule(false));
+            return DisableCapability(Uri.UnescapeDataString(path["/api/capabilities/disable/".Length..]));
         if (method == "GET" && path.StartsWith("/apps/", StringComparison.Ordinal))
             return AppPage(path);
 
@@ -163,13 +178,15 @@ public sealed class FakeBackendService
         if (method == "DELETE" && rest.Length == 0)
             return DeleteWorkspace(workspaceId);
         if (method == "POST" && rest == "start")
-            return SetWorkspaceState(workspaceId, "Running");
+            return StartWorkspace(workspaceId);
         if (method == "POST" && rest == "stop")
-            return SetWorkspaceState(workspaceId, "Stopped");
+            return StopWorkspace(workspaceId);
         if (method == "GET" && rest == "overview")
             return Overview(workspaceId);
         if (method == "GET" && rest == "git/changes")
             return GitNode(workspaceId, "changes");
+        if (method == "GET" && rest == "git/head")
+            return GitHead(workspaceId);
         if (method == "GET" && rest == "git/log")
             return GitNode(workspaceId, "log");
         if (method == "GET" && rest == "commit-queue")
@@ -177,7 +194,7 @@ public sealed class FakeBackendService
         if (method == "GET" && rest.StartsWith("git/file", StringComparison.Ordinal))
             return GitDiff(workspaceId, request.Query);
         if (method == "POST" && rest.StartsWith("git/", StringComparison.Ordinal))
-            return GitMutation(workspaceId, rest["git/".Length..]);
+            return GitMutation(workspaceId, rest["git/".Length..], request.Body);
         if (method == "GET" && rest == "agent")
             return AgentSession(workspaceId);
         if (method == "POST" && rest == "agent")
@@ -206,10 +223,19 @@ public sealed class FakeBackendService
         return NotFound();
     }
 
+    private FakeBackendResponseDto ListWorkspaces()
+    {
+        lock (_gate)
+            return Json(new JsonArray([.. _state.Workspaces.OfType<JsonObject>().Select(PublicWorkspace)]));
+    }
+
     private FakeBackendResponseDto WorkspaceJson(string workspaceId)
     {
-        var workspace = FindWorkspace(workspaceId);
-        return workspace is null ? NotFound() : Json(workspace);
+        lock (_gate)
+        {
+            var workspace = FindWorkspace(workspaceId);
+            return workspace is null ? NotFound() : Json(PublicWorkspace(workspace));
+        }
     }
 
     private FakeBackendResponseDto DeleteWorkspace(string workspaceId)
@@ -221,25 +247,68 @@ public sealed class FakeBackendService
                 if (string.Equals(_state.Workspaces[index]?["id"]?.GetValue<string>(), workspaceId, StringComparison.Ordinal))
                     _state.Workspaces.RemoveAt(index);
             }
+
+            _appTemplates.Remove(workspaceId);
         }
 
         PublishWorkspaces();
         return new FakeBackendResponseDto(204, "application/json");
     }
 
-    private FakeBackendResponseDto SetWorkspaceState(string workspaceId, string state)
+    private FakeBackendResponseDto StartWorkspace(string workspaceId)
     {
         lock (_gate)
         {
             var workspace = FindWorkspace(workspaceId);
             if (workspace is null)
                 return NotFound();
-            workspace["state"] = state;
-            if (workspace["applications"] is JsonArray applications)
+            var generation = CancelLifecycle();
+            ApplyWorkspacePhase(workspace, "Starting", null, "Starting");
+            _schedule(StartPhaseMilliseconds, () => ContinueStart(workspaceId, generation, checking: true));
+        }
+
+        PublishWorkspaces();
+        return new FakeBackendResponseDto(204, "application/json");
+    }
+
+    private void ContinueStart(string workspaceId, int generation, bool checking)
+    {
+        lock (_gate)
+        {
+            if (generation != _lifecycleGeneration)
+                return;
+            var workspace = FindWorkspace(workspaceId);
+            if (workspace is null)
+                return;
+            if (checking)
             {
-                foreach (var app in applications.OfType<JsonObject>())
-                    app["state"] = state == "Running" ? "Running" : "Stopped";
+                if (!string.Equals(workspace["state"]?.GetValue<string>(), "Starting", StringComparison.Ordinal))
+                    return;
+                ApplyWorkspacePhase(workspace, "Running", "Checking", "Checking");
+                _schedule(StartPhaseMilliseconds, () => ContinueStart(workspaceId, generation, checking: false));
             }
+            else
+            {
+                if (!string.Equals(workspace["state"]?.GetValue<string>(), "Running", StringComparison.Ordinal))
+                    return;
+                ApplyWorkspacePhase(workspace, "Running", "Healthy", "Running");
+            }
+        }
+
+        PublishWorkspaces();
+    }
+
+    private FakeBackendResponseDto StopWorkspace(string workspaceId)
+    {
+        lock (_gate)
+        {
+            var workspace = FindWorkspace(workspaceId);
+            if (workspace is null)
+                return NotFound();
+            CancelLifecycle();
+            workspace["state"] = "Stopped";
+            workspace.Remove("healthState");
+            workspace["applications"] = new JsonArray();
         }
 
         PublishWorkspaces();
@@ -267,15 +336,27 @@ public sealed class FakeBackendService
             ["memoryBytes"] = overview["memoryBytes"]?.DeepClone() ?? 0,
             ["storageBytes"] = overview["storageBytes"]?.DeepClone() ?? 0,
             ["processCount"] = overview["processCount"]?.DeepClone() ?? 0,
-            ["applicationCount"] = applications?.Count ?? 0
+            ["applicationCount"] = IsLive(workspace["state"]?.GetValue<string>()) ? applications?.Count ?? 0 : 0
         };
         return Json(payload);
     }
 
     private FakeBackendResponseDto GitNode(string workspaceId, string name)
     {
-        var node = _state.Git?[workspaceId]?[name];
-        return node is null ? NotFound() : Json(node);
+        lock (_gate)
+        {
+            var node = GitState(workspaceId)?[name];
+            return node is null ? NotFound() : Json(node);
+        }
+    }
+
+    private FakeBackendResponseDto GitHead(string workspaceId)
+    {
+        lock (_gate)
+        {
+            var git = GitState(workspaceId);
+            return git is null ? NotFound() : Json(FakeGitProvider.Head(git));
+        }
     }
 
     private FakeBackendResponseDto GitDiff(string workspaceId, string query)
@@ -283,44 +364,42 @@ public sealed class FakeBackendService
         var path = QueryValue(query, "path");
         if (string.IsNullOrWhiteSpace(path))
             return NotFound();
-        var diff = _state.Git?[workspaceId]?["diffs"]?[path];
-        return diff is null ? NotFound() : Json(diff);
+        lock (_gate)
+        {
+            var git = GitState(workspaceId);
+            var diff = git is null ? null : FakeGitProvider.Diff(git, path);
+            return diff is null ? NotFound() : Json(diff);
+        }
     }
 
-    private FakeBackendResponseDto GitMutation(string workspaceId, string action)
+    private FakeBackendResponseDto GitMutation(string workspaceId, string action, string? body)
     {
-        var workspace = FindWorkspace(workspaceId);
-        if (workspace is null)
-            return NotFound();
-
-        if (action is "commit")
+        lock (_gate)
         {
-            return Json(new JsonObject
-            {
-                ["found"] = true,
-                ["succeeded"] = true,
-                ["commit"] = "f4ke0001",
-                ["error"] = null
-            });
-        }
+            var workspace = FindWorkspace(workspaceId);
+            var git = GitState(workspaceId);
+            if (workspace is null || git is null)
+                return NotFound();
 
-        if (action is "fetch" or "pull" or "push")
-        {
-            return Json(new JsonObject
+            var result = action switch
             {
-                ["found"] = true,
-                ["succeeded"] = true,
-                ["error"] = null,
-                ["head"] = new JsonObject
-                {
-                    ["branch"] = workspace["branch"]?.DeepClone() ?? "main",
-                    ["localBranches"] = new JsonArray("main"),
-                    ["commit"] = workspace["commit"]?.DeepClone()
-                }
-            });
-        }
+                "commit" => FakeGitProvider.Commit(git, ReadJsonStringArray(body, "files"), ReadJsonString(body, "message") ?? ""),
+                "discard" => FakeGitProvider.Discard(git, ReadJsonStringArray(body, "files")),
+                "fetch" => FakeGitProvider.Fetch(git),
+                "pull" => FakeGitProvider.Pull(git),
+                "push" => FakeGitProvider.Push(git),
+                "branch" => FakeGitProvider.SwitchBranch(git, ReadJsonString(body, "name") ?? "", ReadJsonBoolean(body, "create")),
+                "checkout" => FakeGitProvider.CheckoutRemote(git, ReadJsonString(body, "name") ?? ""),
+                _ => new JsonObject { ["found"] = true, ["succeeded"] = true, ["error"] = null }
+            };
+            if (result["succeeded"]?.GetValue<bool>() == true)
+            {
+                workspace["commit"] = git["changes"]?["commit"]?.DeepClone();
+                workspace["branch"] = git["changes"]?["branch"]?.DeepClone();
+            }
 
-        return Json(new JsonObject { ["found"] = true, ["succeeded"] = true, ["error"] = null });
+            return Json(result);
+        }
     }
 
     private FakeBackendResponseDto AgentSession(string workspaceId)
@@ -331,20 +410,29 @@ public sealed class FakeBackendService
 
     private FakeBackendResponseDto SendAgentMessage(string workspaceId, string? body)
     {
-        var session = _state.Agents?[workspaceId];
-        if (session is null)
-            return NotFound();
+        string? path;
+        lock (_gate)
+        {
+            var session = _state.Agents?[workspaceId] as JsonObject;
+            var git = GitState(workspaceId);
+            if (session is null)
+                return NotFound();
+            path = git is null ? null : FakeGitProvider.AddAgentFile(git);
+        }
 
         var message = ReadJsonString(body, "message") ?? "";
+        var snapshot = new JsonObject { ["state"] = "running" };
         PublishAgent(workspaceId, "user_message", new JsonObject { ["text"] = message });
-        var scripted = (session["scripts"] as JsonArray ?? [])
-            .SelectMany(script => script?["events"] as JsonArray ?? [])
-            .OfType<JsonObject>()
-            .Select(ev => (Type: ev["type"]?.GetValue<string>(), Payload: ev["payload"]))
-            .Where(item => !string.IsNullOrWhiteSpace(item.Type) && item.Payload is not null);
-        foreach (var ev in scripted)
-            PublishAgent(workspaceId, ev.Type!, ev.Payload!.DeepClone());
-
+        PublishAgent(workspaceId, "state", snapshot);
+        var text = path is null
+            ? "Harbor Shop is running locally."
+            : $"I added `{path}` so the storefront can show the weekly harbor special. It is uncommitted in the working tree.";
+        PublishAgent(workspaceId, "session_update", new JsonObject
+        {
+            ["sessionUpdate"] = "agent_message_chunk",
+            ["content"] = new JsonObject { ["type"] = "text", ["text"] = text }
+        });
+        PublishAgent(workspaceId, "state", new JsonObject { ["state"] = "ready" });
         return new FakeBackendResponseDto(204, "application/json");
     }
 
@@ -383,7 +471,10 @@ public sealed class FakeBackendService
             ["applications"] = new JsonArray()
         };
         lock (_gate)
+        {
             _state.Workspaces.Add(workspace);
+            _appTemplates[workspace["id"]!.GetValue<string>()] = new JsonArray();
+        }
         PublishWorkspaces();
         return new FakeBackendResponseDto(201, "application/json", workspace.ToJsonString(WebOptions()));
     }
@@ -484,28 +575,30 @@ public sealed class FakeBackendService
     {
         if (workspace is not JsonObject obj)
             return "";
-        var applications = new JsonArray(
-            [.. (obj["applications"] as JsonArray ?? [])
-                .OfType<JsonObject>()
-                .Select(app => new JsonObject
-                {
-                    ["name"] = app["name"]?.DeepClone(),
-                    ["state"] = app["state"]?.DeepClone(),
-                    ["portHealth"] = new JsonArray(
-                        [.. (app["allocatedPorts"] as JsonArray ?? [])
-                            .Where(port => port?["allocatedPort"] is not null)
-                            .Select(port => new JsonObject
-                            {
-                                ["allocatedPort"] = port!["allocatedPort"]!.DeepClone(),
-                                ["healthState"] = "Healthy"
-                            })])
-                })]);
+        var applications = IsLive(obj["state"]?.GetValue<string>())
+            ? new JsonArray(
+                [.. (obj["applications"] as JsonArray ?? [])
+                    .OfType<JsonObject>()
+                    .Select(app => new JsonObject
+                    {
+                        ["name"] = app["name"]?.DeepClone(),
+                        ["state"] = app["state"]?.DeepClone(),
+                        ["portHealth"] = new JsonArray(
+                            [.. (app["allocatedPorts"] as JsonArray ?? [])
+                                .Where(port => port?["allocatedPort"] is not null)
+                                .Select(port => new JsonObject
+                                {
+                                    ["allocatedPort"] = port!["allocatedPort"]!.DeepClone(),
+                                    ["healthState"] = obj["healthState"]?.DeepClone() ?? app["state"]?.DeepClone()
+                                })])
+                    })])
+            : [];
 
         var payload = new JsonObject
         {
             ["workspaceId"] = obj["id"]?.DeepClone(),
             ["state"] = obj["state"]?.DeepClone(),
-            ["healthState"] = obj["healthState"]?.DeepClone() ?? "Healthy",
+            ["healthState"] = obj["healthState"]?.DeepClone(),
             ["applications"] = applications
         };
         return $"data: {payload.ToJsonString(WebOptions())}\n\n";
@@ -575,19 +668,126 @@ public sealed class FakeBackendService
         }
     }
 
-    private static JsonObject CapabilityModule(bool enabled)
-        => new()
+    private FakeBackendResponseDto EnableCapability(string? body)
+    {
+        lock (_gate)
         {
-            ["id"] = "demo",
-            ["version"] = "1.0.0",
-            ["displayName"] = "Demo",
-            ["publisher"] = "agent-up",
-            ["kind"] = "runtime",
-            ["enabled"] = enabled,
-            ["state"] = enabled ? "ready" : "disabled",
-            ["canRun"] = false,
-            ["messages"] = new JsonArray("Demo does not host capability modules.")
-        };
+            var module = FindCapability(ReadJsonString(body, "id"));
+            if (module is null)
+                return NotFound();
+            SetCapability(module, enabled: true);
+            return Json(module);
+        }
+    }
+
+    private FakeBackendResponseDto DisableCapability(string id)
+    {
+        lock (_gate)
+        {
+            var module = FindCapability(id);
+            if (module is null)
+                return NotFound();
+            SetCapability(module, enabled: false);
+            return Json(module);
+        }
+    }
+
+    private JsonArray Capabilities()
+        => _state.Capabilities as JsonArray ?? [];
+
+    private JsonObject? FindCapability(string? id)
+        => string.IsNullOrWhiteSpace(id)
+            ? null
+            : Capabilities()
+                .OfType<JsonObject>()
+                .FirstOrDefault(module =>
+                    string.Equals(module["id"]?.GetValue<string>(), id, StringComparison.Ordinal));
+
+    private static void SetCapability(JsonObject module, bool enabled)
+    {
+        module["enabled"] = enabled;
+        module["state"] = enabled ? "ready" : "disabled";
+        module["canRun"] = enabled;
+        module["messages"] = new JsonArray();
+    }
+
+    private JsonObject PublicWorkspace(JsonObject workspace)
+    {
+        var clone = workspace.DeepClone().AsObject();
+        if (!IsLive(clone["state"]?.GetValue<string>()))
+            clone["applications"] = new JsonArray();
+        return clone;
+    }
+
+    private JsonObject? GitState(string workspaceId)
+        => _state.Git?[workspaceId] as JsonObject;
+
+    private void CaptureTemplates()
+    {
+        _appTemplates.Clear();
+        foreach (var workspace in _state.Workspaces.OfType<JsonObject>())
+        {
+            var id = workspace["id"]?.GetValue<string>();
+            if (id is null)
+                continue;
+            _appTemplates[id] = (workspace["applications"] as JsonArray)?.DeepClone().AsArray() ?? [];
+        }
+    }
+
+    private void ApplyWorkspacePhase(JsonObject workspace, string state, string? healthState, string applicationState)
+    {
+        workspace["state"] = state;
+        if (healthState is null)
+            workspace.Remove("healthState");
+        else
+            workspace["healthState"] = healthState;
+
+        var id = workspace["id"]?.GetValue<string>();
+        var applications = id is not null && _appTemplates.TryGetValue(id, out var template)
+            ? template.DeepClone().AsArray()
+            : [];
+        foreach (var app in applications.OfType<JsonObject>())
+            app["state"] = applicationState;
+        workspace["applications"] = applications;
+    }
+
+    private int CancelLifecycle()
+        => ++_lifecycleGeneration;
+
+    private static bool IsLive(string? state)
+        => state is "Running" or "Starting";
+
+    private static string[] ReadJsonStringArray(string? body, string name)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+            return [];
+        try
+        {
+            return (JsonNode.Parse(body)?[name] as JsonArray ?? [])
+                .Select(item => item?.GetValue<string>())
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Cast<string>()
+                .ToArray();
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
+        {
+            return [];
+        }
+    }
+
+    private static bool ReadJsonBoolean(string? body, string name)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+            return false;
+        try
+        {
+            return JsonNode.Parse(body)?[name]?.GetValue<bool>() ?? false;
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException)
+        {
+            return false;
+        }
+    }
 
     private static FakeBackendResponseDto Json(JsonNode node)
         => new(200, "application/json", node.ToJsonString(WebOptions()));

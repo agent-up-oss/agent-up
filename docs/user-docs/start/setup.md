@@ -112,7 +112,7 @@ On NixOS:
 
 The script runs the desktop inside `shell.nix`, which provides the native libraries needed on Linux.
 
-On first launch, Desktop and Mobile list a built-in **Demo** server. Connecting to it uses only in-app sample state — a Harbor Shop workspace, storefront and Orders API pages, git changes, and scripted agent replies. It is not a running Agent-Up Server. Disconnect and connect to a real Server without restarting the client.
+On first launch, Desktop and Mobile list a built-in **Demo** server. Connecting to it uses only in-app sample state — a Harbor Shop workspace, interactive storefront and Orders API pages, Git changes, first-party capability modules, and a demo agent. It is not a running Agent-Up Server. Disconnect and connect to a real Server without restarting the client.
 
 See [Workspaces](/docs/workspaces) for connect, start, and the Mobile workspace list.
 

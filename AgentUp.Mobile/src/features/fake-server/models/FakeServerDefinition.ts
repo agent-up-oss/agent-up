@@ -11,6 +11,7 @@ export type FakeServerDefinition = {
   console?: Record<string, unknown>;
   agents?: Record<string, { session?: unknown; scripts?: Array<{ events?: Array<{ type?: string; payload?: unknown }> }> }>;
   pages?: Record<string, string>;
+  capabilities?: unknown[];
 };
 
 export function cloneDefinition(definition: FakeServerDefinition): FakeServerDefinition {
