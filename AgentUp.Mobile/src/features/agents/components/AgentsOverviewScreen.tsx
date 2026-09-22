@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { getAgent, resumeAgent, scheduleAgent, type AgentKind, type AgentSession } from '@agent-up/chat';
+import { getAgent, resumeAgent, scheduleAgent, type AgentId, type AgentSession } from '@agent-up/chat';
 import { WorkspaceTabBar } from '@/features/shell/components/WorkspaceTabBar';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useServers } from '@/features/servers/controllers/ServersContext';
@@ -42,7 +42,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
 
   const openChat = () => router.push(`/(main)/workspace/${workspaceId}/agent`);
 
-  const start = async (agent: AgentKind) => {
+  const start = async (agent: AgentId) => {
     if (!server || busy) return;
     setBusy(true);
     setError(null);

@@ -6,14 +6,14 @@ namespace AgentUp.Server.Features.Agents.Models;
 
 public sealed class AgentSessionState
 {
-    public AgentSessionState(AgentKind kind, string workingDirectory, IAgentProcessProvider process)
+    public AgentSessionState(string agent, string workingDirectory, IAgentProcessProvider process)
     {
-        Kind = kind;
+        Agent = agent;
         WorkingDirectory = workingDirectory;
         Process = process;
     }
 
-    public AgentKind Kind { get; }
+    public string Agent { get; }
     public string WorkingDirectory { get; }
     public IAgentProcessProvider Process { get; set; }
     public string? AcpSessionId { get; set; }

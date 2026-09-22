@@ -31,17 +31,21 @@ public sealed class ProjectDependencies
     [Test]
     public void Production_project_dependencies_follow_ownership_boundaries()
     {
+        AssertDoesNotDependOn("AgentUp.Sdk.Common", Except("AgentUp.Sdk.Common"));
+        AssertDoesNotDependOn("AgentUp.Sdk.Runtime", Except("AgentUp.Sdk.Runtime", "AgentUp.Sdk.Common"));
+        AssertDoesNotDependOn("AgentUp.Sdk.Agent", Except("AgentUp.Sdk.Agent", "AgentUp.Sdk.Common"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Abstractions", Except("AgentUp.Capabilities.Abstractions"));
         AssertDoesNotDependOn("AgentUp.CommitPolicy", Except("AgentUp.CommitPolicy"));
         AssertDoesNotDependOn("AgentUp.Verification", Except("AgentUp.Verification"));
         AssertDoesNotDependOn("AgentUp.Browser.Streaming", Except("AgentUp.Browser.Streaming"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Common", Except("AgentUp.Capabilities.Common", "AgentUp.Capabilities.Abstractions"));
-        AssertDoesNotDependOn("AgentUp.Capabilities.Dotnet", Except("AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
-        AssertDoesNotDependOn("AgentUp.Capabilities.Docker", Except("AgentUp.Capabilities.Docker", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
-        AssertDoesNotDependOn("AgentUp.Capabilities.Codex", Except("AgentUp.Capabilities.Codex", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
-        AssertDoesNotDependOn("AgentUp.Capabilities.Cursor", Except("AgentUp.Capabilities.Cursor", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
-        AssertDoesNotDependOn("AgentUp.Capabilities.Claude", Except("AgentUp.Capabilities.Claude", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common"));
-        AssertDoesNotDependOn("AgentUp.Server", Except("AgentUp.Server", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Docker", "AgentUp.Capabilities.Codex", "AgentUp.Capabilities.Cursor", "AgentUp.Capabilities.Claude", "AgentUp.InstallerConfig"));
+        AssertDoesNotDependOn("AgentUp.Registry", Except("AgentUp.Registry", "AgentUp.Capabilities.Abstractions", "AgentUp.Sdk.Common"));
+        AssertDoesNotDependOn("AgentUp.Capabilities.Dotnet", Except("AgentUp.Capabilities.Dotnet", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Sdk.Common", "AgentUp.Sdk.Runtime"));
+        AssertDoesNotDependOn("AgentUp.Capabilities.Docker", Except("AgentUp.Capabilities.Docker", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Sdk.Common", "AgentUp.Sdk.Runtime"));
+        AssertDoesNotDependOn("AgentUp.Capabilities.Codex", Except("AgentUp.Capabilities.Codex", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Sdk.Common", "AgentUp.Sdk.Agent"));
+        AssertDoesNotDependOn("AgentUp.Capabilities.Cursor", Except("AgentUp.Capabilities.Cursor", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Sdk.Common", "AgentUp.Sdk.Agent"));
+        AssertDoesNotDependOn("AgentUp.Capabilities.Claude", Except("AgentUp.Capabilities.Claude", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Sdk.Common", "AgentUp.Sdk.Agent"));
+        AssertDoesNotDependOn("AgentUp.Server", Except("AgentUp.Server", "AgentUp.Browser.Streaming", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Registry", "AgentUp.InstallerConfig", "AgentUp.Sdk.Common", "AgentUp.Sdk.Runtime", "AgentUp.Sdk.Agent"));
         AssertDoesNotDependOn("AgentUp.Desktop", Except("AgentUp.Desktop", "AgentUp.InstallerConfig"));
         AssertDoesNotDependOn("AgentUp.CLI", Except("AgentUp.CLI", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions", "AgentUp.InstallerConfig"));
         AssertDoesNotDependOn("AgentUp.AUDebug", Except("AgentUp.AUDebug", "AgentUp.InstallerConfig"));

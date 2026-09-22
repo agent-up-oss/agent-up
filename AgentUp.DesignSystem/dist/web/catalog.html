@@ -486,13 +486,35 @@ ready in 842 ms</pre>
     <article data-au-component="mobile-bar" data-au-title="Top bar" data-au-note="The PWA and native chrome stay on the canonical canvas with a subtle divider, not a green outline." data-au-avalonia="Border" data-au-class="au-mobile-bar">
       <div class="au-mobile-bar au-cluster"><strong>Workspaces</strong></div>
     </article>
-    <article data-au-component="drawer" data-au-title="Navigation drawer" data-au-note="The Mobile overlay rail uses the same canvas as the Desktop rail. Contrast comes from the selected workspace row and a hairline edge, not a raised grey panel." data-au-avalonia="Border" data-au-class="au-drawer">
-      <div class="au-drawer" style="padding: 1rem; min-height: 8rem;">Workspaces</div>
+    <article data-au-component="drawer" data-au-title="Navigation drawer" data-au-note="The Mobile overlay rail uses the same canvas as the Desktop rail. Contrast comes from the selected workspace row and a hairline edge, not a raised grey panel. Server shows only the signed-in host plus Logout." data-au-avalonia="Border" data-au-class="au-drawer">
+      <div class="au-drawer" style="padding: 1rem; min-height: 10rem;">
+        <div class="au-stack">
+          <span class="au-field-label">Server</span>
+          <div class="au-session-row">
+            <strong class="au-workspace-name" style="flex: 1;">http://localhost:5001</strong>
+            <button class="au-session-logout" type="button">Logout</button>
+          </div>
+        </div>
+      </div>
     </article>
-    <article data-au-component="mobile-tab-bar" data-au-title="Bottom tabs" data-au-note="Selected tabs use the catalog subtab selected state, which is neutral." data-au-avalonia="Border" data-au-class="au-mobile-tab-bar">
-      <div class="au-mobile-tab-bar au-cluster">
-        <button class="au-subtab au-subtab--selected">Chat</button>
-        <button class="au-subtab">Changes</button>
+    <article data-au-component="mobile-tab-bar" data-au-title="Bottom tabs" data-au-note="Workspace chrome is Apps, Git, Agents, then Settings. Each tab has a 20px outline icon plus label. Selected uses the catalog subtab selected state, which is neutral." data-au-avalonia="Border" data-au-class="au-mobile-tab-bar">
+      <div class="au-mobile-tab-bar au-cluster" role="tablist">
+        <button class="au-subtab au-nav-tab au-subtab--selected" aria-selected="true">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
+          Apps
+        </button>
+        <button class="au-subtab au-nav-tab">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 16.2 16 8"></path><path d="M18 8.6v6.8"></path></svg>
+          Git
+        </button>
+        <button class="au-subtab au-nav-tab">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"></path></svg>
+          Agents
+        </button>
+        <button class="au-subtab au-nav-tab">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18"></path></svg>
+          Settings
+        </button>
       </div>
     </article>
     <article data-au-component="mobile-list" data-au-title="Workspace list" data-au-note="The Mobile list is the workspace row, not a second card language." data-au-avalonia="Border" data-au-class="au-workspace">
@@ -649,6 +671,38 @@ ready in 842 ms</pre>
       <pre class="au-code">@import '@agent-up/design-system/styles.css';
 import { agentUpTheme } from '@agent-up/design-system/native';
 &lt;StyleInclude Source="/DesignSystem/AgentUpStyles.axaml" /&gt;</pre>
+    </article>
+  </section>
+
+  <section data-au-surface="capabilities" data-au-title="Capability modules" data-au-intro="Capability modules are Server-owned packages. Desktop lists them in overlay chrome. Mobile lists them in the workspace Settings tab. Clients never call the remote registry. Green is ready, not decoration.">
+    <article data-au-component="capability-catalog" data-au-title="Module catalog" data-au-note="Desktop uses an overlay panel. Mobile places the same cards in Settings. Enable is the primary action; disable is secondary." data-au-avalonia="Border" data-au-class="au-overlay-panel">
+      <div class="au-overlay-panel" style="padding: 1.25rem; max-width: 36rem;">
+        <p class="au-page-title">Capability modules</p>
+        <p class="au-muted">Enable packages on this Server. Clients never talk to the remote registry.</p>
+        <div class="au-stack" style="margin-top: 1rem;">
+          <div class="au-card">
+            <strong>.NET</strong>
+            <p class="au-muted">Ready · toolchain</p>
+            <div class="au-cluster">
+              <button class="au-button au-button--secondary au-button--compact" type="button">Disable</button>
+            </div>
+          </div>
+          <div class="au-card">
+            <strong>Docker</strong>
+            <p class="au-muted">Not enabled</p>
+            <div class="au-cluster">
+              <button class="au-button au-button--compact" type="button">Enable</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="capability-card" data-au-title="Module card" data-au-note="Identity, state, and one enable or disable action. Do not outline idle cards in accent green. Ready uses the healthy badge; blocked uses muted copy." data-au-avalonia="Border" data-au-class="au-card">
+      <div class="au-card">
+        <strong>Codex</strong>
+        <p class="au-muted">agent-up · 1.0.0</p>
+        <span class="au-badge au-badge--healthy"><span class="au-status-dot au-status-dot--healthy"></span>Ready</span>
+      </div>
     </article>
   </section>
 

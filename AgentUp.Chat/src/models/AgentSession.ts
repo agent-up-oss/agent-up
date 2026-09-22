@@ -4,12 +4,14 @@
  */
 import type { AgentLoginChallenge, AgentLoginTransport } from '@agent-up/agent-auth';
 
-export type AgentKind = 'Codex' | 'Cursor' | 'Claude';
-export type AgentDescriptor = { agent: AgentKind; available: boolean; displayName: string };
+// The capability module id the Server lists an agent by. It was an enum of the three
+// first-party agents; 'kind' now means the capability kind, which this is not.
+export type AgentId = string;
+export type AgentDescriptor = { agent: AgentId; available: boolean; displayName: string };
 export type AgentAuthMethod = { id: string; name: string; description: string | null };
-export type AgentSessionSummary = { sessionId: string; agent: AgentKind; description: string; branch: string; lastUsedAt: string };
+export type AgentSessionSummary = { sessionId: string; agent: AgentId; description: string; branch: string; lastUsedAt: string };
 export type { AgentLoginChallenge, AgentLoginTransport };
-export type AgentSession = { workspaceId: string; agent: AgentKind | null; state: string; sessionId: string | null; error: string | null; agents: AgentDescriptor[]; authMethods?: AgentAuthMethod[]; loginChallenge?: AgentLoginChallenge | null; sessions?: AgentSessionSummary[] };
+export type AgentSession = { workspaceId: string; agent: AgentId | null; state: string; sessionId: string | null; error: string | null; agents: AgentDescriptor[]; authMethods?: AgentAuthMethod[]; loginChallenge?: AgentLoginChallenge | null; sessions?: AgentSessionSummary[] };
 export type AgentEvent = { sequence: number; type: string; payload: unknown; timestamp: string };
 export type AgentPermissionOption = { optionId: string; name: string; kind?: string };
 export type AgentPermission = {

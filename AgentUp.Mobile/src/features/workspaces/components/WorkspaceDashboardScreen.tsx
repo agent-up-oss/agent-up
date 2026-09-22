@@ -113,6 +113,10 @@ function ApplicationRow({ application, onPress }: { application: WorkspaceApplic
         <Text style={styles.listTitle}>{application.name}</Text>
       </View>
       <Text style={styles.listDetail}>{application.state}</Text>
+      {application.capabilityStatus && !application.capabilityStatus.canRun &&
+        <Text style={styles.listDetail}>
+          {application.capabilityStatus.messages.join(' ') || `${application.capabilityStatus.capabilityId} cannot run`}
+        </Text>}
     </Pressable>
   );
 }

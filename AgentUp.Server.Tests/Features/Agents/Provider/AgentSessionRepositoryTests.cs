@@ -45,7 +45,7 @@ public sealed class AgentSessionRepositoryTests
     public void Upsert_replacesMatchingSessionAndPersistsAllFields()
     {
         _repository.Upsert(Session("workspace", "session", DateTimeOffset.UnixEpoch));
-        var replacement = new PersistedAgentSession("workspace", "session", AgentKind.Claude, "Generated title", "feature/sessions", DateTimeOffset.UtcNow);
+        var replacement = new PersistedAgentSession("workspace", "session", "claude", "Generated title", "feature/sessions", DateTimeOffset.UtcNow);
         _repository.Upsert(replacement);
 
         Assert.That(_repository.List("workspace"), Is.EqualTo(new[] { replacement }));
@@ -98,5 +98,5 @@ public sealed class AgentSessionRepositoryTests
     }
 
     private static PersistedAgentSession Session(string workspace, string session, DateTimeOffset lastUsed) =>
-        new(workspace, session, AgentKind.Codex, $"Description {session}", "main", lastUsed);
+        new(workspace, session, "codex", $"Description {session}", "main", lastUsed);
 }

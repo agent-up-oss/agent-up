@@ -24,7 +24,8 @@ public static class WorkspaceRegistrationBuilder
             DesktopApplications = config.DesktopApplications ?? [],
             Services = config.Services ?? [],
             Dotnet = config.Dotnet ?? [],
-            Docker = config.Docker ?? []
+            Docker = config.Docker ?? [],
+            RuntimeSections = RuntimeSectionMapper.Effective(config)
         };
     }
 }

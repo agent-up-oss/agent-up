@@ -24,4 +24,11 @@ public sealed class CapabilitiesController
         IReadOnlyList<PortDeclaration> ports,
         IReadOnlyList<PortMapping> allocatedPorts)
         => await _service.ReconcileDockerAsync(definition, ports, allocatedPorts);
+
+    public async Task<ApplicationInstance> ReconcileRuntimeAsync(
+        string moduleId,
+        RuntimeSectionItem item,
+        IReadOnlyList<PortDeclaration> ports,
+        IReadOnlyList<PortMapping> allocatedPorts)
+        => await _service.ReconcileRuntimeAsync(moduleId, item, ports, allocatedPorts);
 }

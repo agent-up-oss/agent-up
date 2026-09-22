@@ -2,12 +2,14 @@ import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
+import { WorkspaceNavIcon } from './WorkspaceNavIcon';
 import { workspaceTabHref, type WorkspaceOverviewTab } from '../providers/WorkspaceTabProvider';
 
 const tabs: { id: WorkspaceOverviewTab; label: string }[] = [
   { id: 'apps', label: 'Apps' },
   { id: 'git', label: 'Git' },
   { id: 'agents', label: 'Agents' },
+  { id: 'settings', label: 'Settings' },
 ];
 
 type WorkspaceTabBarProps = {
@@ -32,6 +34,7 @@ export function WorkspaceTabBar({ workspaceId, active }: WorkspaceTabBarProps) {
             accessibilityLabel={tab.label}
             onPress={() => router.replace(workspaceTabHref(workspaceId, tab.id))}
             style={[styles.tab, selected && styles.tabSelected]}>
+            <WorkspaceNavIcon tab={tab.id} selected={selected} />
             <Text style={selected ? styles.labelSelected : styles.label}>{tab.label}</Text>
           </Pressable>
         );
@@ -44,11 +47,19 @@ const styles = StyleSheet.create({
   bar: {
     ...auBox('mobileTabBar'),
     flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingTop: 10,
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingTop: 8,
   },
-  tab: { ...auBox('subtab'), flex: 1, alignItems: 'center', justifyContent: 'center' },
+  tab: {
+    ...auBox('subtab'),
+    ...auBox('navTab'),
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
   tabSelected: auBox('subtabSelected'),
   label: auText('subtab'),
   labelSelected: auText('subtabSelected'),

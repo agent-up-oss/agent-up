@@ -102,6 +102,12 @@ public static class OperationPermissionMap
 
         [("TraySession", "PostHeartbeat")] = OperationPermissions.ServerRead,
         [("ServiceControl", "Restart")] = OperationPermissions.ServerRead,
-        [("ServiceControl", "Shutdown")] = OperationPermissions.ServerRead
+        [("ServiceControl", "Shutdown")] = OperationPermissions.ServerRead,
+
+        // Enabling a capability module changes what this Server will host, so it sits with the
+        // other server-administration actions rather than with any one workspace's permissions.
+        [("CapabilityModulesHttp", "List")] = OperationPermissions.ServerRead,
+        [("CapabilityModulesHttp", "Enable")] = OperationPermissions.ServerRead,
+        [("CapabilityModulesHttp", "Disable")] = OperationPermissions.ServerRead
     };
 }

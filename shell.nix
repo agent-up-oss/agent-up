@@ -148,8 +148,9 @@ pkgs.mkShell {
       fi
     done
 
-    # Workspace ACP adapters are not hardcoded in C#. Cache them locally and
-    # declare command/arguments in a repo inventory shared by Server and Desktop.
+    # Workspace ACP adapters are capability packages. A runtime E2E that only
+    # enables docker/dotnet must not download Cursor/Codex/Claude as a shell side effect.
+    if [ -z "''${AGENTUP_SKIP_DEV_AGENT_BOOTSTRAP-}" ]; then
     devRoot="$PWD/.agent-up-dev"
     mkdir -p "$devRoot/bin" "$devRoot/npm" "$devRoot/cursor-agent"
     if [ ! -d "$devRoot/npm/node_modules/@agentclientprotocol/codex-acp" ] \
@@ -200,18 +201,20 @@ pkgs.mkShell {
       const fs = require('fs');
       const path = require('path');
       const root = process.env.AGENT_UP_DEV_ROOT;
-      function resolve(file) {
-        return fs.existsSync(file) ? path.resolve(file) : null;
-      }
-      const entries = [];
-      const codex = resolve(path.join(root, 'npm/node_modules/.bin/codex-acp'));
-      const cursor = resolve(path.join(root, 'bin/agent'));
-      const claude = resolve(path.join(root, 'npm/node_modules/.bin/claude-agent-acp'));
-      if (codex) entries.push({ id: 'codex', versions: ['dev'], command: codex, arguments: [] });
-      if (cursor) entries.push({ id: 'cursor', versions: ['dev'], command: cursor, arguments: ['acp'] });
-      if (claude) entries.push({ id: 'claude', versions: ['dev'], command: claude, arguments: [] });
-      fs.writeFileSync(path.join(root, 'capabilities.json'), JSON.stringify(entries, null, 2) + '\n');
-    " || echo "warning: failed to write .agent-up-dev/capabilities.json"
-    export AGENTUP_CAPABILITY_INVENTORY_PATH="$devRoot/capabilities.json"
+      const enabled = {
+        schemaVersion: '1',
+        modules: [
+          { id: 'dotnet', version: '1.0.0' },
+          { id: 'docker', version: '1.0.0' },
+          { id: 'codex', version: '1.0.0' },
+          { id: 'cursor', version: '1.0.0' },
+          { id: 'claude', version: '1.0.0' },
+        ],
+      };
+      fs.writeFileSync(path.join(root, 'enabled.json'), JSON.stringify(enabled, null, 2) + '\n');
+    " || echo "warning: failed to write .agent-up-dev/enabled.json"
+    export AGENTUP_CAPABILITY_ENABLED_PATH="$devRoot/enabled.json"
+    export AGENTUP_CAPABILITY_REGISTRY_PATH="$devRoot/capability-registry"
+    fi
   '';
 }

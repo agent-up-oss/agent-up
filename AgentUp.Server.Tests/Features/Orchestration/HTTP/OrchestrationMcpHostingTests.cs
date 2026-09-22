@@ -234,7 +234,7 @@ public sealed class OrchestrationMcpHostingTests
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
         builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
         builder.Services.AddSingleton<PortsController>();
-        builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
+        builder.Services.AddSingleton(_ => new CapabilityReconciliationService());
         builder.Services.AddSingleton<CapabilitiesController>();
         builder.Services.AddSingleton<WorkspaceEventBus>();
         builder.Services.AddSingleton<AgentUp.Server.Features.Workspaces.Providers.WorkspaceEventFrameProvider>();

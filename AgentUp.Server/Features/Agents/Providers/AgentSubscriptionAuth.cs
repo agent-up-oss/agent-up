@@ -7,23 +7,23 @@ public sealed class AgentSubscriptionAuth
     public IReadOnlyList<AgentAuthMethodDto> KeepSubscription(IReadOnlyList<AgentAuthMethodDto> methods) =>
         methods.Where(method => !IsApiKeyMethod(method.Id, method.Name)).ToArray();
 
-    public IReadOnlyList<AgentAuthMethodDto> Defaults(AgentKind kind) => kind switch
+    public IReadOnlyList<AgentAuthMethodDto> Defaults(string agent) => agent.ToLowerInvariant() switch
     {
-        AgentKind.Codex =>
+        "codex" =>
         [
             new AgentAuthMethodDto(
                 "chatgpt",
                 "ChatGPT",
                 "Open the sign-in link, then enter the code in ChatGPT. This uses your ChatGPT subscription.")
         ],
-        AgentKind.Cursor =>
+        "cursor" =>
         [
             new AgentAuthMethodDto(
                 "cursor_login",
                 "Cursor Login",
                 "Open the sign-in link and sign in with your Cursor subscription.")
         ],
-        AgentKind.Claude =>
+        "claude" =>
         [
             new AgentAuthMethodDto(
                 "claude-login",

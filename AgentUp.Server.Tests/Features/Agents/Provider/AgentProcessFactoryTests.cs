@@ -12,7 +12,7 @@ public sealed class AgentProcessFactoryTests
     public void Create_returnsAnAcpProcessProvider()
     {
         var factory = new AgentProcessFactory(
-            new AgentCommandProvider(new ConfigurationBuilder().Build(), []),
+            new AgentCommandProvider(new ConfigurationBuilder().Build()),
             NullLoggerFactory.Instance);
 
         Assert.That(factory.Create(), Is.TypeOf<AcpProcessProvider>());

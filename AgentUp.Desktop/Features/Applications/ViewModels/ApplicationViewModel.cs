@@ -13,6 +13,11 @@ public sealed class ApplicationViewModel : ReactiveObject
     public string Command { get; }
     public bool Database { get; }
     public bool IsDesktop { get; }
+    public CapabilityStatusDto? CapabilityStatus { get; }
+    public string? CapabilitySummary
+        => CapabilityStatus is { CanRun: false, Messages.Count: > 0 }
+            ? string.Join(" ", CapabilityStatus.Messages)
+            : null;
     public IReadOnlyList<PortMappingDto> AllocatedPorts { get; }
 
     public string State
@@ -33,12 +38,14 @@ public sealed class ApplicationViewModel : ReactiveObject
         string state,
         IReadOnlyList<PortMappingDto>? allocatedPorts = null,
         bool database = false,
-        bool isDesktop = false)
+        bool isDesktop = false,
+        CapabilityStatusDto? capabilityStatus = null)
     {
         Name = name;
         Command = command;
         Database = database;
         IsDesktop = isDesktop;
+        CapabilityStatus = capabilityStatus;
         _state = state;
         _stateColor = AppHealthLedRules.StateColor(state);
         AllocatedPorts = allocatedPorts ?? [];

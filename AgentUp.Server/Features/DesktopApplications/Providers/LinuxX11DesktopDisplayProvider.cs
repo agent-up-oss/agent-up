@@ -179,7 +179,10 @@ public sealed class LinuxX11DesktopDisplayProvider(PngFrameProvider pngFrames) :
                 var image = Marshal.PtrToStructure<XImageData>(imagePointer);
                 if (image.BitsPerPixel is not (24 or 32))
                     throw new InvalidOperationException($"Unsupported X11 framebuffer depth: {image.BitsPerPixel} bits per pixel.");
-                var source = new byte[checked(image.BytesPerLine * display.Height)];
+                RequireCoversRequestedArea(image, display.Width, display.Height);
+                // The image's own geometry, never the requested one: the copy reads unmanaged
+                // memory, so a buffer shorter than the request is read past its end.
+                var source = new byte[checked(image.BytesPerLine * image.Height)];
                 Marshal.Copy(image.Data, source, 0, source.Length);
                 var rgb = new byte[checked(display.Width * display.Height * 3)];
                 for (var y = 0; y < display.Height; y++)
@@ -199,6 +202,35 @@ public sealed class LinuxX11DesktopDisplayProvider(PngFrameProvider pngFrames) :
             }
         });
         return png ?? throw new InvalidOperationException("Could not capture the desktop framebuffer.");
+    }
+
+    /// <summary>
+    /// Refuses an image that does not cover the area the caller asked for.
+    /// </summary>
+    /// <remarks>
+    /// X11 answers with whatever geometry it has, and the caller's width and height are what the
+    /// desktop session was configured with, not what the server returned. Reading the requested
+    /// area out of a smaller image walks off the end of an unmanaged buffer, which is a segfault
+    /// rather than an exception, so the mismatch is refused before a single byte is copied.
+    /// </remarks>
+    internal static void RequireCoversRequestedArea(XImageData image, int width, int height)
+    {
+        if (image.Data == IntPtr.Zero)
+            throw new InvalidOperationException("The X11 framebuffer capture returned no pixel data.");
+        if (image.Width < width || image.Height < height)
+        {
+            throw new InvalidOperationException(
+                $"The X11 framebuffer is {image.Width}x{image.Height}, smaller than the "
+                + $"{width}x{height} desktop it hosts.");
+        }
+
+        var minimumStride = checked(width * (image.BitsPerPixel / 8));
+        if (image.BytesPerLine < minimumStride)
+        {
+            throw new InvalidOperationException(
+                $"The X11 framebuffer stride is {image.BytesPerLine} bytes, too short for "
+                + $"{width} pixels at {image.BitsPerPixel} bits per pixel.");
+        }
     }
 
     internal static nuint ReadPixel(byte[] source, XImageData image, int x, int y)

@@ -968,6 +968,52 @@
   <Style Selector="ListBoxItem:selected Border.subTab">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateActiveBrush}"/>
   </Style>
+  <Style Selector="Button.au-nav-tab">
+    <Setter Property="MinHeight" Value="44"/>
+    <Setter Property="Padding" Value="8,4"/>
+  </Style>
+  <Style Selector="Button.au-nav-tab /template/ ContentPresenter">
+    <Setter Property="Padding" Value="8,4"/>
+  </Style>
+  <Style Selector="Border.au-session-row">
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeight}"/>
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusMd}"/>
+    <Setter Property="BorderThickness" Value="2,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-session-row">
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeight}"/>
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+  </Style>
+  <Style Selector="Button.au-session-logout">
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Padding" Value="12,4"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="Button.au-session-logout /template/ ContentPresenter">
+    <Setter Property="Padding" Value="12,4"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="Button.au-session-logout:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="Button.au-session-logout:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+  </Style>
   <Style Selector="TextBox.au-address-bar">
     <Setter Property="MinHeight" Value="28"/>
     <Setter Property="Padding" Value="8,4"/>

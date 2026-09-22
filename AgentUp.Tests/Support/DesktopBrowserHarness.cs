@@ -66,17 +66,26 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
 
     internal static async Task<DesktopBrowserHarness> LaunchAgainstServerAsync(
         Uri serverUrl,
-        string? desktopApplication = null)
+        string? desktopApplication = null,
+        bool waitForWebView = true,
+        TimeSpan? httpTimeout = null)
     {
         var webViews = new List<NativeWebView>();
-        var window = await ShowWindowAsync(() => CreateWindowAsync(serverUrl, webViews, selectHttpPort: false));
+        var window = await ShowWindowAsync(() => CreateWindowAsync(
+            serverUrl,
+            webViews,
+            selectHttpPort: false,
+            httpTimeout: httpTimeout));
 
         var harness = new DesktopBrowserHarness(window, webViews);
         if (desktopApplication is not null)
             await harness.SelectDesktopApplicationAsync(desktopApplication);
-        await harness.WaitForWorkspaceWebViewAsync();
+        if (waitForWebView)
+            await harness.WaitForWorkspaceWebViewAsync();
         return harness;
     }
+
+    internal MainViewModel ViewModel => (MainViewModel)Window.DataContext!;
 
     // A local async function so this is a real Task whatever InvokeAsync hands back, and so the
     // deadline applies to the whole UI-thread operation rather than to any one await inside it.
@@ -119,17 +128,29 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
         Uri serverUrl,
         List<NativeWebView> webViews,
         bool selectHttpPort,
-        HttpMessageHandler? handler = null)
+        HttpMessageHandler? handler = null,
+        TimeSpan? httpTimeout = null)
     {
         var http = handler is null
             ? new HttpClient { BaseAddress = serverUrl }
             : new HttpClient(handler) { BaseAddress = serverUrl };
+        if (httpTimeout is not null)
+            http.Timeout = httpTimeout.Value;
         var workspaces = new WorkspaceApiClient(http);
         var console = new ConsoleApiClient(http);
         var metrics = new MetricsApiClient(http);
         var database = new DatabaseApiClient(http);
         var audit = new ApplicationAuditApiClient(http);
-        var viewModel = MainViewModelFactory.Create(workspaces, console, metrics, database, audit);
+        var validation = new AgentUp.Desktop.Features.Validation.Providers.ValidationFlowApiClient(http);
+        var capabilities = new AgentUp.Desktop.Features.Capabilities.Providers.CapabilityModulesApiClient(http);
+        var viewModel = MainViewModelFactory.Create(
+            workspaces,
+            console,
+            metrics,
+            database,
+            audit,
+            validation,
+            capabilityModulesClient: capabilities);
         var mainWindow = new MainWindow(http) { DataContext = viewModel };
         mainWindow.WebViewFactory = () =>
         {
@@ -147,9 +168,9 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
         return mainWindow;
     }
 
-    internal async Task WaitForWorkspaceWebViewAsync()
+    internal async Task WaitForWorkspaceWebViewAsync(TimeSpan? timeout = null)
     {
-        var deadline = DateTimeOffset.UtcNow + DefaultTimeout;
+        var deadline = DateTimeOffset.UtcNow + (timeout ?? DefaultTimeout);
         while (DateTimeOffset.UtcNow < deadline)
         {
             if (_webViews.Count > 0)

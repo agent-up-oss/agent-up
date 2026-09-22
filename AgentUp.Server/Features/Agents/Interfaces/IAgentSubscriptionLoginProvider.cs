@@ -6,7 +6,7 @@ namespace AgentUp.Server.Features.Agents.Interfaces;
 public interface IAgentSubscriptionLoginProvider
 {
     Task<AgentSubscriptionLoginResult> LoginAsync(
-        AgentKind kind,
+        string agent,
         AgentCommand acpCommand,
         string methodId,
         Action<AgentLoginChallengeDto> onChallenge,
