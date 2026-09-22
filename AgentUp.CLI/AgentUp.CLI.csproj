@@ -2,7 +2,7 @@
 
   <ItemGroup>
     <PackageReference Include="LocalInstaller.Core" Version="$(LocalInstallerVersion)" />
-    <PackageReference Include="Sentry" Version="6.11.0" />
+    <PackageReference Include="Sentry" Version="6.11.1" />
   </ItemGroup>
 
   <ItemGroup>
