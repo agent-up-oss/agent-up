@@ -151,7 +151,10 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         {
             var workspace = workspaces.GetById(workspaceId);
             if (workspace is null) return new AgentScheduleResult(null, false, null);
-            var saved = sessionRepository?.Find(workspaceId, sessionId);
+            // No store means no history, so there is nothing for this workspace to resume.
+            var repository = sessionRepository;
+            if (repository is null) return new AgentScheduleResult(null, false, null);
+            var saved = repository.Find(workspaceId, sessionId);
             if (saved is null) return new AgentScheduleResult(null, false, null);
             if (!await commands.IsAvailableAsync(saved.Agent, cancellationToken))
                 return new AgentScheduleResult(null, true, $"{saved.Agent} ACP executable is not installed or is not on PATH.");
@@ -172,7 +175,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
                 // saved entry moves to that id rather than leaving a duplicate under the old one.
                 state.AcpSessionId = string.IsNullOrWhiteSpace(loadedSessionId) ? sessionId : loadedSessionId;
                 state.State = "ready";
-                sessionRepository?.Rekey(
+                repository.Rekey(
                     new PersistedAgentSession(workspaceId, state.AcpSessionId, saved.Agent, saved.Description, workspace.Branch, DateTimeOffset.UtcNow),
                     sessionId);
                 var result = await GetAsync(workspaceId, cancellationToken);
