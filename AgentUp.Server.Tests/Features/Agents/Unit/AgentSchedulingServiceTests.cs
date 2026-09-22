@@ -30,6 +30,7 @@ public sealed class AgentSchedulingServiceTests
     private Workspace _workspace = null!;
     private WorkspaceRegistry _registry = null!;
     private InMemoryAgentSessionRepository _sessions = null!;
+    private FakeAgentProcessFactory _factory = null!;
 
     [SetUp]
     public async Task SetUp()
@@ -55,8 +56,9 @@ public sealed class AgentSchedulingServiceTests
         _login = new FakeSubscriptionLoginProvider();
         _credentials = new FakeClaudeCredentialStore();
         _sessions = new InMemoryAgentSessionRepository();
+        _factory = new FakeAgentProcessFactory(_process);
         _service = new AgentSchedulingService(
-            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process), commands,
+            new WorkspaceQueryController(_registry), _factory, commands,
             _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
             _payloads, _events, NullLogger<AgentSchedulingService>.Instance, null, _sessions);
     }
@@ -235,6 +237,48 @@ public sealed class AgentSchedulingServiceTests
         }));
 
         Assert.That(_service.Get(_workspace.Id)!.Sessions!.Single().Description, Is.EqualTo("Fix the session picker"));
+    }
+
+    [Test]
+    public async Task SessionTitleFromAReplacedProcessDoesNotRetitleTheLiveSession()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        var replaced = _process;
+        _process = new FakeAgentProcessProvider { SessionNewResult = JsonSerializer.SerializeToElement(new { sessionId = "session-2" }) };
+        _factory.Next = _process;
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        await replaced.SendNotificationAsync("session/update", JsonSerializer.SerializeToElement(new
+        {
+            sessionUpdate = "session_info_update",
+            title = "Title from the old process"
+        }));
+
+        var saved = _service.Get(_workspace.Id)!.Sessions!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(saved.Select(item => item.Description), Does.Not.Contain("Title from the old process"));
+            Assert.That(_sessions.Find(_workspace.Id, "session-2")!.Description, Is.EqualTo("New Codex session"));
+        });
+    }
+
+    [Test]
+    public async Task AuthenticatingPersistsTheSessionItCreates()
+    {
+        _process.RequireAuthentication = true;
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        Assert.That(_service.Get(_workspace.Id)!.Sessions, Is.Empty, "nothing exists to save before sign-in succeeds");
+
+        _service.Authenticate(_workspace.Id, "chatgpt");
+        await WaitForStateAsync("ready");
+
+        var saved = _service.Get(_workspace.Id)!.Sessions!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(saved, Has.Count.EqualTo(1));
+            Assert.That(saved[0].SessionId, Is.EqualTo("session-1"));
+            Assert.That(saved[0].Description, Is.EqualTo("New Codex session"));
+        });
     }
 
     [Test]
@@ -725,7 +769,16 @@ public sealed class AgentSchedulingServiceTests
 
 internal sealed class FakeAgentProcessFactory(IAgentProcessProvider process) : IAgentProcessFactory
 {
-    public IAgentProcessProvider Create() => process;
+    /// <summary>The process the next Create() hands out, for a test that replaces the running one.</summary>
+    public IAgentProcessProvider? Next { get; set; }
+
+    public IAgentProcessProvider Create()
+    {
+        if (Next is null) return process;
+        var next = Next;
+        Next = null;
+        return next;
+    }
 }
 
 internal sealed class FakeAgentProcessProvider : IAgentProcessProvider

@@ -270,6 +270,10 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             await RestartProcessAsync(workspaceId, state);
             await InitializeAsync(workspaceId, state, state.Lifetime.Token);
             await CreateSessionAsync(state, state.Lifetime.Token);
+            // Scheduling returned at authentication_required before it could save, so this is
+            // the first point at which a session created behind sign-in exists to record.
+            if (workspaces.GetById(workspaceId) is { } workspace)
+                SaveSession(workspaceId, state, workspace.Branch, $"New {DisplayName(state.Agent)} session");
             state.LoginChallenge = null;
         }
         catch (OperationCanceledException) when (state.Lifetime.IsCancellationRequested)
@@ -328,7 +332,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
 
     private void BindProcess(string workspaceId, AgentSessionState state, IAgentProcessProvider process)
     {
-        process.Notification += (method, payload) => HandleNotificationAsync(workspaceId, method, payload);
+        process.Notification += (method, payload) => HandleNotificationAsync(workspaceId, state, process, method, payload);
         process.Request += (method, payload) => HandleRequestAsync(workspaceId, state, method, payload, state.Lifetime.Token);
         process.Exited += error => HandleExit(workspaceId, state, process, error);
     }
@@ -460,10 +464,13 @@ public sealed class AgentSchedulingService : IAsyncDisposable
 
     private SemaphoreSlim LifecycleGate(string workspaceId) => _lifecycleGates.GetOrAdd(workspaceId, _ => new SemaphoreSlim(1, 1));
 
-    private Task HandleNotificationAsync(string workspaceId, string method, JsonElement payload)
+    private Task HandleNotificationAsync(
+        string workspaceId, AgentSessionState state, IAgentProcessProvider process, string method, JsonElement payload)
     {
         var update = payload.TryGetProperty("update", out var nested) ? nested : payload;
-        if (method == "session/update" && _sessions.TryGetValue(workspaceId, out var state)
+        // A replaced process can still emit a title for the session it used to serve, and
+        // writing that onto whatever runs now would retitle a different session.
+        if (method == "session/update" && IsCurrent(workspaceId, state, process)
             && update.TryGetProperty("sessionUpdate", out var kind)
             && (kind.GetString()?.Contains("session_info", StringComparison.OrdinalIgnoreCase) == true
                 || string.Equals(kind.GetString(), "title", StringComparison.OrdinalIgnoreCase))
@@ -492,10 +499,15 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         finally { state.Permissions.TryRemove(requestId, out _); }
     }
 
+    /// <summary>Whether this session and process are still the ones serving the workspace.</summary>
+    private bool IsCurrent(string workspaceId, AgentSessionState state, IAgentProcessProvider process) =>
+        _sessions.TryGetValue(workspaceId, out var current)
+        && ReferenceEquals(current, state)
+        && ReferenceEquals(current.Process, process);
+
     private void HandleExit(string workspaceId, AgentSessionState state, IAgentProcessProvider process, string? error)
     {
-        if (!_sessions.TryGetValue(workspaceId, out var current) || !ReferenceEquals(current, state)) return;
-        if (!ReferenceEquals(current.Process, process)) return;
+        if (!IsCurrent(workspaceId, state, process)) return;
         state.State = "stopped"; state.Error = error;
         if (error is null)
             logger.LogInformation("Agent for workspace {WorkspaceId} exited.", LogSafeIdentifier.Of(workspaceId));
