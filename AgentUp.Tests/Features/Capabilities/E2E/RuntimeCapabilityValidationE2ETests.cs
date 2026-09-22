@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using AgentUp.Desktop.Features.Validation.Models;
 using AgentUp.Desktop.Features.Validation.Services;
+using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Orchestration.Services;
 using AgentUp.Tests.Support;
 using Avalonia.Threading;
@@ -269,6 +270,13 @@ public sealed class RuntimeCapabilityValidationE2ETests
                 lastReported = ex.Message;
             }
 
+            if (await HasFailedAsync(workspaceId, ExampleApi))
+            {
+                Assert.Fail(
+                    $"Example API failed to start, so /health will never answer."
+                    + await FormatWorkspaceOutputAsync(workspaceId));
+            }
+
             await Task.Delay(500);
         }
 
@@ -286,6 +294,41 @@ public sealed class RuntimeCapabilityValidationE2ETests
             string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
         Assert.That(module, Is.Not.Null, $"Desktop catalog did not list '{id}' after enable. {modules.Status}");
         Assert.That(module!.Enabled, Is.True, $"Desktop did not enable '{id}'. {modules.Status}");
+    }
+
+    /// <summary>
+    /// Whether the Server has already given up on an application.
+    /// </summary>
+    /// <remarks>
+    /// A wait that only polls the port runs its whole deadline against a process that aborted in
+    /// the first second - three minutes of "Connection refused" that tell nobody anything, and
+    /// twelve on the applications wait. The Server knows; asking it turns a timeout into an
+    /// immediate, named failure.
+    /// </remarks>
+    private static async Task<bool> HasFailedAsync(string workspaceId, string application)
+    {
+        using var response = await Server!.Client.GetAsync($"/api/workspaces/{Uri.EscapeDataString(workspaceId)}");
+        if (!response.IsSuccessStatusCode)
+            return false;
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return document.RootElement.GetProperty("applications").EnumerateArray()
+            .Where(app => string.Equals(app.GetProperty("name").GetString(), application, StringComparison.Ordinal))
+            .Any(IsFailed);
+    }
+
+    // The state travels as its name or its number depending on how the host serialises enums.
+    private static bool IsFailed(JsonElement application)
+    {
+        if (!application.TryGetProperty("state", out var state))
+            return false;
+
+        return state.ValueKind switch
+        {
+            JsonValueKind.String => string.Equals(state.GetString(), nameof(ApplicationState.Failed), StringComparison.OrdinalIgnoreCase),
+            JsonValueKind.Number => state.TryGetInt32(out var value) && value == (int)ApplicationState.Failed,
+            _ => false
+        };
     }
 
     private static async Task<string> FormatWorkspaceOutputAsync(string workspaceId)
