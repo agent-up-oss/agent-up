@@ -24,7 +24,7 @@
 
   <ItemGroup>
     <PackageReference Include="LocalInstaller.Core" Version="$(LocalInstallerVersion)" />
-    <PackageReference Include="Sentry" Version="6.11.0" />
+    <PackageReference Include="Sentry" Version="6.11.1" />
     <PackageReference Include="Avalonia" Version="12.1.2" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
