@@ -11,4 +11,5 @@ public sealed record ApplicationDto(
 {
     public List<PortMappingDto> AllocatedPorts { get; init; } = [];
     public bool Database { get; init; }
+    public CapabilityStatusDto? CapabilityStatus { get; init; }
 }

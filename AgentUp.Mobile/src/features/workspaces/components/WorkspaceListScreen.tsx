@@ -62,7 +62,7 @@ export function WorkspaceListScreen() {
         ) : null}
       </View>
       <Text style={styles.subtitle}>
-        {server ? `Connected to ${server.url}` : 'No server selected. Add one on the Servers tab.'}
+        {server ? `Connected to ${server.url}` : 'No server selected. Connect from the login screen.'}
       </Text>
       {edition && <EntitlementCard card={edition} />}
 

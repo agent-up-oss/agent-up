@@ -12,6 +12,8 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
     private string _stateColor;
     private IReadOnlyList<PortMappingDto> _allocatedPorts;
     private IReadOnlyList<PortHealthChangeDto>? _portHealth;
+    private bool _database;
+    private CapabilityStatusDto? _capabilityStatus;
 
     public string Name { get; }
     public bool IsDesktop { get; private set; }
@@ -22,7 +24,16 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
         private set => this.RaiseAndSetIfChanged(ref _database, value);
     }
 
-    private bool _database;
+    public CapabilityStatusDto? CapabilityStatus
+    {
+        get => _capabilityStatus;
+        private set => this.RaiseAndSetIfChanged(ref _capabilityStatus, value);
+    }
+
+    public string? CapabilitySummary
+        => CapabilityStatus is { CanRun: false, Messages.Count: > 0 }
+            ? string.Join(" ", CapabilityStatus.Messages)
+            : null;
 
     public string Command
     {
@@ -61,7 +72,8 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
         bool database = false,
         IReadOnlyList<PortMappingDto>? allocatedPorts = null,
         IReadOnlyList<PortHealthChangeDto>? portHealth = null,
-        bool isDesktop = false)
+        bool isDesktop = false,
+        CapabilityStatusDto? capabilityStatus = null)
     {
         Name = name;
         IsDesktop = isDesktop;
@@ -71,6 +83,7 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
         _stateColor = AppHealthLedRules.StateColor(state);
         _allocatedPorts = allocatedPorts ?? [];
         _portHealth = portHealth;
+        _capabilityStatus = capabilityStatus;
     }
 
     public bool UpdateFrom(
@@ -78,19 +91,23 @@ public sealed class WorkspaceApplicationViewModel : ReactiveObject
         string state,
         IReadOnlyList<PortMappingDto>? allocatedPorts,
         bool database = false,
-        bool isDesktop = false)
+        bool isDesktop = false,
+        CapabilityStatusDto? capabilityStatus = null)
     {
         var ports = allocatedPorts ?? [];
         var portsChanged = !AllocatedPorts.SequenceEqual(ports);
         var databaseChanged = Database != database;
         var desktopChanged = IsDesktop != isDesktop;
+        var capabilityChanged = !Equals(CapabilityStatus, capabilityStatus);
 
         Command = command;
         AllocatedPorts = ports;
         Database = database;
         IsDesktop = isDesktop;
+        CapabilityStatus = capabilityStatus;
+        this.RaisePropertyChanged(nameof(CapabilitySummary));
         var stateChanged = UpdateState(state);
-        return portsChanged || stateChanged || databaseChanged || desktopChanged;
+        return portsChanged || stateChanged || databaseChanged || desktopChanged || capabilityChanged;
     }
 
     internal bool UpdateState(string newState, IReadOnlyList<PortHealthChangeDto>? portHealth = null)

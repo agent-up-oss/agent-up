@@ -49,7 +49,7 @@ public class DatabaseHttpTests
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
         builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
         builder.Services.AddSingleton<PortsController>();
-        builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
+        builder.Services.AddSingleton(_ => new CapabilityReconciliationService());
         builder.Services.AddSingleton<CapabilitiesController>();
         builder.Services.AddSingleton<WorkspaceEventBus>();
         builder.Services.AddSingleton<WorkspaceRegistry>();

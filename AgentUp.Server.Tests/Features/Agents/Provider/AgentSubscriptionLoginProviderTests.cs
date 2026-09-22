@@ -24,7 +24,7 @@ public sealed class AgentSubscriptionLoginProviderTests
             AgentLoginChallengeDto? challenge = null;
 
             var result = await provider.LoginAsync(
-                AgentKind.Cursor,
+                "cursor",
                 new AgentCommand(script, []),
                 "cursor_login",
                 value => challenge = value,
@@ -61,7 +61,7 @@ public sealed class AgentSubscriptionLoginProviderTests
             var challenges = new List<AgentLoginChallengeDto>();
 
             var result = await provider.LoginAsync(
-                AgentKind.Claude,
+                "claude",
                 new AgentCommand(script, []),
                 "claude-login",
                 value => challenges.Add(value),
@@ -105,7 +105,7 @@ public sealed class AgentSubscriptionLoginProviderTests
             var waiting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
             var login = provider.LoginAsync(
-                AgentKind.Claude,
+                "claude",
                 new AgentCommand(script, []),
                 "claude-login",
                 value =>
@@ -142,7 +142,7 @@ public sealed class AgentSubscriptionLoginProviderTests
             var provider = CreateProvider(script, ("Agents:Cursor:LoginChallengeTimeoutSeconds", "1"));
 
             var result = await provider.LoginAsync(
-                AgentKind.Cursor,
+                "cursor",
                 new AgentCommand(script, []),
                 "cursor_login",
                 _ => { },
@@ -172,7 +172,7 @@ public sealed class AgentSubscriptionLoginProviderTests
             AgentLoginChallengeDto? challenge = null;
 
             var result = await provider.LoginAsync(
-                AgentKind.Codex,
+                "codex",
                 new AgentCommand(script, []),
                 "chatgpt",
                 value => challenge = value,
@@ -201,7 +201,7 @@ public sealed class AgentSubscriptionLoginProviderTests
         {
             var provider = CreateProvider(script);
             var result = await provider.LoginAsync(
-                AgentKind.Cursor,
+                "cursor",
                 new AgentCommand(script, []),
                 "cursor_login",
                 _ => { },
@@ -229,7 +229,7 @@ public sealed class AgentSubscriptionLoginProviderTests
             var provider = CreateProvider(script);
 
             var result = await provider.LoginAsync(
-                AgentKind.Claude,
+                "claude",
                 new AgentCommand(script, []),
                 "claude-login",
                 _ => { },
@@ -258,7 +258,7 @@ public sealed class AgentSubscriptionLoginProviderTests
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
 
             Assert.CatchAsync<OperationCanceledException>(async () => await provider.LoginAsync(
-                    AgentKind.Cursor,
+                    "cursor",
                     new AgentCommand(script, []),
                     "cursor_login",
                     _ => { },
@@ -276,7 +276,7 @@ public sealed class AgentSubscriptionLoginProviderTests
     {
         var provider = CreateProvider("/bin/sh");
         var result = await provider.LoginAsync(
-            AgentKind.Cursor,
+            "cursor",
             new AgentCommand("/bin/sh", []),
             "api-key",
             _ => { },
@@ -292,7 +292,7 @@ public sealed class AgentSubscriptionLoginProviderTests
     {
         var provider = CreateProvider("/definitely-missing-agent-login-cli");
         var result = await provider.LoginAsync(
-            AgentKind.Cursor,
+            "cursor",
             new AgentCommand("/definitely-missing-agent-login-cli", []),
             "cursor_login",
             _ => { },

@@ -588,6 +588,49 @@
   background: var(--au-color-state-active);
   font-weight: var(--au-weight-ui-strong);
 }
+.au-nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: var(--au-space-1) var(--au-space-2);
+  gap: 0.125rem;
+}
+.au-nav-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: inherit;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.au-session-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--au-space-2);
+  min-height: var(--au-control-height);
+  padding: var(--au-space-2) var(--au-space-3);
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-selected);
+  border: 0;
+  border-left: 2px solid var(--au-color-accent-line);
+  border-radius: var(--au-radius-md);
+}
+.au-session-logout {
+  min-height: var(--au-control-height-compact);
+  padding: var(--au-space-1) var(--au-space-3);
+  color: var(--au-color-text-secondary);
+  background: var(--au-color-transparent);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-sm);
+  font-size: var(--au-font-size-ui-sm);
+  font-weight: var(--au-weight-ui);
+}
+.au-session-logout:hover { background: var(--au-color-state-hover); color: var(--au-color-text-primary); }
 
 /* Browser */
 .au-address-bar {

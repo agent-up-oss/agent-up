@@ -37,44 +37,29 @@ present (`optional: true`). Do not put a DSN in Helm values. The chart also
 sets `SENTRY_ENVIRONMENT=production` and `SENTRY_RELEASE` from the Server
 image tag, or `Chart.AppVersion` when the tag is empty.
 
-The Server image includes `git` plus the Codex, Cursor, and Claude ACP CLIs
-under `/opt/agent-up/bin`, and links `codex` next to `codex-acp` so ChatGPT
-device-code subscription login can run in the cluster. Source clones and workspace agent chat need those
-binaries; they are not present in the stock ASP.NET runtime image.
+The Server image includes Nix (non-root) with a persistent store, plus `git`. Capability modules are enabled through Helm `capabilities.enabled` seeds and Server APIs.
 
 ## Capabilities
 
-Every first-party capability is listed as an object with `disabled` and
-`versions`. ACP capabilities also declare `command` and `arguments` so the
-Server launches the binaries baked into the image. Set `disabled: false` to
-write that capability into Agent-Up inventory at
-`/etc/agent-up/capabilities.json`. Disabled capabilities are omitted from the
-inventory file.
+`capabilities.enabled` is a list of `{ id, version }` package refs written to `/etc/agent-up/enabled.json`. That file seeds Server enablement; later enable/disable calls update the Server data copy.
 
 ```yaml
 capabilities:
-  docker:
-    disabled: false
-    versions:
-      - "27.x"
-  dotnet:
-    disabled: false
-    versions:
-      - "10.0.x"
-  cursor:
-    disabled: true
+  enabled:
+    - id: dotnet
+      version: "1.0.0"
+    - id: docker
+      version: "1.0.0"
+    - id: codex
+      version: "1.0.0"
 ```
 
 ```bash
 helm upgrade --install agent-up ./chart \
   --set ingress.host=agent-up.example.com \
   --set server.existingSecret=agent-up-server-secrets \
-  --set capabilities.dotnet.disabled=false \
-  --set capabilities.dotnet.versions="{10.0.x}" \
-  --set capabilities.docker.disabled=false \
-  --set capabilities.docker.versions="{27.x}"
+  --set capabilities.enabled[0].id=dotnet \
+  --set capabilities.enabled[0].version=1.0.0
 ```
 
-The chart defaults enable `codex`, `cursor`, and `claude` against the bundled
-ACP commands. `docker` and `dotnet` stay `disabled: true` until the operator
-turns them on.
+The chart defaults enable first-party `dotnet`, `docker`, `codex`, `cursor`, and `claude` packages. The Server volume should stay large enough for the Nix store (default `server.storage` is 40Gi).

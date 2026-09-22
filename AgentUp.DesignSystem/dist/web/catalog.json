@@ -1120,20 +1120,25 @@
         {
           "id": "drawer",
           "title": "Navigation drawer",
-          "note": "The Mobile overlay rail uses the same canvas as the Desktop rail. Contrast comes from the selected workspace row and a hairline edge, not a raised grey panel.",
+          "note": "The Mobile overlay rail uses the same canvas as the Desktop rail. Contrast comes from the selected workspace row and a hairline edge, not a raised grey panel. Server shows only the signed-in host plus Logout.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
           "rootClass": "au-drawer",
           "classes": [
-            "au-drawer"
+            "au-drawer",
+            "au-stack",
+            "au-field-label",
+            "au-session-row",
+            "au-workspace-name",
+            "au-session-logout"
           ],
-          "html": "<div class=\"au-drawer\" style=\"padding: 1rem; min-height: 8rem;\">Workspaces</div>"
+          "html": "<div class=\"au-drawer\" style=\"padding: 1rem; min-height: 10rem;\">\n        <div class=\"au-stack\">\n          <span class=\"au-field-label\">Server</span>\n          <div class=\"au-session-row\">\n            <strong class=\"au-workspace-name\" style=\"flex: 1;\">http://localhost:5001</strong>\n            <button class=\"au-session-logout\" type=\"button\">Logout</button>\n          </div>\n        </div>\n      </div>"
         },
         {
           "id": "mobile-tab-bar",
           "title": "Bottom tabs",
-          "note": "Selected tabs use the catalog subtab selected state, which is neutral.",
+          "note": "Workspace chrome is Apps, Git, Agents, then Settings. Each tab has a 20px outline icon plus label. Selected uses the catalog subtab selected state, which is neutral.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -1142,9 +1147,11 @@
             "au-mobile-tab-bar",
             "au-cluster",
             "au-subtab",
-            "au-subtab--selected"
+            "au-nav-tab",
+            "au-subtab--selected",
+            "au-nav-icon"
           ],
-          "html": "<div class=\"au-mobile-tab-bar au-cluster\">\n        <button class=\"au-subtab au-subtab--selected\">Chat</button>\n        <button class=\"au-subtab\">Changes</button>\n      </div>"
+          "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18\"></path></svg>\n          Settings\n        </button>\n      </div>"
         },
         {
           "id": "mobile-list",
@@ -1489,6 +1496,52 @@
             "au-code"
           ],
           "html": "<pre class=\"au-code\">@import '@agent-up/design-system/styles.css';\nimport { agentUpTheme } from '@agent-up/design-system/native';\n&lt;StyleInclude Source=\"/DesignSystem/AgentUpStyles.axaml\" /&gt;</pre>"
+        }
+      ]
+    },
+    {
+      "id": "capabilities",
+      "title": "Capability modules",
+      "intro": "Capability modules are Server-owned packages. Desktop lists them in overlay chrome. Mobile lists them in the workspace Settings tab. Clients never call the remote registry. Green is ready, not decoration.",
+      "components": [
+        {
+          "id": "capability-catalog",
+          "title": "Module catalog",
+          "note": "Desktop uses an overlay panel. Mobile places the same cards in Settings. Enable is the primary action; disable is secondary.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-overlay-panel",
+          "classes": [
+            "au-overlay-panel",
+            "au-page-title",
+            "au-muted",
+            "au-stack",
+            "au-card",
+            "au-cluster",
+            "au-button",
+            "au-button--secondary",
+            "au-button--compact"
+          ],
+          "html": "<div class=\"au-overlay-panel\" style=\"padding: 1.25rem; max-width: 36rem;\">\n        <p class=\"au-page-title\">Capability modules</p>\n        <p class=\"au-muted\">Enable packages on this Server. Clients never talk to the remote registry.</p>\n        <div class=\"au-stack\" style=\"margin-top: 1rem;\">\n          <div class=\"au-card\">\n            <strong>.NET</strong>\n            <p class=\"au-muted\">Ready · toolchain</p>\n            <div class=\"au-cluster\">\n              <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Disable</button>\n            </div>\n          </div>\n          <div class=\"au-card\">\n            <strong>Docker</strong>\n            <p class=\"au-muted\">Not enabled</p>\n            <div class=\"au-cluster\">\n              <button class=\"au-button au-button--compact\" type=\"button\">Enable</button>\n            </div>\n          </div>\n        </div>\n      </div>"
+        },
+        {
+          "id": "capability-card",
+          "title": "Module card",
+          "note": "Identity, state, and one enable or disable action. Do not outline idle cards in accent green. Ready uses the healthy badge; blocked uses muted copy.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-card",
+          "classes": [
+            "au-card",
+            "au-muted",
+            "au-badge",
+            "au-badge--healthy",
+            "au-status-dot",
+            "au-status-dot--healthy"
+          ],
+          "html": "<div class=\"au-card\">\n        <strong>Codex</strong>\n        <p class=\"au-muted\">agent-up · 1.0.0</p>\n        <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Ready</span>\n      </div>"
         }
       ]
     },

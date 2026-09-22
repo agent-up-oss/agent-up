@@ -4,7 +4,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ServerSession } from '@agent-up/server-client';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
-import type { AgentActivityKind, AgentEvent, AgentKind, AgentPermission, AgentSession, SessionContext, TranscriptItem } from '../models/AgentSession';
+import type { AgentActivityKind, AgentEvent, AgentId, AgentPermission, AgentSession, SessionContext, TranscriptItem } from '../models/AgentSession';
 import { authenticateAgent, cancelAgent, decideAgentPermission, getAgent, scheduleAgent, sendAgentMessage, stopAgent, streamAgentEvents, submitAgentLoginCallback, submitAgentLoginCode } from '../providers/AgentApiProvider';
 import { AgentSignIn } from './AgentSignIn';
 import {
@@ -126,7 +126,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
   const waiting = busy || session?.state === 'running' || Boolean(permission) || session?.state === 'authentication_required' || session?.state === 'authenticating';
   const blocks = useMemo(() => groupTranscript(items), [items]);
   const openRunId = liveRunId(blocks);
-  const choose = async (agent: AgentKind) => {
+  const choose = async (agent: AgentId) => {
     if (!server) return; setBusy(true); setError(null);
     try {
       const next = await scheduleAgent(server, workspace.id, agent);

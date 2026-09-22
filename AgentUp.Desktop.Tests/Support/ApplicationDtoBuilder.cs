@@ -22,6 +22,7 @@ internal sealed class ApplicationDtoBuilder(
     private string _kind = DesktopDomain.ProcessKind;
     private List<PortMappingDto> _ports = [];
     private bool _database;
+    private CapabilityStatusDto? _capabilityStatus;
 
     public ApplicationDtoBuilder Named(string value)
     {
@@ -86,10 +87,17 @@ internal sealed class ApplicationDtoBuilder(
         return this;
     }
 
+    public ApplicationDtoBuilder WithCapabilityStatus(CapabilityStatusDto? status)
+    {
+        _capabilityStatus = status;
+        return this;
+    }
+
     public ApplicationDto Build()
         => new(_name, _command, _path, _state, _kind)
         {
             AllocatedPorts = _ports,
-            Database = _database
+            Database = _database,
+            CapabilityStatus = _capabilityStatus
         };
 }

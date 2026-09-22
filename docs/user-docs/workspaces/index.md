@@ -97,12 +97,12 @@ Switching servers drops that client's local workspace state.
 </DocSteps>
 
 <DocSurfaces>
-<DocSurface mobile>After connect, the sidebar lists workspaces for the active Server. Each workspace has a bottom bar with Apps, Git, and Agents. The Apps tab start/stop control requests the Server-owned lifecycle and shows live health.</DocSurface>
+<DocSurface mobile>After connect, the sidebar lists workspaces for the signed-in Server and that Server URL with Logout. Each workspace has a bottom bar with Apps, Git, Agents, and Settings. Settings lists capability modules. The Apps tab start/stop control requests the Server-owned lifecycle and shows live health.</DocSurface>
 </DocSurfaces>
 
 ## CLI workspace commands
 
-`start` searches the current directory and its parents for `agent-up.json`, then pushes the workspace and application definitions to the Server. The directory containing `agent-up.json` is the workspace root. Running `start` again from the same workspace updates the existing workspace in place.
+`start` searches the current directory and its parents for `agent-up.json`, then pushes the workspace definition to the Server: identity, legacy `applications` / `desktopApplications` / `services`, and every other root array as a runtime section. The Server binds those arrays to enabled runtime-kind modules. The directory containing `agent-up.json` is the workspace root. Running `start` again from the same workspace updates the existing workspace in place.
 
 ```bash
 agent-up start --server http://localhost:5001

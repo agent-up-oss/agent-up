@@ -1,6 +1,6 @@
 import type { Href } from 'expo-router';
 
-export type WorkspaceOverviewTab = 'apps' | 'git' | 'agents';
+export type WorkspaceOverviewTab = 'apps' | 'git' | 'agents' | 'settings';
 
 export function workspacePathAfterId(pathname: string, workspaceId: string): string[] {
   const decoded = decodeURIComponent(workspaceId);
@@ -15,6 +15,7 @@ export function workspaceOverviewTab(pathname: string, workspaceId: string): Wor
   if (rest.length === 0) return 'apps';
   if (rest.length === 1 && rest[0] === 'git') return 'git';
   if (rest.length === 1 && rest[0] === 'agents') return 'agents';
+  if (rest.length === 1 && rest[0] === 'settings') return 'settings';
   return null;
 }
 

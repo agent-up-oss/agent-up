@@ -12,6 +12,7 @@ using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Interfaces;
 using AgentUp.Server.Features.Audit.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
+using AgentUp.Server.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.DesktopApplications.Controllers;
 using AgentUp.Server.Features.DesktopApplications.Interfaces;
@@ -474,7 +475,8 @@ public class WorkspaceCommandsTests
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
         builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
         builder.Services.AddSingleton<PortsController>();
-        builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
+        builder.Services.AddSingleton<IEnabledCapabilityPackages, E2EEnabledCapabilityPackages>();
+        builder.Services.AddSingleton<CapabilityReconciliationService>();
         builder.Services.AddSingleton<CapabilitiesController>();
         builder.Services.AddSingleton<WorkspaceEventBus>();
         builder.Services.AddSingleton<AgentUp.Server.Features.Workspaces.Providers.WorkspaceEventFrameProvider>();
@@ -609,16 +611,55 @@ public class WorkspaceCommandsTests
         using var output = new StringWriter();
         await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
 
-        var workspaces = await _serverClient.GetFromJsonAsync<List<WorkspaceDto>>("/api/workspaces",
+        var workspaces = await _serverClient.GetFromJsonAsync<List<StartedWorkspaceSnapshot>>("/api/workspaces",
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         Assert.That(workspaces![0].Applications.Select(app => app.Name), Is.EquivalentTo(new[] { "Api", "Database" }));
-        Assert.That(workspaces[0].Applications.Single(app => app.Name == "Api").Environment!["ASPNETCORE_ENVIRONMENT"], Is.EqualTo("Development"));
-        Assert.That(workspaces[0].Applications.Single(app => app.Name == "Api").EnvironmentFiles, Is.EqualTo(new[] { ".env" }));
-        Assert.That(workspaces[0].Applications.Single(app => app.Name == "Database").Environment!["POSTGRES_USER"], Is.EqualTo("user"));
-        Assert.That(workspaces[0].Applications.Single(app => app.Name == "Database").EnvironmentFiles, Is.EqualTo(new[] { ".env.database" }));
-        Assert.That(output.ToString(), Does.Contain(".NET (1):"));
-        Assert.That(output.ToString(), Does.Contain("Docker (1):"));
+        var api = workspaces[0].Applications.Single(app => app.Name == "Api");
+        var database = workspaces[0].Applications.Single(app => app.Name == "Database");
+        Assert.Multiple(() =>
+        {
+            Assert.That(api.CapabilityId, Is.EqualTo("dotnet"));
+            Assert.That(api.Environment!["ASPNETCORE_ENVIRONMENT"], Is.EqualTo("Development"));
+            Assert.That(api.EnvironmentFiles, Is.EqualTo(new[] { ".env" }));
+            Assert.That(database.CapabilityId, Is.EqualTo("docker"));
+            Assert.That(database.Environment!["POSTGRES_USER"], Is.EqualTo("user"));
+            Assert.That(database.EnvironmentFiles, Is.EqualTo(new[] { ".env.database" }));
+            Assert.That(output.ToString(), Does.Contain(".NET (1):"));
+            Assert.That(output.ToString(), Does.Contain("Docker (1):"));
+        });
     }
+
+    [Test]
+    public async Task Start_PushesUnknownRuntimeSections_ToServer()
+    {
+        var json = JsonSerializer.Serialize(new
+        {
+            name = "Python App",
+            python = new[] { new { name = "api", script = "main.py" } }
+        });
+        await File.WriteAllTextAsync(Path.Join(_workspaceDir, "agent-up.json"), json);
+
+        using var output = new StringWriter();
+        await CliRunnerFactory.Create($"http://localhost:{_port}", _workspaceDir, output).RunAsync(["start"]);
+
+        var workspaces = await _serverClient.GetFromJsonAsync<List<StartedWorkspaceSnapshot>>("/api/workspaces",
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Assert.Multiple(() =>
+        {
+            Assert.That(workspaces![0].Applications.Select(app => app.Name), Is.EquivalentTo(new[] { "api" }));
+            Assert.That(workspaces[0].Applications[0].CapabilityId, Is.EqualTo("python"));
+            Assert.That(output.ToString(), Does.Contain("python (1):"));
+            Assert.That(output.ToString(), Does.Contain("main.py"));
+        });
+    }
+
+    private sealed record StartedWorkspaceSnapshot(List<StartedApplicationSnapshot> Applications);
+
+    private sealed record StartedApplicationSnapshot(
+        string Name,
+        string? CapabilityId,
+        Dictionary<string, string>? Environment,
+        string[]? EnvironmentFiles);
 
     private static Task WriteAgentUpJsonAsync(string dir, string name) =>
         File.WriteAllTextAsync(Path.Join(dir, "agent-up.json"),

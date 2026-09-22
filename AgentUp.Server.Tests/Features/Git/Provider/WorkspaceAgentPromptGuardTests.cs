@@ -32,7 +32,7 @@ public sealed class WorkspaceAgentPromptGuardTests
         var registry = new WorkspaceRegistry(
             new InMemoryWorkspaceRepository(),
             new PortsController(new InMemoryPortAllocationService()),
-            new CapabilitiesController(new CapabilityReconciliationService([])),
+            new CapabilitiesController(new CapabilityReconciliationService()),
             new WorkspaceEventBus());
         await registry.StartAsync(CancellationToken.None);
         _workspace = await registry.RegisterAsync(ServerDomain.Workspace().Named("Workspace").At("/repo").AtCommit("abc").Build());
@@ -41,7 +41,7 @@ public sealed class WorkspaceAgentPromptGuardTests
             ? Path.Join(Environment.SystemDirectory, "cmd.exe")
             : "/bin/sh";
         var commands = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(
-            new Dictionary<string, string?> { ["Agents:Codex:Command"] = command }).Build(), []);
+            new Dictionary<string, string?> { ["Agents:Codex:Command"] = command }).Build());
         var events = new AgentEventService(new AgentEventFrameProvider());
         var login = new FakeSubscriptionLoginProvider();
         var environment = new FakeProcessEnvironmentProvider();
@@ -72,7 +72,7 @@ public sealed class WorkspaceAgentPromptGuardTests
     [Test]
     public async Task IsPromptRunning_isTrueOnlyWhileAPromptIsInFlight()
     {
-        await _scheduling.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _scheduling.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         _process.HoldPrompt = true;
         await _scheduling.PromptAsync(_workspace.Id, "hello", CancellationToken.None);
 

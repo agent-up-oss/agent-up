@@ -11,7 +11,7 @@ import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const router = useRouter();
-  const { activeServer, savedServers, cloudServer, selectServer } = useServers();
+  const { activeServer, savedServers, cloudServer, selectServer, logout } = useServers();
   const { workspaces, selectedWorkspace, selectWorkspace } = useWorkspaces();
   const openConnect = (signedIn: boolean, serverUrl?: string) => {
     router.replace(signedIn
@@ -93,6 +93,17 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
           style={styles.footerButton}>
           <Text style={styles.footerButtonText}>Add server</Text>
         </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Log out of this server"
+          onPress={() => {
+            logout();
+            onNavigate();
+            router.replace('/connect');
+          }}
+          style={styles.logoutButton}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -158,4 +169,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   footerButtonText: auText('buttonSecondary'),
+  logoutButton: {
+    ...auBox('sessionLogout'),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutText: auText('sessionLogout'),
 });

@@ -27,10 +27,10 @@ Desktop chrome for the live session is the **Agent** tab. Mobile chrome for the 
 
 ## Workspace agent CLIs
 
-Workspace agent chat uses first-party Codex, Cursor, and Claude capability adapters on the Server. Those adapters launch only the ACP command declared in Agent-Up capability inventory, not a hardcoded executable name.
+Workspace agent chat uses ACP packages enabled on the Server. The picker lists those modules by id. The Server wraps those launches in Nix. Enable the package from Desktop capability-module chrome or Mobile Settings. Clients never call the remote registry.
 
 Sign in with the corresponding CLI's subscription login from Desktop or Mobile when the agent asks. Agent-Up runs that vendor's no-browser or device-code flow on the Server, shows the sign-in link (and Codex device code) in the client, and then starts ACP. An unavailable executable is disabled in the Desktop and Mobile agent picker.
 
 <DocNext href="/docs/configuration" title="Configuration">
-How inventory declares ACP commands.
+How to declare `dotnet[]` and `docker[]` shims.
 </DocNext>

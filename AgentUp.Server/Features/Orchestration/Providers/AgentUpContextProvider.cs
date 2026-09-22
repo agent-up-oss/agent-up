@@ -115,6 +115,7 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
         services[].volumes: Optional Docker volume mappings for the service.
         services[].database: When true, Desktop shows a Database tab for browsing schemas and running SQL against supported engines such as Postgres.
         prompts.commitPolicy: Optional repository-specific commit guidance for AI agents. The default policy scopes commit messages to the queued slice; uses feat for user-facing additions, fix for user-facing fixes, test for test-only or smoke-validation changes, refactor for no-behavior source changes, chore for maintenance, packaging, CI, or tooling with no customer runtime effect, style for CSS/HTML only, and docs for documentation-only changes.
+        Named root arrays whose names match enabled runtime-kind module ids (for example "dotnet" or "docker") are runtime sections. Server binds those arrays with that module's extra-attribute schema: unknown extra keys fail, and missing required extra keys fail. applications, desktopApplications, and services remain legacy. Agents are enabled on the Server, not declared as agent-up.json sections.
         ports[].variable: Environment variable that receives the allocated port.
         ports[].defaultPort: Preferred/default port used to derive allocation intent.
         ports[].protocol: Protocol label, usually http or tcp.

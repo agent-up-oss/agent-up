@@ -19,7 +19,7 @@ A second agent is rejected until the current one is stopped. Prompts are seriali
 />
 
 <DocSpine>
-<DocBeat>Discover the inventory command</DocBeat>
+<DocBeat>Enable the matching ACP package on the Server</DocBeat>
 <DocBeat>Complete subscription sign-in when ACP requires it</DocBeat>
 <DocBeat>Stream prompts and permission decisions over REST/SSE</DocBeat>
 </DocSpine>
@@ -37,13 +37,11 @@ Message submission returns `202 Accepted` after the prompt has been handed to th
 
 `GET .../events` is an authenticated Server-Sent Events stream. Events have a monotonic ID and the `after` query parameter replays retained events after a disconnect. ACP `session/update` notifications are forwarded without discarding their typed payload. `session/request_permission` requests are suspended until a client posts the selected ACP option to `.../permissions`. Unsupported ACP client-side requests fail explicitly rather than silently granting access. Slow SSE consumers are disconnected instead of silently losing events.
 
-## Capability discovery
+## Capability packages
 
-The Codex, Cursor, and Claude capability adapters discover installed ACP adapters from the command declared on that capability's inventory entry. Server and Desktop installments share `AGENTUP_CAPABILITY_INVENTORY_PATH`, `/etc/agent-up/capabilities.json`, `~/.config/agent-up/capabilities.local.json`, `~/.config/agent-up/capabilities.json`, and `.agent-up-dev/capabilities.json` found by walking up from the Server working directory. `command` may be a PATH name or a rooted path on disk; `arguments` and optional `versionArguments` travel with it. Adapters do not hardcode ACP executable names.
+Codex, Cursor, and Claude are first-party Agent SDK consumers that emit registry packages. The Server enables those packages, loads their DLLs, and lists ACP agents from enabled agent-kind modules by module id. Unknown enabled agent module ids are listed rather than skipped. Each launch uses `IAgentCapability.Launch` inside that agent package's Nix environment. Optional auth/login stays on the module. Desktop and Mobile list available agents from Server APIs. `nix-shell shell.nix` seeds a local enabled set under `.agent-up-dev` and caches the ACP CLIs there so a repository Server started outside that shell can still find them. Runtime capability E2E sets `AGENTUP_SKIP_DEV_AGENT_BOOTSTRAP=1` so that hook does not download those CLIs; the job packs the packages and Desktop enables only `docker` and `dotnet`.
 
 When ACP reports that authentication is required, the session stays scheduled and `POST .../authenticate` starts that agent's subscription login CLI instead of asking the ACP process to open a local browser. The Server streams the printed sign-in URL and any device code to Desktop and Mobile, waits until the CLI exits, then restarts ACP against the Server data directory's `agent-cli-home`. Agent-Up does not collect API keys.
-
-Live-CLI Provider smoke tests discover those installed executables, and Server Agents HTTP smoke asserts the workspace agent picker matches that discovery without skipping when a CLI is absent. `nix-shell shell.nix` writes a local inventory under `.agent-up-dev`.
 
 Agent-Up advertises no terminal-auth capability because the authenticated HTTP client cannot safely proxy an interactive terminal.
 

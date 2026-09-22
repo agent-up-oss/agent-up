@@ -10,6 +10,7 @@
         xmlns:gitViews="using:AgentUp.Desktop.Features.Git.Views"
         xmlns:agentVm="using:AgentUp.Desktop.Features.Agents.ViewModels"
         xmlns:validationVm="using:AgentUp.Desktop.Features.Validation.ViewModels"
+        xmlns:capVm="using:AgentUp.Desktop.Features.Capabilities.ViewModels"
         xmlns:metricsViews="using:AgentUp.Desktop.Features.Metrics.Views"
         xmlns:chromeVm="using:AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome"
         xmlns:authDto="using:AgentUp.Desktop.Features.Authentication.DTOs"
@@ -926,7 +927,8 @@
                                 </ListBox.ItemsPanel>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate DataType="appVm:ApplicationViewModel">
-                                        <Border Classes="appTab">
+                                        <Border Classes="appTab"
+                                                ToolTip.Tip="{Binding CapabilitySummary}">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
                                                 <Border Width="6" Height="6" CornerRadius="3"
                                                         Background="{Binding StateColor}"
@@ -2664,6 +2666,93 @@
                             </Button>
                         </Grid>
                     </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Grid ZIndex="100"
+              x:Name="CapabilityModulesOverlay"
+              IsVisible="{Binding IsModulesCatalogOpen}"
+              IsHitTestVisible="{Binding IsModulesCatalogOpen}">
+            <Border Classes="au-scrim"/>
+            <Border Classes="au-scrim">
+                <Border.Effect>
+                    <BlurEffect Radius="10"/>
+                </Border.Effect>
+            </Border>
+
+            <Grid RowDefinitions="*,10*,*"
+                  ColumnDefinitions="*,8*,*">
+                <Border Grid.Row="1"
+                        Grid.Column="1"
+                        Classes="au-overlay-panel"
+                        Padding="20">
+                    <Grid RowDefinitions="Auto,*,Auto">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="au-page-title" Text="Capability modules"/>
+                                <TextBlock Classes="au-muted"
+                                           Text="Enable packages on this Server. Desktop never talks to the remote registry."
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    x:Name="CapabilityModulesCloseButton"
+                                    Command="{Binding Modules.CloseCommand}"
+                                    ToolTip.Tip="Close">
+                                <Border Classes="chromeButton">
+                                    <TextBlock Classes="chromeIcon chromeCloseIcon" Text="×"/>
+                                </Border>
+                            </Button>
+                        </Grid>
+
+                        <ScrollViewer Grid.Row="1" Margin="0,16,0,12">
+                            <ItemsControl ItemsSource="{Binding Modules.Modules}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Spacing="10"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="capVm:CapabilityModuleCardViewModel">
+                                        <Border Classes="au-card" Padding="14">
+                                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+                                                <TextBlock Classes="au-heading" Text="{Binding DisplayName}"/>
+                                                <TextBlock Grid.Row="1"
+                                                           Classes="au-muted"
+                                                           Text="{Binding StatusLabel}"
+                                                           Margin="0,4,0,0"/>
+                                                <TextBlock Grid.Row="2"
+                                                           Classes="au-muted"
+                                                           Text="{Binding Summary}"
+                                                           TextWrapping="Wrap"
+                                                           Margin="0,6,12,0"
+                                                           IsVisible="{Binding Summary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                <StackPanel Grid.Column="1"
+                                                            Grid.RowSpan="3"
+                                                            Orientation="Horizontal"
+                                                            Spacing="8"
+                                                            VerticalAlignment="Center">
+                                                    <Button Classes="au-button au-button--compact"
+                                                            Command="{Binding EnableCommand}"
+                                                            Content="Enable"
+                                                            IsVisible="{Binding !Enabled}"/>
+                                                    <Button Classes="au-button au-button--secondary au-button--compact"
+                                                            Command="{Binding DisableCommand}"
+                                                            Content="Disable"
+                                                            IsVisible="{Binding Enabled}"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <TextBlock Grid.Row="2"
+                                   Classes="au-muted"
+                                   Text="{Binding Modules.Status}"
+                                   IsVisible="{Binding Modules.Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    </Grid>
                 </Border>
             </Grid>
         </Grid>

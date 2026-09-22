@@ -4,6 +4,8 @@ using AgentUp.Tests.Fixtures;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Markup.Xaml.Styling;
+using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
 using Avalonia.Threading;
 
@@ -108,5 +110,20 @@ public sealed class DesktopFixtureHost
 
 internal sealed class E2ETestApp : Application
 {
-    public override void Initialize() => Styles.Add(new FluentTheme());
+    public override void Initialize()
+    {
+        // Match Desktop App.axaml. FluentTheme alone is light and unstyled, which is the white
+        // overlapping chrome this native E2E host used to show.
+        RequestedThemeVariant = ThemeVariant.Dark;
+        var desktop = new Uri("avares://AgentUp.Desktop/");
+        Resources.MergedDictionaries.Add(new ResourceInclude(desktop)
+        {
+            Source = new Uri("avares://AgentUp.Desktop/DesignSystem/AgentUpTheme.axaml")
+        });
+        Styles.Add(new FluentTheme());
+        Styles.Add(new StyleInclude(desktop)
+        {
+            Source = new Uri("avares://AgentUp.Desktop/DesignSystem/AgentUpStyles.axaml")
+        });
+    }
 }

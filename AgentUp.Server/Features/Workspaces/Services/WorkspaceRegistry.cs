@@ -72,18 +72,14 @@ public sealed class WorkspaceRegistry : IHostedService
         IReadOnlyList<PortMapping> AllocatePorts(IReadOnlyList<PortDeclaration>? declarations) =>
             (declarations ?? []).Select(d => new PortMapping(d.Variable, d.DefaultPort, portCounter++, d.Protocol, d.HealthCheckPath, d.MetricsPath)).ToList();
 
-        var typedDotnetApplications = new List<ApplicationInstance>();
-        foreach (var dotnet in request.Dotnet)
+        var typedRuntimeApplications = new List<ApplicationInstance>();
+        foreach (var section in RuntimeSectionDefinition.Merge(request.RuntimeSections, request.Dotnet, request.Docker))
         {
-            var ports = dotnet.Ports ?? [];
-            typedDotnetApplications.Add(await _capabilities.ReconcileDotnetAsync(dotnet, ports, AllocatePorts(ports)));
-        }
-
-        var typedDockerApplications = new List<ApplicationInstance>();
-        foreach (var docker in request.Docker)
-        {
-            var ports = docker.Ports ?? [];
-            typedDockerApplications.Add(await _capabilities.ReconcileDockerAsync(docker, ports, AllocatePorts(ports)));
+            foreach (var item in section.Items)
+            {
+                var ports = item.Ports ?? [];
+                typedRuntimeApplications.Add(await _capabilities.ReconcileRuntimeAsync(section.ModuleId, item, ports, AllocatePorts(ports)));
+            }
         }
 
         var workspace = new Workspace
@@ -137,8 +133,7 @@ public sealed class WorkspaceRegistry : IHostedService
                     Args = s.Command,
                     Database = s.Database
                 }))
-                .Concat(typedDotnetApplications)
-                .Concat(typedDockerApplications)
+                .Concat(typedRuntimeApplications)
                 .ToList()
         };
 

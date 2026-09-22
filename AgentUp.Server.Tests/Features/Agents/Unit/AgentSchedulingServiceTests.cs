@@ -1,4 +1,5 @@
 using System.Text.Json;
+using AgentUp.Sdk.Common;
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Interfaces;
 using AgentUp.Server.Features.Agents.Models;
@@ -35,7 +36,7 @@ public sealed class AgentSchedulingServiceTests
         _registry = new WorkspaceRegistry(
             new InMemoryWorkspaceRepository(),
             new PortsController(new InMemoryPortAllocationService()),
-            new CapabilitiesController(new CapabilityReconciliationService([])),
+            new CapabilitiesController(new CapabilityReconciliationService()),
             new WorkspaceEventBus());
         await _registry.StartAsync(CancellationToken.None);
         _workspace = await _registry.RegisterAsync(ServerDomain.Workspace().Named("Workspace").At("/repo").AtCommit("abc").Build());
@@ -48,7 +49,7 @@ public sealed class AgentSchedulingServiceTests
                 ["Agents:Codex:Command"] = command,
                 ["Agents:Cursor:Command"] = command,
                 ["Agents:Claude:Command"] = command
-            }).Build(), []);
+            }).Build());
         _events = new AgentEventService(_payloads);
         _login = new FakeSubscriptionLoginProvider();
         _credentials = new FakeClaudeCredentialStore();
@@ -62,10 +63,67 @@ public sealed class AgentSchedulingServiceTests
     public async Task TearDown() => await _service.DisposeAsync();
 
     [Test]
+    public async Task GetAsync_lists_agents_from_enabled_modules()
+    {
+        var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
+            .WithAgents(new StubAgentCapability());
+        var service = new AgentSchedulingService(
+            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
+            new AgentCommandProvider(new ConfigurationBuilder().Build(), packages),
+            _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
+            _payloads, _events, NullLogger<AgentSchedulingService>.Instance, packages);
+        try
+        {
+            var session = await service.GetAsync(_workspace.Id, CancellationToken.None);
+
+            Assert.That(session!.Agents.Select(agent => agent.Agent), Is.EqualTo(new[] { "codex" }));
+            Assert.That(session.Agents.Single().Available, Is.True);
+            Assert.That(session.Agents.Single().DisplayName, Is.EqualTo("Codex"));
+        }
+        finally
+        {
+            await service.DisposeAsync();
+        }
+    }
+
+    [Test]
+    public async Task GetAsync_lists_unknown_agent_module_ids()
+    {
+        var packages = new FakeEnabledCapabilityPackages(new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityPackageManifest
+        {
+            Id = "windsurf",
+            Version = "1.0.0",
+            DisplayName = "Windsurf",
+            Kind = "agent",
+            Launch = new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityLaunchTemplate
+            {
+                Command = "windsurf-acp",
+                Arguments = []
+            }
+        }).WithAgents(new StubAgentCapability { Identity = new("windsurf", "1.0.0", "Windsurf", "agent-up") });
+        var service = new AgentSchedulingService(
+            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
+            new AgentCommandProvider(new ConfigurationBuilder().Build(), packages),
+            _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
+            _payloads, _events, NullLogger<AgentSchedulingService>.Instance, packages);
+        try
+        {
+            var session = await service.GetAsync(_workspace.Id, CancellationToken.None);
+
+            Assert.That(session!.Agents.Select(agent => agent.Agent), Is.EqualTo(new[] { "windsurf" }));
+            Assert.That(session.Agents.Single().DisplayName, Is.EqualTo("Windsurf"));
+        }
+        finally
+        {
+            await service.DisposeAsync();
+        }
+    }
+
+    [Test]
     public async Task Schedule_initializesAcpInWorktreeAndEnforcesOneSession()
     {
-        var first = await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
-        var second = await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        var first = await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        var second = await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
 
         Assert.Multiple(() => {
             Assert.That(first.Session!.SessionId, Is.EqualTo("session-1"));
@@ -82,7 +140,7 @@ public sealed class AgentSchedulingServiceTests
     {
         _process.SessionNewResult = JsonSerializer.SerializeToElement(payload);
 
-        var result = await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        var result = await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
 
         Assert.Multiple(() =>
         {
@@ -99,7 +157,7 @@ public sealed class AgentSchedulingServiceTests
         _process.AdvertiseAuthMethods = true;
         _process.SessionNewResult = JsonSerializer.SerializeToElement(new { });
 
-        var result = await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        var result = await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
 
         Assert.Multiple(() =>
         {
@@ -119,7 +177,7 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task Prompt_isAcceptedImmediatelyAndConcurrentPromptIsRejected()
     {
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         _process.HoldPrompt = true;
 
         var first = await _service.PromptAsync(_workspace.Id, "first", CancellationToken.None);
@@ -133,7 +191,7 @@ public sealed class AgentSchedulingServiceTests
     public async Task Prompt_isRejectedUntilTheAcpSessionIsReady()
     {
         _process.RequireAuthentication = true;
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
 
         var result = await _service.PromptAsync(_workspace.Id, "hello", CancellationToken.None);
 
@@ -144,7 +202,7 @@ public sealed class AgentSchedulingServiceTests
     public async Task Cancel_isRejectedWhenTheAcpSessionHasNotBeenCreated()
     {
         _process.RequireAuthentication = true;
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
 
         var result = await _service.CancelAsync(_workspace.Id, CancellationToken.None);
 
@@ -155,7 +213,7 @@ public sealed class AgentSchedulingServiceTests
     public async Task Authenticate_acceptsOnlyAdvertisedMethodAndCreatesSession()
     {
         _process.RequireAuthentication = true;
-        var scheduled = await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        var scheduled = await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
 
         var invalid = _service.Authenticate(_workspace.Id, "unknown");
         var accepted = _service.Authenticate(_workspace.Id, "chatgpt");
@@ -175,7 +233,7 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task PermissionDecision_returnsSelectedAcpOutcome()
     {
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         var requestTask = _process.RequestPermissionAsync(_payloads.Payload(new { options = new[] { new { optionId = "allow" } } }));
         var requestId = await ReadPermissionRequestIdAsync();
 
@@ -189,7 +247,7 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task SessionUpdate_isForwardedWithoutChangingPayload()
     {
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         await _process.SendNotificationAsync("session/update", _payloads.Payload(new { update = new { sessionUpdate = "agent_message_chunk", content = new { type = "text", text = "hello" } } }));
 
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(1));
@@ -203,7 +261,7 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task RemovingWorkspace_stopsItsScheduledAgent()
     {
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         await _registry.RemoveAsync(_workspace.Id);
 
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(1));
@@ -215,7 +273,7 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task Prompt_reachesReadyAfterTheAgentFinishes()
     {
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         _process.HoldPrompt = true;
 
         Assert.That((await _service.PromptAsync(_workspace.Id, "hello", CancellationToken.None)).Error, Is.Null);
@@ -228,7 +286,7 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task Prompt_reportsAgentFailuresWithoutLeavingTheSessionBusy()
     {
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         _process.PromptFailure = new InvalidOperationException("prompt exploded");
 
         Assert.That((await _service.PromptAsync(_workspace.Id, "hello", CancellationToken.None)).Error, Is.Null);
@@ -241,7 +299,7 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task Cancel_succeedsWhenTheSessionIsNotRunning()
     {
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
 
         var result = await _service.CancelAsync(_workspace.Id, CancellationToken.None);
 
@@ -251,7 +309,7 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task Cancel_notifiesTheRunningPrompt()
     {
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         _process.HoldPrompt = true;
         Assert.That((await _service.PromptAsync(_workspace.Id, "hello", CancellationToken.None)).Error, Is.Null);
 
@@ -266,7 +324,7 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task Cancel_reportsNotifyFailures()
     {
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         _process.HoldPrompt = true;
         _process.NotifyFailure = new InvalidOperationException("cancel rejected");
         Assert.That((await _service.PromptAsync(_workspace.Id, "hello", CancellationToken.None)).Error, Is.Null);
@@ -287,7 +345,7 @@ public sealed class AgentSchedulingServiceTests
             "https://cursor.com/loginDeepControl?challenge=abc",
             null,
             "Open this link and sign in with your subscription.");
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
 
         var accepted = _service.Authenticate(_workspace.Id, "chatgpt");
         await WaitForStateAsync("authentication_required");
@@ -302,7 +360,7 @@ public sealed class AgentSchedulingServiceTests
     {
         _process.RequireAuthentication = true;
         _process.AdvertiseApiKey = true;
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
 
         var rejected = _service.Authenticate(_workspace.Id, "api-key");
 
@@ -319,7 +377,7 @@ public sealed class AgentSchedulingServiceTests
             "https://cursor.com/loginDeepControl?challenge=abc",
             null,
             "Open this link and sign in with your subscription.");
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Cursor, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "cursor", CancellationToken.None);
 
         var accepted = _service.Authenticate(_workspace.Id, "chatgpt");
         await WaitUntilAsync(() => _service.Get(_workspace.Id)!.LoginChallenge?.Url is not null);
@@ -347,7 +405,7 @@ public sealed class AgentSchedulingServiceTests
             "Open this link, sign in, then paste the code it gives you back here.",
             AgentLoginTransport.Code,
             CanSubmitCode: true);
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Claude, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "claude", CancellationToken.None);
         // The fake agent advertises the chatgpt method id for every kind; Authenticate validates
         // the id against what was advertised, not against the kind.
         var started = _service.Authenticate(_workspace.Id, "chatgpt");
@@ -379,7 +437,7 @@ public sealed class AgentSchedulingServiceTests
             "Open this link and sign in.",
             AgentLoginTransport.Redirect,
             RedirectUri: "http://localhost:1455/auth/callback");
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         _service.Authenticate(_workspace.Id, "chatgpt");
         await WaitForStateAsync("authenticating");
 
@@ -401,7 +459,7 @@ public sealed class AgentSchedulingServiceTests
     public async Task SubmitLoginCode_isRefusedWhenNoSignInIsRunning()
     {
         _process.RequireAuthentication = true;
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
 
         var refused = _service.SubmitLoginCode(_workspace.Id, "ABCD-EFGHI");
 
@@ -419,7 +477,7 @@ public sealed class AgentSchedulingServiceTests
     {
         _process.RequireAuthentication = true;
         _process.OmitAuthMethods = true;
-        var scheduled = await _service.ScheduleAsync(_workspace.Id, AgentKind.Claude, CancellationToken.None);
+        var scheduled = await _service.ScheduleAsync(_workspace.Id, "claude", CancellationToken.None);
 
         Assert.Multiple(() =>
         {
@@ -435,7 +493,7 @@ public sealed class AgentSchedulingServiceTests
         _process.RequireAuthentication = true;
         _process.OmitAuthMethods = true;
         _login.ClaudeToken = "sk-ant-oat-test-token";
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Claude, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "claude", CancellationToken.None);
 
         Assert.That(_service.Authenticate(_workspace.Id, "claude-login").Error, Is.Null);
         await WaitForStateAsync("ready");
@@ -449,7 +507,7 @@ public sealed class AgentSchedulingServiceTests
     {
         _process.RequireAuthentication = true;
         _process.StopFailure = new InvalidOperationException("could not stop");
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
 
         Assert.That(_service.Authenticate(_workspace.Id, "chatgpt").Error, Is.Null);
         await WaitForStateAsync("ready");
@@ -462,7 +520,7 @@ public sealed class AgentSchedulingServiceTests
     {
         _process.RequireAuthentication = true;
         _login.Failure = new IOException("disk");
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
 
         Assert.That(_service.Authenticate(_workspace.Id, "chatgpt").Error, Is.Null);
         await WaitForStateAsync("authentication_required");
@@ -475,7 +533,7 @@ public sealed class AgentSchedulingServiceTests
     {
         _process.RequireAuthentication = true;
         _login.Hold = true;
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         Assert.That(_service.Authenticate(_workspace.Id, "chatgpt").Error, Is.Null);
         await WaitUntilAsync(() => _service.Get(_workspace.Id)!.State == "authenticating");
 
@@ -488,7 +546,7 @@ public sealed class AgentSchedulingServiceTests
     {
         _process.ProtocolVersion = 2;
 
-        var result = await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        var result = await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
 
         Assert.That(result.Error, Does.Contain("protocol version"));
     }
@@ -496,7 +554,7 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task ProcessExit_marksTheSessionStopped()
     {
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
 
         _process.Exit("killed");
         await WaitForStateAsync("stopped");
@@ -507,7 +565,7 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task Stop_reportsProcessStopFailures()
     {
-        await _service.ScheduleAsync(_workspace.Id, AgentKind.Codex, CancellationToken.None);
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         _process.StopFailure = new InvalidOperationException("could not stop");
 
         var result = await _service.StopAsync(_workspace.Id, CancellationToken.None);
@@ -570,7 +628,7 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     public Exception? StopFailure { get; set; }
 
     public Task StartAsync(
-        AgentKind kind,
+        string agent,
         string workingDirectory,
         IReadOnlyDictionary<string, string> environment,
         CancellationToken cancellationToken)
@@ -654,7 +712,7 @@ internal sealed class FakeSubscriptionLoginProvider : IAgentSubscriptionLoginPro
     public List<AgentLoginSubmission> Submissions { get; } = [];
 
     public async Task<AgentSubscriptionLoginResult> LoginAsync(
-        AgentKind kind,
+        string agent,
         AgentCommand acpCommand,
         string methodId,
         Action<AgentLoginChallengeDto> onChallenge,
@@ -700,7 +758,7 @@ internal sealed class FakeSubscriptionLoginProvider : IAgentSubscriptionLoginPro
 
 internal sealed class FakeProcessEnvironmentProvider : IAgentProcessEnvironmentProvider
 {
-    public IReadOnlyDictionary<string, string> EnvironmentFor(AgentKind kind) =>
+    public IReadOnlyDictionary<string, string> EnvironmentFor(string agent) =>
         new Dictionary<string, string>(StringComparer.Ordinal) { ["HOME"] = "/data/agent-cli-home" };
 }
 

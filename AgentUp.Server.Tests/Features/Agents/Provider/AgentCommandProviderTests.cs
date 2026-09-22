@@ -1,5 +1,3 @@
-using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
-using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Tests.Support;
@@ -18,7 +16,7 @@ public sealed class AgentCommandProviderTests
             ["Agents:Codex:Command"] = command, ["Agents:Codex:Arguments:0"] = "serve"
         }).Build();
 
-        var result = await new AgentCommandProvider(configuration, []).ResolveAsync(AgentKind.Codex, CancellationToken.None);
+        var result = await new AgentCommandProvider(configuration).ResolveAsync("codex", CancellationToken.None);
 
         Assert.Multiple(() =>
         {
@@ -35,24 +33,23 @@ public sealed class AgentCommandProviderTests
         {
             if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite);
             var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Agents:Codex:Command"] = file }).Build();
-            Assert.That(await new AgentCommandProvider(configuration, []).IsAvailableAsync(AgentKind.Codex, CancellationToken.None), Is.EqualTo(OperatingSystem.IsWindows()));
+            Assert.That(await new AgentCommandProvider(configuration).IsAvailableAsync("codex", CancellationToken.None), Is.EqualTo(OperatingSystem.IsWindows()));
         }
         finally { File.Delete(file); }
     }
 
     [Test]
-    public async Task ResolveAsync_usesCapabilityLaunchPlanWhenCommandIsNotConfigured()
+    public async Task ResolveAsync_usesEnabledAgentPackageWhenCommandIsNotConfigured()
     {
-        var adapter = new FakeAgentCapabilityAdapter("codex", "/home/dev/.local/bin/codex", ["acp"]);
-        var provider = new AgentCommandProvider(new ConfigurationBuilder().Build(), [adapter]);
+        var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex());
+        var provider = new AgentCommandProvider(new ConfigurationBuilder().Build(), packages);
 
-        var result = await provider.ResolveAsync(AgentKind.Codex, CancellationToken.None);
+        var result = await provider.ResolveAsync("codex", CancellationToken.None);
 
         Assert.Multiple(() =>
         {
-            Assert.That(result!.FileName, Is.EqualTo("/home/dev/.local/bin/codex"));
-            Assert.That(result.Arguments, Is.EqualTo(new[] { "acp" }));
-            Assert.That(adapter.DiscoverCalls, Is.EqualTo(1));
+            Assert.That(result!.FileName, Is.EqualTo("codex-acp"));
+            Assert.That(result.Arguments, Is.Empty);
         });
     }
 
@@ -63,23 +60,18 @@ public sealed class AgentCommandProviderTests
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
             ["Agents:Cursor:Command"] = command
         }).Build();
-        var adapter = new FakeAgentCapabilityAdapter("cursor", "/opt/agent", ["acp"]);
+        var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Cursor());
 
-        var result = await new AgentCommandProvider(configuration, [adapter]).ResolveAsync(AgentKind.Cursor, CancellationToken.None);
+        var result = await new AgentCommandProvider(configuration, packages).ResolveAsync("cursor", CancellationToken.None);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(result!.FileName, Is.EqualTo(command));
-            Assert.That(adapter.DiscoverCalls, Is.EqualTo(0));
-        });
+        Assert.That(result!.FileName, Is.EqualTo(command));
     }
 
     [Test]
-    public async Task IsAvailableAsync_isFalseWhenCapabilityFindsNothing()
+    public async Task IsAvailableAsync_isFalseWhenNoAgentPackageIsEnabled()
     {
-        var adapter = new FakeAgentCapabilityAdapter("claude");
-        var available = await new AgentCommandProvider(new ConfigurationBuilder().Build(), [adapter])
-            .IsAvailableAsync(AgentKind.Claude, CancellationToken.None);
+        var available = await new AgentCommandProvider(new ConfigurationBuilder().Build())
+            .IsAvailableAsync("claude", CancellationToken.None);
 
         Assert.That(available, Is.False);
     }
@@ -92,18 +84,24 @@ public sealed class AgentCommandProviderTests
             ["Agents:Codex:Command"] = command
         }).Build();
 
-        var result = await new AgentCommandProvider(configuration, []).ResolveAsync(AgentKind.Codex, CancellationToken.None);
+        var result = await new AgentCommandProvider(configuration).ResolveAsync("codex", CancellationToken.None);
 
         Assert.That(result, Is.Not.Null);
         Assert.That(result!.FileName, Is.EqualTo(command));
     }
 
     [Test]
-    public async Task ResolveAsync_isNullWhenCapabilityLaunchPlanHasNoCommand()
+    public async Task ResolveAsync_isNullWhenEnabledAgentPackageHasNoCommand()
     {
-        var adapter = new FakeAgentCapabilityAdapter("codex", "");
-        var result = await new AgentCommandProvider(new ConfigurationBuilder().Build(), [adapter])
-            .ResolveAsync(AgentKind.Codex, CancellationToken.None);
+        var packages = new FakeEnabledCapabilityPackages(new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityPackageManifest
+        {
+            Id = "codex",
+            Version = "1.0.0",
+            DisplayName = "Codex",
+            Kind = "agent"
+        });
+        var result = await new AgentCommandProvider(new ConfigurationBuilder().Build(), packages)
+            .ResolveAsync("codex", CancellationToken.None);
 
         Assert.That(result, Is.Null);
     }
@@ -112,33 +110,4 @@ public sealed class AgentCommandProviderTests
         OperatingSystem.IsWindows()
             ? Path.Join(Environment.SystemDirectory, "cmd.exe")
             : "/bin/sh";
-
-    private sealed class FakeAgentCapabilityAdapter(string capabilityId, string? fileName = null, IReadOnlyList<string>? arguments = null) : ICapabilityAdapter
-    {
-        public CapabilityDescriptor Descriptor { get; } = new(capabilityId, capabilityId, "1.0.0", true, ["linux"]);
-        public int DiscoverCalls { get; private set; }
-
-        public Task<IReadOnlyList<CapabilityInstalledVersion>> DiscoverAsync(CancellationToken cancellationToken)
-        {
-            DiscoverCalls++;
-            IReadOnlyList<CapabilityInstalledVersion> installed = fileName is null
-                ? []
-                : [new CapabilityInstalledVersion(capabilityId, "1.0.0", fileName, CapabilityVersionSource.System, false)];
-            return Task.FromResult(installed);
-        }
-
-        public Task<CapabilityValidationResult> ValidateAsync(
-            CapabilityDeclaration declaration,
-            IReadOnlyList<CapabilityInstalledVersion> installedVersions,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(installedVersions.Count == 0
-                ? CapabilityValidationResult.Failure(new CapabilityValidationMessage($"{capabilityId}.cli.missing", "missing", CapabilityValidationSeverity.Error))
-                : CapabilityValidationResult.Success());
-
-        public Task<CapabilityLaunchPlan> CreateLaunchPlanAsync(
-            CapabilityDeclaration declaration,
-            IReadOnlyList<CapabilityInstalledVersion> installedVersions,
-            CancellationToken cancellationToken) =>
-            Task.FromResult(new CapabilityLaunchPlan(fileName ?? "", Arguments: arguments ?? []));
-    }
 }

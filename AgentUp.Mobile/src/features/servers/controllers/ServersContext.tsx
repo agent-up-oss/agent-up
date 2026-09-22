@@ -4,6 +4,7 @@ import {
   browserServerStorage,
   clearActiveCredential,
   loadServerSelection,
+  logoutActiveServer,
   removeServer,
   saveServerSelection,
   selectServer as selectSavedServer,
@@ -22,6 +23,7 @@ type ServersController = {
   selectServer(id: string): void;
   saveServer(url: string, accessToken?: string): void;
   expireActiveCredential(): void;
+  logout(): void;
   removeServer(id: string): void;
 };
 
@@ -78,6 +80,10 @@ export function ServersProvider({ children }: PropsWithChildren) {
         setSelection(current => upsertServer(current, url, accessToken));
       },
       expireActiveCredential,
+      logout: () => {
+        setRequiresSignIn(false);
+        setSelection(current => logoutActiveServer(current));
+      },
       removeServer: id => {
         const listed = servers.find(server => server.id === id);
         if (listed?.isRecommended) return;

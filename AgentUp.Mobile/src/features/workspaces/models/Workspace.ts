@@ -6,6 +6,12 @@ export type WorkspaceApplication = {
     allocatedPort: number;
     protocol: string;
   }>;
+  capabilityStatus?: {
+    capabilityId: string;
+    requiredVersion?: string | null;
+    canRun: boolean;
+    messages: string[];
+  };
 };
 
 export type Workspace = {
