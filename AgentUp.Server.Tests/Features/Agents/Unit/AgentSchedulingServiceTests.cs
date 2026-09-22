@@ -29,8 +29,7 @@ public sealed class AgentSchedulingServiceTests
     private AgentEventService _events = null!;
     private Workspace _workspace = null!;
     private WorkspaceRegistry _registry = null!;
-    private AgentSessionRepository _sessions = null!;
-    private string _sessionDirectory = null!;
+    private InMemoryAgentSessionRepository _sessions = null!;
 
     [SetUp]
     public async Task SetUp()
@@ -55,8 +54,7 @@ public sealed class AgentSchedulingServiceTests
         _events = new AgentEventService(_payloads);
         _login = new FakeSubscriptionLoginProvider();
         _credentials = new FakeClaudeCredentialStore();
-        _sessionDirectory = Path.Join(Path.GetTempPath(), $"agent-up-scheduling-{Guid.NewGuid():N}");
-        _sessions = new AgentSessionRepository(_sessionDirectory);
+        _sessions = new InMemoryAgentSessionRepository();
         _service = new AgentSchedulingService(
             new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process), commands,
             _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
@@ -67,7 +65,6 @@ public sealed class AgentSchedulingServiceTests
     public async Task TearDown()
     {
         await _service.DisposeAsync();
-        if (Directory.Exists(_sessionDirectory)) Directory.Delete(_sessionDirectory, true);
     }
 
     [Test]

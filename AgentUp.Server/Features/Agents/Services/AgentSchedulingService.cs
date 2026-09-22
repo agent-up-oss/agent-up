@@ -23,7 +23,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     private readonly AgentEventService events;
     private readonly ILogger<AgentSchedulingService> logger;
     private readonly IEnabledCapabilityPackages? packages;
-    private readonly AgentSessionRepository? sessionRepository;
+    private readonly IAgentSessionRepository? sessionRepository;
     private readonly ConcurrentDictionary<string, AgentSessionState> _sessions = new();
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _lifecycleGates = new();
     private IReadOnlyList<AgentDescriptor> _descriptors = FirstPartyAgents
@@ -42,7 +42,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         AgentEventService events,
         ILogger<AgentSchedulingService> logger,
         IEnabledCapabilityPackages? packages = null,
-        AgentSessionRepository? sessionRepository = null)
+        IAgentSessionRepository? sessionRepository = null)
     {
         this.workspaces = workspaces;
         this.processes = processes;

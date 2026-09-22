@@ -1,10 +1,11 @@
 using System.Text.Json;
+using AgentUp.Server.Features.Agents.Interfaces;
 using AgentUp.Server.Features.Agents.Models;
 
 namespace AgentUp.Server.Features.Agents.Providers;
 
 /// <summary>Persists ACP session identities separately from their short-lived processes.</summary>
-public sealed class AgentSessionRepository
+public sealed class AgentSessionRepository : IAgentSessionRepository
 {
     private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web) { WriteIndented = true };
     private readonly string _path;
