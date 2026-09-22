@@ -174,6 +174,39 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
+    public async Task Resume_returnsTheLiveSessionWithoutRestartingIt()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        var resumed = await _service.ResumeAsync(_workspace.Id, "session-1", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resumed.Session!.SessionId, Is.EqualTo("session-1"));
+            Assert.That(_process.StartCalls, Is.EqualTo(1), "a session already running is not restarted");
+            Assert.That(_process.Methods, Does.Not.Contain("session/load"));
+        });
+    }
+
+    [Test]
+    public async Task Resume_releasesTheWorkspaceWhenLoadingTheSessionFails()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        _process.Exit(null);
+        _process.SessionLoadFailure = new UnauthorizedAccessException("The agent home is not readable.");
+
+        var resumed = await _service.ResumeAsync(_workspace.Id, "session-1", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resumed.Error, Is.EqualTo("The agent home is not readable."));
+            Assert.That(resumed.Session, Is.Null);
+            Assert.That(_service.Get(_workspace.Id)!.State, Is.EqualTo("idle"), "the failed resume leaves no session behind");
+            Assert.That(_service.Get(_workspace.Id)!.Sessions, Has.Count.EqualTo(1), "the saved session stays resumable");
+        });
+    }
+
+    [Test]
     public async Task Resume_rekeysWhenAgentReturnsANewSessionId()
     {
         await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
@@ -724,6 +757,7 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     public Exception? PromptFailure { get; set; }
     public Exception? NotifyFailure { get; set; }
     public Exception? StopFailure { get; set; }
+    public Exception? SessionLoadFailure { get; set; }
 
     public Task StartAsync(
         string agent,
@@ -760,6 +794,7 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
         if (method == "session/load")
         {
             SessionLoadStarted.TrySetResult();
+            if (SessionLoadFailure is not null) throw SessionLoadFailure;
             if (HoldSessionLoad)
             {
                 _sessionLoad = new(TaskCreationOptions.RunContinuationsAsynchronously);
