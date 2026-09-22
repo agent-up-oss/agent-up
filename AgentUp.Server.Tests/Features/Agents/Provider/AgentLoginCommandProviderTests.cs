@@ -1,3 +1,5 @@
+using AgentUp.Sdk.Agent;
+using AgentUp.Sdk.Common;
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Agents.Providers;
@@ -13,7 +15,7 @@ public sealed class AgentLoginCommandProviderTests
     public void Resolve_usesTheCursorAcpBinaryForNoBrowserLogin()
     {
         var provider = new AgentLoginCommandProvider(new ConfigurationBuilder().Build(), new AgentSubscriptionAuth());
-        var command = provider.Resolve(AgentKind.Cursor, new AgentCommand("/opt/agent-up/bin/agent", ["acp"]), "cursor_login");
+        var command = provider.Resolve("cursor", new AgentCommand("/opt/agent-up/bin/agent", ["acp"]), "cursor_login");
 
         Assert.Multiple(() =>
         {
@@ -29,7 +31,7 @@ public sealed class AgentLoginCommandProviderTests
         var provider = new AgentLoginCommandProvider(new ConfigurationBuilder().Build(), new AgentSubscriptionAuth());
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            provider.Resolve(AgentKind.Codex, new AgentCommand("/opt/codex-acp", []), "api-key"));
+            provider.Resolve("codex", new AgentCommand("/opt/codex-acp", []), "api-key"));
 
         Assert.That(exception!.Message, Does.Contain("subscription"));
     }
@@ -52,9 +54,9 @@ public sealed class AgentLoginCommandProviderTests
                 }).Build(),
                 new AgentSubscriptionAuth());
 
-            var claude = configured.Resolve(AgentKind.Claude, new AgentCommand("/missing/claude-agent-acp", []), "claude-login");
+            var claude = configured.Resolve("claude", new AgentCommand("/missing/claude-agent-acp", []), "claude-login");
             var codex = new AgentLoginCommandProvider(new ConfigurationBuilder().Build(), new AgentSubscriptionAuth())
-                .Resolve(AgentKind.Codex, new AgentCommand(Path.Join(directory.FullName, "codex-acp"), []), "chatgpt");
+                .Resolve("codex", new AgentCommand(Path.Join(directory.FullName, "codex-acp"), []), "chatgpt");
 
             Assert.Multiple(() =>
             {
@@ -90,9 +92,9 @@ public sealed class AgentLoginCommandProviderTests
 
             var provider = new AgentLoginCommandProvider(new ConfigurationBuilder().Build(), new AgentSubscriptionAuth());
             var fromSibling = provider.Resolve(
-                AgentKind.Claude, new AgentCommand(Path.Join(directory.FullName, "claude-agent-acp"), []), "claude-login");
+                "claude", new AgentCommand(Path.Join(directory.FullName, "claude-agent-acp"), []), "claude-login");
             var fromPath = provider.Resolve(
-                AgentKind.Codex, new AgentCommand(Path.Join(directory.FullName, "codex-acp"), []), "chatgpt");
+                "codex", new AgentCommand(Path.Join(directory.FullName, "codex-acp"), []), "chatgpt");
 
             Assert.Multiple(() =>
             {
@@ -110,6 +112,54 @@ public sealed class AgentLoginCommandProviderTests
     }
 
     [Test]
+    public void Resolve_usesTheModuleLoginSpecWhenPresent()
+    {
+        var packages = new FakeEnabledCapabilityPackages().WithAgents(new StubAgentCapability
+        {
+            Identity = new CapabilityIdentity("sample", "1.0.0", "Sample", "agent-up"),
+            Login = new AgentLoginSpec("sample", ["auth"], "poll")
+        });
+        var provider = new AgentLoginCommandProvider(new ConfigurationBuilder().Build(), new AgentSubscriptionAuth(), packages);
+
+        var command = provider.Resolve("sample", new AgentCommand("/opt/agent-up/bin/sample", ["acp"]), "sample-login");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(command.FileName, Is.EqualTo("/opt/agent-up/bin/sample"));
+            Assert.That(command.Arguments, Is.EqualTo(new[] { "auth" }));
+        });
+    }
+
+    [Test]
+    public void Resolve_fallsBackToFirstPartyModuleIdsWhenLoginSpecIsMissing()
+    {
+        var packages = new FakeEnabledCapabilityPackages().WithAgents(new StubAgentCapability
+        {
+            Identity = new CapabilityIdentity("cursor", "1.0.0", "Cursor", "agent-up")
+        });
+        var provider = new AgentLoginCommandProvider(new ConfigurationBuilder().Build(), new AgentSubscriptionAuth(), packages);
+
+        var command = provider.Resolve("cursor", new AgentCommand("/opt/agent-up/bin/agent", ["acp"]), "cursor_login");
+
+        Assert.That(command.Arguments, Is.EqualTo(new[] { "login" }));
+    }
+
+    [Test]
+    public void Resolve_rejectsUnknownModulesWithoutALoginSpec()
+    {
+        var packages = new FakeEnabledCapabilityPackages().WithAgents(new StubAgentCapability
+        {
+            Identity = new CapabilityIdentity("other", "1.0.0", "Other", "agent-up")
+        });
+        var provider = new AgentLoginCommandProvider(new ConfigurationBuilder().Build(), new AgentSubscriptionAuth(), packages);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            provider.Resolve("other", new AgentCommand("/opt/other-acp", []), "other-login"));
+
+        Assert.That(exception!.Message, Does.Contain("not supported"));
+    }
+
+    [Test]
     public void Resolve_failsWhenTheLoginCliIsMissing()
     {
         var directory = Directory.CreateTempSubdirectory("agent-login-missing");
@@ -120,7 +170,7 @@ public sealed class AgentLoginCommandProviderTests
             var provider = new AgentLoginCommandProvider(new ConfigurationBuilder().Build(), new AgentSubscriptionAuth());
 
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                provider.Resolve(AgentKind.Codex, new AgentCommand(Path.Join(directory.FullName, "codex-acp"), []), "chatgpt"));
+                provider.Resolve("codex", new AgentCommand(Path.Join(directory.FullName, "codex-acp"), []), "chatgpt"));
 
             Assert.That(exception!.Message, Does.Contain("codex is required"));
         }

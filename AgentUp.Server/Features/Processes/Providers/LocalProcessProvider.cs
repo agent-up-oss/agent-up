@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using AgentUp.Server.Features.Capabilities.Controllers;
+using AgentUp.Server.Features.Capabilities.DTOs;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Workspaces.DTOs;
@@ -12,10 +14,14 @@ namespace AgentUp.Server.Features.Processes.Providers;
 public sealed partial class LocalProcessProvider : ILocalProcessProvider
 {
     private readonly string _auditEndpoint;
+    private readonly CapabilityModulesController? _capabilities;
 
-    public LocalProcessProvider(ApplicationAuditEndpointProvider? auditEndpoint = null)
+    public LocalProcessProvider(
+        ApplicationAuditEndpointProvider? auditEndpoint = null,
+        CapabilityModulesController? capabilities = null)
     {
         _auditEndpoint = auditEndpoint?.GetRecordEndpoint() ?? "http://127.0.0.1:5000/api/audit/record";
+        _capabilities = capabilities;
     }
 
     public Process CreateApplicationProcess(Workspace workspace, ApplicationInstance app)
@@ -39,7 +45,9 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         => process.Kill(entireProcessTree: true);
 
     internal ProcessStartInfo CreateStartInfo(Workspace workspace, ApplicationInstance app)
-        => CreateStartInfo(workspace, app, app.Command!);
+        => string.IsNullOrWhiteSpace(app.LaunchFileName)
+            ? CreateStartInfo(workspace, app, app.Command!)
+            : ApplyEnvironment(workspace, app, CreateCapabilityStartInfo(workspace, app));
 
     internal ProcessStartInfo? CreateInstallStartInfo(Workspace workspace, ApplicationInstance app)
         => string.IsNullOrWhiteSpace(app.Install) ? null : CreateStartInfo(workspace, app, app.Install);
@@ -50,8 +58,42 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
             workspace.WorktreePath,
             app.Path,
             "Application path");
+        return ApplyEnvironment(workspace, app, CreateProcessStartInfo(command, workingDirectory));
+    }
+
+    private ProcessStartInfo CreateCapabilityStartInfo(Workspace workspace, ApplicationInstance app)
+    {
+        var workingDirectory = WorkspacePathProvider.ResolveWorkspacePath(
+            workspace.WorktreePath,
+            app.Path,
+            "Application path");
+        var workingArgs = ApplyWorkingDirectoryArguments(
+            app.LaunchFileName!,
+            app.LaunchArguments ?? [],
+            workingDirectory);
+        var wrapped = WrapModule(app.CapabilityId, app.LaunchFileName!, workingArgs);
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = wrapped.FileName,
+            WorkingDirectory = TrustedProcessWorkingDirectory(),
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+        foreach (var argument in wrapped.Arguments)
+            startInfo.ArgumentList.Add(argument);
+        return startInfo;
+    }
+
+    private CapabilityLaunchWrapDto WrapModule(string? id, string fileName, IReadOnlyList<string> arguments)
+        => string.IsNullOrWhiteSpace(id)
+            ? new CapabilityLaunchWrapDto(fileName, arguments)
+            : _capabilities?.WrapModule(id, fileName, arguments) ?? new CapabilityLaunchWrapDto(fileName, arguments);
+
+    private ProcessStartInfo ApplyEnvironment(Workspace workspace, ApplicationInstance app, ProcessStartInfo startInfo)
+    {
         var fileEnvironment = LoadEnvironmentFiles(workspace.WorktreePath, app.EnvironmentFiles);
-        var startInfo = CreateProcessStartInfo(command, workingDirectory);
         foreach (var (key, value) in fileEnvironment)
             startInfo.Environment[key] = value;
 
@@ -122,23 +164,28 @@ public sealed partial class LocalProcessProvider : ILocalProcessProvider
         return environment;
     }
 
-    private static ProcessStartInfo CreateProcessStartInfo(string command, string workingDirectory)
+    private ProcessStartInfo CreateProcessStartInfo(string command, string workingDirectory)
     {
         var parsed = ParseApplicationCommand(command);
+        var workingArgs = ApplyWorkingDirectoryArguments(parsed.FileName, parsed.Arguments, workingDirectory);
+        var wrapped = WrapLaunch(parsed.FileName, workingArgs);
         var startInfo = new ProcessStartInfo
         {
-            FileName = parsed.FileName,
+            FileName = wrapped.FileName,
             WorkingDirectory = TrustedProcessWorkingDirectory(),
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true
         };
-        foreach (var argument in ApplyWorkingDirectoryArguments(parsed.FileName, parsed.Arguments, workingDirectory))
+        foreach (var argument in wrapped.Arguments)
             startInfo.ArgumentList.Add(argument);
 
         return startInfo;
     }
+
+    private CapabilityLaunchWrapDto WrapLaunch(string fileName, IReadOnlyList<string> arguments)
+        => _capabilities?.WrapLaunch(fileName, arguments) ?? new CapabilityLaunchWrapDto(fileName, arguments);
 
     private static (string FileName, IReadOnlyList<string> Arguments) ParseApplicationCommand(string command)
     {

@@ -51,7 +51,7 @@ public sealed class WorkspaceStreamStateServiceTests
             repo,
             new AgentUp.Server.Features.Ports.Controllers.PortsController(new InMemoryPortAllocationService()),
             new AgentUp.Server.Features.Capabilities.Controllers.CapabilitiesController(
-                new AgentUp.Server.Features.Capabilities.Services.CapabilityReconciliationService([])),
+                new AgentUp.Server.Features.Capabilities.Services.CapabilityReconciliationService()),
             new WorkspaceEventBus());
         registry.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
         var query = new WorkspaceQueryController(registry);

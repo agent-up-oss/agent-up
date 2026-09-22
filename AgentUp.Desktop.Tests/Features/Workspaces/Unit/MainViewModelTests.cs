@@ -19,6 +19,7 @@ using AgentUp.Desktop.Features.Validation.Providers;
 using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.FirstRun.Interfaces;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome;
 
 namespace AgentUp.Desktop.Tests.Features.Workspaces.Unit;
 
@@ -157,7 +158,7 @@ public class MainViewModelTests
     public void SwitchServerCommand_opensTheSwitcherAndHidesChromeActions()
     {
         var vm = CreateVm(NullWorkspaceClient());
-        Assert.That(vm.Chrome.LeftItems, Has.Count.EqualTo(2));
+        Assert.That(ChromeButtonNames(vm), Is.EqualTo(WorkspaceChromeButtons));
 
         vm.SwitchServerCommand.Execute().Subscribe();
 
@@ -169,8 +170,15 @@ public class MainViewModelTests
         });
 
         vm.Login.Dismiss();
-        Assert.That(vm.Chrome.LeftItems, Has.Count.EqualTo(2));
+        Assert.That(ChromeButtonNames(vm), Is.EqualTo(WorkspaceChromeButtons));
     }
+
+    // Named rather than counted so adding a chrome action reads as a deliberate change here
+    // instead of an off-by-one, and so a rename cannot pass by keeping the count the same.
+    private static readonly string[] WorkspaceChromeButtons = ["ReloadButton", "CapabilityModulesButton"];
+
+    private static string[] ChromeButtonNames(MainViewModel vm)
+        => vm.Chrome.LeftItems.OfType<ChromeIconButtonViewModel>().Select(item => item.Name).ToArray();
 
     [Test]
     public async Task ConnectingToAnotherServer_resetsLocalSessionThenReloadsWorkspaces()

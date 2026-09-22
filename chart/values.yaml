@@ -18,35 +18,21 @@ server:
     adminPassword: AGENTUP_ADMIN_PASSWORD
     sentryDsn: SENTRY_DSN
   adminPassword: ""
-  storage: 10Gi
+  storage: 40Gi
   dataDirectory: /var/lib/agent-up
   securityContext:
     fsGroup: 1654
     runAsUser: 1654
     runAsNonRoot: true
 capabilities:
-  docker:
-    disabled: true
-    versions: []
-  dotnet:
-    disabled: true
-    versions: []
-  codex:
-    disabled: false
-    versions:
-      - bundled
-    command: /opt/agent-up/bin/codex-acp
-    arguments: []
-  cursor:
-    disabled: false
-    versions:
-      - bundled
-    command: /opt/agent-up/bin/agent
-    arguments:
-      - acp
-  claude:
-    disabled: false
-    versions:
-      - bundled
-    command: /opt/agent-up/bin/claude-agent-acp
-    arguments: []
+  enabled:
+    - id: dotnet
+      version: "1.0.0"
+    - id: docker
+      version: "1.0.0"
+    - id: codex
+      version: "1.0.0"
+    - id: cursor
+      version: "1.0.0"
+    - id: claude
+      version: "1.0.0"

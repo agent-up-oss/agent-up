@@ -1,68 +1,46 @@
-using AgentUp.Capabilities.Abstractions.Features.Capabilities.Interfaces;
-using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Models;
+using AgentUp.Server.Features.Capabilities.Interfaces;
 
 namespace AgentUp.Server.Features.Agents.Providers;
 
-public sealed class AgentCommandProvider(IConfiguration configuration, IEnumerable<ICapabilityAdapter> adapters)
+public sealed class AgentCommandProvider(
+    IConfiguration configuration,
+    IEnabledCapabilityPackages? packages = null)
 {
-    private readonly IReadOnlyDictionary<string, ICapabilityAdapter> _adapters =
-        adapters.ToDictionary(adapter => adapter.Descriptor.Id, StringComparer.OrdinalIgnoreCase);
+    public async Task<bool> IsAvailableAsync(string agent, CancellationToken cancellationToken) =>
+        await ResolveAsync(agent, cancellationToken) is not null;
 
-    public async Task<bool> IsAvailableAsync(AgentKind kind, CancellationToken cancellationToken) =>
-        await ResolveAsync(kind, cancellationToken) is not null;
-
-    public async Task<AgentCommand?> ResolveAsync(AgentKind kind, CancellationToken cancellationToken)
+    public Task<AgentCommand?> ResolveAsync(string agent, CancellationToken cancellationToken)
     {
-        var configured = ReadConfigured(kind);
+        var configured = ReadConfigured(agent);
         if (configured is not null && Path.IsPathRooted(configured.FileName))
-            return IsExecutable(configured.FileName) ? configured : null;
+            return Task.FromResult(IsExecutable(configured.FileName) ? configured : null);
 
-        var capability = await ResolveCapabilityAsync(kind, cancellationToken);
+        var capability = ResolveCapability(agent);
         if (capability is not null)
-            return capability;
+            return Task.FromResult<AgentCommand?>(capability);
 
-        return configured is not null && IsAvailableCommand(configured.FileName) ? configured : null;
+        return Task.FromResult(configured is not null && IsAvailableCommand(configured.FileName) ? configured : null);
     }
 
-    private async Task<AgentCommand?> ResolveCapabilityAsync(AgentKind kind, CancellationToken cancellationToken)
+    private AgentCommand? ResolveCapability(string agent)
     {
-        if (!_adapters.TryGetValue(CapabilityId(kind), out var adapter))
+        var plan = packages?.AgentLaunch(agent);
+        if (plan is null || string.IsNullOrWhiteSpace(plan.Command))
             return null;
 
-        var installed = await adapter.DiscoverAsync(cancellationToken);
-        var declaration = new CapabilityDeclaration(
-            kind.ToString(),
-            adapter.Descriptor.Id,
-            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
-        var validation = await adapter.ValidateAsync(declaration, installed, cancellationToken);
-        if (!validation.CanRun)
-            return null;
-
-        var plan = await adapter.CreateLaunchPlanAsync(declaration, installed, cancellationToken);
-        if (string.IsNullOrWhiteSpace(plan.Command))
-            return null;
         return new AgentCommand(plan.Command, plan.Arguments ?? []);
     }
 
-    private AgentCommand? ReadConfigured(AgentKind kind)
+    private AgentCommand? ReadConfigured(string agent)
     {
-        var configured = configuration[$"Agents:{kind}:Command"];
+        var configured = configuration[$"Agents:{agent}:Command"];
         if (string.IsNullOrWhiteSpace(configured))
             return null;
-        var arguments = configuration.GetSection($"Agents:{kind}:Arguments").Get<string[]>() ?? [];
+        var arguments = configuration.GetSection($"Agents:{agent}:Arguments").Get<string[]>() ?? [];
         return new AgentCommand(configured, arguments);
     }
-
-    private static string CapabilityId(AgentKind kind) => kind switch
-    {
-        AgentKind.Codex => "codex",
-        AgentKind.Cursor => "cursor",
-        AgentKind.Claude => "claude",
-        _ => throw new ArgumentOutOfRangeException(nameof(kind))
-    };
 
     private static bool IsAvailableCommand(string command)
     {

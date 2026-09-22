@@ -95,6 +95,9 @@ export class FakeBackendService {
     if (method === 'POST' && path === '/api/source-clones') return this.cloneWorkspace(request.body);
     if (method === 'POST' && path === '/api/apps/tickets') return this.issueTicket(request.body);
     if (method === 'POST' && path === '/api/audit/record') return { status: 204, contentType: 'application/json' };
+    if (method === 'GET' && path === '/api/capabilities') return json([]);
+    if (method === 'POST' && path === '/api/capabilities/enable') return json(capabilityModule(true));
+    if (method === 'POST' && path.startsWith('/api/capabilities/disable/')) return json(capabilityModule(false));
     if (method === 'GET' && path.startsWith('/apps/')) return this.appPage(path);
 
     const workspacePath = parseWorkspacePath(path);
@@ -399,6 +402,20 @@ function readJsonNumber(body: string | null, name: string): number | null {
 
 function workspaceIdOf(item: unknown): string | undefined {
   return item && typeof item === 'object' && 'id' in item && typeof item.id === 'string' ? item.id : undefined;
+}
+
+function capabilityModule(enabled: boolean) {
+  return {
+    id: 'demo',
+    version: '1.0.0',
+    displayName: 'Demo',
+    publisher: 'agent-up',
+    kind: 'runtime',
+    enabled,
+    state: enabled ? 'ready' : 'disabled',
+    canRun: false,
+    messages: ['Demo does not host capability modules.'],
+  };
 }
 
 function json(body: unknown): FakeBackendResponse {

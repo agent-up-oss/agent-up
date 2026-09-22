@@ -44,6 +44,17 @@ public sealed class FakeServerControllerTests
     }
 
     [Test]
+    public void WriteApplicationPage_returnsAFileUri()
+    {
+        var controller = FakeServerTestComposition.Controller();
+        var uri = controller.WriteApplicationPage("harbor-shop", "storefront", "<html>Harbor</html>");
+
+        Assert.That(uri.IsFile, Is.True);
+        Assert.That(File.ReadAllText(uri.LocalPath), Does.Contain("Harbor"));
+        File.Delete(uri.LocalPath);
+    }
+
+    [Test]
     public void Reset_restoresBundledWorkspaces()
     {
         var backend = FakeServerTestComposition.Backend();

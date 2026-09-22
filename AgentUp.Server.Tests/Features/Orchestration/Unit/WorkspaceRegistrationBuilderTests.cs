@@ -39,6 +39,29 @@ public sealed class WorkspaceRegistrationBuilderTests
             Assert.That(request.Dotnet[0].Name, Is.EqualTo("Api"));
             Assert.That(request.Docker, Has.Count.EqualTo(1));
             Assert.That(request.Docker[0].Name, Is.EqualTo("Database"));
+            Assert.That(request.RuntimeSections.Select(section => section.ModuleId), Is.EquivalentTo(new[] { "dotnet", "docker" }));
+        });
+    }
+
+    [Test]
+    public void Build_preserves_unknown_runtime_sections()
+    {
+        var request = WorkspaceRegistrationBuilder.Build(
+            new AgentUpConfiguration(
+                "App",
+                RuntimeSections:
+                [
+                    new RuntimeSectionDefinition(
+                        "python",
+                        [new RuntimeSectionItem("api", Parameters: new Dictionary<string, string> { ["script"] = "main.py" })])
+                ]),
+            new WorkspaceIdentity("/repo", "main", "abc123"),
+            "/repo/worktree");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(request.RuntimeSections.Single().ModuleId, Is.EqualTo("python"));
+            Assert.That(request.RuntimeSections.Single().Items.Single().Parameters!["script"], Is.EqualTo("main.py"));
         });
     }
 

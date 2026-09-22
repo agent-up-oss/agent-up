@@ -9,13 +9,19 @@ RUN chmod +x /tmp/install-runtime-tools.sh \
     && rm /tmp/install-runtime-tools.sh \
     && rm -rf /tmp/runtime-tools \
     && apt-get update \
-    && apt-get install -y --no-install-recommends xvfb libx11-6 libxtst6 xfonts-base \
+    && apt-get install -y --no-install-recommends xvfb libx11-6 libxtst6 xfonts-base xz-utils \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /var/lib/agent-up \
-    && chown -R $APP_UID /var/lib/agent-up
-ENV PATH="/opt/agent-up/bin:${PATH}"
-ENV AGENTUP_CAPABILITY_INVENTORY_PATH=/etc/agent-up/capabilities.json
+    && mkdir -p /var/lib/agent-up /nix /home/app/.config/nix \
+    && chown -R $APP_UID:$APP_UID /var/lib/agent-up /nix /home/app
+ENV HOME=/home/app
+ENV USER=app
+ENV PATH="/home/app/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/opt/agent-up/bin:${PATH}"
+ENV NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+ENV AGENTUP_CAPABILITY_REGISTRY_PATH=/var/lib/agent-up/capability-registry
+ENV AGENTUP_CAPABILITY_ENABLED_PATH=/var/lib/agent-up/capabilities/enabled.json
 USER $APP_UID
+RUN curl -L https://nixos.org/nix/install | sh -s -- --no-daemon \
+    && printf 'filter-syscalls = false\nsandbox = false\n' > /home/app/.config/nix/nix.conf
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
@@ -27,11 +33,7 @@ COPY ["AgentUp.CommitPolicy/AgentUp.CommitPolicy.csproj", "AgentUp.CommitPolicy/
 COPY ["AgentUp.Verification/AgentUp.Verification.csproj", "AgentUp.Verification/"]
 COPY ["AgentUp.Capabilities.Abstractions/AgentUp.Capabilities.Abstractions.csproj", "AgentUp.Capabilities.Abstractions/"]
 COPY ["AgentUp.Capabilities.Common/AgentUp.Capabilities.Common.csproj", "AgentUp.Capabilities.Common/"]
-COPY ["AgentUp.Capabilities.Dotnet/AgentUp.Capabilities.Dotnet.csproj", "AgentUp.Capabilities.Dotnet/"]
-COPY ["AgentUp.Capabilities.Docker/AgentUp.Capabilities.Docker.csproj", "AgentUp.Capabilities.Docker/"]
-COPY ["AgentUp.Capabilities.Codex/AgentUp.Capabilities.Codex.csproj", "AgentUp.Capabilities.Codex/"]
-COPY ["AgentUp.Capabilities.Cursor/AgentUp.Capabilities.Cursor.csproj", "AgentUp.Capabilities.Cursor/"]
-COPY ["AgentUp.Capabilities.Claude/AgentUp.Capabilities.Claude.csproj", "AgentUp.Capabilities.Claude/"]
+COPY ["AgentUp.Registry/AgentUp.Registry.csproj", "AgentUp.Registry/"]
 COPY ["AgentUp.InstallerConfig/AgentUp.InstallerConfig.csproj", "AgentUp.InstallerConfig/"]
 RUN dotnet restore "AgentUp.Server/AgentUp.Server.csproj"
 COPY . .

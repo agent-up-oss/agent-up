@@ -9,7 +9,7 @@ public interface IAgentProcessProvider : IAsyncDisposable
     event Func<string, JsonElement, Task<JsonElement>>? Request;
     event Action<string?>? Exited;
     Task StartAsync(
-        AgentKind kind,
+        string agent,
         string workingDirectory,
         IReadOnlyDictionary<string, string> environment,
         CancellationToken cancellationToken);

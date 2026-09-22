@@ -30,13 +30,13 @@ public sealed class AgentEventFrameProviderTests
     {
         var payload = new AgentEventFrameProvider().Payload(
             new AgentUp.Server.Features.Agents.DTOs.AgentSessionDto(
-                "ws", AgentUp.Server.Features.Agents.DTOs.AgentKind.Codex, "running", "session-1", null, [], []));
+                "ws", "codex", "running", "session-1", null, [], []));
 
         Assert.Multiple(() =>
         {
             Assert.That(payload.GetProperty("sessionId").GetString(), Is.EqualTo("session-1"));
             Assert.That(payload.GetProperty("state").GetString(), Is.EqualTo("running"));
-            Assert.That(payload.GetProperty("agent").GetString(), Is.EqualTo("Codex"));
+            Assert.That(payload.GetProperty("agent").GetString(), Is.EqualTo("codex"));
         });
     }
 

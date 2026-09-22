@@ -70,7 +70,7 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
         builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
         builder.Services.AddSingleton<PortsController>();
-        builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
+        builder.Services.AddSingleton(_ => new CapabilityReconciliationService());
         builder.Services.AddSingleton<CapabilitiesController>();
         builder.Services.AddSingleton<WorkspaceEventBus>();
         builder.Services.AddSingleton<AgentUp.Server.Features.Workspaces.Providers.WorkspaceEventFrameProvider>();
@@ -198,6 +198,53 @@ public class WorkspacesHttpTests
         Assert.That(workspace.Branch, Is.EqualTo("feature/auth"));
         Assert.That(workspace.Commit, Is.EqualTo("abc1234"));
         Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Stopped));
+    }
+
+    [Test]
+    public async Task Post_registers_cli_shaped_dotnet_and_docker_sections()
+    {
+        var request = new
+        {
+            displayName = "Typed App",
+            repositoryPath = "/repo",
+            worktreePath = "/repo",
+            branch = "main",
+            commit = "abc",
+            applications = Array.Empty<object>(),
+            services = Array.Empty<object>(),
+            dotnet = new[]
+            {
+                new
+                {
+                    name = "Api",
+                    sdk = "10.0.x",
+                    run = new { project = "src/Api/Api.csproj", arguments = new[] { "--no-launch-profile" } },
+                    environment = new Dictionary<string, string> { ["ASPNETCORE_ENVIRONMENT"] = "Development" },
+                    environmentFiles = new[] { ".env" },
+                    ports = new[] { new { variable = "API_PORT", defaultPort = 5000 } }
+                }
+            },
+            docker = new[]
+            {
+                new
+                {
+                    name = "Database",
+                    image = "postgres:17",
+                    environment = new Dictionary<string, string> { ["POSTGRES_USER"] = "user" },
+                    environmentFiles = new[] { ".env.database" },
+                    ports = new[] { new { variable = "DB_PORT", defaultPort = 5432 } }
+                }
+            }
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/workspaces", request);
+        var workspace = await response.Content.ReadFromJsonAsync<Workspace>(JsonOptions);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+            Assert.That(workspace!.Applications.Select(app => app.Name), Is.EquivalentTo(new[] { "Api", "Database" }));
+        });
     }
 
     [Test]
@@ -443,7 +490,7 @@ public class WorkspacesHttpTests
         builder.Services.AddSingleton<IOutputRepository, InMemoryOutputRepository>();
         builder.Services.AddSingleton<IPortAllocationService, InMemoryPortAllocationService>();
         builder.Services.AddSingleton<PortsController>();
-        builder.Services.AddSingleton(_ => new CapabilityReconciliationService([]));
+        builder.Services.AddSingleton(_ => new CapabilityReconciliationService());
         builder.Services.AddSingleton<CapabilitiesController>();
         builder.Services.AddSingleton<WorkspaceEventBus>();
         builder.Services.AddSingleton<AgentUp.Server.Features.Workspaces.Providers.WorkspaceEventFrameProvider>();

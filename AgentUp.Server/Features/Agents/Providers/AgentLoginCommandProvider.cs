@@ -1,34 +1,43 @@
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Models;
+using AgentUp.Server.Features.Capabilities.Interfaces;
 
 namespace AgentUp.Server.Features.Agents.Providers;
 
-public sealed class AgentLoginCommandProvider(IConfiguration configuration, AgentSubscriptionAuth subscription)
+public sealed class AgentLoginCommandProvider(
+    IConfiguration configuration,
+    AgentSubscriptionAuth subscription,
+    IEnabledCapabilityPackages? packages = null)
 {
-    public AgentLoginCommand Resolve(AgentKind kind, AgentCommand acpCommand, string methodId)
+    public AgentLoginCommand Resolve(string agent, AgentCommand acpCommand, string methodId)
     {
         if (subscription.IsApiKeyMethod(methodId, null))
             throw new InvalidOperationException("Agent-Up signs agents in with a ChatGPT, Cursor, or Claude subscription, not an API key.");
 
-        var configured = ReadConfigured(kind);
+        var configured = ReadConfigured(agent);
         if (configured is not null)
-            return WithLoginEnvironment(kind, configured);
+            return WithLoginEnvironment(agent, configured);
 
-        return kind switch
+        var spec = packages?.GetAgent(agent)?.Login;
+        if (spec is not null)
+            return WithLoginEnvironment(agent, new AgentLoginCommand(ResolveLoginFile(agent, acpCommand, spec.FileName), spec.Arguments, new Dictionary<string, string>()));
+
+        // First-party module ids only. Listing is by enabled module id; this is not AgentKind.
+        return agent.ToLowerInvariant() switch
         {
-            AgentKind.Cursor => WithLoginEnvironment(kind, new AgentLoginCommand(acpCommand.FileName, LoginArguments(acpCommand.Arguments, "login"), new Dictionary<string, string>())),
-            AgentKind.Codex => WithLoginEnvironment(kind, new AgentLoginCommand(ResolveSiblingOrPath(kind, acpCommand.FileName, "codex"), ["login", "--device-auth"], new Dictionary<string, string>())),
-            AgentKind.Claude => WithLoginEnvironment(kind, new AgentLoginCommand(ResolveSiblingOrPath(kind, acpCommand.FileName, "claude"), ["setup-token"], new Dictionary<string, string>())),
-            _ => throw new InvalidOperationException("The requested agent kind is not supported.")
+            "cursor" => WithLoginEnvironment(agent, new AgentLoginCommand(acpCommand.FileName, LoginArguments(acpCommand.Arguments, "login"), new Dictionary<string, string>())),
+            "codex" => WithLoginEnvironment(agent, new AgentLoginCommand(ResolveSiblingOrPath(agent, acpCommand.FileName, "codex"), ["login", "--device-auth"], new Dictionary<string, string>())),
+            "claude" => WithLoginEnvironment(agent, new AgentLoginCommand(ResolveSiblingOrPath(agent, acpCommand.FileName, "claude"), ["setup-token"], new Dictionary<string, string>())),
+            _ => throw new InvalidOperationException("The requested agent is not supported.")
         };
     }
 
-    private AgentLoginCommand? ReadConfigured(AgentKind kind)
+    private AgentLoginCommand? ReadConfigured(string agent)
     {
-        var configured = configuration[$"Agents:{kind}:LoginCommand"];
+        var configured = configuration[$"Agents:{agent}:LoginCommand"];
         if (string.IsNullOrWhiteSpace(configured))
             return null;
-        var arguments = configuration.GetSection($"Agents:{kind}:LoginArguments").Get<string[]>() ?? [];
+        var arguments = configuration.GetSection($"Agents:{agent}:LoginArguments").Get<string[]>() ?? [];
         return new AgentLoginCommand(configured, arguments, new Dictionary<string, string>());
     }
 
@@ -37,23 +46,23 @@ public sealed class AgentLoginCommandProvider(IConfiguration configuration, Agen
     /// variables are best-effort: CLIs that ignore them still work, because the sign-in is driven
     /// from the link they print rather than from a browser they launch. Anything a specific
     /// deployment or a specific CLI build needs on top goes in
-    /// <c>Agents:{kind}:LoginEnvironment</c>.
+    /// <c>Agents:{agent}:LoginEnvironment</c>.
     /// </summary>
-    private AgentLoginCommand WithLoginEnvironment(AgentKind kind, AgentLoginCommand command)
+    private AgentLoginCommand WithLoginEnvironment(string agent, AgentLoginCommand command)
     {
         var environment = new Dictionary<string, string>(command.Environment, StringComparer.Ordinal)
         {
             ["NO_OPEN_BROWSER"] = "1",
             ["BROWSER"] = "true"
         };
-        foreach (var pair in ReadLoginEnvironment(kind))
+        foreach (var pair in ReadLoginEnvironment(agent))
             environment[pair.Key] = pair.Value;
         return command with { Environment = environment };
     }
 
-    private IReadOnlyDictionary<string, string> ReadLoginEnvironment(AgentKind kind)
+    private IReadOnlyDictionary<string, string> ReadLoginEnvironment(string agent)
     {
-        return configuration.GetSection($"Agents:{kind}:LoginEnvironment")
+        return configuration.GetSection($"Agents:{agent}:LoginEnvironment")
             .GetChildren()
             .Where(entry => !string.IsNullOrWhiteSpace(entry.Value))
             .ToDictionary(entry => entry.Key, entry => entry.Value!, StringComparer.Ordinal);
@@ -66,7 +75,17 @@ public sealed class AgentLoginCommandProvider(IConfiguration configuration, Agen
         return arguments;
     }
 
-    private string ResolveSiblingOrPath(AgentKind kind, string acpFileName, string loginName)
+    private string ResolveLoginFile(string agent, AgentCommand acpCommand, string loginName)
+    {
+        var acpName = Path.GetFileName(acpCommand.FileName);
+        var acpStem = Path.GetFileNameWithoutExtension(acpCommand.FileName);
+        if (acpName.Equals(loginName, StringComparison.OrdinalIgnoreCase)
+            || acpStem.Equals(loginName, StringComparison.OrdinalIgnoreCase))
+            return acpCommand.FileName;
+        return ResolveSiblingOrPath(agent, acpCommand.FileName, loginName);
+    }
+
+    private string ResolveSiblingOrPath(string agent, string acpFileName, string loginName)
     {
         if (Path.IsPathRooted(acpFileName))
         {
@@ -83,7 +102,7 @@ public sealed class AgentLoginCommandProvider(IConfiguration configuration, Agen
             return loginName;
 
         throw new InvalidOperationException(
-            $"{loginName} is required for {kind} subscription login. Install it next to the ACP adapter or on PATH, or set Agents:{kind}:LoginCommand.");
+            $"{loginName} is required for {agent} subscription login. Install it next to the ACP adapter or on PATH, or set Agents:{agent}:LoginCommand.");
     }
 
     private static bool IsAvailableCommand(string command)

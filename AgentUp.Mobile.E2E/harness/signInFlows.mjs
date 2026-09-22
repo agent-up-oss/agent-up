@@ -11,7 +11,7 @@ import { waitFor } from './wait.mjs';
 export const SIGN_IN_FLOWS = Object.freeze({
   device: {
     clientId: 'test-agent2',
-    kind: 'Codex',
+    agentId: 'codex',
     transport: 'code',
     /** The user reads a code off the app and types it into the provider page. */
     async approve({ control, session }) {
@@ -23,7 +23,7 @@ export const SIGN_IN_FLOWS = Object.freeze({
 
   poll: {
     clientId: 'test-agent4',
-    kind: 'Cursor',
+    agentId: 'cursor',
     transport: 'poll',
     /** Nothing is carried by hand; approving the login id is all it takes. */
     async approve({ control, session }) {
@@ -33,7 +33,7 @@ export const SIGN_IN_FLOWS = Object.freeze({
 
   paste: {
     clientId: 'test-agent3',
-    kind: 'Claude',
+    agentId: 'claude',
     transport: 'code',
     /**
      * The provider page has to be visited before it will have issued a code, and the code then
@@ -51,7 +51,7 @@ export const SIGN_IN_FLOWS = Object.freeze({
 
   redirect: {
     clientId: 'test-agent1',
-    kind: 'Codex',
+    agentId: 'codex',
     transport: 'redirect',
     /**
      * Pre-approved before the client opens anything, so the authorization request redirects

@@ -1,3 +1,5 @@
+using AgentUp.Sdk.Agent;
+using AgentUp.Sdk.Common;
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Tests.Support;
@@ -16,18 +18,32 @@ public sealed class AgentLoginFlowProviderTests
         Assert.Multiple(() =>
         {
             // codex login --device-auth prints a code and polls; nothing comes back over stdin.
-            var codex = provider.Resolve(AgentKind.Codex);
+            var codex = provider.Resolve("codex");
             Assert.That(codex.Transport, Is.EqualTo(AgentLoginTransport.Code));
             Assert.That(codex.NeedsCodeInput, Is.False);
 
             // cursor login polls on its own once the link is open.
-            Assert.That(provider.Resolve(AgentKind.Cursor).Transport, Is.EqualTo(AgentLoginTransport.Poll));
+            Assert.That(provider.Resolve("cursor").Transport, Is.EqualTo(AgentLoginTransport.Poll));
 
             // claude setup-token blocks on stdin for a pasted code.
-            var claude = provider.Resolve(AgentKind.Claude);
+            var claude = provider.Resolve("claude");
             Assert.That(claude.Transport, Is.EqualTo(AgentLoginTransport.Code));
             Assert.That(claude.NeedsCodeInput, Is.True);
         });
+    }
+
+    [Test]
+    public void Resolve_usesTheModuleLoginTransportWhenPresent()
+    {
+        var packages = new FakeEnabledCapabilityPackages().WithAgents(new StubAgentCapability
+        {
+            Identity = new CapabilityIdentity("sample", "1.0.0", "Sample", "agent-up"),
+            Login = new AgentLoginSpec("sample", ["login"], "redirect")
+        });
+
+        var flow = new AgentLoginFlowProvider(Configuration(), packages).Resolve("sample");
+
+        Assert.That(flow.Transport, Is.EqualTo(AgentLoginTransport.Redirect));
     }
 
     [Test]
@@ -35,7 +51,7 @@ public sealed class AgentLoginFlowProviderTests
     {
         var provider = new AgentLoginFlowProvider(Configuration(("Agents:Codex:LoginTransport", "redirect")));
 
-        Assert.That(provider.Resolve(AgentKind.Codex).Transport, Is.EqualTo(AgentLoginTransport.Redirect));
+        Assert.That(provider.Resolve("codex").Transport, Is.EqualTo(AgentLoginTransport.Redirect));
     }
 
     [Test]
@@ -45,7 +61,7 @@ public sealed class AgentLoginFlowProviderTests
             ("Agents:Cursor:LoginChallengeTimeoutSeconds", "5"),
             ("Agents:Cursor:LoginCompletionTimeoutSeconds", "30")));
 
-        var flow = provider.Resolve(AgentKind.Cursor);
+        var flow = provider.Resolve("cursor");
 
         Assert.Multiple(() =>
         {
@@ -60,13 +76,13 @@ public sealed class AgentLoginFlowProviderTests
         Assert.Multiple(() =>
         {
             Assert.That(
-                () => new AgentLoginFlowProvider(Configuration(("Agents:Codex:LoginTransport", "carrier-pigeon"))).Resolve(AgentKind.Codex),
+                () => new AgentLoginFlowProvider(Configuration(("Agents:Codex:LoginTransport", "carrier-pigeon"))).Resolve("codex"),
                 Throws.InvalidOperationException.With.Message.Contains("not a supported login transport"));
             Assert.That(
-                () => new AgentLoginFlowProvider(Configuration(("Agents:Codex:LoginChallengeTimeoutSeconds", "0"))).Resolve(AgentKind.Codex),
+                () => new AgentLoginFlowProvider(Configuration(("Agents:Codex:LoginChallengeTimeoutSeconds", "0"))).Resolve("codex"),
                 Throws.InvalidOperationException.With.Message.Contains("positive number of seconds"));
             Assert.That(
-                () => new AgentLoginFlowProvider(Configuration(("Agents:Codex:LoginCompletionTimeoutSeconds", "soon"))).Resolve(AgentKind.Codex),
+                () => new AgentLoginFlowProvider(Configuration(("Agents:Codex:LoginCompletionTimeoutSeconds", "soon"))).Resolve("codex"),
                 Throws.InvalidOperationException.With.Message.Contains("positive number of seconds"));
         });
     }

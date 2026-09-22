@@ -10,7 +10,8 @@ namespace AgentUp.Desktop.Features.Authentication.Services;
 public sealed class ServerConnectionService(
     IServerConnectionStore store,
     HttpClient http,
-    FakeServerController fakeServers)
+    FakeServerController fakeServers,
+    HttpClient? agentEventsHttp = null)
 {
     public SavedServerListDto List()
     {
@@ -44,7 +45,7 @@ public sealed class ServerConnectionService(
 
         selection.ActiveServerId = existing.Id;
         store.Save(selection);
-        ServerSessionProvider.Apply(http, uri, existing.AccessToken);
+        ApplySession(uri, existing.AccessToken);
         return ToDto(existing, existing.Id);
     }
 
@@ -62,7 +63,7 @@ public sealed class ServerConnectionService(
         selection.ActiveServerId = server.Id;
         store.Save(selection);
         var uri = SecureServerUrlProvider.ResolveServerUri(server.Url);
-        ServerSessionProvider.Apply(http, uri, server.AccessToken);
+        ApplySession(uri, server.AccessToken);
         return ToDto(server, server.Id);
     }
 
@@ -84,10 +85,7 @@ public sealed class ServerConnectionService(
         if (fakeServers.Matches(url))
         {
             fakeServers.Reset();
-            ServerSessionProvider.Apply(
-                http,
-                SecureServerUrlProvider.ResolveServerUri(FakeServerIdentity.Url),
-                null);
+            ApplySession(SecureServerUrlProvider.ResolveServerUri(FakeServerIdentity.Url), null);
             return;
         }
 
@@ -96,7 +94,7 @@ public sealed class ServerConnectionService(
         var normalized = SecureServerUrlProvider.Normalize(uri);
         var existing = selection.Servers.FirstOrDefault(server =>
             string.Equals(server.Url, normalized, StringComparison.OrdinalIgnoreCase));
-        ServerSessionProvider.Apply(http, uri, existing?.AccessToken);
+        ApplySession(uri, existing?.AccessToken);
     }
 
     public void RestoreActive()
@@ -116,7 +114,7 @@ public sealed class ServerConnectionService(
             return;
 
         var uri = SecureServerUrlProvider.ResolveServerUri(active.Url);
-        ServerSessionProvider.Apply(http, uri, active.AccessToken);
+        ApplySession(uri, active.AccessToken);
     }
 
     public string CurrentUrl()
@@ -146,11 +144,15 @@ public sealed class ServerConnectionService(
         existing.Url = FakeServerIdentity.Url;
         selection.ActiveServerId = FakeServerIdentity.Id;
         store.Save(selection);
-        ServerSessionProvider.Apply(
-            http,
-            SecureServerUrlProvider.ResolveServerUri(FakeServerIdentity.Url),
-            null);
+        ApplySession(SecureServerUrlProvider.ResolveServerUri(FakeServerIdentity.Url), null);
         return ToFakeDto(true);
+    }
+
+    private void ApplySession(Uri uri, string? accessToken)
+    {
+        ServerSessionProvider.Apply(http, uri, accessToken);
+        if (agentEventsHttp is not null)
+            ServerSessionProvider.Apply(agentEventsHttp, uri, accessToken);
     }
 
     private SavedServerListDto ToListDto(ServerSelection selection)

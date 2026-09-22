@@ -8,7 +8,10 @@ namespace AgentUp.CLI.Features.Workspaces.Providers;
 
 public sealed class WorkspaceApiClient
 {
-    private static readonly JsonSerializerOptions Options = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     private readonly HttpClient _http;
 
@@ -16,7 +19,7 @@ public sealed class WorkspaceApiClient
 
     public async Task<WorkspaceDto?> RegisterAsync(RegisterWorkspaceRequest request)
     {
-        using var response = await _http.PostAsJsonAsync("/api/workspaces", request);
+        using var response = await _http.PostAsJsonAsync("/api/workspaces", request, Options);
         await ServerApiResponseGuard.EnsureSuccessAsync(response);
         return await response.Content.ReadFromJsonAsync<WorkspaceDto>(Options);
     }

@@ -899,7 +899,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             if (_fakeServers?.Matches(_serverBaseUrl) == true
                 && _fakeServers.ApplicationHtml(destination.Port) is { } html)
             {
-                NavigateWebView(webView, WriteFakeApplicationPage(workspaceId, tabKey, html));
+                NavigateWebView(webView, _fakeServers.WriteApplicationPage(workspaceId, tabKey, html));
                 _lastKnownBrowserUrls[tabKey] = destination.ToString();
                 return;
             }
@@ -1181,14 +1181,6 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private static Uri WriteBrowserErrorPage(string workspaceId, string html)
     {
         var htmlPath = BrowserErrorHtmlPath(workspaceId);
-        File.WriteAllText(htmlPath, html, Encoding.UTF8);
-        return new Uri("file://" + htmlPath);
-    }
-
-    private static Uri WriteFakeApplicationPage(string workspaceId, string tabKey, string html)
-    {
-        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(workspaceId + ":" + tabKey)));
-        var htmlPath = Path.Join(Path.GetTempPath(), $"agentup-fake-app-{hash[..16]}.html");
         File.WriteAllText(htmlPath, html, Encoding.UTF8);
         return new Uri("file://" + htmlPath);
     }

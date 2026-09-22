@@ -236,6 +236,122 @@ public sealed class ServerConnectionServiceTests
         Assert.That(service.List().Servers[0].IsFake, Is.True);
     }
 
+    [Test]
+    public void Activate_fakeIdSwitchesOntoDemo()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var service = FakeServerTestComposition.Connections(store, http);
+
+        var activated = service.Activate("fake");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(activated.IsFake, Is.True);
+            Assert.That(activated.IsActive, Is.True);
+            Assert.That(service.CurrentUrl(), Is.EqualTo("http://127.0.0.1:9"));
+        });
+    }
+
+    [Test]
+    public void RestoreActive_reconnectsAStoredDemoSelection()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var firstHttp = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        FakeServerTestComposition.Connections(store, firstHttp).Activate("fake");
+
+        using var restored = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var next = FakeServerTestComposition.Connections(store, restored);
+        next.RestoreActive();
+
+        Assert.That(next.CurrentUrl(), Is.EqualTo("http://127.0.0.1:9"));
+        Assert.That(next.List().Servers[0].IsActive, Is.True);
+    }
+
+    [Test]
+    public void Prepare_fakeUrlResetsTheBackend()
+    {
+        var store = new InMemoryServerConnectionStore();
+        var backend = FakeServerTestComposition.Backend();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var service = FakeServerTestComposition.Connections(store, http, backend);
+        backend.Handle(new FakeBackendRequestDtoBuilder().Delete("/api/workspaces/harbor-shop").Build());
+
+        service.Prepare("http://127.0.0.1:9");
+
+        Assert.That(backend.ApplicationHtml(9100), Does.Contain("Harbor Shop"));
+        Assert.That(service.CurrentUrl(), Is.EqualTo("http://127.0.0.1:9"));
+    }
+
+    [Test]
+    public void Activate_appliesTheAgentEventsClientSession()
+    {
+        var store = new InMemoryServerConnectionStore();
+        var backend = FakeServerTestComposition.Backend();
+        using var http = FakeServerTestComposition.Client(backend);
+        using var eventsHttp = FakeServerTestComposition.Client(backend);
+        var service = new ServerConnectionService(
+            store,
+            http,
+            FakeServerTestComposition.Controller(backend),
+            eventsHttp);
+
+        service.Activate("fake");
+
+        Assert.That(ServerSessionProvider.CurrentUri(eventsHttp)!.GetLeftPart(UriPartial.Authority), Is.EqualTo("http://127.0.0.1:9"));
+        Assert.That(eventsHttp.DefaultRequestHeaders.Authorization, Is.Null);
+    }
+
+    [Test]
+    public void Activate_treatsAStoredFakeUrlAsDemo()
+    {
+        var store = new InMemoryServerConnectionStore();
+        store.Save(new ServerSelection
+        {
+            Servers =
+            [
+                new ConfiguredServer
+                {
+                    Id = "legacy-demo",
+                    Url = "http://127.0.0.1:9"
+                }
+            ],
+            ActiveServerId = "legacy-demo"
+        });
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var service = FakeServerTestComposition.Connections(store, http);
+
+        var activated = service.Activate("legacy-demo");
+
+        Assert.That(activated.IsFake, Is.True);
+        Assert.That(service.CurrentUrl(), Is.EqualTo("http://127.0.0.1:9"));
+    }
+
+    [Test]
+    public void RestoreActive_treatsAStoredFakeUrlAsDemo()
+    {
+        var store = new InMemoryServerConnectionStore();
+        store.Save(new ServerSelection
+        {
+            Servers =
+            [
+                new ConfiguredServer
+                {
+                    Id = "legacy-demo",
+                    Url = "http://127.0.0.1:9"
+                }
+            ],
+            ActiveServerId = "legacy-demo"
+        });
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var service = FakeServerTestComposition.Connections(store, http);
+
+        service.RestoreActive();
+
+        Assert.That(service.CurrentUrl(), Is.EqualTo("http://127.0.0.1:9"));
+        Assert.That(service.List().Servers[0].IsActive, Is.True);
+    }
+
     private static List<AgentUp.Desktop.Features.Authentication.DTOs.SavedServerDto> UserServers(
         ServerConnectionService service)
         => service.List().Servers.Where(server => !server.IsFake).ToList();

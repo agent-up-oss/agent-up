@@ -108,7 +108,7 @@ export default function App() {
           <p className="eyebrow">Agent-Up example workspace</p>
           <h1>Operations Dashboard</h1>
           <p className="lede">
-            React reads live inventory and orders from Express. Postgres is seeded by SQL migrations when the API starts.
+            React reads live inventory and orders from the .NET API. Postgres is seeded by SQL migrations when the API starts.
           </p>
         </div>
         <div className={`status-pill ${state.status}`}>
@@ -135,7 +135,7 @@ export default function App() {
         <div className="table-header">
           <div>
             <h2>Product Portfolio</h2>
-            <p>API port {__API_PORT__} · browse the Database tab on the Postgres service to inspect these tables</p>
+            <p>API port {__API_PORT__} · browse the Database tab on the Postgres docker capability to inspect these tables</p>
           </div>
           <button type="button" onClick={() => window.location.reload()}>Refresh</button>
         </div>

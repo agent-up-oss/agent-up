@@ -2,12 +2,14 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using AgentUp.Desktop.Features.FakeServer.DTOs;
 using AgentUp.Desktop.Features.FakeServer.Models;
+using AgentUp.Desktop.Features.FakeServer.Providers;
 
 namespace AgentUp.Desktop.Features.FakeServer.Services;
 
 public sealed class FakeBackendService
 {
     private readonly FakeServerDefinition _template;
+    private readonly FakeApplicationPageProvider _pages;
     private readonly Lock _gate = new();
     private FakeServerDefinition _state;
     private readonly Dictionary<string, List<FakeServerEvent>> _agentEvents = new(StringComparer.Ordinal);
@@ -15,10 +17,11 @@ public sealed class FakeBackendService
     private readonly List<Action<string>> _workspaceListeners = [];
     private long _agentSequence;
 
-    public FakeBackendService(FakeServerDefinition definition)
+    public FakeBackendService(FakeServerDefinition definition, FakeApplicationPageProvider? pages = null)
     {
         _template = definition;
         _state = definition.Clone();
+        _pages = pages ?? new FakeApplicationPageProvider();
     }
 
     public FakeServerConnectionDto Catalog(string? activeServerId)
@@ -54,6 +57,9 @@ public sealed class FakeBackendService
             return _state.Pages?[page]?.GetValue<string>();
     }
 
+    public Uri WriteApplicationPage(string workspaceId, string tabKey, string html)
+        => _pages.Write(workspaceId, tabKey, html);
+
     public FakeBackendResponseDto Handle(FakeBackendRequestDto request)
     {
         var method = request.Method.ToUpperInvariant();
@@ -81,6 +87,12 @@ public sealed class FakeBackendService
             return IssueTicket(request.Body);
         if (method == "POST" && path == "/api/audit/record")
             return new FakeBackendResponseDto(204, "application/json");
+        if (method == "GET" && path == "/api/capabilities")
+            return Json(new JsonArray());
+        if (method == "POST" && path == "/api/capabilities/enable")
+            return Json(CapabilityModule(true));
+        if (method == "POST" && path.StartsWith("/api/capabilities/disable/", StringComparison.Ordinal))
+            return Json(CapabilityModule(false));
         if (method == "GET" && path.StartsWith("/apps/", StringComparison.Ordinal))
             return AppPage(path);
 
@@ -562,6 +574,20 @@ public sealed class FakeBackendService
             return null;
         }
     }
+
+    private static JsonObject CapabilityModule(bool enabled)
+        => new()
+        {
+            ["id"] = "demo",
+            ["version"] = "1.0.0",
+            ["displayName"] = "Demo",
+            ["publisher"] = "agent-up",
+            ["kind"] = "runtime",
+            ["enabled"] = enabled,
+            ["state"] = enabled ? "ready" : "disabled",
+            ["canRun"] = false,
+            ["messages"] = new JsonArray("Demo does not host capability modules.")
+        };
 
     private static FakeBackendResponseDto Json(JsonNode node)
         => new(200, "application/json", node.ToJsonString(WebOptions()));

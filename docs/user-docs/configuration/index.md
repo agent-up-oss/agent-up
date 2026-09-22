@@ -48,10 +48,11 @@ Use optional `prompts` values, such as `prompts.commitPolicy`, to give AI agents
 
 ## Preferred sections
 
-Use capability-aware sections when Agent-Up should understand the ecosystem boundary:
+Use capability-aware sections when Agent-Up should understand the ecosystem boundary. Section names match enabled runtime modules:
 
-- `dotnet` for .NET applications launched through the .NET capability.
-- `docker` for Docker containers launched through the Docker capability.
+- `dotnet` for .NET applications hosted by the enabled `dotnet` module. `sdk` is the technology version that module should deliver.
+- `docker` for Docker containers hosted by the enabled `docker` module.
+- any other enabled runtime-kind module id as a root array, using that module's extra attributes.
 
 Use compatibility sections when Agent-Up should preserve a legacy executable-plus-arguments command or Docker service shape:
 

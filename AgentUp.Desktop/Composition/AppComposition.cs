@@ -21,13 +21,18 @@ public static class AppComposition
         var fakeBackend = new FakeBackendService(new FakeServerDefinitionProvider().LoadEmbedded());
         var fakeServers = new FakeServerController(fakeBackend);
         var http = CreateServerHttpClient(fakeBackend);
-        var connections = new ServerConnectionService(new FileServerConnectionStore(), http, fakeServers);
+        var agentEventsHttp = CreateAgentEventHttpClient(fakeBackend);
+        var connections = new ServerConnectionService(
+            new FileServerConnectionStore(),
+            http,
+            fakeServers,
+            agentEventsHttp);
         connections.RestoreActive();
         var authentication = new AuthenticationController(
             new AuthenticationService(new AuthenticationApiClient(http)),
             connections);
         var login = new LoginViewModel(authentication);
-        var (window, viewModel) = CreateMainWindow(http, login, fakeServers, fakeBackend);
+        var (window, viewModel) = CreateMainWindow(http, login, fakeServers, fakeBackend, agentEventsHttp);
         desktop.MainWindow = window;
         window.Closing += (_, _) => viewModel.Login.Cancel();
         window.Show();
@@ -95,13 +100,21 @@ public static class AppComposition
             SecureServerUrlProvider.ResolveServerUri(),
             new FakeServerMessageHandler(fakeBackend, new HttpClientHandler()));
 
+    private static HttpClient CreateAgentEventHttpClient(FakeBackendService fakeBackend)
+    {
+        var client = CreateServerHttpClient(fakeBackend);
+        client.Timeout = Timeout.InfiniteTimeSpan;
+        return client;
+    }
+
     public static (Window Window, MainViewModel ViewModel) CreateMainWindow(
         HttpClient http,
         LoginViewModel login,
         FakeServerController fakeServers,
-        FakeBackendService fakeBackend)
+        FakeBackendService fakeBackend,
+        HttpClient? agentEventsHttp = null)
     {
-        var viewModel = MainViewModelFactory.Create(http, login);
+        var viewModel = MainViewModelFactory.Create(http, login, agentEventsHttp);
         var window = new MainWindow(http, fakeServers) { DataContext = viewModel };
         window.CreateWorkspaceEventHttpClient = url =>
         {

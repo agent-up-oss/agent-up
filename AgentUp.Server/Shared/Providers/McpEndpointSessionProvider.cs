@@ -75,6 +75,13 @@ public sealed class McpEndpointSessionProvider
         "audit_load_artifact"
     };
 
+    private static readonly HashSet<string> CapabilityTools = new(StringComparer.Ordinal)
+    {
+        "list_capability_modules",
+        "enable_capability_module",
+        "disable_capability_module"
+    };
+
     public Task ConfigureAsync(HttpContext context, McpServerOptions options, CancellationToken cancellationToken)
     {
         if (IsEndpoint(context, "/mcp/commits"))
@@ -103,6 +110,12 @@ public sealed class McpEndpointSessionProvider
         {
             options.ServerInstructions = "Agent-Up audit MCP server. Use these tools to query durable workspace, browser, MCP, process, source revision, health, and artifact history.";
             KeepTools(options, AuditTools);
+            options.ResourceCollection?.Clear();
+        }
+        else if (IsEndpoint(context, "/mcp/capabilities"))
+        {
+            options.ServerInstructions = "Agent-Up capability modules MCP server. List, enable, and disable registry packages on this Server. Enabling wraps later application and agent launches through nix. Desktop and Mobile never call the remote registry.";
+            KeepTools(options, CapabilityTools);
             options.ResourceCollection?.Clear();
         }
 

@@ -55,6 +55,20 @@ test('application tickets serve the bundled storefront HTML', () => {
   assert.match(service.applicationHtml(9100) ?? '', /Harbor Shop/);
 });
 
+test('capability modules stay empty on Demo', () => {
+  const service = backend();
+  const listed = JSON.parse(service.handle({ method: 'GET', path: '/api/capabilities', query: '', body: null }).body!);
+  const enabled = JSON.parse(service.handle({
+    method: 'POST',
+    path: '/api/capabilities/enable',
+    query: '',
+    body: JSON.stringify({ id: 'dotnet' }),
+  }).body!);
+  assert.equal(listed.length, 0);
+  assert.equal(enabled.enabled, true);
+  assert.equal(enabled.canRun, false);
+});
+
 test('reset restores the bundled workspace after a clone', () => {
   const service = backend();
   service.handle({

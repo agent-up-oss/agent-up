@@ -283,9 +283,13 @@ case "$platform" in
         let
           cfg = config.services.agent-up;
           package = self.packages.${pkgs.system}.agent-up;
-          capabilityInventory = builtins.toJSON (
-            lib.mapAttrsToList (id: versions: { inherit id versions; }) cfg.capabilities
-          );
+          capabilityEnabled = builtins.toJSON {
+            schemaVersion = "1";
+            modules = lib.mapAttrsToList (id: versions: {
+              inherit id;
+              version = if versions == [] then "1.0.0" else builtins.head versions;
+            }) cfg.capabilities;
+          };
         in
         {
           options.services.agent-up = {
@@ -304,13 +308,13 @@ case "$platform" in
               type = lib.types.attrsOf (lib.types.listOf lib.types.str);
               default = {};
               example = { dotnet = [ "10.0.x" ]; docker = [ "27.x" ]; };
-              description = "Declarative Agent-Up capability versions made available on NixOS.";
+              description = "Enabled Agent-Up capability packages (id → versions; the first version is seeded).";
             };
           };
 
           config = lib.mkIf cfg.enable {
             environment.systemPackages = [ package ];
-            environment.etc."agent-up/capabilities.json".text = capabilityInventory;
+            environment.etc."agent-up/enabled.json".text = capabilityEnabled;
             systemd.services.agent-up-server = {
               description = "Agent-Up Server";
               wantedBy = [ "multi-user.target" ];
@@ -321,7 +325,7 @@ case "$platform" in
                 DOTNET_CONTENTROOT = "${package}/opt/agent-up/server";
                 DOTNET_BUNDLE_EXTRACT_BASE_DIR = "/var/cache/agent-up";
                 Storage__DataDirectory = cfg.dataDir;
-                AGENTUP_CAPABILITY_INVENTORY_PATH = "/etc/agent-up/capabilities.json";
+                AGENTUP_CAPABILITY_ENABLED_PATH = "/etc/agent-up/enabled.json";
               };
               serviceConfig = {
                 ExecStart = "${package}/bin/agent-up-server --urls http://127.0.0.1:${toString cfg.port}";
@@ -339,9 +343,13 @@ case "$platform" in
         let
           cfg = config.programs.agent-up;
           package = self.packages.${pkgs.system}.agent-up;
-          capabilityInventory = builtins.toJSON (
-            lib.mapAttrsToList (id: versions: { inherit id versions; }) cfg.capabilities
-          );
+          capabilityEnabled = builtins.toJSON {
+            schemaVersion = "1";
+            modules = lib.mapAttrsToList (id: versions: {
+              inherit id;
+              version = if versions == [] then "1.0.0" else builtins.head versions;
+            }) cfg.capabilities;
+          };
         in
         {
           options.programs.agent-up = {
@@ -350,7 +358,7 @@ case "$platform" in
               type = lib.types.attrsOf (lib.types.listOf lib.types.str);
               default = {};
               example = { dotnet = [ "10.0.x" ]; docker = [ "27.x" ]; };
-              description = "Declarative Agent-Up capability versions made available through Home Manager.";
+              description = "Enabled Agent-Up capability packages (id → versions; the first version is seeded).";
             };
             server = {
               enable = lib.mkOption {
@@ -375,7 +383,7 @@ case "$platform" in
             home.packages = [ package ];
             home.file.".local/share/icons/hicolor/256x256/apps/agent-up.png".source =
               "${package}/opt/agent-up/logo.png";
-            home.file.".config/agent-up/capabilities.json".text = capabilityInventory;
+            home.file.".config/agent-up/enabled.json".text = capabilityEnabled;
             xdg.desktopEntries.agent-up = {
               name = "Agent Up";
               exec = "agent-up-desktop";
@@ -415,7 +423,7 @@ case "$platform" in
                   "DOTNET_CONTENTROOT=${package}/opt/agent-up/server"
                   "DOTNET_BUNDLE_EXTRACT_BASE_DIR=${config.xdg.cacheHome}/agent-up"
                   "Storage__DataDirectory=${cfg.server.dataDir}"
-                  "AGENTUP_CAPABILITY_INVENTORY_PATH=${config.xdg.configHome}/agent-up/capabilities.json"
+                  "AGENTUP_CAPABILITY_ENABLED_PATH=${config.xdg.configHome}/agent-up/enabled.json"
                 ];
               };
               Install.WantedBy = [ "default.target" ];

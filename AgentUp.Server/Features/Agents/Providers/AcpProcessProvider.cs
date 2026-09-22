@@ -22,14 +22,14 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
     public event Action<string?>? Exited;
 
     public async Task StartAsync(
-        AgentKind kind,
+        string agent,
         string workingDirectory,
         IReadOnlyDictionary<string, string> environment,
         CancellationToken cancellationToken)
     {
         if (_process is not null) throw new InvalidOperationException("The ACP process has already started.");
-        var command = await commands.ResolveAsync(kind, cancellationToken)
-            ?? throw new InvalidOperationException($"{kind} ACP executable is not installed or is not on PATH.");
+        var command = await commands.ResolveAsync(agent, cancellationToken)
+            ?? throw new InvalidOperationException($"{agent} ACP executable is not installed or is not on PATH.");
         var start = new ProcessStartInfo(command.FileName) {
             WorkingDirectory = workingDirectory, RedirectStandardInput = true,
             RedirectStandardOutput = true, RedirectStandardError = true,

@@ -1,4 +1,5 @@
 import { StyleSheet, View } from 'react-native';
+import { agentUpTheme } from '@agent-up/design-system/native';
 import type { ApplicationProxySource } from '../providers/ApplicationBrowserProvider';
 
 /** Hosts the tunneled application HTTP response in the installable web client. */
@@ -16,4 +17,4 @@ export function RemoteBrowser({ source }: { source: ApplicationProxySource }) {
   );
 }
 
-const styles = StyleSheet.create({ container: { flex: 1, minHeight: 400, backgroundColor: '#050505' } });
+const styles = StyleSheet.create({ container: { flex: 1, minHeight: 400, backgroundColor: agentUpTheme.colors.canvas } });
