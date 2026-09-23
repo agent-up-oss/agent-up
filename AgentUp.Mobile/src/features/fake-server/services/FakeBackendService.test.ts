@@ -173,3 +173,66 @@ test('reset restores the bundled workspace after a clone', () => {
   service.reset();
   assert.equal(json(service, 'GET', '/api/workspaces').length, 1);
 });
+
+test('git discard branch and checkout mutate the demo tree', () => {
+  const service = backend();
+  const discarded = json(service, 'POST', '/api/workspaces/harbor-shop/git/discard', JSON.stringify({
+    files: ['apps/api/orders.ts'],
+  }));
+  const created = json(service, 'POST', '/api/workspaces/harbor-shop/git/branch', JSON.stringify({
+    name: 'topic',
+    create: true,
+  }));
+  const empty = json(service, 'POST', '/api/workspaces/harbor-shop/git/branch', JSON.stringify({ name: ' ' }));
+  const remote = json(service, 'POST', '/api/workspaces/harbor-shop/git/checkout', JSON.stringify({
+    name: 'origin/release',
+  }));
+  assert.equal(discarded.succeeded, true);
+  assert.equal(created.head.branch, 'topic');
+  assert.equal(empty.succeeded, false);
+  assert.equal(remote.head.branch, 'release');
+});
+
+test('git and agent routes on cloned workspaces return not found', () => {
+  const service = backend();
+  const cloned = json(service, 'POST', '/api/source-clones', '{}');
+  const id = cloned.id;
+  assert.equal(service.handle({ method: 'GET', path: `/api/workspaces/${id}/git/head`, query: '', body: null }).status, 404);
+  assert.equal(service.handle({ method: 'POST', path: `/api/workspaces/${id}/git/fetch`, query: '', body: '{}' }).status, 404);
+  assert.equal(json(service, 'GET', `/api/workspaces/${id}/overview`).applicationCount, 0);
+  assert.equal(service.handle({
+    method: 'POST',
+    path: `/api/workspaces/${id}/agent/messages`,
+    query: '',
+    body: JSON.stringify({ message: 'hi' }),
+  }).status, 404);
+});
+
+test('missing workspace and capability ids return not found', () => {
+  const service = backend();
+  assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/missing/start', query: '', body: null }).status, 404);
+  assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/missing/stop', query: '', body: null }).status, 404);
+  assert.equal(service.handle({ method: 'GET', path: '/api/workspaces/missing/agent', query: '', body: null }).status, 404);
+  assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/missing/git/push', query: '', body: '{}' }).status, 404);
+  assert.equal(service.handle({ method: 'POST', path: '/api/capabilities/enable', query: '', body: '{}' }).status, 404);
+  assert.equal(service.handle({ method: 'POST', path: '/api/capabilities/disable/missing', query: '', body: null }).status, 404);
+});
+
+test('start then stop cancels the checking phase', () => {
+  const { service, step } = queuedBackend();
+  assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/harbor-shop/stop', query: '', body: null }).status, 204);
+  assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/harbor-shop/start', query: '', body: null }).status, 204);
+  assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/harbor-shop/stop', query: '', body: null }).status, 204);
+  step();
+  assert.equal(json(service, 'GET', '/api/workspaces/harbor-shop').state, 'Stopped');
+});
+
+test('unknown git action and empty commit bodies stay safe', () => {
+  const service = backend();
+  const other = json(service, 'POST', '/api/workspaces/harbor-shop/git/status', '{}');
+  const emptyCommit = json(service, 'POST', '/api/workspaces/harbor-shop/git/commit', null);
+  const invalid = json(service, 'POST', '/api/workspaces/harbor-shop/git/commit', '{"files":"nope"}');
+  assert.equal(other.succeeded, true);
+  assert.equal(emptyCommit.succeeded, false);
+  assert.equal(invalid.succeeded, false);
+});

@@ -243,6 +243,23 @@ public sealed class FakeServerSseStreamTests
         var read = await pending;
         Assert.That(Encoding.UTF8.GetString(buffer, 0, read), Is.EqualTo("data: later\n\n"));
     }
+
+    [Test]
+    public async Task ReadAsync_byteArrayOverloadCopiesAPartialFrame()
+    {
+        using var stream = new FakeServerSseStream();
+        stream.WriteFrame("data: abcdefgh\n\n");
+        stream.Complete();
+        var first = new byte[6];
+        var second = new byte[32];
+
+        var firstRead = await stream.ReadAsync(first, 0, first.Length);
+        var secondRead = await stream.ReadAsync(second, 0, second.Length);
+
+        Assert.That(Encoding.UTF8.GetString(first, 0, firstRead), Is.EqualTo("data: "));
+        Assert.That(Encoding.UTF8.GetString(second, 0, secondRead), Is.EqualTo("abcdefgh\n\n"));
+        Assert.That(await stream.ReadAsync(second, 0, second.Length), Is.EqualTo(0));
+    }
 }
 
 [TestFixture]

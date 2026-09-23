@@ -32,3 +32,21 @@ test('streams workspace events for the Demo URL', async () => {
   assert.equal(response.headers.get('Content-Type'), 'text/event-stream');
   assert.match(new TextDecoder().decode(first.value), /harbor-shop/);
 });
+
+test('returns empty 204 bodies and streams agent events', async () => {
+  const service = new FakeBackendService(loadFakeServerDefinition());
+  const request = createFakeServerFetch(service, (async () => new Response(null, { status: 204 })) as typeof fetch);
+  const posted = await request('http://127.0.0.1:9/api/workspaces/harbor-shop/agent/messages', {
+    method: 'POST',
+    body: JSON.stringify({ message: 'status?' }),
+  });
+  const events = await request('http://127.0.0.1:9/api/workspaces/harbor-shop/agent/events?after=0');
+  const reader = events.body!.getReader();
+  const first = await reader.read();
+  await reader.cancel();
+  const missing = await request('http://127.0.0.1:9/api/workspaces//agent/events');
+  assert.equal(posted.status, 204);
+  assert.equal(events.headers.get('Content-Type'), 'text/event-stream');
+  assert.match(new TextDecoder().decode(first.value), /user_message/);
+  assert.equal(missing.status, 404);
+});

@@ -2,12 +2,17 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   addAgentWorkingTreeFile,
+  checkoutGitRemote,
   commitGitFiles,
   discardGitFiles,
   fetchGitRemote,
   gitChangesPayload,
+  gitDiffPayload,
   gitHeadPayload,
+  gitLogPayload,
+  gitQueuePayload,
   loadFakeGitState,
+  normalizeGitStatus,
   pullGitRemote,
   pushGitRemote,
   switchGitBranch,
@@ -105,4 +110,37 @@ test('branch switch and agent files add pending changes', () => {
   assert.equal(added.status, 'Added');
   assert.equal(gitChangesPayload(git).fileCount, 2);
   assert.ok(git.unassignedFiles.includes(added.path));
+});
+
+test('commit rejects unknown files and uses a default message', () => {
+  const git = harborGit();
+  const rejected = commitGitFiles(git, ['missing.ts'], 'fix');
+  const committed = commitGitFiles(git, ['apps/storefront/ProductGrid.tsx'], '   ');
+  assert.equal(rejected.succeeded, false);
+  assert.match(rejected.error ?? '', /Select at least one file/);
+  assert.equal(committed.succeeded, true);
+  assert.equal(git.log[0]?.subject, 'chore: update harbor shop');
+});
+
+test('switch and checkout reject empty names and add remotes', () => {
+  const git = harborGit();
+  assert.equal(switchGitBranch(git, '  ', true).succeeded, false);
+  assert.equal(switchGitBranch(git, 'topic', false).succeeded, false);
+  assert.equal(switchGitBranch(git, 'main', true).succeeded, true);
+  assert.equal(checkoutGitRemote(git, ' ').succeeded, false);
+  assert.equal(checkoutGitRemote(git, 'origin/release').head?.branch, 'release');
+  assert.equal(checkoutGitRemote(git, 'main').head?.branch, 'main');
+});
+
+test('loadFakeGitState defaults sparse nodes and later agent files', () => {
+  assert.equal(loadFakeGitState('harbor-shop', undefined), null);
+  assert.equal(normalizeGitStatus(undefined), 'Modified');
+  assert.equal(normalizeGitStatus('mystery'), 'Modified');
+  const git = loadFakeGitState('harbor-shop', { incomingPulled: true })!;
+  git.nextAgentFile = 2;
+  const added = addAgentWorkingTreeFile(git);
+  assert.equal(added.path, 'apps/storefront/PromoBanner2.tsx');
+  assert.equal(gitLogPayload(git).commits.length, 0);
+  assert.equal(gitQueuePayload(git).entries.length, 0);
+  assert.equal(gitDiffPayload(git, added.path)?.status, 'Added');
 });
