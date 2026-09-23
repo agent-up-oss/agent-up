@@ -1008,10 +1008,17 @@ jobs:
           tool_suffix=""
           if [ "${{ runner.os }}" = "Windows" ]; then
             tool_suffix=".exe"
-            # Windows runner only has Docker Engine (Windows container mode); Linux containers
-            # like nginx:alpine cannot run there. Docker capability is covered by Linux/macOS jobs.
-            export AGENTUP_CAPABILITY_SMOKE_SKIP_REAL=1
           fi
+          # This step validates a native package and the service it installs. The runners
+          # that reach it (Ubuntu and Windows; macOS and NixOS are skipped in the smoke
+          # itself) provision no capabilities: no Nix, no packed capability registry, and
+          # no enabled set seeded into the installed service's data directory. Since dotnet
+          # and docker became capability packages rather than Server built-ins, a launch
+          # needs all three, so launching one here fails on provisioning the package does
+          # not own and asserts nothing about the package. Real capability launches are
+          # proven by the Runtime capability E2E job, which installs Nix, packs the
+          # first-party packages and enables them.
+          export AGENTUP_CAPABILITY_SMOKE_SKIP_REAL=1
           export AGENTUP_PACKAGE_SMOKE_COMMAND="$PWD/dotnet-ci/tools/${{ matrix.rid }}/package-smoke/AgentUp.PackageSmoke$tool_suffix"
           ./.github/scripts/smoke-installed-service.sh "${{ matrix.platform }}" "${{ matrix.rid }}" "release-artifacts"
 
