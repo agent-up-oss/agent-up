@@ -38,11 +38,13 @@ export function GitChangesPanel({
   workspaceId: workspaceIdProp,
   mode = 'review',
   onOpenFile,
+  onMutated,
   reloadNonce = 0,
 }: {
   workspaceId?: string;
   mode?: 'overview' | 'review';
   onOpenFile?: (path: string) => void;
+  onMutated?: () => void;
   reloadNonce?: number;
 } = {}) {
   const { expireActiveCredential } = useServers();
@@ -196,6 +198,7 @@ export function GitChangesPanel({
       if (!result.succeeded) { setError(result.error ?? 'The Git operation failed.'); return false; }
       setStatus(onSuccess(result));
       await load(true, true);
+      onMutated?.();
       return true;
     } catch (cause) {
       if (!mutateGate.isCurrent(ticket)) return false;

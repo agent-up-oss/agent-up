@@ -15,6 +15,7 @@ public sealed class FakeGitProviderTests
         Assert.That(result["succeeded"]!.GetValue<bool>(), Is.True);
         Assert.That(git["changes"]!["fileCount"]!.GetValue<int>(), Is.EqualTo(1));
         Assert.That(FakeGitProvider.Head(git)["ahead"]!.GetValue<int>(), Is.EqualTo(1));
+        Assert.That(FakeGitProvider.Head(git)["behind"]!.GetValue<int>(), Is.EqualTo(1));
     }
 
     [Test]
@@ -22,8 +23,17 @@ public sealed class FakeGitProviderTests
     {
         var git = HarborGit();
         FakeGitProvider.Fetch(git);
+        FakeGitProvider.Fetch(git);
         Assert.That(FakeGitProvider.Head(git)["behind"]!.GetValue<int>(), Is.EqualTo(1));
         FakeGitProvider.Pull(git);
+        FakeGitProvider.Pull(git);
+        Assert.That(FakeGitProvider.Head(git)["behind"]!.GetValue<int>(), Is.EqualTo(0));
+        Assert.That(OriginCommits(git), Is.EqualTo(1));
+        FakeGitProvider.Fetch(git);
+        FakeGitProvider.Pull(git);
+        Assert.That(FakeGitProvider.Head(git)["behind"]!.GetValue<int>(), Is.EqualTo(0));
+        Assert.That(OriginCommits(git), Is.EqualTo(1));
+        Assert.That(FakeGitProvider.Commit(git, ["apps/storefront/ProductGrid.tsx"], "fix(storefront): featured grid")["succeeded"]!.GetValue<bool>(), Is.True);
         Assert.That(FakeGitProvider.Head(git)["behind"]!.GetValue<int>(), Is.EqualTo(0));
         git["changes"]!["ahead"] = 2;
         FakeGitProvider.Push(git);
@@ -42,6 +52,10 @@ public sealed class FakeGitProviderTests
         Assert.That(discarded["succeeded"]!.GetValue<bool>(), Is.True);
         Assert.That(git["changes"]!["fileCount"]!.GetValue<int>(), Is.EqualTo(2));
     }
+
+    private static int OriginCommits(JsonObject git)
+        => (git["log"]?["commits"] as JsonArray ?? [])
+            .Count(item => item?["author"]?.GetValue<string>() == "origin");
 
     private static JsonObject HarborGit()
         => new FakeServerDefinitionProvider().LoadEmbedded().Git!["harbor-shop"]!.DeepClone().AsObject();

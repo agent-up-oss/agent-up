@@ -26,10 +26,11 @@ export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
           workspaceId={workspaceId}
           onHistory={() => router.push(`/(main)/workspace/${workspaceId}/git/history`)}
           onReload={reload}
+          reloadNonce={reloadNonce}
         />
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Changes</Text>
-          <GitChangesPanel workspaceId={workspaceId} mode="overview" reloadNonce={reloadNonce} />
+          <GitChangesPanel workspaceId={workspaceId} mode="overview" reloadNonce={reloadNonce} onMutated={reload} />
         </View>
       </View>
       <WorkspaceTabBar workspaceId={workspaceId} active="git" />

@@ -31,7 +31,8 @@ public static class FakeGitProvider
         SetInt(ChangesObject(git), "ahead", IntValue(ChangesObject(git), "ahead") + 1);
         ChangesObject(git)["commit"] = commit[..Math.Min(7, commit.Length)];
         PrependLog(git, commit, message.Trim().Length == 0 ? "chore: update harbor shop" : message.Trim(), "Demo", ["HEAD", Branch(git)]);
-        return Result(succeeded: true, commit: commit);
+        Fetch(git);
+        return Result(succeeded: true, commit: commit, head: Head(git));
     }
 
     public static JsonObject Discard(JsonObject git, IReadOnlyList<string> files)
@@ -42,21 +43,25 @@ public static class FakeGitProvider
 
     public static JsonObject Fetch(JsonObject git)
     {
+        if (IncomingPulled(git))
+            return Result(succeeded: true, head: Head(git));
         if (IntValue(ChangesObject(git), "behind") == 0)
             SetInt(ChangesObject(git), "behind", 1);
+        EnsureIncomingCommit(git);
         return Result(succeeded: true, head: Head(git));
     }
 
     public static JsonObject Pull(JsonObject git)
     {
-        if (IntValue(ChangesObject(git), "behind") > 0)
-        {
-            var commit = NextCommit(git);
-            SetInt(ChangesObject(git), "behind", 0);
-            ChangesObject(git)["commit"] = commit[..Math.Min(7, commit.Length)];
-            PrependLog(git, commit, "chore(storefront): restock the harbor mug", "origin", ["origin/main"]);
-        }
+        Fetch(git);
+        if (IntValue(ChangesObject(git), "behind") == 0 || IncomingPulled(git))
+            return Result(succeeded: true, head: Head(git));
 
+        var commit = EnsureIncomingCommit(git);
+        SetInt(ChangesObject(git), "behind", 0);
+        git["incomingPulled"] = true;
+        ChangesObject(git)["commit"] = commit[..Math.Min(7, commit.Length)];
+        PrependLog(git, commit, "chore(storefront): restock the harbor mug", "origin", ["HEAD", Branch(git), "origin/main"]);
         return Result(succeeded: true, head: Head(git));
     }
 
@@ -289,6 +294,19 @@ public static class FakeGitProvider
             ["refs"] = new JsonArray(refs.Select(item => JsonValue.Create(item)).ToArray())
         });
         log["commits"] = commits;
+    }
+
+    private static bool IncomingPulled(JsonObject git)
+        => git["incomingPulled"]?.GetValue<bool>() ?? false;
+
+    private static string EnsureIncomingCommit(JsonObject git)
+    {
+        var existing = git["incomingCommit"]?.GetValue<string>();
+        if (!string.IsNullOrWhiteSpace(existing))
+            return existing;
+        var commit = NextCommit(git);
+        git["incomingCommit"] = commit;
+        return commit;
     }
 
     private static string NextCommit(JsonObject git)

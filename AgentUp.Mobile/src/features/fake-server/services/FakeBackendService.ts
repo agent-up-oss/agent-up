@@ -190,7 +190,8 @@ export class FakeBackendService {
     if (method === 'GET' && rest === 'commit-queue') return this.gitQueue(workspaceId);
     if (method === 'GET' && rest.startsWith('git/file')) return this.gitDiff(workspaceId, request.query);
     if (method === 'POST' && rest.startsWith('git/')) return this.gitMutation(workspaceId, rest.slice('git/'.length), request.body);
-    if ((method === 'GET' || method === 'POST') && rest === 'agent') return this.agentSession(workspaceId);
+    if (method === 'GET' && rest === 'agent') return this.agentSession(workspaceId);
+    if (method === 'POST' && rest === 'agent') return this.scheduleAgent(workspaceId, request.body);
     if (method === 'POST' && rest === 'agent/messages') return this.sendAgentMessage(workspaceId, request.body);
     if (method === 'GET' && rest === 'agent/events') return this.agentEventStream(workspaceId, request.query);
     if ((method === 'POST' || method === 'DELETE') && rest.startsWith('agent/'))
@@ -247,9 +248,7 @@ export class FakeBackendService {
     const workspace = this.findWorkspace(workspaceId);
     if (!workspace) return notFound();
     this.cancelLifecycleWork();
-    workspace.state = 'Stopped';
-    workspace.healthState = undefined;
-    workspace.applications = [];
+    this.applyWorkspacePhase(workspace, 'Stopped', undefined, 'Stopped');
     this.publishWorkspaces();
     return { status: 204, contentType: 'application/json' };
   }
@@ -331,7 +330,54 @@ export class FakeBackendService {
 
   private agentSession(workspaceId: string): FakeBackendResponse {
     const session = this.state.agents?.[workspaceId]?.session;
-    return session === undefined ? notFound() : json(session);
+    return session === undefined ? notFound() : json(this.liveAgentSession(session));
+  }
+
+  private scheduleAgent(workspaceId: string, body: string | null): FakeBackendResponse {
+    const stored = this.state.agents?.[workspaceId];
+    if (!stored) return notFound();
+    const requested = readJsonString(body, 'agent');
+    if (!requested) return json(this.liveAgentSession(stored.session));
+    const enabled = this.enabledAgentDescriptors();
+    const match = enabled.find(item => item.agent.toLowerCase() === requested.toLowerCase());
+    if (!match) {
+      return {
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({ title: 'Agent could not be scheduled', detail: `${requested} is not enabled.` }),
+      };
+    }
+    const next = {
+      ...(stored.session && typeof stored.session === 'object' ? stored.session as Record<string, unknown> : {}),
+      agent: match.agent,
+      state: 'ready',
+      sessionId: 'demo-agent',
+      error: null,
+    };
+    stored.session = next;
+    return json(this.liveAgentSession(next));
+  }
+
+  private liveAgentSession(session: unknown) {
+    const snapshot = session && typeof session === 'object' ? session as Record<string, unknown> : {};
+    const agents = this.enabledAgentDescriptors();
+    const current = typeof snapshot.agent === 'string' ? snapshot.agent : null;
+    const selected = agents.find(item => item.agent.toLowerCase() === current?.toLowerCase()) ?? agents[0] ?? null;
+    return {
+      ...snapshot,
+      agent: selected?.agent ?? null,
+      agents,
+    };
+  }
+
+  private enabledAgentDescriptors() {
+    return this.capabilities()
+      .filter(item => item.kind === 'agent' && item.enabled)
+      .map(item => ({
+        agent: item.id,
+        available: item.canRun,
+        displayName: item.displayName,
+      }));
   }
 
   private sendAgentMessage(workspaceId: string, body: string | null): FakeBackendResponse {
@@ -340,11 +386,9 @@ export class FakeBackendService {
     if (!session) return notFound();
     const message = readJsonString(body, 'message') ?? '';
     const added = git ? addAgentWorkingTreeFile(git) : null;
-    const snapshot = session.session && typeof session.session === 'object'
-      ? session.session as Record<string, unknown>
-      : {};
+    const snapshot = this.liveAgentSession(session.session);
     this.publishAgent(workspaceId, 'user_message', { text: message });
-    this.publishAgent(workspaceId, 'state', { ...structuredClone(snapshot), state: 'running' });
+    this.publishAgent(workspaceId, 'state', { ...snapshot, state: 'running' });
     const text = added
       ? `I added \`${added.path}\` so the storefront can show the weekly harbor special. It is uncommitted in the working tree.`
       : 'Harbor Shop is running locally.';
@@ -352,7 +396,7 @@ export class FakeBackendService {
       sessionUpdate: 'agent_message_chunk',
       content: { type: 'text', text },
     });
-    this.publishAgent(workspaceId, 'state', { ...structuredClone(snapshot), state: 'ready' });
+    this.publishAgent(workspaceId, 'state', { ...snapshot, state: 'ready' });
     return { status: 204, contentType: 'application/json' };
   }
 
@@ -465,10 +509,9 @@ export class FakeBackendService {
   }
 
   private publicWorkspace(workspace: WorkspaceRecord): WorkspaceRecord {
-    const live = workspace.state === 'Running' || workspace.state === 'Starting';
     return {
       ...workspace,
-      applications: live ? workspace.applications ?? [] : [],
+      applications: workspace.applications ?? [],
     };
   }
 
@@ -525,17 +568,14 @@ export class FakeBackendService {
   }
 
   private workspaceEventFrame(workspace: WorkspaceRecord): string {
-    const live = workspace.state === 'Running' || workspace.state === 'Starting';
-    const applications = live
-      ? (workspace.applications ?? []).map(application => ({
-        name: application.name,
-        state: application.state,
-        portHealth: (application.allocatedPorts ?? []).map(port => ({
-          allocatedPort: port.allocatedPort,
-          healthState: workspace.healthState ?? application.state,
-        })),
-      }))
-      : [];
+    const applications = (workspace.applications ?? []).map(application => ({
+      name: application.name,
+      state: application.state,
+      portHealth: (application.allocatedPorts ?? []).map(port => ({
+        allocatedPort: port.allocatedPort,
+        healthState: workspace.healthState ?? application.state,
+      })),
+    }));
     return `data: ${JSON.stringify({
       workspaceId: workspace.id,
       state: workspace.state,

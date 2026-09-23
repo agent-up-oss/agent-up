@@ -41,8 +41,8 @@ export function workspaceStatusLabel(state: string, healthState?: string | null)
   return state;
 }
 
-export function workspaceShowsApplications(state: string): boolean {
-  return state === 'Running' || state === 'Starting';
+export function workspaceShowsApplications(_state: string): boolean {
+  return true;
 }
 
 export function workspaceLifecycleControls(state: string): WorkspaceLifecycleControls {

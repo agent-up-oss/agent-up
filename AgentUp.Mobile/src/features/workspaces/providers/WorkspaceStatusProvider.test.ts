@@ -37,11 +37,11 @@ test('status labels keep lifecycle text until the workspace is running', () => {
   assert.equal(workspaceStatusLabel('Failed', 'Unhealthy'), 'Failed');
 });
 
-test('stopped workspaces do not present application rows', () => {
+test('workspaces keep presenting application rows while offline', () => {
   assert.equal(workspaceShowsApplications('Running'), true);
   assert.equal(workspaceShowsApplications('Starting'), true);
-  assert.equal(workspaceShowsApplications('Stopped'), false);
-  assert.equal(workspaceShowsApplications('Failed'), false);
+  assert.equal(workspaceShowsApplications('Stopped'), true);
+  assert.equal(workspaceShowsApplications('Failed'), true);
 });
 
 test('lifecycle controls match Desktop start/stop visibility', () => {

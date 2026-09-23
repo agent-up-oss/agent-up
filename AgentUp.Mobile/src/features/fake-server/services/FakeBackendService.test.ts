@@ -92,6 +92,25 @@ test('capability modules list first-party packages and toggle', () => {
   assert.equal(enabled.canRun, true);
 });
 
+test('agent list follows enabled agent capabilities', () => {
+  const service = backend();
+  const listed = json(service, 'GET', '/api/workspaces/harbor-shop/agent');
+  json(service, 'POST', '/api/capabilities/disable/claude');
+  const afterDisable = json(service, 'GET', '/api/workspaces/harbor-shop/agent');
+  const rejected = service.handle({
+    method: 'POST',
+    path: '/api/workspaces/harbor-shop/agent',
+    query: '',
+    body: JSON.stringify({ agent: 'claude' }),
+  });
+  json(service, 'POST', '/api/capabilities/enable', JSON.stringify({ id: 'claude' }));
+  const scheduled = json(service, 'POST', '/api/workspaces/harbor-shop/agent', JSON.stringify({ agent: 'claude' }));
+  assert.deepEqual(listed.agents.map((item: { agent: string }) => item.agent), ['codex', 'cursor', 'claude']);
+  assert.deepEqual(afterDisable.agents.map((item: { agent: string }) => item.agent), ['codex', 'cursor']);
+  assert.equal(rejected.status, 409);
+  assert.equal(scheduled.agent, 'claude');
+});
+
 test('git head commit discard and fetch mutate the demo tree', () => {
   const service = backend();
   const head = json(service, 'GET', '/api/workspaces/harbor-shop/git/head');
@@ -103,17 +122,32 @@ test('git head commit discard and fetch mutate the demo tree', () => {
   const fetched = json(service, 'POST', '/api/workspaces/harbor-shop/git/fetch', '{}');
   assert.equal(head.branch, 'main');
   assert.equal(committed.succeeded, true);
+  assert.equal(committed.head.ahead, 1);
+  assert.equal(committed.head.behind, 1);
   assert.equal(afterCommit.fileCount, 1);
   assert.equal(fetched.head.behind, 1);
 });
 
-test('start walks starting checking then healthy and stop hides apps', () => {
+test('git pull integrates the incoming remote commit only once', () => {
+  const service = backend();
+  json(service, 'POST', '/api/workspaces/harbor-shop/git/fetch', '{}');
+  json(service, 'POST', '/api/workspaces/harbor-shop/git/pull', '{}');
+  const secondFetch = json(service, 'POST', '/api/workspaces/harbor-shop/git/fetch', '{}');
+  const secondPull = json(service, 'POST', '/api/workspaces/harbor-shop/git/pull', '{}');
+  const log = json(service, 'GET', '/api/workspaces/harbor-shop/git/log');
+  assert.equal(secondFetch.head.behind, 0);
+  assert.equal(secondPull.head.behind, 0);
+  assert.equal(log.commits.filter((entry: { author: string }) => entry.author === 'origin').length, 1);
+});
+
+test('start walks starting checking then healthy and stop keeps apps offline', () => {
   const { service, step } = queuedBackend();
   assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/harbor-shop/stop', query: '', body: null }).status, 204);
   const stopped = json(service, 'GET', '/api/workspaces/harbor-shop');
   assert.equal(stopped.state, 'Stopped');
   assert.equal(stopped.healthState, undefined);
-  assert.equal(stopped.applications.length, 0);
+  assert.equal(stopped.applications.length, 2);
+  assert.equal(stopped.applications.every((item: { state: string }) => item.state === 'Stopped'), true);
 
   assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/harbor-shop/start', query: '', body: null }).status, 204);
   assert.equal(json(service, 'GET', '/api/workspaces/harbor-shop').state, 'Starting');

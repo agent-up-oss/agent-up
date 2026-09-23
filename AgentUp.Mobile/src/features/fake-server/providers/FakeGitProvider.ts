@@ -25,6 +25,8 @@ export type FakeGitState = {
   entries: unknown[];
   nextCommit: number;
   nextAgentFile: number;
+  incomingCommit: string | null;
+  incomingPulled: boolean;
 };
 
 export type FakeGitMutation = {
@@ -73,6 +75,8 @@ export function loadFakeGitState(workspaceId: string, node: Record<string, unkno
     entries: Array.isArray(queue?.entries) ? queue.entries : [],
     nextCommit: 1,
     nextAgentFile: 1,
+    incomingCommit: stringValue(node.incomingCommit),
+    incomingPulled: node.incomingPulled === true,
   };
 }
 
@@ -143,7 +147,8 @@ export function commitGitFiles(git: FakeGitState, files: string[], message: stri
     },
     ...git.log.map(entry => ({ ...entry, refs: entry.refs.filter(ref => ref !== 'HEAD') })),
   ];
-  return { found: true, succeeded: true, error: null, commit };
+  fetchGitRemote(git);
+  return { found: true, succeeded: true, error: null, commit, head: gitHeadPayload(git) };
 }
 
 export function discardGitFiles(git: FakeGitState, files: string[]): FakeGitMutation {
@@ -153,29 +158,35 @@ export function discardGitFiles(git: FakeGitState, files: string[]): FakeGitMuta
 }
 
 export function fetchGitRemote(git: FakeGitState): FakeGitMutation {
+  if (git.incomingPulled) return syncResult(git);
   if (git.behind === 0) git.behind = 1;
+  ensureIncomingCommit(git);
   return syncResult(git);
 }
 
 export function pullGitRemote(git: FakeGitState): FakeGitMutation {
-  if (git.behind > 0) {
-    const commit = nextCommitId(git);
-    git.behind = 0;
-    git.commit = commit.slice(0, 7);
-    git.tipCommit = commit;
-    git.log = [
-      {
-        id: commit,
-        shortId: commit.slice(0, 7),
-        parents: git.log[0] ? [git.log[0].id] : [],
-        subject: 'chore(storefront): restock the harbor mug',
-        author: 'origin',
-        timestamp: new Date().toISOString(),
-        refs: ['origin/main'],
-      },
-      ...git.log,
-    ];
-  }
+  fetchGitRemote(git);
+  if (git.behind === 0 || git.incomingPulled) return syncResult(git);
+  const commit = ensureIncomingCommit(git);
+  git.behind = 0;
+  git.incomingPulled = true;
+  git.commit = commit.slice(0, 7);
+  git.tipCommit = commit;
+  git.log = [
+    {
+      id: commit,
+      shortId: commit.slice(0, 7),
+      parents: git.log[0] ? [git.log[0].id] : [],
+      subject: 'chore(storefront): restock the harbor mug',
+      author: 'origin',
+      timestamp: new Date().toISOString(),
+      refs: ['HEAD', git.branch, git.upstream ?? 'origin/main'],
+    },
+    ...git.log.map(entry => ({
+      ...entry,
+      refs: entry.refs.filter(ref => ref !== 'HEAD' && ref !== git.branch),
+    })),
+  ];
   return syncResult(git);
 }
 
@@ -262,6 +273,11 @@ function collectDirectory(
       diff: stringValue(diffNode?.diff) ?? `--- a/${path}\n+++ b/${path}\n`,
     });
   }
+}
+
+function ensureIncomingCommit(git: FakeGitState): string {
+  git.incomingCommit ??= nextCommitId(git);
+  return git.incomingCommit;
 }
 
 function nextCommitId(git: FakeGitState): string {

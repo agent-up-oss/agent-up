@@ -44,7 +44,8 @@ public sealed class FakeBackendServiceTests
 
         Assert.That(Run(backend, Post("/api/workspaces/harbor-shop/stop")).Status, Is.EqualTo(204));
         Assert.That(Json(backend, Get("/api/workspaces/harbor-shop"))["state"]!.GetValue<string>(), Is.EqualTo("Stopped"));
-        Assert.That(Json(backend, Get("/api/workspaces/harbor-shop"))["applications"]!.AsArray(), Is.Empty);
+        Assert.That(Json(backend, Get("/api/workspaces/harbor-shop"))["applications"]!.AsArray(), Has.Count.EqualTo(2));
+        Assert.That(Json(backend, Get("/api/workspaces/harbor-shop"))["applications"]![0]!["state"]!.GetValue<string>(), Is.EqualTo("Stopped"));
         Assert.That(Run(backend, Post("/api/workspaces/harbor-shop/start")).Status, Is.EqualTo(204));
         Assert.That(Json(backend, Get("/api/workspaces/harbor-shop"))["state"]!.GetValue<string>(), Is.EqualTo("Starting"));
     }
@@ -170,6 +171,8 @@ public sealed class FakeBackendServiceTests
             """{"files":["apps/storefront/ProductGrid.tsx"],"message":"fix(storefront): featured grid"}"""));
         var changes = Json(backend, Get("/api/workspaces/harbor-shop/git/changes"));
         Assert.That(commit["succeeded"]!.GetValue<bool>(), Is.True);
+        Assert.That(commit["head"]!["ahead"]!.GetValue<int>(), Is.EqualTo(1));
+        Assert.That(commit["head"]!["behind"]!.GetValue<int>(), Is.EqualTo(1));
         Assert.That(changes["fileCount"]!.GetValue<int>(), Is.EqualTo(1));
 
         Assert.That(Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/workspaces/harbor-shop")).Status, Is.EqualTo(204));
@@ -214,6 +217,23 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_agentListFollowsEnabledCapabilities()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var listed = Json(backend, Get("/api/workspaces/harbor-shop/agent"));
+        Json(backend, Post("/api/capabilities/disable/claude"));
+        var afterDisable = Json(backend, Get("/api/workspaces/harbor-shop/agent"));
+        var rejected = Run(backend, Post("/api/workspaces/harbor-shop/agent", """{"agent":"claude"}"""));
+        Json(backend, Post("/api/capabilities/enable", """{"id":"claude"}"""));
+        var scheduled = Json(backend, Post("/api/workspaces/harbor-shop/agent", """{"agent":"claude"}"""));
+
+        Assert.That(listed["agents"]!.AsArray().Select(item => item!["agent"]!.GetValue<string>()), Is.EqualTo(new[] { "codex", "cursor", "claude" }));
+        Assert.That(afterDisable["agents"]!.AsArray().Select(item => item!["agent"]!.GetValue<string>()), Is.EqualTo(new[] { "codex", "cursor" }));
+        Assert.That(rejected.Status, Is.EqualTo(409));
+        Assert.That(scheduled["agent"]!.GetValue<string>(), Is.EqualTo("claude"));
+    }
+
+    [Test]
     public void Handle_gitLogQueueFetchAndMissingDiff()
     {
         var backend = FakeServerTestComposition.Backend();
@@ -226,6 +246,23 @@ public sealed class FakeBackendServiceTests
         Assert.That(queue.Status, Is.EqualTo(200).Or.EqualTo(404));
         Assert.That(fetch["succeeded"]!.GetValue<bool>(), Is.True);
         Assert.That(missing.Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public void Handle_gitPullIntegratesIncomingCommitOnce()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Json(backend, Post("/api/workspaces/harbor-shop/git/fetch"));
+        Json(backend, Post("/api/workspaces/harbor-shop/git/pull"));
+        var secondFetch = Json(backend, Post("/api/workspaces/harbor-shop/git/fetch"));
+        var secondPull = Json(backend, Post("/api/workspaces/harbor-shop/git/pull"));
+        var log = Json(backend, Get("/api/workspaces/harbor-shop/git/log"));
+
+        Assert.That(secondFetch["head"]!["behind"]!.GetValue<int>(), Is.EqualTo(0));
+        Assert.That(secondPull["head"]!["behind"]!.GetValue<int>(), Is.EqualTo(0));
+        Assert.That(
+            log["commits"]!.AsArray().Count(item => item!["author"]!.GetValue<string>() == "origin"),
+            Is.EqualTo(1));
     }
 
     [Test]

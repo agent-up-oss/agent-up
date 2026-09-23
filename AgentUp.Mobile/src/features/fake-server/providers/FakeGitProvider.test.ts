@@ -67,6 +67,7 @@ test('commit and discard mutate the fake working tree', () => {
   assert.equal(committed.succeeded, true);
   assert.equal(git.files.length, 0);
   assert.equal(git.ahead, 1);
+  assert.equal(git.behind, 1);
   assert.match(git.log[0]?.subject ?? '', /featured grid/);
 
   addAgentWorkingTreeFile(git);
@@ -77,10 +78,20 @@ test('commit and discard mutate the fake working tree', () => {
 test('fetch pull and push update ahead behind and history', () => {
   const git = harborGit();
   fetchGitRemote(git);
+  fetchGitRemote(git);
   assert.equal(git.behind, 1);
   pullGitRemote(git);
+  pullGitRemote(git);
   assert.equal(git.behind, 0);
-  assert.equal(git.log[0]?.author, 'origin');
+  assert.equal(git.log.filter(entry => entry.author === 'origin').length, 1);
+  assert.ok(git.log[0]?.refs.includes('HEAD'));
+  fetchGitRemote(git);
+  pullGitRemote(git);
+  assert.equal(git.behind, 0);
+  assert.equal(git.log.filter(entry => entry.author === 'origin').length, 1);
+  const committed = commitGitFiles(git, ['apps/storefront/ProductGrid.tsx'], 'fix(storefront): featured grid');
+  assert.equal(committed.succeeded, true);
+  assert.equal(git.behind, 0);
   git.ahead = 2;
   pushGitRemote(git);
   assert.equal(git.ahead, 0);

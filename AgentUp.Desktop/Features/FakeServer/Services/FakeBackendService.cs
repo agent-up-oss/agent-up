@@ -198,7 +198,7 @@ public sealed class FakeBackendService
         if (method == "GET" && rest == "agent")
             return AgentSession(workspaceId);
         if (method == "POST" && rest == "agent")
-            return AgentSession(workspaceId);
+            return ScheduleAgent(workspaceId, request.Body);
         if (method == "POST" && rest == "agent/messages")
             return SendAgentMessage(workspaceId, request.Body);
         if (method == "GET" && rest == "agent/events")
@@ -306,9 +306,7 @@ public sealed class FakeBackendService
             if (workspace is null)
                 return NotFound();
             CancelLifecycle();
-            workspace["state"] = "Stopped";
-            workspace.Remove("healthState");
-            workspace["applications"] = new JsonArray();
+            ApplyWorkspacePhase(workspace, "Stopped", null, "Stopped");
         }
 
         PublishWorkspaces();
@@ -336,7 +334,7 @@ public sealed class FakeBackendService
             ["memoryBytes"] = overview["memoryBytes"]?.DeepClone() ?? 0,
             ["storageBytes"] = overview["storageBytes"]?.DeepClone() ?? 0,
             ["processCount"] = overview["processCount"]?.DeepClone() ?? 0,
-            ["applicationCount"] = IsLive(workspace["state"]?.GetValue<string>()) ? applications?.Count ?? 0 : 0
+            ["applicationCount"] = applications?.Count ?? 0
         };
         return Json(payload);
     }
@@ -404,13 +402,54 @@ public sealed class FakeBackendService
 
     private FakeBackendResponseDto AgentSession(string workspaceId)
     {
-        var session = _state.Agents?[workspaceId]?["session"];
-        return session is null ? NotFound() : Json(session);
+        lock (_gate)
+        {
+            var session = _state.Agents?[workspaceId]?["session"];
+            return session is null ? NotFound() : Json(LiveAgentSession(session));
+        }
+    }
+
+    private FakeBackendResponseDto ScheduleAgent(string workspaceId, string? body)
+    {
+        lock (_gate)
+        {
+            var stored = _state.Agents?[workspaceId] as JsonObject;
+            if (stored is null)
+                return NotFound();
+            var requested = ReadJsonString(body, "agent");
+            if (string.IsNullOrWhiteSpace(requested))
+                return Json(LiveAgentSession(stored["session"]));
+
+            var match = EnabledAgentDescriptors()
+                .OfType<JsonObject>()
+                .FirstOrDefault(item =>
+                    string.Equals(item["agent"]?.GetValue<string>(), requested, StringComparison.OrdinalIgnoreCase));
+            if (match is null)
+            {
+                var problem = new JsonObject
+                {
+                    ["title"] = "Agent could not be scheduled",
+                    ["detail"] = $"{requested} is not enabled."
+                };
+                return new FakeBackendResponseDto(409, "application/json", problem.ToJsonString(WebOptions()));
+            }
+
+            var next = stored["session"] is JsonObject existing
+                ? existing.DeepClone().AsObject()
+                : new JsonObject();
+            next["agent"] = match["agent"]?.DeepClone();
+            next["state"] = "ready";
+            next["sessionId"] = "demo-agent";
+            next["error"] = null;
+            stored["session"] = next;
+            return Json(LiveAgentSession(next));
+        }
     }
 
     private FakeBackendResponseDto SendAgentMessage(string workspaceId, string? body)
     {
         string? path;
+        JsonObject snapshot;
         lock (_gate)
         {
             var session = _state.Agents?[workspaceId] as JsonObject;
@@ -418,12 +457,14 @@ public sealed class FakeBackendService
             if (session is null)
                 return NotFound();
             path = git is null ? null : FakeGitProvider.AddAgentFile(git);
+            snapshot = LiveAgentSession(session["session"]);
         }
 
         var message = ReadJsonString(body, "message") ?? "";
-        var snapshot = new JsonObject { ["state"] = "running" };
+        var running = snapshot.DeepClone().AsObject();
+        running["state"] = "running";
         PublishAgent(workspaceId, "user_message", new JsonObject { ["text"] = message });
-        PublishAgent(workspaceId, "state", snapshot);
+        PublishAgent(workspaceId, "state", running);
         var text = path is null
             ? "Harbor Shop is running locally."
             : $"I added `{path}` so the storefront can show the weekly harbor special. It is uncommitted in the working tree.";
@@ -432,7 +473,9 @@ public sealed class FakeBackendService
             ["sessionUpdate"] = "agent_message_chunk",
             ["content"] = new JsonObject { ["type"] = "text", ["text"] = text }
         });
-        PublishAgent(workspaceId, "state", new JsonObject { ["state"] = "ready" });
+        var ready = snapshot.DeepClone().AsObject();
+        ready["state"] = "ready";
+        PublishAgent(workspaceId, "state", ready);
         return new FakeBackendResponseDto(204, "application/json");
     }
 
@@ -575,24 +618,22 @@ public sealed class FakeBackendService
     {
         if (workspace is not JsonObject obj)
             return "";
-        var applications = IsLive(obj["state"]?.GetValue<string>())
-            ? new JsonArray(
-                [.. (obj["applications"] as JsonArray ?? [])
-                    .OfType<JsonObject>()
-                    .Select(app => new JsonObject
-                    {
-                        ["name"] = app["name"]?.DeepClone(),
-                        ["state"] = app["state"]?.DeepClone(),
-                        ["portHealth"] = new JsonArray(
-                            [.. (app["allocatedPorts"] as JsonArray ?? [])
-                                .Where(port => port?["allocatedPort"] is not null)
-                                .Select(port => new JsonObject
-                                {
-                                    ["allocatedPort"] = port!["allocatedPort"]!.DeepClone(),
-                                    ["healthState"] = obj["healthState"]?.DeepClone() ?? app["state"]?.DeepClone()
-                                })])
-                    })])
-            : [];
+        var applications = new JsonArray(
+            [.. (obj["applications"] as JsonArray ?? [])
+                .OfType<JsonObject>()
+                .Select(app => new JsonObject
+                {
+                    ["name"] = app["name"]?.DeepClone(),
+                    ["state"] = app["state"]?.DeepClone(),
+                    ["portHealth"] = new JsonArray(
+                        [.. (app["allocatedPorts"] as JsonArray ?? [])
+                            .Where(port => port?["allocatedPort"] is not null)
+                            .Select(port => new JsonObject
+                            {
+                                ["allocatedPort"] = port!["allocatedPort"]!.DeepClone(),
+                                ["healthState"] = obj["healthState"]?.DeepClone() ?? app["state"]?.DeepClone()
+                            })])
+                })]);
 
         var payload = new JsonObject
         {
@@ -712,12 +753,39 @@ public sealed class FakeBackendService
     }
 
     private JsonObject PublicWorkspace(JsonObject workspace)
+        => workspace.DeepClone().AsObject();
+
+    private JsonObject LiveAgentSession(JsonNode? session)
     {
-        var clone = workspace.DeepClone().AsObject();
-        if (!IsLive(clone["state"]?.GetValue<string>()))
-            clone["applications"] = new JsonArray();
-        return clone;
+        var snapshot = session is JsonObject obj ? obj.DeepClone().AsObject() : new JsonObject();
+        var agents = EnabledAgentDescriptors();
+        var current = snapshot["agent"]?.GetValue<string>();
+        var selected = agents
+            .OfType<JsonObject>()
+            .FirstOrDefault(item =>
+                string.Equals(item["agent"]?.GetValue<string>(), current, StringComparison.OrdinalIgnoreCase))
+            ?? agents.OfType<JsonObject>().FirstOrDefault();
+        if (selected?["agent"] is JsonNode agent)
+            snapshot["agent"] = agent.DeepClone();
+        else
+            snapshot.Remove("agent");
+        snapshot["agents"] = agents;
+        return snapshot;
     }
+
+    private JsonArray EnabledAgentDescriptors()
+        => new(
+            [.. Capabilities()
+                .OfType<JsonObject>()
+                .Where(module =>
+                    string.Equals(module["kind"]?.GetValue<string>(), "agent", StringComparison.Ordinal)
+                    && module["enabled"]?.GetValue<bool>() == true)
+                .Select(module => new JsonObject
+                {
+                    ["agent"] = module["id"]?.DeepClone(),
+                    ["available"] = module["canRun"]?.DeepClone() ?? true,
+                    ["displayName"] = module["displayName"]?.DeepClone()
+                })]);
 
     private JsonObject? GitState(string workspaceId)
         => _state.Git?[workspaceId] as JsonObject;
@@ -753,9 +821,6 @@ public sealed class FakeBackendService
 
     private int CancelLifecycle()
         => ++_lifecycleGeneration;
-
-    private static bool IsLive(string? state)
-        => state is "Running" or "Starting";
 
     private static string[] ReadJsonStringArray(string? body, string name)
     {
