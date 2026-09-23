@@ -9,7 +9,7 @@ title: Commits
 <DocWhat>
 The agent queue is a **commit queue** when `commits.enabled` is absent, or a **proposal queue** when `commits.enabled` is true.
 
-Desktop Commit and Mobile Review display that queue as read-only. The installed CLI is `agent-up`.
+Desktop Git and Mobile Review display that queue as read-only. The installed CLI is `agent-up`.
 </DocWhat>
 
 <DocCallout>

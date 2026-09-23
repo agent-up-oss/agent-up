@@ -40,7 +40,7 @@ The workspace identity is the project path. When that path is a Git repository o
 Git worktrees are the recommended model for AI agents working in the same repository because they preserve separate branches, running applications, browser sessions, and validation state.
 
 <DocSurfaces>
-<DocSurface desktop>The Overview tab has a branch dropdown for local and remote-tracking branches, Fetch/Pull/Push, plus workspace identity and Server-owned CPU, memory, storage, and process totals.</DocSurface>
+<DocSurface desktop>The Overview tab shows workspace identity and Server-owned CPU, memory, storage, and process totals. Branch switching, Fetch, Pull, and Push live at the top of the Git tab.</DocSurface>
 <DocSurface mobile>Those Git controls live on the workspace Git tab, beside Apps and Agents.</DocSurface>
 </DocSurfaces>
 

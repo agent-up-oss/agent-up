@@ -20,7 +20,7 @@ Verification never reads this queue.
 />
 
 <DocCallout>
-Agents mutate the queue only through `/mcp/commits`. Desktop Commit and Mobile Review display it; they do not mutate it.
+Agents mutate the queue only through `/mcp/commits`. Desktop Git and Mobile Review display it; they do not mutate it.
 </DocCallout>
 
 <DocSpine>

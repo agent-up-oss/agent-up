@@ -27,8 +27,8 @@ Do not leave implementation, `AGENTS.md`, and docs disagreeing. If the requested
 
 Product names that appear in more than one surface:
 
-- Desktop Git chrome is the **Commit** tab; the heading inside it is **Git changes**. Mobile chrome is the **Git** tab, with inner **Review** and **History** pages. Do not call the Desktop tab "Git" or the Mobile tab "Commit".
-- The human Git slice is working-tree review. The agent queue is the **commit queue** (legacy local) or **proposal queue** when `commits.enabled` is true. Desktop Commit and Mobile Review display that queue; they do not mutate it.
+- Desktop Git chrome is the **Git** tab; the heading inside it is **Git changes**. Mobile chrome is the **Git** tab, with inner **Review** and **History** pages. Do not call either tab "Commit".
+- The human Git slice is working-tree review. The agent queue is the **commit queue** (legacy local) or **proposal queue** when `commits.enabled` is true. Desktop Git and Mobile Review display that queue; they do not mutate it.
 - Desktop chrome for the live ACP session is the **Agent** tab. Mobile chrome for the picker is the **Agents** tab.
 - The installed CLI is `agent-up`. Do not document `agentup` or `agent-up register`.
 - Packaged Server URL is `http://localhost:5000`. The repository launch profile is `http://localhost:5001`.
@@ -387,7 +387,7 @@ AgentUp.Desktop/
     Console/          (console output/logs for the selected application)
       Providers/
       ViewModels/
-    Git/              (Commit tab Git changes surface: change tree, file diff modal, commit box, history, proposal-queue display)
+    Git/              (Git tab Git changes surface: change tree, file diff modal, commit box, inner history, proposal-queue display)
       Controllers/
       DTOs/
       Interfaces/
@@ -674,7 +674,7 @@ The Desktop is an Avalonia client for humans. It displays workspaces, browser ta
 
 Applications declared in `desktopApplications` are displayed in session-ticketed streamed application tabs. Desktop must not launch their virtual displays, capture frames, or own input/session state. Existing HTTP application tabs continue to connect directly to their allocated ports and do not use the streaming path.
 
-It connects to one Server at a time and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. It must not own runtime state; its Commit tab Git changes surface displays the Server-owned proposal queue, including entry order, messages, and verification state. The server list always includes a built-in **Demo** entry as the first-launch path; only while that entry is connected does Desktop intercept `HttpClient` with the in-process fake backend from `AgentUp.FakeServer/definition.json`. Disconnecting and connecting to a real Server works without restart. Full guide: `docs/developer-guide/workspaces/index.md` and `docs/developer-guide/applications/index.md`.
+It connects to one Server at a time and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. It must not own runtime state; its Git tab Git changes surface displays the Server-owned proposal queue, including entry order, messages, and verification state. The server list always includes a built-in **Demo** entry as the first-launch path; only while that entry is connected does Desktop intercept `HttpClient` with the in-process fake backend from `AgentUp.FakeServer/definition.json`. Disconnecting and connecting to a real Server works without restart. Full guide: `docs/developer-guide/workspaces/index.md` and `docs/developer-guide/applications/index.md`.
 
 Installed Desktop packages must install or depend on a local Server service rather than embedding orchestration in the Desktop process.
 
@@ -1209,7 +1209,7 @@ Read: `docs/user-docs/applications/index.md` and `docs/developer-guide/applicati
 
 ## Git
 
-The Server's `Git` slice exposes the selected workspace's uncommitted changes as a directory tree, per-file diffs, a commit that stages only the requested paths, remote-tracking branches, fetch/pull/push, and a bounded commit log. It is the human review-and-commit surface rendered by the Desktop Commit tab and the Mobile Git tab, and it is deliberately separate from the `Commits` slice, which owns the agent-facing commit queue described under Commit Workflow.
+The Server's `Git` slice exposes the selected workspace's uncommitted changes as a directory tree, per-file diffs, a commit that stages only the requested paths, remote-tracking branches, fetch/pull/push, and a bounded commit log. It is the human review-and-commit surface rendered by the Desktop Git tab and the Mobile Git tab, and it is deliberately separate from the `Commits` slice, which owns the agent-facing commit queue described under Commit Workflow.
 
 Coding agents must still use the commit queue tools. The `Git` slice is a product surface for humans, not an escape hatch around `enqueue_commit`.
 
@@ -1217,7 +1217,7 @@ Read: `docs/user-docs/git/index.md` and `docs/developer-guide/git/index.md`.
 
 ## Commits
 
-The agent queue is the **commit queue** (legacy local) or **proposal queue** when `commits.enabled` is true. Desktop Commit and Mobile Review display that queue; they do not mutate it. Agents enqueue through MCP.
+The agent queue is the **commit queue** (legacy local) or **proposal queue** when `commits.enabled` is true. Desktop Git and Mobile Review display that queue; they do not mutate it. Agents enqueue through MCP.
 
 Read: `docs/user-docs/commits/index.md` and `docs/developer-guide/commits/index.md`.
 

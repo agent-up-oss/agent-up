@@ -11,7 +11,7 @@ namespace AgentUp.Desktop.Tests.Features.Git.Headless;
 public sealed class GitPanelBehaviorTests
 {
     [AvaloniaTest]
-    public async Task GitPanel_isHiddenUntilTheCommitTabIsSelected()
+    public async Task GitPanel_isHiddenUntilTheGitTabIsSelected()
     {
         var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var viewModel = (MainViewModel)driver.Window.DataContext!;
@@ -19,7 +19,7 @@ public sealed class GitPanelBehaviorTests
 
         Assert.That(panel.IsVisible, Is.False);
 
-        viewModel.SelectedShellTab = WorkspaceShellTab.Commit;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Git;
         await HeadlessExtensions.FlushAsync();
 
         Assert.That(panel.IsVisible, Is.True);
@@ -30,13 +30,14 @@ public sealed class GitPanelBehaviorTests
     {
         var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var viewModel = (MainViewModel)driver.Window.DataContext!;
-        viewModel.SelectedShellTab = WorkspaceShellTab.Commit;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Git;
         await HeadlessExtensions.FlushAsync();
 
         Assert.That(driver.Window.FindControl<TextBox>("GitCommitMessage")!.IsVisible, Is.True);
         Assert.That(driver.Window.FindControl<Button>("GitCommitButton")!.IsVisible, Is.True);
         Assert.That(driver.Window.FindControl<Button>("GitDiscardButton")!.IsVisible, Is.True);
-        Assert.That(driver.Window.FindControl<ItemsControl>("GitLog")!.IsVisible, Is.True);
+        Assert.That(driver.Window.FindControl<Button>("GitHistoryButton")!.IsVisible, Is.True);
+        Assert.That(driver.Window.FindControl<ItemsControl>("GitLog")!.IsVisible, Is.False);
     }
 
     [AvaloniaTest]
@@ -44,10 +45,35 @@ public sealed class GitPanelBehaviorTests
     {
         var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var viewModel = (MainViewModel)driver.Window.DataContext!;
-        viewModel.SelectedShellTab = WorkspaceShellTab.Commit;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Git;
         await HeadlessExtensions.FlushAsync();
 
         Assert.That(driver.Window.FindControl<Button>("GitCommitButton")!.IsEffectivelyEnabled, Is.False);
+    }
+
+    [AvaloniaTest]
+    public async Task GitPanel_opensHistoryFromTheHistoryButton()
+    {
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
+        var viewModel = (MainViewModel)driver.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Git;
+        Assert.That(() => viewModel.Git.IsLoading, Is.False.After(1000).PollEvery(20));
+        await HeadlessExtensions.FlushAsync();
+
+        var history = driver.Window.FindControl<Button>("GitHistoryButton")!;
+        Assert.That(history.IsEffectivelyEnabled, Is.True);
+        await driver.Window.ClickControlAsync(history);
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(viewModel.Git.IsHistoryOpen, Is.True);
+        Assert.That(driver.Window.FindControl<ItemsControl>("GitLog")!.IsVisible, Is.True);
+        Assert.That(driver.Window.FindControl<Button>("GitHistoryBackButton")!.IsVisible, Is.True);
+
+        await driver.Window.ClickControlAsync(driver.Window.FindControl<Button>("GitHistoryBackButton")!);
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(viewModel.Git.IsHistoryOpen, Is.False);
+        Assert.That(driver.Window.FindControl<ItemsControl>("GitLog")!.IsVisible, Is.False);
     }
 
     [AvaloniaTest]
@@ -55,7 +81,7 @@ public sealed class GitPanelBehaviorTests
     {
         var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var viewModel = (MainViewModel)driver.Window.DataContext!;
-        viewModel.SelectedShellTab = WorkspaceShellTab.Commit;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Git;
         viewModel.Git.ApplyQueue(new CommitQueueDto(
             [new CommitQueueEntryDto("Commits", "feat(Commits): queue", ["a.cs"], "entry-1", "base", "tip", "ready")],
             [], "/managed/queue", "base", "tip", 2));

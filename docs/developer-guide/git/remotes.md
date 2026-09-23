@@ -31,6 +31,6 @@ Successful branch switch, remote checkout, and pull refresh the workspace regist
 Auth failures, a missing upstream, a non-fast-forward pull, a stale force-with-lease, and a dirty worktree switch return structured problem details rather than raw Git stderr.
 
 <DocSurfaces>
-<DocSurface desktop>Branch switching lives on the Overview tab, not in the Git panel. Overview also hosts Fetch, Pull, Push, and a confirmed force-with-lease action, and lists remote-tracking branches beside local ones.</DocSurface>
+<DocSurface desktop>Branch switching lives at the top of the Git tab, not on Overview. The Git tab also hosts Fetch, Pull, Push, and a confirmed force-with-lease action, and lists remote-tracking branches beside local ones. History is an inner page from the History button.</DocSurface>
 <DocSurface mobile>Those same controls sit on the Git tab. Every fetch, pull, push, switch, remote checkout, and create-branch mutation asks for an explicit confirmation that names the branch or remote. Force-with-lease is offered only from the result of a rejected non-fast-forward push.</DocSurface>
 </DocSurfaces>

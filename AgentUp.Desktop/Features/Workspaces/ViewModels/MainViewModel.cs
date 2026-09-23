@@ -67,7 +67,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     [
         new(WorkspaceShellTab.Overview, "Overview"),
         new(WorkspaceShellTab.Agent, "Agent"),
-        new(WorkspaceShellTab.Commit, "Commit")
+        new(WorkspaceShellTab.Git, "Git")
     ];
 
     public WorkspaceShellTab SelectedShellTab
@@ -82,7 +82,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             }
 
             this.RaiseAndSetIfChanged(ref _selectedShellTab, value);
-            Git.IsVisible = value == WorkspaceShellTab.Commit;
+            Git.IsVisible = value == WorkspaceShellTab.Git;
             Agent.IsVisible = value == WorkspaceShellTab.Agent;
             SyncShellTabItem();
             RaiseShellVisibility();
@@ -128,7 +128,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
 
     public bool ShowOverview => SelectedShellTab == WorkspaceShellTab.Overview;
     public bool ShowAgent => SelectedShellTab == WorkspaceShellTab.Agent;
-    public bool ShowCommit => SelectedShellTab == WorkspaceShellTab.Commit;
+    public bool ShowGit => SelectedShellTab == WorkspaceShellTab.Git;
     public bool ShowApplication => SelectedShellTab == WorkspaceShellTab.Application;
     public bool ShowApplicationChrome => ShowApplication && Applications.SelectedApplication is not null;
     public bool ShowNoApplications => ShowApplication && Applications.SelectedApplication is null;
@@ -797,7 +797,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     {
         this.RaisePropertyChanged(nameof(ShowOverview));
         this.RaisePropertyChanged(nameof(ShowAgent));
-        this.RaisePropertyChanged(nameof(ShowCommit));
+        this.RaisePropertyChanged(nameof(ShowGit));
         this.RaisePropertyChanged(nameof(ShowApplication));
         this.RaisePropertyChanged(nameof(ShowApplicationChrome));
         this.RaisePropertyChanged(nameof(ShowNoApplications));

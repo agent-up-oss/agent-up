@@ -1038,97 +1038,14 @@
                                           HorizontalAlignment="Stretch"
                                           VerticalAlignment="Stretch">
                                 <Grid Margin="24"
-                                      RowDefinitions="Auto,Auto,Auto,Auto,*"
+                                      RowDefinitions="Auto,Auto,Auto,*"
                                       RowSpacing="18"
                                       HorizontalAlignment="Stretch">
                                     <StackPanel Spacing="8">
                                         <TextBlock Classes="au-page-title" Text="Workspace overview"/>
                                         <TextBlock Classes="au-muted" Text="{Binding Sidebar.SelectedWorkspace.DisplayName}"/>
                                     </StackPanel>
-                                    <StackPanel Grid.Row="1" Spacing="8">
-                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                            <ComboBox x:Name="WorkspaceBranchCombo"
-                                                      ItemsSource="{Binding Git.BranchItems}"
-                                                      SelectedItem="{Binding Git.SelectedBranchItem}"
-                                                      PlaceholderText="Branch"
-                                                      HorizontalAlignment="Stretch">
-                                                <ComboBox.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock Text="{Binding Label}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
-                                                    </DataTemplate>
-                                                </ComboBox.ItemTemplate>
-                                            </ComboBox>
-                                            <Button Grid.Column="1"
-                                                    x:Name="WorkspaceCreateBranchButton"
-                                                    Classes="au-button au-button--secondary au-button--compact"
-                                                    Command="{Binding Git.BeginCreateBranchCommand}"
-                                                    Content="+"
-                                                    Width="36"
-                                                    ToolTip.Tip="Create branch"/>
-                                        </Grid>
-                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6"
-                                              IsVisible="{Binding Git.IsCreatingBranch}">
-                                            <TextBox Classes="au-input"
-                                                     Text="{Binding Git.NewBranchName}"
-                                                     PlaceholderText="New branch"/>
-                                            <Button Grid.Column="1"
-                                                    x:Name="GitCreateBranchButton"
-                                                    Classes="au-button au-button--compact"
-                                                    Command="{Binding Git.CreateBranchCommand}"
-                                                    Content="Create"/>
-                                            <Button Grid.Column="2"
-                                                    Classes="au-button au-button--secondary au-button--compact"
-                                                    Command="{Binding Git.CancelCreateBranchCommand}"
-                                                    Content="Cancel"/>
-                                        </Grid>
-                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                                <TextBlock Text="{Binding Git.SyncSummary}"
-                                                           IsVisible="{Binding Git.SyncSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                                           Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
-                                                           FontSize="11"
-                                                           VerticalAlignment="Center"/>
-                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                                                    <Button x:Name="GitFetchButton"
-                                                            Classes="au-button au-button--secondary au-button--compact"
-                                                            Command="{Binding Git.FetchCommand}"
-                                                            Content="Fetch"/>
-                                                    <Button x:Name="GitPullButton"
-                                                            Classes="au-button au-button--secondary au-button--compact"
-                                                            Command="{Binding Git.PullCommand}"
-                                                            Content="Pull"/>
-                                                    <Button x:Name="GitPushButton"
-                                                            Classes="au-button au-button--compact"
-                                                            Command="{Binding Git.PushCommand}"
-                                                            Content="Push"
-                                                            IsVisible="{Binding !Git.IsConfirmingForcePush}"/>
-                                                    <Button x:Name="GitForcePushButton"
-                                                            Classes="au-button au-button--danger au-button--compact"
-                                                            Command="{Binding Git.RequestForcePushCommand}"
-                                                            Content="Force push"
-                                                            IsVisible="{Binding !Git.IsConfirmingForcePush}"/>
-                                                </StackPanel>
-                                            </Grid>
-                                            <StackPanel Orientation="Horizontal" Spacing="6"
-                                                        IsVisible="{Binding Git.IsConfirmingForcePush}">
-                                                <TextBlock Text="Force-push with lease?"
-                                                           Foreground="{DynamicResource AgentUpColorTextDangerBrush}"
-                                                           FontSize="11"
-                                                           VerticalAlignment="Center"/>
-                                                <Button Classes="au-button au-button--secondary au-button--compact"
-                                                        Command="{Binding Git.CancelForcePushCommand}"
-                                                        Content="Cancel"/>
-                                                <Button x:Name="GitConfirmForcePushButton"
-                                                        Classes="au-button au-button--danger au-button--compact"
-                                                        Command="{Binding Git.ConfirmForcePushCommand}"
-                                                        Content="Confirm"/>
-                                            </StackPanel>
-                                        <TextBlock Text="{Binding Git.ErrorMessage}"
-                                                   IsVisible="{Binding Git.ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
-                                                   Foreground="{DynamicResource AgentUpColorStatusDangerBrush}"
-                                                   FontSize="11"
-                                                   TextWrapping="Wrap"/>
-                                    </StackPanel>
-                                    <Grid Grid.Row="2"
+                                    <Grid Grid.Row="1"
                                           x:Name="OverviewMetrics"
                                           IsVisible="{Binding !Overview.ShowSkeleton}"
                                           ColumnDefinitions="*,*,*"
@@ -1172,7 +1089,7 @@
                                             </StackPanel>
                                         </Border>
                                     </Grid>
-                                    <Grid Grid.Row="2"
+                                    <Grid Grid.Row="1"
                                           x:Name="OverviewSkeleton"
                                           IsVisible="{Binding Overview.ShowSkeleton}"
                                           ColumnDefinitions="*,*,*"
@@ -1198,7 +1115,7 @@
                                             <Border Classes="overviewSkeleton" Height="28" Width="40" VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
                                         </Border>
                                     </Grid>
-                                    <StackPanel Grid.Row="3"
+                                    <StackPanel Grid.Row="2"
                                                 Spacing="6"
                                                 IsVisible="{Binding !Overview.ShowSkeleton}">
                                         <TextBlock Classes="au-field-label" Text="Repository"/>
@@ -1208,7 +1125,7 @@
                                         <TextBlock Classes="au-field-label" Text="Commit" Margin="0,8,0,0"/>
                                         <TextBlock Classes="au-muted" Text="{Binding Overview.Commit}"/>
                                     </StackPanel>
-                                    <StackPanel Grid.Row="3"
+                                    <StackPanel Grid.Row="2"
                                                 Spacing="10"
                                                 IsVisible="{Binding Overview.ShowSkeleton}">
                                         <Border Classes="overviewSkeleton" Height="12" Width="88" HorizontalAlignment="Left"/>
@@ -1218,7 +1135,7 @@
                                         <Border Classes="overviewSkeleton" Height="12" Width="64" HorizontalAlignment="Left" Margin="0,8,0,0"/>
                                         <Border Classes="overviewSkeleton" Height="14" Width="120" HorizontalAlignment="Left"/>
                                     </StackPanel>
-                                    <TextBlock Grid.Row="4"
+                                    <TextBlock Grid.Row="3"
                                                Text="{Binding Overview.ErrorMessage}"
                                                IsVisible="{Binding Overview.ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
                                                Foreground="{DynamicResource AgentUpColorStatusDangerBrush}"
@@ -1755,32 +1672,113 @@
 
                             <!-- ── Git changes panel ──────────────────────────────────────────────── -->
                             <Border x:Name="GitPanel"
-                                    IsVisible="{Binding ShowCommit}"
+                                    IsVisible="{Binding ShowGit}"
+                                    ClipToBounds="True"
                                     Background="{DynamicResource AgentUpColorCanvasBrush}">
-                                <Grid RowDefinitions="Auto,*,Auto">
+                                <Panel>
+                                <Grid IsVisible="{Binding !Git.IsHistoryOpen}" RowDefinitions="Auto,*,Auto">
 
                                     <Border Grid.Row="0" Padding="14,10,10,8">
-                                        <StackPanel Spacing="6">
+                                        <StackPanel Spacing="8">
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <ComboBox x:Name="WorkspaceBranchCombo"
+                                                      ItemsSource="{Binding Git.BranchItems}"
+                                                      SelectedItem="{Binding Git.SelectedBranchItem}"
+                                                      PlaceholderText="Branch"
+                                                      HorizontalAlignment="Stretch">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Label}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <Button Grid.Column="1"
+                                                    x:Name="WorkspaceCreateBranchButton"
+                                                    Classes="au-button au-button--secondary au-button--compact"
+                                                    Command="{Binding Git.BeginCreateBranchCommand}"
+                                                    Content="+"
+                                                    Width="36"
+                                                    ToolTip.Tip="Create branch"/>
+                                            </Grid>
+                                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6"
+                                                  IsVisible="{Binding Git.IsCreatingBranch}">
+                                                <TextBox Classes="au-input"
+                                                         Text="{Binding Git.NewBranchName}"
+                                                         PlaceholderText="New branch"/>
+                                                <Button Grid.Column="1"
+                                                        x:Name="GitCreateBranchButton"
+                                                        Classes="au-button au-button--compact"
+                                                        Command="{Binding Git.CreateBranchCommand}"
+                                                        Content="Create"/>
+                                                <Button Grid.Column="2"
+                                                        Classes="au-button au-button--secondary au-button--compact"
+                                                        Command="{Binding Git.CancelCreateBranchCommand}"
+                                                        Content="Cancel"/>
+                                            </Grid>
+                                            <TextBlock Text="{Binding Git.SyncSummary}"
+                                                       IsVisible="{Binding Git.SyncSummary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                                       Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
+                                                       FontSize="11"/>
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <Button x:Name="GitRefreshButton"
+                                                        Command="{Binding Git.RefreshCommand}"
+                                                        ToolTip.Tip="Reload Git changes">
+                                                    <Border Classes="titleToolButton">
+                                                        <TextBlock Classes="chromeIcon" Text="↺" FontSize="14"/>
+                                                    </Border>
+                                                </Button>
+                                                <Button x:Name="GitFetchButton"
+                                                        Classes="au-button au-button--secondary au-button--compact"
+                                                        Command="{Binding Git.FetchCommand}"
+                                                        Content="Fetch"/>
+                                                <Button x:Name="GitPullButton"
+                                                        Classes="au-button au-button--secondary au-button--compact"
+                                                        Command="{Binding Git.PullCommand}"
+                                                        Content="Pull"/>
+                                                <Button x:Name="GitPushButton"
+                                                        Classes="au-button au-button--compact"
+                                                        Command="{Binding Git.PushCommand}"
+                                                        Content="Push"
+                                                        IsVisible="{Binding !Git.IsConfirmingForcePush}"/>
+                                                <Button x:Name="GitForcePushButton"
+                                                        Classes="au-button au-button--danger au-button--compact"
+                                                        Command="{Binding Git.RequestForcePushCommand}"
+                                                        Content="Force push"
+                                                        IsVisible="{Binding !Git.IsConfirmingForcePush}"/>
+                                            </StackPanel>
+                                                <Button Grid.Column="1"
+                                                        x:Name="GitHistoryButton"
+                                                        Classes="au-button au-button--secondary au-button--compact"
+                                                        Command="{Binding Git.OpenHistoryCommand}"
+                                                        Content="History"/>
+                                            </Grid>
+                                            <StackPanel Orientation="Horizontal" Spacing="6"
+                                                        IsVisible="{Binding Git.IsConfirmingForcePush}">
+                                                <TextBlock Text="Force-push with lease?"
+                                                           Foreground="{DynamicResource AgentUpColorTextDangerBrush}"
+                                                           FontSize="11"
+                                                           VerticalAlignment="Center"/>
+                                                <Button Classes="au-button au-button--secondary au-button--compact"
+                                                        Command="{Binding Git.CancelForcePushCommand}"
+                                                        Content="Cancel"/>
+                                                <Button x:Name="GitConfirmForcePushButton"
+                                                        Classes="au-button au-button--danger au-button--compact"
+                                                        Command="{Binding Git.ConfirmForcePushCommand}"
+                                                        Content="Confirm"/>
+                                            </StackPanel>
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <TextBlock Text="Git changes"
                                                            Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"
                                                            FontSize="11"
                                                            FontWeight="Bold"
                                                            VerticalAlignment="Center"/>
-                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                                                    <Button x:Name="GitDiscardButton"
-                                                            Classes="au-button au-button--danger au-button--compact"
-                                                            Command="{Binding Git.DiscardCommand}"
-                                                            Content="Discard"
-                                                            IsVisible="{Binding !Git.IsConfirmingDiscard}"/>
-                                                    <Button x:Name="GitRefreshButton"
-                                                            Command="{Binding Git.RefreshCommand}"
-                                                            ToolTip.Tip="Reload Git changes">
-                                                        <Border Classes="titleToolButton">
-                                                            <TextBlock Classes="chromeIcon" Text="↺" FontSize="14"/>
-                                                        </Border>
-                                                    </Button>
-                                                </StackPanel>
+                                                <Button Grid.Column="1"
+                                                        x:Name="GitDiscardButton"
+                                                        Classes="au-button au-button--danger au-button--compact"
+                                                        Command="{Binding Git.DiscardCommand}"
+                                                        Content="Discard"
+                                                        IsVisible="{Binding !Git.IsConfirmingDiscard}"/>
                                             </Grid>
                                             <TextBlock x:Name="GitSelectionSummary"
                                                        Text="{Binding Git.SelectionSummary}"
@@ -1840,56 +1838,6 @@
                                                             Content="Confirm discard"/>
                                                 </StackPanel>
                                             </StackPanel>
-                                            <ListBox x:Name="GitLog"
-                                                     Classes="au-git-log"
-                                                     ItemsSource="{Binding Git.LogRows}"
-                                                     SelectedItem="{Binding Git.SelectedLogRow}"
-                                                     MaxHeight="280">
-                                                <ListBox.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Border Classes="gitLogRow au-git-log-row">
-                                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                                                                <gitViews:GitLogGraphColumn Row="{Binding}"/>
-                                                                <Grid Grid.Column="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                                                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                                                        <ItemsControl ItemsSource="{Binding Refs}">
-                                                                            <ItemsControl.ItemsPanel>
-                                                                                <ItemsPanelTemplate>
-                                                                                    <StackPanel Orientation="Horizontal" Spacing="4"/>
-                                                                                </ItemsPanelTemplate>
-                                                                            </ItemsControl.ItemsPanel>
-                                                                            <ItemsControl.ItemTemplate>
-                                                                                <DataTemplate>
-                                                                                    <Button Classes="gitLogRef au-git-log-ref"
-                                                                                            Classes.au-git-log-ref--head="{Binding IsHead}"
-                                                                                            Classes.au-git-log-ref--remote="{Binding IsRemote}"
-                                                                                            Command="{Binding DataContext.Git.CheckoutLogRefCommand, ElementName=GitPanel}"
-                                                                                            CommandParameter="{Binding Name}"
-                                                                                            IsEnabled="{Binding CanCheckout}"
-                                                                                            Content="{Binding Name}"/>
-                                                                                </DataTemplate>
-                                                                            </ItemsControl.ItemTemplate>
-                                                                        </ItemsControl>
-                                                                        <TextBlock Classes="au-git-log-subject"
-                                                                                   Text="{Binding Commit.Subject}"
-                                                                                   TextTrimming="CharacterEllipsis"
-                                                                                   VerticalAlignment="Center"/>
-                                                                    </StackPanel>
-                                                                    <TextBlock Grid.Column="1"
-                                                                               Classes="au-git-log-author"
-                                                                               Text="{Binding Commit.Author}"
-                                                                               TextTrimming="CharacterEllipsis"
-                                                                               VerticalAlignment="Center"/>
-                                                                    <TextBlock Grid.Column="2"
-                                                                               Classes="au-git-log-time"
-                                                                               Text="{Binding Commit.Timestamp, Converter={x:Static gitViews:GitLogTimeConverter.Instance}}"
-                                                                               VerticalAlignment="Center"/>
-                                                                </Grid>
-                                                            </Grid>
-                                                        </Border>
-                                                    </DataTemplate>
-                                                </ListBox.ItemTemplate>
-                                            </ListBox>
                                         </StackPanel>
                                     </Border>
 
@@ -1997,6 +1945,89 @@
                                     </StackPanel>
 
                                 </Grid>
+                                <Grid IsVisible="{Binding Git.IsHistoryOpen}"
+                                      IsHitTestVisible="{Binding Git.IsHistoryOpen}"
+                                      RowDefinitions="Auto,*">
+                                    <Border Grid.Row="0" Padding="14,10,10,8">
+                                        <StackPanel Spacing="8">
+                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                                <Button x:Name="GitHistoryBackButton"
+                                                        Classes="au-button au-button--secondary au-button--compact"
+                                                        Command="{Binding Git.CloseHistoryCommand}"
+                                                        Content="Back"/>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="History"
+                                                           Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"
+                                                           FontSize="11"
+                                                           FontWeight="Bold"
+                                                           VerticalAlignment="Center"/>
+                                            </Grid>
+                                            <TextBlock Text="{Binding Git.ErrorMessage}"
+                                                       IsVisible="{Binding Git.ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                                       Foreground="{DynamicResource AgentUpColorStatusDangerBrush}"
+                                                       FontSize="11"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding Git.StatusMessage}"
+                                                       IsVisible="{Binding Git.StatusMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                                       Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"
+                                                       FontSize="11"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <ListBox x:Name="GitLog"
+                                             Grid.Row="1"
+                                             Classes="au-git-log"
+                                             Margin="8,0,8,14"
+                                             IsVisible="{Binding Git.IsHistoryOpen}"
+                                             ItemsSource="{Binding Git.LogRows}"
+                                             SelectedItem="{Binding Git.SelectedLogRow}">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Classes="gitLogRow au-git-log-row">
+                                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                                        <gitViews:GitLogGraphColumn Row="{Binding}"/>
+                                                        <Grid Grid.Column="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                <ItemsControl ItemsSource="{Binding Refs}">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <StackPanel Orientation="Horizontal" Spacing="4"/>
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Button Classes="gitLogRef au-git-log-ref"
+                                                                                    Classes.au-git-log-ref--head="{Binding IsHead}"
+                                                                                    Classes.au-git-log-ref--remote="{Binding IsRemote}"
+                                                                                    Command="{Binding DataContext.Git.CheckoutLogRefCommand, ElementName=GitPanel}"
+                                                                                    CommandParameter="{Binding Name}"
+                                                                                    IsEnabled="{Binding CanCheckout}"
+                                                                                    Content="{Binding Name}"/>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                                <TextBlock Classes="au-git-log-subject"
+                                                                           Text="{Binding Commit.Subject}"
+                                                                           TextTrimming="CharacterEllipsis"
+                                                                           VerticalAlignment="Center"/>
+                                                            </StackPanel>
+                                                            <TextBlock Grid.Column="1"
+                                                                       Classes="au-git-log-author"
+                                                                       Text="{Binding Commit.Author}"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       VerticalAlignment="Center"/>
+                                                            <TextBlock Grid.Column="2"
+                                                                       Classes="au-git-log-time"
+                                                                       Text="{Binding Commit.Timestamp, Converter={x:Static gitViews:GitLogTimeConverter.Instance}}"
+                                                                       VerticalAlignment="Center"/>
+                                                        </Grid>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </Grid>
+                                </Panel>
                             </Border>
 
                         </Panel>
