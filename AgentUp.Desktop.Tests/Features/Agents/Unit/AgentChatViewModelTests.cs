@@ -13,6 +13,26 @@ namespace AgentUp.Desktop.Tests.Features.Agents.Unit;
 public sealed class AgentChatViewModelTests
 {
     [Test]
+    public async Task LoadAndResumeExposeWorkspaceSessionHistory()
+    {
+        var saved = new AgentSessionSummaryDto("saved-1", "Claude", "Generated description", "feature/agents", DateTimeOffset.UtcNow);
+        var initial = new AgentSessionDto("ws-1", null, "idle", null, null, [], [], Sessions: [saved]);
+        var resumed = initial with { Agent = "Claude", State = "ready", SessionId = "saved-1" };
+        var fake = new ChatApiFake { Session = initial, NextSession = resumed };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+        await view.ResumeSessionCommand.Execute("saved-1").FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.Sessions, Is.EqualTo(new[] { saved }));
+            Assert.That(view.HasSession, Is.True);
+            Assert.That(fake.ResumedSessionId, Is.EqualTo("saved-1"));
+        });
+    }
+
+    [Test]
     public async Task LoadAsync_notifiesComputedPropertiesAfterClearingSessionContext()
     {
         var notifications = new List<string>();
@@ -322,6 +342,7 @@ internal sealed class ChatApiFake : IAgentApiProvider
     public TaskCompletionSource? FirstGetHang { get; set; }
     public Dictionary<string, Exception> GetFailures { get; } = new(StringComparer.Ordinal);
     public string? LastWorkspace { get; private set; }
+    public string? ResumedSessionId { get; private set; }
     private int _gets;
 
     public AgentSessionDto? Session { get; set; }
@@ -339,6 +360,12 @@ internal sealed class ChatApiFake : IAgentApiProvider
 
     public Task<AgentSessionDto?> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken)
         => Task.FromResult(NextSession ?? Session);
+
+    public Task<AgentSessionDto?> ResumeAsync(string workspaceId, string sessionId, CancellationToken cancellationToken)
+    {
+        ResumedSessionId = sessionId;
+        return Task.FromResult(NextSession ?? Session);
+    }
 
     public Task SendAsync(string workspaceId, string message, CancellationToken cancellationToken)
         => SendFailure is null ? Task.CompletedTask : Task.FromException(SendFailure);

@@ -37,15 +37,30 @@ public static class AgentUpConfigurationParser
         foreach (var property in root.EnumerateObject().Where(property => !Reserved.Contains(property.Name)))
         {
             var runtime = MatchRuntime(runtimes, property.Name);
-            if (runtime is null)
-                continue;
             if (property.Value.ValueKind != JsonValueKind.Array)
-                throw new InvalidOperationException($"Runtime section '{property.Name}' must be an array.");
+            {
+                if (runtime is not null)
+                    throw new InvalidOperationException($"Runtime section '{property.Name}' must be an array.");
+                continue;
+            }
 
             var attributes = property.Value.EnumerateArray()
                 .Select(ReadObject)
                 .Select(RuntimeSectionBinder.PromoteNestedRun)
                 .ToArray();
+
+            // No enabled module claims this section. Keep it anyway: the workspace still owns
+            // these applications, and dropping them here silently deletes the ones the CLI
+            // registered, because starting a workspace re-registers it from this file.
+            // Reconciliation reports them unrunnable when nothing can host them.
+            if (runtime is null)
+            {
+                sections.Add(new RuntimeSectionDefinition(
+                    property.Name,
+                    attributes.Select(item => ToItem(item, Flatten(item), options)).ToArray()));
+                continue;
+            }
+
             var bind = runtime.Bind(attributes);
             if (!bind.IsValid)
             {
@@ -124,6 +139,25 @@ public static class AgentUpConfigurationParser
             extra,
             ReadBool(attributes, RuntimeCommonAttributes.Database),
             attributes);
+    }
+
+    /// <summary>The attributes as plain strings, standing in for a module's bound values.</summary>
+    private static IReadOnlyDictionary<string, string> Flatten(IReadOnlyDictionary<string, JsonElement> attributes)
+    {
+        var flattened = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, value) in attributes)
+        {
+            flattened[key] = value.ValueKind switch
+            {
+                JsonValueKind.String => value.GetString() ?? "",
+                JsonValueKind.True => "true",
+                JsonValueKind.False => "false",
+                JsonValueKind.Null => "",
+                _ => value.GetRawText()
+            };
+        }
+
+        return flattened;
     }
 
     private static Dictionary<string, JsonElement> ReadObject(JsonElement element)

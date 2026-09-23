@@ -9,8 +9,9 @@ import type { AgentLoginChallenge, AgentLoginTransport } from '@agent-up/agent-a
 export type AgentId = string;
 export type AgentDescriptor = { agent: AgentId; available: boolean; displayName: string };
 export type AgentAuthMethod = { id: string; name: string; description: string | null };
+export type AgentSessionSummary = { sessionId: string; agent: AgentId; description: string; branch: string; lastUsedAt: string };
 export type { AgentLoginChallenge, AgentLoginTransport };
-export type AgentSession = { workspaceId: string; agent: AgentId | null; state: string; sessionId: string | null; error: string | null; agents: AgentDescriptor[]; authMethods?: AgentAuthMethod[]; loginChallenge?: AgentLoginChallenge | null };
+export type AgentSession = { workspaceId: string; agent: AgentId | null; state: string; sessionId: string | null; error: string | null; agents: AgentDescriptor[]; authMethods?: AgentAuthMethod[]; loginChallenge?: AgentLoginChallenge | null; sessions?: AgentSessionSummary[] };
 export type AgentEvent = { sequence: number; type: string; payload: unknown; timestamp: string };
 export type AgentPermissionOption = { optionId: string; name: string; kind?: string };
 export type AgentPermission = {

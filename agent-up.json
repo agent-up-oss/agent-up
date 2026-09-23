@@ -1157,6 +1157,12 @@
         ]
       },
       {
+        "match": "AgentUp.Chat/**",
+        "checks": [
+          "mobile"
+        ]
+      },
+      {
         "match": "AgentUp.Mobile.E2E/**",
         "checks": [
           "mobile-e2e-harness"

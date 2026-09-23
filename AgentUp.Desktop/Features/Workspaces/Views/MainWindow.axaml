@@ -1161,7 +1161,27 @@
                                                 Command="{Binding Agent.StopCommand}"
                                                 Content="Stop agent"/>
                                     </Grid>
-                                    <StackPanel Grid.Row="1" Spacing="8" HorizontalAlignment="Stretch" IsVisible="{Binding !Agent.HasAgent}">
+                                    <StackPanel Grid.Row="1" Spacing="8" HorizontalAlignment="Stretch">
+                                        <TextBlock Classes="au-field-label" Text="Workspace sessions"/>
+                                        <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                        <ItemsControl x:Name="AgentSessionList" ItemsSource="{Binding Agent.Sessions}">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Classes="au-choice" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                                            Command="{Binding $parent[Window].DataContext.Agent.ResumeSessionCommand}" CommandParameter="{Binding SessionId}">
+                                                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                                            <Border Classes="au-badge"><TextBlock Classes="au-accent" Text="{Binding Agent}"/></Border>
+                                                            <TextBlock Grid.Column="1" Classes="wsName" Text="{Binding Description}" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Grid.Column="2" Classes="au-muted" Text="{Binding Branch}"/>
+                                                            <TextBlock Grid.Row="1" Grid.Column="1" Classes="au-muted" Text="Resume session →"/>
+                                                        </Grid>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        </ScrollViewer>
+                                        <StackPanel Spacing="8" HorizontalAlignment="Stretch" IsVisible="{Binding !Agent.HasAgent}">
                                         <TextBlock Classes="au-field-label" Text="Choose an ACP agent"/>
                                         <ItemsControl x:Name="AgentPicker" ItemsSource="{Binding Agent.Agents}" HorizontalAlignment="Stretch">
                                             <ItemsControl.Styles>
@@ -1203,6 +1223,7 @@
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
+                                        </StackPanel>
                                     </StackPanel>
                                     <StackPanel Grid.Row="2" Spacing="8">
                                         <ItemsControl ItemsSource="{Binding Agent.AuthenticationOptions}">

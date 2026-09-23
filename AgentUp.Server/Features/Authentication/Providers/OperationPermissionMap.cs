@@ -40,6 +40,7 @@ public static class OperationPermissionMap
 
         [("AgentsHttp", "Get")] = OperationPermissions.AgentRead,
         [("AgentsHttp", "Schedule")] = OperationPermissions.AgentPrompt,
+        [("AgentsHttp", "Resume")] = OperationPermissions.AgentPrompt,
         [("AgentsHttp", "Prompt")] = OperationPermissions.AgentPrompt,
         [("AgentsHttp", "Authenticate")] = OperationPermissions.AgentPrompt,
         [("AgentsHttp", "SubmitLoginCode")] = OperationPermissions.AgentPrompt,

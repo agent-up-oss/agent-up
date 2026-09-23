@@ -18,6 +18,13 @@ public sealed class AgentsHttpController(AgentsController agents) : ControllerBa
         return ScheduleResult(this, result);
     }
 
+    [HttpPost("sessions/{sessionId}/resume")]
+    public async Task<IActionResult> Resume(string workspaceId, string sessionId)
+    {
+        var result = await agents.ResumeAsync(workspaceId, sessionId, HttpContext.RequestAborted);
+        return ScheduleResult(this, result);
+    }
+
     [HttpPost("messages")]
     public Task<IActionResult> Prompt(string workspaceId, AgentPromptRequest request) =>
         PromptRequestAsync(this, agents, workspaceId, request, HttpContext.RequestAborted);

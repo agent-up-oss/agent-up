@@ -111,6 +111,23 @@ public sealed class AgentApiClientTests
     }
 
     [Test]
+    public async Task ResumeAsync_postsTheEscapedWorkspaceSessionRoute()
+    {
+        const string body = "{\"workspaceId\":\"ws\",\"agent\":\"Claude\",\"state\":\"ready\",\"sessionId\":\"session/1\",\"error\":null,\"agents\":[],\"authMethods\":[],\"sessions\":[]}";
+        using var handler = new AgentHandler(HttpStatusCode.OK, body, mediaType: "application/json");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new AgentApiClient(http);
+
+        var session = await client.ResumeAsync("ws/1", "session/1", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(handler.Uri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws%2F1/agent/sessions/session%2F1/resume"));
+            Assert.That(session!.SessionId, Is.EqualTo("session/1"));
+        });
+    }
+
+    [Test]
     public void ScheduleAsync_ignoresEmptyProblemBodies()
     {
         using var handler = new AgentHandler(HttpStatusCode.BadGateway, "");
@@ -135,15 +152,15 @@ public sealed class AgentApiClientTests
     }
 }
 
-internal sealed class AgentHandler(HttpStatusCode status = HttpStatusCode.OK, string? body = null, bool eventStream = false) : HttpMessageHandler
+internal sealed class AgentHandler(HttpStatusCode status = HttpStatusCode.OK, string? body = null, bool eventStream = false, string? mediaType = null) : HttpMessageHandler
 {
     public Uri? Uri { get; private set; }
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         Uri = request.RequestUri;
         var text = body ?? "id: 5\nevent: state\ndata: {\"sequence\":5,\"type\":\"state\",\"payload\":{},\"timestamp\":\"2026-01-01T00:00:00Z\"}\n\n";
-        var mediaType = eventStream || body is null ? "text/event-stream" : "application/problem+json";
-        return Task.FromResult(HttpTestResponses.Text(status, text, mediaType));
+        var responseMediaType = mediaType ?? (eventStream || body is null ? "text/event-stream" : "application/problem+json");
+        return Task.FromResult(HttpTestResponses.Text(status, text, responseMediaType));
     }
 }
 

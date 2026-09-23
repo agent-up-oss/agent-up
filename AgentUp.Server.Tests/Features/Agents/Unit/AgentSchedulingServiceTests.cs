@@ -29,6 +29,8 @@ public sealed class AgentSchedulingServiceTests
     private AgentEventService _events = null!;
     private Workspace _workspace = null!;
     private WorkspaceRegistry _registry = null!;
+    private InMemoryAgentSessionRepository _sessions = null!;
+    private FakeAgentProcessFactory _factory = null!;
 
     [SetUp]
     public async Task SetUp()
@@ -53,14 +55,19 @@ public sealed class AgentSchedulingServiceTests
         _events = new AgentEventService(_payloads);
         _login = new FakeSubscriptionLoginProvider();
         _credentials = new FakeClaudeCredentialStore();
+        _sessions = new InMemoryAgentSessionRepository();
+        _factory = new FakeAgentProcessFactory(_process);
         _service = new AgentSchedulingService(
-            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process), commands,
+            new WorkspaceQueryController(_registry), _factory, commands,
             _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
-            _payloads, _events, NullLogger<AgentSchedulingService>.Instance);
+            _payloads, _events, NullLogger<AgentSchedulingService>.Instance, null, _sessions);
     }
 
     [TearDown]
-    public async Task TearDown() => await _service.DisposeAsync();
+    public async Task TearDown()
+    {
+        await _service.DisposeAsync();
+    }
 
     [Test]
     public async Task GetAsync_lists_agents_from_enabled_modules()
@@ -120,7 +127,7 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
-    public async Task Schedule_initializesAcpInWorktreeAndEnforcesOneSession()
+    public async Task Schedule_initializesAcpInWorktreeAndReplacesTheActiveSession()
     {
         var first = await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         var second = await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
@@ -129,8 +136,172 @@ public sealed class AgentSchedulingServiceTests
             Assert.That(first.Session!.SessionId, Is.EqualTo("session-1"));
             Assert.That(_process.WorkingDirectory, Is.EqualTo("/repo"));
             Assert.That(_process.Environment!["HOME"], Is.EqualTo("/data/agent-cli-home"));
-            Assert.That(_process.Methods, Is.EqualTo(new[] { "initialize", "session/new" }));
-            Assert.That(second.Error, Does.Contain("already has an agent"));
+            Assert.That(_process.Methods, Is.EqualTo(new[] { "initialize", "session/new", "initialize", "session/new" }));
+            Assert.That(_process.StopCalls, Is.EqualTo(1));
+            Assert.That(second.Error, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task Schedule_persistsWorkspaceScopedSessionSummary()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        var session = _service.Get(_workspace.Id)!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(session.Sessions, Has.Count.EqualTo(1));
+            Assert.That(session.Sessions![0].SessionId, Is.EqualTo("session-1"));
+            Assert.That(session.Sessions[0].Agent, Is.EqualTo("codex"));
+            Assert.That(session.Sessions[0].Description, Is.EqualTo("New Codex session"));
+            Assert.That(session.Sessions[0].Branch, Is.EqualTo(_workspace.Branch));
+        });
+    }
+
+    [Test]
+    public async Task Resume_restartsAStoppedMatchingSession()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        _process.Exit(null);
+
+        var resumed = await _service.ResumeAsync(_workspace.Id, "session-1", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resumed.Error, Is.Null);
+            Assert.That(resumed.Session!.State, Is.EqualTo("ready"));
+            Assert.That(_process.Methods.Count(method => method == "session/load"), Is.EqualTo(1));
+            Assert.That(_process.StartCalls, Is.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public async Task Resume_returnsTheLiveSessionWithoutRestartingIt()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        var resumed = await _service.ResumeAsync(_workspace.Id, "session-1", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resumed.Session!.SessionId, Is.EqualTo("session-1"));
+            Assert.That(_process.StartCalls, Is.EqualTo(1), "a session already running is not restarted");
+            Assert.That(_process.Methods, Does.Not.Contain("session/load"));
+        });
+    }
+
+    [Test]
+    public async Task Resume_releasesTheWorkspaceWhenLoadingTheSessionFails()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        _process.Exit(null);
+        _process.SessionLoadFailure = new UnauthorizedAccessException("The agent home is not readable.");
+
+        var resumed = await _service.ResumeAsync(_workspace.Id, "session-1", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resumed.Error, Is.EqualTo("The agent home is not readable."));
+            Assert.That(resumed.Session, Is.Null);
+            Assert.That(_service.Get(_workspace.Id)!.State, Is.EqualTo("idle"), "the failed resume leaves no session behind");
+            Assert.That(_service.Get(_workspace.Id)!.Sessions, Has.Count.EqualTo(1), "the saved session stays resumable");
+        });
+    }
+
+    [Test]
+    public async Task Resume_rekeysWhenAgentReturnsANewSessionId()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        _process.SessionLoadResult = JsonSerializer.SerializeToElement(new { sessionId = "replacement" });
+        _process.Exit(null);
+
+        var resumed = await _service.ResumeAsync(_workspace.Id, "session-1", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resumed.Session!.SessionId, Is.EqualTo("replacement"));
+            Assert.That(resumed.Session.Sessions!.Select(item => item.SessionId), Is.EqualTo(new[] { "replacement" }));
+            Assert.That(_sessions.Find(_workspace.Id, "session-1"), Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task SessionTitleUpdatePersistsGeneratedDescription()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "claude", CancellationToken.None);
+
+        await _process.SendNotificationAsync("session/update", JsonSerializer.SerializeToElement(new
+        {
+            sessionUpdate = "session_info_update",
+            title = "Fix the session picker"
+        }));
+
+        Assert.That(_service.Get(_workspace.Id)!.Sessions!.Single().Description, Is.EqualTo("Fix the session picker"));
+    }
+
+    [Test]
+    public async Task SessionTitleFromAReplacedProcessDoesNotRetitleTheLiveSession()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        var replaced = _process;
+        _process = new FakeAgentProcessProvider { SessionNewResult = JsonSerializer.SerializeToElement(new { sessionId = "session-2" }) };
+        _factory.Next = _process;
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        await replaced.SendNotificationAsync("session/update", JsonSerializer.SerializeToElement(new
+        {
+            sessionUpdate = "session_info_update",
+            title = "Title from the old process"
+        }));
+
+        var saved = _service.Get(_workspace.Id)!.Sessions!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(saved.Select(item => item.Description), Does.Not.Contain("Title from the old process"));
+            Assert.That(_sessions.Find(_workspace.Id, "session-2")!.Description, Is.EqualTo("New Codex session"));
+        });
+    }
+
+    [Test]
+    public async Task AuthenticatingPersistsTheSessionItCreates()
+    {
+        _process.RequireAuthentication = true;
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        Assert.That(_service.Get(_workspace.Id)!.Sessions, Is.Empty, "nothing exists to save before sign-in succeeds");
+
+        _service.Authenticate(_workspace.Id, "chatgpt");
+        await WaitForStateAsync("ready");
+
+        var saved = _service.Get(_workspace.Id)!.Sessions!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(saved, Has.Count.EqualTo(1));
+            Assert.That(saved[0].SessionId, Is.EqualTo("session-1"));
+            Assert.That(saved[0].Description, Is.EqualTo("New Codex session"));
+        });
+    }
+
+    [Test]
+    public async Task ConcurrentResumesSerializeWorkspaceLifecycleTransitions()
+    {
+        var timestamp = DateTimeOffset.UtcNow;
+        _sessions.Upsert(new PersistedAgentSession(_workspace.Id, "first", "codex", "First", "main", timestamp));
+        _sessions.Upsert(new PersistedAgentSession(_workspace.Id, "second", "codex", "Second", "main", timestamp));
+        _process.HoldSessionLoad = true;
+
+        var first = _service.ResumeAsync(_workspace.Id, "first", CancellationToken.None);
+        await _process.SessionLoadStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var second = _service.ResumeAsync(_workspace.Id, "second", CancellationToken.None);
+        await Task.Delay(50);
+        Assert.That(_process.StartCalls, Is.EqualTo(1), "the second resume must wait for the first transition");
+
+        _process.CompleteSessionLoad();
+        await Task.WhenAll(first, second);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(_process.StartCalls, Is.EqualTo(2));
+            Assert.That(_service.Get(_workspace.Id)!.SessionId, Is.EqualTo("second"));
         });
     }
 
@@ -598,12 +769,22 @@ public sealed class AgentSchedulingServiceTests
 
 internal sealed class FakeAgentProcessFactory(IAgentProcessProvider process) : IAgentProcessFactory
 {
-    public IAgentProcessProvider Create() => process;
+    /// <summary>The process the next Create() hands out, for a test that replaces the running one.</summary>
+    public IAgentProcessProvider? Next { get; set; }
+
+    public IAgentProcessProvider Create()
+    {
+        if (Next is null) return process;
+        var next = Next;
+        Next = null;
+        return next;
+    }
 }
 
 internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
 {
     private TaskCompletionSource<JsonElement>? _prompt;
+    private TaskCompletionSource<JsonElement>? _sessionLoad;
     public event Func<string, JsonElement, Task>? Notification;
     public event Func<string, JsonElement, Task<JsonElement>>? Request;
     public event Action<string?>? Exited;
@@ -613,6 +794,8 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     public IReadOnlyDictionary<string, string>? Environment { get; private set; }
     public int StartCalls { get; private set; }
     public bool HoldPrompt { get; set; }
+    public bool HoldSessionLoad { get; set; }
+    public TaskCompletionSource SessionLoadStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public bool RequireAuthentication { get; set; }
     public bool AdvertiseAuthMethods { get; set; }
     public bool AdvertiseApiKey { get; set; }
@@ -621,11 +804,13 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     public int StopCalls { get; private set; }
     public int DisposeCalls { get; private set; }
     public JsonElement? SessionNewResult { get; set; }
+    public JsonElement? SessionLoadResult { get; set; }
     public int ProtocolVersion { get; set; } = 1;
     public Exception? AuthenticateFailure { get; set; }
     public Exception? PromptFailure { get; set; }
     public Exception? NotifyFailure { get; set; }
     public Exception? StopFailure { get; set; }
+    public Exception? SessionLoadFailure { get; set; }
 
     public Task StartAsync(
         string agent,
@@ -659,6 +844,17 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
         }
         if (method == "session/new")
             return SessionNewResult ?? JsonSerializer.SerializeToElement(new { sessionId = "session-1" });
+        if (method == "session/load")
+        {
+            SessionLoadStarted.TrySetResult();
+            if (SessionLoadFailure is not null) throw SessionLoadFailure;
+            if (HoldSessionLoad)
+            {
+                _sessionLoad = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                return await _sessionLoad.Task.WaitAsync(cancellationToken);
+            }
+            return SessionLoadResult ?? JsonSerializer.SerializeToElement(new { });
+        }
         return AuthMethodsPayload();
     }
 
@@ -689,6 +885,11 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
         return ValueTask.CompletedTask;
     }
     public void CompletePrompt() => _prompt!.TrySetResult(JsonSerializer.SerializeToElement(new { stopReason = "end_turn" }));
+    public void CompleteSessionLoad()
+    {
+        HoldSessionLoad = false;
+        _sessionLoad!.TrySetResult(JsonSerializer.SerializeToElement(new { }));
+    }
     public Task SendNotificationAsync(string method, JsonElement payload) => Notification?.Invoke(method, payload) ?? Task.CompletedTask;
     public void Exit(string? error) => Exited?.Invoke(error);
     public async Task<JsonElement> RequestPermissionAsync(JsonElement payload)

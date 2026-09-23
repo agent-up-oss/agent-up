@@ -61,6 +61,7 @@ public sealed class AgentsHttpTests
         builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
         builder.Services.AddSingleton<AgentEventFrameProvider>();
         builder.Services.AddSingleton<AgentEventService>();
+        builder.Services.AddSingleton(_ => new AgentSessionRepository(Path.Join(Path.GetTempPath(), $"agent-up-http-agent-sessions-{Guid.NewGuid():N}")));
         builder.Services.AddSingleton<AgentSchedulingService>();
         builder.Services.AddSingleton<AgentsController>();
         _app = builder.Build();
@@ -121,6 +122,14 @@ public sealed class AgentsHttpTests
     {
         var workspace = await RegisterAsync();
         using var response = await _client.DeleteAsync($"/api/workspaces/{workspace.Id}/agent");
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task Resume_unknownSavedSessionReturnsNotFound()
+    {
+        var workspace = await RegisterAsync();
+        using var response = await _client.PostAsync($"/api/workspaces/{workspace.Id}/agent/sessions/missing/resume", null);
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 

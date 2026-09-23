@@ -32,4 +32,27 @@ public sealed class AgentPickerPanelTests
             Assert.That(buttons.Single(button => button.DataContext is AgentDescriptorDto { Agent: "Cursor" }).IsEnabled, Is.False);
         });
     }
+
+    [AvaloniaTest]
+    public async Task AgentSessionList_rendersAgentDescriptionAndBranchInOneChoice()
+    {
+        var app = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
+        var viewModel = (MainViewModel)app.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Agent;
+        var session = new AgentSessionSummaryDto("saved", "Claude", "Fix session persistence", "feature/sessions", DateTimeOffset.UtcNow);
+        viewModel.Agent.Sessions.Add(session);
+        await HeadlessExtensions.FlushAsync();
+
+        var list = app.Window.FindControl<ItemsControl>("AgentSessionList")!;
+        var button = list.GetVisualDescendants().OfType<Button>().Single(item => item.DataContext is AgentSessionSummaryDto { SessionId: "saved" });
+        var text = button.GetVisualDescendants().OfType<TextBlock>().Select(item => item.Text).ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(button.Classes, Does.Contain("au-choice"));
+            Assert.That(text, Does.Contain("Claude"));
+            Assert.That(text, Does.Contain("Fix session persistence"));
+            Assert.That(text, Does.Contain("feature/sessions"));
+        });
+    }
 }
