@@ -7,9 +7,9 @@ title: Agents
 # Agents
 
 <DocWhat>
-Each workspace has one authenticated ACP session. The Server schedules the configured ACP executable in the worktree. Clients never launch the CLI or own the session.
+Each workspace has one active authenticated ACP session and a Server-persisted history of that workspace's sessions. The Server schedules the configured ACP executable in the worktree. Clients never launch the CLI or own the session.
 
-A second agent is rejected until the current one is stopped. Prompts are serialized per workspace.
+Starting or resuming a session replaces the active process without mixing histories between workspaces. Prompts are serialized per workspace.
 </DocWhat>
 
 <DocMeta
@@ -27,11 +27,13 @@ A second agent is rejected until the current one is stopped. Prompts are seriali
 <DocContract label="Route">POST .../authenticate</DocContract>
 
 <DocSurfaces>
-<DocSurface desktop>The Agent tab streams workspace ACP events over SSE on a dedicated HTTP client with an infinite timeout. User prompts are right-aligned catalog bubbles. The live agent run stays fully open; the next question collapses tools, searches, and thoughts to a Worked disclosure.</DocSurface>
-<DocSurface mobile>The Agents overview tab lists Server-discovered ACP agents so the user can continue the current session or start a new one, then opens the existing chat module as an inner page. `session/request_permission` is a blocking decision card. The client shows the sign-in URL and Codex device code from the Server and must not launch `xdg-open` itself.</DocSurface>
+<DocSurface desktop>The Agent tab lists the workspace's saved sessions across Codex, Cursor, and Claude with agent, generated description, and last branch, then streams the selected session over SSE. User prompts are right-aligned catalog bubbles. The live agent run stays fully open; the next question collapses tools, searches, and thoughts to a Worked disclosure.</DocSurface>
+<DocSurface mobile>The Agents overview tab lists the workspace's saved sessions across all agent types with agent, generated description, and last branch. Selecting one resumes it and opens chat as an inner page. `session/request_permission` is a blocking decision card. The client shows the sign-in URL and Codex device code from the Server and must not launch `xdg-open` itself.</DocSurface>
 </DocSurfaces>
 
 ## Session runtime
+
+The Server stores ACP session IDs and their display metadata under its data directory, partitioned by workspace ID. A generated ACP session title becomes the short description; the current workspace branch is recorded whenever a session is created, resumed, or retitled. Resuming uses ACP `session/load` in the workspace worktree, and deleting a workspace removes its saved session index.
 
 Message submission returns `202 Accepted` after the prompt has been handed to the workspace session; the completed turn arrives over SSE. A second prompt is rejected while a turn is running rather than being executed concurrently. Agent failures become structured operation errors or state events, and stopping an unresponsive adapter escalates from standard-input closure to process-tree termination after a bounded grace period.
 

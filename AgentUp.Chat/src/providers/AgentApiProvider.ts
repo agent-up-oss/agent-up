@@ -10,6 +10,9 @@ export async function getAgent(server: ServerSession, workspaceId: string, reque
 export async function scheduleAgent(server: ServerSession, workspaceId: string, agent: AgentId, request: typeof fetch = fetch) {
   return requestServerJson<AgentSession>(server, root(workspaceId), jsonBody({ agent }), 120_000, request);
 }
+export async function resumeAgent(server: ServerSession, workspaceId: string, sessionId: string, request: typeof fetch = fetch) {
+  return requestServerJson<AgentSession>(server, `${root(workspaceId)}/sessions/${encodeURIComponent(sessionId)}/resume`, jsonBody({}), 120_000, request);
+}
 export async function sendAgentMessage(server: ServerSession, workspaceId: string, message: string, request: typeof fetch = fetch) {
   return requestServerJson<null>(server, `${root(workspaceId)}/messages`, jsonBody({ message }), undefined, request);
 }

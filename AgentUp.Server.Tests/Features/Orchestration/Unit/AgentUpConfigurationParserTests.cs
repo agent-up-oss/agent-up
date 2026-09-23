@@ -53,13 +53,79 @@ public sealed class AgentUpConfigurationParserTests
     }
 
     [Test]
-    public void Parse_ignores_runtime_section_names_that_are_not_enabled()
+    public void Parse_keeps_runtime_sections_whose_module_is_not_enabled()
     {
         using var document = JsonDocument.Parse("""{"name":"App","python":[{"name":"api","script":"main.py"}]}""");
 
         var config = AgentUpConfigurationParser.Parse(document.RootElement, [], Json);
 
-        Assert.That(config.RuntimeSections, Is.Empty);
+        var sections = config.RuntimeSections ?? [];
+        Assert.Multiple(() =>
+        {
+            Assert.That(sections, Has.Count.EqualTo(1));
+            Assert.That(sections[0].ModuleId, Is.EqualTo("python"));
+            Assert.That(sections[0].Items.Single().Name, Is.EqualTo("api"));
+            Assert.That(sections[0].Items.Single().Parameters!["script"], Is.EqualTo("main.py"));
+        });
+    }
+
+    [Test]
+    public void Parse_keeps_dotnet_and_docker_when_no_runtime_module_is_enabled()
+    {
+        using var document = JsonDocument.Parse(
+            """{"name":"App","dotnet":[{"name":"SmokeDotnet","sdk":"10.0.x","run":{"project":"SmokeDotnet/SmokeDotnet.csproj"}}],"docker":[{"name":"SmokeDocker","image":"nginx:alpine"}]}""");
+
+        var config = AgentUpConfigurationParser.Parse(document.RootElement, [], Json);
+
+        var dotnet = config.Dotnet ?? [];
+        var docker = config.Docker ?? [];
+        Assert.Multiple(() =>
+        {
+            Assert.That(dotnet, Has.Count.EqualTo(1));
+            Assert.That(dotnet[0].Run.Project, Is.EqualTo("SmokeDotnet/SmokeDotnet.csproj"));
+            Assert.That(docker, Has.Count.EqualTo(1));
+            Assert.That(docker[0].Image, Is.EqualTo("nginx:alpine"));
+        });
+    }
+
+    [Test]
+    public void Parse_ignores_non_array_root_values_that_no_module_claims()
+    {
+        using var document = JsonDocument.Parse("""{"name":"App","somethingElse":{"note":"not a runtime section"}}""");
+
+        var config = AgentUpConfigurationParser.Parse(document.RootElement, [], Json);
+
+        Assert.That(config.RuntimeSections ?? [], Is.Empty);
+    }
+
+    [Test]
+    public void Parse_rejects_a_claimed_runtime_section_that_is_not_an_array()
+    {
+        var runtime = PythonRuntime();
+        using var document = JsonDocument.Parse("""{"name":"App","python":{"name":"api","script":"main.py"}}""");
+
+        Assert.That(
+            () => AgentUpConfigurationParser.Parse(document.RootElement, [runtime], Json),
+            Throws.InvalidOperationException.With.Message.Contains("must be an array"));
+    }
+
+    [Test]
+    public void Parse_flattens_every_value_kind_in_a_section_no_module_claims()
+    {
+        using var document = JsonDocument.Parse(
+            """{"name":"App","python":[{"name":"api","database":true,"detached":false,"note":null,"replicas":2}]}""");
+
+        var config = AgentUpConfigurationParser.Parse(document.RootElement, [], Json);
+
+        var parameters = (config.RuntimeSections ?? [])[0].Items.Single().Parameters!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(parameters["database"], Is.EqualTo("true"));
+            Assert.That(parameters["detached"], Is.EqualTo("false"));
+            Assert.That(parameters["note"], Is.Empty);
+            Assert.That(parameters["replicas"], Is.EqualTo("2"));
+            Assert.That(parameters["name"], Is.EqualTo("api"));
+        });
     }
 
     [Test]
