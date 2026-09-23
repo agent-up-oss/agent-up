@@ -298,6 +298,7 @@ public sealed class FakeBackendServiceTests
         var backend = FakeServerTestComposition.Backend();
 
         Assert.That(Run(backend, Post("/api/apps/tickets", "{}")).Status, Is.EqualTo(404));
+        Assert.That(Run(backend, Post("/api/apps/tickets")).Status, Is.EqualTo(404));
         Assert.That(Run(backend, Post("/api/apps/tickets", """{"workspaceId":"harbor-shop","allocatedPort":1}""")).Status, Is.EqualTo(404));
         Assert.That(Run(backend, Get("/apps/harbor-shop")).Status, Is.EqualTo(404));
         Assert.That(Run(backend, Get("/apps/harbor-shop/missing")).Status, Is.EqualTo(404));
@@ -414,6 +415,8 @@ public sealed class FakeBackendServiceTests
         Assert.That(emptyCommit["succeeded"]!.GetValue<bool>(), Is.False);
         Assert.That(invalidFiles["succeeded"]!.GetValue<bool>(), Is.False);
         Assert.That(invalidCreate["succeeded"]!.GetValue<bool>(), Is.False);
+        Assert.That(Json(backend, Post("/api/workspaces/harbor-shop/git/commit", """{"files":[1],"message":"x"}"""))["succeeded"]!.GetValue<bool>(), Is.False);
+        Assert.That(Json(backend, Post("/api/workspaces/harbor-shop/git/branch"))["succeeded"]!.GetValue<bool>(), Is.False);
     }
 
     [Test]
@@ -498,6 +501,8 @@ public sealed class FakeBackendServiceTests
         Assert.That(file.Status, Is.EqualTo(404));
         Assert.That(backend.ApplicationHtml(1), Is.Null);
         Assert.That(backend.ApplicationHtml(9100), Does.Contain("Harbor Shop"));
+        Assert.That(Run(backend, Get("/api/workspaces/harbor-shop/unknown")).Status, Is.EqualTo(404));
+        Assert.That(Run(backend, Get("/api/workspaces/tutorial/status")).Status, Is.EqualTo(404));
     }
 
     [Test]

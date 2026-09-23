@@ -78,6 +78,7 @@ public sealed class FakeGitProviderTests
         Assert.That(head["ahead"]!.GetValue<int>(), Is.EqualTo(0));
         Assert.That(head["behind"]!.GetValue<int>(), Is.EqualTo(0));
         Assert.That(head["commit"], Is.Null);
+        Assert.That(FakeGitProvider.Discard(git, ["README.md"])["succeeded"]!.GetValue<bool>(), Is.True);
     }
 
     [Test]
