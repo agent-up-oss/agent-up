@@ -53,13 +53,46 @@ public sealed class AgentUpConfigurationParserTests
     }
 
     [Test]
-    public void Parse_ignores_runtime_section_names_that_are_not_enabled()
+    public void Parse_keeps_runtime_sections_whose_module_is_not_enabled()
     {
         using var document = JsonDocument.Parse("""{"name":"App","python":[{"name":"api","script":"main.py"}]}""");
 
         var config = AgentUpConfigurationParser.Parse(document.RootElement, [], Json);
 
-        Assert.That(config.RuntimeSections, Is.Empty);
+        Assert.Multiple(() =>
+        {
+            Assert.That(config.RuntimeSections ?? [], Has.Count.EqualTo(1));
+            Assert.That(config.RuntimeSections![0].ModuleId, Is.EqualTo("python"));
+            Assert.That(config.RuntimeSections[0].Items.Single().Name, Is.EqualTo("api"));
+            Assert.That(config.RuntimeSections[0].Items.Single().Parameters!["script"], Is.EqualTo("main.py"));
+        });
+    }
+
+    [Test]
+    public void Parse_keeps_dotnet_and_docker_when_no_runtime_module_is_enabled()
+    {
+        using var document = JsonDocument.Parse(
+            """{"name":"App","dotnet":[{"name":"SmokeDotnet","sdk":"10.0.x","run":{"project":"SmokeDotnet/SmokeDotnet.csproj"}}],"docker":[{"name":"SmokeDocker","image":"nginx:alpine"}]}""");
+
+        var config = AgentUpConfigurationParser.Parse(document.RootElement, [], Json);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(config.Dotnet ?? [], Has.Count.EqualTo(1));
+            Assert.That(config.Dotnet![0].Run.Project, Is.EqualTo("SmokeDotnet/SmokeDotnet.csproj"));
+            Assert.That(config.Docker ?? [], Has.Count.EqualTo(1));
+            Assert.That(config.Docker![0].Image, Is.EqualTo("nginx:alpine"));
+        });
+    }
+
+    [Test]
+    public void Parse_ignores_non_array_root_values_that_no_module_claims()
+    {
+        using var document = JsonDocument.Parse("""{"name":"App","somethingElse":{"note":"not a runtime section"}}""");
+
+        var config = AgentUpConfigurationParser.Parse(document.RootElement, [], Json);
+
+        Assert.That(config.RuntimeSections ?? [], Is.Empty);
     }
 
     [Test]
