@@ -99,6 +99,36 @@ public sealed class AgentUpConfigurationParserTests
     }
 
     [Test]
+    public void Parse_rejects_a_claimed_runtime_section_that_is_not_an_array()
+    {
+        var runtime = PythonRuntime();
+        using var document = JsonDocument.Parse("""{"name":"App","python":{"name":"api","script":"main.py"}}""");
+
+        Assert.That(
+            () => AgentUpConfigurationParser.Parse(document.RootElement, [runtime], Json),
+            Throws.InvalidOperationException.With.Message.Contains("must be an array"));
+    }
+
+    [Test]
+    public void Parse_flattens_every_value_kind_in_a_section_no_module_claims()
+    {
+        using var document = JsonDocument.Parse(
+            """{"name":"App","python":[{"name":"api","database":true,"detached":false,"note":null,"replicas":2}]}""");
+
+        var config = AgentUpConfigurationParser.Parse(document.RootElement, [], Json);
+
+        var parameters = (config.RuntimeSections ?? [])[0].Items.Single().Parameters!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(parameters["database"], Is.EqualTo("true"));
+            Assert.That(parameters["detached"], Is.EqualTo("false"));
+            Assert.That(parameters["note"], Is.Empty);
+            Assert.That(parameters["replicas"], Is.EqualTo("2"));
+            Assert.That(parameters["name"], Is.EqualTo("api"));
+        });
+    }
+
+    [Test]
     public void Parse_fails_unknown_extra_keys_and_missing_required_attributes()
     {
         var runtime = PythonRuntime();
