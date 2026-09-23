@@ -59,12 +59,13 @@ public sealed class AgentUpConfigurationParserTests
 
         var config = AgentUpConfigurationParser.Parse(document.RootElement, [], Json);
 
+        var sections = config.RuntimeSections ?? [];
         Assert.Multiple(() =>
         {
-            Assert.That(config.RuntimeSections ?? [], Has.Count.EqualTo(1));
-            Assert.That(config.RuntimeSections![0].ModuleId, Is.EqualTo("python"));
-            Assert.That(config.RuntimeSections[0].Items.Single().Name, Is.EqualTo("api"));
-            Assert.That(config.RuntimeSections[0].Items.Single().Parameters!["script"], Is.EqualTo("main.py"));
+            Assert.That(sections, Has.Count.EqualTo(1));
+            Assert.That(sections[0].ModuleId, Is.EqualTo("python"));
+            Assert.That(sections[0].Items.Single().Name, Is.EqualTo("api"));
+            Assert.That(sections[0].Items.Single().Parameters!["script"], Is.EqualTo("main.py"));
         });
     }
 
@@ -76,12 +77,14 @@ public sealed class AgentUpConfigurationParserTests
 
         var config = AgentUpConfigurationParser.Parse(document.RootElement, [], Json);
 
+        var dotnet = config.Dotnet ?? [];
+        var docker = config.Docker ?? [];
         Assert.Multiple(() =>
         {
-            Assert.That(config.Dotnet ?? [], Has.Count.EqualTo(1));
-            Assert.That(config.Dotnet![0].Run.Project, Is.EqualTo("SmokeDotnet/SmokeDotnet.csproj"));
-            Assert.That(config.Docker ?? [], Has.Count.EqualTo(1));
-            Assert.That(config.Docker![0].Image, Is.EqualTo("nginx:alpine"));
+            Assert.That(dotnet, Has.Count.EqualTo(1));
+            Assert.That(dotnet[0].Run.Project, Is.EqualTo("SmokeDotnet/SmokeDotnet.csproj"));
+            Assert.That(docker, Has.Count.EqualTo(1));
+            Assert.That(docker[0].Image, Is.EqualTo("nginx:alpine"));
         });
     }
 
