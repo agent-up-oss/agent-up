@@ -5,11 +5,11 @@ title: Branch and remotes
 # Branch and remotes
 
 <DocWhat>
-Fetch, pull, push, and branch switch for the workspace you have open. Desktop puts branch switching on Overview; Mobile puts it on the Git tab.
+Fetch, pull, push, and branch switch for the workspace you have open. Desktop and Mobile both put those controls on the Git tab.
 </DocWhat>
 
 <DocSurfaces>
-<DocSurface desktop>Branch switching lives on the Overview tab, not in the Git view. A dropdown at the top of Overview shows the live branch, grouped local and remote-tracking branches, and ahead/behind counts against the upstream.</DocSurface>
+<DocSurface desktop>Branch switching lives at the top of the Git tab. A dropdown shows the live branch, grouped local and remote-tracking branches, and ahead/behind counts against the upstream. Fetch, Pull, Push, and History sit under that dropdown. History is an inner page.</DocSurface>
 <DocSurface mobile>Those same controls sit on the Git tab. Fetch, Pull, Push, branch switch, remote checkout, and create-branch each ask for a confirmation that names the operation and the branch or remote. The branch list shows at most five rows at a time and can be filtered. Reload sits to the left of Fetch. A History button sits next to Push. Force push (--force-with-lease) appears only when a normal push is rejected.</DocSurface>
 </DocSurfaces>
 

@@ -24,6 +24,10 @@ const SINGLETONS = new Set([
 const config = getDefaultConfig(__dirname);
 const appEntry = path.join(__dirname, 'package.json');
 const inherited = config.resolver.resolveRequest;
+config.watchFolders = [
+  ...(config.watchFolders ?? []),
+  path.resolve(__dirname, '../AgentUp.FakeServer'),
+];
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   const resolve = inherited ?? context.resolveRequest;

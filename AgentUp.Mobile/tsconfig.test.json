@@ -14,7 +14,9 @@
     "src/features/telemetry/**/*.ts",
     "src/features/entitlements/**/*.ts",
     "src/features/agents/benchmark/MobilePerformanceGate.ts",
-    "src/features/shell/**/*.ts"
+    "src/features/shell/**/*.ts",
+    "src/features/fake-server/**/*.ts",
+    "../AgentUp.FakeServer/definition.json"
   ],
   "exclude": []
 }

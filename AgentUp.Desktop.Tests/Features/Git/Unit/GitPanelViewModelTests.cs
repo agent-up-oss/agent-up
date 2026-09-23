@@ -562,6 +562,23 @@ public sealed class GitPanelViewModelTests
     }
 
     [Test]
+    public async Task OpenHistoryCommand_togglesTheHistoryPage()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
+        await panel.LoadAsync("ws-1");
+
+        await panel.OpenHistoryCommand.Execute().FirstAsync();
+        Assert.That(panel.IsHistoryOpen, Is.True);
+        await panel.CloseHistoryCommand.Execute().FirstAsync();
+        Assert.That(panel.IsHistoryOpen, Is.False);
+
+        panel.IsVisible = true;
+        await panel.OpenHistoryCommand.Execute().FirstAsync();
+        panel.IsVisible = false;
+        Assert.That(panel.IsHistoryOpen, Is.False);
+    }
+
+    [Test]
     public async Task CheckoutLogRefCommand_switchesALocalBranchRef()
     {
         var client = new FakeGitApiProvider

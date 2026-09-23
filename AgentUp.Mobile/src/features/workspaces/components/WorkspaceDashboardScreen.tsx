@@ -9,6 +9,7 @@ import {
   statusDotStyle,
   workspaceLedState,
   workspaceLifecycleControls,
+  workspaceShowsApplications,
   workspaceStatusLabel,
 } from '../providers/WorkspaceStatusProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
@@ -39,7 +40,8 @@ export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreen
 
   useShellConfig(shellConfig);
 
-  const applications = workspace.applications ?? [];
+  const applications = workspaceShowsApplications(workspace.state) ? workspace.applications ?? [] : [];
+  const showApplications = workspaceShowsApplications(workspace.state);
   const lifecycle = workspaceLifecycleControls(workspace.state);
   const statusLabel = workspaceStatusLabel(workspace.state, workspace.healthState);
   const ledState = workspaceLedState(workspace.state, workspace.healthState);
@@ -87,18 +89,19 @@ export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreen
         {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
         {!!actionError && <Text accessibilityRole="alert" style={styles.error}>{actionError}</Text>}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Applications</Text>
-          {applications.length === 0
-            ? <Text style={styles.empty}>No applications configured.</Text>
-            : applications.map(application => (
-              <ApplicationRow
-                key={application.name}
-                application={application}
-                onPress={() => openApplication(application.name)}
-              />
-            ))}
-        </View>
+        {showApplications &&
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Applications</Text>
+            {applications.length === 0
+              ? <Text style={styles.empty}>No applications configured.</Text>
+              : applications.map(application => (
+                <ApplicationRow
+                  key={application.name}
+                  application={application}
+                  onPress={() => openApplication(application.name)}
+                />
+              ))}
+          </View>}
       </ScrollView>
       <WorkspaceTabBar workspaceId={workspace.id} active="apps" />
     </View>

@@ -76,11 +76,12 @@ public class ContentPanelBehaviorTests
     }
 
     [AvaloniaTest]
-    public async Task Content_showsOverviewBranchPicker_whenWorkspaceIsSelected()
+    public async Task Content_showsGitBranchPicker_whenGitTabIsSelected()
     {
         var workspace = DesktopDomain.Workspace().Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(workspace);
         var viewModel = (MainViewModel)app.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Git;
         for (var i = 0; i < 40 && viewModel.Overview.IsLoading; i++)
         {
             await Task.Delay(25);

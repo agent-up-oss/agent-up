@@ -27,8 +27,8 @@ Do not leave implementation, `AGENTS.md`, and docs disagreeing. If the requested
 
 Product names that appear in more than one surface:
 
-- Desktop Git chrome is the **Commit** tab; the heading inside it is **Git changes**. Mobile chrome is the **Git** tab, with inner **Review** and **History** pages. Do not call the Desktop tab "Git" or the Mobile tab "Commit".
-- The human Git slice is working-tree review. The agent queue is the **commit queue** (legacy local) or **proposal queue** when `commits.enabled` is true. Desktop Commit and Mobile Review display that queue; they do not mutate it.
+- Desktop Git chrome is the **Git** tab; the heading inside it is **Git changes**. Mobile chrome is the **Git** tab, with inner **Review** and **History** pages. Do not call either tab "Commit".
+- The human Git slice is working-tree review. The agent queue is the **commit queue** (legacy local) or **proposal queue** when `commits.enabled` is true. Desktop Git and Mobile Review display that queue; they do not mutate it.
 - Desktop chrome for the live ACP session is the **Agent** tab. Mobile chrome for the picker is the **Agents** tab.
 - The installed CLI is `agent-up`. Do not document `agentup` or `agent-up register`.
 - Packaged Server URL is `http://localhost:5000`. The repository launch profile is `http://localhost:5001`.
@@ -387,7 +387,7 @@ AgentUp.Desktop/
     Console/          (console output/logs for the selected application)
       Providers/
       ViewModels/
-    Git/              (Commit tab Git changes surface: change tree, file diff modal, commit box, history, proposal-queue display)
+    Git/              (Git tab Git changes surface: change tree, file diff modal, commit box, inner history, proposal-queue display)
       Controllers/
       DTOs/
       Interfaces/
@@ -397,11 +397,18 @@ AgentUp.Desktop/
     Ports/            (port sub-tabs: HTTP browser view, TCP info, probe status)
       DTOs/
       ViewModels/
+    FakeServer/       (built-in Demo server list entry and in-process fake backend)
+      Controllers/
+      DTOs/
+      Models/
+      Providers/
+      Services/
 
 AgentUp.Mobile/
   src/
     app/               (Expo Router entrypoints only)
     features/          (product-meaningful React Native client slices)
+      fake-server/     (built-in Demo server list entry and fetch interceptor)
 
 AgentUp.CLI/
   Features/
@@ -667,7 +674,7 @@ The Desktop is an Avalonia client for humans. It displays workspaces, browser ta
 
 Applications declared in `desktopApplications` are displayed in session-ticketed streamed application tabs. Desktop must not launch their virtual displays, capture frames, or own input/session state. Existing HTTP application tabs continue to connect directly to their allocated ports and do not use the streaming path.
 
-It connects to one Server at a time and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. It must not own runtime state; its Commit tab Git changes surface displays the Server-owned proposal queue, including entry order, messages, and verification state. Full guide: `docs/developer-guide/workspaces/index.md` and `docs/developer-guide/applications/index.md`.
+It connects to one Server at a time and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. It must not own runtime state; its Git tab Git changes surface displays the Server-owned proposal queue, including entry order, messages, and verification state. The server list always includes a built-in **Demo** entry as the first-launch path; only while that entry is connected does Desktop intercept `HttpClient` with the in-process fake backend from `AgentUp.FakeServer/definition.json`. Disconnecting and connecting to a real Server works without restart. Full guide: `docs/developer-guide/workspaces/index.md` and `docs/developer-guide/applications/index.md`.
 
 Installed Desktop packages must install or depend on a local Server service rather than embedding orchestration in the Desktop process.
 
@@ -687,7 +694,9 @@ Full guide: `docs/developer-guide/repo/au-debug.md`.
 
 The mobile client is a single Expo and React Native TypeScript project that targets Android, iOS, and an installable web PWA. It lives in `AgentUp.Mobile/` at the repository root and is not part of `agent-up.sln`.
 
-Mobile route entrypoints stay thin under `src/app/`; product UI and client behavior live in capability-oriented slices under `src/features/`. Do not commit Expo-generated `android/` or `ios/` projects unless native customization is intentionally adopted. Native signed Android and iOS binaries are built by `.github/workflows/mobile-ci.yaml`: a shared Mobile test job gates both native builds, path-filtered pushes smoke build and sign, and `workflow_dispatch` publishes to the stores. They are not part of the `ci.yml` desktop release. The mobile client displays Server-owned state and must not own orchestration. It can save multiple Server URLs and switch among them; sign-in tokens stay on the device per connection. Only one is active, and switching drops client-local workspace state. Logout on the sidebar Server section returns to the connect screen.
+The server list always includes a built-in **Demo** entry as the first-launch path. Only while that entry is connected does Mobile intercept `fetch` with the in-process fake backend from `AgentUp.FakeServer/definition.json`. Disconnecting and connecting to a real Server works without restart. Application WebViews load bundled HTML through `html` / `srcDoc` because they cannot use the fetch interceptor.
+
+Mobile route entrypoints stay thin under `src/app/`; product UI and client behavior live in capability-oriented slices under `src/features/`. Do not commit Expo-generated `android/` or `ios/` projects unless native customization is intentionally adopted. Native signed Android and iOS binaries are built by `.github/workflows/mobile-ci.yaml`: a shared Mobile test job gates both native builds, path-filtered pushes smoke build and sign, and `workflow_dispatch` publishes to the stores. They are not part of the `ci.yml` desktop release. The mobile client displays Server-owned state and must not own orchestration. It can save multiple Server URLs and switch among them; sign-in tokens stay on the device per connection. Only one is active, and switching drops client-local workspace state. The sidebar Server section shows the current connection; Logout returns to the connect screen where servers are added or switched.
 
 Mobile application spaces load each application's HTTP interface in a native WebView (or web iframe). The Server reverse-proxies that traffic over the authenticated HTTPS Server origin so dynamically allocated loopback ports stay private to the Server host and are never published through the public reverse proxy. Mobile first requests a short-lived single-use ticket over Bearer REST, then navigates the WebView to the ticket bootstrap URL. Native WebViews send that ticket in the `X-Agent-Up-Ticket` header; the installable web client places it in the URL fragment so it is not logged as a query string. The Server ignores query-string tickets, sets an HttpOnly cookie, and redirects to `/` so the application is rendered at origin root. Subsequent document, asset, and WebSocket requests on unmatched Server paths use that cookie. Token-bearing ticket requests and ticket or session acceptance reject remote plaintext HTTP except for loopback development URLs. The Server decides that from the TLS connection or loopback peer, not from a client-supplied forwarded scheme header.
 
@@ -1200,7 +1209,7 @@ Read: `docs/user-docs/applications/index.md` and `docs/developer-guide/applicati
 
 ## Git
 
-The Server's `Git` slice exposes the selected workspace's uncommitted changes as a directory tree, per-file diffs, a commit that stages only the requested paths, remote-tracking branches, fetch/pull/push, and a bounded commit log. It is the human review-and-commit surface rendered by the Desktop Commit tab and the Mobile Git tab, and it is deliberately separate from the `Commits` slice, which owns the agent-facing commit queue described under Commit Workflow.
+The Server's `Git` slice exposes the selected workspace's uncommitted changes as a directory tree, per-file diffs, a commit that stages only the requested paths, remote-tracking branches, fetch/pull/push, and a bounded commit log. It is the human review-and-commit surface rendered by the Desktop Git tab and the Mobile Git tab, and it is deliberately separate from the `Commits` slice, which owns the agent-facing commit queue described under Commit Workflow.
 
 Coding agents must still use the commit queue tools. The `Git` slice is a product surface for humans, not an escape hatch around `enqueue_commit`.
 
@@ -1208,7 +1217,7 @@ Read: `docs/user-docs/git/index.md` and `docs/developer-guide/git/index.md`.
 
 ## Commits
 
-The agent queue is the **commit queue** (legacy local) or **proposal queue** when `commits.enabled` is true. Desktop Commit and Mobile Review display that queue; they do not mutate it. Agents enqueue through MCP.
+The agent queue is the **commit queue** (legacy local) or **proposal queue** when `commits.enabled` is true. Desktop Git and Mobile Review display that queue; they do not mutate it. Agents enqueue through MCP.
 
 Read: `docs/user-docs/commits/index.md` and `docs/developer-guide/commits/index.md`.
 

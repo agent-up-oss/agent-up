@@ -37,6 +37,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     private int _ahead;
     private int _behind;
     private GitLogRowDto? _selectedLogRow;
+    private bool _isHistoryOpen;
     private CancellationTokenSource? _watch;
 
     public ObservableCollection<GitChangeNodeViewModel> Nodes { get; } = [];
@@ -104,6 +105,8 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         CheckoutLogRefCommand = ReactiveCommand.CreateFromTask<string>(
             CheckoutFromLogAsync,
             this.WhenAnyValue(x => x.IsBusy, busy => !busy));
+        OpenHistoryCommand = ReactiveCommand.Create(() => { IsHistoryOpen = true; });
+        CloseHistoryCommand = ReactiveCommand.Create(() => { IsHistoryOpen = false; });
         CommitCommand = ReactiveCommand.CreateFromTask(
             CommitAsync,
             this.WhenAnyValue(
@@ -125,7 +128,10 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
             if (value)
                 StartWatching();
             else
+            {
+                IsHistoryOpen = false;
                 StopWatching();
+            }
         }
     }
 
@@ -296,7 +302,15 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     public ReactiveCommand<Unit, Unit> ConfirmForcePushCommand { get; }
     public ReactiveCommand<Unit, Unit> CancelForcePushCommand { get; }
     public ReactiveCommand<string, Unit> CheckoutLogRefCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenHistoryCommand { get; }
+    public ReactiveCommand<Unit, Unit> CloseHistoryCommand { get; }
     public ReactiveCommand<Unit, Unit> CommitCommand { get; }
+
+    public bool IsHistoryOpen
+    {
+        get => _isHistoryOpen;
+        private set => this.RaiseAndSetIfChanged(ref _isHistoryOpen, value);
+    }
 
     public void PrepareWorkspace(string? workspaceId, string? branch)
     {
@@ -308,6 +322,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         ClearQueue();
         SelectedFileCount = 0;
         CancelDiscardConfirm();
+        IsHistoryOpen = false;
         Diff.Hide();
         if (workspaceId is null)
         {
@@ -431,6 +446,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         StatusMessage = null;
         CancelDiscardConfirm();
         CancelForcePushConfirm();
+        IsHistoryOpen = false;
         Diff.Hide();
         RaiseListProperties();
     }

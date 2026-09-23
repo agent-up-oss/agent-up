@@ -25,9 +25,10 @@ type WorkspaceBranchPickerProps = {
   workspaceId: string;
   onHistory?: () => void;
   onReload?: () => void;
+  reloadNonce?: number;
 };
 
-export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload }: WorkspaceBranchPickerProps) {
+export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload, reloadNonce = 0 }: WorkspaceBranchPickerProps) {
   const { expireActiveCredential } = useServers();
   const { server, refresh } = useWorkspaces();
   const [head, setHead] = useState<GitHeadState | null>(null);
@@ -41,6 +42,7 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload }: Work
   const [menuLayout, setMenuLayout] = useState<MenuLayout | null>(null);
   const request = useRef(0);
   const wrapRef = useRef<View>(null);
+  const seenReloadNonce = useRef(reloadNonce);
 
   const closeMenu = useCallback(() => {
     setOpen(false);
@@ -74,6 +76,12 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload }: Work
     setConfirm(null);
     void load();
   }, [load, closeMenu]);
+
+  useEffect(() => {
+    if (reloadNonce === seenReloadNonce.current) return;
+    seenReloadNonce.current = reloadNonce;
+    void load();
+  }, [reloadNonce, load]);
 
   const branches = head?.localBranches ?? [];
   const remotes = head?.remoteBranches ?? [];

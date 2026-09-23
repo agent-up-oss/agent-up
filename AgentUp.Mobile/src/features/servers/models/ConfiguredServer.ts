@@ -6,6 +6,7 @@ export type ConfiguredServer = {
   displayName?: string;
   isRecommended?: boolean;
   canRemove?: boolean;
+  isFake?: boolean;
 };
 
 export function hasSavedSignIn(server: Pick<ConfiguredServer, 'accessToken' | 'openAccess'> | null | undefined): boolean {

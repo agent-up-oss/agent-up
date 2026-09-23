@@ -46,6 +46,9 @@ using AgentUp.Desktop.Features.Capabilities.ViewModels;
 using AgentUp.Desktop.Features.Validation.Providers;
 using AgentUp.Desktop.Features.Validation.Services;
 using AgentUp.Desktop.Features.Validation.ViewModels;
+using AgentUp.Desktop.Features.FakeServer.Controllers;
+using AgentUp.Desktop.Features.FakeServer.Providers;
+using AgentUp.Desktop.Features.FakeServer.Services;
 
 namespace AgentUp.Desktop.Composition;
 
@@ -140,7 +143,7 @@ public static class MainViewModelFactory
             modules);
     }
 
-    public static MainViewModel Create(HttpClient http, LoginViewModel? login = null)
+    public static MainViewModel Create(HttpClient http, LoginViewModel? login = null, HttpClient? agentEventsHttp = null)
     {
         return Create(
             new WorkspaceApiClient(http),
@@ -151,11 +154,7 @@ public static class MainViewModelFactory
             new ValidationFlowApiClient(http),
             gitClient: new GitApiClient(http),
             capabilityModulesClient: new CapabilityModulesApiClient(http),
-            agentClient: new AgentApiClient(http, new HttpClient
-            {
-                BaseAddress = http.BaseAddress,
-                Timeout = Timeout.InfiniteTimeSpan
-            }),
+            agentClient: new AgentApiClient(http, agentEventsHttp ?? http),
             login: login ?? CreateLogin(http));
     }
 
@@ -165,5 +164,8 @@ public static class MainViewModelFactory
     private static LoginViewModel CreateLogin(HttpClient http)
         => new(new AuthenticationController(
             new AuthenticationService(new AuthenticationApiClient(http)),
-            new ServerConnectionService(new InMemoryServerConnectionStore(), http)));
+            new ServerConnectionService(
+                new InMemoryServerConnectionStore(),
+                http,
+                new FakeServerController(new FakeBackendService(new FakeServerDefinitionProvider().LoadEmbedded())))));
 }

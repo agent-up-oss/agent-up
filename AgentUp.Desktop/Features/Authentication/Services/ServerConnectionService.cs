@@ -2,10 +2,16 @@ using AgentUp.Desktop.Features.Authentication.DTOs;
 using AgentUp.Desktop.Features.Authentication.Interfaces;
 using AgentUp.Desktop.Features.Authentication.Models;
 using AgentUp.Desktop.Features.Authentication.Providers;
+using AgentUp.Desktop.Features.FakeServer.Controllers;
+using AgentUp.Desktop.Features.FakeServer.Models;
 
 namespace AgentUp.Desktop.Features.Authentication.Services;
 
-public sealed class ServerConnectionService(IServerConnectionStore store, HttpClient http)
+public sealed class ServerConnectionService(
+    IServerConnectionStore store,
+    HttpClient http,
+    FakeServerController fakeServers,
+    HttpClient? agentEventsHttp = null)
 {
     public SavedServerListDto List()
     {
@@ -15,6 +21,9 @@ public sealed class ServerConnectionService(IServerConnectionStore store, HttpCl
 
     public SavedServerDto Save(string url, string? accessToken)
     {
+        if (fakeServers.Matches(url))
+            return ActivateFake();
+
         var uri = SecureServerUrlProvider.ResolveServerUri(url);
         var normalized = SecureServerUrlProvider.Normalize(uri);
         var selection = store.Load();
@@ -36,26 +45,36 @@ public sealed class ServerConnectionService(IServerConnectionStore store, HttpCl
 
         selection.ActiveServerId = existing.Id;
         store.Save(selection);
-        ServerSessionProvider.Apply(http, uri, existing.AccessToken);
+        ApplySession(uri, existing.AccessToken);
         return ToDto(existing, existing.Id);
     }
 
     public SavedServerDto Activate(string id)
     {
+        if (string.Equals(id, FakeServerIdentity.Id, StringComparison.Ordinal))
+            return ActivateFake();
+
         var selection = store.Load();
         var server = selection.Servers.FirstOrDefault(candidate => candidate.Id == id)
             ?? throw new InvalidOperationException("That saved server is no longer available.");
+        if (FakeServerIdentity.Matches(server.Url))
+            return ActivateFake();
+
         selection.ActiveServerId = server.Id;
         store.Save(selection);
         var uri = SecureServerUrlProvider.ResolveServerUri(server.Url);
-        ServerSessionProvider.Apply(http, uri, server.AccessToken);
+        ApplySession(uri, server.AccessToken);
         return ToDto(server, server.Id);
     }
 
     public void Remove(string id)
     {
+        if (string.Equals(id, FakeServerIdentity.Id, StringComparison.Ordinal))
+            return;
+
         var selection = store.Load();
-        selection.Servers.RemoveAll(server => server.Id == id);
+        selection.Servers.RemoveAll(server =>
+            server.Id == id && !FakeServerIdentity.Matches(server.Url));
         if (selection.ActiveServerId == id)
             selection.ActiveServerId = selection.Servers.FirstOrDefault()?.Id;
         store.Save(selection);
@@ -63,24 +82,39 @@ public sealed class ServerConnectionService(IServerConnectionStore store, HttpCl
 
     public void Prepare(string url)
     {
+        if (fakeServers.Matches(url))
+        {
+            fakeServers.Reset();
+            ApplySession(SecureServerUrlProvider.ResolveServerUri(FakeServerIdentity.Url), null);
+            return;
+        }
+
         var uri = SecureServerUrlProvider.ResolveServerUri(url);
         var selection = store.Load();
         var normalized = SecureServerUrlProvider.Normalize(uri);
         var existing = selection.Servers.FirstOrDefault(server =>
             string.Equals(server.Url, normalized, StringComparison.OrdinalIgnoreCase));
-        ServerSessionProvider.Apply(http, uri, existing?.AccessToken);
+        ApplySession(uri, existing?.AccessToken);
     }
 
     public void RestoreActive()
     {
         var selection = store.Load();
+        if (string.Equals(selection.ActiveServerId, FakeServerIdentity.Id, StringComparison.Ordinal)
+            || selection.Servers.Any(server =>
+                server.Id == selection.ActiveServerId && FakeServerIdentity.Matches(server.Url)))
+        {
+            ActivateFake();
+            return;
+        }
+
         var active = selection.Servers.FirstOrDefault(server => server.Id == selection.ActiveServerId)
             ?? selection.Servers.FirstOrDefault();
         if (active is null)
             return;
 
         var uri = SecureServerUrlProvider.ResolveServerUri(active.Url);
-        ServerSessionProvider.Apply(http, uri, active.AccessToken);
+        ApplySession(uri, active.AccessToken);
     }
 
     public string CurrentUrl()
@@ -90,17 +124,70 @@ public sealed class ServerConnectionService(IServerConnectionStore store, HttpCl
         return SecureServerUrlProvider.Normalize(uri);
     }
 
-    private static SavedServerListDto ToListDto(ServerSelection selection)
+    private SavedServerDto ActivateFake()
     {
-        var servers = selection.Servers
-            .Select(server => ToDto(server, selection.ActiveServerId))
-            .ToList();
+        fakeServers.Reset();
+        var selection = store.Load();
+        var existing = selection.Servers.FirstOrDefault(server =>
+            FakeServerIdentity.Matches(server.Url) || server.Id == FakeServerIdentity.Id);
+        if (existing is null)
+        {
+            existing = new ConfiguredServer
+            {
+                Id = FakeServerIdentity.Id,
+                Url = FakeServerIdentity.Url
+            };
+            selection.Servers.Insert(0, existing);
+        }
+
+        existing.Id = FakeServerIdentity.Id;
+        existing.Url = FakeServerIdentity.Url;
+        selection.ActiveServerId = FakeServerIdentity.Id;
+        store.Save(selection);
+        ApplySession(SecureServerUrlProvider.ResolveServerUri(FakeServerIdentity.Url), null);
+        return ToFakeDto(true);
+    }
+
+    private void ApplySession(Uri uri, string? accessToken)
+    {
+        ServerSessionProvider.Apply(http, uri, accessToken);
+        if (agentEventsHttp is not null)
+            ServerSessionProvider.Apply(agentEventsHttp, uri, accessToken);
+    }
+
+    private SavedServerListDto ToListDto(ServerSelection selection)
+    {
+        var fakeActive = string.Equals(selection.ActiveServerId, FakeServerIdentity.Id, StringComparison.Ordinal)
+            || selection.Servers.Any(server =>
+                server.Id == selection.ActiveServerId && FakeServerIdentity.Matches(server.Url));
+        var servers = new List<SavedServerDto> { ToFakeDto(fakeActive) };
+        servers.AddRange(selection.Servers
+            .Where(server => !FakeServerIdentity.Matches(server.Url) && server.Id != FakeServerIdentity.Id)
+            .Select(server => ToDto(server, selection.ActiveServerId)));
+
         var current = servers.FirstOrDefault(server => server.IsActive)?.Url
-            ?? servers.FirstOrDefault()?.Url
+            ?? servers.FirstOrDefault(server => !server.IsFake)?.Url
             ?? "";
         return new SavedServerListDto(servers, current);
     }
 
     private static SavedServerDto ToDto(ConfiguredServer server, string? activeServerId)
-        => new(server.Id, server.Url, !string.IsNullOrWhiteSpace(server.AccessToken), server.Id == activeServerId);
+        => new(
+            server.Id,
+            server.Url,
+            !string.IsNullOrWhiteSpace(server.AccessToken),
+            server.Id == activeServerId,
+            server.Url,
+            true,
+            false);
+
+    private static SavedServerDto ToFakeDto(bool isActive)
+        => new(
+            FakeServerIdentity.Id,
+            FakeServerIdentity.Url,
+            false,
+            isActive,
+            FakeServerIdentity.DisplayName,
+            false,
+            true);
 }

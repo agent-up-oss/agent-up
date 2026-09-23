@@ -5,6 +5,7 @@ import {
   statusLedRole,
   workspaceLedState,
   workspaceLifecycleControls,
+  workspaceShowsApplications,
   workspaceStatusLabel,
 } from './WorkspaceStatusProvider';
 
@@ -25,6 +26,7 @@ test('workspace LED prefers Server healthState when the stream supplies it', () 
   assert.equal(statusLedRole(workspaceLedState('Running', 'Healthy')), 'healthy');
   assert.equal(statusLedRole(workspaceLedState('Running', 'Unhealthy')), 'danger');
   assert.equal(statusLedRole(workspaceLedState('Failed')), 'danger');
+  assert.equal(statusLedRole(workspaceLedState('Stopped', 'Healthy')), 'idle');
 });
 
 test('status labels keep lifecycle text until the workspace is running', () => {
@@ -33,6 +35,13 @@ test('status labels keep lifecycle text until the workspace is running', () => {
   assert.equal(workspaceStatusLabel('Running', 'Healthy'), 'Healthy');
   assert.equal(workspaceStatusLabel('Running'), 'Running');
   assert.equal(workspaceStatusLabel('Failed', 'Unhealthy'), 'Failed');
+});
+
+test('workspaces keep presenting application rows while offline', () => {
+  assert.equal(workspaceShowsApplications('Running'), true);
+  assert.equal(workspaceShowsApplications('Starting'), true);
+  assert.equal(workspaceShowsApplications('Stopped'), true);
+  assert.equal(workspaceShowsApplications('Failed'), true);
 });
 
 test('lifecycle controls match Desktop start/stop visibility', () => {

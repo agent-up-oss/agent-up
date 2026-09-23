@@ -6,6 +6,9 @@ using AgentUp.Desktop.Features.Authentication.Controllers;
 using AgentUp.Desktop.Features.Authentication.Providers;
 using AgentUp.Desktop.Features.Authentication.Services;
 using AgentUp.Desktop.Features.Authentication.ViewModels;
+using AgentUp.Desktop.Features.FakeServer.Controllers;
+using AgentUp.Desktop.Features.FakeServer.Providers;
+using AgentUp.Desktop.Features.FakeServer.Services;
 using AgentUp.Desktop.Features.Workspaces.Views;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 
@@ -15,14 +18,21 @@ public static class AppComposition
 {
     public static async Task InitializeDesktopAsync(IClassicDesktopStyleApplicationLifetime desktop)
     {
-        var http = CreateServerHttpClient();
-        var connections = new ServerConnectionService(new FileServerConnectionStore(), http);
+        var fakeBackend = new FakeBackendService(new FakeServerDefinitionProvider().LoadEmbedded());
+        var fakeServers = new FakeServerController(fakeBackend);
+        var http = CreateServerHttpClient(fakeBackend);
+        var agentEventsHttp = CreateAgentEventHttpClient(fakeBackend);
+        var connections = new ServerConnectionService(
+            new FileServerConnectionStore(),
+            http,
+            fakeServers,
+            agentEventsHttp);
         connections.RestoreActive();
         var authentication = new AuthenticationController(
             new AuthenticationService(new AuthenticationApiClient(http)),
             connections);
         var login = new LoginViewModel(authentication);
-        var (window, viewModel) = CreateMainWindow(http, login);
+        var (window, viewModel) = CreateMainWindow(http, login, fakeServers, fakeBackend, agentEventsHttp);
         desktop.MainWindow = window;
         window.Closing += (_, _) => viewModel.Login.Cancel();
         window.Show();
@@ -85,12 +95,35 @@ public static class AppComposition
         }
     }
 
-    private static HttpClient CreateServerHttpClient()
-        => ServerSessionProvider.CreateClient(SecureServerUrlProvider.ResolveServerUri());
+    private static HttpClient CreateServerHttpClient(FakeBackendService fakeBackend)
+        => ServerSessionProvider.CreateClient(
+            SecureServerUrlProvider.ResolveServerUri(),
+            new FakeServerMessageHandler(fakeBackend, new HttpClientHandler()));
 
-    public static (Window Window, MainViewModel ViewModel) CreateMainWindow(HttpClient http, LoginViewModel login)
+    private static HttpClient CreateAgentEventHttpClient(FakeBackendService fakeBackend)
     {
-        var viewModel = MainViewModelFactory.Create(http, login);
-        return (new MainWindow(http) { DataContext = viewModel }, viewModel);
+        var client = CreateServerHttpClient(fakeBackend);
+        client.Timeout = Timeout.InfiniteTimeSpan;
+        return client;
+    }
+
+    public static (Window Window, MainViewModel ViewModel) CreateMainWindow(
+        HttpClient http,
+        LoginViewModel login,
+        FakeServerController fakeServers,
+        FakeBackendService fakeBackend,
+        HttpClient? agentEventsHttp = null)
+    {
+        var viewModel = MainViewModelFactory.Create(http, login, agentEventsHttp);
+        var window = new MainWindow(http, fakeServers) { DataContext = viewModel };
+        window.CreateWorkspaceEventHttpClient = url =>
+        {
+            var client = ServerSessionProvider.CreateClient(
+                new Uri(url),
+                new FakeServerMessageHandler(fakeBackend, new HttpClientHandler()));
+            client.Timeout = Timeout.InfiniteTimeSpan;
+            return client;
+        };
+        return (window, viewModel);
     }
 }

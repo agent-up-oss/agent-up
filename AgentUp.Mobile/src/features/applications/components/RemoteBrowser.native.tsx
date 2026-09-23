@@ -7,7 +7,9 @@ import type { ApplicationProxySource } from '../providers/ApplicationBrowserProv
 export function RemoteBrowser({ source }: { source: ApplicationProxySource }) {
   return (
     <WebView
-      source={{ uri: source.uri, headers: { 'X-Agent-Up-Ticket': source.ticket } }}
+      source={source.html
+        ? { html: source.html }
+        : { uri: source.uri, headers: { 'X-Agent-Up-Ticket': source.ticket } }}
       style={styles.browser}
       javaScriptEnabled
       domStorageEnabled

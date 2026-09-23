@@ -292,8 +292,8 @@ public class MainViewModelTests
         Assert.That(vm.ShowApplication, Is.True);
         Assert.That(vm.ShowPortView, Is.True);
 
-        vm.SelectedShellTab = WorkspaceShellTab.Commit;
-        Assert.That(vm.ShowCommit, Is.True);
+        vm.SelectedShellTab = WorkspaceShellTab.Git;
+        Assert.That(vm.ShowGit, Is.True);
         Assert.That(vm.Git.IsVisible, Is.True);
         Assert.That(vm.Applications.SelectedApplication, Is.EqualTo(selectedApp));
         Assert.That(vm.ShowPortView, Is.False);
@@ -316,7 +316,7 @@ public class MainViewModelTests
         {
             Assert.That(vm.IsValidationOpen, Is.True);
             Assert.That(vm.Validation!.IsCollapsed, Is.False);
-            Assert.That(vm.ShellTabs.Select(tab => tab.Label), Is.EqualTo(new[] { "Overview", "Agent", "Commit" }));
+            Assert.That(vm.ShellTabs.Select(tab => tab.Label), Is.EqualTo(new[] { "Overview", "Agent", "Git" }));
         });
     }
 
