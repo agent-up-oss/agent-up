@@ -657,12 +657,9 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             SubTabs.Add(new DesktopSubTabViewModel());
         if (app.Database && Login.Surfaces.Database)
             SubTabs.Add(new DatabaseSubTabViewModel());
-        foreach (var tab in _ports.CreateTabs(ports))
-        {
-            if (tab is MetricsSubTabViewModel && !Login.Surfaces.Metrics)
-                continue;
+        foreach (var tab in _ports.CreateTabs(ports)
+                     .Where(tab => tab is not MetricsSubTabViewModel || Login.Surfaces.Metrics))
             SubTabs.Add(tab);
-        }
         if (Login.Surfaces.Diagnostics)
             SubTabs.Add(new AuditSubTabViewModel());
 
