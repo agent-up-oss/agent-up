@@ -13,7 +13,7 @@ public sealed class WindowsDesktopFixtureAdapter : IDesktopFixtureAdapter
     //
     // Redirecting them does not isolate anything Desktop stores: on Windows
     // Environment.GetFolderPath asks the shell for the profile path rather than reading the
-    // environment, so FileServerConnectionStore and FileFirstRunTutorialSettingsStore keep
+    // environment, so FileServerConnectionStore keeps
     // writing to the real profile either way. What does read the environment is the WebView2
     // browser process the platform WebView starts, and it cannot come up against an empty
     // profile root -- it never calls back, the native control host attachment never finishes,

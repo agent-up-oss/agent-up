@@ -27,7 +27,7 @@ public static class AppComposition
             http,
             fakeServers,
             agentEventsHttp);
-        connections.RestoreActive();
+        var restored = connections.RestoreActive();
         var authentication = new AuthenticationController(
             new AuthenticationService(new AuthenticationApiClient(http)),
             connections);
@@ -37,7 +37,7 @@ public static class AppComposition
         window.Closing += (_, _) => viewModel.Login.Cancel();
         window.Show();
 
-        while (!await TryAuthenticateAsync(desktop, http, authentication, login))
+        while (!await TryAuthenticateAsync(desktop, http, authentication, login, restored))
             continue;
 
         if (desktop.MainWindow is MainWindow mainWindow)
@@ -50,26 +50,36 @@ public static class AppComposition
         IClassicDesktopStyleApplicationLifetime desktop,
         HttpClient http,
         AuthenticationController authentication,
-        LoginViewModel login)
+        LoginViewModel login,
+        bool restored)
     {
         try
         {
-            if (!await authentication.IsRequiredAsync())
+            if (restored)
             {
-                authentication.SaveServer(authentication.CurrentServerUrl(), null);
-                login.Dismiss();
-                login.RememberConnected();
-                return true;
+                if (!await authentication.IsRequiredAsync())
+                {
+                    authentication.SaveServer(authentication.CurrentServerUrl(), null);
+                    login.Dismiss();
+                    login.RememberConnected();
+                    return true;
+                }
+
+                if (http.DefaultRequestHeaders.Authorization is not null)
+                {
+                    login.Dismiss();
+                    login.RememberConnected();
+                    return true;
+                }
+
+                if (!login.IsVisible)
+                    login.Show();
+            }
+            else if (!login.IsVisible)
+            {
+                login.ShowPicker();
             }
 
-            if (http.DefaultRequestHeaders.Authorization is not null)
-            {
-                login.Dismiss();
-                login.RememberConnected();
-                return true;
-            }
-
-            login.Show();
             var token = await login.WaitForSignInAsync();
             if (token is null)
             {
@@ -85,13 +95,17 @@ public static class AppComposition
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or JsonException)
         {
             login.ShowConnectionFailure(ex.Message);
-            if (!await login.WaitForConnectionRetryAsync())
+            var token = await login.WaitForSignInAsync();
+            if (token is null)
             {
                 desktop.Shutdown();
                 return false;
             }
 
-            return false;
+            if (!string.IsNullOrWhiteSpace(token))
+                http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            login.RememberConnected();
+            return true;
         }
     }
 

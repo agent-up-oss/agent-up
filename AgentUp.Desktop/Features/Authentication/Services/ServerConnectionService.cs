@@ -97,7 +97,7 @@ public sealed class ServerConnectionService(
         ApplySession(uri, existing?.AccessToken);
     }
 
-    public void RestoreActive()
+    public bool RestoreActive()
     {
         var selection = store.Load();
         if (string.Equals(selection.ActiveServerId, FakeServerIdentity.Id, StringComparison.Ordinal)
@@ -105,17 +105,21 @@ public sealed class ServerConnectionService(
                 server.Id == selection.ActiveServerId && FakeServerIdentity.Matches(server.Url)))
         {
             ActivateFake();
-            return;
+            return true;
         }
 
         var active = selection.Servers.FirstOrDefault(server => server.Id == selection.ActiveServerId)
             ?? selection.Servers.FirstOrDefault();
         if (active is null)
-            return;
+            return false;
 
         var uri = SecureServerUrlProvider.ResolveServerUri(active.Url);
         ApplySession(uri, active.AccessToken);
+        return true;
     }
+
+    public ClientSurfaceAvailability Surfaces()
+        => ClientSurfaceAvailability.ForActiveServer(FakeServerIdentity.Matches(CurrentUrl()));
 
     public string CurrentUrl()
     {

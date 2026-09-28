@@ -21,8 +21,6 @@ AgentUp.Capabilities.Docker.Tests/Features/DockerCapability/Provider/DockerVersi
 AgentUp.Capabilities.Dotnet.Tests/Features/DotnetCapability/Provider/DotnetVersionProviderTests.cs
 AgentUp.Desktop.Tests/Features/Authentication/Provider/FileServerConnectionStoreTests.cs
 AgentUp.Desktop.Tests/Features/Composition/Provider/SentryTelemetryEnvironmentTests.cs
-AgentUp.Desktop.Tests/Features/FirstRun/Provider/FirstRunTutorialChecksTests.cs
-AgentUp.Desktop.Tests/Features/FirstRun/Repository/FileFirstRunTutorialSettingsStoreTests.cs
 AgentUp.Server.Tests/Features/Agents/HTTP/AgentsHttpTests.cs
 AgentUp.Server.Tests/Features/Agents/HTTP/InstalledAgentCapabilityHttpTests.cs
 AgentUp.Server.Tests/Features/Agents/Unit/AgentSchedulingServiceTests.cs

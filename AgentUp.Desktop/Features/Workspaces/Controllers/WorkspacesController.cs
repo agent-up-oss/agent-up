@@ -30,9 +30,6 @@ public sealed class WorkspacesController
     public async Task DeleteAsync(string workspaceId, CancellationToken cancellationToken = default)
         => await _service.DeleteAsync(workspaceId, cancellationToken);
 
-    public async Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default)
-        => await _service.CleanupTutorialWorkspacesAsync(cancellationToken);
-
     public async Task<WorkspaceOverviewDto?> GetOverviewAsync(string workspaceId, CancellationToken cancellationToken = default)
         => await _service.GetOverviewAsync(workspaceId, cancellationToken);
 }

@@ -1,8 +1,5 @@
-using AgentUp.Desktop.Features.FirstRun.Interfaces;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
-using AgentUp.Desktop.Features.FirstRun.Services;
-using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
 using AgentUp.Desktop.Tests.Support;
 using AgentUp.Desktop.Shared.Models;
@@ -100,25 +97,6 @@ public sealed class WebViewErrorBannerTests
     }
 
     [AvaloniaTest]
-    public async Task PortPane_hidesBrowserErrorBanner_whileFirstRunTutorialIsVisible()
-    {
-        var ws = DesktopDomain.WorkspaceServing(3000).Build();
-        var tutorial = new FirstRunTutorialViewModel(
-            new InMemoryTutorialSettingsStore(new FirstRunTutorialSettings(false, false, 0)),
-            new PassingTutorialChecks());
-        var app = await AppDriver.LaunchWithWorkspaceAsync(
-            ws,
-            () => throw new InvalidOperationException("no WebKit installed"),
-            tutorial);
-
-        app.Window.NavigateTo("ws-1", "http://localhost:3000/");
-        await HeadlessExtensions.FlushAsync();
-
-        Assert.That(app.Content.ShowsFirstRunTutorial, Is.True);
-        Assert.That(app.Content.PortPaneShowsError, Is.False);
-    }
-
-    [AvaloniaTest]
     public async Task MainWindow_close_clearsBrowserStateAfterWebViewFailure()
     {
         var ws = DesktopDomain.WorkspaceServing(3000).Build();
@@ -134,48 +112,5 @@ public sealed class WebViewErrorBannerTests
         await HeadlessExtensions.FlushAsync();
 
         Assert.That(app.Window.HasBrowserResourcesForTests, Is.False);
-    }
-
-    private sealed class InMemoryTutorialSettingsStore(FirstRunTutorialSettings settings) : IFirstRunTutorialSettingsStore
-    {
-        public Task<FirstRunTutorialSettings> LoadAsync() => Task.FromResult(settings);
-
-        public Task SaveAsync(FirstRunTutorialSettings settings) => Task.CompletedTask;
-    }
-
-    private sealed class PassingTutorialChecks : IFirstRunTutorialChecks
-    {
-        public Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
-
-        public Task<FirstRunCheckResult> CheckDockerAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Docker works."));
-
-        public Task<FirstRunCheckResult> CheckNodeAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Node works."));
-
-        public Task<FirstRunSampleProjectResult> CreateJavaScriptSampleAsync(string? currentProjectDirectory = null, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunSampleProjectResult.Success("Sample created.", currentProjectDirectory ?? "/tmp/tutorial/agent-up-tutorial/example-agent1"));
-
-        public Task<FirstRunCheckResult> CheckJavaScriptProjectFilesAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Project files work."));
-
-        public Task<FirstRunCheckResult> CreateAgentUpJsonAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("agent-up.json created."));
-
-        public Task<FirstRunCheckResult> CheckAgentUpJsonAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("agent-up.json works."));
-
-        public Task<FirstRunCheckResult> StartJavaScriptWorkspaceAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Started."));
-
-        public Task<FirstRunCheckResult> CheckJavaScriptWorkspaceAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Workspace works."));
-
-        public Task<FirstRunCheckResult> CreateDuplicatedJavaScriptSampleAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Duplicate created."));
-
-        public Task<FirstRunCheckResult> CheckDuplicatedJavaScriptWorkspacesAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Duplicate works."));
     }
 }

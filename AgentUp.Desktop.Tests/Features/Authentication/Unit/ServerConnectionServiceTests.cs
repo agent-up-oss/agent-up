@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Features.Authentication.DTOs;
 using AgentUp.Desktop.Features.Authentication.Models;
 using AgentUp.Desktop.Features.Authentication.Providers;
 using AgentUp.Desktop.Features.Authentication.Services;
@@ -74,12 +75,13 @@ public sealed class ServerConnectionServiceTests
         var service = FakeServerTestComposition.Connections(store, http);
         service.Save("https://agent-up.example.com", "remote-token");
 
-        using var restored = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var next = FakeServerTestComposition.Connections(store, restored);
-        next.RestoreActive();
+        using var restoredHttp = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var next = FakeServerTestComposition.Connections(store, restoredHttp);
+        var restored = next.RestoreActive();
 
-        Assert.That(restored.BaseAddress, Is.EqualTo(new Uri("https://agent-up.example.com/")));
-        Assert.That(restored.DefaultRequestHeaders.Authorization?.Parameter, Is.EqualTo("remote-token"));
+        Assert.That(restored, Is.True);
+        Assert.That(restoredHttp.BaseAddress, Is.EqualTo(new Uri("https://agent-up.example.com/")));
+        Assert.That(restoredHttp.DefaultRequestHeaders.Authorization?.Parameter, Is.EqualTo("remote-token"));
     }
 
     [Test]
@@ -115,8 +117,9 @@ public sealed class ServerConnectionServiceTests
         using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
         var service = FakeServerTestComposition.Connections(store, http);
 
-        service.RestoreActive();
+        var restored = service.RestoreActive();
 
+        Assert.That(restored, Is.False);
         Assert.That(http.BaseAddress, Is.EqualTo(new Uri("http://127.0.0.1:5000")));
         Assert.That(http.DefaultRequestHeaders.Authorization, Is.Null);
     }
@@ -352,7 +355,30 @@ public sealed class ServerConnectionServiceTests
         Assert.That(service.List().Servers[0].IsActive, Is.True);
     }
 
-    private static List<AgentUp.Desktop.Features.Authentication.DTOs.SavedServerDto> UserServers(
+    [Test]
+    public void Surfaces_hidesDemoUnsupportedChrome()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var service = FakeServerTestComposition.Connections(store, http);
+
+        service.Activate("fake");
+
+        Assert.That(service.Surfaces(), Is.EqualTo(ClientSurfaceAvailability.Demo));
+    }
+
+    [Test]
+    public void Surfaces_exposesRealServerChrome()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var service = FakeServerTestComposition.Connections(store, http);
+        service.Save("http://127.0.0.1:5100", "token-1");
+
+        Assert.That(service.Surfaces(), Is.EqualTo(ClientSurfaceAvailability.Real));
+    }
+
+    private static List<SavedServerDto> UserServers(
         ServerConnectionService service)
         => service.List().Servers.Where(server => !server.IsFake).ToList();
 }

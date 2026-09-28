@@ -1,14 +1,10 @@
 using AgentUp.Desktop.Features.Console.Providers;
-using AgentUp.Desktop.Features.FirstRun.Services;
-using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Agents.Providers;
 using AgentUp.Desktop.Features.Git.Providers;
 using AgentUp.Desktop.Features.Validation.Providers;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Composition;
-using AgentUp.Desktop.Features.FirstRun.Interfaces;
-using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
 using Avalonia.Controls;
 
@@ -33,9 +29,6 @@ internal sealed class AppDriver
     public static async Task<AppDriver> LaunchEmptyAsync()
         => await LaunchAsync([]);
 
-    public static async Task<AppDriver> LaunchEmptyAsync(FirstRunTutorialViewModel tutorial)
-        => await LaunchAsync([], tutorial: tutorial);
-
     public static async Task<AppDriver> LaunchWithWorkspaceAsync(WorkspaceDto workspace)
         => await LaunchAsync([workspace]);
 
@@ -43,12 +36,6 @@ internal sealed class AppDriver
         WorkspaceDto workspace,
         Func<NativeWebView> webViewFactory)
         => await LaunchAsync([workspace], webViewFactory);
-
-    public static async Task<AppDriver> LaunchWithWorkspaceAsync(
-        WorkspaceDto workspace,
-        Func<NativeWebView> webViewFactory,
-        FirstRunTutorialViewModel tutorial)
-        => await LaunchAsync([workspace], webViewFactory, tutorial);
 
     public static async Task<AppDriver> LaunchWithWorkspacesAsync(List<WorkspaceDto> workspaces)
         => await LaunchAsync(workspaces);
@@ -123,7 +110,6 @@ internal sealed class AppDriver
     private static async Task<AppDriver> LaunchAsync(
         List<WorkspaceDto> workspaces,
         Func<NativeWebView>? webViewFactory = null,
-        FirstRunTutorialViewModel? tutorial = null,
         FakeHttpMessageHandler? handler = null)
     {
         handler ??= new FakeHttpMessageHandler(workspaces);
@@ -137,7 +123,6 @@ internal sealed class AppDriver
             new ValidationFlowApiClient(http),
             new AgentApiClient(http),
             webViewFactory,
-            tutorial,
             http);
     }
 
@@ -148,13 +133,11 @@ internal sealed class AppDriver
         ValidationFlowApiClient validationClient,
         AgentApiClient agentClient,
         Func<NativeWebView>? webViewFactory = null,
-        FirstRunTutorialViewModel? tutorial = null,
         HttpClient? serverHttp = null)
     {
         var vm = MainViewModelFactory.Create(
             workspaceClient,
             consoleClient,
-            tutorial: tutorial ?? CompletedTutorial(),
             gitClient: gitClient,
             validationClient: validationClient,
             agentClient: agentClient);
@@ -169,53 +152,5 @@ internal sealed class AppDriver
         await HeadlessExtensions.FlushAsync();
 
         return new AppDriver(window);
-    }
-
-    private static FirstRunTutorialViewModel CompletedTutorial()
-        => new(
-            new InMemoryTutorialSettingsStore(new FirstRunTutorialSettings(true, false, 7)),
-            new PassingTutorialChecks());
-
-    private sealed class InMemoryTutorialSettingsStore(FirstRunTutorialSettings settings) : IFirstRunTutorialSettingsStore
-    {
-        public Task<FirstRunTutorialSettings> LoadAsync() => Task.FromResult(settings);
-
-        public Task SaveAsync(FirstRunTutorialSettings settings) => Task.CompletedTask;
-    }
-
-    private sealed class PassingTutorialChecks : IFirstRunTutorialChecks
-    {
-        public Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
-
-        public Task<FirstRunCheckResult> CheckDockerAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Docker works."));
-
-        public Task<FirstRunCheckResult> CheckNodeAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Node works."));
-
-        public Task<FirstRunSampleProjectResult> CreateJavaScriptSampleAsync(string? currentProjectDirectory = null, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunSampleProjectResult.Success("Sample created.", currentProjectDirectory ?? "/tmp/tutorial/agent-up-tutorial/example-agent1"));
-
-        public Task<FirstRunCheckResult> CheckJavaScriptProjectFilesAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Project files work."));
-
-        public Task<FirstRunCheckResult> CreateAgentUpJsonAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("agent-up.json created."));
-
-        public Task<FirstRunCheckResult> CheckAgentUpJsonAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("agent-up.json works."));
-
-        public Task<FirstRunCheckResult> StartJavaScriptWorkspaceAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Started."));
-
-        public Task<FirstRunCheckResult> CheckJavaScriptWorkspaceAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Workspace works."));
-
-        public Task<FirstRunCheckResult> CreateDuplicatedJavaScriptSampleAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Duplicate created."));
-
-        public Task<FirstRunCheckResult> CheckDuplicatedJavaScriptWorkspacesAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Duplicate works."));
     }
 }

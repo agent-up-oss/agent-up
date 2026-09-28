@@ -278,13 +278,12 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         vm.Sidebar.Workspaces.CollectionChanged += OnWorkspaceCollectionChanged;
         Disposable.Create(() => vm.Sidebar.Workspaces.CollectionChanged -= OnWorkspaceCollectionChanged)
             .DisposeWith(_subscriptions);
-        vm.Tutorial.WhenAnyValue(t => t.IsVisible)
+        vm.Sidebar.DeleteConfirmation.WhenAnyValue(d => d.IsVisible)
             .CombineLatest(
-                vm.Sidebar.DeleteConfirmation.WhenAnyValue(d => d.IsVisible),
                 vm.Sidebar.AddWorkspace.WhenAnyValue(a => a.IsVisible),
                 vm.Git.Diff.WhenAnyValue(d => d.IsVisible),
-                (tutorialVisible, deleteVisible, addVisible, diffVisible) =>
-                    tutorialVisible || deleteVisible || addVisible || diffVisible)
+                (deleteVisible, addVisible, diffVisible) =>
+                    deleteVisible || addVisible || diffVisible)
             .DistinctUntilChanged()
             .Subscribe(modalVisible =>
                 Dispatcher.UIThread.Post(() => ApplyModalOverlayWebViewVisibility(modalVisible)))
@@ -1003,8 +1002,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         => DataContext is MainViewModel vm && IsModalOverlayVisible(vm);
 
     private static bool IsModalOverlayVisible(MainViewModel vm)
-        => vm.Tutorial.IsVisible
-           || vm.Sidebar.DeleteConfirmation.IsVisible
+        => vm.Sidebar.DeleteConfirmation.IsVisible
            || vm.Sidebar.AddWorkspace.IsVisible
            || vm.Git.Diff.IsVisible;
 
@@ -1559,27 +1557,6 @@ code {
         => WindowState = WindowState == WindowState.Maximized
             ? WindowState.Normal
             : WindowState.Maximized;
-
-    private void OnOpenTutorialFolderClicked(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainViewModel { Tutorial.ProjectDirectory: { Length: > 0 } path }) return;
-        if (!Directory.Exists(path)) return;
-
-        var (fileName, arguments) = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? ("explorer.exe", $"\"{path}\"")
-            : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-                ? ("open", $"\"{path}\"")
-                : ("xdg-open", $"\"{path}\"");
-
-        try
-        {
-            Process.Start(new ProcessStartInfo(fileName, arguments) { UseShellExecute = false });
-        }
-        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
-        {
-            Trace.TraceWarning(ex.Message);
-        }
-    }
 }
 
 // Thin seam over NativeWebDialog so tests can substitute a fake popup without ever

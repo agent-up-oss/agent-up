@@ -59,12 +59,6 @@ public sealed class WorkspaceApiClient(HttpClient http) : IWorkspaceApiProvider
             throw new InvalidOperationException(await ReadProblemDetailAsync(response));
     }
 
-    public async Task CleanupTutorialWorkspacesAsync(CancellationToken ct = default)
-    {
-        using var response = await http.PostAsync("/api/workspaces/tutorial/cleanup", null, ct);
-        response.EnsureSuccessStatusCode();
-    }
-
     public async Task<WorkspaceOverviewDto?> GetOverviewAsync(string workspaceId, CancellationToken ct = default)
     {
         using var response = await http.GetAsync(
