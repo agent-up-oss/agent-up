@@ -30,6 +30,7 @@ using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.FakeServer.Controllers;
+using AgentUp.Desktop.Features.FakeServer.DTOs;
 using AgentUp.Desktop.Shared.Models;
 using ReactiveUI;
 
@@ -114,6 +115,12 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     internal bool IsConsoleWebViewHiddenForTests =>
         _consoleWebView is null || !_consoleWebView.IsVisible;
+
+    internal Uri? ActiveWebViewSourceForTests =>
+        _activeTabKey is not null
+        && _webViews.TryGetValue(_activeTabKey, out var webView)
+            ? webView.Source
+            : null;
 
     private static readonly string SelectionJs =
         "(function(){" +
@@ -354,6 +361,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (DataContext is not MainViewModel vm)
             return;
 
+        _serverBaseUrl = ResolveSessionBaseUrl(vm.Login.CurrentServerUrl, _serverBaseUrl);
         _workspaceEventClient?.Dispose();
         var eventHttp = CreateWorkspaceEventHttpClient?.Invoke(_serverBaseUrl)
             ?? new HttpClient
@@ -685,6 +693,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     internal static Uri CreateServerScopedHttpBaseAddress(string serverBaseUrl)
         => new(serverBaseUrl);
 
+    internal static bool IsDemoConnection(FakeServerController? fakeServers, params string?[] sessionUrls)
+        => fakeServers is not null && sessionUrls.Any(fakeServers.Matches);
+
     internal static bool ShouldNavigateExistingWebView(string? lastKnownUrl, string requestedUrl)
         => lastKnownUrl is null || !string.Equals(lastKnownUrl, requestedUrl, StringComparison.Ordinal);
 
@@ -887,19 +898,19 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         Uri destination,
         int navigationVersion)
     {
-        var errorHtml = _fakeServers?.Matches(_serverBaseUrl) == true
-            ? null
-            : await BrowserProbe(destination);
+        var demo = IsDemoConnectionActive();
+        var demoHtml = demo
+            ? await LoadDemoApplicationHtmlAsync(workspaceId, destination.Port)
+            : null;
+        var errorHtml = demo ? null : await BrowserProbe(destination);
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             if (!CanTouchWebView(tabKey, webView)) return;
             if (_navigationVersions.GetValueOrDefault(tabKey) != navigationVersion) return;
 
-            if (_fakeServers?.Matches(_serverBaseUrl) == true
-                && _fakeServers.ApplicationHtml(destination.Port) is { } html)
+            if (demo)
             {
-                NavigateWebView(webView, _fakeServers.WriteApplicationPage(workspaceId, tabKey, html));
-                _lastKnownBrowserUrls[tabKey] = destination.ToString();
+                ShowDemoApplicationPage(tabKey, workspaceId, webView, destination, demoHtml);
                 return;
             }
 
@@ -913,6 +924,66 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 NavigateWebView(webView, WriteBrowserErrorPage(workspaceId, errorHtml));
             }
         });
+    }
+
+    private bool IsDemoConnectionActive()
+        => IsDemoConnection(
+            _fakeServers,
+            _serverBaseUrl,
+            DataContext is MainViewModel viewModel ? viewModel.Login.CurrentServerUrl : null);
+
+    private async Task<string?> LoadDemoApplicationHtmlAsync(string workspaceId, int allocatedPort)
+    {
+        if (_fakeServers is null)
+            return null;
+
+        try
+        {
+            using var issued = await _serverHttp.PostAsJsonAsync(
+                "api/apps/tickets",
+                new { workspaceId, allocatedPort });
+            if (issued.IsSuccessStatusCode)
+            {
+                var ticket = await issued.Content.ReadFromJsonAsync<FakeApplicationTicketDto>(DesktopTicketJsonOptions);
+                if (!string.IsNullOrWhiteSpace(ticket?.BootstrapPath))
+                {
+                    using var page = await _serverHttp.GetAsync(ticket.BootstrapPath);
+                    if (page.IsSuccessStatusCode)
+                        return await page.Content.ReadAsStringAsync();
+                }
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidOperationException)
+        {
+            Trace.TraceWarning($"Could not load the demo application page: {ex.Message}");
+        }
+
+        return _fakeServers.ApplicationHtml(allocatedPort);
+    }
+
+    private void ShowDemoApplicationPage(
+        string tabKey,
+        string workspaceId,
+        NativeWebView webView,
+        Uri destination,
+        string? html)
+    {
+        if (_fakeServers is not null && !string.IsNullOrWhiteSpace(html))
+        {
+            NavigateWebView(webView, _fakeServers.WriteApplicationPage(workspaceId, tabKey, html));
+            _lastKnownBrowserUrls[tabKey] = destination.ToString();
+            return;
+        }
+
+        _lastKnownBrowserUrls.Remove(tabKey);
+        NavigateWebView(
+            webView,
+            WriteBrowserErrorPage(
+                workspaceId,
+                BuildBrowserErrorHtml(
+                    "Could not load page",
+                    "The demo application page is missing.",
+                    destination)));
     }
 
     private static async Task<string?> ProbeBrowserDestinationAsync(Uri destination)

@@ -17,4 +17,15 @@ public sealed class AppHealthLedRulesTests
     {
         Assert.That(AppHealthLedRules.StateColor(state), Is.EqualTo(color));
     }
+
+    [Test]
+    public void PortColor_keepsAClosedProbeMutedAndReservesRedForACrash()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(AppHealthLedRules.PortColor(PortLedState.Probing, tcpIsOpen: false), Is.EqualTo(AgentUpThemeColors.TextMuted));
+            Assert.That(AppHealthLedRules.PortColor(PortLedState.Probing, tcpIsOpen: true), Is.EqualTo(AgentUpThemeColors.StatusHealthy));
+            Assert.That(AppHealthLedRules.PortColor(PortLedState.Unhealthy, tcpIsOpen: false), Is.EqualTo(AgentUpThemeColors.StatusDanger));
+        });
+    }
 }

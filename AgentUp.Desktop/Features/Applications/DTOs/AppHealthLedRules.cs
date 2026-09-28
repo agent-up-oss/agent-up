@@ -10,6 +10,14 @@ public static class AppHealthLedRules
         "Unhealthy" or "Failed" => AgentUpThemeColors.StatusDanger,
         _                         => AgentUpThemeColors.TextMuted
     };
+
+    public static string PortColor(PortLedState state, bool tcpIsOpen) => state switch
+    {
+        PortLedState.Checking => StateColor("Checking"),
+        PortLedState.Healthy => StateColor("Healthy"),
+        PortLedState.Unhealthy => StateColor("Unhealthy"),
+        _ => tcpIsOpen ? StateColor("Healthy") : StateColor("Stopped")
+    };
 }
 
 public enum PortLedState { Probing, Checking, Healthy, Unhealthy }

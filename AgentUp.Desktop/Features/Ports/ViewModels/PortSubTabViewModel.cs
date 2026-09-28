@@ -20,13 +20,7 @@ public sealed class PortSubTabViewModel : SubTabViewModel
 
     public bool IsOpen => _ledState == PortLedState.Healthy || (_ledState == PortLedState.Probing && _tcpIsOpen);
 
-    public string StatusColor => _ledState switch
-    {
-        PortLedState.Checking  => AppHealthLedRules.StateColor("Checking"),
-        PortLedState.Healthy   => AppHealthLedRules.StateColor("Healthy"),
-        PortLedState.Unhealthy => AppHealthLedRules.StateColor("Unhealthy"),
-        _                      => _tcpIsOpen ? AppHealthLedRules.StateColor("Healthy") : AppHealthLedRules.StateColor("Failed")
-    };
+    public string StatusColor => AppHealthLedRules.PortColor(_ledState, _tcpIsOpen);
 
     public PortSubTabViewModel(string? variable, int defaultPort, int allocatedPort, string protocol = "http")
     {

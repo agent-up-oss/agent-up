@@ -21,6 +21,12 @@ public sealed class FakeServerController(FakeBackendService backend)
     public Uri WriteApplicationPage(string workspaceId, string tabKey, string html)
         => backend.WriteApplicationPage(workspaceId, tabKey, html);
 
+    public Uri? OpenApplicationPage(string workspaceId, string tabKey, int allocatedPort)
+    {
+        var html = ApplicationHtml(allocatedPort);
+        return html is null ? null : WriteApplicationPage(workspaceId, tabKey, html);
+    }
+
     public void Reset()
         => backend.Reset();
 }

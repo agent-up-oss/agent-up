@@ -17,3 +17,8 @@ public sealed record FakeBackendResponseDto(
     string ContentType,
     string? Body = null,
     bool KeepOpen = false);
+
+public sealed record FakeApplicationTicketDto(
+    string Ticket,
+    string BootstrapPath,
+    string? ExpiresAt);

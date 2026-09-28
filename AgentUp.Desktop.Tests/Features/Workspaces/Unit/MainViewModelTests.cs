@@ -983,6 +983,46 @@ public class MainViewModelTests
     }
 
     [Test]
+    public async Task RebuildSubTabs_MarksDemoHttpPortsHealthyWithoutProbingLoopback()
+    {
+        var workspace = DesktopDomain.WorkspaceServing(9100).Build();
+        var login = await ConnectDemoLoginAsync();
+        var vm = CreateVm(FakeWorkspaceClient([workspace]), login: login);
+
+        await vm.InitializeAsync();
+        vm.SelectedShellTab = WorkspaceShellTab.Application;
+
+        var port = vm.SubTabs.OfType<PortSubTabViewModel>().Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(port.StatusColor, Is.EqualTo(AppHealthLedRules.StateColor("Healthy")));
+            Assert.That(port.IsOpen, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task RebuildSubTabs_MarksStoppedDemoPortsMutedNotFailed()
+    {
+        var workspace = DesktopDomain.Workspace()
+            .Stopped()
+            .WithApplication(DesktopDomain.Application().Stopped().WithPort(9100))
+            .Build();
+        var login = await ConnectDemoLoginAsync();
+        var vm = CreateVm(FakeWorkspaceClient([workspace]), login: login);
+
+        await vm.InitializeAsync();
+        vm.SelectedShellTab = WorkspaceShellTab.Application;
+
+        var port = vm.SubTabs.OfType<PortSubTabViewModel>().Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(port.StatusColor, Is.EqualTo(AppHealthLedRules.StateColor("Stopped")));
+            Assert.That(port.StatusColor, Is.Not.EqualTo(AppHealthLedRules.StateColor("Failed")));
+            Assert.That(port.IsOpen, Is.False);
+        });
+    }
+
+    [Test]
     public async Task RebuildSubTabs_AddsDesktopTabFirst_WhenApplicationKindIsDesktop()
     {
         var workspace = DesktopDomain.Workspace()

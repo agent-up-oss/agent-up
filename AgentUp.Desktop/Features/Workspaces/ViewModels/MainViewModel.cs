@@ -7,6 +7,7 @@ using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Agents.ViewModels;
 using AgentUp.Desktop.Features.Capabilities.ViewModels;
 using AgentUp.Desktop.Features.Audit.ViewModels;
+using AgentUp.Desktop.Features.Authentication.DTOs;
 using AgentUp.Desktop.Features.Authentication.ViewModels;
 using AgentUp.Desktop.Features.Console.ViewModels;
 using AgentUp.Desktop.Features.Database.ViewModels;
@@ -669,7 +670,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             ?? (SubTabViewModel)SubTabs[0];
 
         foreach (var portTab in SubTabs.OfType<PortSubTabViewModel>())
-            _ = portTab.ProbeAsync();
+            ProbeOrAssumeDemoPort(portTab, app.State);
 
         var wsApp = Sidebar.SelectedWorkspace?.Applications
             .FirstOrDefault(a => string.Equals(a.Name, app.Name, StringComparison.Ordinal));
@@ -677,9 +678,29 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             ApplyPortHealthToSubTabs(wsApp);
     }
 
+    private void ProbeOrAssumeDemoPort(PortSubTabViewModel portTab, string applicationState)
+    {
+        if (!Login.Surfaces.Equals(ClientSurfaceAvailability.Demo))
+        {
+            _ = portTab.ProbeAsync();
+            return;
+        }
+
+        portTab.SetLedState(applicationState switch
+        {
+            "Running" => PortLedState.Healthy,
+            "Starting" => PortLedState.Checking,
+            "Failed" => PortLedState.Unhealthy,
+            _ => PortLedState.Probing
+        });
+    }
+
     private void ApplyPortHealthToSubTabs(WorkspaceApplicationViewModel app)
     {
-        var byPort = app.PortHealth?.ToDictionary(p => p.AllocatedPort, p => p.HealthState) ?? [];
+        if (app.PortHealth is not { Count: > 0 })
+            return;
+
+        var byPort = app.PortHealth.ToDictionary(p => p.AllocatedPort, p => p.HealthState);
         foreach (var tab in SubTabs.OfType<PortSubTabViewModel>())
         {
             var ledState = byPort.TryGetValue(tab.AllocatedPort, out var hs)
