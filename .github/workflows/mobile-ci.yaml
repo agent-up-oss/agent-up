@@ -146,7 +146,7 @@ jobs:
   android:
     name: Android
     needs: [version, tests]
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'android' }}
+    if: ${{ github.actor != 'dependabot[bot]' && (github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'android') }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
@@ -304,7 +304,7 @@ jobs:
   ios:
     name: iOS
     needs: [version, tests]
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'ios' }}
+    if: ${{ github.actor != 'dependabot[bot]' && (github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'ios') }}
     runs-on: macos-26
     timeout-minutes: 150
     permissions:
