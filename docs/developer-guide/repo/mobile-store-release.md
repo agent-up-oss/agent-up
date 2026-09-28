@@ -8,10 +8,11 @@ Store binaries for `AgentUp.Mobile` ship from
 [Mobile CI](https://github.com/themassiveone/agent-up/actions/workflows/mobile-ci.yaml),
 not from `ci.yml`.
 
-A path-filtered `push` smoke-builds and signs Android and iOS. It does not upload
-to Play or App Store Connect and does not create `android-v*` / `ios-v*` GitHub
-releases. Dispatch the same workflow on the branch that already has a product
-`vX.Y.Z` tag to publish.
+A path-filtered `push` smoke-builds and signs Android and iOS, except Dependabot
+pushes, which skip those jobs because GitHub withholds Actions secrets from
+`dependabot[bot]`. It does not upload to Play or App Store Connect and does not
+create `android-v*` / `ios-v*` GitHub releases. Dispatch the same workflow on the
+branch that already has a product `vX.Y.Z` tag to publish.
 
 After validation, each platform job uploads the signed AAB or IPA plus checksum
 to GitHub Actions artifacts (`mobile-android`, `mobile-ios`) with 1-day
@@ -32,8 +33,8 @@ run on Linux, and Expo SDK 57 rejects Xcode 16.
 | `channel` | `beta` or `prod` | Play internal vs production; TestFlight vs App Store Connect upload |
 | `platforms` | `both`, `android`, or `ios` | Which store jobs run |
 
-These inputs apply only to `workflow_dispatch`. A path-filtered `push` always
-builds both platforms and never publishes.
+These inputs apply only to `workflow_dispatch`. A path-filtered `push` builds
+both platforms when the actor is not Dependabot, and never publishes.
 
 `prod` iOS uploads the IPA to App Store Connect with metadata and screenshots
 skipped and does **not** submit for App Review. A human submits review from App
@@ -76,9 +77,10 @@ workflow, the iOS certs workflow, the mobile helper scripts, Fastlane,
 `Gemfile`, `Gemfile.lock`, or `.ruby-version` change. Changing only `ci.yml`
 does not start Mobile CI.
 
-The Android and iOS jobs both require the shared Mobile test job to pass. Android
-failure does not cancel iOS, and the reverse. A second dispatch on the same ref
-waits; it does not cancel an in-flight store upload. A newer push on the same ref
+The Android and iOS jobs both require the shared Mobile test job to pass. They
+skip when `github.actor` is `dependabot[bot]`. Android failure does not cancel
+iOS, and the reverse. A second dispatch on the same ref waits; it does not
+cancel an in-flight store upload. A newer push on the same ref
 cancels an in-flight smoke, not a dispatch.
 
 ## Signing

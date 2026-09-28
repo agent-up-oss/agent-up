@@ -146,7 +146,7 @@ jobs:
   android:
     name: Android
     needs: [version, tests]
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'android' }}
+    if: ${{ github.actor != 'dependabot[bot]' && (github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'android') }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
@@ -179,7 +179,7 @@ jobs:
           ruby-version: "3.3"
           bundler-cache: true
 
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
         with:
           packages: platform-tools
 
@@ -304,7 +304,7 @@ jobs:
   ios:
     name: iOS
     needs: [version, tests]
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'ios' }}
+    if: ${{ github.actor != 'dependabot[bot]' && (github.event_name != 'workflow_dispatch' || inputs.platforms == 'both' || inputs.platforms == 'ios') }}
     runs-on: macos-26
     timeout-minutes: 150
     permissions:
@@ -346,7 +346,7 @@ jobs:
           MATCH_DEPLOY_KEY: ${{ secrets.MATCH_DEPLOY_KEY }}
         run: bash .github/scripts/require-env.sh APPSTORE_KEY_ID APPSTORE_ISSUER_ID APPSTORE_P8 MATCH_PASSWORD MATCH_REPOSITORY MATCH_DEPLOY_KEY
 
-      - uses: webfactory/ssh-agent@v0.9.0
+      - uses: webfactory/ssh-agent@v0.10.0
         with:
           ssh-private-key: ${{ secrets.MATCH_DEPLOY_KEY }}
 
