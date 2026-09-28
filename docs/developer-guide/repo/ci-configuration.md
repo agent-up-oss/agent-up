@@ -112,9 +112,10 @@ pushes run the shared Mobile test job before they smoke-build and sign. After
 validation, the signed AAB and IPA are uploaded to GitHub Actions artifacts with
 1-day retention, before any store submit. Store upload and `android-v*` /
 `ios-v*` GitHub releases run only on `workflow_dispatch`. The desktop `ci.yml`
-signing and release steps skip when credentials are absent; the mobile store
-workflow is an exception and fails instead. Play upload secrets are required only
-on dispatch.
+signing and release steps skip when credentials are absent. Android and iOS jobs
+skip when `github.actor` is `dependabot[bot]`, because GitHub withholds Actions
+secrets from that actor. `workflow_dispatch` still requires those secrets and
+fails if they are missing. Play upload secrets are required only on dispatch.
 The same Apple Match secret names as other MassiveCreationLab iOS apps can be
 copied onto this repository. Full flow: [Mobile store release](./mobile-store-release.md).
 
