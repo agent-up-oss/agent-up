@@ -288,6 +288,9 @@
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
+        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump) /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
         <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump):pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
@@ -446,6 +449,26 @@
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
             <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.gitNodeName /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        </Style>
+        <Style Selector="Button.gitNodeName /template/ Border">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="Button.au-git-tree-toggle">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+        </Style>
+        <Style Selector="Button.au-git-tree-toggle /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+        </Style>
+        <Style Selector="Button.au-git-tree-toggle /template/ Border">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
         </Style>
         <!-- Dialog buttons -->
         <Style Selector="Button:disabled Border.tutorialButton">
@@ -1749,13 +1772,12 @@
                                                 <Button x:Name="GitPushButton"
                                                         Classes="au-button au-button--compact"
                                                         Command="{Binding Git.PushCommand}"
-                                                        Content="Push"
-                                                        IsVisible="{Binding !Git.IsConfirmingForcePush}"/>
-                                                <Button x:Name="GitForcePushButton"
+                                                        Content="Push"/>
+                                                <Button x:Name="GitDiscardButton"
                                                         Classes="au-button au-button--danger au-button--compact"
-                                                        Command="{Binding Git.RequestForcePushCommand}"
-                                                        Content="Force push"
-                                                        IsVisible="{Binding !Git.IsConfirmingForcePush}"/>
+                                                        Command="{Binding Git.DiscardCommand}"
+                                                        Content="Discard"
+                                                        IsVisible="{Binding Git.HasSelectedFiles}"/>
                                             </StackPanel>
                                                 <Button Grid.Column="1"
                                                         x:Name="GitHistoryButton"
@@ -1763,32 +1785,12 @@
                                                         Command="{Binding Git.OpenHistoryCommand}"
                                                         Content="History"/>
                                             </Grid>
-                                            <StackPanel Orientation="Horizontal" Spacing="6"
-                                                        IsVisible="{Binding Git.IsConfirmingForcePush}">
-                                                <TextBlock Text="Force-push with lease?"
-                                                           Foreground="{DynamicResource AgentUpColorTextDangerBrush}"
-                                                           FontSize="11"
-                                                           VerticalAlignment="Center"/>
-                                                <Button Classes="au-button au-button--secondary au-button--compact"
-                                                        Command="{Binding Git.CancelForcePushCommand}"
-                                                        Content="Cancel"/>
-                                                <Button x:Name="GitConfirmForcePushButton"
-                                                        Classes="au-button au-button--danger au-button--compact"
-                                                        Command="{Binding Git.ConfirmForcePushCommand}"
-                                                        Content="Confirm"/>
-                                            </StackPanel>
-                                            <Grid ColumnDefinitions="*,Auto">
+                                            <Grid>
                                                 <TextBlock Text="Git changes"
                                                            Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"
                                                            FontSize="11"
                                                            FontWeight="Bold"
                                                            VerticalAlignment="Center"/>
-                                                <Button Grid.Column="1"
-                                                        x:Name="GitDiscardButton"
-                                                        Classes="au-button au-button--danger au-button--compact"
-                                                        Command="{Binding Git.DiscardCommand}"
-                                                        Content="Discard"
-                                                        IsVisible="{Binding !Git.IsConfirmingDiscard}"/>
                                             </Grid>
                                             <TextBlock x:Name="GitSelectionSummary"
                                                        Text="{Binding Git.SelectionSummary}"
@@ -1831,23 +1833,6 @@
                                                        Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"
                                                        FontSize="11"
                                                        TextWrapping="Wrap"/>
-                                            <StackPanel IsVisible="{Binding Git.IsConfirmingDiscard}" Spacing="6">
-                                                <TextBlock x:Name="GitDiscardConfirmMessage"
-                                                           Text="{Binding Git.DiscardConfirmMessage}"
-                                                           Foreground="{DynamicResource AgentUpColorTextDangerBrush}"
-                                                           FontSize="11"
-                                                           TextWrapping="Wrap"/>
-                                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <Button x:Name="GitCancelDiscardButton"
-                                                            Classes="au-button au-button--secondary au-button--compact"
-                                                            Command="{Binding Git.CancelDiscardCommand}"
-                                                            Content="Cancel"/>
-                                                    <Button x:Name="GitConfirmDiscardButton"
-                                                            Classes="au-button au-button--danger au-button--compact"
-                                                            Command="{Binding Git.ConfirmDiscardCommand}"
-                                                            Content="Confirm discard"/>
-                                                </StackPanel>
-                                            </StackPanel>
                                         </StackPanel>
                                     </Border>
 
@@ -1884,7 +1869,7 @@
                                                                     </ItemsControl.ItemTemplate>
                                                                 </ItemsControl>
                                                                 <Button Grid.Column="2"
-                                                                        Classes="au-git-tree-toggle"
+                                                                        Classes="au-git-tree-toggle gitTreeToggle"
                                                                         Classes.au-git-tree-toggle--expanded="{Binding IsExpanded}"
                                                                         Classes.au-git-tree-toggle--collapsed="{Binding IsCollapsed}"
                                                                         Command="{Binding ToggleExpandCommand}"
@@ -2374,6 +2359,53 @@
                                    Text="{Binding Modules.Status}"
                                    IsVisible="{Binding Modules.Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                     </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Grid ZIndex="110"
+              x:Name="GitConfirmOverlay"
+              IsVisible="{Binding Git.HasConfirm}"
+              IsHitTestVisible="{Binding Git.HasConfirm}">
+            <Border Classes="au-scrim"/>
+            <Border Classes="au-scrim">
+                <Border.Effect>
+                    <BlurEffect Radius="10"/>
+                </Border.Effect>
+            </Border>
+
+            <Grid RowDefinitions="*,Auto,*"
+                  ColumnDefinitions="*,8*,*">
+                <Border Grid.Row="1"
+                        Grid.Column="1"
+                        Classes="au-overlay-panel"
+                        MaxWidth="480"
+                        Padding="20">
+                    <StackPanel Spacing="12">
+                        <TextBlock x:Name="GitConfirmTitle"
+                                   Classes="au-page-title"
+                                   Text="{Binding Git.ConfirmTitle}"
+                                   TextWrapping="Wrap"/>
+                        <ScrollViewer MaxHeight="240">
+                            <TextBlock x:Name="GitConfirmMessage"
+                                       Classes="au-muted"
+                                       Text="{Binding Git.ConfirmMessage}"
+                                       TextWrapping="Wrap"/>
+                        </ScrollViewer>
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Right"
+                                    Spacing="10">
+                            <Button x:Name="GitCancelConfirmButton"
+                                    Classes="au-button au-button--secondary au-button--compact"
+                                    Command="{Binding Git.CancelConfirmCommand}"
+                                    Content="Cancel"/>
+                            <Button x:Name="GitConfirmButton"
+                                    Classes="au-button au-button--compact"
+                                    Classes.au-button--danger="{Binding Git.ConfirmIsDestructive}"
+                                    Command="{Binding Git.ConfirmCommand}"
+                                    Content="{Binding Git.ConfirmButtonText}"/>
+                        </StackPanel>
+                    </StackPanel>
                 </Border>
             </Grid>
         </Grid>

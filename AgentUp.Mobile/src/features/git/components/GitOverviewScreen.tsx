@@ -10,6 +10,7 @@ import { agentUpTheme, auText } from '@agent-up/design-system/native';
 export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
   const router = useRouter();
   const [reloadNonce, setReloadNonce] = useState(0);
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const reload = useCallback(() => setReloadNonce(current => current + 1), []);
 
   const shellConfig = useMemo(() => ({
@@ -27,10 +28,17 @@ export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
           onHistory={() => router.push(`/(main)/workspace/${workspaceId}/git/history`)}
           onReload={reload}
           reloadNonce={reloadNonce}
+          selectedFiles={selectedFiles}
         />
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Changes</Text>
-          <GitChangesPanel workspaceId={workspaceId} mode="overview" reloadNonce={reloadNonce} onMutated={reload} />
+          <GitChangesPanel
+            workspaceId={workspaceId}
+            mode="overview"
+            reloadNonce={reloadNonce}
+            onMutated={reload}
+            onSelectedFilesChange={setSelectedFiles}
+          />
         </View>
       </View>
       <WorkspaceTabBar workspaceId={workspaceId} active="git" />

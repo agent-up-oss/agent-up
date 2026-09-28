@@ -4,6 +4,7 @@ using System.Reactive.Linq;
 using System.Text.Json;
 using AgentUp.Desktop.Features.Git.Controllers;
 using AgentUp.Desktop.Features.Git.DTOs;
+using AgentUp.Desktop.Features.Git.Models;
 using AgentUp.Desktop.Features.Git.Providers;
 using ReactiveUI;
 
@@ -30,10 +31,10 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     private string? _errorMessage;
     private string? _statusMessage;
     private int _selectedFileCount;
-    private bool _isConfirmingDiscard;
-    private bool _isConfirmingForcePush;
-    private string? _discardConfirmMessage;
+    private GitConfirmKind _confirmKind;
+    private GitConfirmCopy? _confirm;
     private GitBranchChoiceDto? _selectedBranchItem;
+    private string _upstream = string.Empty;
     private int _ahead;
     private int _behind;
     private GitLogRowDto? _selectedLogRow;
@@ -73,7 +74,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         ConfirmDiscardCommand = ReactiveCommand.CreateFromTask(
             ConfirmDiscardAsync,
             this.WhenAnyValue(x => x.IsConfirmingDiscard, x => x.IsBusy, (confirming, busy) => confirming && !busy));
-        CancelDiscardCommand = ReactiveCommand.Create(CancelDiscardConfirm);
+        CancelDiscardCommand = ReactiveCommand.Create(ClearConfirm);
         BeginCreateBranchCommand = ReactiveCommand.Create(() => { IsCreatingBranch = true; });
         CancelCreateBranchCommand = ReactiveCommand.Create(() =>
         {
@@ -92,16 +93,17 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         PullCommand = ReactiveCommand.CreateFromTask(
             PullAsync,
             this.WhenAnyValue(x => x.IsBusy, busy => !busy));
-        PushCommand = ReactiveCommand.CreateFromTask(
-            () => PushAsync(forceWithLease: false),
-            this.WhenAnyValue(x => x.IsBusy, x => x.IsConfirmingForcePush, (busy, confirming) => !busy && !confirming));
-        RequestForcePushCommand = ReactiveCommand.Create(
-            RequestForcePushConfirm,
-            this.WhenAnyValue(x => x.IsBusy, x => x.IsConfirmingForcePush, (busy, confirming) => !busy && !confirming));
+        PushCommand = ReactiveCommand.Create(
+            RequestPushConfirm,
+            this.WhenAnyValue(x => x.IsBusy, x => x.HasConfirm, (busy, confirming) => !busy && !confirming));
+        ConfirmCommand = ReactiveCommand.CreateFromTask(
+            ConfirmPendingAsync,
+            this.WhenAnyValue(x => x.HasConfirm, x => x.IsBusy, (confirming, busy) => confirming && !busy));
+        CancelConfirmCommand = ReactiveCommand.Create(ClearConfirm);
         ConfirmForcePushCommand = ReactiveCommand.CreateFromTask(
             ConfirmForcePushAsync,
             this.WhenAnyValue(x => x.IsConfirmingForcePush, x => x.IsBusy, (confirming, busy) => confirming && !busy));
-        CancelForcePushCommand = ReactiveCommand.Create(CancelForcePushConfirm);
+        CancelForcePushCommand = ReactiveCommand.Create(ClearConfirm);
         CheckoutLogRefCommand = ReactiveCommand.CreateFromTask<string>(
             CheckoutFromLogAsync,
             this.WhenAnyValue(x => x.IsBusy, busy => !busy));
@@ -204,12 +206,15 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         {
             this.RaiseAndSetIfChanged(ref _selectedFileCount, value);
             this.RaisePropertyChanged(nameof(SelectionSummary));
+            this.RaisePropertyChanged(nameof(HasSelectedFiles));
         }
     }
 
     public int FileCount => Nodes.Count(node => node.IsFile);
 
     public string SelectionSummary => $"{SelectedFileCount} of {FileCount} file(s) selected";
+
+    public bool HasSelectedFiles => SelectedFileCount > 0;
 
     public string SyncSummary => Ahead == 0 && Behind == 0
         ? string.Empty
@@ -268,23 +273,23 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         }
     }
 
-    public bool IsConfirmingForcePush
-    {
-        get => _isConfirmingForcePush;
-        private set => this.RaiseAndSetIfChanged(ref _isConfirmingForcePush, value);
-    }
+    public bool HasConfirm => _confirm is not null;
 
-    public bool IsConfirmingDiscard
-    {
-        get => _isConfirmingDiscard;
-        private set => this.RaiseAndSetIfChanged(ref _isConfirmingDiscard, value);
-    }
+    public bool IsConfirmingPush => _confirmKind == GitConfirmKind.Push;
 
-    public string? DiscardConfirmMessage
-    {
-        get => _discardConfirmMessage;
-        private set => this.RaiseAndSetIfChanged(ref _discardConfirmMessage, value);
-    }
+    public bool IsConfirmingForcePush => _confirmKind == GitConfirmKind.ForcePush;
+
+    public bool IsConfirmingDiscard => _confirmKind == GitConfirmKind.Discard;
+
+    public string ConfirmTitle => _confirm?.Title ?? string.Empty;
+
+    public string ConfirmMessage => _confirm?.Message ?? string.Empty;
+
+    public string ConfirmButtonText => _confirm?.Confirm ?? "Confirm";
+
+    public bool ConfirmIsDestructive => _confirm?.Destructive == true;
+
+    public string? DiscardConfirmMessage => IsConfirmingDiscard ? _confirm?.Message : null;
 
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleCommand { get; }
@@ -298,7 +303,8 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     public ReactiveCommand<Unit, Unit> FetchCommand { get; }
     public ReactiveCommand<Unit, Unit> PullCommand { get; }
     public ReactiveCommand<Unit, Unit> PushCommand { get; }
-    public ReactiveCommand<Unit, Unit> RequestForcePushCommand { get; }
+    public ReactiveCommand<Unit, Unit> ConfirmCommand { get; }
+    public ReactiveCommand<Unit, Unit> CancelConfirmCommand { get; }
     public ReactiveCommand<Unit, Unit> ConfirmForcePushCommand { get; }
     public ReactiveCommand<Unit, Unit> CancelForcePushCommand { get; }
     public ReactiveCommand<string, Unit> CheckoutLogRefCommand { get; }
@@ -321,7 +327,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         Nodes.Clear();
         ClearQueue();
         SelectedFileCount = 0;
-        CancelDiscardConfirm();
+        ClearConfirm();
         IsHistoryOpen = false;
         Diff.Hide();
         if (workspaceId is null)
@@ -330,7 +336,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
             return;
         }
 
-        ApplyHead(branch ?? string.Empty, string.IsNullOrWhiteSpace(branch) ? [] : [branch], [], 0, 0);
+        ApplyHead(branch ?? string.Empty, string.IsNullOrWhiteSpace(branch) ? [] : [branch], [], 0, 0, string.Empty);
         RaiseListProperties();
     }
 
@@ -437,6 +443,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         SelectedLogRow = null;
         Ahead = 0;
         Behind = 0;
+        _upstream = string.Empty;
         SetBranch(string.Empty);
         SelectedFileCount = 0;
         // A superseded request skips the loading reset in LoadAsync, so clearing the panel has to
@@ -444,8 +451,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         IsLoading = false;
         ErrorMessage = null;
         StatusMessage = null;
-        CancelDiscardConfirm();
-        CancelForcePushConfirm();
+        ClearConfirm();
         IsHistoryOpen = false;
         Diff.Hide();
         RaiseListProperties();
@@ -499,7 +505,8 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 
         SelectedFileCount = Nodes.Count(candidate => candidate.IsFile && candidate.IsSelected);
         StatusMessage = null;
-        CancelDiscardConfirm();
+        if (IsConfirmingDiscard)
+            ClearConfirm();
     }
 
     void IGitChangeNodeHost.NodeExpansionChanged(GitChangeNodeViewModel node)
@@ -559,21 +566,12 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         if (files.Count == 0)
             return;
 
-        IsConfirmingDiscard = true;
-        DiscardConfirmMessage = files.Count == 1
-            ? $"Discard {files[0]}? This cannot be undone."
-            : $"Discard {files.Count} files?\n{string.Join('\n', files)}\nThis cannot be undone.";
-    }
-
-    private void CancelDiscardConfirm()
-    {
-        IsConfirmingDiscard = false;
-        DiscardConfirmMessage = null;
+        ShowConfirm(GitConfirmCopyProvider.Discard(files), GitConfirmKind.Discard);
     }
 
     private Task ConfirmDiscardAsync()
     {
-        CancelDiscardConfirm();
+        ClearConfirm();
         return DiscardAsync();
     }
 
@@ -689,19 +687,64 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     private Task PushAsync(bool forceWithLease) =>
         RunSyncAsync(
             forceWithLease ? "Force-pushed with lease." : "Pushed.",
-            (workspaceId, ct) => _git.PushAsync(workspaceId, forceWithLease, setUpstream: false, ct));
+            (workspaceId, ct) => _git.PushAsync(workspaceId, forceWithLease, setUpstream: false, ct),
+            offerForceOnFailure: !forceWithLease);
 
-    private void RequestForcePushConfirm() => IsConfirmingForcePush = true;
+    private void RequestPushConfirm() =>
+        ShowConfirm(GitConfirmCopyProvider.Push(Branch, _upstream), GitConfirmKind.Push);
 
-    private void CancelForcePushConfirm() => IsConfirmingForcePush = false;
-
-    private async Task ConfirmForcePushAsync()
+    private Task ConfirmPushAsync()
     {
-        CancelForcePushConfirm();
-        await PushAsync(forceWithLease: true);
+        ClearConfirm();
+        return PushAsync(forceWithLease: false);
     }
 
-    private async Task RunSyncAsync(string success, Func<string, CancellationToken, Task<GitSyncResultDto>> action)
+    private Task ConfirmForcePushAsync()
+    {
+        ClearConfirm();
+        return PushAsync(forceWithLease: true);
+    }
+
+    private Task ConfirmPendingAsync() =>
+        _confirmKind switch
+        {
+            GitConfirmKind.Push => ConfirmPushAsync(),
+            GitConfirmKind.ForcePush => ConfirmForcePushAsync(),
+            GitConfirmKind.Discard => ConfirmDiscardAsync(),
+            _ => Task.CompletedTask
+        };
+
+    private void ShowConfirm(GitConfirmCopy copy, GitConfirmKind kind)
+    {
+        _confirmKind = kind;
+        _confirm = copy;
+        RaiseConfirmProperties();
+    }
+
+    private void ClearConfirm()
+    {
+        _confirmKind = GitConfirmKind.None;
+        _confirm = null;
+        RaiseConfirmProperties();
+    }
+
+    private void RaiseConfirmProperties()
+    {
+        this.RaisePropertyChanged(nameof(HasConfirm));
+        this.RaisePropertyChanged(nameof(IsConfirmingPush));
+        this.RaisePropertyChanged(nameof(IsConfirmingForcePush));
+        this.RaisePropertyChanged(nameof(IsConfirmingDiscard));
+        this.RaisePropertyChanged(nameof(ConfirmTitle));
+        this.RaisePropertyChanged(nameof(ConfirmMessage));
+        this.RaisePropertyChanged(nameof(ConfirmButtonText));
+        this.RaisePropertyChanged(nameof(ConfirmIsDestructive));
+        this.RaisePropertyChanged(nameof(DiscardConfirmMessage));
+    }
+
+    private async Task RunSyncAsync(
+        string success,
+        Func<string, CancellationToken, Task<GitSyncResultDto>> action,
+        bool offerForceOnFailure = false)
     {
         if (_workspaceId is null)
             return;
@@ -714,7 +757,14 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
             var result = await action(_workspaceId, CancellationToken.None);
             if (!result.Succeeded)
             {
-                ErrorMessage = result.Error ?? "The Git remote operation failed.";
+                var detail = result.Error ?? "The Git remote operation failed.";
+                if (offerForceOnFailure && GitConfirmCopyProvider.PushFailureOffersForce(detail))
+                {
+                    ShowConfirm(GitConfirmCopyProvider.PushRejected(detail, Branch, _upstream), GitConfirmKind.ForcePush);
+                    return;
+                }
+
+                ErrorMessage = detail;
                 return;
             }
 
@@ -844,14 +894,16 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
             tree?.LocalBranches,
             tree?.RemoteBranches,
             tree?.Ahead ?? 0,
-            tree?.Behind ?? 0);
+            tree?.Behind ?? 0,
+            tree?.Upstream ?? string.Empty);
 
     private void ApplyHead(
         string branch,
         IReadOnlyList<string>? branches,
         IReadOnlyList<GitRemoteBranchDto>? remotes,
         int ahead,
-        int behind)
+        int behind,
+        string upstream)
     {
         _isApplyingHead = true;
         try
@@ -867,6 +919,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 
             Ahead = ahead;
             Behind = behind;
+            _upstream = upstream;
             RebuildBranchItems(branch, remotes);
             Branch = branch;
         }
@@ -990,6 +1043,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     {
         this.RaisePropertyChanged(nameof(FileCount));
         this.RaisePropertyChanged(nameof(SelectionSummary));
+        this.RaisePropertyChanged(nameof(HasSelectedFiles));
         this.RaisePropertyChanged(nameof(ShowEmptyState));
     }
 

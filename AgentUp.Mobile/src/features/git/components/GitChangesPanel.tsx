@@ -39,12 +39,14 @@ export function GitChangesPanel({
   mode = 'review',
   onOpenFile,
   onMutated,
+  onSelectedFilesChange,
   reloadNonce = 0,
 }: {
   workspaceId?: string;
   mode?: 'overview' | 'review';
   onOpenFile?: (path: string) => void;
   onMutated?: () => void;
+  onSelectedFilesChange?: (files: string[]) => void;
   reloadNonce?: number;
 } = {}) {
   const { expireActiveCredential } = useServers();
@@ -215,7 +217,11 @@ export function GitChangesPanel({
   const files = selectedFilePaths(nodes, selected);
   const counts = selectedChangeStatusCounts(nodes, selected);
   const canCommit = !busy && !stale && canCommitSelection(selectedCount, message);
-  const canDiscard = !overview && !stale && canDiscardSelection(selectedCount, busy);
+  const canDiscard = !stale && canDiscardSelection(selectedCount, busy);
+
+  useEffect(() => {
+    onSelectedFilesChange?.(selectedFilePaths(nodes, selected));
+  }, [nodes, selected, onSelectedFilesChange]);
 
   const commitSelection = () => void runMutation(async () => {
     const result = await commitFiles(server!, workspaceId!, files, message.trim());
@@ -252,15 +258,16 @@ export function GitChangesPanel({
         <View style={styles.header}>
           <View style={styles.titleRow}>
             <Text style={styles.summary}>{selectedCount} of {fileCount} file(s) selected</Text>
-            <Pressable disabled={!canDiscard} onPress={() => {
-              setConfirm({
-                copy: gitDiscardConfirmCopy(files),
-                action: () => void runMutation(() => discardFiles(server!, workspaceId!, files), () => `Discarded ${files.length} file(s).`),
-              });
-            }}
-              style={[styles.discardButton, !canDiscard && styles.disabled]}>
-              <Text style={styles.discardText}>Discard</Text>
-            </Pressable>
+            {canDiscard &&
+              <Pressable onPress={() => {
+                setConfirm({
+                  copy: gitDiscardConfirmCopy(files),
+                  action: () => void runMutation(() => discardFiles(server!, workspaceId!, files), () => `Discarded ${files.length} file(s).`),
+                });
+              }}
+                style={styles.discardButton}>
+                <Text style={styles.discardText}>Discard</Text>
+              </Pressable>}
           </View>
         </View>}
 

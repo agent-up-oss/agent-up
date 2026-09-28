@@ -1,5 +1,6 @@
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Git.DTOs;
+using AgentUp.Desktop.Features.Git.ViewModels;
 using AgentUp.Desktop.Tests.Support;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
@@ -35,8 +36,10 @@ public sealed class GitPanelBehaviorTests
 
         Assert.That(driver.Window.FindControl<TextBox>("GitCommitMessage")!.IsVisible, Is.True);
         Assert.That(driver.Window.FindControl<Button>("GitCommitButton")!.IsVisible, Is.True);
-        Assert.That(driver.Window.FindControl<Button>("GitDiscardButton")!.IsVisible, Is.True);
+        Assert.That(driver.Window.FindControl<Button>("GitDiscardButton")!.IsVisible, Is.False);
+        Assert.That(driver.Window.FindControl<Button>("GitForcePushButton"), Is.Null);
         Assert.That(driver.Window.FindControl<Button>("GitHistoryButton")!.IsVisible, Is.True);
+        Assert.That(driver.Window.FindControl<Grid>("GitConfirmOverlay")!.IsVisible, Is.False);
         Assert.That(driver.Window.FindControl<ItemsControl>("GitLog")!.IsVisible, Is.False);
     }
 
@@ -117,5 +120,48 @@ public sealed class GitPanelBehaviorTests
         await driver.Window.ClickControlAsync(driver.Window.FindControl<Button>("GitFileDiffDismissButton")!);
 
         Assert.That(overlay.IsVisible, Is.False);
+    }
+
+    [AvaloniaTest]
+    public async Task GitPanel_showsDiscardNextToPushOnlyWhenFilesAreSelected()
+    {
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
+        var viewModel = (MainViewModel)driver.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Git;
+        Assert.That(() => viewModel.Git.IsLoading, Is.False.After(1000).PollEvery(20));
+        Assert.That(() => viewModel.Git.FileCount, Is.EqualTo(0).After(500).PollEvery(20));
+        await HeadlessExtensions.FlushAsync();
+
+        var discard = driver.Window.FindControl<Button>("GitDiscardButton")!;
+        Assert.That(discard.IsVisible, Is.False);
+
+        var file = new GitChangeNodeViewModel("orders.ts", "apps/api/orders.ts", 2, false, "Modified");
+        file.SetHost(viewModel.Git);
+        viewModel.Git.Nodes.Add(file);
+        file.IsSelected = true;
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(viewModel.Git.HasSelectedFiles, Is.True);
+        Assert.That(discard.IsVisible, Is.True);
+    }
+
+    [AvaloniaTest]
+    public async Task GitPanel_opensThePushConfirmOverlayFromPush()
+    {
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
+        var viewModel = (MainViewModel)driver.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Git;
+        Assert.That(() => viewModel.Git.IsLoading, Is.False.After(1000).PollEvery(20));
+        await HeadlessExtensions.FlushAsync();
+
+        var overlay = driver.Window.FindControl<Grid>("GitConfirmOverlay")!;
+        Assert.That(overlay.IsVisible, Is.False);
+
+        await driver.Window.ClickControlAsync(driver.Window.FindControl<Button>("GitPushButton")!);
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(viewModel.Git.IsConfirmingPush, Is.True);
+        Assert.That(overlay.IsVisible, Is.True);
+        Assert.That(driver.Window.FindControl<TextBlock>("GitConfirmTitle")!.Text, Does.Contain("Push"));
     }
 }
