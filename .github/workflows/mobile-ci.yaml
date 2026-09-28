@@ -179,7 +179,7 @@ jobs:
           ruby-version: "3.3"
           bundler-cache: true
 
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
         with:
           packages: platform-tools
 
