@@ -8,6 +8,9 @@
   <a href="https://github.com/themassiveone/agent-up/actions/workflows/ci.yml">
     <img src="https://github.com/themassiveone/agent-up/actions/workflows/ci.yml/badge.svg" alt="CI status">
   </a>
+  <a href="https://codecov.io/github/agent-up-oss/agent-up" > 
+    <img src="https://codecov.io/github/agent-up-oss/agent-up/graph/badge.svg?token=T7BG9UOL0Q"/> 
+  </a>
 </p>
 <p align="center">
   <a href="https://github.com/agent-up-oss/agent-up/">
