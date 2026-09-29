@@ -3,7 +3,6 @@ import { type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useServers } from '@/features/servers/controllers/ServersContext';
-import { hasSavedSignIn } from '@/features/servers/models/ConfiguredServer';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import { statusDotStyle, workspaceLedState } from '@/features/workspaces/providers/WorkspaceStatusProvider';
 import { useAppShell } from '../controllers/AppShellContext';
@@ -11,14 +10,8 @@ import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const router = useRouter();
-  const { activeServer, savedServers, cloudServer, selectServer, logout } = useServers();
+  const { activeServer, logout } = useServers();
   const { workspaces, selectedWorkspace, selectWorkspace } = useWorkspaces();
-  const openConnect = (signedIn: boolean, serverUrl?: string) => {
-    router.replace(signedIn
-      ? '/(main)/workspace'
-      : { pathname: '/connect', params: serverUrl ? { server: serverUrl } : {} });
-    onNavigate();
-  };
 
   return (
     <View style={styles.defaultContent}>
@@ -52,47 +45,12 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
       </ScrollView>
       <View style={styles.serverFooter}>
         <Text style={styles.sectionLabel}>Server</Text>
-        {cloudServer && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ selected: activeServer?.isRecommended === true }}
-            accessibilityLabel={cloudServer.displayName ?? 'Agent-Up Cloud'}
-            onPress={() => {
-              selectServer(cloudServer.id);
-              openConnect(hasSavedSignIn(cloudServer), cloudServer.url);
-            }}
-            style={[styles.serverRow, activeServer?.isRecommended && styles.serverRowSelected]}>
-            <Text numberOfLines={1} style={styles.serverUrl}>{cloudServer.displayName ?? 'Agent-Up Cloud'}</Text>
-            <Text style={styles.serverMeta}>{activeServer?.isRecommended ? 'Current' : 'Switch'}</Text>
-          </Pressable>
-        )}
-        {savedServers.map(server => {
-          const isActive = server.id === activeServer?.id;
-          return (
-            <Pressable
-              key={server.id}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isActive }}
-              accessibilityLabel={`Switch to ${server.url}`}
-              onPress={() => {
-                selectServer(server.id);
-                openConnect(hasSavedSignIn(server), server.url);
-              }}
-              style={[styles.serverRow, isActive && styles.serverRowSelected]}>
-              <Text numberOfLines={2} style={styles.serverUrl}>{server.url}</Text>
-              <Text style={styles.serverMeta}>{isActive ? 'Current' : 'Switch'}</Text>
-            </Pressable>
-          );
-        })}
-        {!cloudServer && savedServers.length === 0 &&
-          <Text numberOfLines={2} style={styles.serverUrl}>{activeServer?.url ?? 'Not connected'}</Text>}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Connect to another server"
-          onPress={() => router.push('/connect')}
-          style={styles.footerButton}>
-          <Text style={styles.footerButtonText}>Add server</Text>
-        </Pressable>
+        <Text
+          accessibilityLabel={activeServer ? `Connected to ${activeServer.displayName ?? activeServer.url}` : 'Not connected'}
+          numberOfLines={2}
+          style={styles.serverUrl}>
+          {activeServer?.displayName ?? activeServer?.url ?? 'Not connected'}
+        </Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Log out of this server"
@@ -156,19 +114,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: agentUpTheme.colors.borderSubtle,
   },
-  serverRow: {
-    ...auBox('workspace'),
-    gap: 2,
-  },
-  serverRowSelected: auBox('workspaceSelected'),
   serverUrl: { ...auText('workspaceName'), fontSize: agentUpTheme.typography.sizeXs, lineHeight: 16 },
-  serverMeta: auText('workspaceBranch'),
-  footerButton: {
-    ...auBox('button', 'buttonSecondary'),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  footerButtonText: auText('buttonSecondary'),
   logoutButton: {
     ...auBox('sessionLogout'),
     alignItems: 'center',

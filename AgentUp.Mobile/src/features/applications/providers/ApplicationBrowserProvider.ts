@@ -10,6 +10,7 @@ export type ApplicationProxyTicket = {
 export type ApplicationProxySource = {
   uri: string;
   ticket: string;
+  html?: string;
 };
 
 /** Returns the first allocated HTTP port that the Server can tunnel. */

@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using AgentUp.Desktop.Features.FirstRun.Services;
 using AgentUp.Tests.Fixtures;
 using Avalonia;
 using Avalonia.Controls;
@@ -21,7 +20,6 @@ public sealed class DesktopFixtureHost
     [OneTimeSetUp]
     public void Start()
     {
-        Environment.SetEnvironmentVariable(FileFirstRunTutorialSettingsStore.SkipTutorialEnvironmentVariable, "1");
         _adapter = DesktopFixtureAdapter.Create();
         TestContext.Progress.WriteLine($"Starting native desktop fixture through {_adapter.Name}.");
         _adapter.SetUp();

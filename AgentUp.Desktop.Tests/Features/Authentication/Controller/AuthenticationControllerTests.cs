@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using AgentUp.Desktop.Features.Authentication.Controllers;
+using AgentUp.Desktop.Features.Authentication.DTOs;
 using AgentUp.Desktop.Features.Authentication.Providers;
 using AgentUp.Desktop.Tests.Support;
 
@@ -42,7 +43,7 @@ public sealed class AuthenticationControllerTests
         Assert.Multiple(() =>
         {
             Assert.That(saved.Url, Is.EqualTo("http://127.0.0.1:5100"));
-            Assert.That(controller.ListSavedServers().Servers, Has.Count.EqualTo(1));
+            Assert.That(controller.ListSavedServers().Servers.Count(server => !server.IsFake), Is.EqualTo(1));
             Assert.That(controller.CurrentServerUrl(), Is.EqualTo("http://127.0.0.1:5100"));
         });
     }
@@ -78,7 +79,7 @@ public sealed class AuthenticationControllerTests
 
         controller.RemoveServer(saved.Id);
 
-        Assert.That(controller.ListSavedServers().Servers, Is.Empty);
+        Assert.That(controller.ListSavedServers().Servers.All(server => server.IsFake), Is.True);
     }
 
     [Test]
@@ -94,6 +95,19 @@ public sealed class AuthenticationControllerTests
         controller.RestoreActiveServer();
 
         Assert.That(controller.CurrentServerUrl(), Is.EqualTo("http://127.0.0.1:5100"));
+    }
+
+    [Test]
+    public void ClientSurfaces_AreDemoWhenTheFakeServerIsActive()
+    {
+        using var http = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var store = new InMemoryServerConnectionStore();
+        var controller = AuthenticationTestController.Create(http, store);
+
+        controller.ActivateServer("fake");
+
+        Assert.That(controller.ClientSurfaces(), Is.EqualTo(ClientSurfaceAvailability.Demo));
     }
 
     private static AuthenticationController CreateController(DisposableTestHttpClient http)

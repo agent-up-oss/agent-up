@@ -3,10 +3,11 @@ using System.Net.Http;
 using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Applications.ViewModels;
+using AgentUp.Desktop.Features.Authentication.Controllers;
+using AgentUp.Desktop.Features.Authentication.Providers;
+using AgentUp.Desktop.Features.Authentication.Services;
 using AgentUp.Desktop.Features.Authentication.ViewModels;
 using AgentUp.Desktop.Features.Console.Providers;
-using AgentUp.Desktop.Features.FirstRun.Services;
-using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
@@ -17,7 +18,6 @@ using AgentUp.Desktop.Features.Agents.Providers;
 using AgentUp.Desktop.Features.Git.Providers;
 using AgentUp.Desktop.Features.Validation.Providers;
 using AgentUp.Desktop.Composition;
-using AgentUp.Desktop.Features.FirstRun.Interfaces;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome;
 
@@ -292,8 +292,8 @@ public class MainViewModelTests
         Assert.That(vm.ShowApplication, Is.True);
         Assert.That(vm.ShowPortView, Is.True);
 
-        vm.SelectedShellTab = WorkspaceShellTab.Commit;
-        Assert.That(vm.ShowCommit, Is.True);
+        vm.SelectedShellTab = WorkspaceShellTab.Git;
+        Assert.That(vm.ShowGit, Is.True);
         Assert.That(vm.Git.IsVisible, Is.True);
         Assert.That(vm.Applications.SelectedApplication, Is.EqualTo(selectedApp));
         Assert.That(vm.ShowPortView, Is.False);
@@ -316,7 +316,7 @@ public class MainViewModelTests
         {
             Assert.That(vm.IsValidationOpen, Is.True);
             Assert.That(vm.Validation!.IsCollapsed, Is.False);
-            Assert.That(vm.ShellTabs.Select(tab => tab.Label), Is.EqualTo(new[] { "Overview", "Agent", "Commit" }));
+            Assert.That(vm.ShellTabs.Select(tab => tab.Label), Is.EqualTo(new[] { "Overview", "Agent", "Git" }));
         });
     }
 
@@ -567,30 +567,6 @@ public class MainViewModelTests
         await vm.Sidebar.RefreshWorkspaceAsync("ws-1", cts.Token);
 
         Assert.That(vm.Sidebar.ErrorMessage, Is.Null);
-    }
-
-    [Test]
-    public async Task TutorialStepTransition_reloadsWorkspaceListBehindOverlay()
-    {
-        var initial = DesktopDomain.WorkspaceServing(3000).Build();
-        var handler = new MutableFakeHttpMessageHandler([initial]);
-        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        var tutorial = new FirstRunTutorialViewModel(
-            new InMemoryTutorialSettingsStore(new FirstRunTutorialSettings(false, false, 0)),
-            new PassingTutorialChecks());
-        var vm = CreateVm(new WorkspaceApiClient(http), tutorial: tutorial);
-        var browserCommands = new List<BrowserCommand>();
-        vm.BrowserCommands.Subscribe(browserCommands.Add);
-
-        await vm.InitializeAsync();
-        var requestCountAfterInitialize = handler.RequestCount;
-
-        await tutorial.CheckDockerCommand.Execute().FirstAsync();
-        await tutorial.ContinueCommand.Execute().FirstAsync();
-        await Task.Delay(25);
-
-        Assert.That(handler.RequestCount, Is.GreaterThan(requestCountAfterInitialize));
-        Assert.That(browserCommands, Does.Contain(BrowserCommand.Reload));
     }
 
     [Test]
@@ -969,6 +945,84 @@ public class MainViewModelTests
     }
 
     [Test]
+    public async Task RebuildSubTabs_OmitsDemoUnsupportedSurfaces_WhenDemoIsActive()
+    {
+        var workspace = DesktopDomain.Workspace()
+            .WithId("ws-1")
+            .Named("Demo")
+            .WithRepositoryPath("/repo")
+            .WithWorktreePath("/repo")
+            .OnBranch("main")
+            .AtCommit("abc")
+            .InState("Running")
+            .WithApplication(new ApplicationDtoBuilder("Database", "docker")
+                    .AsDatabase()
+                    .WithPort(DesktopDomain.Port()
+                        .Named("POSTGRES_PORT")
+                        .Declaring(5432)
+                        .AllocatedTo(10602)
+                        .WithProtocol("tcp")
+                        .Build())
+                    .Build())
+            .Build();
+        var login = await ConnectDemoLoginAsync();
+        var vm = CreateVm(FakeWorkspaceClient([workspace]), login: login);
+
+        await vm.InitializeAsync();
+        vm.SelectedShellTab = WorkspaceShellTab.Application;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.SubTabs.OfType<DatabaseSubTabViewModel>(), Is.Empty);
+            Assert.That(vm.SubTabs.OfType<AuditSubTabViewModel>(), Is.Empty);
+            Assert.That(vm.SubTabs.OfType<MetricsSubTabViewModel>(), Is.Empty);
+            Assert.That(vm.SubTabs.OfType<ConsoleSubTabViewModel>(), Is.Not.Empty);
+            Assert.That(vm.ShowValidation, Is.False);
+            Assert.That(vm.IsValidationOpen, Is.False);
+        });
+    }
+
+    [Test]
+    public async Task RebuildSubTabs_MarksDemoHttpPortsHealthyWithoutProbingLoopback()
+    {
+        var workspace = DesktopDomain.WorkspaceServing(9100).Build();
+        var login = await ConnectDemoLoginAsync();
+        var vm = CreateVm(FakeWorkspaceClient([workspace]), login: login);
+
+        await vm.InitializeAsync();
+        vm.SelectedShellTab = WorkspaceShellTab.Application;
+
+        var port = vm.SubTabs.OfType<PortSubTabViewModel>().Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(port.StatusColor, Is.EqualTo(AppHealthLedRules.StateColor("Healthy")));
+            Assert.That(port.IsOpen, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task RebuildSubTabs_MarksStoppedDemoPortsMutedNotFailed()
+    {
+        var workspace = DesktopDomain.Workspace()
+            .Stopped()
+            .WithApplication(DesktopDomain.Application().Stopped().WithPort(9100))
+            .Build();
+        var login = await ConnectDemoLoginAsync();
+        var vm = CreateVm(FakeWorkspaceClient([workspace]), login: login);
+
+        await vm.InitializeAsync();
+        vm.SelectedShellTab = WorkspaceShellTab.Application;
+
+        var port = vm.SubTabs.OfType<PortSubTabViewModel>().Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(port.StatusColor, Is.EqualTo(AppHealthLedRules.StateColor("Stopped")));
+            Assert.That(port.StatusColor, Is.Not.EqualTo(AppHealthLedRules.StateColor("Failed")));
+            Assert.That(port.IsOpen, Is.False);
+        });
+    }
+
+    [Test]
     public async Task RebuildSubTabs_AddsDesktopTabFirst_WhenApplicationKindIsDesktop()
     {
         var workspace = DesktopDomain.Workspace()
@@ -1007,13 +1061,11 @@ public class MainViewModelTests
     private static MainViewModel CreateVm(
         WorkspaceApiClient workspaceClient,
         ConsoleApiClient? consoleClient = null,
-        FirstRunTutorialViewModel? tutorial = null,
         LoginViewModel? login = null)
         => MainViewModelFactory.Create(
             workspaceClient,
             consoleClient ?? NullConsoleClient(),
             databaseClient: NullDatabaseClient(),
-            tutorial: tutorial,
             gitClient: NullGitClient(),
             validationClient: NullValidationClient(),
             agentClient: NullAgentClient(),
@@ -1112,46 +1164,17 @@ public class MainViewModelTests
             => Task.FromResult(new HttpResponseMessage(statusCode));
     }
 
-    private sealed class InMemoryTutorialSettingsStore(FirstRunTutorialSettings settings) : IFirstRunTutorialSettingsStore
+    private static async Task<LoginViewModel> ConnectDemoLoginAsync()
     {
-        public Task<FirstRunTutorialSettings> LoadAsync() => Task.FromResult(settings);
-
-        public Task SaveAsync(FirstRunTutorialSettings settings) => Task.CompletedTask;
-    }
-
-    private sealed class PassingTutorialChecks : IFirstRunTutorialChecks
-    {
-        public Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
-
-        public Task<FirstRunCheckResult> CheckDockerAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Docker works."));
-
-        public Task<FirstRunCheckResult> CheckNodeAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Node works."));
-
-        public Task<FirstRunSampleProjectResult> CreateJavaScriptSampleAsync(string? currentProjectDirectory = null, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunSampleProjectResult.Success("Sample created.", currentProjectDirectory ?? "/tmp/tutorial/agent-up-tutorial/example-agent1"));
-
-        public Task<FirstRunCheckResult> CheckJavaScriptProjectFilesAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Project files work."));
-
-        public Task<FirstRunCheckResult> CreateAgentUpJsonAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("agent-up.json created."));
-
-        public Task<FirstRunCheckResult> CheckAgentUpJsonAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("agent-up.json works."));
-
-        public Task<FirstRunCheckResult> StartJavaScriptWorkspaceAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Started."));
-
-        public Task<FirstRunCheckResult> CheckJavaScriptWorkspaceAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Workspace works."));
-
-        public Task<FirstRunCheckResult> CreateDuplicatedJavaScriptSampleAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Duplicate created."));
-
-        public Task<FirstRunCheckResult> CheckDuplicatedJavaScriptWorkspacesAsync(string projectDirectory, CancellationToken cancellationToken = default)
-            => Task.FromResult(FirstRunCheckResult.Success("Duplicate works."));
+        var backend = FakeServerTestComposition.Backend();
+        var http = FakeServerTestComposition.Client(backend);
+        var store = new InMemoryServerConnectionStore();
+        var login = new LoginViewModel(new AuthenticationController(
+            new AuthenticationService(new AuthenticationApiClient(http)),
+            FakeServerTestComposition.Connections(store, http, backend)));
+        login.ShowPicker();
+        login.ServerUrl = AgentUp.Desktop.Features.FakeServer.Models.FakeServerIdentity.Url;
+        await login.ConnectCommand.Execute().FirstAsync();
+        return login;
     }
 }

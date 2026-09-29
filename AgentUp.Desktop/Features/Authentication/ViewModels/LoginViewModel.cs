@@ -13,19 +13,18 @@ public sealed class LoginViewModel : ReactiveObject
     private readonly AuthenticationController _authentication;
     private readonly Subject<string> _serverSwitched = new();
     private TaskCompletionSource<string?>? _signIn;
-    private TaskCompletionSource<bool>? _retryConnection;
     private bool _isVisible;
     private bool _hasConnected;
     private string _password = "";
     private string _serverUrl = "";
     private string? _errorMessage;
     private bool _isBusy;
-    private bool _isConnectionRetry;
     private bool _isSwitcher;
     private bool _needsPassword;
     private string? _accessToken;
     private string _openedUrl = "";
     private bool _resumeRequired;
+    private ClientSurfaceAvailability _surfaces = ClientSurfaceAvailability.Real;
     private readonly Subject<Unit> _sessionRestored = new();
 
     public LoginViewModel(AuthenticationController authentication)
@@ -33,6 +32,7 @@ public sealed class LoginViewModel : ReactiveObject
         _authentication = authentication;
         ServerUrl = authentication.CurrentServerUrl();
         RefreshSavedServers();
+        RefreshSurfaces();
         var canSignIn = this.WhenAnyValue(x => x.Password, x => x.IsBusy, x => x.NeedsPassword,
             (password, busy, needsPassword) => !busy && needsPassword && !string.IsNullOrWhiteSpace(password));
         var canConnect = this.WhenAnyValue(x => x.ServerUrl, x => x.IsBusy,
@@ -41,7 +41,6 @@ public sealed class LoginViewModel : ReactiveObject
         ConnectCommand = ReactiveCommand.CreateFromTask(ConnectAsync, canConnect);
         SelectSavedCommand = ReactiveCommand.CreateFromTask<string>(SelectSavedAsync, canConnect);
         RemoveSavedCommand = ReactiveCommand.Create<string>(RemoveSaved);
-        RetryConnectionCommand = ReactiveCommand.Create(RetryConnection);
         GoBackCommand = ReactiveCommand.Create(GoBack);
     }
 
@@ -101,10 +100,10 @@ public sealed class LoginViewModel : ReactiveObject
         private set => this.RaiseAndSetIfChanged(ref _isBusy, value);
     }
 
-    public bool IsConnectionRetry
+    public ClientSurfaceAvailability Surfaces
     {
-        get => _isConnectionRetry;
-        private set => this.RaiseAndSetIfChanged(ref _isConnectionRetry, value);
+        get => _surfaces;
+        private set => this.RaiseAndSetIfChanged(ref _surfaces, value);
     }
 
     public bool NeedsPassword
@@ -129,27 +128,31 @@ public sealed class LoginViewModel : ReactiveObject
 
     public ReactiveCommand<string, Unit> RemoveSavedCommand { get; }
 
-    public ReactiveCommand<Unit, Unit> RetryConnectionCommand { get; }
-
     public ReactiveCommand<Unit, Unit> GoBackCommand { get; }
 
     public void Show()
     {
         _signIn = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        BeginPrompt(switcher: false, connectionRetry: false);
+        BeginPrompt(switcher: false);
         NeedsPassword = true;
+    }
+
+    public void ShowPicker()
+    {
+        _signIn = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        BeginPrompt(switcher: false);
     }
 
     public void ShowSwitcher()
     {
-        BeginPrompt(switcher: true, connectionRetry: false);
+        BeginPrompt(switcher: true);
         ErrorMessage = null;
     }
 
     public void ShowExpired()
     {
         _signIn = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        BeginPrompt(switcher: false, connectionRetry: false);
+        BeginPrompt(switcher: false);
         _resumeRequired = true;
         NeedsPassword = true;
         ErrorMessage = "This saved sign-in is no longer valid. Enter the administrator password.";
@@ -157,28 +160,22 @@ public sealed class LoginViewModel : ReactiveObject
 
     public void ShowConnectionFailure(string message)
     {
-        Show();
-        IsConnectionRetry = true;
+        _signIn ??= new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        BeginPrompt(switcher: false);
         ErrorMessage = message;
-        _retryConnection = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
     }
-
-    public Task<bool> WaitForConnectionRetryAsync()
-        => _retryConnection?.Task ?? Task.FromResult(false);
 
     public void Cancel()
     {
         if (!IsVisible) return;
 
         Dismiss();
-        _retryConnection?.TrySetResult(false);
         _signIn?.TrySetResult(null);
     }
 
     public void Dismiss()
     {
         IsVisible = false;
-        IsConnectionRetry = false;
         IsSwitcher = false;
         NeedsPassword = false;
         ErrorMessage = null;
@@ -194,25 +191,18 @@ public sealed class LoginViewModel : ReactiveObject
     public Task<string?> WaitForSignInAsync()
         => _signIn?.Task ?? Task.FromResult<string?>(null);
 
-    private void BeginPrompt(bool switcher, bool connectionRetry)
+    private void BeginPrompt(bool switcher)
     {
         Password = "";
         ErrorMessage = null;
         IsBusy = false;
-        IsConnectionRetry = connectionRetry;
         IsSwitcher = switcher;
         NeedsPassword = false;
         ServerUrl = _authentication.CurrentServerUrl();
         _openedUrl = ServerUrl;
         RefreshSavedServers();
+        RefreshSurfaces();
         IsVisible = true;
-    }
-
-    private void RetryConnection()
-    {
-        IsConnectionRetry = false;
-        ErrorMessage = null;
-        _retryConnection?.TrySetResult(true);
     }
 
     private void GoBack()
@@ -223,9 +213,13 @@ public sealed class LoginViewModel : ReactiveObject
 
     private void RemoveSaved(string id)
     {
+        var selected = SavedServers.FirstOrDefault(server => server.Id == id);
+        if (selected is { CanRemove: false })
+            return;
+
         _authentication.RemoveServer(id);
         RefreshSavedServers();
-        if (SavedServers.Count == 0)
+        if (SavedServers.All(server => server.IsFake))
             ServerUrl = _authentication.CurrentServerUrl();
     }
 
@@ -314,7 +308,6 @@ public sealed class LoginViewModel : ReactiveObject
         RememberConnected();
         IsVisible = false;
         IsSwitcher = false;
-        IsConnectionRetry = false;
         ErrorMessage = null;
         _signIn?.TrySetResult(token ?? string.Empty);
         if (switched)
@@ -329,5 +322,9 @@ public sealed class LoginViewModel : ReactiveObject
         SavedServers.Clear();
         foreach (var server in _authentication.ListSavedServers().Servers)
             SavedServers.Add(server);
+        RefreshSurfaces();
     }
+
+    private void RefreshSurfaces()
+        => Surfaces = _authentication.ClientSurfaces();
 }

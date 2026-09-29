@@ -29,6 +29,8 @@ using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Features.FakeServer.Controllers;
+using AgentUp.Desktop.Features.FakeServer.DTOs;
 using AgentUp.Desktop.Shared.Models;
 using ReactiveUI;
 
@@ -51,6 +53,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
     private readonly HttpClient _serverHttp;
+    private readonly FakeServerController? _fakeServers;
     private string _serverBaseUrl;
     private WorkspaceEventClient? _workspaceEventClient;
     private string? _activeWorkspaceId;
@@ -77,6 +80,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     internal Func<NativeWebView> WebViewFactory { get; set; } = () => new NativeWebView();
     internal Func<IWebPopup> WebPopupFactory { get; set; } = () => new NativeWebDialogPopup();
+    internal Func<string, HttpClient>? CreateWorkspaceEventHttpClient { get; set; }
     internal int OpenPopupCountForTests => _webPopups.Count;
     internal Func<Uri, Task<string?>> BrowserProbe { get; set; } = ProbeBrowserDestinationAsync;
     // Seam over the native file dialog. No test runner can drive a GTK/AppKit/Win32 file
@@ -111,6 +115,12 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     internal bool IsConsoleWebViewHiddenForTests =>
         _consoleWebView is null || !_consoleWebView.IsVisible;
+
+    internal Uri? ActiveWebViewSourceForTests =>
+        _activeTabKey is not null
+        && _webViews.TryGetValue(_activeTabKey, out var webView)
+            ? webView.Source
+            : null;
 
     private static readonly string SelectionJs =
         "(function(){" +
@@ -195,7 +205,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         BaseAddress = new Uri(Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000")
     };
 
-    public MainWindow(HttpClient serverHttp)
+    public MainWindow(HttpClient serverHttp) : this(serverHttp, fakeServers: null)
+    {
+    }
+
+    public MainWindow(HttpClient serverHttp, FakeServerController? fakeServers)
     {
         InitializeComponent();
         SetWindowIcon();
@@ -209,6 +223,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _serverBaseUrl = NormalizeServerBaseUrl(serverHttp.BaseAddress)
             ?? throw new ArgumentException("The server HTTP client requires a base address.", nameof(serverHttp));
         _serverHttp = serverHttp;
+        _fakeServers = fakeServers;
     }
 
     private void SetWindowIcon()
@@ -270,13 +285,12 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         vm.Sidebar.Workspaces.CollectionChanged += OnWorkspaceCollectionChanged;
         Disposable.Create(() => vm.Sidebar.Workspaces.CollectionChanged -= OnWorkspaceCollectionChanged)
             .DisposeWith(_subscriptions);
-        vm.Tutorial.WhenAnyValue(t => t.IsVisible)
+        vm.Sidebar.DeleteConfirmation.WhenAnyValue(d => d.IsVisible)
             .CombineLatest(
-                vm.Sidebar.DeleteConfirmation.WhenAnyValue(d => d.IsVisible),
                 vm.Sidebar.AddWorkspace.WhenAnyValue(a => a.IsVisible),
                 vm.Git.Diff.WhenAnyValue(d => d.IsVisible),
-                (tutorialVisible, deleteVisible, addVisible, diffVisible) =>
-                    tutorialVisible || deleteVisible || addVisible || diffVisible)
+                (deleteVisible, addVisible, diffVisible) =>
+                    deleteVisible || addVisible || diffVisible)
             .DistinctUntilChanged()
             .Subscribe(modalVisible =>
                 Dispatcher.UIThread.Post(() => ApplyModalOverlayWebViewVisibility(modalVisible)))
@@ -347,12 +361,14 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (DataContext is not MainViewModel vm)
             return;
 
+        _serverBaseUrl = ResolveSessionBaseUrl(vm.Login.CurrentServerUrl, _serverBaseUrl);
         _workspaceEventClient?.Dispose();
-        var eventHttp = new HttpClient
-        {
-            BaseAddress = CreateServerScopedHttpBaseAddress(_serverBaseUrl),
-            Timeout = Timeout.InfiniteTimeSpan
-        };
+        var eventHttp = CreateWorkspaceEventHttpClient?.Invoke(_serverBaseUrl)
+            ?? new HttpClient
+            {
+                BaseAddress = CreateServerScopedHttpBaseAddress(_serverBaseUrl),
+                Timeout = Timeout.InfiniteTimeSpan
+            };
         eventHttp.DefaultRequestHeaders.Authorization = _serverHttp.DefaultRequestHeaders.Authorization;
         _workspaceEventClient = new WorkspaceEventClient(eventHttp, vm.Sidebar);
         _workspaceEventClient.Start();
@@ -677,6 +693,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     internal static Uri CreateServerScopedHttpBaseAddress(string serverBaseUrl)
         => new(serverBaseUrl);
 
+    internal static bool IsDemoConnection(FakeServerController? fakeServers, params string?[] sessionUrls)
+        => fakeServers is not null && sessionUrls.Any(fakeServers.Matches);
+
     internal static bool ShouldNavigateExistingWebView(string? lastKnownUrl, string requestedUrl)
         => lastKnownUrl is null || !string.Equals(lastKnownUrl, requestedUrl, StringComparison.Ordinal);
 
@@ -879,11 +898,21 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         Uri destination,
         int navigationVersion)
     {
-        var errorHtml = await BrowserProbe(destination);
+        var demo = IsDemoConnectionActive();
+        var demoHtml = demo
+            ? await LoadDemoApplicationHtmlAsync(workspaceId, destination.Port)
+            : null;
+        var errorHtml = demo ? null : await BrowserProbe(destination);
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             if (!CanTouchWebView(tabKey, webView)) return;
             if (_navigationVersions.GetValueOrDefault(tabKey) != navigationVersion) return;
+
+            if (demo)
+            {
+                ShowDemoApplicationPage(tabKey, workspaceId, webView, destination, demoHtml);
+                return;
+            }
 
             if (errorHtml is null)
             {
@@ -895,6 +924,66 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 NavigateWebView(webView, WriteBrowserErrorPage(workspaceId, errorHtml));
             }
         });
+    }
+
+    private bool IsDemoConnectionActive()
+        => IsDemoConnection(
+            _fakeServers,
+            _serverBaseUrl,
+            DataContext is MainViewModel viewModel ? viewModel.Login.CurrentServerUrl : null);
+
+    private async Task<string?> LoadDemoApplicationHtmlAsync(string workspaceId, int allocatedPort)
+    {
+        if (_fakeServers is null)
+            return null;
+
+        try
+        {
+            using var issued = await _serverHttp.PostAsJsonAsync(
+                "api/apps/tickets",
+                new { workspaceId, allocatedPort });
+            if (issued.IsSuccessStatusCode)
+            {
+                var ticket = await issued.Content.ReadFromJsonAsync<FakeApplicationTicketDto>(DesktopTicketJsonOptions);
+                if (!string.IsNullOrWhiteSpace(ticket?.BootstrapPath))
+                {
+                    using var page = await _serverHttp.GetAsync(ticket.BootstrapPath);
+                    if (page.IsSuccessStatusCode)
+                        return await page.Content.ReadAsStringAsync();
+                }
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidOperationException)
+        {
+            Trace.TraceWarning($"Could not load the demo application page: {ex.Message}");
+        }
+
+        return _fakeServers.ApplicationHtml(allocatedPort);
+    }
+
+    private void ShowDemoApplicationPage(
+        string tabKey,
+        string workspaceId,
+        NativeWebView webView,
+        Uri destination,
+        string? html)
+    {
+        if (_fakeServers is not null && !string.IsNullOrWhiteSpace(html))
+        {
+            NavigateWebView(webView, _fakeServers.WriteApplicationPage(workspaceId, tabKey, html));
+            _lastKnownBrowserUrls[tabKey] = destination.ToString();
+            return;
+        }
+
+        _lastKnownBrowserUrls.Remove(tabKey);
+        NavigateWebView(
+            webView,
+            WriteBrowserErrorPage(
+                workspaceId,
+                BuildBrowserErrorHtml(
+                    "Could not load page",
+                    "The demo application page is missing.",
+                    destination)));
     }
 
     private static async Task<string?> ProbeBrowserDestinationAsync(Uri destination)
@@ -984,8 +1073,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         => DataContext is MainViewModel vm && IsModalOverlayVisible(vm);
 
     private static bool IsModalOverlayVisible(MainViewModel vm)
-        => vm.Tutorial.IsVisible
-           || vm.Sidebar.DeleteConfirmation.IsVisible
+        => vm.Sidebar.DeleteConfirmation.IsVisible
            || vm.Sidebar.AddWorkspace.IsVisible
            || vm.Git.Diff.IsVisible;
 
@@ -1540,27 +1628,6 @@ code {
         => WindowState = WindowState == WindowState.Maximized
             ? WindowState.Normal
             : WindowState.Maximized;
-
-    private void OnOpenTutorialFolderClicked(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainViewModel { Tutorial.ProjectDirectory: { Length: > 0 } path }) return;
-        if (!Directory.Exists(path)) return;
-
-        var (fileName, arguments) = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? ("explorer.exe", $"\"{path}\"")
-            : RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-                ? ("open", $"\"{path}\"")
-                : ("xdg-open", $"\"{path}\"");
-
-        try
-        {
-            Process.Start(new ProcessStartInfo(fileName, arguments) { UseShellExecute = false });
-        }
-        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
-        {
-            Trace.TraceWarning(ex.Message);
-        }
-    }
 }
 
 // Thin seam over NativeWebDialog so tests can substitute a fake popup without ever

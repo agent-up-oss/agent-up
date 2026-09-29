@@ -7,11 +7,11 @@ using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Agents.ViewModels;
 using AgentUp.Desktop.Features.Capabilities.ViewModels;
 using AgentUp.Desktop.Features.Audit.ViewModels;
+using AgentUp.Desktop.Features.Authentication.DTOs;
 using AgentUp.Desktop.Features.Authentication.ViewModels;
 using AgentUp.Desktop.Features.Console.ViewModels;
 using AgentUp.Desktop.Features.Database.ViewModels;
 using AgentUp.Desktop.Features.Git.ViewModels;
-using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Metrics.ViewModels;
 using AgentUp.Desktop.Features.Ports.Controllers;
 using AgentUp.Desktop.Features.Ports.DTOs;
@@ -54,20 +54,20 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public GitPanelViewModel Git { get; }
     public AgentChatViewModel Agent { get; }
     public WorkspaceOverviewViewModel Overview { get; }
-    public FirstRunTutorialViewModel Tutorial { get; }
     public LoginViewModel Login { get; }
     public WindowChromeViewModel Chrome { get; } = new();
     public ValidationViewModel? Validation { get; }
     public CapabilityModulesViewModel? Modules { get; }
     internal IValidationReplayConnector? ValidationReplay { get; }
-    public bool IsValidationOpen => Validation is { IsCollapsed: false };
+    public bool IsValidationOpen => ShowValidation && Validation is { IsCollapsed: false };
+    public bool ShowValidation => Login.Surfaces.Validation && Validation is not null;
     public bool IsModulesCatalogOpen => Modules is { IsOpen: true };
 
     public ObservableCollection<WorkspaceShellTabItemViewModel> ShellTabs { get; } =
     [
         new(WorkspaceShellTab.Overview, "Overview"),
         new(WorkspaceShellTab.Agent, "Agent"),
-        new(WorkspaceShellTab.Commit, "Commit")
+        new(WorkspaceShellTab.Git, "Git")
     ];
 
     public WorkspaceShellTab SelectedShellTab
@@ -82,7 +82,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             }
 
             this.RaiseAndSetIfChanged(ref _selectedShellTab, value);
-            Git.IsVisible = value == WorkspaceShellTab.Commit;
+            Git.IsVisible = value == WorkspaceShellTab.Git;
             Agent.IsVisible = value == WorkspaceShellTab.Agent;
             SyncShellTabItem();
             RaiseShellVisibility();
@@ -128,7 +128,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
 
     public bool ShowOverview => SelectedShellTab == WorkspaceShellTab.Overview;
     public bool ShowAgent => SelectedShellTab == WorkspaceShellTab.Agent;
-    public bool ShowCommit => SelectedShellTab == WorkspaceShellTab.Commit;
+    public bool ShowGit => SelectedShellTab == WorkspaceShellTab.Git;
     public bool ShowApplication => SelectedShellTab == WorkspaceShellTab.Application;
     public bool ShowApplicationChrome => ShowApplication && Applications.SelectedApplication is not null;
     public bool ShowNoApplications => ShowApplication && Applications.SelectedApplication is null;
@@ -170,7 +170,6 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         GitPanelViewModel git,
         AgentChatViewModel agent,
         WorkspaceOverviewViewModel overview,
-        FirstRunTutorialViewModel tutorial,
         LoginViewModel login,
         PortsController ports,
         ValidationViewModel? validation = null,
@@ -186,7 +185,6 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         Git = git;
         Agent = agent;
         Overview = overview;
-        Tutorial = tutorial;
         Login = login;
         _ports = ports;
         Validation = validation;
@@ -221,7 +219,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         SubscribeSubTabSelection();
         SubscribeMetricsRefresh();
         SubscribeOverviewRefresh();
-        SubscribeTutorialSteps();
+        SubscribeClientSurfaces();
         SubscribeSelectedPortProbe(selectedPortTab);
 
         BrowserTabNavigation = CreateBrowserTabNavigation();
@@ -400,11 +398,15 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
                     _ = Database.LoadAsync(dbWorkspaceId, dbApplication);
             });
 
-    private void SubscribeTutorialSteps()
-        => Tutorial.WhenAnyValue(t => t.CurrentStep)
-            .Skip(1)
-            .Where(_ => Tutorial.IsVisible)
-            .Subscribe(_step => _ = ReloadWorkspaceBehindTutorialAsync());
+    private void SubscribeClientSurfaces()
+        => Login.WhenAnyValue(login => login.Surfaces)
+            .Subscribe(_ =>
+            {
+                this.RaisePropertyChanged(nameof(ShowValidation));
+                this.RaisePropertyChanged(nameof(IsValidationOpen));
+                RebuildSubTabs(Applications.SelectedApplication);
+                LoadValidation();
+            });
 
     private static void SubscribeSelectedPortProbe(IObservable<PortSubTabViewModel?> selectedPortTab)
         => selectedPortTab
@@ -478,12 +480,6 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
                    || address.StartsWith("https://", StringComparison.Ordinal))
             ? address
             : pt.Url;
-    }
-
-    private async Task ReloadWorkspaceBehindTutorialAsync()
-    {
-        await Sidebar.LoadAsync();
-        _browserCommands.OnNext(BrowserCommand.Reload);
     }
 
     private void NavigateAddress()
@@ -660,11 +656,13 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             .ToList();
         if (app.IsDesktop)
             SubTabs.Add(new DesktopSubTabViewModel());
-        if (app.Database)
+        if (app.Database && Login.Surfaces.Database)
             SubTabs.Add(new DatabaseSubTabViewModel());
-        foreach (var tab in _ports.CreateTabs(ports))
+        foreach (var tab in _ports.CreateTabs(ports)
+                     .Where(tab => tab is not MetricsSubTabViewModel || Login.Surfaces.Metrics))
             SubTabs.Add(tab);
-        SubTabs.Add(new AuditSubTabViewModel());
+        if (Login.Surfaces.Diagnostics)
+            SubTabs.Add(new AuditSubTabViewModel());
 
         SelectedSubTab = SubTabs.OfType<DesktopSubTabViewModel>().FirstOrDefault()
             ?? SubTabs.OfType<DatabaseSubTabViewModel>().FirstOrDefault()
@@ -672,7 +670,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             ?? (SubTabViewModel)SubTabs[0];
 
         foreach (var portTab in SubTabs.OfType<PortSubTabViewModel>())
-            _ = portTab.ProbeAsync();
+            ProbeOrAssumeDemoPort(portTab, app.State);
 
         var wsApp = Sidebar.SelectedWorkspace?.Applications
             .FirstOrDefault(a => string.Equals(a.Name, app.Name, StringComparison.Ordinal));
@@ -680,9 +678,29 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             ApplyPortHealthToSubTabs(wsApp);
     }
 
+    private void ProbeOrAssumeDemoPort(PortSubTabViewModel portTab, string applicationState)
+    {
+        if (!Login.Surfaces.Equals(ClientSurfaceAvailability.Demo))
+        {
+            _ = portTab.ProbeAsync();
+            return;
+        }
+
+        portTab.SetLedState(applicationState switch
+        {
+            "Running" => PortLedState.Healthy,
+            "Starting" => PortLedState.Checking,
+            "Failed" => PortLedState.Unhealthy,
+            _ => PortLedState.Probing
+        });
+    }
+
     private void ApplyPortHealthToSubTabs(WorkspaceApplicationViewModel app)
     {
-        var byPort = app.PortHealth?.ToDictionary(p => p.AllocatedPort, p => p.HealthState) ?? [];
+        if (app.PortHealth is not { Count: > 0 })
+            return;
+
+        var byPort = app.PortHealth.ToDictionary(p => p.AllocatedPort, p => p.HealthState);
         foreach (var tab in SubTabs.OfType<PortSubTabViewModel>())
         {
             var ledState = byPort.TryGetValue(tab.AllocatedPort, out var hs)
@@ -703,7 +721,6 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
 
     public async Task InitializeAsync()
     {
-        await Tutorial.InitializeAsync();
         await Sidebar.LoadAsync();
         if (Sidebar.RequiresSignIn)
             Login.ShowExpired();
@@ -742,6 +759,12 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     {
         if (_validationController is null || Validation is null)
             return;
+
+        if (!Login.Surfaces.Validation)
+        {
+            Validation.Clear();
+            return;
+        }
 
         // Selections change faster than the server answers. Without superseding the previous
         // load, a slow earlier response can land last and repaint the panel with another
@@ -797,11 +820,12 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     {
         this.RaisePropertyChanged(nameof(ShowOverview));
         this.RaisePropertyChanged(nameof(ShowAgent));
-        this.RaisePropertyChanged(nameof(ShowCommit));
+        this.RaisePropertyChanged(nameof(ShowGit));
         this.RaisePropertyChanged(nameof(ShowApplication));
         this.RaisePropertyChanged(nameof(ShowApplicationChrome));
         this.RaisePropertyChanged(nameof(ShowNoApplications));
         this.RaisePropertyChanged(nameof(IsValidationOpen));
+        this.RaisePropertyChanged(nameof(ShowValidation));
         this.RaisePropertyChanged(nameof(SelectedApplicationTab));
         this.RaisePropertyChanged(nameof(ShowConsole));
         this.RaisePropertyChanged(nameof(ShowMetrics));

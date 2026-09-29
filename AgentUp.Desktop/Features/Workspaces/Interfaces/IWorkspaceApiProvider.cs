@@ -16,7 +16,5 @@ public interface IWorkspaceApiProvider
 
     Task DeleteAsync(string workspaceId, CancellationToken cancellationToken = default);
 
-    Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default);
-
     Task<WorkspaceOverviewDto?> GetOverviewAsync(string workspaceId, CancellationToken cancellationToken = default);
 }

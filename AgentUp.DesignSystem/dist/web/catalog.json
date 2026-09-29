@@ -1326,7 +1326,7 @@
             "au-doc-surface",
             "au-doc-surface__body"
           ],
-          "html": "<div class=\"au-doc-surfaces-wrap\">\n        <p class=\"au-field-label\">Where it differs</p>\n        <div class=\"au-doc-surfaces\">\n          <div class=\"au-doc-surface\"><p class=\"au-field-label\">Desktop</p><div class=\"au-doc-surface__body\">Open Review from the Commit tab.</div></div>\n          <div class=\"au-doc-surface\"><p class=\"au-field-label\">Mobile</p><div class=\"au-doc-surface__body\">Open Review from the Git tab.</div></div>\n        </div>\n      </div>"
+          "html": "<div class=\"au-doc-surfaces-wrap\">\n        <p class=\"au-field-label\">Where it differs</p>\n        <div class=\"au-doc-surfaces\">\n          <div class=\"au-doc-surface\"><p class=\"au-field-label\">Desktop</p><div class=\"au-doc-surface__body\">Open Review from the Git tab.</div></div>\n          <div class=\"au-doc-surface\"><p class=\"au-field-label\">Mobile</p><div class=\"au-doc-surface__body\">Open Review from the Git tab.</div></div>\n        </div>\n      </div>"
         },
         {
           "id": "doc-steps",

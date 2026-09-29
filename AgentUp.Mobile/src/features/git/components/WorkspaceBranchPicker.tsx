@@ -14,7 +14,8 @@ import {
   gitPushFailureOffersForce,
   type GitConfirmCopy,
 } from '../providers/GitBranchPickerProvider';
-import { checkoutRemote, fetchRemote, getHeadState, pullRemote, pushRemote, switchBranch } from '../providers/GitApiProvider';
+import { gitDiscardConfirmCopy } from '../providers/GitChangeTreeProvider';
+import { checkoutRemote, discardFiles, fetchRemote, getHeadState, pullRemote, pushRemote, switchBranch } from '../providers/GitApiProvider';
 import { GitConfirmDialog } from './GitConfirmDialog';
 
 type MenuLayout = { top: number; left: number; width: number };
@@ -25,9 +26,11 @@ type WorkspaceBranchPickerProps = {
   workspaceId: string;
   onHistory?: () => void;
   onReload?: () => void;
+  reloadNonce?: number;
+  selectedFiles?: string[];
 };
 
-export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload }: WorkspaceBranchPickerProps) {
+export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload, reloadNonce = 0, selectedFiles = [] }: WorkspaceBranchPickerProps) {
   const { expireActiveCredential } = useServers();
   const { server, refresh } = useWorkspaces();
   const [head, setHead] = useState<GitHeadState | null>(null);
@@ -41,6 +44,7 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload }: Work
   const [menuLayout, setMenuLayout] = useState<MenuLayout | null>(null);
   const request = useRef(0);
   const wrapRef = useRef<View>(null);
+  const seenReloadNonce = useRef(reloadNonce);
 
   const closeMenu = useCallback(() => {
     setOpen(false);
@@ -74,6 +78,12 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload }: Work
     setConfirm(null);
     void load();
   }, [load, closeMenu]);
+
+  useEffect(() => {
+    if (reloadNonce === seenReloadNonce.current) return;
+    seenReloadNonce.current = reloadNonce;
+    void load();
+  }, [reloadNonce, load]);
 
   const branches = head?.localBranches ?? [];
   const remotes = head?.remoteBranches ?? [];
@@ -169,6 +179,25 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload }: Work
       await afterSuccess();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : `The ${label} failed.`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runDiscard = async (files: string[]) => {
+    if (!server || busy || files.length === 0) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await discardFiles(server, workspaceId, files);
+      if (!result.succeeded) {
+        setError(result.error ?? 'The discard failed.');
+        return;
+      }
+      await load();
+      onReload?.();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'The discard failed.');
     } finally {
       setBusy(false);
     }
@@ -310,6 +339,18 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload }: Work
           style={styles.actionPrimary}>
           <Text style={styles.actionPrimaryText}>Push</Text>
         </Pressable>
+        {selectedFiles.length > 0 &&
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Discard"
+            disabled={busy}
+            onPress={() => confirmAction(
+              gitDiscardConfirmCopy(selectedFiles),
+              () => void runDiscard(selectedFiles),
+            )}
+            style={[styles.discard, busy && styles.disabled]}>
+            <Text style={styles.discardText}>Discard</Text>
+          </Pressable>}
         {onHistory &&
           <Pressable
             testID="open-git-history"
@@ -392,6 +433,8 @@ const styles = StyleSheet.create({
   actionText: auText('buttonSecondary', 'buttonCompact'),
   actionPrimary: { ...auBox('button', 'buttonCompact'), minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
   actionPrimaryText: auText('button', 'buttonCompact'),
+  discard: { ...auBox('button', 'buttonDanger', 'buttonCompact'), minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  discardText: auText('button', 'buttonCompact'),
   menu: { ...auBox('card'), overflow: 'hidden', paddingHorizontal: 0, paddingVertical: 8, gap: 8, zIndex: 2, elevation: 8 },
   search: { marginHorizontal: 8, ...auBox('input'), ...auText('input') },
   list: { flexGrow: 0 },

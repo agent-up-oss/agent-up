@@ -969,11 +969,11 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateActiveBrush}"/>
   </Style>
   <Style Selector="Button.au-nav-tab">
-    <Setter Property="MinHeight" Value="44"/>
-    <Setter Property="Padding" Value="8,4"/>
+    <Setter Property="MinHeight" Value="36"/>
+    <Setter Property="Padding" Value="8,2"/>
   </Style>
   <Style Selector="Button.au-nav-tab /template/ ContentPresenter">
-    <Setter Property="Padding" Value="8,4"/>
+    <Setter Property="Padding" Value="8,2"/>
   </Style>
   <Style Selector="Border.au-session-row">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeight}"/>
@@ -1815,13 +1815,13 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
   </Style>
   <Style Selector="Border.au-mobile-tab-bar">
-    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="Padding" Value="12,4"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
     <Setter Property="BorderThickness" Value="0,1,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-mobile-tab-bar">
-    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="Padding" Value="12,4"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
   </Style>

@@ -541,9 +541,9 @@ const agentUpTheme = Object.freeze({
       fontWeight: '600',
     }),
     navTab: Object.freeze({
-      minHeight: 44,
+      minHeight: 36,
       paddingHorizontal: 8,
-      paddingVertical: 4,
+      paddingVertical: 2,
     }),
     sessionRow: Object.freeze({
       minHeight: 44,
@@ -892,7 +892,7 @@ const agentUpTheme = Object.freeze({
     }),
     mobileTabBar: Object.freeze({
       paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingVertical: 4,
       color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
       borderTopWidth: 1,

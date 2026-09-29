@@ -1,6 +1,8 @@
 import type { ConfiguredServer } from '../models/ConfiguredServer';
 import { normalizeServerUrl } from './ServerUrlProvider';
 import type { ServerSelection } from './ServerStorageProvider';
+import { fakeServerEntry } from '@/features/fake-server/providers/FakeServerCatalogProvider';
+import { isFakeServerUrl } from '@/features/fake-server/models/FakeServerIdentity';
 
 export const recommendedServerId = 'recommended';
 export const defaultCloudDisplayName = 'Agent-Up Cloud';
@@ -43,7 +45,7 @@ export function cloudServer(selection: ServerSelection, recommended: Recommended
 
 export function listSavedServers(selection: ServerSelection, recommended: RecommendedServer | null): ConfiguredServer[] {
   return selection.servers
-    .filter(server => server.url !== recommended?.url)
+    .filter(server => server.url !== recommended?.url && !isFakeServerUrl(server.url))
     .map(server => ({
       ...server,
       displayName: server.displayName ?? server.url,
@@ -53,7 +55,8 @@ export function listSavedServers(selection: ServerSelection, recommended: Recomm
 }
 
 export function listServers(selection: ServerSelection, recommended: RecommendedServer | null): ConfiguredServer[] {
+  const fake = fakeServerEntry(selection);
   const cloud = cloudServer(selection, recommended);
   const saved = listSavedServers(selection, recommended);
-  return cloud ? [cloud, ...saved] : saved;
+  return cloud ? [fake, cloud, ...saved] : [fake, ...saved];
 }

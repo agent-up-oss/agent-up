@@ -14,7 +14,6 @@ Desktop Browser remain deliberate, pre-existing slice exemptions; no exemption w
 | 75.2% | `AgentUp.Server/Features/Validation` | 1 | Write tests: MCP save and replay guidance contracts. |
 | 76.7% | `AgentUp.Capabilities.Common/Features/CapabilityDistribution` | 1 | Write tests: cache planning and version isolation. |
 | 86.1% | `AgentUp.Capabilities.Common/Features/CapabilityDiscovery` | 1 | Write tests: command result data and value semantics. |
-| 82.8% | `AgentUp.Desktop/Features/FirstRun` | 2 | Write tests: controller initialization and result-state behavior. |
 | 80.6% | `AgentUp.Desktop/Features/Workspaces` | 1 | Write tests: clone request mapping and lifecycle delegation. |
 | 88.0% | `AgentUp.Desktop/Features/Audit` | 1 | Write tests: unattached and repeated disposal behavior. |
 | 88.5% | `AgentUp.Server/Features/Applications` | 1 | Write tests: unknown health queries and health lifecycle behavior. |

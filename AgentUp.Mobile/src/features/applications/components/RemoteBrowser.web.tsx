@@ -8,7 +8,8 @@ export function RemoteBrowser({ source }: { source: ApplicationProxySource }) {
     <View style={styles.container}>
       <iframe
         allow="clipboard-read; clipboard-write"
-        src={`${source.uri}#ticket=${encodeURIComponent(source.ticket)}`}
+        src={source.html ? undefined : `${source.uri}#ticket=${encodeURIComponent(source.ticket)}`}
+        srcDoc={source.html}
         style={{ border: 0, width: '100%', height: '100%' }}
         title="Application"
       />

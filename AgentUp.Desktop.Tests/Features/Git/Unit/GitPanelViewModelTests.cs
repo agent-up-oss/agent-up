@@ -415,6 +415,10 @@ public sealed class GitPanelViewModelTests
         Assert.That(panel.StatusMessage, Is.EqualTo("Pulled."));
 
         await panel.PushCommand.Execute().FirstAsync();
+        Assert.That(panel.IsConfirmingPush, Is.True);
+        Assert.That(client.PushRequest, Is.Null);
+
+        await panel.ConfirmCommand.Execute().FirstAsync();
         Assert.That(client.PushRequest!.ForceWithLease, Is.False);
         Assert.That(panel.StatusMessage, Is.EqualTo("Pushed."));
     }
@@ -562,6 +566,23 @@ public sealed class GitPanelViewModelTests
     }
 
     [Test]
+    public async Task OpenHistoryCommand_togglesTheHistoryPage()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
+        await panel.LoadAsync("ws-1");
+
+        await panel.OpenHistoryCommand.Execute().FirstAsync();
+        Assert.That(panel.IsHistoryOpen, Is.True);
+        await panel.CloseHistoryCommand.Execute().FirstAsync();
+        Assert.That(panel.IsHistoryOpen, Is.False);
+
+        panel.IsVisible = true;
+        await panel.OpenHistoryCommand.Execute().FirstAsync();
+        panel.IsVisible = false;
+        Assert.That(panel.IsHistoryOpen, Is.False);
+    }
+
+    [Test]
     public async Task CheckoutLogRefCommand_switchesALocalBranchRef()
     {
         var client = new FakeGitApiProvider
@@ -578,18 +599,61 @@ public sealed class GitPanelViewModelTests
     }
 
     [Test]
-    public async Task ConfirmForcePushCommand_sendsForceWithLease()
+    public async Task ConfirmForcePushCommand_sendsForceWithLeaseAfterARejectedPush()
     {
-        var client = new FakeGitApiProvider { Tree = SampleTree() };
+        var client = new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            SyncResult = new GitSyncResultDto(true, false, "The remote rejected a non-fast-forward update.", null)
+        };
         var panel = CreatePanel(client);
         await panel.LoadAsync("ws-1");
 
-        await panel.RequestForcePushCommand.Execute().FirstAsync();
-        Assert.That(panel.IsConfirmingForcePush, Is.True);
-        await panel.ConfirmForcePushCommand.Execute().FirstAsync();
+        await panel.PushCommand.Execute().FirstAsync();
+        await panel.ConfirmCommand.Execute().FirstAsync();
 
-        Assert.That(client.PushRequest!.ForceWithLease, Is.True);
+        Assert.That(panel.IsConfirmingForcePush, Is.True);
+        Assert.That(panel.ConfirmButtonText, Does.Contain("Force push"));
+        Assert.That(client.PushRequest!.ForceWithLease, Is.False);
+
+        client.SyncResult = new GitSyncResultDto(true, true, null, null);
+        await panel.ConfirmCommand.Execute().FirstAsync();
+
+        Assert.That(client.PushRequest.ForceWithLease, Is.True);
         Assert.That(panel.IsConfirmingForcePush, Is.False);
+        Assert.That(panel.StatusMessage, Is.EqualTo("Force-pushed with lease."));
+    }
+
+    [Test]
+    public async Task PushCommand_doesNotOfferForceWhenTheFailureIsNotARejectedUpdate()
+    {
+        var client = new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            SyncResult = new GitSyncResultDto(true, false, "Git push could not authenticate to the remote.", null)
+        };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+
+        await panel.PushCommand.Execute().FirstAsync();
+        await panel.ConfirmCommand.Execute().FirstAsync();
+
+        Assert.That(panel.IsConfirmingForcePush, Is.False);
+        Assert.That(panel.ErrorMessage, Is.EqualTo("Git push could not authenticate to the remote."));
+    }
+
+    [Test]
+    public async Task HasSelectedFiles_isTrueOnlyAfterAFileIsChecked()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
+        await panel.LoadAsync("ws-1");
+
+        Assert.That(panel.HasSelectedFiles, Is.False);
+
+        panel.Nodes[5].IsSelected = true;
+
+        Assert.That(panel.HasSelectedFiles, Is.True);
+        Assert.That(panel.SelectedFileCount, Is.EqualTo(1));
     }
 
     [Test]

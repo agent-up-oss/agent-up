@@ -9,7 +9,7 @@ title: Git
 <DocWhat>
 Git is the human working-tree review surface. Every workspace has a view of uncommitted changes, per-file diffs, a chosen-path commit, branch fetch/pull/push, and a bounded history.
 
-Desktop chrome is the **Commit** tab, heading **Git changes**. Mobile chrome is the **Git** tab, with inner **Review** and **History** pages.
+Desktop chrome is the **Git** tab, heading **Git changes**. Mobile chrome is the **Git** tab, with inner **Review** and **History** pages.
 </DocWhat>
 
 <DocCallout>
@@ -22,10 +22,10 @@ Agents still enqueue through the commit queue. This slice does not replace `enqu
 <DocBeat>Use History or remotes when you need them</DocBeat>
 </DocSpine>
 
-<DocContract label="Chrome">Desktop Commit · Mobile Git</DocContract>
+<DocContract label="Chrome">Desktop Git · Mobile Git</DocContract>
 
 <DocSurfaces>
-<DocSurface desktop>Open it from the Commit tab of the selected workspace. Branch switching lives on the Overview tab.</DocSurface>
+<DocSurface desktop>Open it from the Git tab of the selected workspace. Branch switching, fetch, pull, and push live at the top of that tab. History is an inner page from the History button.</DocSurface>
 <DocSurface mobile>Open it from the Git tab. The overview lists uncommitted changes; a filename opens the file viewer. History sits next to Push. Inner Review and History pages return through the nav-bar back button.</DocSurface>
 </DocSurfaces>
 

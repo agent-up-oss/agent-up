@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Text.Json;
 using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Console.ViewModels;
-using AgentUp.Desktop.Features.FirstRun.ViewModels;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using ReactiveUI;
@@ -55,7 +54,6 @@ public class ViewModelAuditor : IDisposable
         SubscribeSidebar(vm.Sidebar);
         SubscribeApplications(vm.Applications);
         SubscribeConsole(vm.Console);
-        SubscribeTutorial(vm.Tutorial);
         SubscribeSubTabs(vm);
 
         _ = SendSnapshotAsync();
@@ -247,77 +245,6 @@ public class ViewModelAuditor : IDisposable
             .DisposeWith(_vmSubs);
     }
 
-    // ─── FirstRunTutorialViewModel ────────────────────────────────────────────
-
-    private void SubscribeTutorial(FirstRunTutorialViewModel tutorial)
-    {
-        tutorial.WhenAnyValue(x => x.IsVisible)
-            .Skip(1)
-            .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(v => _ = RecordFieldAsync(null, "tutorial.isVisible", v.ToString()))
-            .DisposeWith(_vmSubs);
-
-        tutorial.WhenAnyValue(x => x.CurrentStep)
-            .Skip(1)
-            .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(v => _ = RecordFieldAsync(null, "tutorial.currentStep", v.ToString()))
-            .DisposeWith(_vmSubs);
-
-        tutorial.WhenAnyValue(x => x.StatusMessage)
-            .Skip(1)
-            .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(v => _ = RecordFieldAsync(null, "tutorial.statusMessage", v ?? string.Empty))
-            .DisposeWith(_vmSubs);
-
-        tutorial.WhenAnyValue(x => x.DockerCheckPassed)
-            .Skip(1)
-            .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(v => _ = RecordFieldAsync(null, "tutorial.dockerCheckPassed", v.ToString()))
-            .DisposeWith(_vmSubs);
-
-        tutorial.WhenAnyValue(x => x.NodeCheckPassed)
-            .Skip(1)
-            .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(v => _ = RecordFieldAsync(null, "tutorial.nodeCheckPassed", v.ToString()))
-            .DisposeWith(_vmSubs);
-
-        tutorial.WhenAnyValue(x => x.ProjectFilesCheckPassed)
-            .Skip(1)
-            .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(v => _ = RecordFieldAsync(null, "tutorial.projectFilesCheckPassed", v.ToString()))
-            .DisposeWith(_vmSubs);
-
-        tutorial.WhenAnyValue(x => x.AgentUpJsonCheckPassed)
-            .Skip(1)
-            .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(v => _ = RecordFieldAsync(null, "tutorial.agentUpJsonCheckPassed", v.ToString()))
-            .DisposeWith(_vmSubs);
-
-        tutorial.WhenAnyValue(x => x.WorkspaceCheckPassed)
-            .Skip(1)
-            .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(v => _ = RecordFieldAsync(null, "tutorial.workspaceCheckPassed", v.ToString()))
-            .DisposeWith(_vmSubs);
-
-        tutorial.WhenAnyValue(x => x.DuplicateCheckPassed)
-            .Skip(1)
-            .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(v => _ = RecordFieldAsync(null, "tutorial.duplicateCheckPassed", v.ToString()))
-            .DisposeWith(_vmSubs);
-
-        tutorial.WhenAnyValue(x => x.ProjectDirectory)
-            .Skip(1)
-            .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(v => _ = RecordFieldAsync(null, "tutorial.projectDirectory", v ?? string.Empty))
-            .DisposeWith(_vmSubs);
-
-        tutorial.WhenAnyValue(x => x.CanContinue)
-            .Skip(1)
-            .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(v => _ = RecordFieldAsync(null, "tutorial.canContinue", v.ToString()))
-            .DisposeWith(_vmSubs);
-    }
-
     // ─── SubTabs (PortSubTabViewModel + ConsoleSubTabViewModel) ──────────────
 
     private void SubscribeSubTabs(MainViewModel vm)
@@ -494,26 +421,6 @@ public class ViewModelAuditor : IDisposable
             f[$"subTabs.port[{i}].url"] = tab.Url;
             f[$"subTabs.port[{i}].variable"] = tab.Variable ?? string.Empty;
         }
-
-        // ── FirstRunTutorialViewModel ──
-        var tut = vm.Tutorial;
-        f["tutorial.isVisible"] = tut.IsVisible.ToString();
-        f["tutorial.currentStep"] = tut.CurrentStep.ToString();
-        f["tutorial.canContinue"] = tut.CanContinue.ToString();
-        f["tutorial.canGoBack"] = tut.CanGoBack.ToString();
-        f["tutorial.statusMessage"] = tut.StatusMessage ?? string.Empty;
-        f["tutorial.projectDirectory"] = tut.ProjectDirectory ?? string.Empty;
-        f["tutorial.dockerCheckPassed"] = tut.DockerCheckPassed.ToString();
-        f["tutorial.environmentSelected"] = tut.EnvironmentSelected.ToString();
-        f["tutorial.nodeCheckPassed"] = tut.NodeCheckPassed.ToString();
-        f["tutorial.projectFilesCreated"] = tut.ProjectFilesCreated.ToString();
-        f["tutorial.projectFilesCheckPassed"] = tut.ProjectFilesCheckPassed.ToString();
-        f["tutorial.agentUpJsonActionTaken"] = tut.AgentUpJsonActionTaken.ToString();
-        f["tutorial.agentUpJsonCheckPassed"] = tut.AgentUpJsonCheckPassed.ToString();
-        f["tutorial.startCommandSucceeded"] = tut.StartCommandSucceeded.ToString();
-        f["tutorial.workspaceCheckPassed"] = tut.WorkspaceCheckPassed.ToString();
-        f["tutorial.duplicateActionTaken"] = tut.DuplicateActionTaken.ToString();
-        f["tutorial.duplicateCheckPassed"] = tut.DuplicateCheckPassed.ToString();
 
         return f;
     }

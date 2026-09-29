@@ -4,6 +4,6 @@ public enum WorkspaceShellTab
 {
     Overview,
     Agent,
-    Commit,
+    Git,
     Application
 }

@@ -11,5 +11,5 @@ internal static class AuthenticationTestController
         InMemoryServerConnectionStore? store = null)
         => new(
             new AuthenticationService(new AuthenticationApiClient(http.Client)),
-            new ServerConnectionService(store ?? new InMemoryServerConnectionStore(), http.Client));
+            new ServerConnectionService(store ?? new InMemoryServerConnectionStore(), http.Client, FakeServerTestComposition.Controller()));
 }

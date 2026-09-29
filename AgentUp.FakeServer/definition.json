@@ -1,0 +1,410 @@
+{
+  "id": "fake",
+  "url": "http://127.0.0.1:9",
+  "displayName": "Demo",
+  "connection": {
+    "apiVersion": "1",
+    "connectionId": "fake",
+    "kind": "selfHosted",
+    "displayName": "Demo",
+    "authentication": {
+      "mode": "disabled",
+      "prompt": "",
+      "identifierRequired": false
+    },
+    "workspacePresentation": "serverScoped"
+  },
+  "authentication": {
+    "authenticationRequired": false
+  },
+  "entitlements": {
+    "apiVersion": "1",
+    "connectionId": "fake",
+    "subject": "demo",
+    "source": "selfHosted",
+    "edition": "community",
+    "displayName": "Demo",
+    "billing": "free",
+    "revision": "demo",
+    "expiresAt": null,
+    "features": {
+      "server.read": {
+        "available": true
+      },
+      "workspace.read": {
+        "available": true
+      },
+      "workspace.create": {
+        "available": true
+      },
+      "workspace.start": {
+        "available": true
+      },
+      "workspace.stop": {
+        "available": true
+      },
+      "workspace.delete": {
+        "available": true
+      },
+      "application.read": {
+        "available": true
+      },
+      "application.operate": {
+        "available": true
+      },
+      "agent.read": {
+        "available": true
+      },
+      "agent.prompt": {
+        "available": true
+      },
+      "agent.permission.respond": {
+        "available": true
+      },
+      "git.read": {
+        "available": true
+      },
+      "git.write": {
+        "available": true
+      },
+      "diagnostics.read": {
+        "available": true
+      },
+      "browser.control": {
+        "available": true
+      }
+    },
+    "limits": {}
+  },
+  "workspaces": [
+    {
+      "id": "harbor-shop",
+      "displayName": "Harbor Shop",
+      "repositoryPath": "/demo/harbor-shop",
+      "worktreePath": "/demo/harbor-shop",
+      "branch": "main",
+      "commit": "a1b2c3d",
+      "state": "Running",
+      "healthState": "Healthy",
+      "lastActivityAtUtc": "2026-09-22T08:00:00Z",
+      "applications": [
+        {
+          "name": "Storefront",
+          "command": "npm run dev",
+          "path": "apps/storefront",
+          "state": "Running",
+          "kind": "Process",
+          "database": false,
+          "page": "storefront",
+          "allocatedPorts": [
+            {
+              "variable": "WEB_PORT",
+              "defaultPort": 3000,
+              "allocatedPort": 9100,
+              "protocol": "http"
+            }
+          ]
+        },
+        {
+          "name": "Orders API",
+          "command": "npm run start",
+          "path": "apps/api",
+          "state": "Running",
+          "kind": "Process",
+          "database": false,
+          "page": "orders-api",
+          "allocatedPorts": [
+            {
+              "variable": "API_PORT",
+              "defaultPort": 4000,
+              "allocatedPort": 9101,
+              "protocol": "http"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "overview": {
+    "harbor-shop": {
+      "cpuPercent": 4.2,
+      "memoryBytes": 268435456,
+      "storageBytes": 52428800,
+      "processCount": 2
+    }
+  },
+  "git": {
+    "harbor-shop": {
+      "changes": {
+        "workspaceId": "harbor-shop",
+        "branch": "main",
+        "fileCount": 2,
+        "commit": "a1b2c3d",
+        "ahead": 0,
+        "behind": 0,
+        "localBranches": [
+          "main"
+        ],
+        "remoteBranches": [
+          {
+            "remote": "origin",
+            "name": "main"
+          }
+        ],
+        "upstream": "origin/main",
+        "root": {
+          "name": "",
+          "path": "",
+          "directories": [
+            {
+              "name": "apps",
+              "path": "apps",
+              "directories": [
+                {
+                  "name": "storefront",
+                  "path": "apps/storefront",
+                  "directories": [],
+                  "files": [
+                    {
+                      "name": "ProductGrid.tsx",
+                      "path": "apps/storefront/ProductGrid.tsx",
+                      "status": "Modified"
+                    }
+                  ]
+                },
+                {
+                  "name": "api",
+                  "path": "apps/api",
+                  "directories": [],
+                  "files": [
+                    {
+                      "name": "orders.ts",
+                      "path": "apps/api/orders.ts",
+                      "status": "Modified"
+                    }
+                  ]
+                }
+              ],
+              "files": []
+            }
+          ],
+          "files": []
+        }
+      },
+      "diffs": {
+        "apps/storefront/ProductGrid.tsx": {
+          "path": "apps/storefront/ProductGrid.tsx",
+          "status": "Modified",
+          "isBinary": false,
+          "diff": "--- a/apps/storefront/ProductGrid.tsx\n+++ b/apps/storefront/ProductGrid.tsx\n@@ -1,3 +1,4 @@\n+export const featured = ['Harbor Mug', 'Canvas Tote', 'Chart Lamp'];\n export function ProductGrid() {\n   return <section>Featured goods</section>;\n }\n"
+        },
+        "apps/api/orders.ts": {
+          "path": "apps/api/orders.ts",
+          "status": "Modified",
+          "isBinary": false,
+          "diff": "--- a/apps/api/orders.ts\n+++ b/apps/api/orders.ts\n@@ -1,3 +1,4 @@\n+export const openOrders = 12;\n export function listOrders() {\n   return [];\n }\n"
+        }
+      },
+      "log": {
+        "commits": [
+          {
+            "id": "a1b2c3d4e5f6",
+            "shortId": "a1b2c3d",
+            "parents": [],
+            "subject": "feat(storefront): featured product grid",
+            "author": "Demo",
+            "timestamp": "2026-09-22T07:30:00Z",
+            "refs": [
+              "HEAD",
+              "main"
+            ]
+          }
+        ]
+      },
+      "queue": {
+        "entries": [],
+        "unassignedFiles": [
+          "apps/storefront/ProductGrid.tsx",
+          "apps/api/orders.ts"
+        ],
+        "queueWorktreePath": null,
+        "baseCommit": "a1b2c3d4e5f6",
+        "tipCommit": "a1b2c3d4e5f6",
+        "generation": 0
+      }
+    }
+  },
+  "console": {
+    "harbor-shop/Storefront": [
+      "[install] npm install",
+      "Storefront listening on WEB_PORT"
+    ],
+    "harbor-shop/Orders API": [
+      "[install] npm install",
+      "Orders API listening on API_PORT"
+    ]
+  },
+  "agents": {
+    "harbor-shop": {
+      "session": {
+        "workspaceId": "harbor-shop",
+        "agent": "Codex",
+        "state": "ready",
+        "sessionId": "demo-agent",
+        "error": null,
+        "agents": [
+          {
+            "agent": "Codex",
+            "available": true,
+            "displayName": "Codex"
+          },
+          {
+            "agent": "Cursor",
+            "available": true,
+            "displayName": "Cursor"
+          },
+          {
+            "agent": "Claude",
+            "available": true,
+            "displayName": "Claude"
+          }
+        ]
+      },
+      "scripts": [
+        {
+          "match": "*",
+          "events": [
+            {
+              "delayMs": 0,
+              "type": "state",
+              "payload": {
+                "workspaceId": "harbor-shop",
+                "agent": "Codex",
+                "state": "running",
+                "sessionId": "demo-agent",
+                "error": null,
+                "agents": [
+                  {
+                    "agent": "Codex",
+                    "available": true,
+                    "displayName": "Codex"
+                  },
+                  {
+                    "agent": "Cursor",
+                    "available": true,
+                    "displayName": "Cursor"
+                  },
+                  {
+                    "agent": "Claude",
+                    "available": true,
+                    "displayName": "Claude"
+                  }
+                ]
+              }
+            },
+            {
+              "delayMs": 0,
+              "type": "session_update",
+              "payload": {
+                "sessionUpdate": "agent_message_chunk",
+                "content": {
+                  "type": "text",
+                  "text": "Harbor Shop is running locally. The storefront is showing three featured products, and the Orders API reports twelve open orders."
+                }
+              }
+            },
+            {
+              "delayMs": 0,
+              "type": "state",
+              "payload": {
+                "workspaceId": "harbor-shop",
+                "agent": "Codex",
+                "state": "ready",
+                "sessionId": "demo-agent",
+                "error": null,
+                "agents": [
+                  {
+                    "agent": "Codex",
+                    "available": true,
+                    "displayName": "Codex"
+                  },
+                  {
+                    "agent": "Cursor",
+                    "available": true,
+                    "displayName": "Cursor"
+                  },
+                  {
+                    "agent": "Claude",
+                    "available": true,
+                    "displayName": "Claude"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "pages": {
+    "storefront": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Harbor Shop</title><style>html,body{margin:0;min-height:100%;background:#111;color:#f4f1ea;font-family:Inter,system-ui,sans-serif}main{max-width:720px;margin:0 auto;padding:32px 24px 64px}p,label{color:#c8c2b4}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin:24px 0}.card,.panel{background:#1b1b1b;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px}.price,.total{color:#3ddc84}button{background:#3ddc84;color:#102114;border:0;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer}button.ghost{background:transparent;color:#f4f1ea;border:1px solid rgba(255,255,255,.14)}.row{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:8px 0}.orders{display:grid;gap:12px;margin-top:16px}</style></head><body><main><p>STOREFRONT</p><h1>Harbor Shop</h1><p>Featured goods from the harbor catalog.</p><div id=\"products\" class=\"grid\"></div><section class=\"panel\"><h2>Cart</h2><div id=\"cart\"></div><div class=\"row\"><strong>Total</strong><strong class=\"total\" id=\"total\">$0</strong></div><p><button id=\"place\">Place order</button></p></section><section><h2>Recent orders</h2><div id=\"orders\" class=\"orders\"></div></section></main><script>const K=\"harbor-shop\";const P=[{id:\"mug\",n:\"Harbor Mug\",p:18,d:\"Stoneware, fog glaze\"},{id:\"tote\",n:\"Canvas Tote\",p:32,d:\"Waxed canvas, brass snap\"},{id:\"lamp\",n:\"Chart Lamp\",p:54,d:\"Brass shade, linen cord\"}];function seed(){return{seq:1009,cart:{},orders:[{id:\"1008\",status:\"open\",lines:[{id:\"mug\",n:\"Harbor Mug\",q:2,p:18}]},{id:\"1007\",status:\"packed\",lines:[{id:\"tote\",n:\"Canvas Tote\",q:1,p:32}]}]}}function load(){try{const s=JSON.parse(localStorage.getItem(K));return s&&Array.isArray(s.orders)?Object.assign(seed(),s):seed()}catch(e){return seed()}}function save(s){localStorage.setItem(K,JSON.stringify(s));try{new BroadcastChannel(K).postMessage(s)}catch(e){}}function listen(r){window.addEventListener(\"storage\",e=>{if(e.key===K)r()});try{new BroadcastChannel(K).onmessage=r}catch(e){}setInterval(r,800)}function money(n){return \"$\"+n}function sum(lines){return lines.reduce((a,l)=>a+l.p*l.q,0)}function render(){const s=load();const products=document.getElementById(\"products\");products.innerHTML=P.map(p=>'<div class=\"card\"><strong>'+p.n+'</strong><p>'+p.d+'</p><p class=\"price\">'+money(p.p)+'</p><button data-add=\"'+p.id+'\">Add to cart</button></div>').join(\"\");const cart=s.cart||{};const lines=Object.keys(cart).map(id=>cart[id]);document.getElementById(\"cart\").innerHTML=lines.length?lines.map(l=>'<div class=\"row\"><span>'+l.n+\" \u00d7 \"+l.q+\"</span><span>\"+money(l.p*l.q)+\"</span></div>\").join(\"\"):\"<p>Your cart is empty.</p>\";document.getElementById(\"total\").textContent=money(sum(lines));document.getElementById(\"orders\").innerHTML=s.orders.map(o=>'<div class=\"card\"><div class=\"row\"><strong>Order '+o.id+\"</strong><span>\"+o.status+\"</span></div>\"+o.lines.map(l=>\"<p>\"+l.n+\" \u00d7 \"+l.q+\"</p>\").join(\"\")+'<p class=\"total\">'+money(sum(o.lines))+\"</p></div>\").join(\"\");products.onclick=function(e){const id=e.target&&e.target.getAttribute&&e.target.getAttribute(\"data-add\");if(!id)return;const p=P.find(x=>x.id===id);const next=load();next.cart=next.cart||{};const line=next.cart[id]||{id:p.id,n:p.n,q:0,p:p.p};line.q+=1;next.cart[id]=line;save(next);render()};document.getElementById(\"place\").onclick=function(){const next=load();const lines=Object.keys(next.cart||{}).map(id=>next.cart[id]);if(!lines.length)return;next.orders=[{id:String(next.seq++),status:\"open\",lines:lines}].concat(next.orders);next.cart={};save(next);render()}}listen(render);render();</script></body></html>",
+    "orders-api": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Harbor Shop Orders</title><style>html,body{margin:0;min-height:100%;background:#111;color:#f4f1ea;font-family:Inter,system-ui,sans-serif}main{max-width:720px;margin:0 auto;padding:32px 24px 64px}p,label{color:#c8c2b4}.card{background:#1b1b1b;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px;margin:12px 0}.total{color:#3ddc84}button{background:#3ddc84;color:#102114;border:0;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer;margin-right:8px}button.ghost{background:transparent;color:#f4f1ea;border:1px solid rgba(255,255,255,.14)}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}select,input{background:#111;color:#f4f1ea;border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:8px}</style></head><body><main><p>ORDERS</p><h1>Harbor Shop Orders</h1><p>Open tickets from the storefront and the counter.</p><section class=\"card\"><h2>New counter order</h2><p><label>Item <select id=\"item\"><option value=\"mug\">Harbor Mug \u00b7 $18</option><option value=\"tote\">Canvas Tote \u00b7 $32</option><option value=\"lamp\">Chart Lamp \u00b7 $54</option></select></label></p><p><label>Qty <input id=\"qty\" type=\"number\" min=\"1\" value=\"1\"></label> <button id=\"create\">Create order</button></p></section><div id=\"list\"></div></main><script>const K=\"harbor-shop\";const P={mug:{n:\"Harbor Mug\",p:18},tote:{n:\"Canvas Tote\",p:32},lamp:{n:\"Chart Lamp\",p:54}};function seed(){return{seq:1009,cart:{},orders:[{id:\"1008\",status:\"open\",lines:[{id:\"mug\",n:\"Harbor Mug\",q:2,p:18}]},{id:\"1007\",status:\"packed\",lines:[{id:\"tote\",n:\"Canvas Tote\",q:1,p:32}]}]}}function load(){try{const s=JSON.parse(localStorage.getItem(K));return s&&Array.isArray(s.orders)?Object.assign(seed(),s):seed()}catch(e){return seed()}}function save(s){localStorage.setItem(K,JSON.stringify(s));try{new BroadcastChannel(K).postMessage(s)}catch(e){}}function listen(r){window.addEventListener(\"storage\",e=>{if(e.key===K)r()});try{new BroadcastChannel(K).onmessage=r}catch(e){}setInterval(r,800)}function money(n){return \"$\"+n}function sum(lines){return lines.reduce((a,l)=>a+l.p*l.q,0)}function nextStatus(status){return status===\"open\"?\"packed\":status===\"packed\"?\"shipped\":\"shipped\"}function render(){const s=load();document.getElementById(\"list\").innerHTML=s.orders.map(o=>'<article class=\"card\"><div class=\"row\"><strong>Order '+o.id+'</strong><span>'+o.status+'</span></div>'+o.lines.map(l=>\"<p>\"+l.n+\" \u00d7 \"+l.q+\"</p>\").join(\"\")+'<p class=\"total\">'+money(sum(o.lines))+\"</p>\"+(o.status===\"shipped\"?\"\":'<button data-advance=\"'+o.id+'\">Mark '+nextStatus(o.status)+\"</button>\")+\"</article>\").join(\"\");document.getElementById(\"list\").onclick=function(e){const id=e.target&&e.target.getAttribute&&e.target.getAttribute(\"data-advance\");if(!id)return;const next=load();const order=next.orders.find(o=>o.id===id);if(!order||order.status===\"shipped\")return;order.status=nextStatus(order.status);save(next);render()}}document.getElementById(\"create\").onclick=function(){const item=document.getElementById(\"item\").value;const qty=Math.max(1,Number(document.getElementById(\"qty\").value)||1);const catalog=P[item];const next=load();next.orders=[{id:String(next.seq++),status:\"open\",lines:[{id:item,n:catalog.n,q:qty,p:catalog.p}]}].concat(next.orders);save(next);render()};listen(render);render();</script></body></html>"
+  },
+  "capabilities": [
+    {
+      "id": "dotnet",
+      "version": "1.0.0",
+      "displayName": ".NET",
+      "publisher": "agent-up",
+      "kind": "runtime",
+      "enabled": true,
+      "state": "ready",
+      "canRun": true,
+      "messages": []
+    },
+    {
+      "id": "docker",
+      "version": "1.0.0",
+      "displayName": "Docker",
+      "publisher": "agent-up",
+      "kind": "runtime",
+      "enabled": true,
+      "state": "ready",
+      "canRun": true,
+      "messages": []
+    },
+    {
+      "id": "codex",
+      "version": "1.0.0",
+      "displayName": "Codex",
+      "publisher": "agent-up",
+      "kind": "agent",
+      "enabled": true,
+      "state": "ready",
+      "canRun": true,
+      "messages": []
+    },
+    {
+      "id": "cursor",
+      "version": "1.0.0",
+      "displayName": "Cursor",
+      "publisher": "agent-up",
+      "kind": "agent",
+      "enabled": true,
+      "state": "ready",
+      "canRun": true,
+      "messages": []
+    },
+    {
+      "id": "claude",
+      "version": "1.0.0",
+      "displayName": "Claude",
+      "publisher": "agent-up",
+      "kind": "agent",
+      "enabled": true,
+      "state": "ready",
+      "canRun": true,
+      "messages": []
+    }
+  ]
+}

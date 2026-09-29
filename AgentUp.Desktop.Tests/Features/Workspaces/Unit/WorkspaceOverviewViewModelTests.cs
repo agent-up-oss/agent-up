@@ -138,9 +138,6 @@ public sealed class WorkspaceOverviewViewModelTests
         public Task DeleteAsync(string workspaceId, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 
-        public Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
-
         public Task<WorkspaceOverviewDto?> GetOverviewAsync(string workspaceId, CancellationToken cancellationToken = default)
         {
             if (NextOverview is not null)

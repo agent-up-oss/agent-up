@@ -5,6 +5,7 @@ import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesConte
 import type { Workspace } from '@/features/workspaces/models/Workspace';
 import { agentUpTheme, auText } from '@agent-up/design-system/native';
 import { applicationHttpPort, applicationProxySource, issueApplicationProxyTicket, type ApplicationProxySource } from '../providers/ApplicationBrowserProvider';
+import { isFakeServerUrl } from '@/features/fake-server/models/FakeServerIdentity';
 import { waitForDesktopViewerUrl } from '../providers/DesktopViewerProvider';
 import { DesktopStreamView } from './DesktopStreamView';
 import { RemoteBrowser } from './RemoteBrowser';
@@ -56,7 +57,14 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
       return () => { active = false; request.abort(); };
     }
     void issueApplicationProxyTicket(server, workspace.id, current, fetch, request.signal)
-      .then(ticket => { if (active) setSource(applicationProxySource(server, ticket)); })
+      .then(async ticket => {
+        const source = applicationProxySource(server, ticket);
+        if (!isFakeServerUrl(server.url)) return source;
+        const page = await fetch(source.uri, { signal: request.signal });
+        if (!page.ok) throw new Error('The demo application page is missing.');
+        return { ...source, html: await page.text() };
+      })
+      .then(next => { if (active) setSource(next); })
       .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : String(reason)); });
     return () => { active = false; request.abort(); };
   }, [server, workspace.id, applicationName, allocatedHttpPort, applicationKind]);

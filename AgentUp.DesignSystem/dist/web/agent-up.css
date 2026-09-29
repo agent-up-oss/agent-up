@@ -593,8 +593,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 2.75rem;
-  padding: var(--au-space-1) var(--au-space-2);
+  min-height: 2.25rem;
+  padding: 0.125rem var(--au-space-2);
   gap: 0.125rem;
 }
 .au-nav-icon {
@@ -929,7 +929,7 @@
   border-bottom: 1px solid var(--au-color-border-subtle);
 }
 .au-mobile-tab-bar {
-  padding: var(--au-space-2) var(--au-space-3);
+  padding: var(--au-space-1) var(--au-space-3);
   color: var(--au-color-text-primary);
   background: var(--au-color-canvas);
   border-top: 1px solid var(--au-color-border-subtle);

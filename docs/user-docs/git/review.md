@@ -33,7 +33,7 @@ Only checked files are committed. The list starts with a Changes checkbox that s
 A directory checkbox selects or clears every file beneath it, and it shows as checked exactly when all of its files are selected. Checking a collapsed directory still selects every file under it.
 </DocStep>
 <DocStep title="Discard with confirmation">
-Discard asks you to confirm the selected paths, then restores selected tracked files from HEAD and deletes selected untracked files.
+Discard sits next to Push and appears only when files are selected. It asks you to confirm the selected paths, then restores selected tracked files from HEAD and deletes selected untracked files.
 </DocStep>
 </DocSteps>
 
@@ -54,6 +54,7 @@ Changes to files you did not select stay in the worktree, so you can make severa
 </DocSteps>
 
 <DocSurfaces>
+<DocSurface desktop>On Desktop the Git tab shows the change tree and commit box. Discard sits next to Push and appears only when files are selected. History is a separate page from the History button, not a log under the commit box.</DocSurface>
 <DocSurface mobile>On Mobile overview, Commit sits below the message box and shows added and deleted file counts for the selected files. Confirming a commit uses an in-app dialog.</DocSurface>
 </DocSurfaces>
 
@@ -62,5 +63,5 @@ New files that disappeared after they were staged are dropped from the commit in
 Commits use the Git identity configured for that repository or for the user running Agent-Up Server. If `user.name` and `user.email` are missing, Agent-Up returns a structured error instead of Git's raw identity help text. An in-progress merge also blocks a partial commit of selected files until you finish or abort it.
 
 <DocCallout>
-Desktop Commit and Mobile Review also show the Server-owned **agent proposal queue** when `commits.enabled` is true. That list is read-only here. Agents still enqueue through MCP. This Git surface does not replace `enqueue_commit`.
+Desktop Git and Mobile Review also show the Server-owned **agent proposal queue** when `commits.enabled` is true. That list is read-only here. Agents still enqueue through MCP. This Git surface does not replace `enqueue_commit`.
 </DocCallout>

@@ -1,3 +1,4 @@
+import type { Href } from 'expo-router';
 import { normalizeServerUrl } from './ServerUrlProvider';
 
 export type PresetServerTarget =
@@ -30,7 +31,7 @@ export function takePendingWorkspace(): string | null {
   return value;
 }
 
-export function workspaceHref(workspaceId?: string | null): string {
+export function workspaceHref(workspaceId?: string | null): Href {
   const id = workspaceId?.trim();
-  return id ? `/(main)/workspace/${encodeURIComponent(id)}` : '/(main)/workspace';
+  return (id ? `/(main)/workspace/${encodeURIComponent(id)}` : '/(main)/workspace') as Href;
 }

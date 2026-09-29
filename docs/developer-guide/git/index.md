@@ -9,7 +9,7 @@ title: Git
 <DocWhat>
 Git is the human review-and-commit surface for a workspace worktree: change tree, per-file diffs, selective commits, remotes, and a bounded log.
 
-It is separate from `Commits`, which owns the agent-facing queue. Desktop Commit and Mobile Review display that queue as read-only.
+It is separate from `Commits`, which owns the agent-facing queue. Desktop Git and Mobile Review display that queue as read-only.
 </DocWhat>
 
 <DocMeta

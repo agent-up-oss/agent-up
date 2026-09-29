@@ -42,7 +42,6 @@ public sealed class WorkspacesControllerTests
         public Task<List<WorkspaceDto>> ListAsync(CancellationToken cancellationToken = default) => Task.FromResult<List<WorkspaceDto>>([]);
         public Task<WorkspaceDto?> GetByIdAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.FromResult<WorkspaceDto?>(null);
         public Task<WorkspaceOverviewDto?> GetOverviewAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.FromResult<WorkspaceOverviewDto?>(null);
-        public Task CleanupTutorialWorkspacesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<WorkspaceDto> CloneAsync(CloneSourceRequestDto request, CancellationToken cancellationToken = default)
         {
             CloneRequest = request;
