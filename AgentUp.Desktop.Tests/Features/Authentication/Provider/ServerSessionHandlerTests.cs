@@ -8,14 +8,14 @@ namespace AgentUp.Desktop.Tests.Features.Authentication.Provider;
 public sealed class ServerSessionHandlerTests
 {
     [Test]
-    public void SendAsync_throwsWhenNoServerUrlHasBeenApplied()
+    public async Task SendAsync_throwsWhenNoServerUrlHasBeenApplied()
     {
         using var http = new HttpClient(new ServerSessionHandler(new RecordingHandler()))
         {
             BaseAddress = new Uri("http://127.0.0.1:5000/")
         };
 
-        var exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await http.GetAsync("/api/auth/status"));
         Assert.That(exception!.Message, Is.EqualTo("The Desktop HTTP session has no Server URL."));
     }

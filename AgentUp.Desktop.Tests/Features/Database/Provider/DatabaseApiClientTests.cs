@@ -29,7 +29,7 @@ public class DatabaseApiClientTests
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var client = new DatabaseApiClient(http);
 
-        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await client.ListDatabasesAsync("ws-1", "Database"));
 
         Assert.That(ex!.Message, Is.EqualTo("Application is not configured as a database viewer target."));
@@ -42,7 +42,7 @@ public class DatabaseApiClientTests
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var client = new DatabaseApiClient(http);
 
-        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await client.ListTablesAsync("ws-1", "Database", "inventory"));
 
         Assert.That(ex!.Message, Is.EqualTo("Database name is required."));
@@ -55,7 +55,7 @@ public class DatabaseApiClientTests
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var client = new DatabaseApiClient(http);
 
-        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await client.ExecuteQueryAsync("ws-1", "Database", "inventory", "SELECT FROM"));
 
         Assert.That(ex!.Message, Is.EqualTo("syntax error at or near \"FROM\""));

@@ -72,13 +72,13 @@ public sealed class AgentApiClientTests
     }
 
     [Test]
-    public void ScheduleAsync_surfacesStructuredServerDetail()
+    public async Task ScheduleAsync_surfacesStructuredServerDetail()
     {
         using var handler = new AgentHandler(HttpStatusCode.Conflict, "{\"detail\":\"Agent is already running.\"}");
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var client = new AgentApiClient(http);
 
-        var exception = Assert.ThrowsAsync<HttpRequestException>(() => client.ScheduleAsync("ws", "Codex", CancellationToken.None));
+        var exception = await Assert.ThrowsAsync<HttpRequestException>(() => client.ScheduleAsync("ws", "Codex", CancellationToken.None));
 
         Assert.That(exception!.Message, Is.EqualTo("Agent is already running."));
     }
@@ -128,25 +128,25 @@ public sealed class AgentApiClientTests
     }
 
     [Test]
-    public void ScheduleAsync_ignoresEmptyProblemBodies()
+    public async Task ScheduleAsync_ignoresEmptyProblemBodies()
     {
         using var handler = new AgentHandler(HttpStatusCode.BadGateway, "");
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var client = new AgentApiClient(http);
 
-        var exception = Assert.ThrowsAsync<HttpRequestException>(() => client.ScheduleAsync("ws", "Codex", CancellationToken.None));
+        var exception = await Assert.ThrowsAsync<HttpRequestException>(() => client.ScheduleAsync("ws", "Codex", CancellationToken.None));
 
         Assert.That(exception!.Message, Does.Contain("HTTP 502"));
     }
 
     [Test]
-    public void ScheduleAsync_ignoresMalformedProblemBodies()
+    public async Task ScheduleAsync_ignoresMalformedProblemBodies()
     {
         using var handler = new AgentHandler(HttpStatusCode.InternalServerError, "not-json");
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var client = new AgentApiClient(http);
 
-        var exception = Assert.ThrowsAsync<HttpRequestException>(() => client.ScheduleAsync("ws", "Codex", CancellationToken.None));
+        var exception = await Assert.ThrowsAsync<HttpRequestException>(() => client.ScheduleAsync("ws", "Codex", CancellationToken.None));
 
         Assert.That(exception!.Message, Does.Contain("HTTP 500"));
     }

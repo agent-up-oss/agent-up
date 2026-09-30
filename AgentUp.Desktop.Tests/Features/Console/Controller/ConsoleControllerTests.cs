@@ -19,14 +19,14 @@ public sealed class ConsoleControllerTests
     }
 
     [Test]
-    public void GetOutputAsync_propagates_cancellation()
+    public async Task GetOutputAsync_propagates_cancellation()
     {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         var http = new HttpClient(new StaticHandler()) { BaseAddress = new Uri("https://server.test") };
         var controller = new ConsoleController(new ConsoleOutputService(new ConsoleApiClient(http)));
 
-        Assert.ThrowsAsync<TaskCanceledException>(async () =>
+        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
             await controller.GetOutputAsync("one", "api", cancellation.Token));
     }
 
