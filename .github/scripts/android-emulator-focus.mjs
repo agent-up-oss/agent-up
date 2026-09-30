@@ -19,6 +19,17 @@ export function emulatorFocusIsUsable(line) {
   return true;
 }
 
+/** Package named on an Application Not Responding focus line, if any. */
+export function anrPackageFromFocus(line) {
+  const match = String(line ?? '').match(/Application Not Responding:\s*([^}]+)/);
+  return match ? match[1].trim() : '';
+}
+
 if (pathToFileURL(resolve(process.argv[1] ?? '')).href === import.meta.url) {
-  process.exit(emulatorFocusIsUsable(process.argv[2] ?? '') ? 0 : 1);
+  const argv = process.argv.slice(2);
+  if (argv[0] === '--anr-package') {
+    process.stdout.write(anrPackageFromFocus(argv[1] ?? ''));
+    process.exit(0);
+  }
+  process.exit(emulatorFocusIsUsable(argv[0] ?? '') ? 0 : 1);
 }

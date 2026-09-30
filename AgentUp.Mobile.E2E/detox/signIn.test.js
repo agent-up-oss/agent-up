@@ -16,6 +16,16 @@
 const SERVER_DLL = process.env.AGENTUP_E2E_SERVER_DLL;
 const TEST_AGENT = process.env.AGENTUP_E2E_TEST_AGENT;
 const { connectLaunchUrl } = require('../../AgentUp.Mobile.E2E.App/src/connectLaunch');
+const { execFile } = require('node:child_process');
+const { promisify } = require('node:util');
+const { existsSync } = require('node:fs');
+const { join } = require('node:path');
+
+const execFileAsync = promisify(execFile);
+const SYNC_OFF = {
+  detoxEnableSynchronization: 0,
+  detoxURLBlacklistRegex: '\\(".*agent/events.*"\\)',
+};
 
 // Named here rather than imported, so the matrix is readable without opening the harness.
 const SCENARIOS = [
@@ -32,11 +42,13 @@ describe('agent sign-in', () => {
     // The harness is ESM and this runner is CommonJS, so it is brought in dynamically. That
     // needs Node's VM module support, which the test:ios and test:android scripts turn on -
     // without it every scenario fails here, before its body ever runs.
-    const [stack, flows] = await Promise.all([
+    const [stack, flows, ready, anr] = await Promise.all([
       import('../harness/stack.mjs'),
       import('../harness/signInFlows.mjs'),
+      import('../harness/connectReady.mjs'),
+      import('../harness/androidAnr.mjs'),
     ]);
-    harness = { ...stack, ...flows };
+    harness = { ...stack, ...flows, ...ready, ...anr };
   });
 
   describe.each(SCENARIOS)('$name', scenario => {
@@ -66,10 +78,7 @@ describe('agent sign-in', () => {
         // The chat mounts during this launch and never goes idle. Android already disables Detox
         // sync from launchArgs; iOS must too, or launchApp starves getAgent (HTTP 499) and the
         // picker renders the prompt without any agent buttons.
-        launchArgs: {
-          detoxEnableSynchronization: 0,
-          detoxURLBlacklistRegex: '\\(".*agent/events.*"\\)',
-        },
+        launchArgs: SYNC_OFF,
       });
       await device.setURLBlacklist(['.*agent/events.*']);
       await device.disableSynchronization();
@@ -95,7 +104,7 @@ describe('agent sign-in', () => {
         challenge => harness.isUsableChallenge(challenge, scenario),
       );
 
-      await tap('agent-signin-open');
+      await tap('agent-signin-open', 60_000);
 
       const carriedCode = await flow.approve?.({ control: stack.control, session });
       if (carriedCode) {
@@ -105,7 +114,7 @@ describe('agent sign-in', () => {
         // suspends what is not in front, so it stops answering Detox at all. That reads as a tap
         // that was never delivered rather than as anything the client did, and it is exactly how
         // this scenario failed while the other three passed: they never return to the app.
-        await device.launchApp({ newInstance: false, launchArgs: { detoxEnableSynchronization: 0 } });
+        await device.launchApp({ newInstance: false, launchArgs: SYNC_OFF });
         await device.disableSynchronization();
 
         // The pasted-code shape: the value travels back through the client, exactly as a user
@@ -136,16 +145,80 @@ async function ensureConnected(serverUrl, workspaceId, agentId) {
   // The prompt renders before getAgent returns; the picker buttons do not. Wait for the button
   // this case will tap, so a cancelled first fetch cannot look like a connected chat.
   const picker = pickerFor(agentId, 'ensureConnected');
-  try {
-    await waitFor(element(by.id(picker))).toBeVisible().withTimeout(15_000);
-    return;
-  } catch {
-    // Deep link missed; the connect form is the fallback.
-  }
-  if (await isVisible('server-url-input')) {
+  const step = await waitForConnectStep(picker, 20_000);
+  if (step === 'connected') return;
+  if (step === 'fill-form') {
     await connectTo(serverUrl, workspaceId);
+  } else if (step !== 'wait-agents') {
+    // Deep link missed and neither the form nor the chat is in front: an ANR or a dropped
+    // launch URL. Deliver the URL again after dismissing a focused ANR, then fill the form
+    // if that is what came to the front.
+    await recoverLaunch(serverUrl, workspaceId);
+    if (await appears('server-url-input', 15_000)) {
+      await connectTo(serverUrl, workspaceId);
+    }
   }
   await waitFor(element(by.id(picker))).toBeVisible().withTimeout(60_000);
+}
+
+async function waitForConnectStep(picker, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  let last = 'relaunch';
+  while (Date.now() < deadline) {
+    const snapshot = {
+      pickerVisible: await appears(picker, 400),
+      formVisible: false,
+      promptVisible: false,
+    };
+    if (!snapshot.pickerVisible) snapshot.formVisible = await appears('server-url-input', 400);
+    if (!snapshot.pickerVisible && !snapshot.formVisible) {
+      snapshot.promptVisible = await appears('agent-picker-prompt', 400);
+    }
+    last = harness.connectStep(snapshot);
+    if (last !== 'wait-agents') return last;
+  }
+  return last;
+}
+
+async function recoverLaunch(serverUrl, workspaceId) {
+  if (device.getPlatform() === 'android') {
+    await dismissAndroidAnrIfPresent();
+  }
+  await device.launchApp({
+    newInstance: false,
+    url: connectLaunchUrl(serverUrl, workspaceId),
+    launchArgs: SYNC_OFF,
+  });
+  await device.setURLBlacklist(['.*agent/events.*']);
+  await device.disableSynchronization();
+}
+
+async function dismissAndroidAnrIfPresent() {
+  const adb = androidAdb();
+  if (!adb) return;
+  let stdout = '';
+  try {
+    ({ stdout } = await execFileAsync(adb, ['shell', 'dumpsys', 'window'], { timeout: 10_000 }));
+  } catch {
+    return;
+  }
+  const line = stdout.split('\n').find(row => row.includes('mCurrentFocus')) ?? '';
+  for (const args of harness.adbDismissAnrArgs(line)) {
+    try {
+      await execFileAsync(adb, args, { timeout: 5_000 });
+    } catch {
+      // Best-effort, same as the wake script: a device that already moved on is fine.
+    }
+  }
+}
+
+function androidAdb() {
+  const home = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT;
+  if (home) {
+    const bundled = join(home, 'platform-tools', 'adb');
+    if (existsSync(bundled)) return bundled;
+  }
+  return 'adb';
 }
 
 async function connectTo(serverUrl, workspaceId) {
@@ -164,9 +237,9 @@ async function fill(testId, value) {
   await field.typeText(value);
 }
 
-async function isVisible(testId) {
+async function appears(testId, timeoutMs = 500) {
   try {
-    await waitFor(element(by.id(testId))).toBeVisible().withTimeout(500);
+    await waitFor(element(by.id(testId))).toBeVisible().withTimeout(timeoutMs);
     return true;
   } catch {
     return false;

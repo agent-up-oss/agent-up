@@ -69,7 +69,7 @@ while [ "$attempt" -le 60 ]; do
   case "$focus" in
     *"Application Not Responding"*|*"com.google.android.googlesdksetup"*|*"com.google.android.setupwizard"*)
       echo "Dismissing emulator setup or ANR: ${focus## }"
-      pkg="$(printf '%s\n' "$focus" | sed -n 's/.*Application Not Responding: \([^}]*\).*/\1/p' | tr -d '[:space:]')"
+      pkg="$(node "$focus_helper" --anr-package "$focus")"
       if [ -n "$pkg" ]; then
         "$adb" shell am force-stop "$pkg" >/dev/null 2>&1 || true
       fi
@@ -77,7 +77,11 @@ while [ "$attempt" -le 60 ]; do
       "$adb" shell am force-stop com.google.android.setupwizard >/dev/null 2>&1 || true
       "$adb" shell input keyevent KEYCODE_ESCAPE >/dev/null 2>&1 || true
       "$adb" shell input keyevent KEYCODE_BACK >/dev/null 2>&1 || true
-      "$adb" shell input keyevent KEYCODE_HOME >/dev/null 2>&1 || true
+      # HOME relaunches the launcher. When the launcher itself ANRed, that puts the same
+      # dialog back over the app the suite is about to drive.
+      if [ "$pkg" != "com.google.android.apps.nexuslauncher" ]; then
+        "$adb" shell input keyevent KEYCODE_HOME >/dev/null 2>&1 || true
+      fi
       ;;
   esac
 
