@@ -1,5 +1,5 @@
 import { loginIdFrom } from './idpControl.mjs';
-import { waitFor } from './wait.mjs';
+import { NeverGoingToHappen, waitFor } from './wait.mjs';
 
 /**
  * What each sign-in shape needs from the world outside the client, expressed once so the Detox
@@ -124,6 +124,9 @@ export async function waitForChallenge(serverUrl, workspaceId, predicate, option
       async () => {
         const session = await readSession(serverUrl, workspaceId);
         last = session;
+        if (session.error && !session.loginChallenge) {
+          throw new NeverGoingToHappen(`The agent sign-in failed: ${session.error}`);
+        }
         return session.loginChallenge && predicate(session.loginChallenge) ? session : false;
       },
       options,

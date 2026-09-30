@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createIdpControl, loginIdFrom } from '../harness/idpControl.mjs';
-import { hasTransport, isUsableChallenge } from '../harness/signInFlows.mjs';
+import { hasTransport, isUsableChallenge, waitForChallenge } from '../harness/signInFlows.mjs';
 import { shimScript } from '../harness/shims.mjs';
 import { AGENT_PROFILES, hostOriginFor, hostPortsToReverse, profilesFor, serverEnvironment } from '../harness/stackConfig.mjs';
 import { freePort, portWindow } from '../harness/stack.mjs';
@@ -23,7 +23,7 @@ test('the Server is told each agent command, login command, and the transport it
     profiles: profilesFor('device'),
     binDir: '/tmp/bin',
     idpUrl: 'http://localhost:9000',
-    publicOrigin: 'http://127.0.0.1:9000',
+    publicOrigin: 'http://localhost:9000',
     dataDir: '/tmp/data',
     urls: 'http://0.0.0.0:9100',
   });
@@ -42,7 +42,7 @@ test('the Server is told each agent command, login command, and the transport it
   // an agent prints a link on its own origin and the device cannot open it.
   assert.equal(
     environment.Agents__claude__LoginEnvironment__AGENTUP_TEST_IDP_PUBLIC_ORIGIN,
-    'http://127.0.0.1:9000',
+    'http://localhost:9000',
   );
   // Agent sign-in is the subject; Server sign-in is not.
   assert.equal(environment.AGENTUP_AUTH_DISABLED, 'true');
@@ -90,10 +90,14 @@ test('the Server is given deadlines short enough to fail a hung sign-in legibly'
 // total failure to connect, so it is pinned rather than left to a per-test guess. Hosted CI cannot
 // rely on QEMU's 10.0.2.2 NAT; Detox reverseTcpPort exposes the host on emulator loopback.
 test('each client platform is pointed at the host origin it can actually reach', () => {
-  assert.equal(hostOriginFor('android', 9000), 'http://127.0.0.1:9000');
+  assert.equal(hostOriginFor('android', 9000), 'http://localhost:9000');
   assert.equal(hostOriginFor('ios', 9000), 'http://localhost:9000');
   assert.equal(hostOriginFor('web', 9000), 'http://localhost:9000');
   assert.throws(() => hostOriginFor('windows-phone', 9000), /Unknown client platform/);
+});
+
+test('Android clients use the localhost hostname, not the 127.0.0.1 IP literal', () => {
+  assert.equal(new URL(hostOriginFor('android', 24001)).hostname, 'localhost');
 });
 
 test('Android reverse maps the Server and identity-provider ports onto the emulator', () => {
@@ -167,6 +171,26 @@ test('a wait reports the last error it saw rather than swallowing it', async () 
     () => waitFor('a reachable service', () => { throw new Error('connection refused'); }, { timeoutMs: 60, intervalMs: 10 }),
     /Last error: connection refused/,
   );
+});
+
+test('a failed sign-in is reported instead of waiting out the challenge deadline', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({
+      state: 'authenticating',
+      error: 'The agent CLI did not print a sign-in link within 30 seconds.',
+      loginChallenge: null,
+    }),
+  });
+  try {
+    await assert.rejects(
+      () => waitForChallenge('http://localhost:9', 'workspace', () => true, { timeoutMs: 5_000, intervalMs: 10 }),
+      /did not print a sign-in link/,
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
 });
 
 // The Server serialises the transport as its enum member name, so the wire carries 'Code' where

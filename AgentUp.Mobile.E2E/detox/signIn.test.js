@@ -62,7 +62,7 @@ describe('agent sign-in', () => {
         testAgentExecutable: TEST_AGENT,
       });
       // Reverse before launchApp: the chat fetches the Server the instant the connect URL lands.
-      // QEMU 10.0.2.2 is not a substitute; hosted emulators fail that NAT with ConnectException.
+      // QEMU 10.0.2.2 NAT ConnectException'd; cleartext to 127.0.0.1 is forbidden on the emulator.
       await reverseHostPorts(stack.hostPorts);
     });
 
@@ -106,6 +106,7 @@ describe('agent sign-in', () => {
         stack.serverUrl,
         stack.workspace.id,
         challenge => harness.isUsableChallenge(challenge, scenario),
+        { timeoutMs: 120_000 },
       );
 
       await tap('agent-signin-open', 60_000);

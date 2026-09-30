@@ -39,7 +39,7 @@ export function profilesFor(codexSchema) {
  * code was ever approved. A person on a warm phone does not wait that long, and the suite is not
  * there to find out what happens when they do.
  */
-export function serverEnvironment({ profiles, binDir, idpUrl, publicOrigin, dataDir, urls, challengeTimeoutSeconds = 30, completionTimeoutSeconds = 300 }) {
+export function serverEnvironment({ profiles, binDir, idpUrl, publicOrigin, dataDir, urls, challengeTimeoutSeconds = 90, completionTimeoutSeconds = 300 }) {
   const environment = {
     ASPNETCORE_URLS: urls,
     // The subject under test is agent sign-in, not Server sign-in.
@@ -57,17 +57,18 @@ export function serverEnvironment({ profiles, binDir, idpUrl, publicOrigin, data
     environment[`Agents__${profile.agentId}__LoginArguments__0`] = 'login';
     environment[`Agents__${profile.agentId}__LoginTransport`] = profile.transport;
     // Short, explicit deadlines: a hung sign-in should fail the test quickly and legibly rather
-    // than stall the suite until the runner's own timeout fires.
+    // than stall the suite until the runner's own timeout fires. 90s is still that bound: 30s
+    // spent the whole window on a cold first spawn of the device-code CLI before it printed a URL.
     environment[`Agents__${profile.agentId}__LoginChallengeTimeoutSeconds`] = String(challengeTimeoutSeconds);
     environment[`Agents__${profile.agentId}__LoginCompletionTimeoutSeconds`] = String(completionTimeoutSeconds);
     environment[`Agents__${profile.agentId}__LoginEnvironment__AGENTUP_TEST_IDP_URL`] = idpUrl;
     // Two origins, because the agent and the person are not in the same place. The agent runs on
     // this host and reaches the provider at idpUrl; the person is on a simulator or an emulator.
-    // Android sees the host through adb reverse on loopback, not QEMU's 10.0.2.2 alias: that NAT
-    // is how the native suite mounted the chat and then sat on "Choose an ACP agent" with
-    // ConnectException. A link printed on the agent's own origin is one the device cannot open,
-    // which is exactly how the loopback-redirect scenario failed on Android while the others
-    // happened not to need the link to work.
+    // Android sees the host through adb reverse on localhost, not QEMU's 10.0.2.2 alias and not
+    // 127.0.0.1: that NAT ConnectException'd, and cleartext to the IP literal is forbidden even
+    // when the network-security-config lists it. A link printed on the agent's own origin is one
+    // the device cannot open, which is exactly how the loopback-redirect scenario failed on
+    // Android while the others happened not to need the link to work.
     environment[`Agents__${profile.agentId}__LoginEnvironment__AGENTUP_TEST_IDP_PUBLIC_ORIGIN`] = publicOrigin;
     environment[`Agents__${profile.agentId}__LoginEnvironment__AGENTUP_TEST_AGENT`] = profile.agent;
   }
@@ -80,14 +81,14 @@ export function serverEnvironment({ profiles, binDir, idpUrl, publicOrigin, data
  *
  * An Android emulator is a separate network namespace. QEMU advertises the host as 10.0.2.2, but
  * that NAT is not reliable on hosted CI: the chat mounts and getAgent fails with ConnectException.
- * Detox `reverseTcpPort` maps emulator loopback onto the same host port, so Android clients use
- * 127.0.0.1. An iOS simulator and the installable web client already share the host's loopback.
- * Getting this wrong is not a flake, it is a total failure to connect, so it is named here rather
- * than guessed per test.
+ * Detox `reverseTcpPort` maps emulator loopback onto the same host port. The client must then use
+ * the hostname `localhost`, not `127.0.0.1`: Android ignores IP literals in domain tags, so
+ * cleartext to the IP is forbidden even when the config lists it. An iOS simulator and the
+ * installable web client already share the host's loopback. Getting this wrong is not a flake, it
+ * is a total failure to connect, so it is named here rather than guessed per test.
  */
 export function hostOriginFor(platform, port) {
-  if (platform === 'android') return `http://127.0.0.1:${port}`;
-  if (platform === 'ios' || platform === 'web') return `http://localhost:${port}`;
+  if (platform === 'android' || platform === 'ios' || platform === 'web') return `http://localhost:${port}`;
   throw new Error(`Unknown client platform '${platform}'.`);
 }
 

@@ -85,9 +85,9 @@ by the harness config plugin only; it must not be copied into the production Mob
 The plugin also writes a network-security-config that permits `10.0.2.2` and loopback, because a
 generated config that forbids cleartext wins over `usesCleartextTraffic` on API 28+. Android Detox
 reverses the Server and identity-provider ports onto emulator loopback and points the client at
-`http://127.0.0.1`. QEMU's `10.0.2.2` NAT is not reliable on hosted emulators: the chat mounts and
-`getAgent` fails with ConnectException, which is how every Android scenario timed out on a picker
-prompt with no agent buttons.
+`http://localhost`. QEMU's `10.0.2.2` NAT ConnectException'd on hosted emulators, and cleartext to
+`127.0.0.1` is forbidden because Android ignores IP literals in domain tags. Either failure leaves
+the picker prompt with no agent buttons.
 
 Native Detox launches the harness through `agent-up-chat://connect` instead of typing into the
 connect form. Android Fabric's `replaceText` does not update React state, so Connect was a no-op
