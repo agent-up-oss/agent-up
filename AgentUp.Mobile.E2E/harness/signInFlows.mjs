@@ -115,6 +115,21 @@ export async function waitForAgentState(serverUrl, workspaceId, expected, option
   }
 }
 
+/**
+ * True when session.error means the login CLI has already failed, so waiting for a challenge
+ * cannot succeed.
+ *
+ * ACP puts "Authentication required. Sign in with your subscription to continue." on session.error
+ * while the person still has to sign in. Treating that as terminal is how iOS and the installable
+ * web aborted waitForChallenge on a session that was still waiting for the login CLI to print a
+ * link.
+ */
+export function isTerminalSignInError(error) {
+  const text = typeof error === 'string' ? error : error == null ? '' : String(error);
+  if (!text) return false;
+  return !text.includes('Authentication required');
+}
+
 /** Waits for a sign-in challenge that carries everything the client needs to act on it. */
 export async function waitForChallenge(serverUrl, workspaceId, predicate, options = {}) {
   let last = null;
@@ -124,7 +139,7 @@ export async function waitForChallenge(serverUrl, workspaceId, predicate, option
       async () => {
         const session = await readSession(serverUrl, workspaceId);
         last = session;
-        if (session.error && !session.loginChallenge) {
+        if (isTerminalSignInError(session.error) && !session.loginChallenge) {
           throw new NeverGoingToHappen(`The agent sign-in failed: ${session.error}`);
         }
         return session.loginChallenge && predicate(session.loginChallenge) ? session : false;

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createIdpControl, loginIdFrom } from '../harness/idpControl.mjs';
-import { hasTransport, isUsableChallenge, waitForChallenge } from '../harness/signInFlows.mjs';
+import { hasTransport, isTerminalSignInError, isUsableChallenge, waitForChallenge } from '../harness/signInFlows.mjs';
 import { shimScript } from '../harness/shims.mjs';
 import { AGENT_PROFILES, hostOriginFor, hostPortsToReverse, profilesFor, serverEnvironment } from '../harness/stackConfig.mjs';
 import { freePort, portWindow } from '../harness/stack.mjs';
@@ -171,6 +171,15 @@ test('a wait reports the last error it saw rather than swallowing it', async () 
     () => waitFor('a reachable service', () => { throw new Error('connection refused'); }, { timeoutMs: 60, intervalMs: 10 }),
     /Last error: connection refused/,
   );
+});
+
+test('ACP auth-required on the session is not a failed sign-in', () => {
+  assert.equal(
+    isTerminalSignInError('{"code":-32000,"message":"Authentication required. Sign in with your subscription to continue."}'),
+    false,
+  );
+  assert.equal(isTerminalSignInError('The agent CLI did not print a sign-in link within 30 seconds.'), true);
+  assert.equal(isTerminalSignInError(null), false);
 });
 
 test('a failed sign-in is reported instead of waiting out the challenge deadline', async () => {
