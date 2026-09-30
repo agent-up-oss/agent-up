@@ -4,7 +4,7 @@ import test from 'node:test';
 import { createIdpControl, loginIdFrom } from '../harness/idpControl.mjs';
 import { hasTransport, isUsableChallenge } from '../harness/signInFlows.mjs';
 import { shimScript } from '../harness/shims.mjs';
-import { AGENT_PROFILES, hostOriginFor, profilesFor, serverEnvironment } from '../harness/stackConfig.mjs';
+import { AGENT_PROFILES, hostOriginFor, hostPortsToReverse, profilesFor, serverEnvironment } from '../harness/stackConfig.mjs';
 import { freePort, portWindow } from '../harness/stack.mjs';
 import { waitFor } from '../harness/wait.mjs';
 
@@ -23,7 +23,7 @@ test('the Server is told each agent command, login command, and the transport it
     profiles: profilesFor('device'),
     binDir: '/tmp/bin',
     idpUrl: 'http://localhost:9000',
-    publicOrigin: 'http://10.0.2.2:9000',
+    publicOrigin: 'http://127.0.0.1:9000',
     dataDir: '/tmp/data',
     urls: 'http://0.0.0.0:9100',
   });
@@ -42,7 +42,7 @@ test('the Server is told each agent command, login command, and the transport it
   // an agent prints a link on its own origin and the device cannot open it.
   assert.equal(
     environment.Agents__claude__LoginEnvironment__AGENTUP_TEST_IDP_PUBLIC_ORIGIN,
-    'http://10.0.2.2:9000',
+    'http://127.0.0.1:9000',
   );
   // Agent sign-in is the subject; Server sign-in is not.
   assert.equal(environment.AGENTUP_AUTH_DISABLED, 'true');
@@ -53,6 +53,12 @@ test('the Server is told each agent command, login command, and the transport it
 test('the control plane can reach a page the device was pointed at', () => {
   const control = createIdpControl('http://localhost:9000');
 
+  assert.equal(
+    control.reachable('http://127.0.0.1:9000/oauth/authorize?client_id=test-agent3&state=abc'),
+    'http://localhost:9000/oauth/authorize?client_id=test-agent3&state=abc',
+  );
+  // A leftover 10.0.2.2 challenge is rewritten the same way: that address is the emulator's
+  // name for this host, and nothing here answers to it.
   assert.equal(
     control.reachable('http://10.0.2.2:9000/oauth/authorize?client_id=test-agent3&state=abc'),
     'http://localhost:9000/oauth/authorize?client_id=test-agent3&state=abc',
@@ -81,12 +87,31 @@ test('the Server is given deadlines short enough to fail a hung sign-in legibly'
 });
 
 // An Android emulator is a separate network namespace. Getting this wrong is not a flake, it is a
-// total failure to connect, so it is pinned rather than left to a per-test guess.
+// total failure to connect, so it is pinned rather than left to a per-test guess. Hosted CI cannot
+// rely on QEMU's 10.0.2.2 NAT; Detox reverseTcpPort exposes the host on emulator loopback.
 test('each client platform is pointed at the host origin it can actually reach', () => {
-  assert.equal(hostOriginFor('android', 9000), 'http://10.0.2.2:9000');
+  assert.equal(hostOriginFor('android', 9000), 'http://127.0.0.1:9000');
   assert.equal(hostOriginFor('ios', 9000), 'http://localhost:9000');
   assert.equal(hostOriginFor('web', 9000), 'http://localhost:9000');
   assert.throws(() => hostOriginFor('windows-phone', 9000), /Unknown client platform/);
+});
+
+test('Android reverse maps the Server and identity-provider ports onto the emulator', () => {
+  assert.deepEqual(hostPortsToReverse(24001, 24000), [24001, 24000]);
+  assert.throws(() => hostPortsToReverse(0, 24000), /cannot be reversed/);
+  assert.throws(() => hostPortsToReverse(24001, 1.5), /cannot be reversed/);
+});
+
+test('native Detox reverses those host ports before launchApp', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../detox/signIn.test.js', import.meta.url), 'utf8');
+  const beforeAll = source.slice(source.indexOf('stack = await harness.startStack'), source.indexOf('beforeEach'));
+  assert.match(
+    beforeAll,
+    /await reverseHostPorts\(stack\.hostPorts\)/,
+    'The chat fetches the Server as soon as the connect URL lands, so reverse must happen in the same beforeAll that starts the stack.',
+  );
+  assert.equal(beforeAll.includes('device.launchApp'), false);
 });
 
 test('each agent gets a launcher that names it explicitly', () => {

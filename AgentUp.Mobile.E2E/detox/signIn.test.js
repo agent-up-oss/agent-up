@@ -61,9 +61,13 @@ describe('agent sign-in', () => {
         serverDll: SERVER_DLL,
         testAgentExecutable: TEST_AGENT,
       });
+      // Reverse before launchApp: the chat fetches the Server the instant the connect URL lands.
+      // QEMU 10.0.2.2 is not a substitute; hosted emulators fail that NAT with ConnectException.
+      await reverseHostPorts(stack.hostPorts);
     });
 
     afterAll(async () => {
+      await unreverseHostPorts(stack?.hostPorts);
       await stack?.dispose();
     });
 
@@ -180,6 +184,24 @@ async function waitForConnectStep(picker, timeoutMs, decide) {
     if (last !== 'wait-agents') return last;
   }
   return last;
+}
+
+async function reverseHostPorts(ports) {
+  if (device.getPlatform() !== 'android') return;
+  for (const port of ports) {
+    await device.reverseTcpPort(port);
+  }
+}
+
+async function unreverseHostPorts(ports) {
+  if (device.getPlatform() !== 'android' || !ports) return;
+  for (const port of ports) {
+    try {
+      await device.unreverseTcpPort(port);
+    } catch {
+      // The mapping is gone when the emulator is already tearing down.
+    }
+  }
 }
 
 async function recoverLaunch(serverUrl, workspaceId, adbDismissAnrArgs) {
