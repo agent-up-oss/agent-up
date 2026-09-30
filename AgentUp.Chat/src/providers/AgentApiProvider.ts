@@ -17,7 +17,11 @@ export async function sendAgentMessage(server: ServerSession, workspaceId: strin
   return requestServerJson<null>(server, `${root(workspaceId)}/messages`, jsonBody({ message }), undefined, request);
 }
 export async function authenticateAgent(server: ServerSession, workspaceId: string, methodId: string, request: typeof fetch = fetch) {
-  return requestServerJson<null>(server, `${root(workspaceId)}/authenticate`, jsonBody({ methodId }), undefined, request);
+  await requestServerJson<null>(server, `${root(workspaceId)}/authenticate`, jsonBody({ methodId }), undefined, request);
+  // The POST does not return the session. Read it back so the sign-in panel can render from this
+  // call the way schedule already does, instead of waiting for an event-stream frame that may
+  // arrive after the Open button should already be on screen.
+  return getAgent(server, workspaceId, request);
 }
 /** A code the user copied out of the provider page, for an agent CLI waiting on one. */
 export async function submitAgentLoginCode(server: ServerSession, workspaceId: string, code: string, request: typeof fetch = fetch) {
