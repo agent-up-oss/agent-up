@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { emulatorFocusIsUsable } from './android-emulator-focus.mjs';
+import { anrPackageFromFocus, emulatorFocusIsUsable } from './android-emulator-focus.mjs';
 
 test('rejects an empty dumpsys line', () => {
   assert.equal(emulatorFocusIsUsable(''), false);
@@ -57,4 +57,24 @@ test('the wake helper exits non-zero for an ANR focus line', () => {
     ]),
     { status: 1 },
   );
+});
+
+test('the ANR package is the process named on the focus line', () => {
+  assert.equal(
+    anrPackageFromFocus(
+      '  mCurrentFocus=Window{99a336e u0 Application Not Responding: com.google.android.apps.nexuslauncher}',
+    ),
+    'com.google.android.apps.nexuslauncher',
+  );
+  assert.equal(anrPackageFromFocus('  mCurrentFocus=null'), '');
+});
+
+test('the wake helper prints the ANR package for the script to force-stop', () => {
+  const helper = fileURLToPath(new URL('./android-emulator-focus.mjs', import.meta.url));
+  const printed = execFileSync(process.execPath, [
+    helper,
+    '--anr-package',
+    '  mCurrentFocus=Window{99a336e u0 Application Not Responding: com.google.android.apps.nexuslauncher}',
+  ], { encoding: 'utf8' });
+  assert.equal(printed, 'com.google.android.apps.nexuslauncher');
 });

@@ -135,6 +135,15 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
     catch (cause) { setError(readError(cause)); }
     finally { setBusy(false); }
   };
+  const authenticate = async (methodId: string) => {
+    if (!server) return;
+    setError(null);
+    try {
+      const next = await authenticateAgent(server, workspace.id, methodId);
+      setSession(current => mergeAgentSession(current, next));
+    }
+    catch (cause) { setError(readError(cause)); }
+  };
   const send = async () => {
     const text = message.trim(); if (!server || !text || waiting) return;
     setMessage(''); setBusy(true); setError(null);
@@ -176,7 +185,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
           {(session?.state === 'authentication_required' || session?.state === 'authenticating') && <View style={styles.auth}>
             <Text style={styles.permissionTitle}>Sign in to {session.agent}</Text>
             {session.state === 'authenticating' && loginApi && <AgentSignIn challenge={session.loginChallenge} api={loginApi} copy={copyToClipboard} onError={setError} />}
-            {session.state === 'authentication_required' && session.authMethods?.map(method => <Pressable key={method.id} testID={`agent-auth-method-${method.id}`} style={styles.option} onPress={() => server && void authenticateAgent(server, workspace.id, method.id).catch(cause => setError(readError(cause)))}><Text style={styles.optionText}>{method.name}</Text>{method.description && <Text style={styles.meta}>{method.description}</Text>}</Pressable>)}
+            {session.state === 'authentication_required' && session.authMethods?.map(method => <Pressable key={method.id} testID={`agent-auth-method-${method.id}`} style={styles.option} onPress={() => void authenticate(method.id)}><Text style={styles.optionText}>{method.name}</Text>{method.description && <Text style={styles.meta}>{method.description}</Text>}</Pressable>)}
           </View>}
           <ScrollView style={styles.messages} contentContainerStyle={styles.messageContent}>
             {blocks.map(block => {

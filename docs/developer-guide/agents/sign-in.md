@@ -64,7 +64,10 @@ nothing comes back, and a browser cannot read a cross-origin popup's location. T
 `canInterceptRedirect` and the web adapter says `false` rather than hanging a sign-in it cannot
 finish.
 
-A client must not open a sign-in link the user did not ask it to open.
+A client must not open a sign-in link the user did not ask it to open. Choosing a method applies
+the session read back after `POST .../authenticate`, the same way scheduling applies the session
+from `POST .../agent`. Waiting only on the event stream left the Open button unrendered when that
+stream lagged.
 
 ## Testing
 
@@ -80,12 +83,20 @@ The disposable native harness enables cleartext transport because its simulator 
 reach Server and identity-provider processes on ephemeral CI-host ports. That exception is applied
 by the harness config plugin only; it must not be copied into the production Mobile application.
 The plugin also writes a network-security-config that permits `10.0.2.2` and loopback, because a
-generated config that forbids cleartext wins over `usesCleartextTraffic` on API 28+.
+generated config that forbids cleartext wins over `usesCleartextTraffic` on API 28+. Android Detox
+reverses the Server and identity-provider ports onto emulator loopback and points the client at
+`http://localhost`. QEMU's `10.0.2.2` NAT ConnectException'd on hosted emulators, and cleartext to
+`127.0.0.1` is forbidden because Android ignores IP literals in domain tags. Either failure leaves
+the picker prompt with no agent buttons.
 
 Native Detox launches the harness through `agent-up-chat://connect` instead of typing into the
 connect form. Android Fabric's `replaceText` does not update React state, so Connect was a no-op
 and the suite timed out on a picker the chat never mounted. The installable-web suite still fills
-the form.
+the form. After launch the native suite waits for the picker, the connect form, or the picker
+prompt as a condition: a 500ms peek at the form skipped Connect when the deep link missed, and
+then waited a minute for a picker the chat never mounted. A launcher Application Not Responding
+dialog is force-stopped without sending Home, because Home relaunches that same dialog over the
+app.
 
 ### Keeping the suites quick
 
@@ -113,4 +124,5 @@ disables its screen timeout. Merely finding a focused window at boot is insuffic
 screen can otherwise lock while the harness starts its Server and test-agent processes, leaving
 Espresso with a visible application root that no longer has window focus. An Application Not
 Responding dialog or the Google first-run wizard also holds focus; the wake script skips that
-wizard and waits until a normal window is focused before the suite starts.
+wizard and waits until a normal window is focused before the suite starts. When the focused ANR
+is the launcher, it does not send Home: that key relaunches the same dialog over the app.

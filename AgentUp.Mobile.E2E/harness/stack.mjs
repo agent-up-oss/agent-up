@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { createIdpControl } from './idpControl.mjs';
 import { supervise } from './supervise.mjs';
 import { writeShims } from './shims.mjs';
-import { hostOriginFor, profilesFor, serverEnvironment } from './stackConfig.mjs';
+import { hostOriginFor, hostPortsToReverse, profilesFor, serverEnvironment } from './stackConfig.mjs';
 
 
 /**
@@ -58,7 +58,7 @@ export async function startStack({ platform, codexSchema, serverDll, testAgentEx
           idpUrl,
           publicOrigin: idpPublicOrigin,
           dataDir,
-          // Bound on every interface so an Android emulator can reach it as 10.0.2.2.
+          // Bound on every interface so adb reverse from the emulator can reach host loopback.
           urls: `http://0.0.0.0:${serverPort}`,
         }),
       },
@@ -75,10 +75,14 @@ export async function startStack({ platform, codexSchema, serverDll, testAgentEx
 
     return {
       serverUrl,
+      serverPort,
       /** What a client on this platform should be pointed at. */
       serverOriginForClient: hostOriginFor(platform, serverPort),
       idpUrl,
+      idpPort,
       idpOriginForClient: idpPublicOrigin,
+      /** Server and identity-provider ports Android must reverse onto the host. */
+      hostPorts: hostPortsToReverse(serverPort, idpPort),
       control,
       workspace,
       profiles,

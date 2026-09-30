@@ -54,24 +54,60 @@ test('stream rejects a remote HTTP URL before attaching the bearer token', async
   assert.equal(called, false);
 });
 
-test('schedule and authenticate use workspace-scoped authenticated JSON requests', async () => {
+test('schedule uses a workspace-scoped authenticated JSON request', async () => {
   const calls: { url: string; init?: RequestInit }[] = [];
   const request = async (input: string | URL | Request, init?: RequestInit) => {
     calls.push({ url: String(input), init });
-    return new Response(init?.method === 'POST' && calls.length === 1
-      ? JSON.stringify({ workspaceId: 'ws', agent: 'Codex', state: 'ready', sessionId: 's', error: null, agents: [], authMethods: [] })
-      : null, { status: calls.length === 1 ? 200 : 204, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ workspaceId: 'ws', agent: 'Codex', state: 'ready', sessionId: 's', error: null, agents: [], authMethods: [] }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } });
   };
   const server = { url: 'https://server.example', accessToken: 'token' };
   await scheduleAgent(server, 'ws /1', 'Codex', request as typeof fetch);
-  await authenticateAgent(server, 'ws /1', 'chatgpt', request as typeof fetch);
   assert.deepEqual(calls.map(call => call.url), [
     'https://server.example/api/workspaces/ws%20%2F1/agent',
-    'https://server.example/api/workspaces/ws%20%2F1/agent/authenticate',
   ]);
   assert.equal(new Headers(calls[0]?.init?.headers).get('Authorization'), 'Bearer token');
   assert.equal(calls[0]?.init?.body, '{"agent":"Codex"}');
-  assert.equal(calls[1]?.init?.body, '{"methodId":"chatgpt"}');
+});
+
+test('authenticate posts the method and returns the session that call created', async () => {
+  const calls: { url: string; method: string; body?: string }[] = [];
+  const session = {
+    workspaceId: 'ws',
+    agent: 'Claude',
+    state: 'authenticating',
+    sessionId: 's',
+    error: null,
+    agents: [],
+    authMethods: [],
+    loginChallenge: { transport: 'code', url: 'https://idp.example/login' },
+  };
+  const request = async (input: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(input), method: init?.method ?? 'GET', body: typeof init?.body === 'string' ? init.body : undefined });
+    if (init?.method === 'POST') return new Response(null, { status: 204 });
+    return new Response(JSON.stringify(session), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  const returned = await authenticateAgent({ url: 'https://server.example', accessToken: 'token' }, 'ws /1', 'chatgpt', request as typeof fetch);
+  assert.deepEqual(calls, [
+    { url: 'https://server.example/api/workspaces/ws%20%2F1/agent/authenticate', method: 'POST', body: '{"methodId":"chatgpt"}' },
+    { url: 'https://server.example/api/workspaces/ws%20%2F1/agent', method: 'GET', body: undefined },
+  ]);
+  assert.equal(returned?.state, 'authenticating');
+  assert.equal(returned?.loginChallenge?.url, 'https://idp.example/login');
+});
+
+test('authenticate does not read the session when the method post fails', async () => {
+  let reads = 0;
+  const request = async (input: string | URL | Request, init?: RequestInit) => {
+    if (init?.method === 'POST') return new Response('no', { status: 409 });
+    reads += 1;
+    return new Response(null, { status: 204 });
+  };
+  await assert.rejects(
+    () => authenticateAgent({ url: 'https://server.example' }, 'ws', 'chatgpt', request as typeof fetch),
+    /409/,
+  );
+  assert.equal(reads, 0);
 });
 
 test('resume addresses a saved session within its workspace', async () => {

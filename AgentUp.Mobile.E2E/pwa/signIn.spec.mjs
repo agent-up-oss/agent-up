@@ -76,6 +76,7 @@ for (const scenario of SCENARIOS) {
         stack.serverUrl,
         stack.workspace.id,
         challenge => isUsableChallenge(challenge, scenario),
+        { timeoutMs: 120_000 },
       );
 
       // The sign-in opens in a new tab. For the redirect shape the browser cannot hand the
