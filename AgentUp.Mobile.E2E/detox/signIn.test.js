@@ -82,7 +82,7 @@ describe('agent sign-in', () => {
       });
       await device.setURLBlacklist(['.*agent/events.*']);
       await device.disableSynchronization();
-      await ensureConnected(stack.serverOriginForClient, stack.workspace.id, scenario.agentId);
+      await ensureConnected(stack.serverOriginForClient, stack.workspace.id, scenario.agentId, harness);
     });
 
     it('signs the agent in and leaves the session ready', async () => {
@@ -141,11 +141,13 @@ function pickerFor(agentId, scenarioName) {
   return `agent-picker-${agentId}`;
 }
 
-async function ensureConnected(serverUrl, workspaceId, agentId) {
+async function ensureConnected(serverUrl, workspaceId, agentId, ready) {
   // The prompt renders before getAgent returns; the picker buttons do not. Wait for the button
   // this case will tap, so a cancelled first fetch cannot look like a connected chat.
+  // connectStep is passed in: these helpers sit outside describe, so they cannot close over
+  // the describe-scoped harness (that is a ReferenceError, and every native scenario died on it).
   const picker = pickerFor(agentId, 'ensureConnected');
-  const step = await waitForConnectStep(picker, 20_000);
+  const step = await waitForConnectStep(picker, 20_000, ready.connectStep);
   if (step === 'connected') return;
   if (step === 'fill-form') {
     await connectTo(serverUrl, workspaceId);
@@ -153,7 +155,7 @@ async function ensureConnected(serverUrl, workspaceId, agentId) {
     // Deep link missed and neither the form nor the chat is in front: an ANR or a dropped
     // launch URL. Deliver the URL again after dismissing a focused ANR, then fill the form
     // if that is what came to the front.
-    await recoverLaunch(serverUrl, workspaceId);
+    await recoverLaunch(serverUrl, workspaceId, ready.adbDismissAnrArgs);
     if (await appears('server-url-input', 15_000)) {
       await connectTo(serverUrl, workspaceId);
     }
@@ -161,7 +163,7 @@ async function ensureConnected(serverUrl, workspaceId, agentId) {
   await waitFor(element(by.id(picker))).toBeVisible().withTimeout(60_000);
 }
 
-async function waitForConnectStep(picker, timeoutMs) {
+async function waitForConnectStep(picker, timeoutMs, decide) {
   const deadline = Date.now() + timeoutMs;
   let last = 'relaunch';
   while (Date.now() < deadline) {
@@ -174,15 +176,15 @@ async function waitForConnectStep(picker, timeoutMs) {
     if (!snapshot.pickerVisible && !snapshot.formVisible) {
       snapshot.promptVisible = await appears('agent-picker-prompt', 400);
     }
-    last = harness.connectStep(snapshot);
+    last = decide(snapshot);
     if (last !== 'wait-agents') return last;
   }
   return last;
 }
 
-async function recoverLaunch(serverUrl, workspaceId) {
+async function recoverLaunch(serverUrl, workspaceId, adbDismissAnrArgs) {
   if (device.getPlatform() === 'android') {
-    await dismissAndroidAnrIfPresent();
+    await dismissAndroidAnrIfPresent(adbDismissAnrArgs);
   }
   await device.launchApp({
     newInstance: false,
@@ -193,7 +195,7 @@ async function recoverLaunch(serverUrl, workspaceId) {
   await device.disableSynchronization();
 }
 
-async function dismissAndroidAnrIfPresent() {
+async function dismissAndroidAnrIfPresent(adbDismissAnrArgs) {
   const adb = androidAdb();
   if (!adb) return;
   let stdout = '';
@@ -203,7 +205,7 @@ async function dismissAndroidAnrIfPresent() {
     return;
   }
   const line = stdout.split('\n').find(row => row.includes('mCurrentFocus')) ?? '';
-  for (const args of harness.adbDismissAnrArgs(line)) {
+  for (const args of adbDismissAnrArgs(line)) {
     try {
       await execFileAsync(adb, args, { timeout: 5_000 });
     } catch {
