@@ -33,30 +33,30 @@ public class AuthenticationApiClientTests
         using var http = new DisposableTestHttpClient(_ => Json(HttpStatusCode.Unauthorized, "{}"));
         var client = new AuthenticationApiClient(http.Client);
 
-        var exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await client.LoginAsync("wrong"));
         Assert.That(exception!.Message, Is.EqualTo("The admin password is incorrect."));
     }
 
     [Test]
-    public void IsAuthenticationRequiredAsync_ThrowsWhenThePayloadIsInvalid()
+    public async Task IsAuthenticationRequiredAsync_ThrowsWhenThePayloadIsInvalid()
     {
         using var http = new DisposableTestHttpClient(_ => Json(HttpStatusCode.OK, "null"));
         var client = new AuthenticationApiClient(http.Client);
 
-        var exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await client.IsAuthenticationRequiredAsync());
         Assert.That(exception!.Message, Is.EqualTo("Invalid authentication status response."));
     }
 
     [Test]
-    public void LoginAsync_ThrowsWhenTheServerOmitsAnAccessToken()
+    public async Task LoginAsync_ThrowsWhenTheServerOmitsAnAccessToken()
     {
         using var http = new DisposableTestHttpClient(_ =>
             Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
         var client = new AuthenticationApiClient(http.Client);
 
-        var exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await client.LoginAsync("secret"));
         Assert.That(exception!.Message, Is.EqualTo("The server did not return an access token."));
     }

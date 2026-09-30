@@ -103,11 +103,11 @@ public sealed class WebViewFilePickerProviderTests
     // being read. Reading it whole first and rejecting it afterwards would let a single
     // selection exhaust Desktop's memory before the limit ever applied.
     [Test]
-    public void ReadBoundedContentAsync_refusesAnOversizedStreamBeforeBufferingAllOfIt()
+    public async Task ReadBoundedContentAsync_refusesAnOversizedStreamBeforeBufferingAllOfIt()
     {
         using var source = new CountingStream(null, 512L * 1024 * 1024);
 
-        Assert.ThrowsAsync<InvalidDataException>(() => WebViewFilePickerProvider.ReadBoundedContentAsync(
+        await Assert.ThrowsAsync<InvalidDataException>(() => WebViewFilePickerProvider.ReadBoundedContentAsync(
             source,
             WebViewFilePickerProvider.MaximumFileBytes));
 

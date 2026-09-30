@@ -28,7 +28,7 @@ public sealed class WorkspaceCloneApiClientTests
     }
 
     [Test]
-    public void CloneAsync_surfacesTheServerProblemDetail()
+    public async Task CloneAsync_surfacesTheServerProblemDetail()
     {
         using var handler = new RecordingCloneHandler(
             HttpStatusCode.BadRequest,
@@ -36,7 +36,7 @@ public sealed class WorkspaceCloneApiClientTests
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var client = new WorkspaceApiClient(http);
 
-        var exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await client.CloneAsync(new CloneSourceRequestDto("https://example.test/acme/widgets.git", "--x")));
 
         Assert.That(exception!.Message, Is.EqualTo("Branch must be a valid Git branch name."));
