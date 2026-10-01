@@ -174,7 +174,16 @@ public sealed class ExternalBearerSigningKeyProvider
     private static IReadOnlyCollection<string>? ParseAlgorithms(string? value)
     {
         var algorithms = value?.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        return algorithms is { Length: > 0 } ? algorithms : null;
+        if (algorithms is not { Length: > 0 })
+            return null;
+
+        if (algorithms.Any(algorithm => string.Equals(algorithm, "none", StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException(
+                "AGENTUP_EXTERNAL_ALGORITHMS cannot include the unsecured 'none' algorithm.");
+        }
+
+        return algorithms;
     }
 
     private static IReadOnlyCollection<string> DefaultAlgorithms(SecurityKey? key, string? jwksUri)

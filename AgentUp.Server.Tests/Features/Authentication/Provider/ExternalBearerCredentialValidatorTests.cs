@@ -209,6 +209,16 @@ public sealed class ExternalBearerCredentialValidatorTests
     }
 
     [Test]
+    public void Constructor_RejectsNoneInExplicitAlgorithmAllowlist()
+    {
+        var settings = Settings(("AGENTUP_EXTERNAL_ALGORITHMS", "RS256, none"));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => CreateValidator(settings));
+
+        Assert.That(exception!.Message, Does.Contain("cannot include the unsecured 'none' algorithm"));
+    }
+
+    [Test]
     public async Task Validate_HonorsExplicitAlgorithmAllowlist()
     {
         using var rsa = RSA.Create(2048);

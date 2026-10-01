@@ -34,6 +34,7 @@ public sealed class ExternalBearerCredentialValidator : ICredentialValidator
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateIssuerSigningKey = true,
+            RequireSignedTokens = true,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromSeconds(30)
         };
