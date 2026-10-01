@@ -146,7 +146,7 @@
         {
           "id": "choice",
           "title": "Choice row",
-          "note": "A tappable card is a button, not a card wrapped in a platform button. The generated Button style owns radius, fill, hover, and disabled opacity so Avalonia cannot paint a square around the row.",
+          "note": "A tappable card is a button, not a card wrapped in a platform button. The generated Button style owns radius, fill, hover, and disabled opacity so Avalonia cannot paint a square around the row. The current choice takes the selected tint plus a 2px accent rule.",
           "avalonia": "Button",
           "desktopClass": "",
           "desktopHost": "",
@@ -154,10 +154,11 @@
           "classes": [
             "au-stack",
             "au-choice",
+            "au-choice--selected",
             "au-accent",
             "au-muted"
           ],
-          "html": "<div class=\"au-stack\">\n        <button class=\"au-choice\" type=\"button\">Codex <span class=\"au-accent\">Available</span></button>\n        <button class=\"au-choice\" type=\"button\" disabled>Cursor <span class=\"au-muted\">Not installed</span></button>\n      </div>"
+          "html": "<div class=\"au-stack\">\n        <button class=\"au-choice au-choice--selected\" type=\"button\">Codex <span class=\"au-accent\">Available</span></button>\n        <button class=\"au-choice\" type=\"button\" disabled>Cursor <span class=\"au-muted\">Not installed</span></button>\n      </div>"
         },
         {
           "id": "chat-thought",
@@ -972,12 +973,12 @@
     {
       "id": "auth",
       "title": "Sign-in and first-run",
-      "intro": "Authentication is a quiet raised card on the canvas. Green is the Sign in action and the small mark, not the card outline.",
+      "intro": "Authentication is a pane on the canvas, not a grey overlay. Green is the Connect action and the current server, not the pane fill.",
       "components": [
         {
           "id": "sign-in",
-          "title": "Sign-in card",
-          "note": "The focused field uses platform/focus blue. The card border stays neutral.",
+          "title": "Sign-in pane",
+          "note": "The pane is compact on canvas. Saved-server URLs ellipsize; the title tooltip holds the full URL. The saved list scrolls. Rows do not display credential state; selecting a saved server applies a stored sign-in.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -987,11 +988,17 @@
             "au-stack",
             "au-eyebrow",
             "au-page-title",
+            "au-muted",
             "au-field-label",
             "au-input",
+            "au-sign-in-list",
+            "au-choice",
+            "au-choice--compact",
+            "au-choice--selected",
+            "au-choice-label",
             "au-button"
           ],
-          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Desktop</p>\n        <h2 class=\"au-page-title\">Sign in</h2>\n        <span class=\"au-field-label\">Admin password</span>\n        <input class=\"au-input\" placeholder=\"Administrator password\" />\n        <button class=\"au-button\" type=\"button\">Sign in</button>\n      </form>"
+          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Server</p>\n        <h2 class=\"au-page-title\">Connect to server</h2>\n        <p class=\"au-muted\">Choose a saved server or enter a URL.</p>\n        <span class=\"au-field-label\">Server URL</span>\n        <input class=\"au-input\" placeholder=\"http://localhost:5000\" />\n        <span class=\"au-field-label\">Saved servers</span>\n        <div class=\"au-sign-in-list\">\n          <button class=\"au-choice au-choice--compact au-choice--selected\" type=\"button\" title=\"http://127.0.0.1:9\"><span class=\"au-choice-label\">Demo</span></button>\n          <button class=\"au-choice au-choice--compact\" type=\"button\" title=\"https://agent-up.massivecreationlab.com\"><span class=\"au-choice-label\">https://agent-up.massivecreationlab.com</span></button>\n        </div>\n        <button class=\"au-button\" type=\"button\">Connect</button>\n      </form>"
         },
         {
           "id": "tutorial",

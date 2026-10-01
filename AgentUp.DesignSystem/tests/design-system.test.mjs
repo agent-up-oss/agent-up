@@ -238,7 +238,7 @@ test('Git change list uses catalog status glyphs instead of restyled rows', asyn
   assert.match(axaml, /Classes="gitChangeName"/);
   assert.match(axaml, /Classes="au-git-status"/);
   assert.match(axaml, /Classes="au-git-tree-guide"/);
-  assert.match(axaml, /Classes="au-git-tree-toggle"/);
+  assert.match(axaml, /Classes="au-git-tree-toggle/);
   const mobile = await readFile(resolve(repository, 'AgentUp.Mobile/src/features/git/components/GitChangeRow.tsx'), 'utf8');
   assert.match(mobile, /auBox\('gitRow'\)/);
   assert.match(mobile, /auBox\('gitTreeGuide'\)/);
@@ -260,6 +260,38 @@ test('tappable cards are catalog buttons instead of local picker chrome', async 
   assert.doesNotMatch(axaml, /agentPickerButton/);
   const mobile = await readFile(resolve(repository, 'AgentUp.Chat/src/components/AgentChatScreen.tsx'), 'utf8');
   assert.match(mobile, /auBox\('choice'\)/);
+});
+
+test('sign-in is a pane on the canvas rather than a grey overlay', async () => {
+  const signIn = agentUpTheme.components.signIn;
+  assert.equal(signIn.backgroundColor, agentUpTheme.colors.surface);
+  assert.notEqual(signIn.backgroundColor, agentUpTheme.colors.surfaceOverlay);
+  assert.equal(agentUpTheme.components.choiceSelected.backgroundColor, agentUpTheme.colors.surfaceSelectedSoft);
+  assert.equal(agentUpTheme.components.choiceSelected.borderLeftColor, agentUpTheme.colors.accentLine);
+  assert.match(avaloniaStyles, /Selector="Border\.au-sign-in"/);
+  assert.match(avaloniaStyles, /Selector="Button\.au-choice--selected"/);
+  assert.match(avaloniaStyles, /Selector="Button\.au-choice--compact"/);
+  assert.match(avaloniaStyles, /Selector="TextBlock\.au-choice-label"/);
+  const axaml = await readFile(resolve(repository, 'AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml'), 'utf8');
+  assert.match(axaml, /x:Name="SavedServerList"/);
+  assert.match(axaml, /ItemsSource="\{Binding Login\.SavedServers\}"[\s\S]*?Classes="au-choice au-choice--compact"/);
+  assert.match(axaml, /ItemsSource="\{Binding Login\.SavedServers\}"[\s\S]*?TextTrimming="CharacterEllipsis"/);
+  assert.match(axaml, /ItemsSource="\{Binding Login\.SavedServers\}"[\s\S]*?ToolTip\.Tip="\{Binding Url\}"/);
+  const mobile = await readFile(resolve(repository, 'AgentUp.Mobile/src/features/servers/components/ServerSetupScreen.tsx'), 'utf8');
+  assert.match(mobile, /auBox\('signIn'\)/);
+  assert.match(mobile, /auBox\('choice', 'choiceCompact'\)/);
+  assert.match(mobile, /auBox\('choiceSelected'\)/);
+  assert.match(mobile, /auText\('choiceLabel'\)/);
+  assert.match(mobile, /numberOfLines=\{1\}/);
+  const example = catalog.surfaces.find(surface => surface.id === 'auth')?.components.find(item => item.id === 'sign-in');
+  assert.ok(example?.html.includes('au-choice au-choice--compact au-choice--selected'));
+  assert.ok(example?.html.includes('au-sign-in-list'));
+  assert.ok(example?.html.includes('au-choice-label'));
+  assert.ok(example?.html.includes('title="https://agent-up.massivecreationlab.com"'));
+  assert.doesNotMatch(example?.html ?? '', /Saved sign-in|No saved sign-in/);
+  assert.doesNotMatch(axaml, /Saved sign-in|No saved sign-in|In-app demo/);
+  assert.doesNotMatch(mobile, /Saved sign-in|No saved sign-in/);
+  assert.doesNotMatch(example?.html ?? '', /au-overlay-panel/);
 });
 
 test('Mobile does not rebuild catalog fills from color tokens', async () => {

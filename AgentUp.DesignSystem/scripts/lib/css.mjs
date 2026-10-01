@@ -122,15 +122,15 @@ export function parseSelector(selector) {
 
 export function inferAvaloniaType(className) {
   if (className === 'au-theme') return 'Window';
-  if (/^au-button(?:--|$)|au-chip(?:--|$)|au-tab(?:--|$)|au-chrome-button|au-title-tool|au-workspace-delete|au-workspace-add|au-lifecycle-button|au-browser-button|au-page-jump|au-db-run|au-tutorial-button|au-app-tab|au-subtab|au-nav-tab|au-session-logout|au-choice|au-chat-thought$|au-chat-run$|au-git-log-ref(?:--|$)|au-file-viewer-jump$|au-git-tree-toggle(?:--|$)/.test(className)) {
+  if (/^au-button(?:--|$)|au-chip(?:--|$)|au-tab(?:--|$)|au-chrome-button|au-title-tool|au-workspace-delete|au-workspace-add|au-lifecycle-button|au-browser-button|au-page-jump|au-db-run|au-tutorial-button|au-app-tab|au-subtab|au-nav-tab|au-session-logout|au-choice(?:--|$)|au-chat-thought$|au-chat-run$|au-git-log-ref(?:--|$)|au-file-viewer-jump$|au-git-tree-toggle(?:--|$)/.test(className)) {
     return 'Button';
   }
   if (/(au-input|au-address-bar|au-code-editor|au-console|au-code$|au-file-viewer-goto$)/.test(className)) return 'TextBox';
-  if (/(au-eyebrow|au-display|au-title|au-page-title|au-heading|au-lede|au-muted|au-mono|au-accent|au-field-label|au-chrome-icon|au-chrome-title|au-workspace-name|au-workspace-branch|au-git-change-name|au-git-status|au-git-insertions|au-git-deletions|au-git-log-subject|au-git-log-author|au-git-log-time|au-file-viewer-path|au-file-viewer-status|au-file-viewer-gutter|au-file-viewer-code|au-file-viewer-prefix|au-syntax-|au-logo-lockup|au-do-dont__label|au-chat-thought-body)/.test(className)) return 'TextBlock';
+  if (/(au-eyebrow|au-display|au-title|au-page-title|au-heading|au-lede|au-muted|au-mono|au-accent|au-field-label|au-chrome-icon|au-chrome-title|au-workspace-name|au-workspace-branch|au-choice-label|au-git-change-name|au-git-status|au-git-insertions|au-git-deletions|au-git-log-subject|au-git-log-author|au-git-log-time|au-file-viewer-path|au-file-viewer-status|au-file-viewer-gutter|au-file-viewer-code|au-file-viewer-prefix|au-syntax-|au-logo-lockup|au-do-dont__label|au-chat-thought-body)/.test(className)) return 'TextBlock';
   return 'Border';
 }
 
 export const layoutOnly = new Set([
   'au-container', 'au-stack', 'au-cluster', 'au-grid', 'au-section', 'au-reading',
-  'au-marketing-hero', 'au-nav-icon',
+  'au-marketing-hero', 'au-nav-icon', 'au-sign-in-list',
 ]);

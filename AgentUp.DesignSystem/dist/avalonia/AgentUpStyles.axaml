@@ -117,6 +117,30 @@
   <Style Selector="Button.au-choice:disabled">
     <Setter Property="Opacity" Value="0.45"/>
   </Style>
+  <Style Selector="Button.au-choice--selected">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedSoftBrush}"/>
+    <Setter Property="BorderThickness" Value="2,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+  </Style>
+  <Style Selector="Button.au-choice--selected /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedSoftBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+  </Style>
+  <Style Selector="Button.au-choice--selected:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+  </Style>
+  <Style Selector="Button.au-choice--selected:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+  </Style>
+  <Style Selector="Button.au-choice--compact">
+    <Setter Property="Padding" Value="12,8"/>
+  </Style>
+  <Style Selector="Button.au-choice--compact /template/ ContentPresenter">
+    <Setter Property="Padding" Value="12,8"/>
+  </Style>
+  <Style Selector="TextBlock.au-choice-label">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
   <Style Selector="Button.au-button">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeight}"/>
     <Setter Property="Padding" Value="24,12"/>
@@ -1530,16 +1554,16 @@
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorStatusWarningBrush}"/>
   </Style>
   <Style Selector="Border.au-sign-in">
-    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness6}"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceOverlayBrush}"/>
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness5}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusXl}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-sign-in">
-    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness6}"/>
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness5}"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceOverlayBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
   </Style>
   <Style Selector="Border.au-tutorial-button">
     <Setter Property="Padding" Value="12,8"/>
