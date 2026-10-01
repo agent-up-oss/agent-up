@@ -4,5 +4,5 @@ namespace AgentUp.Server.Features.Authentication.Interfaces;
 
 public interface ICredentialValidator
 {
-    AuthenticatedPrincipal? Validate(string? token);
+    Task<AuthenticatedPrincipal?> ValidateAsync(string? token, CancellationToken cancellationToken = default);
 }

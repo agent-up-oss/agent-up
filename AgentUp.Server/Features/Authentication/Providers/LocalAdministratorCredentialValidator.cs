@@ -7,11 +7,12 @@ namespace AgentUp.Server.Features.Authentication.Providers;
 public sealed class LocalAdministratorCredentialValidator(AuthenticationProvider authentication)
     : ICredentialValidator
 {
-    public AuthenticatedPrincipal? Validate(string? token)
+    public Task<AuthenticatedPrincipal?> ValidateAsync(string? token, CancellationToken cancellationToken = default)
     {
         if (!authentication.IsAuthenticated(token))
-            return null;
+            return Task.FromResult<AuthenticatedPrincipal?>(null);
 
-        return new AuthenticatedPrincipal("admin", tenant: null, workspace: null, OperationPermissions.All);
+        return Task.FromResult<AuthenticatedPrincipal?>(
+            new AuthenticatedPrincipal("admin", tenant: null, workspace: null, OperationPermissions.All));
     }
 }

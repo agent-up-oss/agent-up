@@ -99,6 +99,7 @@ public static class ServiceRegistration
 {
     public static void Configure(WebApplicationBuilder builder, string dataDir)
     {
+        ExternalBearerSigningKeyProvider.ValidateConfiguration(builder.Configuration);
         builder.Services.AddControllers(options => options.Conventions.Add(new OperationPermissionConvention()))
             .AddApplicationPart(typeof(ServiceRegistration).Assembly)
             .AddJsonOptions(opts =>
@@ -108,6 +109,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<AuthenticationProvider>();
         builder.Services.AddSingleton<AuthenticationModeProvider>();
         builder.Services.AddSingleton<LocalAdministratorCredentialValidator>();
+        builder.Services.AddHttpClient<ExternalBearerSigningKeyProvider>();
         builder.Services.AddSingleton<ExternalBearerCredentialValidator>();
         builder.Services.AddSingleton<CredentialValidationService>();
         builder.Services.AddSingleton<AuthenticationService>();

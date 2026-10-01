@@ -44,7 +44,12 @@ export function serverEnvironment({ profiles, binDir, idpUrl, publicOrigin, data
     ASPNETCORE_URLS: urls,
     // The subject under test is agent sign-in, not Server sign-in.
     AGENTUP_AUTH_DISABLED: 'true',
-    AGENTUP_DATA_DIR: dataDir,
+    // ASP.NET maps Storage:DataDirectory from this double-underscore name. A made-up
+    // AGENTUP_DATA_DIR is ignored, every worker then writes workspaces.json under the same
+    // LocalApplicationData/AgentUp path, and a parallel stack can File.Move the .tmp away
+    // while another still has it open - which is how installable-web reported a 500 on
+    // workspace registration while the other scenarios on the same run passed.
+    Storage__DataDirectory: dataDir,
     AGENTUP_TEST_IDP_URL: idpUrl,
     AGENTUP_TEST_IDP_PUBLIC_ORIGIN: publicOrigin,
   };

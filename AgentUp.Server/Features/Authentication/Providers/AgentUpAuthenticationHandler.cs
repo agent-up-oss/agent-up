@@ -15,7 +15,7 @@ public sealed class AgentUpAuthenticationHandler(
 {
     public const string SchemeName = "AgentUpBearer";
 
-    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+    protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var authorization = Request.Headers.Authorization.ToString();
         const string prefix = "Bearer ";
@@ -24,9 +24,9 @@ public sealed class AgentUpAuthenticationHandler(
             : WebSocketAuthenticationProtocol.ReadToken(
                 Request.HttpContext.WebSockets.IsWebSocketRequest,
                 Request.Headers.SecWebSocketProtocol.ToString());
-        var principal = credentials.Validate(token);
+        var principal = await credentials.ValidateAsync(token, Context.RequestAborted);
         if (principal is null)
-            return Task.FromResult(AuthenticateResult.NoResult());
+            return AuthenticateResult.NoResult();
 
         var claims = new List<Claim>
         {
@@ -40,6 +40,6 @@ public sealed class AgentUpAuthenticationHandler(
         claims.AddRange(principal.Permissions.Select(permission => new Claim("permissions", permission)));
 
         var identity = new ClaimsIdentity(claims, SchemeName);
-        return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName)));
+        return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName));
     }
 }
