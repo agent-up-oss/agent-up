@@ -76,6 +76,7 @@ public sealed class DebugArgParserTests
         Assert.That(command.PagePath, Is.Null);
         Assert.That(command.Heading, Is.Null);
         Assert.That(command.FullPage, Is.False);
+        Assert.That(command.Live, Is.False);
     }
 
     [Test]
@@ -252,5 +253,54 @@ public sealed class DebugArgParserTests
     {
         var (_, error) = _parser.Parse(["desktop", "screenshot", "extra"]);
         Assert.That(error, Does.Contain("does not take extra arguments"));
+    }
+
+    [Test]
+    public void Parse_screenshotsPersist_usesLongerTimeout()
+    {
+        var (command, error) = _parser.Parse(["screenshots", "persist"]);
+
+        Assert.That(error, Is.Null);
+        Assert.That(command!.Verb, Is.EqualTo("screenshots"));
+        Assert.That(command.Action, Is.EqualTo("persist"));
+        Assert.That(command.Timeout, Is.EqualTo(TimeSpan.FromSeconds(DebugLayout.ScreenshotsTimeoutSeconds)));
+        Assert.That(command.Live, Is.False);
+    }
+
+    [Test]
+    public void Parse_screenshotsValidateLive()
+    {
+        var (command, error) = _parser.Parse(["screenshots", "validate", "--live"]);
+
+        Assert.That(error, Is.Null);
+        Assert.That(command!.Action, Is.EqualTo("validate"));
+        Assert.That(command.Live, Is.True);
+    }
+
+    [Test]
+    public void Parse_screenshotsDesktopView()
+    {
+        var (command, error) = _parser.Parse(["screenshots", "desktop", "git"]);
+
+        Assert.That(error, Is.Null);
+        Assert.That(command!.Action, Is.EqualTo("desktop"));
+        Assert.That(command.View, Is.EqualTo("git"));
+        Assert.That(command.Timeout, Is.EqualTo(TimeSpan.FromSeconds(DebugLayout.DefaultTimeoutSeconds)));
+    }
+
+    [Test]
+    public void Parse_liveOnlyForScreenshotsValidate()
+    {
+        var (_, persist) = _parser.Parse(["screenshots", "persist", "--live"]);
+        var (_, status) = _parser.Parse(["status", "--live"]);
+        Assert.That(persist, Does.Contain("only valid for screenshots validate"));
+        Assert.That(status, Does.Contain("only valid for screenshots validate"));
+    }
+
+    [Test]
+    public void Parse_screenshotsUnknownAction_returnsError()
+    {
+        var (_, error) = _parser.Parse(["screenshots", "explode"]);
+        Assert.That(error, Does.Contain("unknown screenshots action"));
     }
 }

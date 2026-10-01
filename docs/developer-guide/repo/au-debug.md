@@ -41,6 +41,10 @@ Cold Desktop compiles can exceed 30 seconds. Pass `--timeout 120` for those runs
 ./au-debug docs screenshot
 ./au-debug docs screenshot /docs/workspaces --full-page
 ./au-debug docs screenshot /developer-guide/workspaces --heading "Orchestration MCP"
+./au-debug screenshots persist
+./au-debug screenshots validate
+./au-debug screenshots desktop git
+./au-debug screenshots mobile apps
 ./au-debug desktop login
 ./au-debug mobile login
 ./au-debug desktop start-workspace Agent-Up
@@ -52,6 +56,22 @@ Cold Desktop compiles can exceed 30 seconds. Pass `--timeout 120` for those runs
 `status` probes the hosted Server, Mobile, and docs URLs and checks that the Desktop window is present. Do not curl those ports or call `xdotool` from the shell; those checks belong inside `au-debug`.
 
 `docs screenshot` captures the hosted Docusaurus site after `up` is ready. With no path it captures `/docs/`. Pass a site path under `/docs/`, `/developer-guide/`, or `/design-system` to inspect one page. `--heading` scrolls that heading into the 1440x900 viewport before capture. `--full-page` captures the whole document. Both flags can be used together.
+
+## Product screenshots
+
+Docs and README images of Desktop and Mobile are rendered from the design-system catalog, not reconstructed marketing HTML. `au-debug screenshots persist` writes every major view into `media/`, and copies the Desktop applications hero to `media/screenshot.png`. Updating those images is that one command after `au-debug build design-system`.
+
+`au-debug screenshots validate` is the identity gate: each scene may only use catalog `au-*` classes plus screenshot shell layout, must include FakeServer Demo copy that the real apps show, and must cite Desktop `Classes` / Mobile `auBox` names that exist in the named app sources. It then re-renders each scene through Chromium and pixel-matches the files in `media/`. `--live` also dumps hosted Mobile Demo pages after `au-debug up` and requires that same copy.
+
+```bash
+./au-debug screenshots persist
+./au-debug screenshots validate
+./au-debug screenshots validate --live
+./au-debug screenshots desktop
+./au-debug screenshots mobile review
+```
+
+`persist` and `validate` default to a 180 second watchdog.
 
 ## Tests and builds
 

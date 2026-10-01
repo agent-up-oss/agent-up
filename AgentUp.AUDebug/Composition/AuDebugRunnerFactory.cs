@@ -11,6 +11,9 @@ using AgentUp.AUDebug.Features.Host.Services;
 using AgentUp.AUDebug.Features.Mobile.Controllers;
 using AgentUp.AUDebug.Features.Mobile.Providers;
 using AgentUp.AUDebug.Features.Mobile.Services;
+using AgentUp.AUDebug.Features.Screenshots.Controllers;
+using AgentUp.AUDebug.Features.Screenshots.Providers;
+using AgentUp.AUDebug.Features.Screenshots.Services;
 using AgentUp.AUDebug.Features.Test.Controllers;
 using AgentUp.AUDebug.Features.Test.Providers;
 using AgentUp.AUDebug.Features.Test.Services;
@@ -67,6 +70,17 @@ public static class AuDebugRunnerFactory
                 new DebugTestSuiteCatalog(),
                 new DebugTestProcessRunner(processes, paths),
                 writer));
-        return new HostController(host, desktop, mobile, docs, tests, new DebugArgParser(), outputService);
+        var screenshotMedia = new ScreenshotMediaStore(paths);
+        var screenshotsController = new ScreenshotsController(
+            new ScreenshotCommandService(
+                new ScreenshotManifestStore(paths),
+                screenshotMedia,
+                screenshots,
+                new ScreenshotAppContractProvider(paths, screenshotMedia),
+                new ScreenshotPngComparer(),
+                new ChromiumLiveAppProbe(processes, environment, paths),
+                sessions,
+                probe));
+        return new HostController(host, desktop, mobile, docs, tests, screenshotsController, new DebugArgParser(), outputService);
     }
 }

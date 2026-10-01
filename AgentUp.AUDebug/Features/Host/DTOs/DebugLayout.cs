@@ -5,7 +5,11 @@ public static class DebugLayout
     public const int DefaultTimeoutSeconds = 30;
     public const int TestTimeoutSeconds = 180;
     public const int TestAllTimeoutSeconds = 600;
+    public const int ScreenshotsTimeoutSeconds = 180;
     public const int MaxTimeoutSeconds = 600;
+    public const int ScreenshotMaxChannelDelta = 0;
+    public const int DesktopScreenshotWidth = 1440;
+    public const int DesktopScreenshotHeight = 900;
     public const string ServerUrl = "http://127.0.0.1:5001";
     public const string DocsUrl = "http://127.0.0.1:10100";
     public const string DocsPath = "/design-system";

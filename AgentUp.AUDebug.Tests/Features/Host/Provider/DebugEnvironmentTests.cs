@@ -68,4 +68,24 @@ public sealed class DebugEnvironmentTests
             Environment.SetEnvironmentVariable("AGENTUP_ADMIN_PASSWORD", previous);
         }
     }
+
+    [Test]
+    public void FindChromium_skipsShellWrapper()
+    {
+        var directory = Path.Join(Path.GetTempPath(), "au-debug-chrome", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Join(directory, "google-chrome"), "#!/bin/bash\nexec true --remote-debugging-port=9222\n");
+        var stable = Path.Join(directory, "google-chrome-stable");
+        File.WriteAllText(stable, "#!/bin/bash\nexec chrome \"$@\"\n");
+        var previous = Environment.GetEnvironmentVariable("PATH");
+        try
+        {
+            Environment.SetEnvironmentVariable("PATH", directory);
+            Assert.That(new DebugEnvironment().FindChromium(), Is.EqualTo(stable));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("PATH", previous);
+        }
+    }
 }

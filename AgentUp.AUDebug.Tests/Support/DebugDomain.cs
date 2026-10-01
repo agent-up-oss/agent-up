@@ -27,6 +27,9 @@ internal static class DebugDomain
     /// <summary>A command against a surface: the verb and the surface are the same word.</summary>
     public static DebugCommandDtoBuilder Command(string surface) => new(surface, surface);
 
+    /// <summary>A screenshots persist/validate/capture command.</summary>
+    public static DebugCommandDtoBuilder Screenshots(string action) => new DebugCommandDtoBuilder("screenshots", action).Doing(action);
+
     /// <summary>A command with no surface, such as <c>test</c> or <c>build</c>.</summary>
     public static DebugCommandDtoBuilder Verb(string verb) => new(verb, null);
 }

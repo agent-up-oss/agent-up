@@ -54,6 +54,15 @@ public sealed class DebugOutputService
                                          Use --heading <text> to scroll a heading into view, --full-page
                                          to capture the whole document instead of the 1440x900 viewport.
 
+            Screenshots:
+              screenshots persist        Render every Desktop and Mobile product view from the design-system
+                                         catalog and write PNGs into media/, including media/screenshot.png.
+              screenshots validate       Prove those PNGs are catalog classes plus FakeServer copy that the
+                                         real apps use, then regenerate and pixel-match media/. --live also
+                                         checks hosted Mobile Demo copy after au-debug up.
+              screenshots desktop [view] Capture one or every Desktop design-system view.
+              screenshots mobile [view]  Capture one or every Mobile design-system view.
+
             Tests:
               test                       Run every visual-iteration suite.
               test all                   Same as test.
@@ -68,11 +77,13 @@ public sealed class DebugOutputService
 
             Options:
               --timeout <seconds>        Watchdog for readiness, tests, and one-shot commands.
-                                         Default 30s; test and build default to 180s, all to 600s.
+                                         Default 30s; test, build, and screenshots persist/validate
+                                         default to 180s, all to 600s.
               --detach                   After up is ready, return without following logs.
               --password <pw>            Admin password for login commands (else $AGENTUP_ADMIN_PASSWORD).
               --heading <text>           Scroll that heading into view (docs screenshot).
               --full-page                Capture the whole docs page, not just the viewport.
+              --live                     Also check hosted Mobile Demo copy (screenshots validate).
             """);
         return 0;
     }

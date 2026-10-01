@@ -61,9 +61,7 @@ public sealed class ChromiumDocsPageDriver : IDocsPageCapture
             $"--window-size={DebugLayout.DocsViewportWidth},{DebugLayout.DocsViewportHeight}",
             url
         };
-        var chromium = _environment.FindOnPath("chromium")
-                       ?? _environment.FindOnPath("chromium-browser")
-                       ?? _environment.FindOnPath("google-chrome");
+        var chromium = _environment.FindChromium();
         if (chromium is not null)
             return new AllowlistedCommand(Path.GetFileName(chromium), args, _paths.RepositoryRoot);
 

@@ -320,7 +320,7 @@ Android and iOS native CI and store shipping are documented in [Mobile store rel
 
 `AgentUp.CLI` is a developer convenience wrapper. It forwards commands to the Server and owns no runtime or orchestration state. `agent-up start` forwards legacy `applications`, `desktopApplications`, and `services` plus every other `agent-up.json` root array as `runtimeSections`; the Server binds those names to enabled runtime-kind modules. The legacy local commit queue file is the documented exception until `commits.enabled` migration finishes.
 
-`AgentUp.AUDebug` (`au-debug`) is a maintainer visual-debug CLI. It hosts the repository Desktop, Mobile web export, and docs site for screenshot and UI-flow inspection. It is not packaged and does not own Server orchestration. See [AUDebug](au-debug.md).
+`AgentUp.AUDebug` (`au-debug`) is a maintainer visual-debug CLI. It hosts the repository Desktop, Mobile web export, and docs site for screenshot and UI-flow inspection. Product screenshots of Desktop and Mobile are rendered from the design-system catalog into `media/` by `au-debug screenshots persist`. `au-debug screenshots validate` proves those shots use catalog classes, FakeServer Demo copy, and the Desktop `Classes` / Mobile `auBox` names the apps ship. It is not packaged and does not own Server orchestration. See [AUDebug](au-debug.md).
 
 `LocalInstaller.Core` owns testable installer prerequisite, component-selection, payload, adapter, progress, PATH, validation, and uninstall planning contracts. Native package assets consume or mirror those contracts.
 

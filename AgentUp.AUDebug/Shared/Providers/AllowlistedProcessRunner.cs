@@ -12,6 +12,7 @@ public sealed class AllowlistedProcessRunner : IAllowlistedProcessRunner
         "chromium-browser",
         "dotnet",
         "google-chrome",
+        "google-chrome-stable",
         "import",
         "kill",
         "nix-shell",

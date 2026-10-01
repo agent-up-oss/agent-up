@@ -8,6 +8,8 @@ using AgentUp.AUDebug.Features.Host.Providers;
 using AgentUp.AUDebug.Features.Host.Services;
 using AgentUp.AUDebug.Features.Mobile.Controllers;
 using AgentUp.AUDebug.Features.Mobile.Services;
+using AgentUp.AUDebug.Features.Screenshots.Controllers;
+using AgentUp.AUDebug.Features.Screenshots.Services;
 using AgentUp.AUDebug.Features.Test.Controllers;
 using AgentUp.AUDebug.Features.Test.Providers;
 using AgentUp.AUDebug.Features.Test.Services;
@@ -29,6 +31,7 @@ public sealed class HostControllerTests
             Assert.That(exit, Is.EqualTo(0));
             Assert.That(output.ToString(), Does.Contain("Usage: au-debug"));
             Assert.That(output.ToString(), Does.Contain("desktop screenshot"));
+            Assert.That(output.ToString(), Does.Contain("screenshots persist"));
             Assert.That(output.ToString(), Does.Contain("test <suite>"));
         });
     }
@@ -94,6 +97,16 @@ public sealed class HostControllerTests
     }
 
     [Test]
+    public async Task ScreenshotsPersist_routesToScreenshots()
+    {
+        using var output = new StringWriter();
+        var exit = await Controller(output).RunAsync(["screenshots", "persist"]);
+
+        Assert.That(exit, Is.EqualTo(1));
+        Assert.That(output.ToString(), Does.Contain("Screenshot manifest has no scenes"));
+    }
+
+    [Test]
     public async Task Status_routesToHost()
     {
         using var output = new StringWriter();
@@ -152,6 +165,16 @@ public sealed class HostControllerTests
             new DocsCommandService(new FakeDocsPageCapture(), sessions));
         var testController = new TestController(
             new TestCommandService(new DebugTestSuiteCatalog(), tests ?? new FakeTestProcessRunner(), output));
-        return new HostController(host, desktop, mobile, docs, testController, new DebugArgParser(), debugOutput);
+        var screenshots = new ScreenshotsController(
+            new ScreenshotCommandService(
+                new FakeScreenshotManifestStore(),
+                new FakeScreenshotMediaStore(),
+                new FakeWebScreenshotDriver(),
+                new FakeScreenshotAppContract(),
+                new FakeScreenshotPngComparer(),
+                new FakeScreenshotLiveAppProbe(),
+                sessions,
+                probe));
+        return new HostController(host, desktop, mobile, docs, testController, screenshots, new DebugArgParser(), debugOutput);
     }
 }

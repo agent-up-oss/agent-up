@@ -10,6 +10,7 @@ public sealed class DebugArgParser : IDebugArgParser
         int? timeoutSeconds = null;
         var detach = false;
         var fullPage = false;
+        var live = false;
         string? password = null;
         string? heading = null;
         var positionals = new List<string>();
@@ -26,6 +27,12 @@ public sealed class DebugArgParser : IDebugArgParser
             if (arg == "--full-page")
             {
                 fullPage = true;
+                continue;
+            }
+
+            if (arg == "--live")
+            {
+                live = true;
                 continue;
             }
 
@@ -67,7 +74,7 @@ public sealed class DebugArgParser : IDebugArgParser
         if (timeoutSeconds > DebugLayout.MaxTimeoutSeconds)
             return (null, $"Error: --timeout must be between 1 and {DebugLayout.MaxTimeoutSeconds} seconds.");
 
-        return Build(positionals, password, timeoutSeconds, detach, heading, fullPage);
+        return Build(positionals, password, timeoutSeconds, detach, heading, fullPage, live);
     }
 
     private static (DebugCommandDto? Command, string? Error) Build(
@@ -76,17 +83,18 @@ public sealed class DebugArgParser : IDebugArgParser
         int? timeoutSeconds,
         bool detach,
         string? heading,
-        bool fullPage)
+        bool fullPage,
+        bool live)
     {
         if (positionals.Count == 0 || positionals[0] is "help" or "-h")
-            return FinishHelpOrHost("help", timeoutSeconds, password, detach, heading, fullPage);
+            return FinishHelpOrHost("help", timeoutSeconds, password, detach, heading, fullPage, live);
 
         var verb = positionals[0];
         if (verb is "up" or "down" or "status")
         {
             if (positionals.Count > 1)
                 return (null, $"Error: '{verb}' does not take extra arguments.");
-            return FinishHelpOrHost(verb, timeoutSeconds, password, detach, heading, fullPage);
+            return FinishHelpOrHost(verb, timeoutSeconds, password, detach, heading, fullPage, live);
         }
 
         if (heading is not null || fullPage)
@@ -98,6 +106,15 @@ public sealed class DebugArgParser : IDebugArgParser
                 return (null, "Error: --heading and --full-page are only valid for docs screenshot.");
         }
 
+        if (live)
+        {
+            var screenshotsValidate = verb == "screenshots"
+                                      && positionals.Count >= 2
+                                      && positionals[1] == "validate";
+            if (!screenshotsValidate)
+                return (null, "Error: --live is only valid for screenshots validate.");
+        }
+
         if (verb is "test" or "build")
         {
             if (positionals.Count > 2)
@@ -107,6 +124,9 @@ public sealed class DebugArgParser : IDebugArgParser
                 ?? (suite == "all" ? DebugLayout.TestAllTimeoutSeconds : DebugLayout.TestTimeoutSeconds);
             return (new DebugCommandDto(verb, null, null, null, password, TimeSpan.FromSeconds(timeout), detach, suite), null);
         }
+
+        if (verb == "screenshots")
+            return ParseScreenshots(positionals, password, timeoutSeconds, detach, live);
 
         if (verb is not ("desktop" or "mobile" or "docs"))
             return (null, $"Error: unknown command '{verb}'.");
@@ -158,16 +178,63 @@ public sealed class DebugArgParser : IDebugArgParser
             null);
     }
 
+    private static (DebugCommandDto? Command, string? Error) ParseScreenshots(
+        IReadOnlyList<string> positionals,
+        string? password,
+        int? timeoutSeconds,
+        bool detach,
+        bool live)
+    {
+        if (positionals.Count < 2)
+            return (null, "Error: 'screenshots' requires an action.");
+
+        var action = positionals[1];
+        if (action is not ("persist" or "validate" or "desktop" or "mobile"))
+            return (null, $"Error: unknown screenshots action '{action}'.");
+
+        string? view = null;
+        if (action is "desktop" or "mobile")
+        {
+            if (positionals.Count > 3)
+                return (null, $"Error: 'screenshots {action}' takes at most one view name.");
+            view = positionals.Count == 3 ? positionals[2] : null;
+        }
+        else if (positionals.Count > 2)
+        {
+            return (null, $"Error: 'screenshots {action}' does not take extra arguments.");
+        }
+
+        var timeout = timeoutSeconds
+            ?? (action is "persist" or "validate"
+                ? DebugLayout.ScreenshotsTimeoutSeconds
+                : DebugLayout.DefaultTimeoutSeconds);
+        return (
+            new DebugCommandDto(
+                "screenshots",
+                action is "desktop" or "mobile" ? action : "screenshots",
+                action,
+                null,
+                password,
+                TimeSpan.FromSeconds(timeout),
+                detach,
+                View: view,
+                Live: live),
+            null);
+    }
+
     private static (DebugCommandDto? Command, string? Error) FinishHelpOrHost(
         string verb,
         int? timeoutSeconds,
         string? password,
         bool detach,
         string? heading,
-        bool fullPage)
+        bool fullPage,
+        bool live)
     {
         if (heading is not null || fullPage)
             return (null, "Error: --heading and --full-page are only valid for docs screenshot.");
+        if (live)
+            return (null, "Error: --live is only valid for screenshots validate.");
 
         return Command(verb, timeoutSeconds ?? DebugLayout.DefaultTimeoutSeconds, password, detach);
     }
