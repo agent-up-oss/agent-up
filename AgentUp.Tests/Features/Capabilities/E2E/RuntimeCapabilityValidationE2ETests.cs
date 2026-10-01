@@ -283,63 +283,57 @@ public sealed class RuntimeCapabilityValidationE2ETests
     private static string ReadState(JsonElement state) => state.ValueKind switch
     {
         JsonValueKind.String => state.GetString() ?? "unknown",
-        JsonValueKind.Number when state.TryGetInt32(out var value) => value.ToString(),
+        JsonValueKind.Number => state.GetRawText(),
         _ => "unknown"
     };
 
     private static async Task<bool> HasAnyFailedAsync(string workspaceId)
     {
-        foreach (var application in WorkspaceApplications)
-        {
-            if (await HasFailedAsync(workspaceId, application))
-                return true;
-        }
-
-        return false;
+        var failed = await Task.WhenAll(
+            WorkspaceApplications.Select(application => HasFailedAsync(workspaceId, application)));
+        return failed.Any(static value => value);
     }
 
     private static void PrewarmPackedCapabilityShells(string registry)
     {
-        if (!File.Exists("/etc/NIXOS") && string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("AGENTUP_E2E_IMPORT_NIX_SHELL")))
+        if (!File.Exists("/etc/NIXOS")
+            && string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("AGENTUP_E2E_IMPORT_NIX_SHELL"))
+            && string.IsNullOrWhiteSpace(Which("nix-shell")))
         {
-            if (string.IsNullOrWhiteSpace(Which("nix-shell")))
-                return;
+            return;
         }
 
         var packages = Path.Join(registry, "packages");
         if (!Directory.Exists(packages))
             return;
 
-        foreach (var module in new[] { "dotnet", "docker" })
+        var shells = new[] { "dotnet", "docker" }
+            .Select(module => Path.Join(packages, module))
+            .Where(Directory.Exists)
+            .SelectMany(moduleDir => Directory.GetFiles(moduleDir, "default.nix", SearchOption.AllDirectories));
+        foreach (var shellNix in shells)
         {
-            var moduleDir = Path.Join(packages, module);
-            if (!Directory.Exists(moduleDir))
-                continue;
-
-            foreach (var shellNix in Directory.GetFiles(moduleDir, "default.nix", SearchOption.AllDirectories))
+            Stage($"Prewarming packed capability shell {shellNix}.");
+            var start = new ProcessStartInfo
             {
-                Stage($"Prewarming packed capability shell {shellNix}.");
-                var start = new ProcessStartInfo
-                {
-                    FileName = "nix-shell",
-                    UseShellExecute = false
-                };
-                start.ArgumentList.Add(shellNix);
-                start.ArgumentList.Add("--run");
-                start.ArgumentList.Add("true");
-                using var process = Process.Start(start);
-                if (process is null)
-                    continue;
-                if (!process.WaitForExit(TimeSpan.FromMinutes(15)))
-                {
-                    process.Kill(entireProcessTree: true);
-                    Stage($"Prewarming {shellNix} did not finish in 15 minutes; start will pay for that fetch itself.");
-                    continue;
-                }
-
-                if (process.ExitCode != 0)
-                    Stage($"Prewarming {shellNix} exited {process.ExitCode}; start will retry the same shell.");
+                FileName = "nix-shell",
+                UseShellExecute = false
+            };
+            start.ArgumentList.Add(shellNix);
+            start.ArgumentList.Add("--run");
+            start.ArgumentList.Add("true");
+            using var process = Process.Start(start);
+            if (process is null)
+                continue;
+            if (!process.WaitForExit(TimeSpan.FromMinutes(15)))
+            {
+                process.Kill(entireProcessTree: true);
+                Stage($"Prewarming {shellNix} did not finish in 15 minutes; start will pay for that fetch itself.");
+                continue;
             }
+
+            if (process.ExitCode != 0)
+                Stage($"Prewarming {shellNix} exited {process.ExitCode}; start will retry the same shell.");
         }
     }
 
@@ -374,16 +368,10 @@ public sealed class RuntimeCapabilityValidationE2ETests
         if (Path.IsPathRooted(fileName) && File.Exists(fileName))
             return fileName;
 
-        var directories = (Environment.GetEnvironmentVariable("PATH") ?? "")
-            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-        foreach (var directory in directories)
-        {
-            var candidate = Path.Join(directory, fileName);
-            if (File.Exists(candidate))
-                return candidate;
-        }
-
-        return null;
+        return (Environment.GetEnvironmentVariable("PATH") ?? "")
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Select(directory => Path.Join(directory, fileName))
+            .FirstOrDefault(File.Exists);
     }
 
     private static async Task<int> WaitForAllocatedHttpPortAsync(string workspaceId, string application)
