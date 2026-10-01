@@ -177,7 +177,7 @@ public sealed class ExternalBearerSigningKeyProvider
         if (algorithms is not { Length: > 0 })
             return null;
 
-        if (algorithms.Any(algorithm => string.Equals(algorithm, "none", StringComparison.OrdinalIgnoreCase)))
+        if (algorithms.Contains("none", StringComparer.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException(
                 "AGENTUP_EXTERNAL_ALGORITHMS cannot include the unsecured 'none' algorithm.");

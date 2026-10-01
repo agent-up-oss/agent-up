@@ -208,10 +208,12 @@ public sealed class ExternalBearerCredentialValidatorTests
         Assert.That(await CreateValidator().ValidateAsync(new JwtSecurityTokenHandler().WriteToken(token)), Is.Null);
     }
 
-    [Test]
-    public void Constructor_RejectsNoneInExplicitAlgorithmAllowlist()
+    [TestCase("none")]
+    [TestCase("RS256, none")]
+    [TestCase("NoNe,ES256")]
+    public void Constructor_RejectsNoneInExplicitAlgorithmAllowlist(string algorithms)
     {
-        var settings = Settings(("AGENTUP_EXTERNAL_ALGORITHMS", "RS256, none"));
+        var settings = Settings(("AGENTUP_EXTERNAL_ALGORITHMS", algorithms));
 
         var exception = Assert.Throws<InvalidOperationException>(() => CreateValidator(settings));
 
