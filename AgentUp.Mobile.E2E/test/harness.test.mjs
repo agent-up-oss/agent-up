@@ -48,6 +48,19 @@ test('the Server is told each agent command, login command, and the transport it
   assert.equal(environment.AGENTUP_AUTH_DISABLED, 'true');
 });
 
+test('each stack writes Server state into its own data directory', () => {
+  const environment = serverEnvironment({
+    profiles: profilesFor('device'),
+    binDir: '/tmp/bin',
+    idpUrl: 'http://localhost:9000',
+    publicOrigin: 'http://localhost:9000',
+    dataDir: '/tmp/data',
+    urls: 'http://0.0.0.0:9100',
+  });
+
+  assert.equal(environment.Storage__DataDirectory, '/tmp/data');
+});
+
 // The mirror of what the agents do: a link is minted for the person, and neither the agent nor
 // this harness is the person. Both keep the path and drop the host.
 test('the control plane can reach a page the device was pointed at', () => {
