@@ -91,7 +91,7 @@ the picker prompt with no agent buttons.
 
 Native Detox launches the harness through `agent-up-chat://connect` instead of typing into the
 connect form. The method-button tap uses the same 60s visibility budget as the picker and Open:
-iOS can still be laying out after the Server already reports `authentication_required`. Android
+iOS can still be laying out after the Server already reports that sign-in is required. Android
 Fabric's `replaceText` does not update React state, so Connect was a no-op and the suite timed
 out on a picker the chat never mounted. The installable-web suite still fills the form. After
 launch the native suite waits for the picker, the connect form, or the picker
