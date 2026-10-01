@@ -636,8 +636,11 @@ The Server requires authentication by default. `GET /api/auth/status` and
 sign-in. Password login is for `localAdministrator` mode using
 `AGENTUP_ADMIN_PASSWORD`. Set `AGENTUP_AUTH_MODE=externalBearer` to accept a
 signed bearer token instead of the local administrator password; configure
-`AGENTUP_EXTERNAL_ISSUER`, `AGENTUP_EXTERNAL_AUDIENCE`, and
-`AGENTUP_EXTERNAL_SIGNING_KEY`. A token may include `workspace`, `tenant`, and
+`AGENTUP_EXTERNAL_ISSUER`, `AGENTUP_EXTERNAL_AUDIENCE`, and one verification
+source: `AGENTUP_EXTERNAL_SIGNING_KEY` for HMAC, `AGENTUP_EXTERNAL_PUBLIC_KEY`
+for a PEM RSA or EC public key, or `AGENTUP_EXTERNAL_JWKS_URI` for rotating JSON
+Web Keys. `AGENTUP_EXTERNAL_ALGORITHMS` optionally pins a comma-separated
+algorithm allowlist. Exactly one verification source must be configured. A token may include `workspace`, `tenant`, and
 repeated `permissions` claims. When `workspace` is present, the Server refuses
 other workspace ids under `/api/workspaces`.
 

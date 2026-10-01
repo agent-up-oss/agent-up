@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.WebSockets;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using AgentUp.Server;
 using AgentUp.Server.Features.Authentication.DTOs;
@@ -80,6 +81,22 @@ public sealed class ExternalBearerHttpTests
         });
     }
 
+    [Test]
+    public async Task RestRoutes_AcceptExternalBearerTokensSignedWithRsa()
+    {
+        using var rsa = RSA.Create(2048);
+        using var root = new WebApplicationFactory<Program>();
+        using var factory = CreateAsymmetricFactory(root, rsa.ExportSubjectPublicKeyInfoPem());
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            IssueRsaToken(rsa, permissions: [OperationPermissions.WorkspaceRead]));
+
+        var response = await client.GetAsync("/api/workspaces");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+    }
+
     private static WebApplicationFactory<Program> CreateFactory(WebApplicationFactory<Program> root)
         => root.WithWebHostBuilder(builder =>
             builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
@@ -89,6 +106,20 @@ public sealed class ExternalBearerHttpTests
                     ["AGENTUP_EXTERNAL_ISSUER"] = "https://issuer.test",
                     ["AGENTUP_EXTERNAL_AUDIENCE"] = "environment-1",
                     ["AGENTUP_EXTERNAL_SIGNING_KEY"] = SigningKey
+                })));
+
+    private static WebApplicationFactory<Program> CreateAsymmetricFactory(
+        WebApplicationFactory<Program> root,
+        string publicKey)
+        => root.WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["AGENTUP_AUTH_MODE"] = "externalBearer",
+                    ["AGENTUP_EXTERNAL_ISSUER"] = "https://issuer.test",
+                    ["AGENTUP_EXTERNAL_AUDIENCE"] = "environment-1",
+                    ["AGENTUP_EXTERNAL_SIGNING_KEY"] = null,
+                    ["AGENTUP_EXTERNAL_PUBLIC_KEY"] = publicKey
                 })));
 
     private static string IssueToken(
@@ -113,6 +144,20 @@ public sealed class ExternalBearerHttpTests
             signingCredentials: new SigningCredentials(
                 new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SigningKey)),
                 SecurityAlgorithms.HmacSha256));
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static string IssueRsaToken(RSA rsa, IReadOnlyList<string>? permissions = null)
+    {
+        var claims = new List<Claim> { new("sub", "user-1") };
+        foreach (var permission in permissions ?? [])
+            claims.Add(new Claim("permissions", permission));
+        var token = new JwtSecurityToken(
+            "https://issuer.test",
+            "environment-1",
+            claims,
+            expires: DateTime.UtcNow.AddMinutes(5),
+            signingCredentials: new SigningCredentials(new RsaSecurityKey(rsa), SecurityAlgorithms.RsaSha256));
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

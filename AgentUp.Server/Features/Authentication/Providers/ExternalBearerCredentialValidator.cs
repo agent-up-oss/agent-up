@@ -1,5 +1,4 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Text;
 using AgentUp.Server.Features.Authentication.Interfaces;
 using AgentUp.Server.Features.Authentication.Models;
 using Microsoft.IdentityModel.Tokens;
@@ -9,15 +8,18 @@ namespace AgentUp.Server.Features.Authentication.Providers;
 public sealed class ExternalBearerCredentialValidator : ICredentialValidator
 {
     private readonly TokenValidationParameters? _parameters;
+    private readonly ExternalBearerSigningKeyProvider _signingKeys;
 
-    public ExternalBearerCredentialValidator(IConfiguration configuration)
+    public ExternalBearerCredentialValidator(
+        IConfiguration configuration,
+        ExternalBearerSigningKeyProvider signingKeys)
     {
+        _signingKeys = signingKeys;
         var issuer = configuration["AGENTUP_EXTERNAL_ISSUER"];
         var audience = configuration["AGENTUP_EXTERNAL_AUDIENCE"];
-        var signingKey = configuration["AGENTUP_EXTERNAL_SIGNING_KEY"];
         if (string.IsNullOrWhiteSpace(issuer)
             || string.IsNullOrWhiteSpace(audience)
-            || string.IsNullOrWhiteSpace(signingKey))
+            || !signingKeys.IsConfigured)
         {
             _parameters = null;
             return;
@@ -27,7 +29,8 @@ public sealed class ExternalBearerCredentialValidator : ICredentialValidator
         {
             ValidIssuer = issuer,
             ValidAudience = audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
+            IssuerSigningKeyResolver = (_, _, keyId, _) => signingKeys.Resolve(keyId),
+            ValidAlgorithms = signingKeys.Algorithms,
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateIssuerSigningKey = true,
@@ -43,7 +46,7 @@ public sealed class ExternalBearerCredentialValidator : ICredentialValidator
 
         try
         {
-            var principal = new JwtSecurityTokenHandler().ValidateToken(token, _parameters, out _);
+            var principal = ValidateToken(token);
             var subject = principal.FindFirst("sub")?.Value
                 ?? principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(subject))
@@ -56,9 +59,27 @@ public sealed class ExternalBearerCredentialValidator : ICredentialValidator
                 principal.FindFirst("workspace")?.Value,
                 permissions);
         }
-        catch (Exception ex) when (ex is SecurityTokenException or ArgumentException)
+        catch (Exception ex) when (ex is SecurityTokenException
+            or ArgumentException
+            or HttpRequestException
+            or System.Security.Cryptography.CryptographicException)
         {
             return null;
+        }
+    }
+
+    private System.Security.Claims.ClaimsPrincipal ValidateToken(string token)
+    {
+        try
+        {
+            return new JwtSecurityTokenHandler().ValidateToken(token, _parameters!, out _);
+        }
+        catch (SecurityTokenSignatureKeyNotFoundException)
+        {
+            var refreshed = _parameters!.Clone();
+            refreshed.IssuerSigningKeyResolver = (_, _, keyId, _) =>
+                _signingKeys.Resolve(keyId, refreshOnUnknownKey: true);
+            return new JwtSecurityTokenHandler().ValidateToken(token, refreshed, out _);
         }
     }
 }

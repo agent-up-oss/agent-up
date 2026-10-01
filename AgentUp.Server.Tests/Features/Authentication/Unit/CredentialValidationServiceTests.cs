@@ -66,6 +66,8 @@ public sealed class CredentialValidationServiceTests
         return new CredentialValidationService(
             new AuthenticationModeProvider(configuration),
             new LocalAdministratorCredentialValidator(new AuthenticationProvider(configuration)),
-            new ExternalBearerCredentialValidator(configuration));
+            new ExternalBearerCredentialValidator(
+                configuration,
+                new ExternalBearerSigningKeyProvider(configuration, new HttpClient())));
     }
 }
