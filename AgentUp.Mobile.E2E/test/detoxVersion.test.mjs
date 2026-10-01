@@ -64,3 +64,15 @@ test('native platforms launch with Detox synchronisation off', async () => {
     'iOS must launch with detoxEnableSynchronization 0; the chat never goes idle after launch.',
   );
 });
+
+// The Server can report authentication_required before iOS has laid the method buttons out.
+// Detox then logs "Layers needs layout" and a 30s wait expires while the picker and Open still
+// use 60s. Dropping the budget reintroduces that flake on the first (device-code) scenario.
+test('the method-button tap uses the same visibility budget as the picker and Open', () => {
+  const source = readFileSync(new URL('../detox/signIn.test.js', import.meta.url), 'utf8');
+  assert.match(
+    source,
+    /tap\(`agent-auth-method-\$\{methodId\}`, 60_000\)/,
+    'agent-auth-method-* must wait 60s; iOS layout after schedule is slower than the Server HTTP poll.',
+  );
+});
