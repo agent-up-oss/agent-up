@@ -35,4 +35,27 @@ public sealed class ScreenshotMediaStoreTests
 
         Assert.That(File.ReadAllBytes(store.HeroPath()), Is.EqualTo(new byte[] { 1, 2, 3 }));
     }
+
+    [Test]
+    public void StagingPath_createsScreenshotsDirectory()
+    {
+        var root = Path.Join(Path.GetTempPath(), "au-debug-media", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Join(root, "agent-up.sln"), "");
+        var store = new ScreenshotMediaStore(new DebugPathValidator(root));
+        var staged = store.StagingPath("desktop-git.png");
+        Assert.That(staged, Does.EndWith(Path.Join("staging", "desktop-git.png")));
+        Assert.That(Directory.Exists(Path.GetDirectoryName(Path.GetDirectoryName(staged))), Is.True);
+    }
+
+    [Test]
+    public void CapturePath_sanitizesEmptyAndSpecialIds()
+    {
+        var root = Path.Join(Path.GetTempPath(), "au-debug-media", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Join(root, "agent-up.sln"), "");
+        var store = new ScreenshotMediaStore(new DebugPathValidator(root));
+        Assert.That(Path.GetFileName(store.CapturePath("")), Does.StartWith("scene-"));
+        Assert.That(Path.GetFileName(store.CapturePath("git/view")), Does.StartWith("git-view-"));
+    }
 }

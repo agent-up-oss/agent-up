@@ -29,6 +29,16 @@ public sealed class ScreenshotManifestStoreTests
             Throws.InvalidOperationException.With.Message.Contains("build design-system"));
     }
 
+    [Test]
+    public void Read_emptyScenes_throws()
+    {
+        var root = Repo();
+        WriteManifest(root, """{ "scenes": [] }""");
+        Assert.That(
+            () => new ScreenshotManifestStore(new DebugPathValidator(root)).Read(),
+            Throws.InvalidOperationException.With.Message.Contains("has no scenes"));
+    }
+
     private static string Repo()
     {
         var root = Path.Join(Path.GetTempPath(), "au-debug-manifest", Guid.NewGuid().ToString("N"));

@@ -35,6 +35,45 @@ public sealed class ScreenshotsControllerTests
         Assert.That(result.Message, Does.Contain("unknown screenshots action"));
     }
 
+    [Test]
+    public async Task Validate_routesToService()
+    {
+        var scene = ScreenshotScene.Desktop();
+        var media = new FakeScreenshotMediaStore();
+        media.Existing.Add(media.HtmlPath(scene));
+        var result = await Controller(media, new FakeWebScreenshotDriver(), [scene])
+            .RunAsync(DebugDomain.Screenshots("validate").Build(), CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(0));
+        Assert.That(result.Message, Does.Contain("Validated 1"));
+    }
+
+    [Test]
+    public async Task Desktop_routesToCapture()
+    {
+        var scene = ScreenshotScene.Desktop();
+        var media = new FakeScreenshotMediaStore();
+        media.Existing.Add(media.HtmlPath(scene));
+        var result = await Controller(media, new FakeWebScreenshotDriver(), [scene])
+            .RunAsync(DebugDomain.Screenshots("desktop").Build(), CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(0));
+        Assert.That(result.Message, Does.Contain("Wrote 1"));
+    }
+
+    [Test]
+    public async Task Mobile_routesToCapture()
+    {
+        var scene = ScreenshotScene.Mobile();
+        var media = new FakeScreenshotMediaStore();
+        media.Existing.Add(media.HtmlPath(scene));
+        var result = await Controller(media, new FakeWebScreenshotDriver(), [scene])
+            .RunAsync(DebugDomain.Screenshots("mobile").Build(), CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(0));
+        Assert.That(result.Message, Does.Contain("Wrote 1"));
+    }
+
     private static ScreenshotsController Controller(
         FakeScreenshotMediaStore media,
         FakeWebScreenshotDriver capture,

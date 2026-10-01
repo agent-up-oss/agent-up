@@ -88,4 +88,60 @@ public sealed class DebugEnvironmentTests
             Environment.SetEnvironmentVariable("PATH", previous);
         }
     }
+
+    [Test]
+    public void FindChromium_missing_isNull()
+    {
+        var previous = Environment.GetEnvironmentVariable("PATH");
+        try
+        {
+            Environment.SetEnvironmentVariable("PATH", Path.Join(Path.GetTempPath(), "au-debug-no-chrome", Guid.NewGuid().ToString("N")));
+            Assert.That(new DebugEnvironment().FindChromium(), Is.Null);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("PATH", previous);
+        }
+    }
+
+    [Test]
+    public void FindChromium_acceptsBinaryExecutable()
+    {
+        var directory = Path.Join(Path.GetTempPath(), "au-debug-chrome-bin", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var chromium = Path.Join(directory, "chromium");
+        File.WriteAllBytes(chromium, [0x7F, 0x45, 0x4C, 0x46]);
+        var previous = Environment.GetEnvironmentVariable("PATH");
+        try
+        {
+            Environment.SetEnvironmentVariable("PATH", directory);
+            Assert.That(new DebugEnvironment().FindChromium(), Is.EqualTo(chromium));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("PATH", previous);
+        }
+    }
+
+    [Test]
+    public void FindChromium_skipsUnreadableWrapper()
+    {
+        var directory = Path.Join(Path.GetTempPath(), "au-debug-chrome-sock", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var chromium = Path.Join(directory, "chromium");
+        using var socket = new System.Net.Sockets.Socket(System.Net.Sockets.AddressFamily.Unix, System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Unspecified);
+        socket.Bind(new System.Net.Sockets.UnixDomainSocketEndPoint(chromium));
+        var stable = Path.Join(directory, "google-chrome-stable");
+        File.WriteAllBytes(stable, [0x7F, 0x45]);
+        var previous = Environment.GetEnvironmentVariable("PATH");
+        try
+        {
+            Environment.SetEnvironmentVariable("PATH", directory);
+            Assert.That(new DebugEnvironment().FindChromium(), Is.EqualTo(stable));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("PATH", previous);
+        }
+    }
 }

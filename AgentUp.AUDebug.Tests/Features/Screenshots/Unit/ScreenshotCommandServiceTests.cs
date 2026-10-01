@@ -129,6 +129,38 @@ public sealed class ScreenshotCommandServiceTests
         Assert.That(result.Message, Does.Contain("Screenshot manifest has no scenes"));
     }
 
+    [Test]
+    public async Task Persist_missingHtml_fails()
+    {
+        var scene = ScreenshotScene.Desktop();
+        var result = await Service(new FakeScreenshotMediaStore(), new FakeWebScreenshotDriver(), scene)
+            .PersistAsync(DebugDomain.Screenshots("persist").Build(), CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Does.Contain("Screenshot HTML"));
+    }
+
+    [Test]
+    public async Task ValidateLive_requiresRunningHost()
+    {
+        var scene = ScreenshotScene.Mobile();
+        var probe = new FakeReadyProbe();
+        probe.Ready[DebugLayout.MobileUrl] = false;
+        var result = await Service(
+                Store(scene),
+                new FakeWebScreenshotDriver(),
+                new FakeScreenshotAppContract(),
+                new FakeScreenshotPngComparer(),
+                new FakeScreenshotLiveAppProbe(),
+                new FakeSessionStore(),
+                probe,
+                scene)
+            .ValidateAsync(DebugDomain.Screenshots("validate").Live().Build(), CancellationToken.None);
+
+        Assert.That(result.ExitCode, Is.EqualTo(1));
+        Assert.That(result.Message, Does.Contain("au-debug is not running"));
+    }
+
     private static FakeScreenshotMediaStore Store(params AgentUp.AUDebug.Features.Screenshots.DTOs.ScreenshotSceneDto[] scenes)
     {
         var media = new FakeScreenshotMediaStore();
@@ -159,6 +191,17 @@ public sealed class ScreenshotCommandServiceTests
         FakeScreenshotLiveAppProbe live,
         FakeSessionStore sessions,
         params AgentUp.AUDebug.Features.Screenshots.DTOs.ScreenshotSceneDto[] scenes)
+        => Service(media, capture, contract, comparer, live, sessions, new FakeReadyProbe(), scenes);
+
+    private static ScreenshotCommandService Service(
+        FakeScreenshotMediaStore media,
+        FakeWebScreenshotDriver capture,
+        FakeScreenshotAppContract contract,
+        FakeScreenshotPngComparer comparer,
+        FakeScreenshotLiveAppProbe live,
+        FakeSessionStore sessions,
+        FakeReadyProbe probe,
+        params AgentUp.AUDebug.Features.Screenshots.DTOs.ScreenshotSceneDto[] scenes)
     {
         var manifests = new FakeScreenshotManifestStore();
         manifests.Scenes.AddRange(scenes);
@@ -170,6 +213,6 @@ public sealed class ScreenshotCommandServiceTests
             comparer,
             live,
             sessions,
-            new FakeReadyProbe());
+            probe);
     }
 }

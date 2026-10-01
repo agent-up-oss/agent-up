@@ -31,6 +31,126 @@ public sealed class ScreenshotAppContractProviderTests
     }
 
     [Test]
+    public void Verify_missingHtml_throws()
+    {
+        var root = Repo();
+        ArrangeValid(root);
+        File.Delete(Path.Join(root, "AgentUp.DesignSystem", "dist", "web", "screenshots", "desktop-workspaces.html"));
+        var paths = new DebugPathValidator(root);
+        var media = new ScreenshotMediaStore(paths);
+        Assert.That(
+            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene()),
+            Throws.InvalidOperationException.With.Message.Contains("Screenshot HTML"));
+    }
+
+    [Test]
+    public void Verify_missingRequiredClass_throws()
+    {
+        var root = Repo();
+        ArrangeValid(root, html: """<div class="au-workspace">Harbor Shop</div>""");
+        var paths = new DebugPathValidator(root);
+        var media = new ScreenshotMediaStore(paths);
+        Assert.That(
+            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene() with { RequiredClasses = ["au-git-row"] }),
+            Throws.InvalidOperationException.With.Message.Contains("missing required catalog class"));
+    }
+
+    [Test]
+    public void Verify_missingCopyInHtml_throws()
+    {
+        var root = Repo();
+        ArrangeValid(root, html: """<div class="au-workspace"></div>""");
+        var paths = new DebugPathValidator(root);
+        var media = new ScreenshotMediaStore(paths);
+        Assert.That(
+            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene()),
+            Throws.InvalidOperationException.With.Message.Contains("missing Demo copy"));
+    }
+
+    [Test]
+    public void Verify_missingDesktopClass_throws()
+    {
+        var root = Repo();
+        ArrangeValid(root);
+        File.WriteAllText(Path.Join(root, "AgentUp.Desktop", "MainWindow.axaml"), "<Border />");
+        var paths = new DebugPathValidator(root);
+        var media = new ScreenshotMediaStore(paths);
+        Assert.That(
+            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene()),
+            Throws.InvalidOperationException.With.Message.Contains("Desktop class"));
+    }
+
+    [Test]
+    public void Verify_missingMobileComponent_throws()
+    {
+        var root = Repo();
+        ArrangeValid(root);
+        var paths = new DebugPathValidator(root);
+        var media = new ScreenshotMediaStore(paths);
+        Assert.That(
+            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene() with { RequiredMobileComponents = ["mobileTabBar"] }),
+            Throws.InvalidOperationException.With.Message.Contains("auBox('mobileTabBar')"));
+    }
+
+    [Test]
+    public void Verify_missingCss_throws()
+    {
+        var root = Repo();
+        ArrangeValid(root);
+        File.Delete(Path.Join(root, "AgentUp.DesignSystem", "dist", "web", "screenshots.css"));
+        var paths = new DebugPathValidator(root);
+        var media = new ScreenshotMediaStore(paths);
+        Assert.That(
+            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene()),
+            Throws.InvalidOperationException.With.Message.Contains("screenshot CSS is missing"));
+    }
+
+    [Test]
+    public void Verify_missingFakeServer_throws()
+    {
+        var root = Repo();
+        ArrangeValid(root);
+        File.Delete(Path.Join(root, "AgentUp.FakeServer", "definition.json"));
+        var paths = new DebugPathValidator(root);
+        var media = new ScreenshotMediaStore(paths);
+        Assert.That(
+            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene()),
+            Throws.InvalidOperationException.With.Message.Contains("definition.json is missing"));
+    }
+
+    [Test]
+    public void Verify_missingAppSource_throws()
+    {
+        var root = Repo();
+        ArrangeValid(root);
+        File.Delete(Path.Join(root, "AgentUp.Desktop", "MainWindow.axaml"));
+        var paths = new DebugPathValidator(root);
+        var media = new ScreenshotMediaStore(paths);
+        Assert.That(
+            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene()),
+            Throws.InvalidOperationException.With.Message.Contains("App source"));
+    }
+
+    [Test]
+    public void Verify_acceptsQuotedAuBox()
+    {
+        var root = Repo();
+        ArrangeValid(root);
+        var mobile = Path.Join(root, "AgentUp.Mobile");
+        Directory.CreateDirectory(mobile);
+        File.WriteAllText(Path.Join(mobile, "Tabs.tsx"), """auBox("mobileTabBar")""");
+        var paths = new DebugPathValidator(root);
+        var media = new ScreenshotMediaStore(paths);
+        Assert.DoesNotThrow(() => new ScreenshotAppContractProvider(paths, media).Verify(
+            Scene() with
+            {
+                AppSources = ["AgentUp.Mobile/Tabs.tsx"],
+                RequiredDesktopClasses = [],
+                RequiredMobileComponents = ["mobileTabBar"]
+            }));
+    }
+
+    [Test]
     public void Verify_rejectsCopyMissingFromFakeServer()
     {
         var root = Repo();

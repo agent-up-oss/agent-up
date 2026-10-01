@@ -303,4 +303,25 @@ public sealed class DebugArgParserTests
         var (_, error) = _parser.Parse(["screenshots", "explode"]);
         Assert.That(error, Does.Contain("unknown screenshots action"));
     }
+
+    [Test]
+    public void Parse_screenshotsMissingAction_returnsError()
+    {
+        var (_, error) = _parser.Parse(["screenshots"]);
+        Assert.That(error, Does.Contain("requires an action"));
+    }
+
+    [Test]
+    public void Parse_screenshotsDesktopExtraView_returnsError()
+    {
+        var (_, error) = _parser.Parse(["screenshots", "desktop", "git", "extra"]);
+        Assert.That(error, Does.Contain("takes at most one view name"));
+    }
+
+    [Test]
+    public void Parse_screenshotsPersistExtraArg_returnsError()
+    {
+        var (_, error) = _parser.Parse(["screenshots", "persist", "nope"]);
+        Assert.That(error, Does.Contain("does not take extra arguments"));
+    }
 }
