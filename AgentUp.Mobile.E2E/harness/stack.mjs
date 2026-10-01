@@ -8,6 +8,7 @@ import { createIdpControl } from './idpControl.mjs';
 import { supervise } from './supervise.mjs';
 import { writeShims } from './shims.mjs';
 import { hostOriginFor, hostPortsToReverse, profilesFor, serverEnvironment } from './stackConfig.mjs';
+import { waitFor } from './wait.mjs';
 
 
 /**
@@ -27,9 +28,10 @@ export async function startStack({ platform, codexSchema, serverDll, testAgentEx
   const processes = [];
   const dispose = async () => {
     for (const child of processes.reverse()) {
-      child.kill('SIGTERM');
+      stop(child);
     }
-    await rm(root, { recursive: true, force: true });
+    await Promise.all(processes.map(child => waitStopped(child)));
+    await removeWorkspaceTree(root);
   };
 
   try {
@@ -130,6 +132,48 @@ const BASE =
   (Number(process.env.TEST_PARALLEL_INDEX ?? process.env.JEST_WORKER_ID ?? 0) % WORKERS || 0) * WINDOW;
 
 let offset = 0;
+
+/**
+ * The Server hosted-browser manager unpacks Chromium under this tree while the stack is
+ * alive. Deleting it in one shot races that extractor and fails with ENOTEMPTY, so teardown
+ * waits for the processes it started and retries the delete.
+ */
+export async function removeWorkspaceTree(root) {
+  await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+}
+
+function stop(child) {
+  if (hasExited(child)) return;
+  try {
+    child.kill('SIGTERM');
+  } catch {
+    // already gone
+  }
+}
+
+async function waitStopped(child) {
+  if (hasExited(child)) return;
+  try {
+    await waitFor('the stack process to exit', () => hasExited(child), {
+      timeoutMs: 5_000,
+      intervalMs: 50,
+    });
+  } catch {
+    try {
+      child.kill('SIGKILL');
+    } catch {
+      // already gone
+    }
+    await waitFor('the stack process to exit after SIGKILL', () => hasExited(child), {
+      timeoutMs: 2_000,
+      intervalMs: 50,
+    }).catch(() => {});
+  }
+}
+
+function hasExited(child) {
+  return child.exitCode !== null || child.signalCode !== null;
+}
 
 export async function freePort() {
   for (let attempt = 0; attempt < WINDOW; attempt++) {

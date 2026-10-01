@@ -5,7 +5,7 @@ import { createIdpControl, loginIdFrom } from '../harness/idpControl.mjs';
 import { hasTransport, isTerminalSignInError, isUsableChallenge, waitForChallenge } from '../harness/signInFlows.mjs';
 import { shimScript } from '../harness/shims.mjs';
 import { AGENT_PROFILES, hostOriginFor, hostPortsToReverse, profilesFor, serverEnvironment } from '../harness/stackConfig.mjs';
-import { freePort, portWindow } from '../harness/stack.mjs';
+import { freePort, portWindow, removeWorkspaceTree } from '../harness/stack.mjs';
 import { waitFor } from '../harness/wait.mjs';
 
 test('each stack serves three agent modules, with the codex slot chosen explicitly', () => {
@@ -256,6 +256,20 @@ test('a pasted-code challenge is usable from the URL, because the code comes fro
 
 // Scenarios run side by side, so two stacks asking for a port at the same moment must not be
 // able to receive the same one. Each worker walks its own window and never repeats.
+test('teardown deletes a nested chromium download tree', async () => {
+  const { mkdtemp, mkdir, writeFile, access } = await import('node:fs/promises');
+  const { constants } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const root = await mkdtemp(join(tmpdir(), 'agent-up-e2e-rm-'));
+  const locales = join(root, 'data', 'chromium', 'Chrome', 'Linux-154.0.8037.57', 'chrome-linux64', 'locales');
+  await mkdir(locales, { recursive: true });
+  await writeFile(join(locales, 'en-US.pak'), 'x');
+  await writeFile(join(locales, '..', 'chrome'), 'x');
+  await removeWorkspaceTree(root);
+  await assert.rejects(() => access(root, constants.F_OK), { code: 'ENOENT' });
+});
+
 test('a worker hands out distinct ports from a window it owns alone', async () => {
   const ports = [];
   for (let index = 0; index < 5; index++) ports.push(await freePort());
