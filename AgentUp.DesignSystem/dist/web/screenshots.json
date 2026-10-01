@@ -1,0 +1,669 @@
+{
+  "scenes": [
+    {
+      "id": "desktop-sign-in",
+      "surface": "desktop",
+      "view": "sign-in",
+      "title": "Desktop sign-in",
+      "mediaFile": "desktop-sign-in.png",
+      "htmlFile": "desktop-sign-in.html",
+      "width": 1440,
+      "height": 900,
+      "hero": false,
+      "livePath": "",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      ],
+      "requiredClasses": [
+        "au-sign-in",
+        "au-choice",
+        "au-button",
+        "au-input",
+        "au-chrome"
+      ],
+      "requiredDesktopClasses": [],
+      "requiredMobileComponents": [],
+      "copy": [
+        "Demo",
+        "http://127.0.0.1:9"
+      ]
+    },
+    {
+      "id": "desktop-workspaces",
+      "surface": "desktop",
+      "view": "workspaces",
+      "title": "Desktop workspaces",
+      "mediaFile": "desktop-workspaces.png",
+      "htmlFile": "desktop-workspaces.html",
+      "width": 1440,
+      "height": 900,
+      "hero": false,
+      "livePath": "",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      ],
+      "requiredClasses": [
+        "au-workspace",
+        "au-rail",
+        "au-chrome",
+        "au-metrics-card"
+      ],
+      "requiredDesktopClasses": [
+        "wsEntry"
+      ],
+      "requiredMobileComponents": [],
+      "copy": [
+        "Harbor Shop",
+        "main"
+      ]
+    },
+    {
+      "id": "desktop-applications",
+      "surface": "desktop",
+      "view": "applications",
+      "title": "Desktop applications",
+      "mediaFile": "desktop-applications.png",
+      "htmlFile": "desktop-applications.html",
+      "width": 1440,
+      "height": 900,
+      "hero": true,
+      "livePath": "",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      ],
+      "requiredClasses": [
+        "au-app-tab",
+        "au-subtab",
+        "au-address-bar",
+        "au-workspace",
+        "au-chrome"
+      ],
+      "requiredDesktopClasses": [
+        "appTab",
+        "addressBar"
+      ],
+      "requiredMobileComponents": [],
+      "copy": [
+        "Harbor Shop",
+        "Storefront",
+        "Orders API"
+      ]
+    },
+    {
+      "id": "desktop-console",
+      "surface": "desktop",
+      "view": "console",
+      "title": "Desktop console",
+      "mediaFile": "desktop-console.png",
+      "htmlFile": "desktop-console.html",
+      "width": 1440,
+      "height": 900,
+      "hero": false,
+      "livePath": "",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      ],
+      "requiredClasses": [
+        "au-console",
+        "au-app-tab",
+        "au-subtab"
+      ],
+      "requiredDesktopClasses": [
+        "subTab"
+      ],
+      "requiredMobileComponents": [],
+      "copy": [
+        "Storefront",
+        "[install] npm install"
+      ]
+    },
+    {
+      "id": "desktop-git",
+      "surface": "desktop",
+      "view": "git",
+      "title": "Desktop Git changes",
+      "mediaFile": "desktop-git.png",
+      "htmlFile": "desktop-git.html",
+      "width": 1440,
+      "height": 900,
+      "hero": false,
+      "livePath": "",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml",
+        "AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx",
+        "AgentUp.Mobile/src/features/git/components/GitHistoryPanel.tsx",
+        "AgentUp.Mobile/src/features/git/components/GitFileViewer.tsx"
+      ],
+      "requiredClasses": [
+        "au-git-change-list",
+        "au-git-row",
+        "au-git-status",
+        "au-checkbox"
+      ],
+      "requiredDesktopClasses": [
+        "gitNodeRow"
+      ],
+      "requiredMobileComponents": [
+        "gitChangeList"
+      ],
+      "copy": [
+        "ProductGrid.tsx",
+        "orders.ts"
+      ]
+    },
+    {
+      "id": "desktop-history",
+      "surface": "desktop",
+      "view": "history",
+      "title": "Desktop Git history",
+      "mediaFile": "desktop-history.png",
+      "htmlFile": "desktop-history.html",
+      "width": 1440,
+      "height": 900,
+      "hero": false,
+      "livePath": "",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml",
+        "AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx",
+        "AgentUp.Mobile/src/features/git/components/GitHistoryPanel.tsx",
+        "AgentUp.Mobile/src/features/git/components/GitFileViewer.tsx"
+      ],
+      "requiredClasses": [
+        "au-git-log",
+        "au-git-log-row",
+        "au-git-log-detail"
+      ],
+      "requiredDesktopClasses": [
+        "gitLogRow"
+      ],
+      "requiredMobileComponents": [
+        "gitLog"
+      ],
+      "copy": [
+        "feat(storefront): featured product grid"
+      ]
+    },
+    {
+      "id": "desktop-agents",
+      "surface": "desktop",
+      "view": "agents",
+      "title": "Desktop Agent",
+      "mediaFile": "desktop-agents.png",
+      "htmlFile": "desktop-agents.html",
+      "width": 1440,
+      "height": 900,
+      "hero": false,
+      "livePath": "",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml",
+        "AgentUp.Chat/src/components/AgentChatScreen.tsx"
+      ],
+      "requiredClasses": [
+        "au-chat-user",
+        "au-chat-work",
+        "au-card",
+        "au-choice"
+      ],
+      "requiredDesktopClasses": [],
+      "requiredMobileComponents": [
+        "chatUser",
+        "chatWork"
+      ],
+      "copy": [
+        "Codex",
+        "Harbor Shop"
+      ]
+    },
+    {
+      "id": "desktop-diagnostics",
+      "surface": "desktop",
+      "view": "diagnostics",
+      "title": "Desktop diagnostics",
+      "mediaFile": "desktop-diagnostics.png",
+      "htmlFile": "desktop-diagnostics.html",
+      "width": 1440,
+      "height": 900,
+      "hero": false,
+      "livePath": "",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      ],
+      "requiredClasses": [
+        "au-audit-row",
+        "au-audit-header",
+        "au-page-jump"
+      ],
+      "requiredDesktopClasses": [
+        "auditTableRow"
+      ],
+      "requiredMobileComponents": [],
+      "copy": [
+        "Storefront"
+      ]
+    },
+    {
+      "id": "desktop-metrics",
+      "surface": "desktop",
+      "view": "metrics",
+      "title": "Desktop metrics",
+      "mediaFile": "desktop-metrics.png",
+      "htmlFile": "desktop-metrics.html",
+      "width": 1440,
+      "height": 900,
+      "hero": false,
+      "livePath": "",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      ],
+      "requiredClasses": [
+        "au-metrics-card",
+        "au-metrics-chart"
+      ],
+      "requiredDesktopClasses": [
+        "metricsSummaryCard"
+      ],
+      "requiredMobileComponents": [],
+      "copy": [
+        "Harbor Shop"
+      ]
+    },
+    {
+      "id": "desktop-validation",
+      "surface": "desktop",
+      "view": "validation",
+      "title": "Desktop validation",
+      "mediaFile": "desktop-validation.png",
+      "htmlFile": "desktop-validation.html",
+      "width": 1440,
+      "height": 900,
+      "hero": false,
+      "livePath": "",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      ],
+      "requiredClasses": [
+        "au-validation-stage"
+      ],
+      "requiredDesktopClasses": [],
+      "requiredMobileComponents": [],
+      "copy": [
+        "Harbor Shop"
+      ]
+    },
+    {
+      "id": "desktop-database",
+      "surface": "desktop",
+      "view": "database",
+      "title": "Desktop database",
+      "mediaFile": "desktop-database.png",
+      "htmlFile": "desktop-database.html",
+      "width": 1440,
+      "height": 900,
+      "hero": false,
+      "livePath": "",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      ],
+      "requiredClasses": [
+        "au-code-editor",
+        "au-db-run",
+        "au-db-header-cell",
+        "au-list-item"
+      ],
+      "requiredDesktopClasses": [
+        "sqlEditor",
+        "dbRunButton"
+      ],
+      "requiredMobileComponents": [],
+      "copy": [
+        "Harbor Shop"
+      ]
+    },
+    {
+      "id": "desktop-capabilities",
+      "surface": "desktop",
+      "view": "capabilities",
+      "title": "Desktop capabilities",
+      "mediaFile": "desktop-capabilities.png",
+      "htmlFile": "desktop-capabilities.html",
+      "width": 1440,
+      "height": 900,
+      "hero": false,
+      "livePath": "",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      ],
+      "requiredClasses": [
+        "au-overlay-panel",
+        "au-card",
+        "au-badge"
+      ],
+      "requiredDesktopClasses": [],
+      "requiredMobileComponents": [],
+      "copy": [
+        ".NET",
+        "Docker",
+        "Codex"
+      ]
+    },
+    {
+      "id": "desktop-file-viewer",
+      "surface": "desktop",
+      "view": "file-viewer",
+      "title": "Desktop file viewer",
+      "mediaFile": "desktop-file-viewer.png",
+      "htmlFile": "desktop-file-viewer.html",
+      "width": 1440,
+      "height": 900,
+      "hero": false,
+      "livePath": "",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml",
+        "AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx",
+        "AgentUp.Mobile/src/features/git/components/GitHistoryPanel.tsx",
+        "AgentUp.Mobile/src/features/git/components/GitFileViewer.tsx"
+      ],
+      "requiredClasses": [
+        "au-file-viewer",
+        "au-file-viewer-line",
+        "au-overlay-panel"
+      ],
+      "requiredDesktopClasses": [],
+      "requiredMobileComponents": [
+        "fileViewer"
+      ],
+      "copy": [
+        "ProductGrid.tsx"
+      ]
+    },
+    {
+      "id": "mobile-sign-in",
+      "surface": "mobile",
+      "view": "sign-in",
+      "title": "Mobile sign-in",
+      "mediaFile": "mobile-sign-in.png",
+      "htmlFile": "mobile-sign-in.html",
+      "width": 390,
+      "height": 844,
+      "hero": false,
+      "livePath": "/connect",
+      "appSources": [
+        "AgentUp.Mobile/src/features/servers/components/ServerSetupScreen.tsx",
+        "AgentUp.Mobile/src/features/shell/components/AppShellLayout.tsx",
+        "AgentUp.Mobile/src/features/shell/components/AppNavBar.tsx",
+        "AgentUp.Mobile/src/features/shell/components/WorkspaceTabBar.tsx"
+      ],
+      "requiredClasses": [
+        "au-sign-in",
+        "au-choice",
+        "au-button",
+        "au-mobile-bar"
+      ],
+      "requiredDesktopClasses": [],
+      "requiredMobileComponents": [
+        "signIn",
+        "choice"
+      ],
+      "copy": [
+        "Demo"
+      ]
+    },
+    {
+      "id": "mobile-workspaces",
+      "surface": "mobile",
+      "view": "workspaces",
+      "title": "Mobile workspaces",
+      "mediaFile": "mobile-workspaces.png",
+      "htmlFile": "mobile-workspaces.html",
+      "width": 390,
+      "height": 844,
+      "hero": false,
+      "livePath": "/",
+      "appSources": [
+        "AgentUp.Mobile/src/features/servers/components/ServerSetupScreen.tsx",
+        "AgentUp.Mobile/src/features/shell/components/AppShellLayout.tsx",
+        "AgentUp.Mobile/src/features/shell/components/AppNavBar.tsx",
+        "AgentUp.Mobile/src/features/shell/components/WorkspaceTabBar.tsx",
+        "AgentUp.Mobile/src/features/workspaces/components/WorkspaceListScreen.tsx"
+      ],
+      "requiredClasses": [
+        "au-workspace",
+        "au-mobile-bar",
+        "au-button"
+      ],
+      "requiredDesktopClasses": [],
+      "requiredMobileComponents": [
+        "workspace",
+        "mobileBar"
+      ],
+      "copy": [
+        "Harbor Shop"
+      ]
+    },
+    {
+      "id": "mobile-apps",
+      "surface": "mobile",
+      "view": "apps",
+      "title": "Mobile apps",
+      "mediaFile": "mobile-apps.png",
+      "htmlFile": "mobile-apps.html",
+      "width": 390,
+      "height": 844,
+      "hero": false,
+      "livePath": "/workspace/harbor-shop",
+      "appSources": [
+        "AgentUp.Mobile/src/features/servers/components/ServerSetupScreen.tsx",
+        "AgentUp.Mobile/src/features/shell/components/AppShellLayout.tsx",
+        "AgentUp.Mobile/src/features/shell/components/AppNavBar.tsx",
+        "AgentUp.Mobile/src/features/shell/components/WorkspaceTabBar.tsx",
+        "AgentUp.Mobile/src/features/workspaces/components/WorkspaceDashboardScreen.tsx"
+      ],
+      "requiredClasses": [
+        "au-mobile-tab-bar",
+        "au-workspace",
+        "au-status-dot"
+      ],
+      "requiredDesktopClasses": [],
+      "requiredMobileComponents": [
+        "workspace",
+        "mobileTabBar",
+        "navTab"
+      ],
+      "copy": [
+        "Storefront",
+        "Orders API"
+      ]
+    },
+    {
+      "id": "mobile-git",
+      "surface": "mobile",
+      "view": "git",
+      "title": "Mobile Git",
+      "mediaFile": "mobile-git.png",
+      "htmlFile": "mobile-git.html",
+      "width": 390,
+      "height": 844,
+      "hero": false,
+      "livePath": "/workspace/harbor-shop/git",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml",
+        "AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx",
+        "AgentUp.Mobile/src/features/git/components/GitHistoryPanel.tsx",
+        "AgentUp.Mobile/src/features/git/components/GitFileViewer.tsx",
+        "AgentUp.Mobile/src/features/shell/components/WorkspaceTabBar.tsx"
+      ],
+      "requiredClasses": [
+        "au-git-change-list",
+        "au-git-row",
+        "au-mobile-tab-bar"
+      ],
+      "requiredDesktopClasses": [],
+      "requiredMobileComponents": [
+        "gitChangeList",
+        "mobileTabBar"
+      ],
+      "copy": [
+        "ProductGrid.tsx"
+      ]
+    },
+    {
+      "id": "mobile-review",
+      "surface": "mobile",
+      "view": "review",
+      "title": "Mobile Git review",
+      "mediaFile": "mobile-review.png",
+      "htmlFile": "mobile-review.html",
+      "width": 390,
+      "height": 844,
+      "hero": false,
+      "livePath": "/workspace/harbor-shop/git/review",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml",
+        "AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx",
+        "AgentUp.Mobile/src/features/git/components/GitHistoryPanel.tsx",
+        "AgentUp.Mobile/src/features/git/components/GitFileViewer.tsx"
+      ],
+      "requiredClasses": [
+        "au-git-row",
+        "au-button",
+        "au-mobile-bar"
+      ],
+      "requiredDesktopClasses": [],
+      "requiredMobileComponents": [
+        "gitChangeList"
+      ],
+      "copy": [
+        "ProductGrid.tsx",
+        "orders.ts"
+      ]
+    },
+    {
+      "id": "mobile-history",
+      "surface": "mobile",
+      "view": "history",
+      "title": "Mobile Git history",
+      "mediaFile": "mobile-history.png",
+      "htmlFile": "mobile-history.html",
+      "width": 390,
+      "height": 844,
+      "hero": false,
+      "livePath": "/workspace/harbor-shop/git/history",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml",
+        "AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx",
+        "AgentUp.Mobile/src/features/git/components/GitHistoryPanel.tsx",
+        "AgentUp.Mobile/src/features/git/components/GitFileViewer.tsx"
+      ],
+      "requiredClasses": [
+        "au-git-log",
+        "au-git-log-row",
+        "au-git-log-detail"
+      ],
+      "requiredDesktopClasses": [],
+      "requiredMobileComponents": [
+        "gitLog",
+        "gitLogRow"
+      ],
+      "copy": [
+        "feat(storefront): featured product grid"
+      ]
+    },
+    {
+      "id": "mobile-agents",
+      "surface": "mobile",
+      "view": "agents",
+      "title": "Mobile Agents",
+      "mediaFile": "mobile-agents.png",
+      "htmlFile": "mobile-agents.html",
+      "width": 390,
+      "height": 844,
+      "hero": false,
+      "livePath": "/workspace/harbor-shop/agents",
+      "appSources": [
+        "AgentUp.Mobile/src/features/servers/components/ServerSetupScreen.tsx",
+        "AgentUp.Mobile/src/features/shell/components/AppShellLayout.tsx",
+        "AgentUp.Mobile/src/features/shell/components/AppNavBar.tsx",
+        "AgentUp.Mobile/src/features/shell/components/WorkspaceTabBar.tsx",
+        "AgentUp.Chat/src/components/AgentChatScreen.tsx",
+        "AgentUp.Mobile/src/features/agents/components/AgentsOverviewScreen.tsx"
+      ],
+      "requiredClasses": [
+        "au-choice",
+        "au-chat-user",
+        "au-card"
+      ],
+      "requiredDesktopClasses": [],
+      "requiredMobileComponents": [
+        "choice",
+        "chatUser"
+      ],
+      "copy": [
+        "Codex"
+      ]
+    },
+    {
+      "id": "mobile-settings",
+      "surface": "mobile",
+      "view": "settings",
+      "title": "Mobile settings",
+      "mediaFile": "mobile-settings.png",
+      "htmlFile": "mobile-settings.html",
+      "width": 390,
+      "height": 844,
+      "hero": false,
+      "livePath": "/workspace/harbor-shop/settings",
+      "appSources": [
+        "AgentUp.Mobile/src/features/servers/components/ServerSetupScreen.tsx",
+        "AgentUp.Mobile/src/features/shell/components/AppShellLayout.tsx",
+        "AgentUp.Mobile/src/features/shell/components/AppNavBar.tsx",
+        "AgentUp.Mobile/src/features/shell/components/WorkspaceTabBar.tsx",
+        "AgentUp.Mobile/src/features/workspaces/components/WorkspaceSettingsScreen.tsx",
+        "AgentUp.Mobile/src/features/capabilities/components/CapabilitiesScreen.tsx"
+      ],
+      "requiredClasses": [
+        "au-workspace",
+        "au-mobile-tab-bar",
+        "au-button"
+      ],
+      "requiredDesktopClasses": [],
+      "requiredMobileComponents": [
+        "workspace",
+        "mobileTabBar"
+      ],
+      "copy": [
+        ".NET",
+        "Docker",
+        "Codex"
+      ]
+    },
+    {
+      "id": "mobile-file-viewer",
+      "surface": "mobile",
+      "view": "file-viewer",
+      "title": "Mobile file viewer",
+      "mediaFile": "mobile-file-viewer.png",
+      "htmlFile": "mobile-file-viewer.html",
+      "width": 390,
+      "height": 844,
+      "hero": false,
+      "livePath": "/workspace/harbor-shop/git",
+      "appSources": [
+        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml",
+        "AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx",
+        "AgentUp.Mobile/src/features/git/components/GitHistoryPanel.tsx",
+        "AgentUp.Mobile/src/features/git/components/GitFileViewer.tsx"
+      ],
+      "requiredClasses": [
+        "au-file-viewer",
+        "au-file-viewer-line"
+      ],
+      "requiredDesktopClasses": [],
+      "requiredMobileComponents": [
+        "fileViewer"
+      ],
+      "copy": [
+        "ProductGrid.tsx"
+      ]
+    }
+  ]
+}

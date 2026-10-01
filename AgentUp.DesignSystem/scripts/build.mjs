@@ -5,6 +5,7 @@ import { emitCSharpColors, emitStyles, emitThemeResources } from './lib/avalonia
 import { catalogIndex, parseCatalog } from './lib/catalog.mjs';
 import { parseCustomProperties, parseRules } from './lib/css.mjs';
 import { emitNative } from './lib/native.mjs';
+import { screenshotScenes, wrapSceneDocument } from './lib/screenshots.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const src = resolve(root, 'src');
@@ -13,8 +14,10 @@ const primitives = await readFile(resolve(src, 'agent-up.css'), 'utf8');
 const product = await readProductCss(src);
 const marketing = await readFile(resolve(src, 'marketing.css'), 'utf8');
 const docs = await readFile(resolve(src, 'docs.css'), 'utf8');
+const screenshotShell = await readFile(resolve(src, 'screenshots', 'shell.css'), 'utf8');
 const catalogHtml = await readCatalogHtml(src);
 const css = `${primitives.trim()}\n\n${product.trim()}\n`;
+const screenshotCss = `${css}\n${marketing}\n${screenshotShell}\n`;
 const tokens = parseCustomProperties(primitives);
 const required = [
   'color-canvas', 'color-surface', 'color-border-subtle', 'color-text-primary',
@@ -62,7 +65,13 @@ const outputs = new Map([
   ['dist/web/syntax/highlight.d.ts', highlightTypes],
   ['dist/web/syntax/grammars.json', `${JSON.stringify(grammars, null, 2)}\n`],
   ['dist/dotnet/AgentUpSyntaxGrammars.g.cs', emitSyntaxGrammars(grammars)],
+  ['dist/web/screenshots.json', `${JSON.stringify({ scenes: screenshotManifest() }, null, 2)}\n`],
+  ['dist/web/screenshots.css', screenshotCss],
 ]);
+
+for (const scene of screenshotScenes()) {
+  outputs.set(`dist/web/screenshots/${scene.htmlFile}`, wrapSceneDocument(scene, screenshotCss));
+}
 
 for (const [relative, content] of outputs) {
   const path = resolve(root, relative);
@@ -99,6 +108,26 @@ ${JSON.stringify(value, null, 2)}
 """;
 }
 `;
+}
+
+function screenshotManifest() {
+  return screenshotScenes().map(scene => ({
+    id: scene.id,
+    surface: scene.surface,
+    view: scene.view,
+    title: scene.title,
+    mediaFile: scene.mediaFile,
+    htmlFile: scene.htmlFile,
+    width: scene.width,
+    height: scene.height,
+    hero: scene.hero,
+    livePath: scene.livePath,
+    appSources: scene.appSources,
+    requiredClasses: scene.requiredClasses,
+    requiredDesktopClasses: scene.requiredDesktopClasses,
+    requiredMobileComponents: scene.requiredMobileComponents,
+    copy: scene.copy,
+  }));
 }
 
 async function readProductCss(directory) {

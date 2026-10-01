@@ -37,6 +37,11 @@ shows the live components that surface uses.
   numbered spine, contract, fork, facts, surface rows, steps, callout, next).
   It is not compiled into Desktop or Mobile bindings.
 - `src/marketing.css` owns campaign and product-frame compositions.
+- `src/screenshots/shell.css` owns screenshot-only chrome layout (rails, tab
+  strips, viewport size). It is compiled into `dist/web/screenshots.css` and
+  per-view HTML under `dist/web/screenshots/`, not into Desktop or Mobile.
+- `scripts/lib/screenshots.mjs` owns the Desktop and Mobile product views
+  persisted into `media/` by `au-debug screenshots persist`.
 - `brand/voice.json` owns product naming, positioning, capability lifecycle
   language, and editorial principles.
 - `scripts/build.mjs` deterministically copies web assets and compiles the CSS
@@ -137,8 +142,9 @@ Desktop is the reference rendering:
 - Red identifies errors, failures, and destructive actions.
 - Ambient neon glow, decorative green grids, green borders around every surface,
   and accent-tinted hover states are retired.
-- Product UI and real product screenshots are preferred to speculative
-  illustrations.
+- Product UI and design-system product screenshots are preferred to speculative
+  illustrations. Persist those shots with `au-debug screenshots persist`; do not
+  reconstruct Desktop or Mobile chrome in docs HTML.
 
 Mobile uses the same sign-in pane, workspace row, and type scale as Desktop.
 Primary actions stay 44px; chrome stays compact. Documentation prioritizes
@@ -157,4 +163,6 @@ npm --prefix AgentUp.DesignSystem test
 The `check` command fails when a generated web, React Native, or Avalonia binding
 does not exactly match the canonical HTML and CSS. Native `font-style` compiles to
 React Native `italic` or `normal`; CSS `oblique` maps to `italic` because React
-Native does not accept `oblique`.
+Native does not accept `oblique`. Screenshot HTML is generated in the same build;
+refresh `media/` with `au-debug screenshots persist` and prove the shots still
+match the apps with `au-debug screenshots validate`.

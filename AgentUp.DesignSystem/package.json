@@ -14,6 +14,7 @@
     "./native-types": "./dist/native/index.d.ts",
     "./catalog": "./dist/web/catalog.json",
     "./catalog.html": "./dist/web/catalog.html",
+    "./screenshots": "./dist/web/screenshots.json",
     "./syntax": {
       "types": "./src/syntax/highlight.d.ts",
       "default": "./src/syntax/highlight.mjs"
