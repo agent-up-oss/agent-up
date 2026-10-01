@@ -202,6 +202,18 @@ public sealed class ExternalBearerCredentialValidatorTests
     }
 
     [Test]
+    public void Constructor_RejectsNonHttpsJwksUri()
+    {
+        var settings = Settings(
+            ("AGENTUP_EXTERNAL_SIGNING_KEY", null),
+            ("AGENTUP_EXTERNAL_JWKS_URI", "http://issuer.test/keys"));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => CreateValidator(settings));
+
+        Assert.That(exception!.Message, Does.Contain("absolute HTTPS URI"));
+    }
+
+    [Test]
     public async Task Validate_RateLimitsUnknownJwksKeyRefreshes()
     {
         using var published = RSA.Create(2048);
@@ -234,6 +246,62 @@ public sealed class ExternalBearerCredentialValidatorTests
             ("AGENTUP_EXTERNAL_JWKS_URI", "https://issuer.test/keys")), client);
 
         Assert.That(await validator.ValidateAsync(IssueToken()), Is.Null);
+    }
+
+    [Test]
+    public async Task Validate_FailsClosedWhenJwksRequestTimesOut()
+    {
+        var handler = new TimeoutHttpMessageHandler();
+        using var client = new HttpClient(handler);
+        var validator = CreateValidator(Settings(
+            ("AGENTUP_EXTERNAL_SIGNING_KEY", null),
+            ("AGENTUP_EXTERNAL_JWKS_URI", "https://issuer.test/keys")), client);
+
+        Assert.That(await validator.ValidateAsync(IssueToken()), Is.Null);
+    }
+
+    [Test]
+    public void Validate_PropagatesCallerCancellation()
+    {
+        var handler = new CallerCancellationHttpMessageHandler();
+        using var client = new HttpClient(handler);
+        var validator = CreateValidator(Settings(
+            ("AGENTUP_EXTERNAL_SIGNING_KEY", null),
+            ("AGENTUP_EXTERNAL_JWKS_URI", "https://issuer.test/keys")), client);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.CatchAsync<OperationCanceledException>(async () =>
+            await validator.ValidateAsync(IssueToken(), cancellation.Token));
+    }
+
+    [Test]
+    public async Task Validate_RejectsExpiredKeysWhenJwksRefreshFails()
+    {
+        using var rsa = RSA.Create(2048);
+        var jwk = JsonWebKeyConverter.ConvertFromRSASecurityKey(
+            new RsaSecurityKey(rsa) { KeyId = "key-1" });
+        var handler = new FailingAfterSuccessHttpMessageHandler(Jwks(jwk));
+        using var client = new HttpClient(handler);
+        var clock = new ManualTimeProvider(DateTimeOffset.UtcNow);
+        var settings = Settings(
+            ("AGENTUP_EXTERNAL_SIGNING_KEY", null),
+            ("AGENTUP_EXTERNAL_JWKS_URI", "https://issuer.test/keys"));
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
+        var keys = new ExternalBearerSigningKeyProvider(configuration, client, clock);
+        var validator = new ExternalBearerCredentialValidator(configuration, keys);
+
+        Assert.That(await validator.ValidateAsync(IssueRsaToken(rsa, "key-1")), Is.Not.Null);
+        clock.Advance(TimeSpan.FromMinutes(5));
+
+        var failedRefresh = await validator.ValidateAsync(IssueRsaToken(rsa, "key-1"));
+        var throttledRetry = await validator.ValidateAsync(IssueRsaToken(rsa, "key-1"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(failedRefresh, Is.Null);
+            Assert.That(throttledRetry, Is.Null);
+            Assert.That(handler.RequestCount, Is.EqualTo(2));
+        });
     }
 
     [Test]
@@ -380,11 +448,56 @@ public sealed class ExternalBearerCredentialValidatorTests
         {
             RequestCount++;
             var response = _responses.Count > 1 ? _responses.Dequeue() : _responses.FirstOrDefault();
-            return Task.FromResult(new HttpResponseMessage(_statusCode)
+            return Task.FromResult(CreateResponse(_statusCode, response));
+        }
+
+        private static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, string? response)
+            => new(statusCode)
             {
                 Content = response is null ? null : new StringContent(response, Encoding.UTF8, "application/json")
-            });
+            };
+    }
+
+    private sealed class TimeoutHttpMessageHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => Task.FromException<HttpResponseMessage>(new TaskCanceledException("JWKS request timed out."));
+    }
+
+    private sealed class CallerCancellationHttpMessageHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => Task.FromCanceled<HttpResponseMessage>(cancellationToken);
+    }
+
+    private sealed class FailingAfterSuccessHttpMessageHandler(string response) : HttpMessageHandler
+    {
+        private int _requestCount;
+
+        public int RequestCount => _requestCount;
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            _requestCount++;
+            return _requestCount == 1
+                ? Task.FromResult(CreateSuccessResponse(response))
+                : Task.FromResult(CreateUnavailableResponse());
         }
+
+        private static HttpResponseMessage CreateSuccessResponse(string response)
+            => new(HttpStatusCode.OK)
+            {
+                Content = new StringContent(response, Encoding.UTF8, "application/json")
+            };
+
+        private static HttpResponseMessage CreateUnavailableResponse()
+            => new(HttpStatusCode.ServiceUnavailable);
     }
 
     private sealed class ManualTimeProvider(DateTimeOffset now) : TimeProvider

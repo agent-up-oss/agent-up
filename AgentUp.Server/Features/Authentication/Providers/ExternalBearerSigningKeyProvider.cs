@@ -44,11 +44,12 @@ public sealed class ExternalBearerSigningKeyProvider
 
     public static void ValidateConfiguration(IConfiguration configuration)
     {
+        var jwksUri = NullIfWhiteSpace(configuration["AGENTUP_EXTERNAL_JWKS_URI"]);
         var sources = new[]
         {
             configuration["AGENTUP_EXTERNAL_SIGNING_KEY"],
             configuration["AGENTUP_EXTERNAL_PUBLIC_KEY"],
-            configuration["AGENTUP_EXTERNAL_JWKS_URI"]
+            jwksUri
         }.Count(value => !string.IsNullOrWhiteSpace(value));
 
         if (sources > 1)
@@ -56,6 +57,13 @@ public sealed class ExternalBearerSigningKeyProvider
             throw new InvalidOperationException(
                 "Configure exactly one external bearer verification source: "
                 + "AGENTUP_EXTERNAL_SIGNING_KEY, AGENTUP_EXTERNAL_PUBLIC_KEY, or AGENTUP_EXTERNAL_JWKS_URI.");
+        }
+
+        if (jwksUri is not null
+            && (!Uri.TryCreate(jwksUri, UriKind.Absolute, out var parsedUri)
+                || parsedUri.Scheme != Uri.UriSchemeHttps))
+        {
+            throw new InvalidOperationException("AGENTUP_EXTERNAL_JWKS_URI must be an absolute HTTPS URI.");
         }
     }
 
@@ -66,7 +74,13 @@ public sealed class ExternalBearerSigningKeyProvider
         if (_jwksUri is null)
             return [];
 
-        return FindKeys(_jwksKeys ?? [], keyId);
+        lock (_sync)
+        {
+            if (_timeProvider.GetUtcNow() >= _jwksExpiresAt)
+                return [];
+
+            return FindKeys(_jwksKeys ?? [], keyId);
+        }
     }
 
     public async Task PrepareAsync(
@@ -113,17 +127,33 @@ public sealed class ExternalBearerSigningKeyProvider
         pem = pem.Replace("\\n", "\n", StringComparison.Ordinal);
         try
         {
-            var rsa = RSA.Create();
+            using var rsa = RSA.Create();
             rsa.ImportFromPem(pem);
-            return new RsaSecurityKey(rsa);
+            return new RsaSecurityKey(rsa.ExportParameters(includePrivateParameters: false));
         }
         catch (CryptographicException)
         {
-            var ec = ECDsa.Create();
+            using var ec = ECDsa.Create();
             ec.ImportFromPem(pem);
-            return new ECDsaSecurityKey(ec);
+            var parameters = ec.ExportParameters(includePrivateParameters: false);
+            return new JsonWebKey
+            {
+                Kty = "EC",
+                Crv = ReadCurveName(parameters.Curve),
+                X = Base64UrlEncoder.Encode(parameters.Q.X),
+                Y = Base64UrlEncoder.Encode(parameters.Q.Y)
+            };
         }
     }
+
+    private static string ReadCurveName(ECCurve curve)
+        => curve.Oid.Value switch
+        {
+            "1.2.840.10045.3.1.7" => "P-256",
+            "1.3.132.0.34" => "P-384",
+            "1.3.132.0.35" => "P-521",
+            _ => throw new CryptographicException("The PEM public key uses an unsupported EC curve.")
+        };
 
     private static IReadOnlyCollection<string>? ParseAlgorithms(string? value)
     {
@@ -137,6 +167,10 @@ public sealed class ExternalBearerSigningKeyProvider
             SymmetricSecurityKey => [SecurityAlgorithms.HmacSha256],
             RsaSecurityKey => [SecurityAlgorithms.RsaSha256],
             ECDsaSecurityKey => [SecurityAlgorithms.EcdsaSha256],
+            JsonWebKey { Kty: "RSA" } => [SecurityAlgorithms.RsaSha256],
+            JsonWebKey { Kty: "EC", Crv: "P-256" } => [SecurityAlgorithms.EcdsaSha256],
+            JsonWebKey { Kty: "EC", Crv: "P-384" } => [SecurityAlgorithms.EcdsaSha384],
+            JsonWebKey { Kty: "EC", Crv: "P-521" } => [SecurityAlgorithms.EcdsaSha512],
             _ when jwksUri is not null => [SecurityAlgorithms.RsaSha256, SecurityAlgorithms.EcdsaSha256],
             _ => []
         };
