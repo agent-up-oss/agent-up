@@ -10,12 +10,13 @@ public sealed class CredentialValidationService(
     LocalAdministratorCredentialValidator local,
     ExternalBearerCredentialValidator external)
 {
-    public AuthenticatedPrincipal? Validate(string? token)
+    public Task<AuthenticatedPrincipal?> ValidateAsync(string? token, CancellationToken cancellationToken = default)
     {
         if (modes.Current == AuthenticationMode.Disabled)
-            return new AuthenticatedPrincipal("local", tenant: null, workspace: null, OperationPermissions.All);
+            return Task.FromResult<AuthenticatedPrincipal?>(
+                new AuthenticatedPrincipal("local", tenant: null, workspace: null, OperationPermissions.All));
 
         ICredentialValidator validator = modes.Current == AuthenticationMode.ExternalBearer ? external : local;
-        return validator.Validate(token);
+        return validator.ValidateAsync(token, cancellationToken);
     }
 }

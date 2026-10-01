@@ -14,12 +14,13 @@ namespace AgentUp.Server.Tests.Features.Authentication.Provider;
 public sealed class ExternalBearerCredentialValidatorTests
 {
     private const string SigningKey = "unit-test-signing-key-32-bytes!!";
+    private static readonly HttpClient DefaultHttpClient = new();
 
     [Test]
-    public void Validate_AcceptsSignedTokenForConfiguredIssuerAndAudience()
+    public async Task Validate_AcceptsSignedTokenForConfiguredIssuerAndAudience()
     {
         var validator = CreateValidator();
-        var principal = validator.Validate(IssueToken(workspace: "ws-1", permissions: [OperationPermissions.WorkspaceRead]));
+        var principal = await validator.ValidateAsync(IssueToken(workspace: "ws-1", permissions: [OperationPermissions.WorkspaceRead]));
 
         Assert.Multiple(() =>
         {
@@ -31,48 +32,56 @@ public sealed class ExternalBearerCredentialValidatorTests
     }
 
     [Test]
-    public void Validate_RejectsTokenForADifferentAudience()
+    public async Task Validate_RejectsTokenForADifferentAudience()
     {
         var validator = CreateValidator();
         var token = IssueToken(audience: "other-environment");
-        Assert.That(validator.Validate(token), Is.Null);
+        Assert.That(await validator.ValidateAsync(token), Is.Null);
     }
 
     [Test]
-    public void Validate_ReturnsNullWhenExternalIssuerConfigurationIsIncomplete()
+    public async Task Validate_ReturnsNullWhenExternalIssuerConfigurationIsIncomplete()
     {
+        var issuerOnly = await CreateValidator(
+            ("AGENTUP_EXTERNAL_ISSUER", "https://issuer.test")).ValidateAsync(IssueToken());
+        var issuerAndAudience = await CreateValidator(
+            ("AGENTUP_EXTERNAL_ISSUER", "https://issuer.test"),
+            ("AGENTUP_EXTERNAL_AUDIENCE", "environment-1")).ValidateAsync(IssueToken());
+        var issuerAndKey = await CreateValidator(
+            ("AGENTUP_EXTERNAL_ISSUER", "https://issuer.test"),
+            ("AGENTUP_EXTERNAL_SIGNING_KEY", SigningKey)).ValidateAsync(IssueToken());
+
         Assert.Multiple(() =>
         {
-            Assert.That(CreateValidator(("AGENTUP_EXTERNAL_ISSUER", "https://issuer.test")).Validate(IssueToken()), Is.Null);
-            Assert.That(CreateValidator(
-                ("AGENTUP_EXTERNAL_ISSUER", "https://issuer.test"),
-                ("AGENTUP_EXTERNAL_AUDIENCE", "environment-1")).Validate(IssueToken()), Is.Null);
-            Assert.That(CreateValidator(
-                ("AGENTUP_EXTERNAL_ISSUER", "https://issuer.test"),
-                ("AGENTUP_EXTERNAL_SIGNING_KEY", SigningKey)).Validate(IssueToken()), Is.Null);
+            Assert.That(issuerOnly, Is.Null);
+            Assert.That(issuerAndAudience, Is.Null);
+            Assert.That(issuerAndKey, Is.Null);
         });
     }
 
     [Test]
-    public void Validate_RejectsMissingOrMalformedTokens()
+    public async Task Validate_RejectsMissingOrMalformedTokens()
     {
         var validator = CreateValidator();
+        var missing = await validator.ValidateAsync(null);
+        var blank = await validator.ValidateAsync("   ");
+        var malformed = await validator.ValidateAsync("not-a-jwt");
         Assert.Multiple(() =>
         {
-            Assert.That(validator.Validate(null), Is.Null);
-            Assert.That(validator.Validate("   "), Is.Null);
-            Assert.That(validator.Validate("not-a-jwt"), Is.Null);
+            Assert.That(missing, Is.Null);
+            Assert.That(blank, Is.Null);
+            Assert.That(malformed, Is.Null);
         });
     }
 
     [Test]
-    public void Validate_ReadsTenantAndNameIdentifierSubject()
+    public async Task Validate_ReadsTenantAndNameIdentifierSubject()
     {
         var original = JwtSecurityTokenHandler.DefaultMapInboundClaims;
         JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
         try
         {
-            var principal = CreateValidator().Validate(IssueToken(
+            var principal = await CreateValidator().ValidateAsync(IssueToken(
                 subjectClaimType: ClaimTypes.NameIdentifier,
                 tenant: "ten-1"));
             Assert.Multiple(() =>
@@ -89,13 +98,13 @@ public sealed class ExternalBearerCredentialValidatorTests
     }
 
     [Test]
-    public void Validate_RejectsTokenWithoutASubject()
+    public async Task Validate_RejectsTokenWithoutASubject()
     {
-        Assert.That(CreateValidator().Validate(IssueToken(includeSubject: false)), Is.Null);
+        Assert.That(await CreateValidator().ValidateAsync(IssueToken(includeSubject: false)), Is.Null);
     }
 
     [Test]
-    public void Validate_AcceptsRsaTokenWithConfiguredPublicKey()
+    public async Task Validate_AcceptsRsaTokenWithConfiguredPublicKey()
     {
         using var rsa = RSA.Create(2048);
         var settings = Settings(
@@ -103,11 +112,11 @@ public sealed class ExternalBearerCredentialValidatorTests
             ("AGENTUP_EXTERNAL_PUBLIC_KEY", rsa.ExportSubjectPublicKeyInfoPem()));
         var validator = CreateValidator(settings);
 
-        Assert.That(validator.Validate(IssueRsaToken(rsa)), Is.Not.Null);
+        Assert.That(await validator.ValidateAsync(IssueRsaToken(rsa)), Is.Not.Null);
     }
 
     [Test]
-    public void Validate_AcceptsRsaTokenFromJwks()
+    public async Task Validate_AcceptsRsaTokenFromJwks()
     {
         using var rsa = RSA.Create(2048);
         var key = new RsaSecurityKey(rsa) { KeyId = "key-1" };
@@ -116,14 +125,15 @@ public sealed class ExternalBearerCredentialValidatorTests
             ("AGENTUP_EXTERNAL_SIGNING_KEY", null),
             ("AGENTUP_EXTERNAL_JWKS_URI", "https://issuer.test/.well-known/jwks.json"));
         var handler = new StubHttpMessageHandler($"{{\"keys\":[{System.Text.Json.JsonSerializer.Serialize(jwk)}]}}");
-        var validator = CreateValidator(settings, new HttpClient(handler));
+        using var client = new HttpClient(handler);
+        var validator = CreateValidator(settings, client);
 
-        Assert.That(validator.Validate(IssueRsaToken(rsa, key.KeyId)), Is.Not.Null);
+        Assert.That(await validator.ValidateAsync(IssueRsaToken(rsa, key.KeyId)), Is.Not.Null);
         Assert.That(handler.RequestCount, Is.EqualTo(1));
     }
 
     [Test]
-    public void Validate_AcceptsEcTokenWithConfiguredPublicKey()
+    public async Task Validate_AcceptsEcTokenWithConfiguredPublicKey()
     {
         using var ec = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var settings = Settings(
@@ -131,26 +141,28 @@ public sealed class ExternalBearerCredentialValidatorTests
             ("AGENTUP_EXTERNAL_PUBLIC_KEY", ec.ExportSubjectPublicKeyInfoPem()));
         var validator = CreateValidator(settings);
 
-        Assert.That(validator.Validate(IssueEcToken(ec)), Is.Not.Null);
+        Assert.That(await validator.ValidateAsync(IssueEcToken(ec)), Is.Not.Null);
     }
 
     [Test]
-    public void Validate_RejectsAlgorithmsFromTheWrongKeyMode()
+    public async Task Validate_RejectsAlgorithmsFromTheWrongKeyMode()
     {
         using var rsa = RSA.Create(2048);
         var asymmetric = CreateValidator(Settings(
             ("AGENTUP_EXTERNAL_SIGNING_KEY", null),
             ("AGENTUP_EXTERNAL_PUBLIC_KEY", rsa.ExportSubjectPublicKeyInfoPem())));
 
+        var hmacWithRsa = await asymmetric.ValidateAsync(IssueToken());
+        var rsaWithHmac = await CreateValidator().ValidateAsync(IssueRsaToken(rsa));
         Assert.Multiple(() =>
         {
-            Assert.That(asymmetric.Validate(IssueToken()), Is.Null);
-            Assert.That(CreateValidator().Validate(IssueRsaToken(rsa)), Is.Null);
+            Assert.That(hmacWithRsa, Is.Null);
+            Assert.That(rsaWithHmac, Is.Null);
         });
     }
 
     [Test]
-    public void Validate_RejectsUnsignedTokens()
+    public async Task Validate_RejectsUnsignedTokens()
     {
         var token = new JwtSecurityToken(
             "https://issuer.test",
@@ -158,11 +170,11 @@ public sealed class ExternalBearerCredentialValidatorTests
             [new Claim("sub", "user-1")],
             expires: DateTime.UtcNow.AddMinutes(5));
 
-        Assert.That(CreateValidator().Validate(new JwtSecurityTokenHandler().WriteToken(token)), Is.Null);
+        Assert.That(await CreateValidator().ValidateAsync(new JwtSecurityTokenHandler().WriteToken(token)), Is.Null);
     }
 
     [Test]
-    public void Validate_HonorsExplicitAlgorithmAllowlist()
+    public async Task Validate_HonorsExplicitAlgorithmAllowlist()
     {
         using var rsa = RSA.Create(2048);
         var settings = Settings(
@@ -170,11 +182,13 @@ public sealed class ExternalBearerCredentialValidatorTests
             ("AGENTUP_EXTERNAL_PUBLIC_KEY", rsa.ExportSubjectPublicKeyInfoPem()));
         var token = IssueRsaToken(rsa, algorithm: SecurityAlgorithms.RsaSha384);
 
+        var defaultResult = await CreateValidator(settings).ValidateAsync(token);
+        settings["AGENTUP_EXTERNAL_ALGORITHMS"] = SecurityAlgorithms.RsaSha384;
+        var allowedResult = await CreateValidator(settings).ValidateAsync(token);
         Assert.Multiple(() =>
         {
-            Assert.That(CreateValidator(settings).Validate(token), Is.Null);
-            settings["AGENTUP_EXTERNAL_ALGORITHMS"] = SecurityAlgorithms.RsaSha384;
-            Assert.That(CreateValidator(settings).Validate(token), Is.Not.Null);
+            Assert.That(defaultResult, Is.Null);
+            Assert.That(allowedResult, Is.Not.Null);
         });
     }
 
@@ -188,38 +202,42 @@ public sealed class ExternalBearerCredentialValidatorTests
     }
 
     [Test]
-    public void Validate_RateLimitsUnknownJwksKeyRefreshes()
+    public async Task Validate_RateLimitsUnknownJwksKeyRefreshes()
     {
         using var published = RSA.Create(2048);
         using var unknown = RSA.Create(2048);
         var jwk = JsonWebKeyConverter.ConvertFromRSASecurityKey(
             new RsaSecurityKey(published) { KeyId = "published" });
         var handler = new StubHttpMessageHandler(Jwks(jwk));
+        using var client = new HttpClient(handler);
         var validator = CreateValidator(Settings(
             ("AGENTUP_EXTERNAL_SIGNING_KEY", null),
-            ("AGENTUP_EXTERNAL_JWKS_URI", "https://issuer.test/keys")), new HttpClient(handler));
+            ("AGENTUP_EXTERNAL_JWKS_URI", "https://issuer.test/keys")), client);
 
+        var first = await validator.ValidateAsync(IssueRsaToken(unknown, "missing-1"));
+        var second = await validator.ValidateAsync(IssueRsaToken(unknown, "missing-2"));
         Assert.Multiple(() =>
         {
-            Assert.That(validator.Validate(IssueRsaToken(unknown, "missing-1")), Is.Null);
-            Assert.That(validator.Validate(IssueRsaToken(unknown, "missing-2")), Is.Null);
+            Assert.That(first, Is.Null);
+            Assert.That(second, Is.Null);
             Assert.That(handler.RequestCount, Is.EqualTo(1));
         });
     }
 
     [Test]
-    public void Validate_FailsClosedWhenJwksIsUnavailableAndCacheIsEmpty()
+    public async Task Validate_FailsClosedWhenJwksIsUnavailableAndCacheIsEmpty()
     {
         var handler = new StubHttpMessageHandler(HttpStatusCode.ServiceUnavailable);
+        using var client = new HttpClient(handler);
         var validator = CreateValidator(Settings(
             ("AGENTUP_EXTERNAL_SIGNING_KEY", null),
-            ("AGENTUP_EXTERNAL_JWKS_URI", "https://issuer.test/keys")), new HttpClient(handler));
+            ("AGENTUP_EXTERNAL_JWKS_URI", "https://issuer.test/keys")), client);
 
-        Assert.That(validator.Validate(IssueToken()), Is.Null);
+        Assert.That(await validator.ValidateAsync(IssueToken()), Is.Null);
     }
 
     [Test]
-    public void Validate_RefreshesRotatedJwksAndDropsRetiredKeys()
+    public async Task Validate_RefreshesRotatedJwksAndDropsRetiredKeys()
     {
         using var retired = RSA.Create(2048);
         using var current = RSA.Create(2048);
@@ -233,16 +251,19 @@ public sealed class ExternalBearerCredentialValidatorTests
             ("AGENTUP_EXTERNAL_SIGNING_KEY", null),
             ("AGENTUP_EXTERNAL_JWKS_URI", "https://issuer.test/keys"));
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
-        var keys = new ExternalBearerSigningKeyProvider(configuration, new HttpClient(handler), clock);
+        using var client = new HttpClient(handler);
+        var keys = new ExternalBearerSigningKeyProvider(configuration, client, clock);
         var validator = new ExternalBearerCredentialValidator(configuration, keys);
 
-        Assert.That(validator.Validate(IssueRsaToken(retired, "retired")), Is.Not.Null);
+        Assert.That(await validator.ValidateAsync(IssueRsaToken(retired, "retired")), Is.Not.Null);
         clock.Advance(TimeSpan.FromMinutes(1));
 
+        var currentResult = await validator.ValidateAsync(IssueRsaToken(current, "current"));
+        var retiredResult = await validator.ValidateAsync(IssueRsaToken(retired, "retired"));
         Assert.Multiple(() =>
         {
-            Assert.That(validator.Validate(IssueRsaToken(current, "current")), Is.Not.Null);
-            Assert.That(validator.Validate(IssueRsaToken(retired, "retired")), Is.Null);
+            Assert.That(currentResult, Is.Not.Null);
+            Assert.That(retiredResult, Is.Null);
             Assert.That(handler.RequestCount, Is.EqualTo(2));
         });
     }
@@ -271,7 +292,7 @@ public sealed class ExternalBearerCredentialValidatorTests
         HttpClient? client = null)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
-        var keys = new ExternalBearerSigningKeyProvider(configuration, client ?? new HttpClient());
+        var keys = new ExternalBearerSigningKeyProvider(configuration, client ?? DefaultHttpClient);
         return new ExternalBearerCredentialValidator(configuration, keys);
     }
 

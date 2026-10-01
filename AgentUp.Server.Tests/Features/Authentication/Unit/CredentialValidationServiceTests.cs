@@ -13,10 +13,10 @@ namespace AgentUp.Server.Tests.Features.Authentication.Unit;
 public sealed class CredentialValidationServiceTests
 {
     [Test]
-    public void DisabledMode_ReturnsUnrestrictedPrincipalWithoutAToken()
+    public async Task DisabledMode_ReturnsUnrestrictedPrincipalWithoutAToken()
     {
         var service = Create(("AGENTUP_AUTH_DISABLED", "true"));
-        var principal = service.Validate(null);
+        var principal = await service.ValidateAsync(null);
         Assert.Multiple(() =>
         {
             Assert.That(principal, Is.Not.Null);
@@ -25,14 +25,14 @@ public sealed class CredentialValidationServiceTests
     }
 
     [Test]
-    public void LocalAdministratorMode_RejectsMissingToken()
+    public async Task LocalAdministratorMode_RejectsMissingToken()
     {
         var service = Create(("AGENTUP_ADMIN_PASSWORD", "secret"));
-        Assert.That(service.Validate(null), Is.Null);
+        Assert.That(await service.ValidateAsync(null), Is.Null);
     }
 
     [Test]
-    public void ExternalBearerMode_ValidatesSignedTokens()
+    public async Task ExternalBearerMode_ValidatesSignedTokens()
     {
         const string signingKey = "unit-test-signing-key-32-bytes!!";
         var service = Create(
@@ -50,7 +50,7 @@ public sealed class CredentialValidationServiceTests
                 new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
                 SecurityAlgorithms.HmacSha256));
 
-        var principal = service.Validate(new JwtSecurityTokenHandler().WriteToken(jwt));
+        var principal = await service.ValidateAsync(new JwtSecurityTokenHandler().WriteToken(jwt));
 
         Assert.Multiple(() =>
         {

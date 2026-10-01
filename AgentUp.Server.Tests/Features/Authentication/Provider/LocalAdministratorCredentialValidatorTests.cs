@@ -8,13 +8,13 @@ namespace AgentUp.Server.Tests.Features.Authentication.Provider;
 public sealed class LocalAdministratorCredentialValidatorTests
 {
     [Test]
-    public void Validate_ReturnsAdminPrincipalForIssuedSession()
+    public async Task Validate_ReturnsAdminPrincipalForIssuedSession()
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?> { ["AGENTUP_ADMIN_PASSWORD"] = "secret" }).Build();
         var sessions = new AuthenticationProvider(configuration);
         var validator = new LocalAdministratorCredentialValidator(sessions);
-        var principal = validator.Validate(sessions.Login("secret"));
+        var principal = await validator.ValidateAsync(sessions.Login("secret"));
 
         Assert.Multiple(() =>
         {
@@ -25,11 +25,11 @@ public sealed class LocalAdministratorCredentialValidatorTests
     }
 
     [Test]
-    public void Validate_RejectsUnknownToken()
+    public async Task Validate_RejectsUnknownToken()
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?> { ["AGENTUP_ADMIN_PASSWORD"] = "secret" }).Build();
         var validator = new LocalAdministratorCredentialValidator(new AuthenticationProvider(configuration));
-        Assert.That(validator.Validate("nope"), Is.Null);
+        Assert.That(await validator.ValidateAsync("nope"), Is.Null);
     }
 }

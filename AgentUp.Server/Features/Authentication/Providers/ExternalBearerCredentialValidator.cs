@@ -39,14 +39,18 @@ public sealed class ExternalBearerCredentialValidator : ICredentialValidator
         };
     }
 
-    public AuthenticatedPrincipal? Validate(string? token)
+    public async Task<AuthenticatedPrincipal?> ValidateAsync(
+        string? token,
+        CancellationToken cancellationToken = default)
     {
         if (_parameters is null || string.IsNullOrWhiteSpace(token))
             return null;
 
         try
         {
-            var principal = ValidateToken(token);
+            var keyId = new JwtSecurityTokenHandler().ReadJwtToken(token).Header.Kid;
+            await _signingKeys.PrepareAsync(keyId, refreshOnUnknownKey: false, cancellationToken);
+            var principal = await ValidateTokenAsync(token, keyId, cancellationToken);
             var subject = principal.FindFirst("sub")?.Value
                 ?? principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(subject))
@@ -68,7 +72,10 @@ public sealed class ExternalBearerCredentialValidator : ICredentialValidator
         }
     }
 
-    private System.Security.Claims.ClaimsPrincipal ValidateToken(string token)
+    private async Task<System.Security.Claims.ClaimsPrincipal> ValidateTokenAsync(
+        string token,
+        string? keyId,
+        CancellationToken cancellationToken)
     {
         try
         {
@@ -76,9 +83,8 @@ public sealed class ExternalBearerCredentialValidator : ICredentialValidator
         }
         catch (SecurityTokenSignatureKeyNotFoundException)
         {
+            await _signingKeys.PrepareAsync(keyId, refreshOnUnknownKey: true, cancellationToken);
             var refreshed = _parameters!.Clone();
-            refreshed.IssuerSigningKeyResolver = (_, _, keyId, _) =>
-                _signingKeys.Resolve(keyId, refreshOnUnknownKey: true);
             return new JwtSecurityTokenHandler().ValidateToken(token, refreshed, out _);
         }
     }

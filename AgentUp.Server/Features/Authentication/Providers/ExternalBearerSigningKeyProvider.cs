@@ -59,36 +59,47 @@ public sealed class ExternalBearerSigningKeyProvider
         }
     }
 
-    public IEnumerable<SecurityKey> Resolve(string? keyId, bool refreshOnUnknownKey = false)
+    public IEnumerable<SecurityKey> Resolve(string? keyId)
     {
         if (_configuredKey is not null)
             return [_configuredKey];
         if (_jwksUri is null)
             return [];
 
-        var keys = GetJwksKeys(_jwksUri, forceRefresh: false);
-        var matches = FindKeys(keys, keyId);
-        if (matches.Count > 0 || !refreshOnUnknownKey)
-            return matches;
-
-        return FindKeys(GetJwksKeys(_jwksUri, forceRefresh: true), keyId);
+        return FindKeys(_jwksKeys ?? [], keyId);
     }
 
-    private IReadOnlyCollection<SecurityKey> GetJwksKeys(string uri, bool forceRefresh)
+    public async Task PrepareAsync(
+        string? keyId,
+        bool refreshOnUnknownKey,
+        CancellationToken cancellationToken = default)
     {
+        if (_jwksUri is null)
+            return;
+
+        bool shouldRefresh;
         lock (_sync)
         {
             var now = _timeProvider.GetUtcNow();
-            if (!forceRefresh && _jwksKeys is not null && now < _jwksExpiresAt)
-                return _jwksKeys;
-            if (now < _nextJwksRefreshAt && (forceRefresh || _jwksKeys is null))
-                return _jwksKeys ?? [];
+            var hasMatchingKey = FindKeys(_jwksKeys ?? [], keyId).Count > 0;
+            var wantsRefresh = _jwksKeys is null
+                || now >= _jwksExpiresAt
+                || (refreshOnUnknownKey && !hasMatchingKey);
+            shouldRefresh = wantsRefresh && now >= _nextJwksRefreshAt;
+            if (shouldRefresh)
+                _nextJwksRefreshAt = now.Add(JwksRefreshInterval);
+        }
 
-            _nextJwksRefreshAt = now.Add(JwksRefreshInterval);
-            var json = _httpClient.GetStringAsync(uri).GetAwaiter().GetResult();
-            _jwksKeys = new JsonWebKeySet(json).GetSigningKeys().ToArray();
+        if (!shouldRefresh)
+            return;
+
+        var json = await _httpClient.GetStringAsync(_jwksUri, cancellationToken);
+        var keys = new JsonWebKeySet(json).GetSigningKeys().ToArray();
+        lock (_sync)
+        {
+            _jwksKeys = keys;
+            var now = _timeProvider.GetUtcNow();
             _jwksExpiresAt = now.Add(JwksCacheLifetime);
-            return _jwksKeys;
         }
     }
 
