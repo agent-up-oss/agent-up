@@ -119,7 +119,11 @@ Desktop is the reference rendering:
   corner reads rounded on a chip and square on a 900px pane.
 - Working regions are `.au-pane` — inset on the canvas with a container radius
   and one elevation step — not full-bleed panels butted together at 1px lines.
-  Dialogs and menus use `.au-overlay-panel` above a scrim.
+  Dialogs and menus use `.au-overlay-panel` above a scrim. The sign-in screen is
+  a compact pane on the canvas (`.au-sign-in`), not an overlay. Saved-server URLs
+  ellipsize (`.au-choice-label`) with the full URL in the tooltip, and the saved
+  list (`.au-sign-in-list`) scrolls. Rows do not display credential state;
+  selecting a saved server applies a stored sign-in.
 - Product chrome uses the **UI type tier** (`--au-font-size-ui-*`, 11-22px) and
   the **UI weight roles** (`--au-weight-ui` 500, `--au-weight-ui-strong` 600).
   The content tier and 700+ weights belong to docs and marketing; uniform 700 on
@@ -136,7 +140,7 @@ Desktop is the reference rendering:
 - Product UI and real product screenshots are preferred to speculative
   illustrations.
 
-Mobile uses the same sign-in card, workspace row, and type scale as Desktop.
+Mobile uses the same sign-in pane, workspace row, and type scale as Desktop.
 Primary actions stay 44px; chrome stays compact. Documentation prioritizes
 reading. Marketing gets one focal point, one outcome, and a visible
 `Available`, `Preview`, `Experimental`, or `Planned` label when it describes a

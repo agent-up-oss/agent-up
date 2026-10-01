@@ -21,8 +21,6 @@ public sealed class AuthenticationController(AuthenticationService service, Serv
 
     public void PrepareServer(string url) => connections.Prepare(url);
 
-    public bool RestoreActiveServer() => connections.RestoreActive();
-
     public string CurrentServerUrl() => connections.CurrentUrl();
 
     public ClientSurfaceAvailability ClientSurfaces() => connections.Surfaces();

@@ -242,6 +242,18 @@
 }
 .au-choice:hover { background: var(--au-color-surface-hover); }
 .au-choice:disabled { opacity: 0.45; }
+.au-choice--selected {
+  background: var(--au-color-surface-selected-soft);
+  border-left: 2px solid var(--au-color-accent-line);
+}
+.au-choice--selected:hover { background: var(--au-color-surface-selected); }
+.au-choice--compact { padding: var(--au-space-2) var(--au-space-3); }
+.au-choice-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .au-button {
   min-height: var(--au-control-height);

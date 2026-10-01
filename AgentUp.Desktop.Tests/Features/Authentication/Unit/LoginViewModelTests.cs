@@ -204,6 +204,32 @@ public sealed class LoginViewModelTests
     }
 
     [Test]
+    public void ShowPicker_DoesNotApplyAStoredSession()
+    {
+        using var savedHttp = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var store = new InMemoryServerConnectionStore();
+        AuthenticationTestController.Create(savedHttp, store)
+            .SaveServer("https://agent-up.example.com", "remote-token");
+
+        using var launchHttp = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var login = new LoginViewModel(AuthenticationTestController.Create(launchHttp, store));
+
+        login.ShowPicker();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.IsVisible, Is.True);
+            Assert.That(login.NeedsPassword, Is.False);
+            Assert.That(login.CurrentServerUrl, Is.EqualTo("http://127.0.0.1:5000"));
+            Assert.That(
+                login.SavedServers.Any(server => server.Url == "https://agent-up.example.com"),
+                Is.True);
+        });
+    }
+
+    [Test]
     public void ShowPicker_ListsDemoWithoutAskingForAPassword()
     {
         using var http = new DisposableTestHttpClient(_ =>
@@ -471,7 +497,7 @@ public sealed class LoginViewModelTests
     }
 
     [Test]
-    public async Task SelectSavedCommand_ConnectsDemoFromTheFirstLaunchPicker()
+    public async Task SelectSavedCommand_ConnectsDemoFromTheLaunchPicker()
     {
         var backend = FakeServerTestComposition.Backend();
         using var http = FakeServerTestComposition.Client(backend);

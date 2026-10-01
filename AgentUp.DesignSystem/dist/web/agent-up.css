@@ -242,6 +242,18 @@
 }
 .au-choice:hover { background: var(--au-color-surface-hover); }
 .au-choice:disabled { opacity: 0.45; }
+.au-choice--selected {
+  background: var(--au-color-surface-selected-soft);
+  border-left: 2px solid var(--au-color-accent-line);
+}
+.au-choice--selected:hover { background: var(--au-color-surface-selected); }
+.au-choice--compact { padding: var(--au-space-2) var(--au-space-3); }
+.au-choice-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .au-button {
   min-height: var(--au-control-height);
@@ -839,15 +851,26 @@
 .au-validation-stage--failed { border-color: var(--au-color-status-danger); background: var(--au-color-surface-danger); }
 .au-validation-stage--running { border-color: var(--au-color-status-warning); }
 
-/* Auth / first-run */
+/* Auth / first-run.
+ * Sign-in is a pane on the canvas, not an overlay dialog. Overlay grey
+ * belongs to menus and file viewers that sit above a scrim. The primary
+ * Connect action and the current server carry green; the pane stays black. */
 .au-sign-in {
-  width: min(100%, 26rem);
-  padding: var(--au-space-6);
+  width: min(100%, 22rem);
+  max-height: 36rem;
+  padding: var(--au-space-5);
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface-overlay);
+  background: var(--au-color-surface);
   border: 1px solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-xl);
-  box-shadow: var(--au-shadow-overlay);
+  box-shadow: var(--au-shadow-md);
+}
+.au-sign-in-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--au-space-2);
+  max-height: 10.5rem;
+  overflow-y: auto;
 }
 .au-tutorial-button {
   padding: var(--au-space-2) var(--au-space-3);
