@@ -8,9 +8,11 @@ public sealed class ExternalBearerSigningKeyProvider
 {
     private static readonly TimeSpan JwksCacheLifetime = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan JwksRefreshInterval = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan DefaultJwksFetchTimeout = TimeSpan.FromSeconds(5);
     private readonly object _sync = new();
     private readonly HttpClient _httpClient;
     private readonly TimeProvider _timeProvider;
+    private readonly TimeSpan _jwksFetchTimeout;
     private readonly string? _jwksUri;
     private readonly SecurityKey? _configuredKey;
     private IReadOnlyCollection<SecurityKey>? _jwksKeys;
@@ -20,11 +22,13 @@ public sealed class ExternalBearerSigningKeyProvider
     public ExternalBearerSigningKeyProvider(
         IConfiguration configuration,
         HttpClient httpClient,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        TimeSpan? jwksFetchTimeout = null)
     {
         ValidateConfiguration(configuration);
         _httpClient = httpClient;
         _timeProvider = timeProvider ?? TimeProvider.System;
+        _jwksFetchTimeout = jwksFetchTimeout ?? DefaultJwksFetchTimeout;
         _jwksUri = NullIfWhiteSpace(configuration["AGENTUP_EXTERNAL_JWKS_URI"]);
 
         var secret = NullIfWhiteSpace(configuration["AGENTUP_EXTERNAL_SIGNING_KEY"]);
@@ -88,6 +92,7 @@ public sealed class ExternalBearerSigningKeyProvider
         bool refreshOnUnknownKey,
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (_jwksUri is null)
             return;
 
@@ -107,14 +112,25 @@ public sealed class ExternalBearerSigningKeyProvider
         if (!shouldRefresh)
             return;
 
-        var json = await _httpClient.GetStringAsync(_jwksUri, cancellationToken);
-        var keys = new JsonWebKeySet(json).GetSigningKeys().ToArray();
-        lock (_sync)
+        using var timeout = new CancellationTokenSource(_jwksFetchTimeout);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
+        try
         {
-            _jwksKeys = keys;
-            var now = _timeProvider.GetUtcNow();
-            _jwksExpiresAt = now.Add(JwksCacheLifetime);
+            var json = await _httpClient.GetStringAsync(_jwksUri, linked.Token);
+            var keys = new JsonWebKeySet(json).GetSigningKeys().ToArray();
+            lock (_sync)
+            {
+                _jwksKeys = keys;
+                var now = _timeProvider.GetUtcNow();
+                _jwksExpiresAt = now.Add(JwksCacheLifetime);
+            }
         }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     private static IReadOnlyCollection<SecurityKey> FindKeys(
@@ -166,8 +182,6 @@ public sealed class ExternalBearerSigningKeyProvider
         {
             SymmetricSecurityKey => [SecurityAlgorithms.HmacSha256],
             RsaSecurityKey => [SecurityAlgorithms.RsaSha256],
-            ECDsaSecurityKey => [SecurityAlgorithms.EcdsaSha256],
-            JsonWebKey { Kty: "RSA" } => [SecurityAlgorithms.RsaSha256],
             JsonWebKey { Kty: "EC", Crv: "P-256" } => [SecurityAlgorithms.EcdsaSha256],
             JsonWebKey { Kty: "EC", Crv: "P-384" } => [SecurityAlgorithms.EcdsaSha384],
             JsonWebKey { Kty: "EC", Crv: "P-521" } => [SecurityAlgorithms.EcdsaSha512],

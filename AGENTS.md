@@ -640,7 +640,8 @@ signed bearer token instead of the local administrator password; configure
 source: `AGENTUP_EXTERNAL_SIGNING_KEY` for HMAC, `AGENTUP_EXTERNAL_PUBLIC_KEY`
 for a PEM RSA or EC public key, or an absolute HTTPS
 `AGENTUP_EXTERNAL_JWKS_URI` for rotating JSON Web Keys. Expired JWKS keys fail
-closed. `AGENTUP_EXTERNAL_ALGORITHMS` optionally pins a comma-separated
+closed. JWKS fetches time out after five seconds.
+`AGENTUP_EXTERNAL_ALGORITHMS` optionally pins a comma-separated
 algorithm allowlist. Exactly one verification source must be configured. A token may include `workspace`, `tenant`, and
 repeated `permissions` claims. When `workspace` is present, the Server refuses
 other workspace ids under `/api/workspaces`.

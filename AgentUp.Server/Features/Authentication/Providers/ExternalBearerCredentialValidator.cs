@@ -70,10 +70,6 @@ public sealed class ExternalBearerCredentialValidator : ICredentialValidator
         {
             return null;
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return null;
-        }
     }
 
     private async Task<System.Security.Claims.ClaimsPrincipal> ValidateTokenAsync(

@@ -145,6 +145,41 @@ public sealed class ExternalBearerCredentialValidatorTests
     }
 
     [Test]
+    public async Task Validate_AcceptsP384EcTokenWithConfiguredPublicKey()
+    {
+        using var ec = ECDsa.Create(ECCurve.NamedCurves.nistP384);
+        var settings = Settings(
+            ("AGENTUP_EXTERNAL_SIGNING_KEY", null),
+            ("AGENTUP_EXTERNAL_PUBLIC_KEY", ec.ExportSubjectPublicKeyInfoPem()));
+        var validator = CreateValidator(settings);
+
+        Assert.That(
+            await validator.ValidateAsync(IssueEcToken(ec, SecurityAlgorithms.EcdsaSha384)),
+            Is.Not.Null);
+    }
+
+    [Test]
+    public async Task Validate_AcceptsP521EcTokenWithConfiguredPublicKey()
+    {
+        using var ec = ECDsa.Create(ECCurve.NamedCurves.nistP521);
+        var settings = Settings(
+            ("AGENTUP_EXTERNAL_SIGNING_KEY", null),
+            ("AGENTUP_EXTERNAL_PUBLIC_KEY", ec.ExportSubjectPublicKeyInfoPem()));
+        var validator = CreateValidator(settings);
+
+        Assert.That(
+            await validator.ValidateAsync(IssueEcToken(ec, SecurityAlgorithms.EcdsaSha512)),
+            Is.Not.Null);
+    }
+
+    [Test]
+    public async Task Validate_TreatsBlankAlgorithmAllowlistAsSourceDefault()
+    {
+        var settings = Settings(("AGENTUP_EXTERNAL_ALGORITHMS", " , "));
+        Assert.That(await CreateValidator(settings).ValidateAsync(IssueToken()), Is.Not.Null);
+    }
+
+    [Test]
     public async Task Validate_RejectsAlgorithmsFromTheWrongKeyMode()
     {
         using var rsa = RSA.Create(2048);
@@ -214,6 +249,58 @@ public sealed class ExternalBearerCredentialValidatorTests
     }
 
     [Test]
+    public void Constructor_RejectsRelativeJwksUri()
+    {
+        var settings = Settings(
+            ("AGENTUP_EXTERNAL_SIGNING_KEY", null),
+            ("AGENTUP_EXTERNAL_JWKS_URI", "issuer.test/keys"));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => CreateValidator(settings));
+
+        Assert.That(exception!.Message, Does.Contain("absolute HTTPS URI"));
+    }
+
+    [Test]
+    public void Constructor_RejectsInvalidPublicKeyPem()
+    {
+        var settings = Settings(
+            ("AGENTUP_EXTERNAL_SIGNING_KEY", null),
+            ("AGENTUP_EXTERNAL_PUBLIC_KEY", "-----BEGIN PUBLIC KEY-----\nQQ==\n-----END PUBLIC KEY-----"));
+
+        Assert.Throws<CryptographicException>(() => CreateValidator(settings));
+    }
+
+    [Test]
+    public void Constructor_RejectsUnsupportedEcCurves()
+    {
+        using var ec = ECDsa.Create(ECCurve.CreateFromValue("1.3.132.0.10"));
+        var settings = Settings(
+            ("AGENTUP_EXTERNAL_SIGNING_KEY", null),
+            ("AGENTUP_EXTERNAL_PUBLIC_KEY", ec.ExportSubjectPublicKeyInfoPem()));
+
+        var exception = Assert.Throws<CryptographicException>(() => CreateValidator(settings));
+
+        Assert.That(exception!.Message, Does.Contain("unsupported EC curve"));
+    }
+
+    [Test]
+    public async Task Prepare_DoesNothingWhenNoJwksSourceIsConfigured()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(Settings(
+            ("AGENTUP_EXTERNAL_SIGNING_KEY", null))).Build();
+        var keys = new ExternalBearerSigningKeyProvider(configuration, DefaultHttpClient);
+
+        await keys.PrepareAsync("any", refreshOnUnknownKey: true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(keys.IsConfigured, Is.False);
+            Assert.That(keys.Resolve("any"), Is.Empty);
+            Assert.That(keys.Algorithms, Is.Empty);
+        });
+    }
+
+    [Test]
     public async Task Validate_RateLimitsUnknownJwksKeyRefreshes()
     {
         using var published = RSA.Create(2048);
@@ -253,9 +340,12 @@ public sealed class ExternalBearerCredentialValidatorTests
     {
         var handler = new TimeoutHttpMessageHandler();
         using var client = new HttpClient(handler);
-        var validator = CreateValidator(Settings(
-            ("AGENTUP_EXTERNAL_SIGNING_KEY", null),
-            ("AGENTUP_EXTERNAL_JWKS_URI", "https://issuer.test/keys")), client);
+        var validator = CreateValidator(
+            Settings(
+                ("AGENTUP_EXTERNAL_SIGNING_KEY", null),
+                ("AGENTUP_EXTERNAL_JWKS_URI", "https://issuer.test/keys")),
+            client,
+            jwksFetchTimeout: TimeSpan.FromMilliseconds(20));
 
         Assert.That(await validator.ValidateAsync(IssueToken()), Is.Null);
     }
@@ -357,10 +447,16 @@ public sealed class ExternalBearerCredentialValidatorTests
 
     private static ExternalBearerCredentialValidator CreateValidator(
         Dictionary<string, string?> settings,
-        HttpClient? client = null)
+        HttpClient? client = null,
+        TimeProvider? timeProvider = null,
+        TimeSpan? jwksFetchTimeout = null)
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
-        var keys = new ExternalBearerSigningKeyProvider(configuration, client ?? DefaultHttpClient);
+        var keys = new ExternalBearerSigningKeyProvider(
+            configuration,
+            client ?? DefaultHttpClient,
+            timeProvider,
+            jwksFetchTimeout);
         return new ExternalBearerCredentialValidator(configuration, keys);
     }
 
@@ -410,7 +506,7 @@ public sealed class ExternalBearerCredentialValidatorTests
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    private static string IssueEcToken(ECDsa ec)
+    private static string IssueEcToken(ECDsa ec, string algorithm = SecurityAlgorithms.EcdsaSha256)
     {
         var token = new JwtSecurityToken(
             "https://issuer.test",
@@ -418,7 +514,7 @@ public sealed class ExternalBearerCredentialValidatorTests
             [new Claim("sub", "user-1")],
             notBefore: DateTime.UtcNow.AddMinutes(-1),
             expires: DateTime.UtcNow.AddMinutes(5),
-            signingCredentials: new SigningCredentials(new ECDsaSecurityKey(ec), SecurityAlgorithms.EcdsaSha256));
+            signingCredentials: new SigningCredentials(new ECDsaSecurityKey(ec), algorithm));
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
@@ -460,10 +556,16 @@ public sealed class ExternalBearerCredentialValidatorTests
 
     private sealed class TimeoutHttpMessageHandler : HttpMessageHandler
     {
-        protected override Task<HttpResponseMessage> SendAsync(
+        protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
-            => Task.FromException<HttpResponseMessage>(new TaskCanceledException("JWKS request timed out."));
+        {
+            var completion = new TaskCompletionSource<HttpResponseMessage>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            await using var registration = cancellationToken.Register(
+                () => completion.TrySetCanceled(cancellationToken));
+            return await completion.Task;
+        }
     }
 
     private sealed class CallerCancellationHttpMessageHandler : HttpMessageHandler
