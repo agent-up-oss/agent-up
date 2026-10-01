@@ -63,9 +63,9 @@
         <div class="au-card au-card--danger"><strong>Failed</strong><p class="au-muted">Error cards never inherit accent borders.</p></div>
       </div>
     </article>
-    <article data-au-component="choice" data-au-title="Choice row" data-au-note="A tappable card is a button, not a card wrapped in a platform button. The generated Button style owns radius, fill, hover, and disabled opacity so Avalonia cannot paint a square around the row." data-au-avalonia="Button" data-au-class="au-choice">
+    <article data-au-component="choice" data-au-title="Choice row" data-au-note="A tappable card is a button, not a card wrapped in a platform button. The generated Button style owns radius, fill, hover, and disabled opacity so Avalonia cannot paint a square around the row. The current choice takes the selected tint plus a 2px accent rule." data-au-avalonia="Button" data-au-class="au-choice">
       <div class="au-stack">
-        <button class="au-choice" type="button">Codex <span class="au-accent">Available</span></button>
+        <button class="au-choice au-choice--selected" type="button">Codex <span class="au-accent">Available</span></button>
         <button class="au-choice" type="button" disabled>Cursor <span class="au-muted">Not installed</span></button>
       </div>
     </article>
@@ -436,14 +436,20 @@ ready in 842 ms</pre>
     </article>
   </section>
 
-  <section data-au-surface="auth" data-au-title="Sign-in and first-run" data-au-intro="Authentication is a quiet raised card on the canvas. Green is the Sign in action and the small mark, not the card outline.">
-    <article data-au-component="sign-in" data-au-title="Sign-in card" data-au-note="The focused field uses platform/focus blue. The card border stays neutral." data-au-avalonia="Border" data-au-class="au-sign-in">
+  <section data-au-surface="auth" data-au-title="Sign-in and first-run" data-au-intro="Authentication is a pane on the canvas, not a grey overlay. Green is the Connect action and the current server, not the pane fill.">
+    <article data-au-component="sign-in" data-au-title="Sign-in pane" data-au-note="The pane is compact on canvas. Saved-server URLs ellipsize; the title tooltip holds the full URL. The saved list scrolls. Rows do not display credential state; selecting a saved server applies a stored sign-in." data-au-avalonia="Border" data-au-class="au-sign-in">
       <form class="au-sign-in au-stack">
-        <p class="au-eyebrow">Agent-Up Desktop</p>
-        <h2 class="au-page-title">Sign in</h2>
-        <span class="au-field-label">Admin password</span>
-        <input class="au-input" placeholder="Administrator password" />
-        <button class="au-button" type="button">Sign in</button>
+        <p class="au-eyebrow">Agent-Up Server</p>
+        <h2 class="au-page-title">Connect to server</h2>
+        <p class="au-muted">Choose a saved server or enter a URL.</p>
+        <span class="au-field-label">Server URL</span>
+        <input class="au-input" placeholder="http://localhost:5000" />
+        <span class="au-field-label">Saved servers</span>
+        <div class="au-sign-in-list">
+          <button class="au-choice au-choice--compact au-choice--selected" type="button" title="http://127.0.0.1:9"><span class="au-choice-label">Demo</span></button>
+          <button class="au-choice au-choice--compact" type="button" title="https://agent-up.massivecreationlab.com"><span class="au-choice-label">https://agent-up.massivecreationlab.com</span></button>
+        </div>
+        <button class="au-button" type="button">Connect</button>
       </form>
     </article>
     <article data-au-component="tutorial" data-au-title="Tutorial actions" data-au-note="First-run next/back are compact product buttons, not marketing CTAs." data-au-avalonia="Border" data-au-class="au-tutorial-button" data-au-desktop-class="tutorialButton" data-au-desktop-host="Button">

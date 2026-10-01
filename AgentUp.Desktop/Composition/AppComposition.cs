@@ -27,7 +27,6 @@ public static class AppComposition
             http,
             fakeServers,
             agentEventsHttp);
-        var restored = connections.RestoreActive();
         var authentication = new AuthenticationController(
             new AuthenticationService(new AuthenticationApiClient(http)),
             connections);
@@ -37,7 +36,7 @@ public static class AppComposition
         window.Closing += (_, _) => viewModel.Login.Cancel();
         window.Show();
 
-        while (!await TryAuthenticateAsync(desktop, http, authentication, login, restored))
+        while (!await TryAuthenticateAsync(desktop, http, login))
             continue;
 
         if (desktop.MainWindow is MainWindow mainWindow)
@@ -49,36 +48,12 @@ public static class AppComposition
     private static async Task<bool> TryAuthenticateAsync(
         IClassicDesktopStyleApplicationLifetime desktop,
         HttpClient http,
-        AuthenticationController authentication,
-        LoginViewModel login,
-        bool restored)
+        LoginViewModel login)
     {
         try
         {
-            if (restored)
-            {
-                if (!await authentication.IsRequiredAsync())
-                {
-                    authentication.SaveServer(authentication.CurrentServerUrl(), null);
-                    login.Dismiss();
-                    login.RememberConnected();
-                    return true;
-                }
-
-                if (http.DefaultRequestHeaders.Authorization is not null)
-                {
-                    login.Dismiss();
-                    login.RememberConnected();
-                    return true;
-                }
-
-                if (!login.IsVisible)
-                    login.Show();
-            }
-            else if (!login.IsVisible)
-            {
+            if (!login.IsVisible)
                 login.ShowPicker();
-            }
 
             var token = await login.WaitForSignInAsync();
             if (token is null)

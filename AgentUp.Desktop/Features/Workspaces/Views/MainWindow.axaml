@@ -458,14 +458,6 @@
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
         </Style>
-        <Style Selector="Button.au-git-tree-toggle">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
-        </Style>
-        <Style Selector="Button.au-git-tree-toggle /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
-        </Style>
         <Style Selector="Button.au-git-tree-toggle /template/ Border">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -585,8 +577,9 @@
                     <Border Grid.Row="1"
                             Grid.Column="1"
                             Classes="au-sign-in"
-                            Width="420">
-                        <StackPanel Spacing="16">
+                            Width="352"
+                            MaxHeight="576">
+                        <StackPanel Spacing="12">
                             <TextBlock Classes="au-eyebrow"
                                        Text="AGENT-UP SERVER"/>
                             <TextBlock Classes="au-page-title"
@@ -605,27 +598,39 @@
                                 <TextBox Classes="au-input"
                                          Text="{Binding Login.ServerUrl, Mode=TwoWay}"
                                          PlaceholderText="http://localhost:5000"/>
+                                <TextBlock Classes="au-field-label"
+                                           Text="SAVED SERVERS"/>
+                                <ScrollViewer x:Name="SavedServerList"
+                                              MaxHeight="168"
+                                              VerticalScrollBarVisibility="Auto"
+                                              HorizontalScrollBarVisibility="Disabled">
                                 <ItemsControl ItemsSource="{Binding Login.SavedServers}">
+                                    <ItemsControl.Styles>
+                                        <Style Selector="ContentPresenter">
+                                            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                        </Style>
+                                    </ItemsControl.Styles>
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Spacing="8"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="authDto:SavedServerDto">
-                                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
-                                                <Button Classes="au-button--secondary"
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                <Button Classes="au-choice au-choice--compact"
+                                                        Classes.au-choice--selected="{Binding IsActive}"
                                                         Command="{Binding DataContext.Login.SelectSavedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                         CommandParameter="{Binding Id}"
+                                                        MinWidth="0"
                                                         HorizontalAlignment="Stretch"
-                                                        HorizontalContentAlignment="Left">
-                                                    <StackPanel Spacing="2">
-                                                        <TextBlock Text="{Binding DisplayName}"
-                                                                   TextWrapping="Wrap"/>
-                                                        <TextBlock Classes="au-muted"
-                                                                   Text="In-app demo"
-                                                                   FontSize="11"
-                                                                   IsVisible="{Binding IsFake}"/>
-                                                        <TextBlock Classes="au-muted"
-                                                                   Text="Saved sign-in"
-                                                                   FontSize="11"
-                                                                   IsVisible="{Binding HasCredential}"/>
-                                                    </StackPanel>
+                                                        HorizontalContentAlignment="Stretch"
+                                                        ToolTip.Tip="{Binding Url}">
+                                                    <TextBlock Classes="au-choice-label"
+                                                               Text="{Binding DisplayName}"
+                                                               TextWrapping="NoWrap"
+                                                               TextTrimming="CharacterEllipsis"/>
                                                 </Button>
                                                 <Button Grid.Column="1"
                                                         Classes="au-button--danger au-button--compact"
@@ -638,6 +643,7 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                                </ScrollViewer>
                             </StackPanel>
                             <TextBlock Classes="au-field-label"
                                        Text="ADMIN PASSWORD"

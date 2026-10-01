@@ -83,18 +83,19 @@ public sealed class AuthenticationControllerTests
     }
 
     [Test]
-    public void RestoreActiveServer_AppliesTheStoredSelection()
+    public void ANewController_doesNotRestoreTheStoredSelection()
     {
-        using var http = new DisposableTestHttpClient(_ =>
+        using var savedHttp = new DisposableTestHttpClient(_ =>
             Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
         var store = new InMemoryServerConnectionStore();
-        var controller = AuthenticationTestController.Create(http, store);
-        controller.SaveServer("http://127.0.0.1:5100", "token-1");
-        controller.PrepareServer("http://127.0.0.1:5000");
+        var saved = AuthenticationTestController.Create(savedHttp, store);
+        saved.SaveServer("http://127.0.0.1:5100", "token-1");
 
-        controller.RestoreActiveServer();
+        using var launchHttp = new DisposableTestHttpClient(_ =>
+            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var launch = AuthenticationTestController.Create(launchHttp, store);
 
-        Assert.That(controller.CurrentServerUrl(), Is.EqualTo("http://127.0.0.1:5100"));
+        Assert.That(launch.CurrentServerUrl(), Is.EqualTo("http://127.0.0.1:5000"));
     }
 
     [Test]

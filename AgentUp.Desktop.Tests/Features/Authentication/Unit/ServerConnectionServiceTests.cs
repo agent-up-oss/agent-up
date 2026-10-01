@@ -68,20 +68,24 @@ public sealed class ServerConnectionServiceTests
     }
 
     [Test]
-    public void RestoreActive_appliesTheStoredSelection()
+    public void ANewSession_doesNotApplyAStoredSelectionUntilTheUserChooses()
     {
         var store = new InMemoryServerConnectionStore();
         using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
         var service = FakeServerTestComposition.Connections(store, http);
         service.Save("https://agent-up.example.com", "remote-token");
 
-        using var restoredHttp = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var next = FakeServerTestComposition.Connections(store, restoredHttp);
-        var restored = next.RestoreActive();
+        using var launchHttp = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var next = FakeServerTestComposition.Connections(store, launchHttp);
 
-        Assert.That(restored, Is.True);
-        Assert.That(restoredHttp.BaseAddress, Is.EqualTo(new Uri("https://agent-up.example.com/")));
-        Assert.That(restoredHttp.DefaultRequestHeaders.Authorization?.Parameter, Is.EqualTo("remote-token"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(launchHttp.BaseAddress, Is.EqualTo(new Uri("http://127.0.0.1:5000")));
+            Assert.That(launchHttp.DefaultRequestHeaders.Authorization, Is.Null);
+            Assert.That(
+                UserServers(next).Any(server => server.Url == "https://agent-up.example.com"),
+                Is.True);
+        });
     }
 
     [Test]
@@ -111,42 +115,20 @@ public sealed class ServerConnectionServiceTests
     }
 
     [Test]
-    public void RestoreActive_doesNothingWhenNoServersAreSaved()
+    public void ANewSession_doesNotApplyAStoredDemoSelection()
     {
         var store = new InMemoryServerConnectionStore();
-        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var service = FakeServerTestComposition.Connections(store, http);
+        using var firstHttp = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        FakeServerTestComposition.Connections(store, firstHttp).Activate("fake");
 
-        var restored = service.RestoreActive();
+        using var launchHttp = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var next = FakeServerTestComposition.Connections(store, launchHttp);
 
-        Assert.That(restored, Is.False);
-        Assert.That(http.BaseAddress, Is.EqualTo(new Uri("http://127.0.0.1:5000")));
-        Assert.That(http.DefaultRequestHeaders.Authorization, Is.Null);
-    }
-
-    [Test]
-    public void RestoreActive_usesTheFirstServerWhenTheActiveIdIsMissing()
-    {
-        var store = new InMemoryServerConnectionStore();
-        store.Save(new ServerSelection
+        Assert.Multiple(() =>
         {
-            Servers =
-            [
-                new ConfiguredServer
-                {
-                    Id = "one",
-                    Url = "http://127.0.0.1:5100",
-                    AccessToken = "token-1"
-                }
-            ]
+            Assert.That(next.CurrentUrl(), Is.EqualTo("http://127.0.0.1:5000"));
+            Assert.That(next.List().Servers[0].IsActive, Is.True);
         });
-        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var service = FakeServerTestComposition.Connections(store, http);
-
-        service.RestoreActive();
-
-        Assert.That(http.BaseAddress, Is.EqualTo(new Uri("http://127.0.0.1:5100/")));
-        Assert.That(http.DefaultRequestHeaders.Authorization?.Parameter, Is.EqualTo("token-1"));
     }
 
     [Test]
@@ -257,21 +239,6 @@ public sealed class ServerConnectionServiceTests
     }
 
     [Test]
-    public void RestoreActive_reconnectsAStoredDemoSelection()
-    {
-        var store = new InMemoryServerConnectionStore();
-        using var firstHttp = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        FakeServerTestComposition.Connections(store, firstHttp).Activate("fake");
-
-        using var restored = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var next = FakeServerTestComposition.Connections(store, restored);
-        next.RestoreActive();
-
-        Assert.That(next.CurrentUrl(), Is.EqualTo("http://127.0.0.1:9"));
-        Assert.That(next.List().Servers[0].IsActive, Is.True);
-    }
-
-    [Test]
     public void Prepare_fakeUrlResetsTheBackend()
     {
         var store = new InMemoryServerConnectionStore();
@@ -328,31 +295,6 @@ public sealed class ServerConnectionServiceTests
 
         Assert.That(activated.IsFake, Is.True);
         Assert.That(service.CurrentUrl(), Is.EqualTo("http://127.0.0.1:9"));
-    }
-
-    [Test]
-    public void RestoreActive_treatsAStoredFakeUrlAsDemo()
-    {
-        var store = new InMemoryServerConnectionStore();
-        store.Save(new ServerSelection
-        {
-            Servers =
-            [
-                new ConfiguredServer
-                {
-                    Id = "legacy-demo",
-                    Url = "http://127.0.0.1:9"
-                }
-            ],
-            ActiveServerId = "legacy-demo"
-        });
-        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
-        var service = FakeServerTestComposition.Connections(store, http);
-
-        service.RestoreActive();
-
-        Assert.That(service.CurrentUrl(), Is.EqualTo("http://127.0.0.1:9"));
-        Assert.That(service.List().Servers[0].IsActive, Is.True);
     }
 
     [Test]

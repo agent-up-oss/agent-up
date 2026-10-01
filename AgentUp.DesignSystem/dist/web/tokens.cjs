@@ -189,6 +189,19 @@ const agentUpTheme = Object.freeze({
     choiceDisabled: Object.freeze({
       opacity: 0.45,
     }),
+    choiceSelected: Object.freeze({
+      backgroundColor: "#11211b",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00c257",
+    }),
+    choiceCompact: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    }),
+    choiceLabel: Object.freeze({
+      minWidth: 0,
+      whiteSpace: 'nowrap',
+    }),
     button: Object.freeze({
       minHeight: 44,
       paddingHorizontal: 24,
@@ -793,10 +806,10 @@ const agentUpTheme = Object.freeze({
       borderColor: "#e0a128",
     }),
     signIn: Object.freeze({
-      paddingHorizontal: 24,
-      paddingVertical: 24,
+      paddingHorizontal: 20,
+      paddingVertical: 20,
       color: "#f5fbf7",
-      backgroundColor: "#202428",
+      backgroundColor: "#121416",
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 16,

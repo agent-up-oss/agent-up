@@ -215,10 +215,6 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
   };
 
   const cloudName = cloudServer?.displayName ?? 'Agent-Up Cloud';
-  const showServers = true;
-  const currentLabel = activeServer && (hasSavedSignIn(activeServer) || activeServer.isFake)
-    ? (activeServer.displayName ?? (activeServer.isRecommended ? cloudName : activeServer.url))
-    : 'No server selected';
 
   return <SafeAreaView style={styles.screen}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
     <View style={styles.card}>
@@ -243,7 +239,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
         <Text style={styles.subtitle}>
           {formMode === 'password'
             ? 'Enter the administrator password to continue.'
-            : 'Sign in to a saved Agent-Up Server, or enter a URL.'}
+            : 'Choose a saved server or enter a URL. Switching replaces this client\'s local workspace and browser state.'}
         </Text>
         <Text style={styles.label}>Server URL</Text>
         <TextInput testID="server-url-input" accessibilityLabel="Server URL" autoCapitalize="none" autoCorrect={false} keyboardType="url"
@@ -265,10 +261,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
             </Pressable>}
       </>}
       {!!status && <Text accessibilityRole="alert" style={requiresSignIn ? styles.errorStatus : styles.status}>{status}</Text>}
-    </View>
-      {showServers && <View style={styles.card}>
-      <Text style={styles.heading}>Servers</Text>
-      <Text style={styles.detail}>Switching replaces this client's local workspace and browser state. Saved sign-in tokens stay on this device.</Text>
+      <Text style={styles.label}>Saved servers</Text>
       {servers.filter(server => server.isFake).map(server => {
         const isActive = server.id === activeServer?.id && formMode !== 'cloud';
         return (
@@ -277,10 +270,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
             accessibilityLabel={fakeServerDisplayName}
             onPress={() => openSaved(server.id)} disabled={busy}
             style={[styles.savedRow, isActive && styles.savedRowActive]}>
-            <View style={styles.savedButton}>
-              <Text numberOfLines={2} style={styles.savedUrl}>{fakeServerDisplayName}</Text>
-              <Text style={styles.savedMeta}>{isActive ? 'Current' : 'In-app demo'}</Text>
-            </View>
+            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.savedUrl}>{fakeServerDisplayName}</Text>
           </Pressable>
         );
       })}
@@ -290,25 +280,17 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
           accessibilityLabel={cloudName}
           onPress={openCloud} disabled={busy}
           style={[styles.savedRow, (formMode === 'cloud' || activeServer?.isRecommended) && styles.savedRowActive]}>
-          <View style={styles.savedButton}>
-            <Text numberOfLines={2} style={styles.savedUrl}>{cloudName}</Text>
-            <Text style={styles.savedMeta}>
-              {activeServer?.isRecommended ? 'Current' : hasSavedSignIn(cloudServer) ? 'Saved sign-in' : 'Sign in'}
-            </Text>
-          </View>
+          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.savedUrl}>{cloudName}</Text>
         </Pressable>
       )}
       {savedServers.map(server => {
         const isActive = server.id === activeServer?.id && formMode !== 'cloud';
         return (
-          <View key={server.id} style={[styles.savedRow, isActive && styles.savedRowActive]}>
+          <View key={server.id} style={styles.savedLine}>
             <Pressable accessibilityRole="button" accessibilityState={{ selected: isActive }}
               accessibilityLabel={`Use server ${server.displayName ?? server.url}`} onPress={() => openSaved(server.id)}
-              disabled={busy} style={styles.savedButton}>
-              <Text numberOfLines={2} style={styles.savedUrl}>{server.displayName ?? server.url}</Text>
-              <Text style={styles.savedMeta}>
-                {isActive ? 'Current' : hasSavedSignIn(server) ? 'Saved sign-in' : 'No saved sign-in'}
-              </Text>
+              disabled={busy} style={[styles.savedRow, isActive && styles.savedRowActive, styles.savedButton]}>
+              <Text numberOfLines={1} ellipsizeMode="tail" style={styles.savedUrl}>{server.displayName ?? server.url}</Text>
             </Pressable>
             {server.canRemove !== false && (
             <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${server.url}`}
@@ -323,10 +305,6 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
         disabled={busy} style={styles.addButton}>
         <Text style={styles.addButtonText}>Add server</Text>
       </Pressable>
-    </View>}
-    <View style={styles.current}>
-      <Text style={styles.currentLabel}>Current server</Text>
-      <Text style={styles.currentUrl}>{currentLabel}</Text>
     </View>
   </ScrollView></SafeAreaView>;
 }
@@ -344,16 +322,14 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     alignItems: 'center',
+    justifyContent: 'center',
     padding: agentUpTheme.spacing[6],
     paddingBottom: agentUpTheme.spacing[8],
-    gap: agentUpTheme.spacing[3],
   },
-  card: { ...auBox('signIn'), width: '100%', maxWidth: 416, gap: agentUpTheme.spacing[4] },
+  card: { ...auBox('signIn'), width: '100%', maxWidth: 352, gap: agentUpTheme.spacing[3] },
   eyebrow: auText('eyebrow'),
   title: auText('pageTitle'),
   subtitle: auText('muted'),
-  heading: auText('pageTitle'),
-  detail: auText('muted'),
   label: auText('fieldLabel'),
   input: { ...auBox('input'), ...auText('input') },
   button: { ...auBox('button'), alignItems: 'center', justifyContent: 'center' },
@@ -361,14 +337,11 @@ const styles = StyleSheet.create({
   buttonText: auText('button'),
   status: auText('accent'),
   errorStatus: auText('badgeDanger'),
-  current: { width: '100%', maxWidth: 416, ...auBox('workspace'), gap: agentUpTheme.spacing[1] },
-  currentLabel: auText('fieldLabel'),
-  currentUrl: auText('muted'),
-  savedRow: { ...auBox('workspace'), flexDirection: 'row', alignItems: 'center', gap: agentUpTheme.spacing[2] },
-  savedRowActive: auBox('workspaceSelected'),
-  savedButton: { flex: 1, gap: 4 },
-  savedUrl: auText('workspaceName'),
-  savedMeta: auText('workspaceBranch'),
+  savedLine: { flexDirection: 'row', alignItems: 'center', gap: agentUpTheme.spacing[2] },
+  savedRow: { ...auBox('choice', 'choiceCompact'), flexDirection: 'row', alignItems: 'center', gap: agentUpTheme.spacing[2] },
+  savedRowActive: auBox('choiceSelected'),
+  savedButton: { flex: 1, minWidth: 0 },
+  savedUrl: { ...auText('workspaceName'), ...auText('choiceLabel') },
   removeButton: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 8 },
   removeText: auText('badgeDanger'),
   addButton: {
