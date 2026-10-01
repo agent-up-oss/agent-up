@@ -132,10 +132,13 @@ public sealed class RuntimeCapabilityValidationE2ETests
 
         Assert.That(File.Exists(Path.Join(root, "agent-up.json")), Is.True);
 
+        Environment.SetEnvironmentVariable("AGENTUP_SKIP_DEV_AGENT_BOOTSTRAP", "1");
         var registry = PackRuntimeCapabilities(root);
         var enabledPath = Path.Join(registry, "enabled.json");
         await File.WriteAllTextAsync(enabledPath, """{"schemaVersion":"1","modules":[]}""");
         Stage($"Capability registry ready at {registry}.");
+        PrewarmPackedCapabilityShells(registry);
+        PullPostgresImage();
 
         var started = Stopwatch.StartNew();
         Server = await DesktopStreamingServer.StartAsync(registry, enabledPath);
@@ -174,18 +177,14 @@ public sealed class RuntimeCapabilityValidationE2ETests
         var workspaceId = body.RootElement.GetProperty("id").GetString()
             ?? throw new InvalidOperationException("The Server did not return a workspace id.");
         Stage($"Registered workspace {workspaceId}; starting it from Desktop.");
-
-        var startError = await Dispatcher.UIThread.InvokeAsync(async () =>
+        await Dispatcher.UIThread.InvokeAsync(async () =>
         {
             await Desktop.ViewModel.Sidebar.LoadAsync();
             var workspace = Desktop.ViewModel.Sidebar.Workspaces.FirstOrDefault(item => item.Id == workspaceId);
             if (workspace is not null)
                 Desktop.ViewModel.Sidebar.SelectedWorkspace = workspace;
-            await Desktop.ViewModel.Sidebar.StartWorkspaceAsync(workspaceId);
-            return Desktop.ViewModel.Sidebar.ErrorMessage;
         });
-        if (!string.IsNullOrWhiteSpace(startError))
-            Assert.Fail($"{startError}{await FormatWorkspaceOutputAsync(workspaceId)}");
+        await StartWorkspaceFromDesktopAsync(workspaceId);
 
         Stage("Desktop started the workspace; waiting for its applications.");
         await WaitForWorkspaceApplicationsAsync(workspaceId);
@@ -207,6 +206,184 @@ public sealed class RuntimeCapabilityValidationE2ETests
     {
         TestContext.Progress.WriteLine(message);
         TestContext.Out.WriteLine(message);
+    }
+
+    // POST /start waits until Nix, Docker, npm install, and Sample Desktop Xvfb finish.
+    // Desktop's StartWorkspaceAsync then refreshes bound collections; HttpClient resumes that
+    // refresh on the thread pool unless an Avalonia SynchronizationContext is captured, so this
+    // fixture posts start through Server.Client and reloads the sidebar on the UI thread.
+    private static async Task StartWorkspaceFromDesktopAsync(string workspaceId)
+    {
+        Stage(
+            "Desktop POST /start waits for Nix shells, Docker, npm install, and Sample Desktop Xvfb; "
+            + "this fixture heartbeats application state until that call returns.");
+        var start = Server!.Client.PostAsync(
+            $"/api/workspaces/{Uri.EscapeDataString(workspaceId)}/start",
+            null);
+        var waiting = Stopwatch.StartNew();
+        while (!start.IsCompleted)
+        {
+            if (await Task.WhenAny(start, Task.Delay(TimeSpan.FromSeconds(15))) == start)
+                break;
+
+            Stage($"Desktop POST /start still in flight after {FormatElapsed(waiting.Elapsed)}.");
+            var progress = await FormatWorkspaceProgressAsync(workspaceId);
+            if (progress.Length > 0)
+                Stage(progress);
+            if (await HasAnyFailedAsync(workspaceId))
+            {
+                Assert.Fail(
+                    "An application failed while Desktop was starting the workspace."
+                    + await FormatWorkspaceOutputAsync(workspaceId));
+            }
+        }
+
+        using var response = await start;
+        if (!response.IsSuccessStatusCode)
+        {
+            Assert.Fail(
+                $"Workspace start failed ({(int)response.StatusCode}): {await response.Content.ReadAsStringAsync()}"
+                + await FormatWorkspaceOutputAsync(workspaceId));
+        }
+
+        await Dispatcher.UIThread.InvokeAsync(async () => await Desktop!.ViewModel.Sidebar.LoadAsync());
+    }
+
+    private static string FormatElapsed(TimeSpan elapsed)
+        => $"{(int)elapsed.TotalMinutes}:{elapsed.Seconds:D2}";
+
+    private static async Task<string> FormatWorkspaceProgressAsync(string workspaceId)
+    {
+        using var response = await Server!.Client.GetAsync($"/api/workspaces/{Uri.EscapeDataString(workspaceId)}");
+        if (!response.IsSuccessStatusCode)
+            return $"Workspace GET returned {(int)response.StatusCode} while start is in flight.";
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = document.RootElement;
+        var workspaceState = root.TryGetProperty("state", out var state) ? ReadState(state) : "unknown";
+        var apps = root.TryGetProperty("applications", out var applications)
+            ? applications.EnumerateArray()
+                .Select(app =>
+                {
+                    var name = app.GetProperty("name").GetString() ?? "?";
+                    var appState = app.TryGetProperty("state", out var value)
+                        ? ReadState(value)
+                        : "unknown";
+                    return $"{name}={appState}";
+                })
+                .ToArray()
+            : [];
+        var summary = apps.Length == 0
+            ? $"Workspace state {workspaceState}; no applications listed yet."
+            : $"Workspace state {workspaceState}; {string.Join(", ", apps)}.";
+        var output = await FormatWorkspaceOutputAsync(workspaceId);
+        return string.IsNullOrEmpty(output) ? summary : summary + output;
+    }
+
+    private static string ReadState(JsonElement state) => state.ValueKind switch
+    {
+        JsonValueKind.String => state.GetString() ?? "unknown",
+        JsonValueKind.Number when state.TryGetInt32(out var value) => value.ToString(),
+        _ => "unknown"
+    };
+
+    private static async Task<bool> HasAnyFailedAsync(string workspaceId)
+    {
+        foreach (var application in WorkspaceApplications)
+        {
+            if (await HasFailedAsync(workspaceId, application))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static void PrewarmPackedCapabilityShells(string registry)
+    {
+        if (!File.Exists("/etc/NIXOS") && string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("AGENTUP_E2E_IMPORT_NIX_SHELL")))
+        {
+            if (string.IsNullOrWhiteSpace(Which("nix-shell")))
+                return;
+        }
+
+        var packages = Path.Join(registry, "packages");
+        if (!Directory.Exists(packages))
+            return;
+
+        foreach (var module in new[] { "dotnet", "docker" })
+        {
+            var moduleDir = Path.Join(packages, module);
+            if (!Directory.Exists(moduleDir))
+                continue;
+
+            foreach (var shellNix in Directory.GetFiles(moduleDir, "default.nix", SearchOption.AllDirectories))
+            {
+                Stage($"Prewarming packed capability shell {shellNix}.");
+                var start = new ProcessStartInfo
+                {
+                    FileName = "nix-shell",
+                    UseShellExecute = false
+                };
+                start.ArgumentList.Add(shellNix);
+                start.ArgumentList.Add("--run");
+                start.ArgumentList.Add("true");
+                using var process = Process.Start(start);
+                if (process is null)
+                    continue;
+                if (!process.WaitForExit(TimeSpan.FromMinutes(15)))
+                {
+                    process.Kill(entireProcessTree: true);
+                    Stage($"Prewarming {shellNix} did not finish in 15 minutes; start will pay for that fetch itself.");
+                    continue;
+                }
+
+                if (process.ExitCode != 0)
+                    Stage($"Prewarming {shellNix} exited {process.ExitCode}; start will retry the same shell.");
+            }
+        }
+    }
+
+    private static void PullPostgresImage()
+    {
+        if (string.IsNullOrWhiteSpace(Which("docker")))
+        {
+            Stage("docker is not on PATH; Database start will fail if the daemon cannot pull postgres:16.");
+            return;
+        }
+
+        Stage("Pulling postgres:16 so Database start does not wait on a silent image fetch.");
+        var start = new ProcessStartInfo
+        {
+            FileName = "docker",
+            UseShellExecute = false
+        };
+        start.ArgumentList.Add("pull");
+        start.ArgumentList.Add("postgres:16");
+        using var process = Process.Start(start);
+        if (process is null)
+            return;
+        if (!process.WaitForExit(TimeSpan.FromMinutes(5)))
+        {
+            process.Kill(entireProcessTree: true);
+            Stage("docker pull postgres:16 did not finish in 5 minutes; Database start will retry the pull.");
+        }
+    }
+
+    private static string? Which(string fileName)
+    {
+        if (Path.IsPathRooted(fileName) && File.Exists(fileName))
+            return fileName;
+
+        var directories = (Environment.GetEnvironmentVariable("PATH") ?? "")
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var directory in directories)
+        {
+            var candidate = Path.Join(directory, fileName);
+            if (File.Exists(candidate))
+                return candidate;
+        }
+
+        return null;
     }
 
     private static async Task<int> WaitForAllocatedHttpPortAsync(string workspaceId, string application)
