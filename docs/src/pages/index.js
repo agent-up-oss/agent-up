@@ -2,7 +2,6 @@ import React from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import voice from '@agent-up/design-system/brand/voice.json';
-import agentUpMark from '@agent-up/design-system/brand/mark.svg';
 import styles from './index.module.css';
 
 const capabilities = [
@@ -14,27 +13,34 @@ const capabilities = [
   ['Review', 'Inspect the running result and its Git changes without turning Agent-Up into an IDE.'],
 ];
 
+const shots = [
+  ['desktop-sign-in.png', 'Desktop sign-in'],
+  ['desktop-workspaces.png', 'Desktop workspaces'],
+  ['desktop-applications.png', 'Desktop applications'],
+  ['desktop-console.png', 'Desktop console'],
+  ['desktop-git.png', 'Desktop Git changes'],
+  ['desktop-history.png', 'Desktop Git history'],
+  ['desktop-agents.png', 'Desktop Agent'],
+  ['desktop-diagnostics.png', 'Desktop diagnostics'],
+  ['desktop-metrics.png', 'Desktop metrics'],
+  ['desktop-validation.png', 'Desktop validation'],
+  ['desktop-database.png', 'Desktop database'],
+  ['desktop-capabilities.png', 'Desktop capabilities'],
+  ['desktop-file-viewer.png', 'Desktop file viewer'],
+  ['mobile-sign-in.png', 'Mobile sign-in'],
+  ['mobile-workspaces.png', 'Mobile workspaces'],
+  ['mobile-apps.png', 'Mobile apps'],
+  ['mobile-git.png', 'Mobile Git'],
+  ['mobile-review.png', 'Mobile Git review'],
+  ['mobile-history.png', 'Mobile Git history'],
+  ['mobile-agents.png', 'Mobile Agents'],
+  ['mobile-settings.png', 'Mobile settings'],
+  ['mobile-file-viewer.png', 'Mobile file viewer'],
+];
+
 function ProductFrame() {
-  return <div className="au-product-frame" aria-label="Agent-Up Desktop workspace example">
-    <div className="au-product-frame__chrome">
-      <span>☰ &nbsp;↻ &nbsp;<span className="au-badge au-badge--healthy"><span className="au-status-dot au-status-dot--healthy"/>Server online</span></span>
-      <span className="au-logo-lockup"><img src={agentUpMark} alt=""/>Agent-Up</span>
-      <span className="au-product-frame__actions">− □ ×</span>
-    </div>
-    <div className={styles.appShell}>
-      <aside className={styles.sidebar}>
-        <strong>Workspaces</strong>
-        <div className={`${styles.workspace} ${styles.workspaceActive}`}><span className="au-status-dot au-status-dot--healthy"/><span><b>checkout-fix</b><small>feat/checkout</small></span></div>
-        <div className={styles.workspace}><span className="au-status-dot"/><span><b>pricing</b><small>feat/pricing</small></span></div>
-        <div className={styles.workspace}><span className="au-status-dot"/><span><b>main</b><small>main</small></span></div>
-      </aside>
-      <div className={styles.runtime}>
-        <div className="au-tabs"><button className="au-tab" aria-selected="true">Overview</button><button className="au-tab">Agent</button><button className="au-tab">Commit</button><button className="au-tab">Storefront</button></div>
-        <div className={styles.subnav}><span className="au-badge au-badge--healthy"><span className="au-status-dot au-status-dot--healthy"/>3000:11200</span><b>Console</b><b>Metrics</b><b>Diagnostics</b></div>
-        <div className={styles.browserBar}>‹ &nbsp; › &nbsp; ↻ <span className="au-mono">http://localhost:11200/</span></div>
-        <div className={styles.browser}><p className="au-eyebrow">checkout-fix / storefront</p><h2>Review the runtime that belongs to this change.</h2><p>Applications, ports, diagnostics, and browser automation stay attached to the workspace Agent-Up Server owns.</p></div>
-      </div>
-    </div>
+  return <div className="au-product-frame" aria-label="Agent-Up Desktop applications">
+    <img src="/screenshot.png" width={1440} height={900} alt="Agent-Up Desktop showing Harbor Shop, Storefront, and the workspace browser surface" />
   </div>;
 }
 
@@ -66,6 +72,13 @@ export default function Home() {
         <h2 className="au-title">One source of truth for what is actually running.</h2>
         <p className="au-lede">Desktop, Mobile, CLI, and MCP request actions and render state. Agent-Up Server owns orchestration.</p>
         <div className={`au-grid ${styles.capabilities}`}>{capabilities.map(([title, body]) => <article className="au-card" key={title}><span className="au-status-dot au-status-dot--healthy"/><h3 className="au-heading">{title}</h3><p className="au-muted">{body}</p></article>)}</div>
+      </div></section>
+
+      <section className="au-section"><div className="au-container">
+        <p className="au-eyebrow">Product screenshots</p>
+        <h2 className="au-title">Every major view, from the design system.</h2>
+        <p className="au-lede">These shots are rendered from catalog classes and Demo Harbor Shop copy, then persisted with <code>au-debug screenshots persist</code>.</p>
+        <div className={styles.shots}>{shots.map(([file, title]) => <figure className="au-card" key={file}><img src={`/${file}`} alt={title} /><figcaption className="au-muted">{title}</figcaption></figure>)}</div>
       </div></section>
 
       <section className="au-section"><div className="au-container au-do-dont">

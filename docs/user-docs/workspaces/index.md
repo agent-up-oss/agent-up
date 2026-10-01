@@ -33,6 +33,9 @@ Non-Git paths still work and display as `not on a git branch`. Agent-Up can also
 <DocSurface mobile>The same `+` control lives on the sidebar workspace list. There is no Workspaces tab.</DocSurface>
 </DocSurfaces>
 
+<p><img src="/desktop-workspaces.png" alt="Desktop workspaces showing Harbor Shop on main" /></p>
+<p><img src="/mobile-workspaces.png" alt="Mobile workspaces showing Harbor Shop" /></p>
+
 ## Worktree model
 
 The workspace identity is the project path. When that path is a Git repository or worktree, Agent-Up records the repository root, branch, and commit. When no Git repository exists, the workspace still works and displays `not on a git branch`.
