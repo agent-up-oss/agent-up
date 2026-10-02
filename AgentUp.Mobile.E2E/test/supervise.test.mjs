@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { test } from 'node:test';
 
 import { supervise } from '../harness/supervise.mjs';
+import { stopProcess } from '../harness/stack.mjs';
 
 // A stack that fails to come up used to report "fetch failed" after waiting a full minute, which
 // is true and explains nothing: it was how one run of four lost the identity provider with no
@@ -50,4 +51,12 @@ test('a process that says nothing still says that much', async () => {
     .then(() => null, cause => cause);
 
   assert.match(failure.message, /It said nothing at all/);
+});
+
+test('stack cleanup waits for a process to close after terminating it', async () => {
+  const child = spawn(process.execPath, ['-e', 'process.stdin.resume()']);
+
+  await stopProcess(child);
+
+  assert.notEqual(child.signalCode, null);
 });

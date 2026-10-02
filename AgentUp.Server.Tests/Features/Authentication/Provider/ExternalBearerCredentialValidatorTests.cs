@@ -208,6 +208,18 @@ public sealed class ExternalBearerCredentialValidatorTests
         Assert.That(await CreateValidator().ValidateAsync(new JwtSecurityTokenHandler().WriteToken(token)), Is.Null);
     }
 
+    [TestCase("none")]
+    [TestCase("RS256, none")]
+    [TestCase("NoNe,ES256")]
+    public void Constructor_RejectsNoneInExplicitAlgorithmAllowlist(string algorithms)
+    {
+        var settings = Settings(("AGENTUP_EXTERNAL_ALGORITHMS", algorithms));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => CreateValidator(settings));
+
+        Assert.That(exception!.Message, Does.Contain("cannot include the unsecured 'none' algorithm"));
+    }
+
     [Test]
     public async Task Validate_HonorsExplicitAlgorithmAllowlist()
     {

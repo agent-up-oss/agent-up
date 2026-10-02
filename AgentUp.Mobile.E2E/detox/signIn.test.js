@@ -119,7 +119,11 @@ describe('agent sign-in', () => {
         // suspends what is not in front, so it stops answering Detox at all. That reads as a tap
         // that was never delivered rather than as anything the client did, and it is exactly how
         // this scenario failed while the other three passed: they never return to the app.
-        await device.launchApp({ newInstance: false, launchArgs: SYNC_OFF });
+        await device.launchApp({
+          newInstance: false,
+          url: connectLaunchUrl(stack.serverOriginForClient, stack.workspace.id),
+          launchArgs: SYNC_OFF,
+        });
         await device.disableSynchronization();
 
         // The pasted-code shape: the value travels back through the client, exactly as a user
