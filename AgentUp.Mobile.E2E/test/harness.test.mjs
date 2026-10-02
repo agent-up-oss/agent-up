@@ -142,6 +142,17 @@ test('native pasted-code sign-in restores the connect URL when it returns from t
   assert.match(returnToApp, /url: connectLaunchUrl\(stack\.serverOriginForClient, stack\.workspace\.id\)/);
 });
 
+test('the Detox Jest envelope outlives the pasted-code wait budget', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const jestConfig = await readFile(new URL('../detox/jest.config.js', import.meta.url), 'utf8');
+  const match = jestConfig.match(/testTimeout:\s*([\d_]+)/);
+  assert.ok(match, 'detox/jest.config.js must set testTimeout');
+  const timeout = Number(match[1].replaceAll('_', ''));
+  // Named waits in the pasted-code body sum to 540s. 300s was smaller than that and Jest
+  // killed iOS after login/code 202 instead of waiting for ready.
+  assert.ok(timeout >= 600_000, `testTimeout ${timeout} must cover the pasted-code wait budget`);
+});
+
 test('each agent gets a launcher that names it explicitly', () => {
   const script = shimScript('/opt/agents/agent-up-test-agent', 'test-agent3');
 
