@@ -96,3 +96,33 @@ public sealed class FakeProductScreenCatalog : IProductScreenCatalog
     public IReadOnlyList<ProductScreenDto> Screens(string surface)
         => _screens.TryGetValue(surface, out var screens) ? screens : [];
 }
+
+public sealed class FakeScreenReadyProbe : IScreenReadyProbe
+{
+    public List<string> Urls { get; } = [];
+    public Dictionary<string, bool> ReadyUrls { get; } = new(StringComparer.Ordinal);
+    public bool DesktopWindowPresent { get; set; }
+    public int DesktopWaits { get; private set; }
+    public int UrlWaits { get; private set; }
+
+    public Task<bool> IsReadyAsync(string url, CancellationToken cancellationToken)
+    {
+        Urls.Add(url);
+        return Task.FromResult(ReadyUrls.GetValueOrDefault(url, false));
+    }
+
+    public Task WaitForUrlAsync(string url, CancellationToken cancellationToken)
+    {
+        UrlWaits++;
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> HasDesktopWindowAsync(CancellationToken cancellationToken)
+        => Task.FromResult(DesktopWindowPresent);
+
+    public Task WaitForDesktopWindowAsync(CancellationToken cancellationToken)
+    {
+        DesktopWaits++;
+        return Task.CompletedTask;
+    }
+}
