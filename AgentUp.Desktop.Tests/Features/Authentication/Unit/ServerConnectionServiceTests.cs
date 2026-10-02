@@ -222,6 +222,38 @@ public sealed class ServerConnectionServiceTests
     }
 
     [Test]
+    public void List_includesTheRecommendedServerAfterDemo()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var recommended = new RecommendedServer("recommended", "http://127.0.0.1:5288", "Agent-Up Cloud");
+        var service = FakeServerTestComposition.Connections(store, http, recommended: recommended);
+
+        var servers = service.List().Servers;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(servers[0].IsFake, Is.True);
+            Assert.That(servers[1].IsRecommended, Is.True);
+            Assert.That(servers[1].Url, Is.EqualTo("http://127.0.0.1:5288"));
+            Assert.That(servers[1].CanRemove, Is.False);
+        });
+    }
+
+    [Test]
+    public void Remove_refusesTheRecommendedServer()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var recommended = new RecommendedServer("recommended", "http://127.0.0.1:5288", "Agent-Up Cloud");
+        var service = FakeServerTestComposition.Connections(store, http, recommended: recommended);
+
+        service.Remove("recommended");
+
+        Assert.That(service.List().Servers.Any(server => server.IsRecommended), Is.True);
+    }
+
+    [Test]
     public void Activate_fakeIdSwitchesOntoDemo()
     {
         var store = new InMemoryServerConnectionStore();

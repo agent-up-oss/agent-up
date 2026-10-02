@@ -26,6 +26,7 @@ using AgentUp.Desktop.Features.Browser.Controllers;
 using AgentUp.Desktop.Features.Browser.DTOs;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Providers;
+using AgentUp.Desktop.Features.Workspaces.Models;
 using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
@@ -38,7 +39,7 @@ namespace AgentUp.Desktop.Features.Workspaces.Views;
 
 public partial class MainWindow : ReactiveWindow<MainViewModel>
 {
-    // One NativeWebView per HTTP port tab — keyed by "workspaceId:{port}".
+    // One NativeWebView per HTTP port tab — keyed by "connectionId:workspaceId:{port}".
     // Switching between workspace tabs only toggles IsVisible; the WebView is never navigated away,
     // preserving full page state (scroll position, open accordions, JS memory, auth session).
     private readonly Dictionary<string, NativeWebView> _webViews = new();
@@ -499,7 +500,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             return;
         }
 
-        if (workspaceId is not null && _webViewErrors.TryGetValue(workspaceId, out var error))
+        if (workspaceId is not null && _webViewErrors.TryGetValue(WorkspaceCacheKey(workspaceId), out var error))
         {
             WebViewErrorText.Text = error;
             WebViewErrorBanner.IsVisible = true;
@@ -563,7 +564,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (workspaceId is null || application is not { IsDesktop: true } || !viewModel.ShowDesktopView)
             return;
 
-        var tabKey = $"{workspaceId}:desktop:{application.Name}";
+        var tabKey = $"{WorkspaceCacheKey(workspaceId)}:desktop:{application.Name}";
         var path = $"api/desktop-applications/{Uri.EscapeDataString(workspaceId)}/{Uri.EscapeDataString(application.Name)}/viewer-ticket";
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
@@ -571,7 +572,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 return;
 
             ActivateTab(workspaceId, tabKey, IsModalOverlayVisible());
-            _webViewErrors.Remove(workspaceId);
+            _webViewErrors.Remove(WorkspaceCacheKey(workspaceId));
             SetDesktopConnectingVisible(true);
             UpdateErrorDisplay(workspaceId);
         });
@@ -605,7 +606,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             if (generation != _desktopTicketGeneration || ex is TaskCanceledException or OperationCanceledException)
                 return;
 
-            _webViewErrors[workspaceId] = $"Could not open the desktop application: {ex.Message}";
+            _webViewErrors[WorkspaceCacheKey(workspaceId)] = $"Could not open the desktop application: {ex.Message}";
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 if (generation != _desktopTicketGeneration)
@@ -682,7 +683,17 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private static bool IsRetryableTicketStatus(HttpStatusCode status) =>
         status is HttpStatusCode.NotFound or HttpStatusCode.ServiceUnavailable;
 
-    private static string TabKey(string workspaceId, Uri uri) => $"{workspaceId}:{uri.Port}";
+    private static string TabKey(string connectionId, string workspaceId, Uri uri)
+        => $"{WorkspaceScopeKey.For(connectionId, workspaceId)}:{uri.Port}";
+
+    private string TabKey(string workspaceId, Uri uri)
+        => TabKey(CurrentConnectionId(), workspaceId, uri);
+
+    private string WorkspaceCacheKey(string workspaceId)
+        => WorkspaceScopeKey.For(CurrentConnectionId(), workspaceId);
+
+    private string CurrentConnectionId()
+        => DataContext is MainViewModel vm ? vm.Login.CurrentConnectionId : "";
 
     internal static string? NormalizeServerBaseUrl(Uri? baseAddress)
         => baseAddress is null ? null : baseAddress.AbsoluteUri.TrimEnd('/');
@@ -730,7 +741,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         {
             webView = CreateWorkspaceWebView(tabKey, workspaceId);
             _webViews[tabKey] = webView;
-            _webViewErrors.Remove(workspaceId);
+            _webViewErrors.Remove(WorkspaceCacheKey(workspaceId));
             webView.IsVisible = false;
             PortPane.Children.Add(webView);
             UpdateErrorDisplay(workspaceId);
@@ -738,7 +749,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
-            _webViewErrors[workspaceId] = $"Could not start the browser: {ex.Message}";
+            _webViewErrors[WorkspaceCacheKey(workspaceId)] = $"Could not start the browser: {ex.Message}";
             UpdateErrorDisplay(workspaceId);
             return false;
         }
@@ -1383,10 +1394,11 @@ code {
 
     private void DestroyWorkspaceWebViews(string workspaceId)
     {
-        foreach (var tabKey in _webViews.Keys.Where(key => key.StartsWith($"{workspaceId}:", StringComparison.Ordinal)).ToList())
+        var scope = WorkspaceCacheKey(workspaceId);
+        foreach (var tabKey in _webViews.Keys.Where(key => key.StartsWith($"{scope}:", StringComparison.Ordinal)).ToList())
             DestroyWorkspaceWebView(tabKey);
 
-        _webViewErrors.Remove(workspaceId);
+        _webViewErrors.Remove(scope);
         DeleteBrowserErrorPage(workspaceId);
 
         if (_activeWorkspaceId != workspaceId)

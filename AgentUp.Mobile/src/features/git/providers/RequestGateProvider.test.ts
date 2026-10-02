@@ -50,3 +50,11 @@ test('a ticket read before the gate advances is stale afterwards', () => {
   gate.begin();
   assert.equal(gate.isCurrent(ticket), false, 'work from the previous context must not apply');
 });
+
+test('the same workspace id on two connections needs two gates', () => {
+  const first = createRequestGate();
+  const second = createRequestGate();
+  const firstTicket = first.begin();
+  second.begin();
+  assert.equal(first.isCurrent(firstTicket), true);
+});

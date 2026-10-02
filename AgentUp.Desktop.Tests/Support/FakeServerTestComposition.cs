@@ -1,4 +1,5 @@
 using AgentUp.Desktop.Features.Authentication.Interfaces;
+using AgentUp.Desktop.Features.Authentication.Models;
 using AgentUp.Desktop.Features.Authentication.Providers;
 using AgentUp.Desktop.Features.Authentication.Services;
 using AgentUp.Desktop.Features.FakeServer.Controllers;
@@ -18,8 +19,9 @@ internal static class FakeServerTestComposition
     public static ServerConnectionService Connections(
         IServerConnectionStore store,
         HttpClient http,
-        FakeBackendService? backend = null)
-        => new(store, http, Controller(backend));
+        FakeBackendService? backend = null,
+        RecommendedServer? recommended = null)
+        => new(store, http, Controller(backend), recommended: recommended);
 
     public static HttpClient Client(FakeBackendService backend)
         => ServerSessionProvider.CreateClient(

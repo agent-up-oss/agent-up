@@ -20,7 +20,8 @@ public sealed class InMemoryServerConnectionStore : IServerConnectionStore
                 {
                     Id = server.Id,
                     Url = server.Url,
-                    AccessToken = server.AccessToken
+                    AccessToken = server.AccessToken,
+                    DisplayName = server.DisplayName
                 })
                 .ToList()
         };

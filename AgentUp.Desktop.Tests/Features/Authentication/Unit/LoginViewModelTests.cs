@@ -3,6 +3,7 @@ using System.Reactive.Linq;
 using System.Text;
 using AgentUp.Desktop.Features.Authentication.Controllers;
 using AgentUp.Desktop.Features.Authentication.DTOs;
+using AgentUp.Desktop.Features.Authentication.Models;
 using AgentUp.Desktop.Features.Authentication.Providers;
 using AgentUp.Desktop.Features.Authentication.Services;
 using AgentUp.Desktop.Features.Authentication.ViewModels;
@@ -16,8 +17,8 @@ public sealed class LoginViewModelTests
     [Test]
     public async Task SignInCommand_ReturnsTokenAndHidesLogin()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true,\"accessToken\":\"token-1\"}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":true,\"accessToken\":\"token-1\"}"));
         var login = new LoginViewModel(CreateController(http));
         login.Show();
         login.Password = "secret";
@@ -35,8 +36,8 @@ public sealed class LoginViewModelTests
     [Test]
     public async Task Cancel_CompletesWaitForSignInWithNull()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
         var login = new LoginViewModel(CreateController(http));
         login.Show();
 
@@ -49,8 +50,8 @@ public sealed class LoginViewModelTests
     [Test]
     public async Task SignInCommand_SurfacesInvalidPassword()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.Unauthorized, "{}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.Unauthorized, "{}"));
         var login = new LoginViewModel(CreateController(http));
         login.Show();
         login.Password = "wrong";
@@ -67,8 +68,8 @@ public sealed class LoginViewModelTests
     [Test]
     public void Dismiss_HidesLoginAndClearsError()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
         var login = new LoginViewModel(CreateController(http));
         login.ShowConnectionFailure("Could not reach the server.");
 
@@ -85,8 +86,8 @@ public sealed class LoginViewModelTests
     [Test]
     public void ShowConnectionFailure_KeepsTheServerListAndDoesNotAskForAPassword()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
         var login = new LoginViewModel(CreateController(http));
 
         login.ShowConnectionFailure("Could not reach the server.");
@@ -104,8 +105,8 @@ public sealed class LoginViewModelTests
     [Test]
     public async Task ConnectCommand_SavesServerAndHidesLoginWhenAuthenticationIsDisabled()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
         var store = new InMemoryServerConnectionStore();
         var login = new LoginViewModel(AuthenticationTestController.Create(http, store));
         login.Show();
@@ -126,8 +127,8 @@ public sealed class LoginViewModelTests
     [Test]
     public async Task ConnectCommand_UsesSavedCredentialWithoutAskingForPassword()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
         var store = new InMemoryServerConnectionStore();
         var connections = FakeServerTestComposition.Connections(store, http.Client);
         connections.Save("http://127.0.0.1:5000", "saved-token");
@@ -148,8 +149,8 @@ public sealed class LoginViewModelTests
     [Test]
     public async Task ConnectingToAnotherSavedServer_EmitsServerSwitched()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
         var store = new InMemoryServerConnectionStore();
         var login = new LoginViewModel(AuthenticationTestController.Create(http, store));
         login.Show();
@@ -168,8 +169,8 @@ public sealed class LoginViewModelTests
     [Test]
     public void GoBackCommand_HidesSwitcherWithoutCancellingStartupSignIn()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
         var login = new LoginViewModel(CreateController(http));
         login.Show();
         login.RememberConnected();
@@ -187,8 +188,8 @@ public sealed class LoginViewModelTests
     [Test]
     public void GoBackCommand_DoesNothingWhenTheSwitcherIsTheOnlyPrompt()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
         var login = new LoginViewModel(CreateController(http));
         login.ShowSwitcher();
 
@@ -206,14 +207,14 @@ public sealed class LoginViewModelTests
     [Test]
     public void ShowPicker_DoesNotApplyAStoredSession()
     {
-        using var savedHttp = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        using var savedHttp = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
         var store = new InMemoryServerConnectionStore();
         AuthenticationTestController.Create(savedHttp, store)
             .SaveServer("https://agent-up.example.com", "remote-token");
 
-        using var launchHttp = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        using var launchHttp = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
         var login = new LoginViewModel(AuthenticationTestController.Create(launchHttp, store));
 
         login.ShowPicker();
@@ -232,8 +233,8 @@ public sealed class LoginViewModelTests
     [Test]
     public void ShowPicker_ListsDemoWithoutAskingForAPassword()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
         var login = new LoginViewModel(CreateController(http));
 
         login.ShowPicker();
@@ -250,8 +251,8 @@ public sealed class LoginViewModelTests
     [Test]
     public void Show_UsesPasswordPromptCopy()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
         var login = new LoginViewModel(CreateController(http));
 
         login.Show();
@@ -267,8 +268,8 @@ public sealed class LoginViewModelTests
     [Test]
     public void Cancel_DoesNothingWhenLoginIsHidden()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
         var login = new LoginViewModel(CreateController(http));
 
         login.Cancel();
@@ -279,22 +280,22 @@ public sealed class LoginViewModelTests
     [Test]
     public async Task WaitForSignInAsync_ReturnsNullWhenNoPromptWasShown()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
         var login = new LoginViewModel(CreateController(http));
 
         Assert.That(await login.WaitForSignInAsync(), Is.Null);
     }
 
     [Test]
-    public async Task ShowExpired_RestoresTheSessionAfterASuccessfulPassword()
+    public async Task ShowExpiredAsync_RestoresTheSessionAfterASuccessfulPassword()
     {
         using var http = new DisposableTestHttpClient(request =>
             request.Method == HttpMethod.Post
                 ? Json(HttpStatusCode.OK, "{\"authenticationRequired\":true,\"accessToken\":\"token-1\"}")
-                : Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+                : AuthJson(request, HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
         var login = new LoginViewModel(CreateController(http));
-        login.ShowExpired();
+        await login.ShowExpiredAsync();
         login.Password = "secret";
         var restored = false;
         using var subscription = login.SessionRestored.Subscribe(_ => restored = true);
@@ -312,8 +313,8 @@ public sealed class LoginViewModelTests
     [Test]
     public async Task ConnectCommand_AsksForPasswordWhenTheServerRequiresSignIn()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
         var login = new LoginViewModel(CreateController(http));
         login.ShowSwitcher();
         login.ServerUrl = "http://127.0.0.1:5100";
@@ -344,8 +345,8 @@ public sealed class LoginViewModelTests
     [Test]
     public async Task ConnectCommand_SurfacesInvalidServerUrls()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
         var login = new LoginViewModel(CreateController(http));
         login.ShowSwitcher();
         login.ServerUrl = "not-a-url";
@@ -372,8 +373,8 @@ public sealed class LoginViewModelTests
     [Test]
     public async Task SignInCommand_SurfacesMissingAccessTokens()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
         var login = new LoginViewModel(CreateController(http));
         login.Show();
         login.Password = "secret";
@@ -386,8 +387,8 @@ public sealed class LoginViewModelTests
     [Test]
     public async Task SelectSavedCommand_ConnectsTheMatchingServer()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
         var store = new InMemoryServerConnectionStore();
         var connections = FakeServerTestComposition.Connections(store, http.Client);
         var saved = connections.Save("http://127.0.0.1:5100", null);
@@ -406,8 +407,8 @@ public sealed class LoginViewModelTests
     [Test]
     public async Task SelectSavedCommand_IgnoresUnknownServers()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
         var login = new LoginViewModel(CreateController(http));
         login.ShowSwitcher();
 
@@ -419,8 +420,8 @@ public sealed class LoginViewModelTests
     [Test]
     public void RemoveSavedCommand_ResetsTheUrlWhenTheLastServerIsRemoved()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
         var store = new InMemoryServerConnectionStore();
         var connections = FakeServerTestComposition.Connections(store, http.Client);
         var saved = connections.Save("http://127.0.0.1:5100", "token-1");
@@ -440,8 +441,8 @@ public sealed class LoginViewModelTests
     [Test]
     public void RemoveSavedCommand_KeepsRemainingServers()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
         var store = new InMemoryServerConnectionStore();
         var connections = FakeServerTestComposition.Connections(store, http.Client);
         var first = connections.Save("http://127.0.0.1:5000", "first");
@@ -486,8 +487,8 @@ public sealed class LoginViewModelTests
     [Test]
     public void RemoveSavedCommand_LeavesTheBuiltInFakeServer()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
         var login = new LoginViewModel(CreateController(http));
         login.ShowSwitcher();
 
@@ -518,11 +519,114 @@ public sealed class LoginViewModelTests
         });
     }
 
+    [Test]
+    public async Task ConnectCommand_ChoosesSignInFromAuthenticationMode()
+    {
+        using var http = new DisposableTestHttpClient(request =>
+            HttpTestResponses.IsConnectionRequest(request)
+                ? Json(HttpStatusCode.OK, ConnectionDocument("browserSso"))
+                : Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        var login = new LoginViewModel(CreateController(http));
+        login.ShowPicker();
+        login.ServerUrl = "http://127.0.0.1:5100";
+
+        await login.ConnectCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.NeedsBrowserSso, Is.True);
+            Assert.That(login.NeedsPassword, Is.False);
+            Assert.That(login.IsVisible, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task ConnectCommand_ErrorsOnUnknownAuthenticationMode()
+    {
+        using var http = new DisposableTestHttpClient(request =>
+            HttpTestResponses.IsConnectionRequest(request)
+                ? Json(HttpStatusCode.OK, ConnectionDocument("magicLink"))
+                : Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        var login = new LoginViewModel(CreateController(http));
+        login.ShowPicker();
+        login.ServerUrl = "http://127.0.0.1:5100";
+
+        await login.ConnectCommand.Execute().FirstAsync();
+
+        Assert.That(login.ErrorMessage, Does.Contain("unknown authentication.mode 'magicLink'"));
+    }
+
+    [Test]
+    public async Task ShowExpiredAsync_ChoosesSignInFromAuthenticationMode()
+    {
+        using var http = new DisposableTestHttpClient(request =>
+            HttpTestResponses.IsConnectionRequest(request)
+                ? Json(HttpStatusCode.OK, ConnectionDocument("externalBearer"))
+                : Json(HttpStatusCode.OK, "{\"authenticationRequired\":true}"));
+        var login = new LoginViewModel(CreateController(http));
+        login.ServerUrl = "http://127.0.0.1:5100";
+
+        await login.ShowExpiredAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.NeedsIssuedCredential, Is.True);
+            Assert.That(login.NeedsPassword, Is.False);
+            Assert.That(login.ErrorMessage, Is.EqualTo("This saved sign-in is no longer valid."));
+        });
+    }
+
+    [Test]
+    public async Task ConnectCommand_DoesNotTreatAMalformedConnectionDocumentAsLegacy()
+    {
+        using var http = new DisposableTestHttpClient(request =>
+            HttpTestResponses.IsConnectionRequest(request)
+                ? Json(HttpStatusCode.OK, "{\"kind\":\"selfHosted\"}")
+                : Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var login = new LoginViewModel(CreateController(http));
+        login.ShowPicker();
+        login.ServerUrl = "http://127.0.0.1:5100";
+
+        await login.ConnectCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.IsVisible, Is.True);
+            Assert.That(login.ErrorMessage, Does.Contain("did not return a connection apiVersion"));
+        });
+    }
+
+    [Test]
+    public void ShowPicker_ListsTheRecommendedServer()
+    {
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request, HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var login = new LoginViewModel(AuthenticationTestController.Create(
+            http,
+            recommended: new RecommendedServer("recommended", "http://127.0.0.1:5288", "Agent-Up Cloud")));
+
+        login.ShowPicker();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.SavedServers.Any(server => server.IsRecommended), Is.True);
+            Assert.That(login.SavedServers.Single(server => server.IsRecommended).CanRemove, Is.False);
+        });
+    }
+
     private static AuthenticationController CreateController(DisposableTestHttpClient http)
         => AuthenticationTestController.Create(http);
+
+    private static HttpResponseMessage AuthJson(HttpRequestMessage request, HttpStatusCode status, string json)
+        => HttpTestResponses.LegacyOrJson(request, status, json);
 
     private static HttpResponseMessage Json(HttpStatusCode status, string json) => new(status)
     {
         Content = new StringContent(json, Encoding.UTF8, "application/json")
     };
+
+    private static string ConnectionDocument(string mode = "localAdministrator") =>
+        "{\"apiVersion\":\"1\",\"connectionId\":\"local\",\"kind\":\"selfHosted\",\"displayName\":\"Agent-Up\","
+        + "\"authentication\":{\"mode\":\"" + mode + "\",\"prompt\":\"Enter the administrator password to continue.\",\"identifierRequired\":false},"
+        + "\"workspacePresentation\":\"serverScoped\"}";
 }

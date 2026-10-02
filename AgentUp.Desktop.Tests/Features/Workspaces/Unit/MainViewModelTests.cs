@@ -141,8 +141,11 @@ public class MainViewModelTests
     public async Task InitializeAsync_showsExpiredLogin_whenTheWorkspaceListRequiresSignIn()
     {
         var handler = new StatusCodeHandler(HttpStatusCode.Unauthorized);
-        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
-        var vm = CreateVm(new WorkspaceApiClient(http));
+        var workspaceHttp = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        using var authHttp = new DisposableTestHttpClient(request =>
+            HttpTestResponses.LegacyOrPayload(request, new { authenticationRequired = true }));
+        var login = new LoginViewModel(AuthenticationTestController.Create(authHttp));
+        var vm = CreateVm(new WorkspaceApiClient(workspaceHttp), login: login);
 
         await vm.InitializeAsync();
 
@@ -150,7 +153,8 @@ public class MainViewModelTests
         {
             Assert.That(vm.Sidebar.RequiresSignIn, Is.True);
             Assert.That(vm.Login.IsVisible, Is.True);
-            Assert.That(vm.Login.ErrorMessage, Is.EqualTo("This saved sign-in is no longer valid. Enter the administrator password."));
+            Assert.That(vm.Login.NeedsPassword, Is.True);
+            Assert.That(vm.Login.ErrorMessage, Is.EqualTo("This saved sign-in is no longer valid."));
         });
     }
 
@@ -183,8 +187,8 @@ public class MainViewModelTests
     [Test]
     public async Task ConnectingToAnotherServer_resetsLocalSessionThenReloadsWorkspaces()
     {
-        using var http = new DisposableTestHttpClient(_ =>
-            HttpTestResponses.Json(new { authenticationRequired = false }));
+        using var http = new DisposableTestHttpClient(request =>
+            HttpTestResponses.LegacyOrPayload(request, new { authenticationRequired = false }));
         var login = new LoginViewModel(AuthenticationTestController.Create(http));
         var dto = DesktopDomain.Workspace()
             .WithId("ws-1")
@@ -217,7 +221,7 @@ public class MainViewModelTests
         using var http = new DisposableTestHttpClient(request =>
             request.Method == HttpMethod.Post
                 ? HttpTestResponses.Json(new { authenticationRequired = true, accessToken = "token-1" })
-                : HttpTestResponses.Json(new { authenticationRequired = true }));
+                : HttpTestResponses.LegacyOrPayload(request, new { authenticationRequired = true }));
         var login = new LoginViewModel(AuthenticationTestController.Create(http));
         var dto = DesktopDomain.Workspace()
             .WithId("ws-1")
@@ -230,7 +234,7 @@ public class MainViewModelTests
             .Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]), login: login);
         await vm.InitializeAsync();
-        login.ShowExpired();
+        await login.ShowExpiredAsync();
         login.Password = "secret";
         var restored = false;
         using var subscription = login.SessionRestored.Subscribe(_ => restored = true);
@@ -250,7 +254,7 @@ public class MainViewModelTests
         using var authHttp = new DisposableTestHttpClient(request =>
             request.Method == HttpMethod.Post
                 ? HttpTestResponses.Json(new { authenticationRequired = true, accessToken = "token-1" })
-                : HttpTestResponses.Json(new { authenticationRequired = true }));
+                : HttpTestResponses.LegacyOrPayload(request, new { authenticationRequired = true }));
         var login = new LoginViewModel(AuthenticationTestController.Create(authHttp));
         var vm = CreateVm(new WorkspaceApiClient(workspaceHttp), login: login);
         await vm.InitializeAsync();
@@ -258,7 +262,7 @@ public class MainViewModelTests
 
         await login.SignInCommand.Execute().FirstAsync();
 
-        Assert.That(() => login.ErrorMessage, Is.EqualTo("This saved sign-in is no longer valid. Enter the administrator password.").After(1000).PollEvery(20));
+        Assert.That(() => login.ErrorMessage, Is.EqualTo("This saved sign-in is no longer valid.").After(1000).PollEvery(20));
         Assert.That(login.IsVisible, Is.True);
     }
 
@@ -1069,7 +1073,13 @@ public class MainViewModelTests
             gitClient: NullGitClient(),
             validationClient: NullValidationClient(),
             agentClient: NullAgentClient(),
-            login: login);
+            login: login,
+            entitlementsHttp: NullEntitlementsHttp);
+
+    private static readonly HttpClient NullEntitlementsHttp = new(new StatusCodeHandler(HttpStatusCode.NotFound))
+    {
+        BaseAddress = new Uri("http://127.0.0.1:9")
+    };
 
     private static WorkspaceApiClient NullWorkspaceClient()
     {

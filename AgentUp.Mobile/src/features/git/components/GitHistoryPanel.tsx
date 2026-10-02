@@ -8,6 +8,7 @@ import type { GitLogCommit, GitLogRef, GitLogRow } from '../models/GitChanges';
 import type { GitConfirmCopy } from '../providers/GitBranchPickerProvider';
 import { checkoutRemote, getHeadState, getLog, switchBranch } from '../providers/GitApiProvider';
 import { createRequestGate } from '../providers/RequestGateProvider';
+import { workspaceScopeKey } from '@/features/workspaces/providers/WorkspaceScopeKeyProvider';
 import {
   formatGitLogTimestamp,
   GIT_LOG_PAGE_SIZE,
@@ -24,8 +25,9 @@ import { GitLogGraphColumn } from './GitLogGraphColumn';
 const POLL_MS = 2500;
 
 export function GitHistoryPanel({ workspaceId }: { workspaceId: string }) {
-  const { expireActiveCredential } = useServers();
+  const { expireActiveCredential, activeServer } = useServers();
   const { server } = useWorkspaces();
+  const scopeKey = workspaceScopeKey(activeServer?.id ?? '', workspaceId);
   const [commits, setCommits] = useState<GitLogCommit[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [locals, setLocals] = useState<string[]>([]);
@@ -39,6 +41,10 @@ export function GitHistoryPanel({ workspaceId }: { workspaceId: string }) {
   const gate = useRef(createRequestGate());
   const commitsRef = useRef<GitLogCommit[]>([]);
   const pagedRef = useRef(false);
+
+  useEffect(() => {
+    gate.current.begin();
+  }, [scopeKey]);
 
   const rows = useMemo(() => layoutGitLog(commits, locals), [commits, locals]);
   const selected = rows.find(row => row.commit.id === selectedId) ?? null;

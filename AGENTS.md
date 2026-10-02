@@ -647,11 +647,21 @@ repeated `permissions` claims. When `workspace` is present, the Server refuses
 other workspace ids under `/api/workspaces`.
 
 `GET /api/connection` is anonymous connection metadata (`kind`, authentication
-mode, sign-in prompt, whether a username is required). `GET /api/entitlements`
-is the authenticated permission document clients render: feature keys are
-operation permissions such as `agent.prompt` and `git.write`, not product
-editions. A self-hosted Server always returns the community document with every
-operation available.
+mode, sign-in prompt, whether a username is required). Clients populate a
+shared `ConnectionSource` from it and choose sign-in UI from
+`authentication.mode`. An unknown `apiVersion`, `kind`, or
+`authentication.mode` is a hard error. A Server that does not answer
+`GET /api/connection` is treated as legacy self-hosted only after
+`GET /api/auth/status` succeeds. `GET /api/entitlements`
+is the authenticated permission document clients render as one plan card of
+`features` and `limits`: feature keys are operation permissions such as
+`agent.prompt` and `git.write`, not product editions. A self-hosted Server
+always returns the community document with every operation available. Clients
+must not branch on edition names.
+
+Cache keys, SSE cursors, and in-flight request gates on Desktop and Mobile are
+compound `(saved connection id, workspace id)` so two Servers that both expose
+a workspace called `main` do not share client-local state.
 
 `Examples/browser-sso` is a runnable identity front door that advertises `browserSso`
 and returns a restricted entitlement document. The OSS Server itself never emits
@@ -679,7 +689,7 @@ The Desktop is an Avalonia client for humans. It displays workspaces, browser ta
 
 Applications declared in `desktopApplications` are displayed in session-ticketed streamed application tabs. Desktop must not launch their virtual displays, capture frames, or own input/session state. Existing HTTP application tabs continue to connect directly to their allocated ports and do not use the streaming path.
 
-It connects to one Server at a time and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. It must not own runtime state; its Git tab Git changes surface displays the Server-owned proposal queue, including entry order, messages, and verification state. Every launch is the connect picker: Desktop does not probe a packaged or repository Server URL until the user chooses a saved server or enters a URL, and the list always includes a built-in **Demo** entry. Only while that entry is connected does Desktop intercept `HttpClient` with the in-process fake backend from `AgentUp.FakeServer/definition.json`. While Demo is active, Desktop hides Validation, Database, Diagnostics, and Metrics. Disconnecting and connecting to a real Server works without restart. Full guide: `docs/developer-guide/workspaces/index.md` and `docs/developer-guide/applications/index.md`.
+It connects to one Server at a time and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. It must not own runtime state; its Git tab Git changes surface displays the Server-owned proposal queue, including entry order, messages, and verification state. Every launch is the connect picker: Desktop does not probe a packaged or repository Server URL until the user chooses a saved server or enters a URL, and the list always includes a built-in **Demo** entry. When `AGENTUP_RECOMMENDED_SERVER_URL` is set, that connection is listed after Demo and cannot be removed, matching Mobile. Sign-in UI is chosen from `GET /api/connection` `authentication.mode`. Only while Demo is connected does Desktop intercept `HttpClient` with the in-process fake backend from `AgentUp.FakeServer/definition.json`. While Demo is active, Desktop hides Validation, Database, Diagnostics, and Metrics. Disconnecting and connecting to a real Server works without restart. Full guide: `docs/developer-guide/workspaces/index.md` and `docs/developer-guide/applications/index.md`.
 
 Installed Desktop packages must install or depend on a local Server service rather than embedding orchestration in the Desktop process.
 

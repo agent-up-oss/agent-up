@@ -2,8 +2,11 @@ using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Text.Json;
 using AgentUp.Desktop.Features.Authentication.Controllers;
 using AgentUp.Desktop.Features.Authentication.DTOs;
+using AgentUp.Desktop.Features.Authentication.Models;
+using AgentUp.Desktop.Features.Authentication.Providers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Authentication.ViewModels;
@@ -21,6 +24,9 @@ public sealed class LoginViewModel : ReactiveObject
     private bool _isBusy;
     private bool _isSwitcher;
     private bool _needsPassword;
+    private bool _needsBrowserSso;
+    private bool _needsIssuedCredential;
+    private string _connectionPrompt = "";
     private string? _accessToken;
     private string _openedUrl = "";
     private bool _resumeRequired;
@@ -72,8 +78,10 @@ public sealed class LoginViewModel : ReactiveObject
 
     public string Title => IsSwitcher ? "Switch server" : "Agent-Up Server";
 
-    public string Subtitle => NeedsPassword
-        ? "Enter the administrator password to continue."
+    public string Subtitle => NeedsPassword || NeedsBrowserSso || NeedsIssuedCredential
+        ? (string.IsNullOrWhiteSpace(_connectionPrompt)
+            ? "Enter the administrator password to continue."
+            : _connectionPrompt)
         : "Choose a saved server or enter a URL. Switching replaces this window's local workspace and browser state.";
 
     public string ServerUrl
@@ -116,9 +124,31 @@ public sealed class LoginViewModel : ReactiveObject
         }
     }
 
+    public bool NeedsBrowserSso
+    {
+        get => _needsBrowserSso;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _needsBrowserSso, value);
+            this.RaisePropertyChanged(nameof(Subtitle));
+        }
+    }
+
+    public bool NeedsIssuedCredential
+    {
+        get => _needsIssuedCredential;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _needsIssuedCredential, value);
+            this.RaisePropertyChanged(nameof(Subtitle));
+        }
+    }
+
     public string? AccessToken => _accessToken;
 
     public string CurrentServerUrl => _authentication.CurrentServerUrl();
+
+    public string CurrentConnectionId => _authentication.CurrentConnectionId();
 
     public ReactiveCommand<Unit, Unit> SignInCommand { get; }
 
@@ -135,6 +165,8 @@ public sealed class LoginViewModel : ReactiveObject
         _signIn = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
         BeginPrompt(switcher: false);
         NeedsPassword = true;
+        _connectionPrompt = "Enter the administrator password to continue.";
+        this.RaisePropertyChanged(nameof(Subtitle));
     }
 
     public void ShowPicker()
@@ -149,13 +181,14 @@ public sealed class LoginViewModel : ReactiveObject
         ErrorMessage = null;
     }
 
-    public void ShowExpired()
+    public async Task ShowExpiredAsync()
     {
         _signIn = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
         BeginPrompt(switcher: false);
         _resumeRequired = true;
-        NeedsPassword = true;
-        ErrorMessage = "This saved sign-in is no longer valid. Enter the administrator password.";
+        await ConnectAsync();
+        if (IsVisible && string.IsNullOrWhiteSpace(ErrorMessage))
+            ErrorMessage = "This saved sign-in is no longer valid.";
     }
 
     public void ShowConnectionFailure(string message)
@@ -177,7 +210,7 @@ public sealed class LoginViewModel : ReactiveObject
     {
         IsVisible = false;
         IsSwitcher = false;
-        NeedsPassword = false;
+        ClearSignInSurface();
         ErrorMessage = null;
     }
 
@@ -197,7 +230,7 @@ public sealed class LoginViewModel : ReactiveObject
         ErrorMessage = null;
         IsBusy = false;
         IsSwitcher = switcher;
-        NeedsPassword = false;
+        ClearSignInSurface();
         ServerUrl = _authentication.CurrentServerUrl();
         _openedUrl = ServerUrl;
         RefreshSavedServers();
@@ -235,33 +268,38 @@ public sealed class LoginViewModel : ReactiveObject
     {
         IsBusy = true;
         ErrorMessage = null;
-        NeedsPassword = false;
+        ClearSignInSurface();
         try
         {
             _authentication.PrepareServer(ServerUrl);
             ServerUrl = _authentication.CurrentServerUrl();
-            if (!await _authentication.IsRequiredAsync())
-            {
-                CompleteConnection(ServerUrl, token: null);
-                return;
-            }
+            var connection = await _authentication.ResolveConnectionAsync();
+            ApplySignInSurface(connection);
 
             var saved = SavedServers.FirstOrDefault(server =>
                 string.Equals(server.Url, ServerUrl, StringComparison.OrdinalIgnoreCase));
-            if (saved is { HasCredential: true })
+            if (!_resumeRequired
+                && saved is { HasCredential: true }
+                && ConnectionSourceParser.SignInSurface(connection.AuthMode) != ConnectionSignInSurface.None)
             {
                 _authentication.ActivateServer(saved.Id);
                 CompleteConnection(ServerUrl, token: null);
                 return;
             }
 
-            NeedsPassword = true;
+            if (ConnectionSourceParser.SignInSurface(connection.AuthMode) == ConnectionSignInSurface.None)
+            {
+                if (_resumeRequired)
+                    return;
+                CompleteConnection(ServerUrl, token: null);
+                return;
+            }
         }
         catch (HttpRequestException exception)
         {
             ErrorMessage = $"Could not reach the server: {exception.Message}";
         }
-        catch (InvalidOperationException exception)
+        catch (Exception exception) when (exception is InvalidOperationException or JsonException)
         {
             ErrorMessage = exception.Message;
         }
@@ -304,7 +342,7 @@ public sealed class LoginViewModel : ReactiveObject
         if (token is not null)
             _accessToken = token;
         Password = "";
-        NeedsPassword = false;
+        ClearSignInSurface();
         RememberConnected();
         IsVisible = false;
         IsSwitcher = false;
@@ -315,6 +353,25 @@ public sealed class LoginViewModel : ReactiveObject
         else if (_resumeRequired)
             _sessionRestored.OnNext(Unit.Default);
         _resumeRequired = false;
+    }
+
+    private void ApplySignInSurface(ConnectionSource connection)
+    {
+        _connectionPrompt = connection.Prompt;
+        var surface = ConnectionSourceParser.SignInSurface(connection.AuthMode);
+        NeedsPassword = surface == ConnectionSignInSurface.Password;
+        NeedsBrowserSso = surface == ConnectionSignInSurface.BrowserSso;
+        NeedsIssuedCredential = surface == ConnectionSignInSurface.ExternalBearer;
+        this.RaisePropertyChanged(nameof(Subtitle));
+    }
+
+    private void ClearSignInSurface()
+    {
+        NeedsPassword = false;
+        NeedsBrowserSso = false;
+        NeedsIssuedCredential = false;
+        _connectionPrompt = "";
+        this.RaisePropertyChanged(nameof(Subtitle));
     }
 
     private void RefreshSavedServers()

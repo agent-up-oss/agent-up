@@ -140,7 +140,8 @@ internal sealed class AppDriver
             consoleClient,
             gitClient: gitClient,
             validationClient: validationClient,
-            agentClient: agentClient);
+            agentClient: agentClient,
+            entitlementsHttp: serverHttp);
         var window = serverHttp is null
             ? new MainWindow { DataContext = vm }
             : new MainWindow(serverHttp) { DataContext = vm };

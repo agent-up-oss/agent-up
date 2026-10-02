@@ -14,6 +14,7 @@
         xmlns:metricsViews="using:AgentUp.Desktop.Features.Metrics.Views"
         xmlns:chromeVm="using:AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome"
         xmlns:authDto="using:AgentUp.Desktop.Features.Authentication.DTOs"
+        xmlns:entModels="using:AgentUp.Desktop.Features.Entitlements.Models"
         x:Class="AgentUp.Desktop.Features.Workspaces.Views.MainWindow"
         x:CompileBindings="False"
         Width="1100" Height="700"
@@ -657,13 +658,22 @@
                                     Command="{Binding Login.ConnectCommand}"
                                     IsEnabled="{Binding !Login.IsBusy}"
                                     HorizontalAlignment="Stretch"
-                                    Content="Connect"/>
+                                    Content="Connect"
+                                    IsVisible="{Binding !Login.NeedsPassword}"/>
                             <Button Classes="au-button"
                                     Command="{Binding Login.SignInCommand}"
                                     IsEnabled="{Binding !Login.IsBusy}"
                                     IsVisible="{Binding Login.NeedsPassword}"
                                     HorizontalAlignment="Stretch"
                                     Content="Sign in"/>
+                            <TextBlock Text="This Server requires an issued credential. Saved sign-ins still work; password login is not available."
+                                       Classes="au-muted"
+                                       TextWrapping="Wrap"
+                                       IsVisible="{Binding Login.NeedsIssuedCredential}"/>
+                            <TextBlock Text="Continue sign-in in the browser from the web client."
+                                       Classes="au-muted"
+                                       TextWrapping="Wrap"
+                                       IsVisible="{Binding Login.NeedsBrowserSso}"/>
                             <TextBlock Text="{Binding Login.ErrorMessage}"
                                        Foreground="{DynamicResource AgentUpColorTextDangerBrush}"
                                        TextWrapping="Wrap"
@@ -702,6 +712,7 @@
                                     Spacing="4">
                             <Button x:Name="AddWorkspaceButton"
                                     Command="{Binding Sidebar.ShowAddWorkspaceCommand}"
+                                    IsVisible="{Binding Sidebar.CanCreateWorkspace}"
                                     ToolTip.Tip="Clone a repository into a new workspace">
                                 <Border Classes="wsAddButton">
                                     <TextBlock Classes="wsAddIcon" Text="+"/>
@@ -728,6 +739,7 @@
                         <Button x:Name="AddWorkspaceButtonCollapsed"
                                 HorizontalAlignment="Center"
                                 Command="{Binding Sidebar.ShowAddWorkspaceCommand}"
+                                IsVisible="{Binding Sidebar.CanCreateWorkspace}"
                                 ToolTip.Tip="Clone a repository into a new workspace">
                             <Border Classes="wsAddButton">
                                 <TextBlock Classes="wsAddIcon" Text="+"/>
@@ -898,8 +910,32 @@
                                HorizontalAlignment="Center"/>
                     <TextBlock x:Name="EmptyStateHint"
                                Classes="au-muted"
-                               Text="Clone a repository with + or run agent-up start in a project that has agent-up.json."
+                               Text="{Binding Sidebar.EmptyStateHint}"
                                HorizontalAlignment="Center"/>
+                    <StackPanel Spacing="4"
+                                MaxWidth="320"
+                                IsVisible="{Binding Sidebar.Plan.IsVisible}">
+                        <TextBlock Classes="au-field-label" Text="PLAN"/>
+                        <TextBlock Classes="au-workspace-name" Text="{Binding Sidebar.Plan.DisplayName}"/>
+                        <TextBlock Classes="au-muted"
+                                   Text="{Binding Sidebar.Plan.Billing}"
+                                   IsVisible="{Binding Sidebar.Plan.HasBilling}"/>
+                        <TextBlock Classes="au-muted" Text="{Binding Sidebar.Plan.Summary}"/>
+                        <ItemsControl ItemsSource="{Binding Sidebar.Plan.Features}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="entModels:PlanCardFeature">
+                                    <TextBlock Classes="au-muted" Text="{Binding Label}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ItemsControl ItemsSource="{Binding Sidebar.Plan.Limits}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="entModels:PlanCardLimit">
+                                    <TextBlock Classes="au-muted" Text="{Binding Label}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- Workspace detail: app tabs + sub-navbar + content -->
