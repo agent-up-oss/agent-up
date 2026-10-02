@@ -7,6 +7,7 @@ import { hasSavedSignIn } from '../models/ConfiguredServer';
 import { resolvePresetServerUrl, rememberPresetWorkspace, takePendingWorkspace, workspaceHref } from '../providers/PresetServerProvider';
 import { normalizeServerUrl, probeServer } from '../providers/ServerUrlProvider';
 import { recordServerConnectionAudit } from '../providers/MobileAuditProvider';
+import { nextExpiredSignInGuard } from '../providers/ExpiredSignInGuardProvider';
 import { login, ensureCredentialTransportAllowed } from '../../authentication/providers/AuthenticationProvider';
 import { connectionSignInSurface, resolveConnectionSource } from '../../authentication/providers/ConnectionSourceProvider';
 import { browserSsoStartUrl, createSsoState, readSsoCallback, rememberSsoStart, takePendingSsoStart } from '../../authentication/providers/BrowserSsoProvider';
@@ -110,8 +111,9 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
   }, [ready, presetServerUrl, presetWorkspaceId, cloudServer, savedServers, router, selectServer]);
 
   useEffect(() => {
-    if (!requiresSignIn || !activeServer || appliedExpired.current) return;
-    appliedExpired.current = true;
+    const next = nextExpiredSignInGuard(requiresSignIn, !!activeServer, appliedExpired.current);
+    appliedExpired.current = next.applied;
+    if (!next.run || !activeServer) return;
     setUrl(activeServer.url);
     setStatus('This saved sign-in is no longer valid.');
     void tryAndSave(activeServer.url);

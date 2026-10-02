@@ -577,20 +577,22 @@ public sealed class LoginViewModelTests
     }
 
     [Test]
-    public async Task ShowExpiredAsync_doesNotCompleteWhenAuthenticationIsDisabled()
+    public async Task ShowExpiredAsync_completesWhenAuthenticationIsDisabled()
     {
         using var http = new DisposableTestHttpClient(request =>
             AuthJson(request, HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
         var login = new LoginViewModel(CreateController(http));
         login.ServerUrl = "http://127.0.0.1:5100";
+        var restored = false;
+        using var subscription = login.SessionRestored.Subscribe(_ => restored = true);
 
         await login.ShowExpiredAsync();
 
         Assert.Multiple(() =>
         {
-            Assert.That(login.IsVisible, Is.True);
-            Assert.That(login.NeedsPassword, Is.False);
-            Assert.That(login.ErrorMessage, Is.EqualTo("This saved sign-in is no longer valid."));
+            Assert.That(login.IsVisible, Is.False);
+            Assert.That(restored, Is.True);
+            Assert.That(login.ErrorMessage, Is.Null);
         });
     }
 

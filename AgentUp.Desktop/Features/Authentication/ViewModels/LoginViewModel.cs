@@ -289,8 +289,6 @@ public sealed class LoginViewModel : ReactiveObject
 
             if (ConnectionSourceParser.SignInSurface(connection.AuthMode) == ConnectionSignInSurface.None)
             {
-                if (_resumeRequired)
-                    return;
                 CompleteConnection(ServerUrl, token: null);
                 return;
             }
