@@ -99,7 +99,10 @@ describe('agent sign-in', () => {
       const offered = await harness.waitForAgentState(stack.serverUrl, stack.workspace.id, 'authentication_required');
       const methodId = offered.authMethods?.[0]?.id;
       if (!methodId) throw new Error('The agent offered no subscription sign-in method.');
-      await tap(`agent-auth-method-${methodId}`);
+      // Synchronization is off, so the picker tap returns before the session renders. iOS
+      // pasted-code timed out at the 30s default after the Server was already at
+      // authentication_required with claude-login offered.
+      await tap(`agent-auth-method-${methodId}`, 60_000);
 
       // The client can only act once the Server has said what kind of sign-in this is.
       const session = await harness.waitForChallenge(
