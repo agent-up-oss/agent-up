@@ -45,6 +45,8 @@ Cold Desktop compiles can exceed 30 seconds. Pass `--timeout 120` for those runs
 ./au-debug screenshots validate
 ./au-debug screenshots desktop git
 ./au-debug screenshots mobile apps
+./au-debug screens
+./au-debug screens desktop git
 ./au-debug desktop login
 ./au-debug mobile login
 ./au-debug desktop start-workspace Agent-Up
@@ -72,6 +74,51 @@ Docs and README images of Desktop and Mobile are rendered from the design-system
 ```
 
 `persist` and `validate` default to a 180 second watchdog.
+
+## Product screens
+
+`au-debug screenshots` renders the design-system catalog. `au-debug screens` is the other
+half: it drives the **real** Desktop window and the **real** Mobile web client through every
+screen the design system documents under Assembled screens, and photographs each one. No
+Server is involved — both clients connect to their built-in **Demo** entry, whose backend
+runs in the client process.
+
+Every screen is captured *used*, not freshly opened. The routes interact first: they sign in
+by choosing Demo, send two prompts to the workspace agent, add two items to the Demo
+storefront's cart, tick files and write a commit message, jump to a line in a diff, commit,
+and disable a capability module. The routes are ordered and cumulative, because the Demo
+backend answers a prompt by adding a file to the working tree: Git is captured after the
+agent has run, and History after the commit those files went into.
+
+```bash
+./au-debug screens                 # Desktop and Mobile
+./au-debug screens desktop         # one surface
+./au-debug screens mobile review   # one screen
+```
+
+Output goes to `artifacts/product-screens/<surface>/<screen>.png`, with
+`artifacts/product-screens/screens.json` accounting for every documented screen — including
+the ones that were not captured, and why.
+
+Four Desktop screens are in that second group. The Demo connection reports no Database,
+Diagnostics, Validation, or Metrics entitlement, so Desktop does not build those tabs and
+there is nothing to photograph. Capture them against a real Server workspace instead.
+
+`screens` starts what it needs and stops only that: the Desktop window, and the Mobile web
+host on `http://127.0.0.1:10102`. A surface already running — because `au-debug up` is up —
+is reused and left alone. Desktop is driven with `xdotool` and captured with ImageMagick's
+`import`; Mobile is driven over the Chrome DevTools Protocol at 390x844.
+
+Desktop click points live in `DesktopScreenGeometry` and were read off a real 1440x900 Demo
+session, so a Desktop layout change moves those numbers and nothing else. Mobile addresses
+controls by the accessible label the client gives them, so it needs no coordinates.
+
+CI runs this in the **Product screens** job and uploads `artifacts/product-screens` as a
+build artifact. It gates nothing; it is evidence to look at.
+
+One caveat for repeat local runs: the Demo storefront keeps its cart and orders in the
+Desktop WebView's own storage, so a second run on the same machine starts from the first
+run's cart. A CI runner is new every time, which is where the output is meant to be read.
 
 ## Tests and builds
 
