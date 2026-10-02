@@ -92,11 +92,18 @@ the picker prompt with no agent buttons.
 Native Detox launches the harness through `agent-up-chat://connect` instead of typing into the
 connect form. Android Fabric's `replaceText` does not update React state, so Connect was a no-op
 and the suite timed out on a picker the chat never mounted. The installable-web suite still fills
-the form. After launch the native suite waits for the picker, the connect form, or the picker
+the form. When a native pasted-code flow returns from the system browser, Detox delivers that
+connect URL again so an iOS process reclaimed in the background remounts the same workspace.
+After launch the native suite waits for the picker, the connect form, or the picker
 prompt as a condition: a 500ms peek at the form skipped Connect when the deep link missed, and
 then waited a minute for a picker the chat never mounted. A launcher Application Not Responding
 dialog is force-stopped without sending Home, because Home relaunches that same dialog over the
 app.
+
+Each end-to-end stack waits for its Server and identity-provider processes to close before removing
+its temporary data directory. In particular, the Server can still flush its Chromium profile after
+receiving `SIGTERM`; deleting the directory before process close races that writer and makes web
+cleanup fail with `ENOTEMPTY` after an otherwise successful scenario.
 
 ### Keeping the suites quick
 

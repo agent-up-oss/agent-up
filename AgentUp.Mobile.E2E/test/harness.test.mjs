@@ -131,6 +131,17 @@ test('native Detox reverses those host ports before launchApp', async () => {
   assert.equal(beforeAll.includes('device.launchApp'), false);
 });
 
+test('native pasted-code sign-in restores the connect URL when it returns from the browser', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../detox/signIn.test.js', import.meta.url), 'utf8');
+  const returnToApp = source.slice(
+    source.indexOf('if (carriedCode)'),
+    source.indexOf("await harness.waitForAgentState", source.indexOf('if (carriedCode)')),
+  );
+
+  assert.match(returnToApp, /url: connectLaunchUrl\(stack\.serverOriginForClient, stack\.workspace\.id\)/);
+});
+
 test('each agent gets a launcher that names it explicitly', () => {
   const script = shimScript('/opt/agents/agent-up-test-agent', 'test-agent3');
 
