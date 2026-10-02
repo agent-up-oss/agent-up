@@ -41,7 +41,7 @@ Docker containers can call host-run applications in the same workspace through `
 
 ## Hosted Linux GUI processes
 
-`desktopApplications` are Linux graphical applications hosted on Server-owned virtual displays and streamed to Desktop and Mobile. Existing HTTP application tabs continue to connect directly to their allocated ports and do not use the streaming path.
+`desktopApplications` are Linux graphical applications hosted on Server-owned virtual displays and streamed to Desktop and Mobile. Desktop HTTP application tabs connect directly to ports on a local Server and automatically use the Server's secure application proxy for a remote connection; they do not use the graphical streaming path.
 
 ## Console and metrics
 

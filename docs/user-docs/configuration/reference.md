@@ -192,7 +192,7 @@ Used in `desktopApplications`. Desktop applications use the same validated execu
 }
 ```
 
-Desktop and Mobile request session-scoped viewer tickets from the authenticated REST API. MCP exposes `desktop_inspect`, `desktop_screenshot`, `desktop_click`, `desktop_fill`, and `desktop_press`. Screenshot and input responses include a session generation; coordinate input from an older generation is rejected after restart. Desktop validation flows use coordinate targets (`x` and `y`) with `Running` and framebuffer `Visible` expectations. Existing HTTP application tabs and Browser MCP remain direct and unchanged.
+Desktop and Mobile request session-scoped viewer tickets from the authenticated REST API. MCP exposes `desktop_inspect`, `desktop_screenshot`, `desktop_click`, `desktop_fill`, and `desktop_press`. Screenshot and input responses include a session generation; coordinate input from an older generation is rejected after restart. Desktop validation flows use coordinate targets (`x` and `y`) with `Running` and framebuffer `Visible` expectations. HTTP application tabs stay direct for loopback Servers and use the application proxy for remote Servers; Browser MCP remains direct.
 
 ## .NET Application Object
 

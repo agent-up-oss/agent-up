@@ -20,6 +20,10 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.Applications.ViewModels;
+using AgentUp.Desktop.Features.Applications.Controllers;
+using AgentUp.Desktop.Features.Applications.Providers;
+using AgentUp.Desktop.Features.Applications.Services;
+using AgentUp.Desktop.Features.Authentication.Providers;
 using AgentUp.Desktop.Features.Audit.Controllers;
 using AgentUp.Desktop.Features.Metrics.Controllers;
 using AgentUp.Desktop.Features.Browser.Controllers;
@@ -53,6 +57,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
     private readonly HttpClient _serverHttp;
+    private readonly ApplicationsController _applications;
     private readonly FakeServerController? _fakeServers;
     private string _serverBaseUrl;
     private WorkspaceEventClient? _workspaceEventClient;
@@ -223,6 +228,9 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _serverBaseUrl = NormalizeServerBaseUrl(serverHttp.BaseAddress)
             ?? throw new ArgumentException("The server HTTP client requires a base address.", nameof(serverHttp));
         _serverHttp = serverHttp;
+        _applications = new ApplicationsController(
+            new ApplicationSelectionService(),
+            new ApplicationProxyClient(serverHttp));
         _fakeServers = fakeServers;
     }
 
@@ -902,7 +910,29 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         var demoHtml = demo
             ? await LoadDemoApplicationHtmlAsync(workspaceId, destination.Port)
             : null;
-        var errorHtml = demo ? null : await BrowserProbe(destination);
+        Uri navigationUri = destination;
+        string? errorHtml = null;
+        if (!demo && ShouldUseApplicationProxy(_serverBaseUrl))
+        {
+            try
+            {
+                navigationUri = await _applications.IssueProxyNavigationAsync(
+                    new Uri(_serverBaseUrl),
+                    workspaceId,
+                    destination.Port);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidDataException or InvalidOperationException or TaskCanceledException)
+            {
+                errorHtml = BuildBrowserErrorHtml(
+                    "Could not open application",
+                    ex.Message,
+                    destination);
+            }
+        }
+        else if (!demo)
+        {
+            errorHtml = await BrowserProbe(destination);
+        }
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             if (!CanTouchWebView(tabKey, webView)) return;
@@ -916,7 +946,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
             if (errorHtml is null)
             {
-                NavigateWebView(webView, destination);
+                NavigateWebView(webView, navigationUri);
             }
             else
             {
@@ -931,6 +961,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             _fakeServers,
             _serverBaseUrl,
             DataContext is MainViewModel viewModel ? viewModel.Login.CurrentServerUrl : null);
+
+    internal static bool ShouldUseApplicationProxy(string serverBaseUrl)
+        => Uri.TryCreate(serverBaseUrl, UriKind.Absolute, out var serverUri)
+           && !SecureServerUrlProvider.IsLoopback(serverUri);
 
     private async Task<string?> LoadDemoApplicationHtmlAsync(string workspaceId, int allocatedPort)
     {
