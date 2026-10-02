@@ -9,7 +9,7 @@ test('file viewer catalog owns inspection chrome, line kinds, and syntax tokens'
   assert.ok(surface, 'file-viewer surface is missing from the catalog');
   const ids = new Set(surface.components.map(item => item.id));
   for (const id of [
-    'file-viewer', 'file-viewer-header', 'file-viewer-path', 'file-viewer-status',
+    'file-viewer', 'file-viewer-mobile', 'file-viewer-header', 'file-viewer-path', 'file-viewer-status',
     'file-viewer-nav', 'file-viewer-jump', 'file-viewer-line', 'file-viewer-line-added',
     'file-viewer-line-deleted', 'file-viewer-line-hunk', 'file-viewer-line-current',
     'file-viewer-gutter', 'syntax-keyword', 'syntax-string', 'syntax-comment',

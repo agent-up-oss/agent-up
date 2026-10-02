@@ -1,23 +1,60 @@
   <section data-au-surface="capabilities" data-au-title="Capability modules" data-au-intro="Capability modules are Server-owned packages. Desktop lists them in overlay chrome. Mobile lists them in the workspace Settings tab. Clients never call the remote registry. Green is ready, not decoration.">
-    <article data-au-component="capability-catalog" data-au-title="Module catalog" data-au-note="Desktop uses an overlay panel. Mobile places the same cards in Settings. Enable is the primary action; disable is secondary." data-au-avalonia="Border" data-au-class="au-overlay-panel">
-      <div class="au-overlay-panel" style="padding: 1.25rem; max-width: 36rem;">
-        <p class="au-page-title">Capability modules</p>
-        <p class="au-muted">Enable packages on this Server. Clients never talk to the remote registry.</p>
-        <div class="au-stack" style="margin-top: 1rem;">
-          <div class="au-card">
-            <strong>.NET</strong>
-            <p class="au-muted">Ready · toolchain</p>
-            <div class="au-cluster">
-              <button class="au-button au-button--secondary au-button--compact" type="button">Disable</button>
-            </div>
+    <article data-au-component="capability-catalog" data-au-title="Module catalog" data-au-note="Desktop uses an overlay panel. Enable is the primary action; disable is secondary. Cursor is disabled in the used Demo state." data-au-avalonia="Border" data-au-class="au-overlay-panel">
+      <div class="au-overlay-panel au-capability-catalog">
+        <div class="au-overlay-header">
+          <div>
+            <p class="au-page-title">Capability modules</p>
+            <p class="au-muted">Enable packages on this Server. Desktop never talks to the remote registry.</p>
           </div>
-          <div class="au-card">
-            <strong>Docker</strong>
-            <p class="au-muted">Not enabled</p>
-            <div class="au-cluster">
-              <button class="au-button au-button--compact" type="button">Enable</button>
-            </div>
+          <button class="au-chrome-button au-chrome-icon" type="button">×</button>
+        </div>
+        <div class="au-stack">
+          <div class="au-card au-cluster" style="justify-content: space-between;">
+            <span><strong>.NET</strong><p class="au-muted">Ready</p></span>
+            <button class="au-button au-button--secondary au-button--compact" type="button">Disable</button>
           </div>
+          <div class="au-card au-cluster" style="justify-content: space-between;">
+            <span><strong>Docker</strong><p class="au-muted">Ready</p></span>
+            <button class="au-button au-button--secondary au-button--compact" type="button">Disable</button>
+          </div>
+          <div class="au-card au-cluster" style="justify-content: space-between;">
+            <span><strong>Codex</strong><p class="au-muted">Ready</p></span>
+            <button class="au-button au-button--secondary au-button--compact" type="button">Disable</button>
+          </div>
+          <div class="au-card au-cluster" style="justify-content: space-between;">
+            <span><strong>Cursor</strong><p class="au-muted">disabled</p></span>
+            <button class="au-button au-button--compact" type="button">Enable</button>
+          </div>
+          <div class="au-card au-cluster" style="justify-content: space-between;">
+            <span><strong>Claude</strong><p class="au-muted">Ready</p></span>
+            <button class="au-button au-button--secondary au-button--compact" type="button">Disable</button>
+          </div>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="capability-settings" data-au-title="Settings modules" data-au-note="Mobile Settings is the same list without overlay chrome. .NET is disabled in the used Demo state." data-au-avalonia="Border" data-au-class="au-app-list">
+      <div class="au-app-list">
+        <span class="au-field-label">Capabilities</span>
+        <p class="au-muted">Enable packages on this Server. Mobile never talks to the remote registry.</p>
+        <div>
+          <div class="au-cluster" style="justify-content: space-between;"><strong>.NET</strong><span class="au-muted">disabled</span></div>
+          <button class="au-button au-button--secondary" type="button">Enable</button>
+        </div>
+        <div>
+          <div class="au-cluster" style="justify-content: space-between;"><strong>Docker</strong><span class="au-muted">Ready</span></div>
+          <button class="au-button au-button--secondary" type="button">Disable</button>
+        </div>
+        <div>
+          <div class="au-cluster" style="justify-content: space-between;"><strong>Codex</strong><span class="au-muted">Ready</span></div>
+          <button class="au-button au-button--secondary" type="button">Disable</button>
+        </div>
+        <div>
+          <div class="au-cluster" style="justify-content: space-between;"><strong>Cursor</strong><span class="au-muted">Ready</span></div>
+          <button class="au-button au-button--secondary" type="button">Disable</button>
+        </div>
+        <div>
+          <div class="au-cluster" style="justify-content: space-between;"><strong>Claude</strong><span class="au-muted">Ready</span></div>
+          <button class="au-button au-button--secondary" type="button">Disable</button>
         </div>
       </div>
     </article>

@@ -405,10 +405,17 @@ export const agentUpTheme = Object.freeze({
     }),
     chrome: Object.freeze({
       minHeight: 42,
+      paddingHorizontal: 12,
+      paddingVertical: 0,
       color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
       borderBottomWidth: 1,
       borderBottomColor: "#ffffff14",
+    }),
+    chromeMark: Object.freeze({
+      width: 18,
+      height: 18,
+      backgroundColor: "#00b850",
     }),
     chromeButton: Object.freeze({
       width: 46,
@@ -471,6 +478,11 @@ export const agentUpTheme = Object.freeze({
       borderRightColor: "#ffffff14",
     }),
     drawer: Object.freeze({
+      width: 280,
+      maxWidth: "82%",
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
       borderRightWidth: 1,
       borderRightColor: "#ffffff14",
@@ -571,15 +583,15 @@ export const agentUpTheme = Object.freeze({
       borderRadius: 8,
     }),
     sessionLogout: Object.freeze({
-      minHeight: 32,
+      minHeight: 44,
       paddingHorizontal: 12,
-      paddingVertical: 4,
-      color: "#c2d2ca",
+      paddingVertical: 8,
+      color: "#f5fbf7",
       backgroundColor: "#00000000",
       borderWidth: 1,
-      borderColor: "#ffffff14",
-      borderRadius: 6,
-      fontSize: 12,
+      borderColor: "#ffffff29",
+      borderRadius: 8,
+      fontSize: 13,
       fontWeight: '500',
     }),
     addressBar: Object.freeze({
@@ -597,8 +609,12 @@ export const agentUpTheme = Object.freeze({
     browserButton: Object.freeze({
       width: 28,
       height: 28,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
       color: "#f5fbf7",
       backgroundColor: "#191c1f",
+      borderWidth: 1,
+      borderColor: "#ffffff29",
       borderRadius: 6,
     }),
     errorBanner: Object.freeze({
@@ -621,6 +637,7 @@ export const agentUpTheme = Object.freeze({
       whiteSpace: 'pre',
     }),
     gitChangeList: Object.freeze({
+      minHeight: 0,
       color: "#f5fbf7",
       backgroundColor: "#121416",
       borderWidth: 1,
@@ -1020,8 +1037,21 @@ export const agentUpTheme = Object.freeze({
       paddingHorizontal: 12,
       paddingVertical: 8,
     }),
+    tabSep: Object.freeze({
+      width: 1,
+      height: 18,
+      backgroundColor: "#ffffff29",
+    }),
+    screenToolbar: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+    }),
     screenPane: Object.freeze({
       minHeight: 0,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
     }),
     screenCenter: Object.freeze({
       minHeight: 0,
@@ -1030,6 +1060,30 @@ export const agentUpTheme = Object.freeze({
       minHeight: 0,
       paddingHorizontal: 12,
       paddingVertical: 12,
+    }),
+    screenOverlay: Object.freeze({
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+    }),
+    fileViewerMobile: Object.freeze({
+      paddingHorizontal: 20,
+      paddingVertical: 20,
+    }),
+    gitLog: Object.freeze({
+      minHeight: 192,
+      backgroundColor: "#0a0b0c",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+    }),
+    storefront: Object.freeze({
+      maxWidth: 736,
+      paddingHorizontal: 16,
+      paddingVertical: 20,
+    }),
+    capabilityCatalog: Object.freeze({
+      paddingHorizontal: 20,
+      paddingVertical: 20,
     }),
     fileViewer: Object.freeze({
       minHeight: 256,
@@ -1194,11 +1248,12 @@ export const agentUpTheme = Object.freeze({
     syntaxOperator: Object.freeze({
       color: "#c2d2ca",
     }),
-    gitLog: Object.freeze({
-      backgroundColor: "#0a0b0c",
-      borderWidth: 1,
-      borderColor: "#ffffff14",
-      borderRadius: 12,
+    gitLogFlush: Object.freeze({
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderRadius: 0,
+      backgroundColor: "transparent",
+      minHeight: 0,
     }),
     gitLogDetail: Object.freeze({
       paddingHorizontal: 12,

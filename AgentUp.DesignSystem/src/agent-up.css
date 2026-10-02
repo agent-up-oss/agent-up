@@ -315,13 +315,17 @@
 .au-badge--danger { color: var(--au-color-text-danger); border-color: var(--au-color-status-danger); }
 .au-badge--info { color: var(--au-color-text-info); border-color: var(--au-color-status-info); }
 
-.au-status-dot { width: 0.5rem; height: 0.5rem; flex: 0 0 auto; border-radius: 50%; background: var(--au-color-text-muted); }
+.au-status-dot { display: inline-block; width: 0.5rem; height: 0.5rem; flex: 0 0 auto; border-radius: 50%; background: var(--au-color-text-muted); }
 .au-status-dot--healthy { background: var(--au-color-status-healthy); }
 .au-status-dot--warning { background: var(--au-color-status-warning); }
 .au-status-dot--danger { background: var(--au-color-status-danger); }
 .au-status-dot--info { background: var(--au-color-status-info); }
 
 .au-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
   width: 1.125rem;
   height: 1.125rem;
   background: var(--au-color-transparent);
@@ -331,6 +335,15 @@
 .au-checkbox--checked {
   background: var(--au-color-accent);
   border-color: var(--au-color-accent);
+}
+.au-checkbox--checked::after {
+  content: "";
+  width: 0.5rem;
+  height: 0.28rem;
+  margin-top: -0.12rem;
+  border-left: 2px solid var(--au-color-on-accent);
+  border-bottom: 2px solid var(--au-color-on-accent);
+  transform: rotate(-45deg);
 }
 
 .au-tabs {

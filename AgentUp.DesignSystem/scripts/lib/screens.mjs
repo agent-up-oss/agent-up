@@ -124,7 +124,8 @@ function applySlots(layout, regions) {
     const inner = slots.get(name);
     if (!inner) return '';
     const attrs = `${before}${after}`.trim();
-    return attrs ? `<${tag} ${attrs}>${inner}</${tag}>` : `<${tag}>${inner}</${tag}>`;
+    if (!attrs) return inner;
+    return `<${tag} ${attrs}>${inner}</${tag}>`;
   });
 }
 

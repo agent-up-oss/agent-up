@@ -1,51 +1,98 @@
   <section data-au-surface="file-viewer" data-au-title="File viewer" data-au-intro="A readonly inspection window for a Server-owned file or diff. The catalog owns chrome, gutter, line kinds, hunk markers, and syntax token colors. Clients virtualize the line list instead of dumping the file into one text node.">
     <article data-au-component="file-viewer" data-au-title="Inspection window" data-au-note="Compose the overlay panel. Header carries path and change status. Close returns to the change list. Do not turn this into an editor." data-au-avalonia="Border" data-au-class="au-file-viewer">
-      <div class="au-overlay-panel au-file-viewer" style="max-width: 42rem;">
+      <div class="au-overlay-panel au-file-viewer">
         <div class="au-file-viewer-header">
-          <span class="au-file-viewer-path">AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx</span>
-          <span class="au-file-viewer-status">Modified</span>
-          <button class="au-button au-button--secondary au-button--compact" type="button">Close</button>
+          <span class="au-file-viewer-heading">
+            <span class="au-file-viewer-path">apps/storefront/PromoBanner.tsx</span>
+            <span class="au-file-viewer-status">Added</span>
+          </span>
+          <button class="au-chrome-button au-chrome-icon" type="button">×</button>
         </div>
         <div class="au-file-viewer-nav">
-          <button class="au-file-viewer-jump" type="button">@@ −48,6 +48,18 @@</button>
-          <button class="au-file-viewer-jump" type="button">@@ −265,12 +277,40 @@</button>
-          <input class="au-file-viewer-goto" value="52" readonly aria-label="Go to line" />
+          <button class="au-file-viewer-jump" type="button">@@ -0,0 +1,5 @@</button>
+          <input class="au-file-viewer-goto" value="3" readonly aria-label="Go to line" />
+          <button class="au-button au-button--secondary au-button--compact" type="button">Go</button>
         </div>
         <div class="au-file-viewer-body">
           <div class="au-file-viewer-line au-file-viewer-line--meta">
             <span class="au-file-viewer-gutter"></span>
             <span class="au-file-viewer-prefix"> </span>
-            <span class="au-file-viewer-code">diff --git a/GitChangesPanel.tsx b/GitChangesPanel.tsx</span>
+            <span class="au-file-viewer-code">--- /dev/null</span>
+          </div>
+          <div class="au-file-viewer-line au-file-viewer-line--meta">
+            <span class="au-file-viewer-gutter"></span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code">+++ b/apps/storefront/PromoBanner.tsx</span>
           </div>
           <div class="au-file-viewer-line au-file-viewer-line--hunk">
             <span class="au-file-viewer-gutter"></span>
             <span class="au-file-viewer-prefix"> </span>
-            <span class="au-file-viewer-code">@@ −48,6 +48,18 @@ export function GitChangesPanel</span>
+            <span class="au-file-viewer-code">@@ -0,0 +1,5 @@</span>
           </div>
-          <div class="au-file-viewer-line">
-            <span class="au-file-viewer-gutter">48</span>
-            <span class="au-file-viewer-prefix"> </span>
-            <span class="au-file-viewer-code"><span class="au-syntax-keyword">const</span> [diff, setDiff] = <span class="au-syntax-function">useState</span>(<span class="au-syntax-keyword">null</span>);</span>
+          <div class="au-file-viewer-line au-file-viewer-line--added">
+            <span class="au-file-viewer-gutter">1</span>
+            <span class="au-file-viewer-prefix au-file-viewer-prefix--added">+</span>
+            <span class="au-file-viewer-code"><span class="au-syntax-keyword">export function</span> <span class="au-syntax-function">PromoBanner</span>() {</span>
           </div>
-          <div class="au-file-viewer-line au-file-viewer-line--deleted">
-            <span class="au-file-viewer-gutter">49</span>
-            <span class="au-file-viewer-prefix au-file-viewer-prefix--deleted">−</span>
-            <span class="au-file-viewer-code"><span class="au-syntax-keyword">return</span> &lt;<span class="au-syntax-type">Text</span>&gt;{diffText(diff)}&lt;/<span class="au-syntax-type">Text</span>&gt;;</span>
+          <div class="au-file-viewer-line au-file-viewer-line--added">
+            <span class="au-file-viewer-gutter">2</span>
+            <span class="au-file-viewer-prefix au-file-viewer-prefix--added">+</span>
+            <span class="au-file-viewer-code"><span class="au-syntax-plain">    </span><span class="au-syntax-keyword">return</span> &lt;<span class="au-syntax-type">aside</span>&gt;Weekly harbor special&lt;/<span class="au-syntax-type">aside</span>&gt;;</span>
           </div>
           <div class="au-file-viewer-line au-file-viewer-line--added au-file-viewer-line--current">
-            <span class="au-file-viewer-gutter">52</span>
+            <span class="au-file-viewer-gutter">3</span>
             <span class="au-file-viewer-prefix au-file-viewer-prefix--added">+</span>
-            <span class="au-file-viewer-code"><span class="au-syntax-keyword">return</span> &lt;<span class="au-syntax-type">GitFileViewer</span> diff={diff} <span class="au-syntax-property">onClose</span>={close} /&gt;;</span>
+            <span class="au-file-viewer-code">}</span>
           </div>
-          <div class="au-file-viewer-line">
-            <span class="au-file-viewer-gutter">53</span>
+        </div>
+        <div class="au-file-viewer-footer">
+          <button class="au-button au-button--secondary au-button--compact" type="button">Close</button>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="file-viewer-mobile" data-au-title="Mobile inspection window" data-au-note="Mobile keeps Close in the header and a Line field instead of Go. The overlay is a compact card, not the Desktop window." data-au-avalonia="Border" data-au-class="au-file-viewer">
+      <div class="au-overlay-panel au-file-viewer au-file-viewer--mobile">
+        <div class="au-file-viewer-header">
+          <span class="au-file-viewer-heading">
+            <span class="au-file-viewer-path">apps/storefront/PromoBanner.tsx</span>
+            <span class="au-file-viewer-status">Added</span>
+          </span>
+          <button class="au-button au-button--secondary au-button--compact" type="button">Close</button>
+        </div>
+        <div class="au-file-viewer-nav">
+          <button class="au-file-viewer-jump" type="button">@@ -0,0 +1,5 @@</button>
+          <input class="au-file-viewer-goto" placeholder="Line" readonly aria-label="Go to line" />
+        </div>
+        <div class="au-file-viewer-body">
+          <div class="au-file-viewer-line au-file-viewer-line--meta">
+            <span class="au-file-viewer-gutter"></span>
             <span class="au-file-viewer-prefix"> </span>
-            <span class="au-file-viewer-code"><span class="au-syntax-plain">    </span><span class="au-syntax-keyword">return</span> foo;</span>
+            <span class="au-file-viewer-code">--- /dev/null</span>
           </div>
-          <div class="au-file-viewer-line">
-            <span class="au-file-viewer-gutter">54</span>
+          <div class="au-file-viewer-line au-file-viewer-line--meta">
+            <span class="au-file-viewer-gutter"></span>
             <span class="au-file-viewer-prefix"> </span>
-            <span class="au-file-viewer-code"><span class="au-syntax-comment">// Filename opens inspection. Checkbox stays selection.</span></span>
+            <span class="au-file-viewer-code">+++ b/apps/storefront/PromoBanner.tsx</span>
+          </div>
+          <div class="au-file-viewer-line au-file-viewer-line--hunk">
+            <span class="au-file-viewer-gutter"></span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code">@@ -0,0 +1,5 @@</span>
+          </div>
+          <div class="au-file-viewer-line au-file-viewer-line--added">
+            <span class="au-file-viewer-gutter">1</span>
+            <span class="au-file-viewer-prefix au-file-viewer-prefix--added">+</span>
+            <span class="au-file-viewer-code"><span class="au-syntax-keyword">export function</span> <span class="au-syntax-function">PromoBanner</span>() {</span>
+          </div>
+          <div class="au-file-viewer-line au-file-viewer-line--added">
+            <span class="au-file-viewer-gutter">2</span>
+            <span class="au-file-viewer-prefix au-file-viewer-prefix--added">+</span>
+            <span class="au-file-viewer-code"><span class="au-syntax-plain">    </span><span class="au-syntax-keyword">return</span> &lt;<span class="au-syntax-type">aside</span>&gt;Weekly harbor special&lt;/<span class="au-syntax-type">aside</span>&gt;;</span>
+          </div>
+          <div class="au-file-viewer-line au-file-viewer-line--added au-file-viewer-line--current">
+            <span class="au-file-viewer-gutter">3</span>
+            <span class="au-file-viewer-prefix au-file-viewer-prefix--added">+</span>
+            <span class="au-file-viewer-code">}</span>
           </div>
         </div>
       </div>

@@ -246,7 +246,9 @@ test('Git change list uses catalog status glyphs instead of restyled rows', asyn
   assert.match(mobile, /auText\(statusClass/);
   const list = catalog.surfaces.find(item => item.id === 'git')?.components.find(item => item.id === 'git-change-list');
   assert.ok(list?.html.includes('au-git-tree-guide'));
-  assert.ok(list?.html.includes('au-git-tree-toggle--collapsed'));
+  assert.ok(list?.html.includes('ProductGrid.tsx'));
+  const collapsed = catalog.surfaces.find(item => item.id === 'git')?.components.find(item => item.id === 'git-tree-toggle-collapsed');
+  assert.ok(collapsed?.html.includes('au-git-tree-toggle--collapsed'));
 });
 
 test('tappable cards are catalog buttons instead of local picker chrome', async () => {
@@ -284,10 +286,12 @@ test('sign-in is a pane on the canvas rather than a grey overlay', async () => {
   assert.match(mobile, /auText\('choiceLabel'\)/);
   assert.match(mobile, /numberOfLines=\{1\}/);
   const example = catalog.surfaces.find(surface => surface.id === 'auth')?.components.find(item => item.id === 'sign-in');
-  assert.ok(example?.html.includes('au-choice au-choice--compact au-choice--selected'));
+  const choice = catalog.surfaces.find(surface => surface.id === 'primitives')?.components.find(item => item.id === 'choice');
+  assert.ok(example?.html.includes('au-choice au-choice--compact'));
   assert.ok(example?.html.includes('au-sign-in-list'));
   assert.ok(example?.html.includes('au-choice-label'));
-  assert.ok(example?.html.includes('title="https://agent-up.massivecreationlab.com"'));
+  assert.ok(example?.html.includes('title="http://127.0.0.1:9"'));
+  assert.ok(choice?.html.includes('au-choice--selected'));
   assert.doesNotMatch(example?.html ?? '', /Saved sign-in|No saved sign-in/);
   assert.doesNotMatch(axaml, /Saved sign-in|No saved sign-in|In-app demo/);
   assert.doesNotMatch(mobile, /Saved sign-in|No saved sign-in/);

@@ -459,14 +459,26 @@
   </Style>
   <Style Selector="Border.au-chrome">
     <Setter Property="MinHeight" Value="42"/>
+    <Setter Property="Padding" Value="12,0"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
     <Setter Property="BorderThickness" Value="0,0,0,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-chrome">
     <Setter Property="MinHeight" Value="42"/>
+    <Setter Property="Padding" Value="12,0"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="Border.au-chrome-mark">
+    <Setter Property="Width" Value="18"/>
+    <Setter Property="Height" Value="18"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorAccentBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-chrome-mark">
+    <Setter Property="Width" Value="18"/>
+    <Setter Property="Height" Value="18"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorAccentBrush}"/>
   </Style>
   <Style Selector="Border.au-chrome-button">
     <Setter Property="Width" Value="46"/>
@@ -677,11 +689,16 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
   </Style>
   <Style Selector="Border.au-drawer">
+    <Setter Property="Width" Value="280"/>
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness4}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
     <Setter Property="BorderThickness" Value="0,0,1,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-drawer">
+    <Setter Property="Width" Value="280"/>
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness4}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
   </Style>
   <Style Selector="Border.au-workspace-avatar">
@@ -1014,21 +1031,21 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
   </Style>
   <Style Selector="Button.au-session-logout">
-    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
-    <Setter Property="Padding" Value="12,4"/>
-    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeight}"/>
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
-    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
-    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusMd}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
     <Setter Property="BorderThickness" Value="1"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
   </Style>
   <Style Selector="Button.au-session-logout /template/ ContentPresenter">
-    <Setter Property="Padding" Value="12,4"/>
-    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
   </Style>
   <Style Selector="Button.au-session-logout:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
@@ -1063,24 +1080,32 @@
   <Style Selector="Border.au-browser-button">
     <Setter Property="Width" Value="28"/>
     <Setter Property="Height" Value="28"/>
+    <Setter Property="Padding" Value="0"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-browser-button">
     <Setter Property="Width" Value="28"/>
     <Setter Property="Height" Value="28"/>
+    <Setter Property="Padding" Value="0"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
   </Style>
   <Style Selector="Border.browserButton">
     <Setter Property="Width" Value="28"/>
     <Setter Property="Height" Value="28"/>
+    <Setter Property="Padding" Value="0"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
   </Style>
   <Style Selector="TextBlock.browserButton">
     <Setter Property="Width" Value="28"/>
     <Setter Property="Height" Value="28"/>
+    <Setter Property="Padding" Value="0"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
   </Style>
@@ -1123,6 +1148,7 @@
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
   </Style>
   <Style Selector="Border.au-git-change-list">
+    <Setter Property="MinHeight" Value="0"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusLg}"/>
     <Setter Property="Padding" Value="0,4"/>
@@ -1130,6 +1156,7 @@
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-git-change-list">
+    <Setter Property="MinHeight" Value="0"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
     <Setter Property="Padding" Value="0,4"/>
@@ -2067,21 +2094,49 @@
   <Style Selector="TextBlock.productScreenSubtabs">
     <Setter Property="Padding" Value="12,8"/>
   </Style>
+  <Style Selector="Border.au-tab-sep">
+    <Setter Property="Width" Value="1"/>
+    <Setter Property="Height" Value="18"/>
+    <Setter Property="Margin" Value="8,0"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-tab-sep">
+    <Setter Property="Width" Value="1"/>
+    <Setter Property="Height" Value="18"/>
+    <Setter Property="Margin" Value="8,0"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+  </Style>
+  <Style Selector="Border.au-screen-toolbar">
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-screen-toolbar">
+    <Setter Property="Padding" Value="12,8"/>
+  </Style>
+  <Style Selector="Border.productScreenToolbar">
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.productScreenToolbar">
+    <Setter Property="Padding" Value="12,8"/>
+  </Style>
   <Style Selector="Border.au-screen-pane">
     <Setter Property="MinHeight" Value="0"/>
-    <Setter Property="Margin" Value="{DynamicResource AgentUpThickness3}"/>
+    <Setter Property="Padding" Value="0"/>
   </Style>
   <Style Selector="TextBlock.au-screen-pane">
     <Setter Property="MinHeight" Value="0"/>
-    <Setter Property="Margin" Value="{DynamicResource AgentUpThickness3}"/>
+    <Setter Property="Padding" Value="0"/>
   </Style>
   <Style Selector="Border.productScreenPane">
     <Setter Property="MinHeight" Value="0"/>
-    <Setter Property="Margin" Value="{DynamicResource AgentUpThickness3}"/>
+    <Setter Property="Padding" Value="0"/>
   </Style>
   <Style Selector="TextBlock.productScreenPane">
     <Setter Property="MinHeight" Value="0"/>
-    <Setter Property="Margin" Value="{DynamicResource AgentUpThickness3}"/>
+    <Setter Property="Padding" Value="0"/>
   </Style>
   <Style Selector="Border.au-screen-center">
     <Setter Property="MinHeight" Value="0"/>
@@ -2110,6 +2165,47 @@
   <Style Selector="TextBlock.productScreenMobileBody">
     <Setter Property="MinHeight" Value="0"/>
     <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+  </Style>
+  <Style Selector="Border.au-screen-overlay">
+    <Setter Property="Padding" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.au-screen-overlay">
+    <Setter Property="Padding" Value="0"/>
+  </Style>
+  <Style Selector="Border.productScreenOverlay">
+    <Setter Property="Padding" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.productScreenOverlay">
+    <Setter Property="Padding" Value="0"/>
+  </Style>
+  <Style Selector="Border.au-file-viewer--mobile">
+    <Setter Property="Padding" Value="20"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-viewer--mobile">
+    <Setter Property="Padding" Value="20"/>
+  </Style>
+  <Style Selector="Border.au-git-log">
+    <Setter Property="MinHeight" Value="192"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusLg}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-log">
+    <Setter Property="MinHeight" Value="192"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="Border.au-storefront">
+    <Setter Property="Padding" Value="16,20"/>
+  </Style>
+  <Style Selector="TextBlock.au-storefront">
+    <Setter Property="Padding" Value="16,20"/>
+  </Style>
+  <Style Selector="Border.au-capability-catalog">
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness5}"/>
+  </Style>
+  <Style Selector="TextBlock.au-capability-catalog">
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness5}"/>
   </Style>
   <Style Selector="Border.au-file-viewer">
     <Setter Property="MinHeight" Value="256"/>
@@ -2326,14 +2422,16 @@
   <Style Selector="TextBlock.au-syntax-operator">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
-  <Style Selector="Border.au-git-log">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
-    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusLg}"/>
-    <Setter Property="BorderThickness" Value="1"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  <Style Selector="Border.au-git-log--flush">
+    <Setter Property="CornerRadius" Value="0"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
   </Style>
-  <Style Selector="TextBlock.au-git-log">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  <Style Selector="TextBlock.au-git-log--flush">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="MinHeight" Value="0"/>
   </Style>
   <Style Selector="Border.au-git-log-detail">
     <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>

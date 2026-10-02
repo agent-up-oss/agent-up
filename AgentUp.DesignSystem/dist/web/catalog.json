@@ -219,7 +219,7 @@
         {
           "id": "chat-transcript",
           "title": "Transcript",
-          "note": "User bubble, collapsible work log, then the only raised agent reply. Desktop and Mobile share this stack. Collapse the work log only after the next question; the result stays visible.",
+          "note": "User bubble, then the raised agent reply. Desktop and Mobile share this stack. Collapse the work log only after the next question; the result stays visible.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -227,13 +227,62 @@
           "classes": [
             "au-chat-transcript",
             "au-chat-user",
-            "au-chat-run",
-            "au-chat-work",
-            "au-field-label",
-            "au-chat-thought",
-            "au-card"
+            "au-card",
+            "au-muted"
           ],
-          "html": "<div class=\"au-chat-transcript\">\n        <div class=\"au-chat-user\">Hey, please look up TX 1320 M3 offers</div>\n        <button class=\"au-chat-run\" type=\"button\">Worked · 2 tools · Thought ▸</button>\n        <div class=\"au-chat-work\"><span class=\"au-field-label\">Tool</span> Web search: TX 1320 M3</div>\n        <button class=\"au-chat-thought\" type=\"button\">\n          <span class=\"au-field-label\">Thought</span>\n        </button>\n        <div class=\"au-card\"><span class=\"au-field-label\">Codex</span><p>A good used price is roughly €140–200.</p></div>\n      </div>"
+          "html": "<div class=\"au-chat-transcript\">\n        <div class=\"au-chat-user\">What is running in this workspace?</div>\n        <div class=\"au-card\"><span class=\"au-muted\">Codex</span><p>I added apps/storefront/PromoBanner.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>\n        <div class=\"au-chat-user\">Add a promo banner to the storefront.</div>\n        <div class=\"au-card\"><span class=\"au-muted\">Codex</span><p>I added apps/storefront/PromoBanner2.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>\n      </div>"
+        },
+        {
+          "id": "agent-header",
+          "title": "Agent header",
+          "note": "The live session names the agent and idle/running state. Stop is danger. Do not paint the header in accent green.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-agent-header",
+          "classes": [
+            "au-agent-header",
+            "au-page-title",
+            "au-muted",
+            "au-button",
+            "au-button--danger",
+            "au-button--compact"
+          ],
+          "html": "<div class=\"au-agent-header\">\n        <div>\n          <h1 class=\"au-page-title\">Workspace agent</h1>\n          <p class=\"au-muted\">Codex · Idle</p>\n          <p class=\"au-muted\">Workspace sessions</p>\n        </div>\n        <button class=\"au-button au-button--danger au-button--compact\" type=\"button\">Stop agent</button>\n      </div>"
+        },
+        {
+          "id": "agent-prompt",
+          "title": "Agent prompt",
+          "note": "Ask and Send sit on the canvas. Send is the primary action.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-agent-prompt",
+          "classes": [
+            "au-agent-prompt",
+            "au-input",
+            "au-button"
+          ],
+          "html": "<div class=\"au-agent-prompt\">\n        <input class=\"au-input\" placeholder=\"Ask the agent...\" />\n        <button class=\"au-button\" type=\"button\">Send</button>\n      </div>"
+        },
+        {
+          "id": "agent-picker",
+          "title": "Agent picker",
+          "note": "Mobile Agents is the picker. Each row is a choice card. Do not wrap au-card in a platform button.",
+          "avalonia": "Button",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-choice",
+          "classes": [
+            "au-stack",
+            "au-agent-picker",
+            "au-field-label",
+            "au-muted",
+            "au-choice",
+            "au-workspace-name",
+            "au-workspace-branch"
+          ],
+          "html": "<div class=\"au-stack au-agent-picker\">\n        <span class=\"au-field-label\">Workspace sessions</span>\n        <p class=\"au-muted\">No saved sessions yet.</p>\n        <span class=\"au-field-label\">Start another session</span>\n        <button class=\"au-choice\" type=\"button\"><span><strong class=\"au-workspace-name\">Codex</strong><small class=\"au-workspace-branch\">Open existing session</small></span></button>\n        <button class=\"au-choice\" type=\"button\"><span><strong class=\"au-workspace-name\">Cursor</strong><small class=\"au-workspace-branch\">Create a new session</small></span></button>\n        <button class=\"au-choice\" type=\"button\"><span><strong class=\"au-workspace-name\">Claude</strong><small class=\"au-workspace-branch\">Create a new session</small></span></button>\n      </div>"
         },
         {
           "id": "tabs",
@@ -316,7 +365,7 @@
         {
           "id": "chrome",
           "title": "Title bar",
-          "note": "Keep the mark small. Never add glow around the window.",
+          "note": "Keep the mark small. Never add glow around the window. Connected chrome carries sidebar, reload, and the Server badge.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -326,15 +375,38 @@
             "au-cluster",
             "au-title-tool",
             "au-chrome-icon",
+            "au-nav-icon",
             "au-badge",
             "au-badge--healthy",
             "au-status-dot",
             "au-status-dot--healthy",
+            "au-logo-lockup",
+            "au-chrome-mark",
             "au-chrome-title",
             "au-chrome-button",
             "au-chrome-close"
           ],
-          "html": "<div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong class=\"au-chrome-title\">Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>"
+          "html": "<div class=\"au-chrome\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n          <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 12a9 9 0 1 1-2.6-6.4\"></path><path d=\"M21 4v6h-6\"></path></svg></span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>SERVER ONLINE</span>\n        </span>\n        <span class=\"au-logo-lockup\"><span class=\"au-chrome-mark\"></span><strong class=\"au-chrome-title\">Agent-Up</strong></span>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>"
+        },
+        {
+          "id": "chrome-connect",
+          "title": "Connect chrome",
+          "note": "Sign-in has no sidebar or Server badge. The lockup stays centered against the window controls.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-chrome",
+          "classes": [
+            "au-chrome",
+            "au-logo-lockup",
+            "au-chrome-mark",
+            "au-chrome-title",
+            "au-cluster",
+            "au-chrome-button",
+            "au-chrome-icon",
+            "au-chrome-close"
+          ],
+          "html": "<div class=\"au-chrome\">\n        <span></span>\n        <span class=\"au-logo-lockup\"><span class=\"au-chrome-mark\"></span><strong class=\"au-chrome-title\">Agent-Up</strong></span>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>"
         },
         {
           "id": "chrome-button",
@@ -405,13 +477,12 @@
         {
           "id": "workspace",
           "title": "Workspace row",
-          "note": "Idle rows are transparent and hover with the neutral state layer. The selected checkout takes an accent tint plus a 2px accent rule on its leading edge, never a saturated fill. Start, identity, and delete are the same controls on Desktop and Mobile.",
+          "note": "Idle rows are transparent and hover with the neutral state layer. The selected checkout takes an accent tint plus a 2px accent rule on its leading edge, never a saturated fill. Start, identity, and delete are the same controls on Desktop and Mobile. A running workspace shows stop, not play.",
           "avalonia": "Border",
           "desktopClass": "wsEntry",
           "desktopHost": "ListBoxItem",
           "rootClass": "au-workspace",
           "classes": [
-            "au-stack",
             "au-workspace",
             "au-workspace--selected",
             "au-lifecycle-button",
@@ -419,10 +490,45 @@
             "au-status-dot--healthy",
             "au-workspace-name",
             "au-workspace-branch",
-            "au-workspace-delete",
-            "au-status-dot--warning"
+            "au-workspace-delete"
           ],
-          "html": "<div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--warning\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">main</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n      </div>"
+          "html": "<div class=\"au-workspace au-workspace--selected\">\n        <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n        <span class=\"au-status-dot au-status-dot--healthy\"></span>\n        <span>\n          <strong class=\"au-workspace-name\">Harbor Shop</strong>\n          <small class=\"au-workspace-branch\">main</small>\n        </span>\n        <button class=\"au-workspace-delete\" type=\"button\">×</button>\n      </div>"
+        },
+        {
+          "id": "workspace-head",
+          "title": "Rail heading",
+          "note": "The rail names the list, then add and collapse. Those controls stay compact; they are not a primary CTA.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-workspace-head",
+          "classes": [
+            "au-workspace-head",
+            "au-muted",
+            "au-workspace-add"
+          ],
+          "html": "<div class=\"au-workspace-head\">\n        <span class=\"au-muted\">Workspaces</span>\n        <button class=\"au-workspace-add\" type=\"button\">+</button>\n        <button class=\"au-workspace-add\" type=\"button\">‹</button>\n      </div>"
+        },
+        {
+          "id": "workspace-overview",
+          "title": "Workspace overview",
+          "note": "Overview is a page of catalog cards, not a dashboard theme. Healthy state is the only green.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-overview",
+          "classes": [
+            "au-overview",
+            "au-page-title",
+            "au-muted",
+            "au-overview-grid",
+            "au-card",
+            "au-field-label",
+            "au-accent",
+            "au-stack",
+            "au-mono"
+          ],
+          "html": "<div class=\"au-overview\">\n        <div>\n          <h1 class=\"au-page-title\">Workspace overview</h1>\n          <p class=\"au-muted\">Harbor Shop</p>\n        </div>\n        <div class=\"au-overview-grid\">\n          <div class=\"au-card\"><span class=\"au-field-label\">State</span><strong class=\"au-accent\">Running</strong></div>\n          <div class=\"au-card\"><span class=\"au-field-label\">CPU</span><strong>4.2%</strong></div>\n          <div class=\"au-card\"><span class=\"au-field-label\">Memory</span><strong>256 MB</strong></div>\n          <div class=\"au-card\"><span class=\"au-field-label\">Storage</span><strong>50 MB</strong></div>\n          <div class=\"au-card\"><span class=\"au-field-label\">Processes</span><strong>2</strong></div>\n          <div class=\"au-card\"><span class=\"au-field-label\">Applications</span><strong>2</strong></div>\n        </div>\n        <div class=\"au-stack\">\n          <div><span class=\"au-field-label\">Repository</span><p class=\"au-mono\">/demo/harbor-shop</p></div>\n          <div><span class=\"au-field-label\">Worktree</span><p class=\"au-mono\">/demo/harbor-shop</p></div>\n          <div><span class=\"au-field-label\">Commit</span><p class=\"au-mono\">a1b2c3d</p></div>\n        </div>\n      </div>"
         },
         {
           "id": "workspace-name",
@@ -435,7 +541,7 @@
           "classes": [
             "au-workspace-name"
           ],
-          "html": "<strong class=\"au-workspace-name\">checkout-fix</strong>"
+          "html": "<strong class=\"au-workspace-name\">Harbor Shop</strong>"
         },
         {
           "id": "workspace-branch",
@@ -448,7 +554,7 @@
           "classes": [
             "au-workspace-branch"
           ],
-          "html": "<small class=\"au-workspace-branch\">feat/checkout</small>"
+          "html": "<small class=\"au-workspace-branch\">main</small>"
         },
         {
           "id": "workspace-avatar",
@@ -517,7 +623,7 @@
         {
           "id": "app-tab",
           "title": "Application tabs",
-          "note": "Choosing an application is the primary selection on the screen, so it carries the accent: a 2px accent underline and primary text.",
+          "note": "Choosing an application is the primary selection on the screen, so it carries the accent: a 2px accent underline and primary text. Health is a LED, not a green outline.",
           "avalonia": "Border",
           "desktopClass": "appTab",
           "desktopHost": "ListBoxItem",
@@ -527,10 +633,81 @@
             "au-app-tab",
             "au-app-tab--selected",
             "au-status-dot",
-            "au-status-dot--healthy",
-            "au-status-dot--warning"
+            "au-status-dot--healthy"
           ],
-          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--warning\"></span> API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot\"></span> Database</button>\n      </div>"
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
+        },
+        {
+          "id": "workspace-tabs",
+          "title": "Workspace tabs",
+          "note": "Overview, Agent, and Git sit with the application tabs. Overview is selected. A hairline separates workspace chrome from running apps.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-app-tab",
+          "classes": [
+            "au-cluster",
+            "au-app-tab",
+            "au-app-tab--selected",
+            "au-tab-sep",
+            "au-status-dot",
+            "au-status-dot--healthy"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
+        },
+        {
+          "id": "workspace-tabs-agent",
+          "title": "Agent tab selected",
+          "note": "The live ACP session is the primary selection when Agent is open.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-app-tab",
+          "classes": [
+            "au-cluster",
+            "au-app-tab",
+            "au-app-tab--selected",
+            "au-tab-sep",
+            "au-status-dot",
+            "au-status-dot--healthy"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
+        },
+        {
+          "id": "workspace-tabs-git",
+          "title": "Git tab selected",
+          "note": "Working-tree review is the primary selection when Git is open.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-app-tab",
+          "classes": [
+            "au-cluster",
+            "au-app-tab",
+            "au-app-tab--selected",
+            "au-tab-sep",
+            "au-status-dot",
+            "au-status-dot--healthy"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
+        },
+        {
+          "id": "workspace-tabs-applications",
+          "title": "Application tab selected",
+          "note": "Storefront is the primary selection when the running app is open.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-app-tab",
+          "classes": [
+            "au-cluster",
+            "au-app-tab",
+            "au-tab-sep",
+            "au-app-tab--selected",
+            "au-status-dot",
+            "au-status-dot--healthy"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
         },
         {
           "id": "subtab",
@@ -543,9 +720,51 @@
           "classes": [
             "au-cluster",
             "au-subtab",
+            "au-subtab--selected",
+            "au-status-dot",
+            "au-status-dot--healthy"
+          ],
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-subtab au-subtab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> 3000:9100</button>\n        <button class=\"au-subtab\">Console</button>\n      </div>"
+        },
+        {
+          "id": "subtab-console",
+          "title": "Console subtab selected",
+          "note": "Console is still a secondary selection. It uses the active layer, not the accent underline.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-subtab",
+          "classes": [
+            "au-cluster",
+            "au-subtab",
+            "au-status-dot",
+            "au-status-dot--healthy",
             "au-subtab--selected"
           ],
-          "html": "<div class=\"au-cluster\">\n        <button class=\"au-subtab au-subtab--selected\">3000:11200</button>\n        <button class=\"au-subtab\">Console</button>\n        <button class=\"au-subtab\">Metrics</button>\n        <button class=\"au-subtab\">Diagnostics</button>\n        <button class=\"au-subtab\">Git</button>\n      </div>"
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-subtab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> 3000:9100</button>\n        <button class=\"au-subtab au-subtab--selected\">Console</button>\n      </div>"
+        },
+        {
+          "id": "storefront",
+          "title": "Storefront pane",
+          "note": "The application surface is catalog cards and buttons, not a restyled screenshot shell. Prices and the primary cart action carry green because they are meaning.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-storefront",
+          "classes": [
+            "au-storefront",
+            "au-field-label",
+            "au-page-title",
+            "au-muted",
+            "au-storefront-grid",
+            "au-card",
+            "au-accent",
+            "au-button",
+            "au-button--compact",
+            "au-cart-row",
+            "au-heading"
+          ],
+          "html": "<div class=\"au-storefront\">\n        <p class=\"au-field-label\">Storefront</p>\n        <h1 class=\"au-page-title\">Harbor Shop</h1>\n        <p class=\"au-muted\">Featured goods from the harbor catalog.</p>\n        <div class=\"au-storefront-grid\">\n          <div class=\"au-card\">\n            <strong>Harbor Mug</strong>\n            <p class=\"au-muted\">Stoneware, fog glaze</p>\n            <p class=\"au-accent\">$18</p>\n            <button class=\"au-button au-button--compact\" type=\"button\">Add to cart</button>\n          </div>\n          <div class=\"au-card\">\n            <strong>Canvas Tote</strong>\n            <p class=\"au-muted\">Waxed canvas, brass snap</p>\n            <p class=\"au-accent\">$32</p>\n            <button class=\"au-button au-button--compact\" type=\"button\">Add to cart</button>\n          </div>\n          <div class=\"au-card\">\n            <strong>Chart Lamp</strong>\n            <p class=\"au-muted\">Brass shade, linen cord</p>\n            <p class=\"au-accent\">$54</p>\n            <button class=\"au-button au-button--compact\" type=\"button\">Add to cart</button>\n          </div>\n        </div>\n        <div class=\"au-card\">\n          <strong>Cart</strong>\n          <div class=\"au-cart-row\"><span>Harbor Mug × 1</span><span>$18</span></div>\n          <div class=\"au-cart-row\"><span>Canvas Tote × 1</span><span>$32</span></div>\n          <div class=\"au-cart-row\"><strong>Total</strong><strong class=\"au-accent\">$50</strong></div>\n          <button class=\"au-button au-button--compact\" type=\"button\">Place order</button>\n        </div>\n        <h2 class=\"au-heading\">Recent orders</h2>\n        <div class=\"au-card\">\n          <div class=\"au-cart-row\"><span>Harbor Mug × 1</span><span class=\"au-accent\">$18</span></div>\n        </div>\n      </div>"
         }
       ]
     },
@@ -567,7 +786,7 @@
             "au-browser-button",
             "au-address-bar"
           ],
-          "html": "<div class=\"au-cluster\">\n        <button class=\"au-browser-button\">‹</button>\n        <button class=\"au-browser-button\">›</button>\n        <button class=\"au-browser-button\">↻</button>\n        <input class=\"au-address-bar\" value=\"http://localhost:11200/\" readonly />\n      </div>"
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-browser-button\" type=\"button\">‹</button>\n        <button class=\"au-browser-button\" type=\"button\">›</button>\n        <button class=\"au-browser-button\" type=\"button\">↻</button>\n        <input class=\"au-address-bar\" value=\"http://localhost:9100/\" readonly />\n      </div>"
         },
         {
           "id": "browser-button",
@@ -613,7 +832,7 @@
           "classes": [
             "au-console"
           ],
-          "html": "<pre class=\"au-console\">[install] npm install\nlistening on http://127.0.0.1:11200\nready in 842 ms</pre>"
+          "html": "<pre class=\"au-console\">[install] npm install\nStorefront listening on WEB_PORT</pre>"
         }
       ]
     },
@@ -625,21 +844,142 @@
         {
           "id": "git-change-list",
           "title": "Change list",
-          "note": "The tree sits on a pane, not a full-bleed slab. Directory depth uses catalog guides. Collapse chevrons hide nested rows; a collapsed directory checkbox still selects every file beneath it.",
+          "note": "The tree sits on a pane, not a full-bleed slab. Directory depth uses catalog guides. Checkbox selection stays on the checkbox; the open file uses selected. Do not color the filename with the change kind.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
           "rootClass": "au-git-change-list",
           "classes": [
             "au-git-change-list",
-            "au-cluster",
+            "au-git-row",
+            "au-checkbox",
+            "au-git-tree-toggle",
+            "au-git-tree-toggle--expanded",
+            "au-git-change-name",
+            "au-git-change-name--directory",
+            "au-git-tree-guide",
+            "au-git-status",
+            "au-git-status--modified",
+            "au-checkbox--checked",
+            "au-git-status--added"
+          ],
+          "html": "<div class=\"au-git-change-list\">\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">Changes</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">apps</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">storefront</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">ProductGrid.tsx</span>\n          <span class=\"au-git-status au-git-status--modified\">M</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">PromoBanner.tsx</span>\n          <span class=\"au-git-status au-git-status--added\">+</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">PromoBanner2.tsx</span>\n          <span class=\"au-git-status au-git-status--added\">+</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">api</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">orders.ts</span>\n          <span class=\"au-git-status au-git-status--modified\">M</span>\n        </div>\n      </div>"
+        },
+        {
+          "id": "git-toolbar",
+          "title": "Git toolbar",
+          "note": "Branch, fetch, pull, push, discard, and history are compact product buttons. Push is the primary action. Discard is danger.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-git-toolbar",
+          "classes": [
+            "au-git-toolbar",
+            "au-git-branch-row",
             "au-button",
             "au-button--secondary",
             "au-button--compact",
+            "au-git-branch",
+            "au-muted",
+            "au-browser-button",
+            "au-nav-icon",
+            "au-git-actions",
+            "au-button--danger",
+            "au-git-history"
+          ],
+          "html": "<div class=\"au-git-toolbar\">\n        <div class=\"au-git-branch-row\">\n          <button class=\"au-button au-button--secondary au-button--compact au-git-branch\" type=\"button\">main <span class=\"au-muted\">▾</span></button>\n          <button class=\"au-browser-button\" type=\"button\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 14l6-6 6 6\"></path></svg></button>\n          <button class=\"au-browser-button\" type=\"button\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 10l6 6 6-6\"></path></svg></button>\n        </div>\n        <div class=\"au-git-actions\">\n          <button class=\"au-browser-button\" type=\"button\">↻</button>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Fetch</button>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Pull</button>\n          <button class=\"au-button au-button--compact\" type=\"button\">Push</button>\n          <button class=\"au-button au-button--danger au-button--compact\" type=\"button\">Discard</button>\n          <button class=\"au-button au-button--secondary au-button--compact au-git-history\" type=\"button\">History</button>\n        </div>\n      </div>"
+        },
+        {
+          "id": "git-toolbar-mobile",
+          "title": "Mobile Git toolbar",
+          "note": "Mobile keeps the same actions and adds a compact new-branch control next to the branch field.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-git-toolbar",
+          "classes": [
+            "au-git-toolbar",
+            "au-git-branch-row",
+            "au-button",
+            "au-button--secondary",
+            "au-git-branch",
+            "au-muted",
+            "au-lifecycle-button",
+            "au-git-actions",
+            "au-browser-button",
+            "au-button--compact",
+            "au-button--danger",
+            "au-git-history",
+            "au-field-label"
+          ],
+          "html": "<div class=\"au-git-toolbar\">\n        <div class=\"au-git-branch-row\">\n          <button class=\"au-button au-button--secondary au-git-branch\" type=\"button\">main <span class=\"au-muted\">▾</span></button>\n          <button class=\"au-lifecycle-button\" type=\"button\">+</button>\n        </div>\n        <div class=\"au-git-actions\">\n          <button class=\"au-browser-button\" type=\"button\">↻</button>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Fetch</button>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Pull</button>\n          <button class=\"au-button au-button--compact\" type=\"button\">Push</button>\n          <button class=\"au-button au-button--danger au-button--compact\" type=\"button\">Discard</button>\n          <button class=\"au-button au-button--secondary au-button--compact au-git-history\" type=\"button\">History</button>\n        </div>\n        <span class=\"au-field-label\">Changes</span>\n      </div>"
+        },
+        {
+          "id": "git-heading",
+          "title": "Change heading",
+          "note": "Git changes is meaning, so it uses accent. The selected-file count stays muted.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-git-heading",
+          "classes": [
+            "au-git-heading",
+            "au-accent",
+            "au-muted"
+          ],
+          "html": "<div class=\"au-git-heading\">\n        <p class=\"au-accent\">Git changes</p>\n        <p class=\"au-muted\">2 of 4 file(s) selected</p>\n      </div>"
+        },
+        {
+          "id": "git-commit",
+          "title": "Commit box",
+          "note": "The message is an input. Commit is the primary action. Counts on that button use on-accent.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-git-commit",
+          "classes": [
+            "au-git-commit",
+            "au-input",
+            "au-button"
+          ],
+          "html": "<div class=\"au-git-commit\">\n        <textarea class=\"au-input\" readonly autofocus>feat(storefront): add the weekly promo banner</textarea>\n        <button class=\"au-button\" type=\"button\">Commit</button>\n      </div>"
+        },
+        {
+          "id": "git-commit-mobile",
+          "title": "Mobile commit box",
+          "note": "Mobile labels the field and puts the selected-file count on the primary button in on-accent.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-git-commit",
+          "classes": [
+            "au-git-commit",
+            "au-git-commit--mobile",
+            "au-field-label",
+            "au-input",
+            "au-button",
             "au-git-insertions",
-            "au-git-deletions",
-            "au-git-insertions--on-primary",
-            "au-git-deletions--on-primary",
+            "au-git-insertions--on-primary"
+          ],
+          "html": "<div class=\"au-git-commit au-git-commit--mobile\">\n        <span class=\"au-field-label\">Commit message</span>\n        <textarea class=\"au-input\" readonly>feat(storefront): add the weekly promo banner</textarea>\n        <button class=\"au-button\" type=\"button\">Commit <span class=\"au-git-insertions au-git-insertions--on-primary\">+2</span></button>\n      </div>"
+        },
+        {
+          "id": "git-review",
+          "title": "Review commit",
+          "note": "Mobile Review is the same change list after the remaining files are selected. Discard stays danger. The message is a review fix, not the agent commit.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-git-commit",
+          "classes": [
+            "au-stack",
+            "au-git-review",
+            "au-git-review-head",
+            "au-muted",
+            "au-button",
+            "au-button--danger",
+            "au-button--compact",
+            "au-git-change-list",
             "au-git-row",
             "au-checkbox",
             "au-checkbox--checked",
@@ -648,17 +988,41 @@
             "au-git-change-name",
             "au-git-change-name--directory",
             "au-git-tree-guide",
-            "au-git-row--selected",
             "au-git-status",
             "au-git-status--modified",
-            "au-git-status--added",
-            "au-git-status--untracked",
-            "au-git-tree-toggle--collapsed",
-            "au-git-status--deleted",
-            "au-git-status--renamed",
-            "au-git-status--conflicted"
+            "au-git-commit",
+            "au-field-label",
+            "au-input"
           ],
-          "html": "<div class=\"au-git-change-list\" style=\"padding: 0.5rem;\">\n        <div class=\"au-cluster\" style=\"margin-bottom: 0.5rem;\">\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Review <span class=\"au-git-insertions\">+12</span> <span class=\"au-git-deletions\">−4</span></button>\n          <button class=\"au-button au-button--compact\" type=\"button\">Commit <span class=\"au-git-insertions au-git-insertions--on-primary\">+12</span> <span class=\"au-git-deletions au-git-deletions--on-primary\">−4</span></button>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">Changes</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">src</span>\n        </div>\n        <div class=\"au-git-row au-git-row--selected\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">AgentChatScreen.tsx</span>\n          <span class=\"au-git-status au-git-status--modified\">M</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">new-view.ts</span>\n          <span class=\"au-git-status au-git-status--added\">+</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">scratch.md</span>\n          <span class=\"au-git-status au-git-status--untracked\">?</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--collapsed\" type=\"button\">▸</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">legacy</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">obsolete.css</span>\n          <span class=\"au-git-status au-git-status--deleted\">−</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">storefront.tsx</span>\n          <span class=\"au-git-status au-git-status--renamed\">→</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">agent-up.json</span>\n          <span class=\"au-git-status au-git-status--conflicted\">!</span>\n        </div>\n      </div>"
+          "html": "<div class=\"au-stack au-git-review\">\n        <div class=\"au-git-review-head\">\n          <span class=\"au-muted\">2 of 2 file(s) selected</span>\n          <button class=\"au-button au-button--danger au-button--compact\" type=\"button\">Discard</button>\n        </div>\n        <div class=\"au-git-change-list\">\n          <div class=\"au-git-row\">\n            <span class=\"au-checkbox au-checkbox--checked\"></span>\n            <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n            <span class=\"au-git-change-name au-git-change-name--directory\">Changes</span>\n          </div>\n          <div class=\"au-git-row\">\n            <span class=\"au-checkbox au-checkbox--checked\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n            <span class=\"au-git-change-name au-git-change-name--directory\">apps</span>\n          </div>\n          <div class=\"au-git-row\">\n            <span class=\"au-checkbox au-checkbox--checked\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n            <span class=\"au-git-change-name au-git-change-name--directory\">storefront</span>\n          </div>\n          <div class=\"au-git-row\">\n            <span class=\"au-checkbox au-checkbox--checked\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-change-name\">ProductGrid.tsx</span>\n            <span class=\"au-git-status au-git-status--modified\">M</span>\n          </div>\n          <div class=\"au-git-row\">\n            <span class=\"au-checkbox au-checkbox--checked\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n            <span class=\"au-git-change-name au-git-change-name--directory\">api</span>\n          </div>\n          <div class=\"au-git-row\">\n            <span class=\"au-checkbox au-checkbox--checked\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-change-name\">orders.ts</span>\n            <span class=\"au-git-status au-git-status--modified\">M</span>\n          </div>\n        </div>\n        <div class=\"au-git-commit\">\n          <span class=\"au-field-label\">Commit message</span>\n          <textarea class=\"au-input\" readonly>fix(storefront): correct the featured product grid</textarea>\n          <button class=\"au-button\" type=\"button\">Commit</button>\n        </div>\n      </div>"
+        },
+        {
+          "id": "git-history",
+          "title": "History panel",
+          "note": "Desktop history is a bounded log with graph nodes, ref chips, and a sticky selected row. Green is selection, not decoration.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-git-log",
+          "classes": [
+            "au-stack",
+            "au-cluster",
+            "au-button",
+            "au-button--secondary",
+            "au-button--compact",
+            "au-accent",
+            "au-git-log",
+            "au-git-log--flush",
+            "au-git-row",
+            "au-status-dot",
+            "au-status-dot--healthy",
+            "au-git-log-ref",
+            "au-git-log-ref--head",
+            "au-git-change-name",
+            "au-muted",
+            "au-git-row--selected"
+          ],
+          "html": "<div class=\"au-stack\">\n        <div class=\"au-cluster\">\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Back</button>\n          <span class=\"au-accent\">History</span>\n        </div>\n        <p class=\"au-accent\">Committed 2 file(s) as f4ke0000.</p>\n        <div class=\"au-git-log au-git-log--flush\">\n          <div class=\"au-git-row\">\n            <span class=\"au-status-dot au-status-dot--healthy\"></span>\n            <span class=\"au-git-log-ref au-git-log-ref--head\">HEAD</span>\n            <span class=\"au-git-log-ref\">main</span>\n            <span class=\"au-git-change-name\">feat(storefront): add the weekly promo banner</span>\n            <span class=\"au-muted\">Demo just now</span>\n          </div>\n          <div class=\"au-git-row au-git-row--selected\">\n            <span class=\"au-status-dot au-status-dot--healthy\"></span>\n            <span class=\"au-git-log-ref\">main</span>\n            <span class=\"au-git-change-name\">feat(storefront): featured product grid</span>\n            <span class=\"au-muted\">Demo 22.09.26 07:30</span>\n          </div>\n        </div>\n      </div>"
         },
         {
           "id": "git-tree-guide",
@@ -674,7 +1038,7 @@
             "au-git-tree-guide",
             "au-git-change-name"
           ],
-          "html": "<div class=\"au-git-row\">\n        <span class=\"au-checkbox\"></span>\n        <span class=\"au-git-tree-guide\"></span>\n        <span class=\"au-git-tree-guide\"></span>\n        <span class=\"au-git-change-name\">AgentChatScreen.tsx</span>\n      </div>"
+          "html": "<div class=\"au-git-row\">\n        <span class=\"au-checkbox\"></span>\n        <span class=\"au-git-tree-guide\"></span>\n        <span class=\"au-git-tree-guide\"></span>\n        <span class=\"au-git-change-name\">PromoBanner.tsx</span>\n      </div>"
         },
         {
           "id": "git-tree-toggle",
@@ -721,7 +1085,7 @@
             "au-git-status",
             "au-git-status--modified"
           ],
-          "html": "<div class=\"au-git-row au-git-row--selected\">\n        <span class=\"au-checkbox au-checkbox--checked\"></span>\n        <span class=\"au-git-change-name\">AgentChatScreen.tsx</span>\n        <span class=\"au-git-status au-git-status--modified\">M</span>\n      </div>"
+          "html": "<div class=\"au-git-row au-git-row--selected\">\n        <span class=\"au-checkbox au-checkbox--checked\"></span>\n        <span class=\"au-git-change-name\">PromoBanner.tsx</span>\n        <span class=\"au-git-status au-git-status--modified\">M</span>\n      </div>"
         },
         {
           "id": "git-row-selected",
@@ -740,7 +1104,7 @@
             "au-git-status",
             "au-git-status--modified"
           ],
-          "html": "<div class=\"au-git-row au-git-row--selected\">\n        <span class=\"au-checkbox au-checkbox--checked\"></span>\n        <span class=\"au-git-change-name\">AgentChatScreen.tsx</span>\n        <span class=\"au-git-status au-git-status--modified\">M</span>\n      </div>"
+          "html": "<div class=\"au-git-row au-git-row--selected\">\n        <span class=\"au-checkbox au-checkbox--checked\"></span>\n        <span class=\"au-git-change-name\">PromoBanner.tsx</span>\n        <span class=\"au-git-status au-git-status--modified\">M</span>\n      </div>"
         },
         {
           "id": "git-change-name",
@@ -753,7 +1117,7 @@
           "classes": [
             "au-git-change-name"
           ],
-          "html": "<span class=\"au-git-change-name\">AgentChatScreen.tsx</span>"
+          "html": "<span class=\"au-git-change-name\">PromoBanner.tsx</span>"
         },
         {
           "id": "git-change-name-directory",
@@ -994,11 +1358,35 @@
             "au-sign-in-list",
             "au-choice",
             "au-choice--compact",
-            "au-choice--selected",
             "au-choice-label",
             "au-button"
           ],
-          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Server</p>\n        <h2 class=\"au-page-title\">Connect to server</h2>\n        <p class=\"au-muted\">Choose a saved server or enter a URL.</p>\n        <span class=\"au-field-label\">Server URL</span>\n        <input class=\"au-input\" placeholder=\"http://localhost:5000\" />\n        <span class=\"au-field-label\">Saved servers</span>\n        <div class=\"au-sign-in-list\">\n          <button class=\"au-choice au-choice--compact au-choice--selected\" type=\"button\" title=\"http://127.0.0.1:9\"><span class=\"au-choice-label\">Demo</span></button>\n          <button class=\"au-choice au-choice--compact\" type=\"button\" title=\"https://agent-up.massivecreationlab.com\"><span class=\"au-choice-label\">https://agent-up.massivecreationlab.com</span></button>\n        </div>\n        <button class=\"au-button\" type=\"button\">Connect</button>\n      </form>"
+          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Server</p>\n        <h2 class=\"au-page-title\">Agent-Up Server</h2>\n        <p class=\"au-muted\">Choose a saved server or enter a URL. Switching replaces this window's local workspace and browser state.</p>\n        <span class=\"au-field-label\">Server URL</span>\n        <input class=\"au-input\" value=\"http://127.0.0.1:9\" readonly autofocus />\n        <span class=\"au-field-label\">Saved servers</span>\n        <div class=\"au-sign-in-list\">\n          <button class=\"au-choice au-choice--compact\" type=\"button\" title=\"http://127.0.0.1:9\"><span class=\"au-choice-label\">Demo</span></button>\n        </div>\n        <button class=\"au-button\" type=\"button\">Connect</button>\n      </form>"
+        },
+        {
+          "id": "sign-in-mobile",
+          "title": "Mobile sign-in",
+          "note": "Mobile uses the same pane. Try and save is the primary action. Add server stays secondary.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-sign-in",
+          "classes": [
+            "au-sign-in",
+            "au-stack",
+            "au-eyebrow",
+            "au-page-title",
+            "au-muted",
+            "au-field-label",
+            "au-input",
+            "au-button",
+            "au-sign-in-list",
+            "au-choice",
+            "au-choice--compact",
+            "au-choice-label",
+            "au-button--secondary"
+          ],
+          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Server</p>\n        <h2 class=\"au-page-title\">Connect to server</h2>\n        <p class=\"au-muted\">Choose a saved server or enter a URL. Switching replaces this client's local workspace and browser state.</p>\n        <span class=\"au-field-label\">Server URL</span>\n        <input class=\"au-input\" value=\"http://127.0.0.1:9\" readonly />\n        <button class=\"au-button\" type=\"button\">Try and save</button>\n        <span class=\"au-field-label\">Saved servers</span>\n        <div class=\"au-sign-in-list\">\n          <button class=\"au-choice au-choice--compact\" type=\"button\" title=\"http://127.0.0.1:9\"><span class=\"au-choice-label\">Demo</span></button>\n          <button class=\"au-button au-button--secondary\" type=\"button\">Add server</button>\n        </div>\n      </form>"
         },
         {
           "id": "tutorial",
@@ -1113,16 +1501,102 @@
         {
           "id": "mobile-bar",
           "title": "Top bar",
-          "note": "The PWA and native chrome stay on the canonical canvas with a subtle divider, not a green outline.",
+          "note": "The PWA and native chrome stay on the canonical canvas with a subtle divider, not a green outline. Title plus a compact Reload.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
           "rootClass": "au-mobile-bar",
           "classes": [
             "au-mobile-bar",
-            "au-cluster"
+            "au-title-tool",
+            "au-chrome-icon",
+            "au-nav-icon",
+            "au-button",
+            "au-button--secondary",
+            "au-button--compact"
           ],
-          "html": "<div class=\"au-mobile-bar au-cluster\"><strong>Workspaces</strong></div>"
+          "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n        <strong>Harbor Shop</strong>\n        <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Reload</button>\n      </div>"
+        },
+        {
+          "id": "mobile-bar-git",
+          "title": "Git top bar",
+          "note": "Inner Git pages keep the hamburger and the Git title.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-mobile-bar",
+          "classes": [
+            "au-mobile-bar",
+            "au-title-tool",
+            "au-chrome-icon",
+            "au-nav-icon"
+          ],
+          "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n        <strong>Git</strong>\n      </div>"
+        },
+        {
+          "id": "mobile-bar-agents",
+          "title": "Agents top bar",
+          "note": "The picker chrome is the hamburger only until a session is open.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-mobile-bar",
+          "classes": [
+            "au-mobile-bar",
+            "au-title-tool",
+            "au-chrome-icon",
+            "au-nav-icon"
+          ],
+          "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n      </div>"
+        },
+        {
+          "id": "mobile-bar-settings",
+          "title": "Settings top bar",
+          "note": "Settings keeps Reload next to the title.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-mobile-bar",
+          "classes": [
+            "au-mobile-bar",
+            "au-title-tool",
+            "au-chrome-icon",
+            "au-nav-icon",
+            "au-button",
+            "au-button--secondary",
+            "au-button--compact"
+          ],
+          "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n        <strong>Settings</strong>\n        <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Reload</button>\n      </div>"
+        },
+        {
+          "id": "mobile-bar-back",
+          "title": "Back bar",
+          "note": "Inner Git Review and History return through the nav-bar back control.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-mobile-bar",
+          "classes": [
+            "au-mobile-bar",
+            "au-title-tool",
+            "au-chrome-icon"
+          ],
+          "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\">‹</span>\n        <strong>Changes</strong>\n      </div>"
+        },
+        {
+          "id": "mobile-bar-history",
+          "title": "History back bar",
+          "note": "History is an inner page. Back returns to Git.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-mobile-bar",
+          "classes": [
+            "au-mobile-bar",
+            "au-title-tool",
+            "au-chrome-icon"
+          ],
+          "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\">‹</span>\n        <strong>History</strong>\n      </div>"
         },
         {
           "id": "drawer",
@@ -1134,13 +1608,18 @@
           "rootClass": "au-drawer",
           "classes": [
             "au-drawer",
-            "au-stack",
             "au-field-label",
-            "au-session-row",
+            "au-workspace",
+            "au-workspace--selected",
+            "au-status-dot",
+            "au-status-dot--healthy",
             "au-workspace-name",
+            "au-workspace-branch",
+            "au-drawer-server",
+            "au-stack",
             "au-session-logout"
           ],
-          "html": "<div class=\"au-drawer\" style=\"padding: 1rem; min-height: 10rem;\">\n        <div class=\"au-stack\">\n          <span class=\"au-field-label\">Server</span>\n          <div class=\"au-session-row\">\n            <strong class=\"au-workspace-name\" style=\"flex: 1;\">http://localhost:5001</strong>\n            <button class=\"au-session-logout\" type=\"button\">Logout</button>\n          </div>\n        </div>\n      </div>"
+          "html": "<div class=\"au-drawer\">\n        <span class=\"au-field-label\">Workspaces</span>\n        <div class=\"au-workspace au-workspace--selected\">\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Harbor Shop</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n        </div>\n        <div class=\"au-drawer-server au-stack\">\n          <span class=\"au-field-label\">Server</span>\n          <strong class=\"au-workspace-name\">Demo</strong>\n          <button class=\"au-session-logout\" type=\"button\">Logout</button>\n        </div>\n      </div>"
         },
         {
           "id": "mobile-tab-bar",
@@ -1158,7 +1637,61 @@
             "au-subtab--selected",
             "au-nav-icon"
           ],
-          "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18\"></path></svg>\n          Settings\n        </button>\n      </div>"
+          "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
+        },
+        {
+          "id": "mobile-tab-bar-git",
+          "title": "Git bottom tab",
+          "note": "Git is the selected workspace tab.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-mobile-tab-bar",
+          "classes": [
+            "au-mobile-tab-bar",
+            "au-cluster",
+            "au-subtab",
+            "au-nav-tab",
+            "au-nav-icon",
+            "au-subtab--selected"
+          ],
+          "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
+        },
+        {
+          "id": "mobile-tab-bar-agents",
+          "title": "Agents bottom tab",
+          "note": "Agents is the selected workspace tab.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-mobile-tab-bar",
+          "classes": [
+            "au-mobile-tab-bar",
+            "au-cluster",
+            "au-subtab",
+            "au-nav-tab",
+            "au-nav-icon",
+            "au-subtab--selected"
+          ],
+          "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
+        },
+        {
+          "id": "mobile-tab-bar-settings",
+          "title": "Settings bottom tab",
+          "note": "Settings is the selected workspace tab.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-mobile-tab-bar",
+          "classes": [
+            "au-mobile-tab-bar",
+            "au-cluster",
+            "au-subtab",
+            "au-nav-tab",
+            "au-nav-icon",
+            "au-subtab--selected"
+          ],
+          "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
         },
         {
           "id": "mobile-list",
@@ -1169,16 +1702,34 @@
           "desktopHost": "",
           "rootClass": "au-workspace",
           "classes": [
-            "au-stack",
             "au-workspace",
             "au-workspace--selected",
             "au-status-dot",
             "au-status-dot--healthy",
             "au-workspace-name",
-            "au-workspace-branch",
-            "au-button"
+            "au-workspace-branch"
           ],
-          "html": "<div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n        </div>\n        <div class=\"au-workspace\">\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n        </div>\n        <button class=\"au-button\" type=\"button\">Clone</button>\n      </div>"
+          "html": "<div class=\"au-workspace au-workspace--selected\">\n        <span class=\"au-status-dot au-status-dot--healthy\"></span>\n        <span>\n          <strong class=\"au-workspace-name\">Harbor Shop</strong>\n          <small class=\"au-workspace-branch\">main</small>\n        </span>\n      </div>"
+        },
+        {
+          "id": "app-list",
+          "title": "Application list",
+          "note": "Mobile Apps lists running applications under the workspace identity. Health is a LED plus label.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-app-list",
+          "classes": [
+            "au-app-list",
+            "au-workspace",
+            "au-lifecycle-button",
+            "au-status-dot",
+            "au-status-dot--healthy",
+            "au-workspace-name",
+            "au-workspace-branch",
+            "au-field-label"
+          ],
+          "html": "<div class=\"au-app-list\">\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Harbor Shop</strong>\n            <small class=\"au-workspace-branch\">Healthy</small>\n          </span>\n        </div>\n        <span class=\"au-field-label\">Applications</span>\n        <div class=\"au-workspace\">\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Storefront</strong>\n            <small class=\"au-workspace-branch\">Running</small>\n          </span>\n        </div>\n        <div class=\"au-workspace\">\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Orders API</strong>\n            <small class=\"au-workspace-branch\">Running</small>\n          </span>\n        </div>\n      </div>"
         }
       ]
     },
@@ -1530,18 +2081,30 @@
           "html": "<div class=\"au-screen-subtabs\"></div>"
         },
         {
+          "id": "screen-toolbar",
+          "title": "Screen toolbar",
+          "note": "Host for the address bar under application subtabs. Empty when the scene has no browser chrome.",
+          "avalonia": "Border",
+          "desktopClass": "productScreenToolbar",
+          "desktopHost": "",
+          "rootClass": "au-screen-toolbar",
+          "classes": [
+            "au-screen-toolbar"
+          ],
+          "html": "<div class=\"au-screen-toolbar\"></div>"
+        },
+        {
           "id": "screen-pane",
           "title": "Screen pane slot",
-          "note": "Working region inset. Pair with au-pane for the surface.",
+          "note": "Working region. Pair with au-pane or a catalog surface; do not force a second screenshot shell.",
           "avalonia": "Border",
           "desktopClass": "productScreenPane",
           "desktopHost": "",
           "rootClass": "au-screen-pane",
           "classes": [
-            "au-pane",
             "au-screen-pane"
           ],
-          "html": "<div class=\"au-pane au-screen-pane\"></div>"
+          "html": "<div class=\"au-screen-pane\"></div>"
         },
         {
           "id": "screen-center",
@@ -1568,6 +2131,20 @@
             "au-screen-mobile-body"
           ],
           "html": "<div class=\"au-screen-mobile-body\"></div>"
+        },
+        {
+          "id": "screen-overlay",
+          "title": "Screen overlay",
+          "note": "File viewer and capability modules sit above a scrim. The overlay is layout, not a second theme.",
+          "avalonia": "Border",
+          "desktopClass": "productScreenOverlay",
+          "desktopHost": "",
+          "rootClass": "au-screen-overlay",
+          "classes": [
+            "au-scrim",
+            "au-screen-overlay"
+          ],
+          "html": "<div class=\"au-scrim au-screen-overlay\"></div>"
         }
       ]
     },
@@ -1640,15 +2217,19 @@
         {
           "id": "capability-catalog",
           "title": "Module catalog",
-          "note": "Desktop uses an overlay panel. Mobile places the same cards in Settings. Enable is the primary action; disable is secondary.",
+          "note": "Desktop uses an overlay panel. Enable is the primary action; disable is secondary. Cursor is disabled in the used Demo state.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
           "rootClass": "au-overlay-panel",
           "classes": [
             "au-overlay-panel",
+            "au-capability-catalog",
+            "au-overlay-header",
             "au-page-title",
             "au-muted",
+            "au-chrome-button",
+            "au-chrome-icon",
             "au-stack",
             "au-card",
             "au-cluster",
@@ -1656,7 +2237,25 @@
             "au-button--secondary",
             "au-button--compact"
           ],
-          "html": "<div class=\"au-overlay-panel\" style=\"padding: 1.25rem; max-width: 36rem;\">\n        <p class=\"au-page-title\">Capability modules</p>\n        <p class=\"au-muted\">Enable packages on this Server. Clients never talk to the remote registry.</p>\n        <div class=\"au-stack\" style=\"margin-top: 1rem;\">\n          <div class=\"au-card\">\n            <strong>.NET</strong>\n            <p class=\"au-muted\">Ready · toolchain</p>\n            <div class=\"au-cluster\">\n              <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Disable</button>\n            </div>\n          </div>\n          <div class=\"au-card\">\n            <strong>Docker</strong>\n            <p class=\"au-muted\">Not enabled</p>\n            <div class=\"au-cluster\">\n              <button class=\"au-button au-button--compact\" type=\"button\">Enable</button>\n            </div>\n          </div>\n        </div>\n      </div>"
+          "html": "<div class=\"au-overlay-panel au-capability-catalog\">\n        <div class=\"au-overlay-header\">\n          <div>\n            <p class=\"au-page-title\">Capability modules</p>\n            <p class=\"au-muted\">Enable packages on this Server. Desktop never talks to the remote registry.</p>\n          </div>\n          <button class=\"au-chrome-button au-chrome-icon\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-stack\">\n          <div class=\"au-card au-cluster\" style=\"justify-content: space-between;\">\n            <span><strong>.NET</strong><p class=\"au-muted\">Ready</p></span>\n            <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Disable</button>\n          </div>\n          <div class=\"au-card au-cluster\" style=\"justify-content: space-between;\">\n            <span><strong>Docker</strong><p class=\"au-muted\">Ready</p></span>\n            <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Disable</button>\n          </div>\n          <div class=\"au-card au-cluster\" style=\"justify-content: space-between;\">\n            <span><strong>Codex</strong><p class=\"au-muted\">Ready</p></span>\n            <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Disable</button>\n          </div>\n          <div class=\"au-card au-cluster\" style=\"justify-content: space-between;\">\n            <span><strong>Cursor</strong><p class=\"au-muted\">disabled</p></span>\n            <button class=\"au-button au-button--compact\" type=\"button\">Enable</button>\n          </div>\n          <div class=\"au-card au-cluster\" style=\"justify-content: space-between;\">\n            <span><strong>Claude</strong><p class=\"au-muted\">Ready</p></span>\n            <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Disable</button>\n          </div>\n        </div>\n      </div>"
+        },
+        {
+          "id": "capability-settings",
+          "title": "Settings modules",
+          "note": "Mobile Settings is the same list without overlay chrome. .NET is disabled in the used Demo state.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-app-list",
+          "classes": [
+            "au-app-list",
+            "au-field-label",
+            "au-muted",
+            "au-cluster",
+            "au-button",
+            "au-button--secondary"
+          ],
+          "html": "<div class=\"au-app-list\">\n        <span class=\"au-field-label\">Capabilities</span>\n        <p class=\"au-muted\">Enable packages on this Server. Mobile never talks to the remote registry.</p>\n        <div>\n          <div class=\"au-cluster\" style=\"justify-content: space-between;\"><strong>.NET</strong><span class=\"au-muted\">disabled</span></div>\n          <button class=\"au-button au-button--secondary\" type=\"button\">Enable</button>\n        </div>\n        <div>\n          <div class=\"au-cluster\" style=\"justify-content: space-between;\"><strong>Docker</strong><span class=\"au-muted\">Ready</span></div>\n          <button class=\"au-button au-button--secondary\" type=\"button\">Disable</button>\n        </div>\n        <div>\n          <div class=\"au-cluster\" style=\"justify-content: space-between;\"><strong>Codex</strong><span class=\"au-muted\">Ready</span></div>\n          <button class=\"au-button au-button--secondary\" type=\"button\">Disable</button>\n        </div>\n        <div>\n          <div class=\"au-cluster\" style=\"justify-content: space-between;\"><strong>Cursor</strong><span class=\"au-muted\">Ready</span></div>\n          <button class=\"au-button au-button--secondary\" type=\"button\">Disable</button>\n        </div>\n        <div>\n          <div class=\"au-cluster\" style=\"justify-content: space-between;\"><strong>Claude</strong><span class=\"au-muted\">Ready</span></div>\n          <button class=\"au-button au-button--secondary\" type=\"button\">Disable</button>\n        </div>\n      </div>"
         },
         {
           "id": "capability-card",
@@ -1695,6 +2294,49 @@
             "au-overlay-panel",
             "au-file-viewer",
             "au-file-viewer-header",
+            "au-file-viewer-heading",
+            "au-file-viewer-path",
+            "au-file-viewer-status",
+            "au-chrome-button",
+            "au-chrome-icon",
+            "au-file-viewer-nav",
+            "au-file-viewer-jump",
+            "au-file-viewer-goto",
+            "au-button",
+            "au-button--secondary",
+            "au-button--compact",
+            "au-file-viewer-body",
+            "au-file-viewer-line",
+            "au-file-viewer-line--meta",
+            "au-file-viewer-gutter",
+            "au-file-viewer-prefix",
+            "au-file-viewer-code",
+            "au-file-viewer-line--hunk",
+            "au-file-viewer-line--added",
+            "au-file-viewer-prefix--added",
+            "au-syntax-keyword",
+            "au-syntax-function",
+            "au-syntax-plain",
+            "au-syntax-type",
+            "au-file-viewer-line--current",
+            "au-file-viewer-footer"
+          ],
+          "html": "<div class=\"au-overlay-panel au-file-viewer\">\n        <div class=\"au-file-viewer-header\">\n          <span class=\"au-file-viewer-heading\">\n            <span class=\"au-file-viewer-path\">apps/storefront/PromoBanner.tsx</span>\n            <span class=\"au-file-viewer-status\">Added</span>\n          </span>\n          <button class=\"au-chrome-button au-chrome-icon\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-file-viewer-nav\">\n          <button class=\"au-file-viewer-jump\" type=\"button\">@@ -0,0 +1,5 @@</button>\n          <input class=\"au-file-viewer-goto\" value=\"3\" readonly aria-label=\"Go to line\" />\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Go</button>\n        </div>\n        <div class=\"au-file-viewer-body\">\n          <div class=\"au-file-viewer-line au-file-viewer-line--meta\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">--- /dev/null</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--meta\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">+++ b/apps/storefront/PromoBanner.tsx</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--hunk\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">@@ -0,0 +1,5 @@</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--added\">\n            <span class=\"au-file-viewer-gutter\">1</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--added\">+</span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">export function</span> <span class=\"au-syntax-function\">PromoBanner</span>() {</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--added\">\n            <span class=\"au-file-viewer-gutter\">2</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--added\">+</span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-plain\">    </span><span class=\"au-syntax-keyword\">return</span> &lt;<span class=\"au-syntax-type\">aside</span>&gt;Weekly harbor special&lt;/<span class=\"au-syntax-type\">aside</span>&gt;;</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--added au-file-viewer-line--current\">\n            <span class=\"au-file-viewer-gutter\">3</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--added\">+</span>\n            <span class=\"au-file-viewer-code\">}</span>\n          </div>\n        </div>\n        <div class=\"au-file-viewer-footer\">\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Close</button>\n        </div>\n      </div>"
+        },
+        {
+          "id": "file-viewer-mobile",
+          "title": "Mobile inspection window",
+          "note": "Mobile keeps Close in the header and a Line field instead of Go. The overlay is a compact card, not the Desktop window.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-file-viewer",
+          "classes": [
+            "au-overlay-panel",
+            "au-file-viewer",
+            "au-file-viewer--mobile",
+            "au-file-viewer-header",
+            "au-file-viewer-heading",
             "au-file-viewer-path",
             "au-file-viewer-status",
             "au-button",
@@ -1710,19 +2352,15 @@
             "au-file-viewer-prefix",
             "au-file-viewer-code",
             "au-file-viewer-line--hunk",
+            "au-file-viewer-line--added",
+            "au-file-viewer-prefix--added",
             "au-syntax-keyword",
             "au-syntax-function",
-            "au-file-viewer-line--deleted",
-            "au-file-viewer-prefix--deleted",
-            "au-syntax-type",
-            "au-file-viewer-line--added",
-            "au-file-viewer-line--current",
-            "au-file-viewer-prefix--added",
-            "au-syntax-property",
             "au-syntax-plain",
-            "au-syntax-comment"
+            "au-syntax-type",
+            "au-file-viewer-line--current"
           ],
-          "html": "<div class=\"au-overlay-panel au-file-viewer\" style=\"max-width: 42rem;\">\n        <div class=\"au-file-viewer-header\">\n          <span class=\"au-file-viewer-path\">AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx</span>\n          <span class=\"au-file-viewer-status\">Modified</span>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Close</button>\n        </div>\n        <div class=\"au-file-viewer-nav\">\n          <button class=\"au-file-viewer-jump\" type=\"button\">@@ −48,6 +48,18 @@</button>\n          <button class=\"au-file-viewer-jump\" type=\"button\">@@ −265,12 +277,40 @@</button>\n          <input class=\"au-file-viewer-goto\" value=\"52\" readonly aria-label=\"Go to line\" />\n        </div>\n        <div class=\"au-file-viewer-body\">\n          <div class=\"au-file-viewer-line au-file-viewer-line--meta\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">diff --git a/GitChangesPanel.tsx b/GitChangesPanel.tsx</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--hunk\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">@@ −48,6 +48,18 @@ export function GitChangesPanel</span>\n          </div>\n          <div class=\"au-file-viewer-line\">\n            <span class=\"au-file-viewer-gutter\">48</span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">const</span> [diff, setDiff] = <span class=\"au-syntax-function\">useState</span>(<span class=\"au-syntax-keyword\">null</span>);</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--deleted\">\n            <span class=\"au-file-viewer-gutter\">49</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--deleted\">−</span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">return</span> &lt;<span class=\"au-syntax-type\">Text</span>&gt;{diffText(diff)}&lt;/<span class=\"au-syntax-type\">Text</span>&gt;;</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--added au-file-viewer-line--current\">\n            <span class=\"au-file-viewer-gutter\">52</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--added\">+</span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">return</span> &lt;<span class=\"au-syntax-type\">GitFileViewer</span> diff={diff} <span class=\"au-syntax-property\">onClose</span>={close} /&gt;;</span>\n          </div>\n          <div class=\"au-file-viewer-line\">\n            <span class=\"au-file-viewer-gutter\">53</span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-plain\">    </span><span class=\"au-syntax-keyword\">return</span> foo;</span>\n          </div>\n          <div class=\"au-file-viewer-line\">\n            <span class=\"au-file-viewer-gutter\">54</span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-comment\">// Filename opens inspection. Checkbox stays selection.</span></span>\n          </div>\n        </div>\n      </div>"
+          "html": "<div class=\"au-overlay-panel au-file-viewer au-file-viewer--mobile\">\n        <div class=\"au-file-viewer-header\">\n          <span class=\"au-file-viewer-heading\">\n            <span class=\"au-file-viewer-path\">apps/storefront/PromoBanner.tsx</span>\n            <span class=\"au-file-viewer-status\">Added</span>\n          </span>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Close</button>\n        </div>\n        <div class=\"au-file-viewer-nav\">\n          <button class=\"au-file-viewer-jump\" type=\"button\">@@ -0,0 +1,5 @@</button>\n          <input class=\"au-file-viewer-goto\" placeholder=\"Line\" readonly aria-label=\"Go to line\" />\n        </div>\n        <div class=\"au-file-viewer-body\">\n          <div class=\"au-file-viewer-line au-file-viewer-line--meta\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">--- /dev/null</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--meta\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">+++ b/apps/storefront/PromoBanner.tsx</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--hunk\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">@@ -0,0 +1,5 @@</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--added\">\n            <span class=\"au-file-viewer-gutter\">1</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--added\">+</span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">export function</span> <span class=\"au-syntax-function\">PromoBanner</span>() {</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--added\">\n            <span class=\"au-file-viewer-gutter\">2</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--added\">+</span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-plain\">    </span><span class=\"au-syntax-keyword\">return</span> &lt;<span class=\"au-syntax-type\">aside</span>&gt;Weekly harbor special&lt;/<span class=\"au-syntax-type\">aside</span>&gt;;</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--added au-file-viewer-line--current\">\n            <span class=\"au-file-viewer-gutter\">3</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--added\">+</span>\n            <span class=\"au-file-viewer-code\">}</span>\n          </div>\n        </div>\n      </div>"
         },
         {
           "id": "file-viewer-header",
@@ -2000,6 +2638,28 @@
             "au-git-log-lane-3"
           ],
           "html": "<div class=\"au-git-log\">\n        <div class=\"au-git-log-track\">\n          <div>\n            <div class=\"au-git-log-row au-git-log-row--selected\">\n              <span class=\"au-git-log-time\">16.09.26 05:16</span>\n            </div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">16.09.26 05:14</span>\n            </div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">16.09.26 05:10</span>\n            </div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">15.09.26 18:26</span>\n            </div>\n          </div>\n          <div class=\"au-git-log-graph-scroll\">\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"70\" height=\"28\" viewBox=\"0 0 70 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n                <g class=\"au-git-log-lane-1\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 0 L 21 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 14 L 21 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-2\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 0 L 35 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 14 L 35 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-3\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 49 0 L 49 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 49 14 C 49 21, 63 21, 63 28\"></path>\n                </g>\n              </svg>\n            </div>\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"70\" height=\"28\" viewBox=\"0 0 70 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n                <g class=\"au-git-log-lane-1\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 0 L 21 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 14 L 21 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-2\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 0 L 35 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 14 L 35 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-3\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 0 L 63 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 14 L 63 28\"></path>\n                </g>\n              </svg>\n            </div>\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"70\" height=\"28\" viewBox=\"0 0 70 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-1\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 0 L 21 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 14 L 21 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"21\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n                <g class=\"au-git-log-lane-2\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 0 L 35 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 14 L 35 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-3\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 0 L 63 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 14 L 63 28\"></path>\n                </g>\n              </svg>\n            </div>\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"70\" height=\"28\" viewBox=\"0 0 70 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-1\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 0 L 21 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 14 L 21 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-2\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 0 L 35 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 14 L 35 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"35\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n                <g class=\"au-git-log-lane-3\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 0 L 63 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 14 L 63 28\"></path>\n                </g>\n              </svg>\n            </div>\n          </div>\n        </div>\n      </div>"
+        },
+        {
+          "id": "git-log-mobile",
+          "title": "Mobile history",
+          "note": "Mobile history is graph-first: timestamps plus lane nodes. The used Demo log is two commits.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-git-log",
+          "classes": [
+            "au-git-log",
+            "au-git-log-track",
+            "au-git-log-row",
+            "au-git-log-time",
+            "au-git-log-graph-scroll",
+            "au-git-log-graph",
+            "au-git-log-lane-0",
+            "au-git-log-graph-edge",
+            "au-git-log-graph-node",
+            "au-git-log-graph-node--filled"
+          ],
+          "html": "<div class=\"au-git-log\">\n        <div class=\"au-git-log-track\">\n          <div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">02.10.26 14:33</span>\n            </div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">22.09.26 07:30</span>\n            </div>\n          </div>\n          <div class=\"au-git-log-graph-scroll\">\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"28\" height=\"28\" viewBox=\"0 0 28 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n              </svg>\n            </div>\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"28\" height=\"28\" viewBox=\"0 0 28 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n              </svg>\n            </div>\n          </div>\n        </div>\n      </div>"
         },
         {
           "id": "git-log-graph",

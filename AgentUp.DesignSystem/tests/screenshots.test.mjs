@@ -99,9 +99,34 @@ test('assembled screen source does not duplicate catalog component markup', asyn
   assert.match(source, /data-au-use="sign-in"/);
   assert.match(source, /data-au-use="screen"/);
   assert.match(source, /data-au-layout="desktop-shell"/);
-  assert.doesNotMatch(source, /Harbor Mug|ProductGrid\.tsx|http:\/\/127\.0\.0\.1:9/);
+  assert.doesNotMatch(source, /Harbor Mug|Harbor Shop|ProductGrid\.tsx|http:\/\/127\.0\.0\.1:9/);
   assert.doesNotMatch(source, /class="au-screen"/);
   assert.doesNotMatch(source, /class="au-chrome"/);
   assert.doesNotMatch(source, /class="au-git-row"/);
   assert.doesNotMatch(source, /class="au-sign-in"/);
+});
+
+test('assembled Demo scenes insert Harbor Shop catalog HTML', () => {
+  const git = assembled.scenes.find(scene => scene.id === 'desktop-git');
+  const apps = assembled.scenes.find(scene => scene.id === 'desktop-applications');
+  const signIn = assembled.scenes.find(scene => scene.id === 'desktop-sign-in');
+  assert.ok(git.html.includes('ProductGrid.tsx'));
+  assert.ok(git.html.includes(components['git-change-list'].html));
+  assert.ok(apps.html.includes('Harbor Mug'));
+  assert.ok(apps.html.includes(components.storefront.html));
+  assert.ok(signIn.html.includes('http://127.0.0.1:9'));
+  assert.ok(signIn.html.includes(components['chrome-connect'].html));
+  assert.ok(!signIn.html.includes('☰'));
+  const mobileViewer = assembled.scenes.find(scene => scene.id === 'mobile-file-viewer');
+  assert.ok(mobileViewer.html.includes(components['file-viewer-mobile'].html));
+  assert.ok(!mobileViewer.html.includes('>Go</button>'));
+  const workspaces = assembled.scenes.find(scene => scene.id === 'mobile-workspaces');
+  assert.ok(workspaces.html.includes(components['app-list'].html));
+  assert.ok(workspaces.html.includes(components.drawer.html));
+  assert.ok(!workspaces.html.includes(components['capability-settings'].html));
+  const mobileSignIn = assembled.scenes.find(scene => scene.id === 'mobile-sign-in');
+  assert.ok(!mobileSignIn.html.includes('autofocus'));
+  const mobileGit = assembled.scenes.find(scene => scene.id === 'mobile-git');
+  assert.ok(mobileGit.html.includes('<textarea class="au-input"'));
+  assert.ok(!mobileGit.html.includes('autofocus'));
 });

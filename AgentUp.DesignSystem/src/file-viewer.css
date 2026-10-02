@@ -17,7 +17,7 @@
 
 .au-file-viewer-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--au-space-3);
   min-height: var(--au-control-height-compact);
   padding: var(--au-space-3) var(--au-space-4);
@@ -25,6 +25,14 @@
   background: var(--au-color-surface-raised);
   border-bottom: 1px solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-xl) var(--au-radius-xl) 0 0;
+}
+
+.au-file-viewer-heading {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
 }
 
 .au-file-viewer-path {
@@ -85,6 +93,7 @@
 }
 
 .au-file-viewer-body {
+  flex: 1;
   overflow: auto;
   min-height: 10rem;
   color: var(--au-color-text-secondary);
@@ -164,3 +173,18 @@
 .au-syntax-property { color: var(--au-color-text-secondary); }
 .au-syntax-punctuation { color: var(--au-color-text-faint); }
 .au-syntax-operator { color: var(--au-color-text-secondary); }
+
+.au-file-viewer--mobile .au-file-viewer-header { align-items: center; }
+.au-file-viewer--mobile .au-file-viewer-nav {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.au-file-viewer--mobile .au-file-viewer-path {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+.au-file-viewer:not(.au-file-viewer--mobile) .au-file-viewer-status {
+  text-transform: none;
+  letter-spacing: 0;
+}
