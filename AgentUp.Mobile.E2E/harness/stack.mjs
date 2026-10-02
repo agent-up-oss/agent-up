@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import { mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -27,7 +28,7 @@ export async function startStack({ platform, codexSchema, serverDll, testAgentEx
   const processes = [];
   const dispose = async () => {
     for (const child of processes.reverse()) {
-      child.kill('SIGTERM');
+      await stopProcess(child);
     }
     await rm(root, { recursive: true, force: true });
   };
@@ -92,6 +93,19 @@ export async function startStack({ platform, codexSchema, serverDll, testAgentEx
     await dispose();
     throw cause;
   }
+}
+
+/**
+ * Stops a stack process and waits until its handles are closed before its data directory is
+ * removed. Sending SIGTERM without waiting let the Server's Chromium profile writer race rm(),
+ * which intermittently left a new file in the directory while Node was removing it.
+ */
+export async function stopProcess(child) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+
+  const closed = once(child, 'close');
+  child.kill('SIGTERM');
+  await closed;
 }
 
 async function registerWorkspace(serverUrl, worktree) {
