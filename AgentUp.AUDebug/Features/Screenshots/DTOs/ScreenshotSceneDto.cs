@@ -12,6 +12,7 @@ public sealed record ScreenshotSceneDto
     public int Height { get; init; }
     public bool Hero { get; init; }
     public string LivePath { get; init; } = "";
+    public IReadOnlyList<string> Components { get; init; } = [];
     public IReadOnlyList<string> AppSources { get; init; } = [];
     public IReadOnlyList<string> RequiredClasses { get; init; } = [];
     public IReadOnlyList<string> RequiredDesktopClasses { get; init; } = [];

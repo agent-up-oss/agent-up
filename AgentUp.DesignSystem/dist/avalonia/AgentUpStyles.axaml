@@ -1977,6 +1977,140 @@
     <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
   </Style>
+  <Style Selector="Border.au-screen">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-screen">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="Border.productScreen">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.productScreen">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="Border.au-screen-body">
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.au-screen-body">
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="Border.productScreenBody">
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.productScreenBody">
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="Border.au-screen-rail">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+  </Style>
+  <Style Selector="TextBlock.au-screen-rail">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+  </Style>
+  <Style Selector="Border.productScreenRail">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+  </Style>
+  <Style Selector="TextBlock.productScreenRail">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+  </Style>
+  <Style Selector="Border.au-screen-main">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.au-screen-main">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="Border.productScreenMain">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.productScreenMain">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="Border.au-screen-tabs">
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="Padding" Value="12,0"/>
+  </Style>
+  <Style Selector="Border.productScreenTabs">
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="Padding" Value="12,0"/>
+  </Style>
+  <Style Selector="Border.au-screen-subtabs">
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="Padding" Value="12,8"/>
+  </Style>
+  <Style Selector="Border.productScreenSubtabs">
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="Padding" Value="12,8"/>
+  </Style>
+  <Style Selector="TextBlock.au-screen-tabs">
+    <Setter Property="Padding" Value="12,0"/>
+  </Style>
+  <Style Selector="TextBlock.productScreenTabs">
+    <Setter Property="Padding" Value="12,0"/>
+  </Style>
+  <Style Selector="TextBlock.au-screen-subtabs">
+    <Setter Property="Padding" Value="12,8"/>
+  </Style>
+  <Style Selector="TextBlock.productScreenSubtabs">
+    <Setter Property="Padding" Value="12,8"/>
+  </Style>
+  <Style Selector="Border.au-screen-pane">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Margin" Value="{DynamicResource AgentUpThickness3}"/>
+  </Style>
+  <Style Selector="TextBlock.au-screen-pane">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Margin" Value="{DynamicResource AgentUpThickness3}"/>
+  </Style>
+  <Style Selector="Border.productScreenPane">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Margin" Value="{DynamicResource AgentUpThickness3}"/>
+  </Style>
+  <Style Selector="TextBlock.productScreenPane">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Margin" Value="{DynamicResource AgentUpThickness3}"/>
+  </Style>
+  <Style Selector="Border.au-screen-center">
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.au-screen-center">
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="Border.productScreenCenter">
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.productScreenCenter">
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="Border.au-screen-mobile-body">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+  </Style>
+  <Style Selector="TextBlock.au-screen-mobile-body">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+  </Style>
+  <Style Selector="Border.productScreenMobileBody">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+  </Style>
+  <Style Selector="TextBlock.productScreenMobileBody">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+  </Style>
   <Style Selector="Border.au-file-viewer">
     <Setter Property="MinHeight" Value="256"/>
     <Setter Property="MinWidth" Value="288"/>

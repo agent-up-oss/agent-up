@@ -10,14 +10,14 @@ public sealed class ScreenshotManifestStoreTests
     public void Read_parsesScenes()
     {
         var root = Repo();
-        WriteManifest(root, """{ "scenes": [ { "id": "desktop-git", "surface": "desktop", "view": "git", "title": "Git", "mediaFile": "desktop-git.png", "htmlFile": "desktop-git.html", "width": 1440, "height": 900, "hero": false, "livePath": "", "appSources": ["a.axaml"], "requiredClasses": ["au-git-row"], "requiredDesktopClasses": ["gitNodeRow"], "requiredMobileComponents": [], "copy": ["Harbor Shop"] } ] }""");
+        WriteManifest(root, """{ "scenes": [ { "id": "desktop-git", "surface": "desktop", "view": "git", "title": "Git", "mediaFile": "desktop-git.png", "htmlFile": "desktop-git.html", "width": 1440, "height": 900, "hero": false, "livePath": "", "layout": "desktop-shell", "components": ["git-change-list"], "requiredClasses": ["au-git-change-list"] } ] }""");
 
         var manifest = new ScreenshotManifestStore(new DebugPathValidator(root)).Read();
 
         Assert.That(manifest.Scenes, Has.Count.EqualTo(1));
         Assert.That(manifest.Scenes[0].Id, Is.EqualTo("desktop-git"));
-        Assert.That(manifest.Scenes[0].RequiredClasses[0], Is.EqualTo("au-git-row"));
-        Assert.That(manifest.Scenes[0].Copy[0], Is.EqualTo("Harbor Shop"));
+        Assert.That(manifest.Scenes[0].RequiredClasses[0], Is.EqualTo("au-git-change-list"));
+        Assert.That(manifest.Scenes[0].Components[0], Is.EqualTo("git-change-list"));
     }
 
     [Test]

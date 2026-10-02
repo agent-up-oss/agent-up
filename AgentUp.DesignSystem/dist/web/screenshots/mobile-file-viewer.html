@@ -1047,6 +1047,64 @@
   background: var(--au-color-transparent);
 }
 
+/* Assembled screens. These layout classes compose catalog components into
+ * Desktop and Mobile windows. Apps apply the same classes; they do not
+ * restyle a second screenshot shell. */
+.au-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  color: var(--au-color-text-primary);
+  background: var(--au-color-canvas);
+}
+.au-screen-body {
+  display: grid;
+  grid-template-columns: 16.5rem minmax(0, 1fr);
+  min-height: 0;
+  flex: 1;
+}
+.au-screen-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--au-space-2);
+  min-height: 0;
+  padding: var(--au-space-3);
+  overflow: auto;
+}
+.au-screen-main {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.au-screen-tabs,
+.au-screen-subtabs {
+  display: flex;
+  gap: var(--au-space-1);
+  border-bottom: 1px solid var(--au-color-border-subtle);
+}
+.au-screen-tabs { padding: 0 var(--au-space-3); }
+.au-screen-subtabs { padding: var(--au-space-2) var(--au-space-3); }
+.au-screen-pane {
+  min-height: 0;
+  flex: 1;
+  margin: var(--au-space-3);
+  overflow: auto;
+}
+.au-screen-center {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  flex: 1;
+}
+.au-screen-mobile-body {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  padding: var(--au-space-3);
+}
+
 
 /*
  * Readonly file inspection viewer. Separate from the Git change list so that
@@ -1396,113 +1454,7 @@
   .au-do-dont { grid-template-columns: 1fr; }
 }
 
-/* View-scene shells for design-system product screenshots. Not compiled into Desktop or Mobile. */
-html, body {
-  margin: 0;
-  background: var(--au-color-canvas);
-}
-.au-screenshot {
-  box-sizing: border-box;
-  overflow: hidden;
-  color: var(--au-color-text-primary);
-  background: var(--au-color-canvas);
-  font-family: var(--au-font-sans);
-}
-.au-screenshot *,
-.au-screenshot *::before,
-.au-screenshot *::after { box-sizing: border-box; }
-.au-screenshot button,
-.au-screenshot input,
-.au-screenshot textarea {
-  font: inherit;
-}
-.au-screenshot--desktop {
-  display: flex;
-  flex-direction: column;
-}
-.au-screenshot-body {
-  display: grid;
-  grid-template-columns: 16.5rem minmax(0, 1fr);
-  min-height: 0;
-  flex: 1;
-}
-.au-screenshot-rail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--au-space-2);
-  padding: var(--au-space-3);
-  overflow: auto;
-}
-.au-screenshot-main {
-  display: flex;
-  min-width: 0;
-  min-height: 0;
-  flex-direction: column;
-}
-.au-screenshot-pane {
-  min-height: 0;
-  flex: 1;
-  margin: var(--au-space-3);
-  overflow: auto;
-}
-.au-screenshot-signin {
-  display: grid;
-  place-items: center;
-  min-height: 100%;
-}
-.au-screenshot--mobile {
-  display: flex;
-  flex-direction: column;
-}
-.au-screenshot-mobile-body {
-  min-height: 0;
-  flex: 1;
-  overflow: auto;
-  padding: var(--au-space-3);
-}
-.au-screenshot-tabs {
-  display: flex;
-  gap: var(--au-space-1);
-  padding: 0 var(--au-space-3);
-  border-bottom: 1px solid var(--au-color-border-subtle);
-}
-.au-screenshot-subtabs {
-  display: flex;
-  gap: var(--au-space-1);
-  padding: var(--au-space-2) var(--au-space-3);
-  border-bottom: 1px solid var(--au-color-border-subtle);
-}
-.au-screenshot-browser {
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  flex-direction: column;
-  margin: var(--au-space-3);
-}
-.au-screenshot-browser-page {
-  min-height: 0;
-  flex: 1;
-  padding: var(--au-space-5);
-  overflow: auto;
-  background: var(--au-color-surface);
-  border: 1px solid var(--au-color-border-subtle);
-  border-radius: var(--au-radius-lg);
-}
-.au-nav-icon {
-  width: 1.25rem;
-  height: 1.25rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.75;
-}
-.au-screenshot .au-sign-in { width: 22rem; }
-.au-screenshot .au-git-change-list,
-.au-screenshot .au-git-log,
-.au-screenshot .au-console,
-.au-screenshot .au-file-viewer {
-  min-height: 100%;
-}
-
+/* Showcase embed scaler. Screen layout lives in product.css so Desktop can apply it. */
 .au-screenshot-embed {
   container-type: inline-size;
   position: relative;
@@ -1522,48 +1474,75 @@ html, body {
 </style>
 </head>
 <body class="au-theme">
-<div class="au-theme au-screenshot au-screenshot--mobile" style="width:390px;height:844px">
-  <div class="au-mobile-bar au-cluster"><strong>file viewer</strong></div>
-  <div class="au-screenshot-mobile-body"><div class="au-overlay-panel au-file-viewer">
-    <div class="au-file-viewer-header">
-      <span class="au-file-viewer-path">apps/storefront/ProductGrid.tsx</span>
-      <span class="au-file-viewer-status">Modified</span>
-      <button class="au-button au-button--secondary au-button--compact" type="button">Close</button>
-    </div>
-    <div class="au-file-viewer-nav">
-      <button class="au-file-viewer-jump" type="button">@@ −1,3 +1,4 @@</button>
-    </div>
-    <div class="au-file-viewer-body">
-      <div class="au-file-viewer-line au-file-viewer-line--added au-file-viewer-line--current">
-        <span class="au-file-viewer-gutter">1</span>
-        <span class="au-file-viewer-prefix au-file-viewer-prefix--added">+</span>
-        <span class="au-file-viewer-code"><span class="au-syntax-keyword">export const</span> featured = [<span class="au-syntax-string">'Harbor Mug'</span>];</span>
+<div class="au-theme au-screen" style="width:390px;height:844px">
+      <div class="au-mobile-bar au-cluster"><strong>Workspaces</strong></div>
+      <div class="au-screen-mobile-body"><div class="au-overlay-panel au-file-viewer" style="max-width: 42rem;">
+        <div class="au-file-viewer-header">
+          <span class="au-file-viewer-path">AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx</span>
+          <span class="au-file-viewer-status">Modified</span>
+          <button class="au-button au-button--secondary au-button--compact" type="button">Close</button>
+        </div>
+        <div class="au-file-viewer-nav">
+          <button class="au-file-viewer-jump" type="button">@@ −48,6 +48,18 @@</button>
+          <button class="au-file-viewer-jump" type="button">@@ −265,12 +277,40 @@</button>
+          <input class="au-file-viewer-goto" value="52" readonly aria-label="Go to line" />
+        </div>
+        <div class="au-file-viewer-body">
+          <div class="au-file-viewer-line au-file-viewer-line--meta">
+            <span class="au-file-viewer-gutter"></span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code">diff --git a/GitChangesPanel.tsx b/GitChangesPanel.tsx</span>
+          </div>
+          <div class="au-file-viewer-line au-file-viewer-line--hunk">
+            <span class="au-file-viewer-gutter"></span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code">@@ −48,6 +48,18 @@ export function GitChangesPanel</span>
+          </div>
+          <div class="au-file-viewer-line">
+            <span class="au-file-viewer-gutter">48</span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code"><span class="au-syntax-keyword">const</span> [diff, setDiff] = <span class="au-syntax-function">useState</span>(<span class="au-syntax-keyword">null</span>);</span>
+          </div>
+          <div class="au-file-viewer-line au-file-viewer-line--deleted">
+            <span class="au-file-viewer-gutter">49</span>
+            <span class="au-file-viewer-prefix au-file-viewer-prefix--deleted">−</span>
+            <span class="au-file-viewer-code"><span class="au-syntax-keyword">return</span> &lt;<span class="au-syntax-type">Text</span>&gt;{diffText(diff)}&lt;/<span class="au-syntax-type">Text</span>&gt;;</span>
+          </div>
+          <div class="au-file-viewer-line au-file-viewer-line--added au-file-viewer-line--current">
+            <span class="au-file-viewer-gutter">52</span>
+            <span class="au-file-viewer-prefix au-file-viewer-prefix--added">+</span>
+            <span class="au-file-viewer-code"><span class="au-syntax-keyword">return</span> &lt;<span class="au-syntax-type">GitFileViewer</span> diff={diff} <span class="au-syntax-property">onClose</span>={close} /&gt;;</span>
+          </div>
+          <div class="au-file-viewer-line">
+            <span class="au-file-viewer-gutter">53</span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code"><span class="au-syntax-plain">    </span><span class="au-syntax-keyword">return</span> foo;</span>
+          </div>
+          <div class="au-file-viewer-line">
+            <span class="au-file-viewer-gutter">54</span>
+            <span class="au-file-viewer-prefix"> </span>
+            <span class="au-file-viewer-code"><span class="au-syntax-comment">// Filename opens inspection. Checkbox stays selection.</span></span>
+          </div>
+        </div>
+      </div></div>
+      <div class="au-mobile-tab-bar au-cluster" role="tablist">
+        <button class="au-subtab au-nav-tab au-subtab--selected" aria-selected="true">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
+          Apps
+        </button>
+        <button class="au-subtab au-nav-tab">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 16.2 16 8"></path><path d="M18 8.6v6.8"></path></svg>
+          Git
+        </button>
+        <button class="au-subtab au-nav-tab">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"></path></svg>
+          Agents
+        </button>
+        <button class="au-subtab au-nav-tab">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18"></path></svg>
+          Settings
+        </button>
       </div>
-      <div class="au-file-viewer-line">
-        <span class="au-file-viewer-gutter">2</span>
-        <span class="au-file-viewer-prefix"> </span>
-        <span class="au-file-viewer-code"><span class="au-syntax-keyword">export function</span> <span class="au-syntax-function">ProductGrid</span>() {</span>
-      </div>
     </div>
-  </div></div>
-  <div class="au-mobile-tab-bar au-cluster" role="tablist">
-    <button class="au-subtab au-nav-tab" type="button" aria-selected="false">
-      <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
-      Apps
-    </button>
-    <button class="au-subtab au-nav-tab au-subtab--selected" type="button" aria-selected="true">
-      <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 16.2 16 8"></path></svg>
-      Git
-    </button>
-    <button class="au-subtab au-nav-tab" type="button" aria-selected="false">
-      <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"></path></svg>
-      Agents
-    </button>
-    <button class="au-subtab au-nav-tab" type="button" aria-selected="false">
-      <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2"></path></svg>
-      Settings
-    </button>
-  </div>
-</div>
 </body>
 </html>

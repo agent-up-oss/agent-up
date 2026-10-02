@@ -79,30 +79,17 @@ public sealed class ScreenshotCommandServiceTests
     }
 
     [Test]
-    public async Task ValidateLive_requiresHostedCopy()
+    public async Task ValidateLive_requiresHost()
     {
         var scene = ScreenshotScene.Mobile();
         var live = new FakeScreenshotLiveAppProbe();
-        live.Pages[$"{DebugLayout.MobileUrl}{scene.LivePath}"] = "<p>Harbor Shop</p>";
+        live.Pages[$"{DebugLayout.MobileUrl}{scene.LivePath}"] = "<p>hosted</p>";
         var sessions = new FakeSessionStore { Session = new HostSessionDto(1, "/tmp", "/tmp/session", []) };
         var result = await Service(Store(scene), new FakeWebScreenshotDriver(), new FakeScreenshotAppContract(), new FakeScreenshotPngComparer(), live, sessions, scene)
             .ValidateAsync(DebugDomain.Screenshots("validate").Live().Build(), CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(0));
         Assert.That(result.Message, Does.Contain("live apps match"));
-    }
-
-    [Test]
-    public async Task ValidateLive_missingCopy_fails()
-    {
-        var scene = ScreenshotScene.Mobile();
-        var live = new FakeScreenshotLiveAppProbe();
-        var sessions = new FakeSessionStore { Session = new HostSessionDto(1, "/tmp", "/tmp/session", []) };
-        var result = await Service(Store(scene), new FakeWebScreenshotDriver(), new FakeScreenshotAppContract(), new FakeScreenshotPngComparer(), live, sessions, scene)
-            .ValidateAsync(DebugDomain.Screenshots("validate").Live().Build(), CancellationToken.None);
-
-        Assert.That(result.ExitCode, Is.EqualTo(1));
-        Assert.That(result.Message, Does.Contain("live page is missing Demo copy"));
     }
 
     [Test]

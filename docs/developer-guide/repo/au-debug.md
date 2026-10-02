@@ -61,7 +61,7 @@ Cold Desktop compiles can exceed 30 seconds. Pass `--timeout 120` for those runs
 
 Docs and README images of Desktop and Mobile are rendered from the design-system catalog, not reconstructed marketing HTML. `au-debug screenshots persist` writes every major view into `media/`, and copies the Desktop applications hero to `media/screenshot.png`. Updating those images is that one command after `au-debug build design-system`.
 
-`au-debug screenshots validate` is the identity gate: each scene may only use catalog `au-*` classes plus screenshot shell layout, must include FakeServer Demo copy that the real apps show, and must cite Desktop `Classes` / Mobile `auBox` names that exist in the named app sources. It then re-renders each scene through Chromium and pixel-matches the files in `media/`. `--live` also dumps hosted Mobile Demo pages after `au-debug up` and requires that same copy.
+`au-debug screenshots validate` is the identity gate: each scene may only use catalog `au-*` classes. Leaf components must appear as their catalog HTML; layout shells such as `screen` must appear by those catalog classes. It then re-renders each scene through Chromium and pixel-matches the files in `media/`. `--live` also dumps hosted Mobile pages after `au-debug up`.
 
 ```bash
 ./au-debug screenshots persist

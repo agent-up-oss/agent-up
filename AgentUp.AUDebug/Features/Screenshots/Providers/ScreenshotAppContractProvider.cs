@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using AgentUp.AUDebug.Features.Screenshots.DTOs;
 using AgentUp.AUDebug.Features.Screenshots.Interfaces;
@@ -14,6 +15,10 @@ public sealed class ScreenshotAppContractProvider : IScreenshotAppContract
     private static readonly Regex CssClassSelector = new(
         @"\.((?:au-[a-z0-9-]+))",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    private static readonly Regex LayoutShell = new(
+        @"^<([a-z][a-z0-9]*)\b[^>]*>\s*</\1>$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private readonly IDebugPathValidator _paths;
     private readonly IScreenshotMediaStore _media;
@@ -32,34 +37,31 @@ public sealed class ScreenshotAppContractProvider : IScreenshotAppContract
 
         var html = File.ReadAllText(htmlPath);
         var css = ReadCss();
-        var definition = ReadFakeServer();
+        var catalog = ReadCatalog();
         var allowed = CssClassSelector.Matches(css).Select(match => match.Groups[1].Value).ToHashSet(StringComparer.Ordinal);
         var htmlClasses = HtmlClasses(html);
-        var unknown = htmlClasses.Where(name => !name.StartsWith("au-screenshot", StringComparison.Ordinal) && !allowed.Contains(name)).ToArray();
+        var unknown = htmlClasses.Where(name => !allowed.Contains(name)).ToArray();
         if (unknown.Length > 0)
             throw new InvalidOperationException($"{scene.Id} uses classes that are not in the design-system catalog: {string.Join(", ", unknown)}.");
 
-        var missingClass = scene.RequiredClasses.FirstOrDefault(required => !htmlClasses.Contains(required));
-        if (missingClass is not null)
-            throw new InvalidOperationException($"{scene.Id} HTML is missing required catalog class '{missingClass}'.");
+        if (scene.Components.Count == 0)
+            throw new InvalidOperationException($"{scene.Id} does not name catalog components to compose.");
 
-        foreach (var copy in scene.Copy)
+        foreach (var id in scene.Components)
         {
-            if (!html.Contains(copy, StringComparison.Ordinal))
-                throw new InvalidOperationException($"{scene.Id} HTML is missing Demo copy '{copy}'.");
-            if (!definition.Contains(copy, StringComparison.Ordinal))
-                throw new InvalidOperationException($"{scene.Id} copy '{copy}' is not in AgentUp.FakeServer/definition.json.");
+            if (!catalog.TryGetValue(id, out var componentHtml))
+                throw new InvalidOperationException($"{scene.Id} references unknown catalog component '{id}'.");
+            if (IsLayoutShell(componentHtml))
+            {
+                var missing = ShellClasses(componentHtml).Where(name => !htmlClasses.Contains(name)).ToArray();
+                if (missing.Length > 0)
+                    throw new InvalidOperationException($"{scene.Id} HTML is missing catalog component '{id}'.");
+                continue;
+            }
+
+            if (!html.Contains(componentHtml, StringComparison.Ordinal))
+                throw new InvalidOperationException($"{scene.Id} HTML is missing catalog component '{id}'.");
         }
-
-        var sources = scene.AppSources.Select(ReadSource).ToArray();
-        var joined = string.Join('\n', sources);
-        var missingDesktop = scene.RequiredDesktopClasses.FirstOrDefault(desktopClass => !HasToken(joined, desktopClass));
-        if (missingDesktop is not null)
-            throw new InvalidOperationException($"{scene.Id} Desktop class '{missingDesktop}' is missing from {string.Join(", ", scene.AppSources)}.");
-
-        var missingMobile = scene.RequiredMobileComponents.FirstOrDefault(component => !HasAuBox(joined, component));
-        if (missingMobile is not null)
-            throw new InvalidOperationException($"{scene.Id} Mobile component '{missingMobile}' is missing as auBox('{missingMobile}') from {string.Join(", ", scene.AppSources)}.");
     }
 
     private string ReadCss()
@@ -70,21 +72,33 @@ public sealed class ScreenshotAppContractProvider : IScreenshotAppContract
         return File.ReadAllText(path);
     }
 
-    private string ReadFakeServer()
+    private Dictionary<string, string> ReadCatalog()
     {
-        var path = _paths.JoinUnderRoot("AgentUp.FakeServer", "definition.json");
+        var path = _paths.JoinUnderRoot("AgentUp.DesignSystem", "dist", "web", "catalog.json");
         if (!File.Exists(path))
-            throw new InvalidOperationException("AgentUp.FakeServer/definition.json is missing.");
-        return File.ReadAllText(path);
+            throw new InvalidOperationException("Design-system catalog is missing. Run au-debug build design-system.");
+
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        if (!document.RootElement.TryGetProperty("surfaces", out var surfaces))
+            throw new InvalidOperationException("Design-system catalog is missing surfaces.");
+
+        var map = surfaces.EnumerateArray()
+            .SelectMany(CatalogComponents)
+            .Select(component => (
+                Id: component.GetProperty("id").GetString(),
+                Html: component.GetProperty("html").GetString()))
+            .Where(entry => !string.IsNullOrWhiteSpace(entry.Id) && entry.Html is not null)
+            .ToDictionary(entry => entry.Id!, entry => entry.Html!, StringComparer.Ordinal);
+
+        if (map.Count == 0)
+            throw new InvalidOperationException("Design-system catalog has no components.");
+        return map;
     }
 
-    private string ReadSource(string relative)
-    {
-        var path = _paths.JoinUnderRoot(relative.Split('/', StringSplitOptions.RemoveEmptyEntries));
-        if (!File.Exists(path))
-            throw new InvalidOperationException($"App source '{relative}' is missing for screenshot contract.");
-        return File.ReadAllText(path);
-    }
+    private static IEnumerable<JsonElement> CatalogComponents(JsonElement surface)
+        => surface.TryGetProperty("components", out var components)
+            ? components.EnumerateArray()
+            : [];
 
     private static HashSet<string> HtmlClasses(string html)
     {
@@ -93,10 +107,13 @@ public sealed class ScreenshotAppContractProvider : IScreenshotAppContract
             .ToHashSet(StringComparer.Ordinal);
     }
 
-    private static bool HasToken(string source, string token)
-        => source.Contains(token, StringComparison.Ordinal);
+    private static bool IsLayoutShell(string html)
+        => LayoutShell.IsMatch(html.Trim());
 
-    private static bool HasAuBox(string source, string component)
-        => source.Contains($"auBox('{component}'", StringComparison.Ordinal)
-           || source.Contains($"auBox(\"{component}\"", StringComparison.Ordinal);
+    private static IEnumerable<string> ShellClasses(string html)
+    {
+        var match = HtmlClassAttribute.Match(html);
+        if (!match.Success) return [];
+        return match.Groups[1].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
 }

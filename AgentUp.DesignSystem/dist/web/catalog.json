@@ -1446,6 +1446,132 @@
       ]
     },
     {
+      "id": "screens",
+      "title": "Assembled screens",
+      "intro": "A screen is a layout of catalog components. Desktop and Mobile consume the same region tree. Do not restyle a second screenshot shell.",
+      "components": [
+        {
+          "id": "screen",
+          "title": "Screen",
+          "note": "The window is a column of catalog chrome plus a body. Capture size is a persist concern, not a second theme.",
+          "avalonia": "Border",
+          "desktopClass": "productScreen",
+          "desktopHost": "",
+          "rootClass": "au-screen",
+          "classes": [
+            "au-screen"
+          ],
+          "html": "<div class=\"au-screen\"></div>"
+        },
+        {
+          "id": "screen-body",
+          "title": "Screen body",
+          "note": "Desktop body is the rail beside the main column. Mobile does not use this grid.",
+          "avalonia": "Border",
+          "desktopClass": "productScreenBody",
+          "desktopHost": "",
+          "rootClass": "au-screen-body",
+          "classes": [
+            "au-screen-body"
+          ],
+          "html": "<div class=\"au-screen-body\"></div>"
+        },
+        {
+          "id": "screen-rail",
+          "title": "Screen rail",
+          "note": "Rail layout sits on au-rail paint. Do not invent a screenshot-only sidebar.",
+          "avalonia": "Border",
+          "desktopClass": "productScreenRail",
+          "desktopHost": "",
+          "rootClass": "au-screen-rail",
+          "classes": [
+            "au-rail",
+            "au-screen-rail"
+          ],
+          "html": "<aside class=\"au-rail au-screen-rail\"></aside>"
+        },
+        {
+          "id": "screen-main",
+          "title": "Screen main",
+          "note": "Tabs, subtabs, then a pane. The pane is au-pane, not a full-bleed slab.",
+          "avalonia": "Border",
+          "desktopClass": "productScreenMain",
+          "desktopHost": "",
+          "rootClass": "au-screen-main",
+          "classes": [
+            "au-screen-main"
+          ],
+          "html": "<main class=\"au-screen-main\"></main>"
+        },
+        {
+          "id": "screen-tabs",
+          "title": "Screen tab strip",
+          "note": "Host for au-app-tab. The strip is structure; selection stays on the tab.",
+          "avalonia": "Border",
+          "desktopClass": "productScreenTabs",
+          "desktopHost": "",
+          "rootClass": "au-screen-tabs",
+          "classes": [
+            "au-screen-tabs"
+          ],
+          "html": "<div class=\"au-screen-tabs\"></div>"
+        },
+        {
+          "id": "screen-subtabs",
+          "title": "Screen subtab strip",
+          "note": "Host for au-subtab. Secondary selection stays neutral.",
+          "avalonia": "Border",
+          "desktopClass": "productScreenSubtabs",
+          "desktopHost": "",
+          "rootClass": "au-screen-subtabs",
+          "classes": [
+            "au-screen-subtabs"
+          ],
+          "html": "<div class=\"au-screen-subtabs\"></div>"
+        },
+        {
+          "id": "screen-pane",
+          "title": "Screen pane slot",
+          "note": "Working region inset. Pair with au-pane for the surface.",
+          "avalonia": "Border",
+          "desktopClass": "productScreenPane",
+          "desktopHost": "",
+          "rootClass": "au-screen-pane",
+          "classes": [
+            "au-pane",
+            "au-screen-pane"
+          ],
+          "html": "<div class=\"au-pane au-screen-pane\"></div>"
+        },
+        {
+          "id": "screen-center",
+          "title": "Centered screen",
+          "note": "Sign-in sits in the remaining canvas, not in an overlay.",
+          "avalonia": "Border",
+          "desktopClass": "productScreenCenter",
+          "desktopHost": "",
+          "rootClass": "au-screen-center",
+          "classes": [
+            "au-screen-center"
+          ],
+          "html": "<div class=\"au-screen-center\"></div>"
+        },
+        {
+          "id": "screen-mobile-body",
+          "title": "Mobile body",
+          "note": "Scrolls between the top bar and the tab bar.",
+          "avalonia": "Border",
+          "desktopClass": "productScreenMobileBody",
+          "desktopHost": "",
+          "rootClass": "au-screen-mobile-body",
+          "classes": [
+            "au-screen-mobile-body"
+          ],
+          "html": "<div class=\"au-screen-mobile-body\"></div>"
+        }
+      ]
+    },
+    {
       "id": "voice",
       "title": "Voice",
       "intro": "Product writing is direct and accountable. Lead with what a developer can do, then explain Server ownership.",

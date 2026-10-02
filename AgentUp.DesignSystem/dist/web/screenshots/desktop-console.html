@@ -1047,6 +1047,64 @@
   background: var(--au-color-transparent);
 }
 
+/* Assembled screens. These layout classes compose catalog components into
+ * Desktop and Mobile windows. Apps apply the same classes; they do not
+ * restyle a second screenshot shell. */
+.au-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  color: var(--au-color-text-primary);
+  background: var(--au-color-canvas);
+}
+.au-screen-body {
+  display: grid;
+  grid-template-columns: 16.5rem minmax(0, 1fr);
+  min-height: 0;
+  flex: 1;
+}
+.au-screen-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--au-space-2);
+  min-height: 0;
+  padding: var(--au-space-3);
+  overflow: auto;
+}
+.au-screen-main {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.au-screen-tabs,
+.au-screen-subtabs {
+  display: flex;
+  gap: var(--au-space-1);
+  border-bottom: 1px solid var(--au-color-border-subtle);
+}
+.au-screen-tabs { padding: 0 var(--au-space-3); }
+.au-screen-subtabs { padding: var(--au-space-2) var(--au-space-3); }
+.au-screen-pane {
+  min-height: 0;
+  flex: 1;
+  margin: var(--au-space-3);
+  overflow: auto;
+}
+.au-screen-center {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  flex: 1;
+}
+.au-screen-mobile-body {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  padding: var(--au-space-3);
+}
+
 
 /*
  * Readonly file inspection viewer. Separate from the Git change list so that
@@ -1396,113 +1454,7 @@
   .au-do-dont { grid-template-columns: 1fr; }
 }
 
-/* View-scene shells for design-system product screenshots. Not compiled into Desktop or Mobile. */
-html, body {
-  margin: 0;
-  background: var(--au-color-canvas);
-}
-.au-screenshot {
-  box-sizing: border-box;
-  overflow: hidden;
-  color: var(--au-color-text-primary);
-  background: var(--au-color-canvas);
-  font-family: var(--au-font-sans);
-}
-.au-screenshot *,
-.au-screenshot *::before,
-.au-screenshot *::after { box-sizing: border-box; }
-.au-screenshot button,
-.au-screenshot input,
-.au-screenshot textarea {
-  font: inherit;
-}
-.au-screenshot--desktop {
-  display: flex;
-  flex-direction: column;
-}
-.au-screenshot-body {
-  display: grid;
-  grid-template-columns: 16.5rem minmax(0, 1fr);
-  min-height: 0;
-  flex: 1;
-}
-.au-screenshot-rail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--au-space-2);
-  padding: var(--au-space-3);
-  overflow: auto;
-}
-.au-screenshot-main {
-  display: flex;
-  min-width: 0;
-  min-height: 0;
-  flex-direction: column;
-}
-.au-screenshot-pane {
-  min-height: 0;
-  flex: 1;
-  margin: var(--au-space-3);
-  overflow: auto;
-}
-.au-screenshot-signin {
-  display: grid;
-  place-items: center;
-  min-height: 100%;
-}
-.au-screenshot--mobile {
-  display: flex;
-  flex-direction: column;
-}
-.au-screenshot-mobile-body {
-  min-height: 0;
-  flex: 1;
-  overflow: auto;
-  padding: var(--au-space-3);
-}
-.au-screenshot-tabs {
-  display: flex;
-  gap: var(--au-space-1);
-  padding: 0 var(--au-space-3);
-  border-bottom: 1px solid var(--au-color-border-subtle);
-}
-.au-screenshot-subtabs {
-  display: flex;
-  gap: var(--au-space-1);
-  padding: var(--au-space-2) var(--au-space-3);
-  border-bottom: 1px solid var(--au-color-border-subtle);
-}
-.au-screenshot-browser {
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  flex-direction: column;
-  margin: var(--au-space-3);
-}
-.au-screenshot-browser-page {
-  min-height: 0;
-  flex: 1;
-  padding: var(--au-space-5);
-  overflow: auto;
-  background: var(--au-color-surface);
-  border: 1px solid var(--au-color-border-subtle);
-  border-radius: var(--au-radius-lg);
-}
-.au-nav-icon {
-  width: 1.25rem;
-  height: 1.25rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.75;
-}
-.au-screenshot .au-sign-in { width: 22rem; }
-.au-screenshot .au-git-change-list,
-.au-screenshot .au-git-log,
-.au-screenshot .au-console,
-.au-screenshot .au-file-viewer {
-  min-height: 100%;
-}
-
+/* Showcase embed scaler. Screen layout lives in product.css so Desktop can apply it. */
 .au-screenshot-embed {
   container-type: inline-size;
   position: relative;
@@ -1522,45 +1474,74 @@ html, body {
 </style>
 </head>
 <body class="au-theme">
-<div class="au-theme au-screenshot au-screenshot--desktop" style="width:1440px;height:900px">
-  <div class="au-chrome au-cluster" style="justify-content:space-between;padding:0 0.75rem;">
-    <span class="au-cluster">
-      <span class="au-title-tool au-chrome-icon">☰</span>
-      <span class="au-title-tool au-chrome-icon">↻</span>
-      <span class="au-badge au-badge--healthy"><span class="au-status-dot au-status-dot--healthy"></span>Server online</span>
-    </span>
-    <strong class="au-chrome-title">Agent-Up</strong>
-    <span class="au-cluster">
-      <span class="au-chrome-button au-chrome-icon">−</span>
-      <span class="au-chrome-button au-chrome-icon">□</span>
-      <span class="au-chrome-button au-chrome-close au-chrome-icon">×</span>
-    </span>
-  </div>
-  <div class="au-screenshot-body"><aside class="au-rail au-screenshot-rail">
-    <div class="au-cluster" style="justify-content:space-between;">
-      <span class="au-field-label">Workspaces</span>
-      <button class="au-workspace-add" type="button">+</button>
+<div class="au-theme au-screen" style="width:1440px;height:900px">
+      <div class="au-chrome au-cluster" style="justify-content: space-between; padding: 0 0.75rem;">
+        <span class="au-cluster">
+          <span class="au-title-tool au-chrome-icon">☰</span>
+          <span class="au-title-tool au-chrome-icon">↻</span>
+          <span class="au-badge au-badge--healthy"><span class="au-status-dot au-status-dot--healthy"></span>Server online</span>
+        </span>
+        <strong class="au-chrome-title">Agent-Up</strong>
+        <span class="au-cluster">
+          <span class="au-chrome-button au-chrome-icon">−</span>
+          <span class="au-chrome-button au-chrome-icon">□</span>
+          <span class="au-chrome-button au-chrome-close au-chrome-icon">×</span>
+        </span>
+      </div>
+      <div class="au-screen-body">
+        <aside class="au-rail au-screen-rail">
+          <div class="au-cluster">
+            <span class="au-field-label">Workspaces</span>
+            <button class="au-workspace-add">+</button>
+          </div>
+          <div class="au-stack">
+        <div class="au-workspace au-workspace--selected">
+          <button class="au-lifecycle-button" type="button">▶</button>
+          <span class="au-status-dot au-status-dot--healthy"></span>
+          <span>
+            <strong class="au-workspace-name">checkout-fix</strong>
+            <small class="au-workspace-branch">feat/checkout</small>
+          </span>
+          <button class="au-workspace-delete" type="button">×</button>
+        </div>
+        <div class="au-workspace">
+          <button class="au-lifecycle-button" type="button">▶</button>
+          <span class="au-status-dot au-status-dot--warning"></span>
+          <span>
+            <strong class="au-workspace-name">pricing</strong>
+            <small class="au-workspace-branch">feat/pricing</small>
+          </span>
+          <button class="au-workspace-delete" type="button">×</button>
+        </div>
+        <div class="au-workspace">
+          <button class="au-lifecycle-button" type="button">▶</button>
+          <span class="au-status-dot"></span>
+          <span>
+            <strong class="au-workspace-name">main</strong>
+            <small class="au-workspace-branch">main</small>
+          </span>
+          <button class="au-workspace-delete" type="button">×</button>
+        </div>
+      </div>
+        </aside>
+        <main class="au-screen-main">
+          <div class="au-screen-tabs"><div class="au-cluster">
+        <button class="au-app-tab au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
+        <button class="au-app-tab"><span class="au-status-dot au-status-dot--warning"></span> API</button>
+        <button class="au-app-tab"><span class="au-status-dot"></span> Database</button>
+      </div></div>
+          <div class="au-screen-subtabs"><div class="au-cluster">
+        <button class="au-subtab au-subtab--selected">3000:11200</button>
+        <button class="au-subtab">Console</button>
+        <button class="au-subtab">Metrics</button>
+        <button class="au-subtab">Diagnostics</button>
+        <button class="au-subtab">Git</button>
+      </div></div>
+          <div class="au-pane au-screen-pane"><pre class="au-console">[install] npm install
+listening on http://127.0.0.1:11200
+ready in 842 ms</pre></div>
+        </main>
+      </div>
     </div>
-    <div class="au-workspace au-workspace--selected">
-      <button class="au-lifecycle-button" type="button">■</button>
-      <span class="au-status-dot au-status-dot--healthy"></span>
-      <span>
-        <strong class="au-workspace-name">Harbor Shop</strong>
-        <small class="au-workspace-branch">main</small>
-      </span>
-    </div>
-  </aside><main class="au-screenshot-main"><div class="au-screenshot-tabs" role="tablist">
-    <button class="au-app-tab au-app-tab--selected" type="button"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
-    <button class="au-app-tab" type="button"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
-  </div><div class="au-screenshot-subtabs">
-    <button class="au-subtab" type="button">9100</button>
-    <button class="au-subtab au-subtab--selected" type="button">Console</button>
-    <button class="au-subtab" type="button">Metrics</button>
-    <button class="au-subtab" type="button">Diagnostics</button>
-    <button class="au-subtab" type="button">Database</button>
-    <button class="au-subtab" type="button">Git</button>
-  </div><div class="au-screenshot-pane"><pre class="au-console">[install] npm install
-Storefront listening on WEB_PORT</pre></div></main></div>
-</div>
 </body>
 </html>

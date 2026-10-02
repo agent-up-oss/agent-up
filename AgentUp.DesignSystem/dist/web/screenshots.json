@@ -111,23 +111,20 @@
       "height": 900,
       "hero": false,
       "livePath": "",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      "layout": "desktop-center",
+      "components": [
+        "screen",
+        "chrome",
+        "screen-center",
+        "sign-in"
       ],
       "requiredClasses": [
-        "au-sign-in",
-        "au-choice",
-        "au-button",
-        "au-input",
-        "au-chrome"
+        "au-screen",
+        "au-chrome",
+        "au-screen-center",
+        "au-sign-in"
       ],
-      "requiredDesktopClasses": [],
-      "requiredMobileComponents": [],
-      "copy": [
-        "Demo",
-        "http://127.0.0.1:9"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--desktop\" style=\"width:1440px;height:900px\">\n  <div class=\"au-chrome au-cluster\" style=\"justify-content:space-between;padding:0 0.75rem;\">\n    <span class=\"au-cluster\">\n      <span class=\"au-title-tool au-chrome-icon\">☰</span>\n      <span class=\"au-title-tool au-chrome-icon\">↻</span>\n      <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n    </span>\n    <strong class=\"au-chrome-title\">Agent-Up</strong>\n    <span class=\"au-cluster\">\n      <span class=\"au-chrome-button au-chrome-icon\">−</span>\n      <span class=\"au-chrome-button au-chrome-icon\">□</span>\n      <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n    </span>\n  </div>\n  <div class=\"au-screenshot-signin\"><form class=\"au-sign-in au-stack\">\n    <p class=\"au-eyebrow\">Agent-Up Server</p>\n    <h2 class=\"au-page-title\">Connect to server</h2>\n    <p class=\"au-muted\">Choose a saved server or enter a URL.</p>\n    <span class=\"au-field-label\">Server URL</span>\n    <input class=\"au-input\" value=\"http://127.0.0.1:9\" readonly />\n    <span class=\"au-field-label\">Saved servers</span>\n    <div class=\"au-sign-in-list\">\n      <button class=\"au-choice au-choice--compact au-choice--selected\" type=\"button\" title=\"http://127.0.0.1:9\"><span class=\"au-choice-label\">Demo</span></button>\n    </div>\n    <button class=\"au-button\" type=\"button\">Connect</button>\n  </form></div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:1440px;height:900px\">\n      <div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong class=\"au-chrome-title\">Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>\n      <div class=\"au-screen-center\"><form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Server</p>\n        <h2 class=\"au-page-title\">Connect to server</h2>\n        <p class=\"au-muted\">Choose a saved server or enter a URL.</p>\n        <span class=\"au-field-label\">Server URL</span>\n        <input class=\"au-input\" placeholder=\"http://localhost:5000\" />\n        <span class=\"au-field-label\">Saved servers</span>\n        <div class=\"au-sign-in-list\">\n          <button class=\"au-choice au-choice--compact au-choice--selected\" type=\"button\" title=\"http://127.0.0.1:9\"><span class=\"au-choice-label\">Demo</span></button>\n          <button class=\"au-choice au-choice--compact\" type=\"button\" title=\"https://agent-up.massivecreationlab.com\"><span class=\"au-choice-label\">https://agent-up.massivecreationlab.com</span></button>\n        </div>\n        <button class=\"au-button\" type=\"button\">Connect</button>\n      </form></div>\n    </div>"
     },
     {
       "id": "desktop-workspaces",
@@ -140,24 +137,34 @@
       "height": 900,
       "hero": false,
       "livePath": "",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      "layout": "desktop-shell",
+      "components": [
+        "screen",
+        "chrome",
+        "screen-body",
+        "screen-rail",
+        "workspace-add",
+        "workspace",
+        "screen-main",
+        "screen-tabs",
+        "app-tab",
+        "screen-pane",
+        "metrics-card"
       ],
       "requiredClasses": [
-        "au-workspace",
-        "au-rail",
+        "au-screen",
         "au-chrome",
+        "au-screen-body",
+        "au-screen-rail",
+        "au-workspace-add",
+        "au-workspace",
+        "au-screen-main",
+        "au-screen-tabs",
+        "au-app-tab",
+        "au-screen-pane",
         "au-metrics-card"
       ],
-      "requiredDesktopClasses": [
-        "wsEntry"
-      ],
-      "requiredMobileComponents": [],
-      "copy": [
-        "Harbor Shop",
-        "main"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--desktop\" style=\"width:1440px;height:900px\">\n  <div class=\"au-chrome au-cluster\" style=\"justify-content:space-between;padding:0 0.75rem;\">\n    <span class=\"au-cluster\">\n      <span class=\"au-title-tool au-chrome-icon\">☰</span>\n      <span class=\"au-title-tool au-chrome-icon\">↻</span>\n      <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n    </span>\n    <strong class=\"au-chrome-title\">Agent-Up</strong>\n    <span class=\"au-cluster\">\n      <span class=\"au-chrome-button au-chrome-icon\">−</span>\n      <span class=\"au-chrome-button au-chrome-icon\">□</span>\n      <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n    </span>\n  </div>\n  <div class=\"au-screenshot-body\"><aside class=\"au-rail au-screenshot-rail\">\n    <div class=\"au-cluster\" style=\"justify-content:space-between;\">\n      <span class=\"au-field-label\">Workspaces</span>\n      <button class=\"au-workspace-add\" type=\"button\">+</button>\n    </div>\n    <div class=\"au-workspace au-workspace--selected\">\n      <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n      <span class=\"au-status-dot au-status-dot--healthy\"></span>\n      <span>\n        <strong class=\"au-workspace-name\">Harbor Shop</strong>\n        <small class=\"au-workspace-branch\">main</small>\n      </span>\n    </div>\n  </aside><main class=\"au-screenshot-main\"><div class=\"au-screenshot-tabs\" role=\"tablist\"><button class=\"au-app-tab au-app-tab--selected\" type=\"button\">Overview</button></div><div class=\"au-screenshot-pane au-pane\" style=\"padding:1rem;\">\n      <p class=\"au-field-label\">Harbor Shop</p>\n      <p class=\"au-muted\">/demo/harbor-shop · main · a1b2c3d</p>\n      <div class=\"au-cluster\" style=\"margin-top:1rem;\">\n        <div class=\"au-metrics-card\"><span class=\"au-eyebrow\">State</span><strong>Running</strong></div>\n        <div class=\"au-metrics-card\"><span class=\"au-eyebrow\">CPU</span><strong>4.2%</strong></div>\n        <div class=\"au-metrics-card\"><span class=\"au-eyebrow\">Memory</span><strong>256 MB</strong></div>\n        <div class=\"au-metrics-card\"><span class=\"au-eyebrow\">Apps</span><strong>2</strong></div>\n      </div>\n    </div></main></div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:1440px;height:900px\">\n      <div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong class=\"au-chrome-title\">Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>\n      <div class=\"au-screen-body\">\n        <aside class=\"au-rail au-screen-rail\">\n          <div class=\"au-cluster\">\n            <span class=\"au-field-label\">Workspaces</span>\n            <button class=\"au-workspace-add\">+</button>\n          </div>\n          <div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--warning\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">main</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n      </div>\n        </aside>\n        <main class=\"au-screen-main\">\n          <div class=\"au-screen-tabs\"><div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--warning\"></span> API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot\"></span> Database</button>\n      </div></div>\n          \n          <div class=\"au-pane au-screen-pane\"><div class=\"au-metrics-card\"><span class=\"au-eyebrow\">p95</span><strong>128 ms</strong></div></div>\n        </main>\n      </div>\n    </div>"
     },
     {
       "id": "desktop-applications",
@@ -170,27 +177,38 @@
       "height": 900,
       "hero": true,
       "livePath": "",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      "layout": "desktop-shell",
+      "components": [
+        "screen",
+        "chrome",
+        "screen-body",
+        "screen-rail",
+        "workspace-add",
+        "workspace",
+        "screen-main",
+        "screen-tabs",
+        "app-tab",
+        "screen-subtabs",
+        "subtab",
+        "screen-pane",
+        "address-bar"
       ],
       "requiredClasses": [
-        "au-app-tab",
-        "au-subtab",
-        "au-address-bar",
+        "au-screen",
+        "au-chrome",
+        "au-screen-body",
+        "au-screen-rail",
+        "au-workspace-add",
         "au-workspace",
-        "au-chrome"
+        "au-screen-main",
+        "au-screen-tabs",
+        "au-app-tab",
+        "au-screen-subtabs",
+        "au-subtab",
+        "au-screen-pane",
+        "au-address-bar"
       ],
-      "requiredDesktopClasses": [
-        "appTab",
-        "addressBar"
-      ],
-      "requiredMobileComponents": [],
-      "copy": [
-        "Harbor Shop",
-        "Storefront",
-        "Orders API"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--desktop\" style=\"width:1440px;height:900px\">\n  <div class=\"au-chrome au-cluster\" style=\"justify-content:space-between;padding:0 0.75rem;\">\n    <span class=\"au-cluster\">\n      <span class=\"au-title-tool au-chrome-icon\">☰</span>\n      <span class=\"au-title-tool au-chrome-icon\">↻</span>\n      <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n    </span>\n    <strong class=\"au-chrome-title\">Agent-Up</strong>\n    <span class=\"au-cluster\">\n      <span class=\"au-chrome-button au-chrome-icon\">−</span>\n      <span class=\"au-chrome-button au-chrome-icon\">□</span>\n      <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n    </span>\n  </div>\n  <div class=\"au-screenshot-body\"><aside class=\"au-rail au-screenshot-rail\">\n    <div class=\"au-cluster\" style=\"justify-content:space-between;\">\n      <span class=\"au-field-label\">Workspaces</span>\n      <button class=\"au-workspace-add\" type=\"button\">+</button>\n    </div>\n    <div class=\"au-workspace au-workspace--selected\">\n      <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n      <span class=\"au-status-dot au-status-dot--healthy\"></span>\n      <span>\n        <strong class=\"au-workspace-name\">Harbor Shop</strong>\n        <small class=\"au-workspace-branch\">main</small>\n      </span>\n    </div>\n  </aside><main class=\"au-screenshot-main\"><div class=\"au-screenshot-tabs\" role=\"tablist\">\n    <button class=\"au-app-tab au-app-tab--selected\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n    <button class=\"au-app-tab\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n  </div><div class=\"au-screenshot-subtabs\">\n    <button class=\"au-subtab au-subtab--selected\" type=\"button\">9100</button>\n    <button class=\"au-subtab\" type=\"button\">Console</button>\n    <button class=\"au-subtab\" type=\"button\">Metrics</button>\n    <button class=\"au-subtab\" type=\"button\">Diagnostics</button>\n    <button class=\"au-subtab\" type=\"button\">Database</button>\n    <button class=\"au-subtab\" type=\"button\">Git</button>\n  </div><div class=\"au-screenshot-browser\">\n      <div class=\"au-cluster\">\n        <button class=\"au-browser-button\" type=\"button\">‹</button>\n        <button class=\"au-browser-button\" type=\"button\">›</button>\n        <button class=\"au-browser-button\" type=\"button\">↻</button>\n        <input class=\"au-address-bar\" value=\"http://127.0.0.1:9100/\" readonly />\n      </div>\n      <div class=\"au-screenshot-browser-page\">\n        <p class=\"au-eyebrow\">STOREFRONT</p>\n        <h2 class=\"au-page-title\">Harbor Shop</h2>\n        <p class=\"au-muted\">Featured goods from the harbor catalog.</p>\n        <div class=\"au-cluster\" style=\"margin-top:1rem;\">\n          <div class=\"au-card\"><strong>Harbor Mug</strong><p class=\"au-muted\">Stoneware, fog glaze</p></div>\n          <div class=\"au-card\"><strong>Canvas Tote</strong><p class=\"au-muted\">Waxed canvas, brass snap</p></div>\n          <div class=\"au-card\"><strong>Chart Lamp</strong><p class=\"au-muted\">Brass shade, linen cord</p></div>\n        </div>\n      </div>\n    </div></main></div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:1440px;height:900px\">\n      <div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong class=\"au-chrome-title\">Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>\n      <div class=\"au-screen-body\">\n        <aside class=\"au-rail au-screen-rail\">\n          <div class=\"au-cluster\">\n            <span class=\"au-field-label\">Workspaces</span>\n            <button class=\"au-workspace-add\">+</button>\n          </div>\n          <div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--warning\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">main</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n      </div>\n        </aside>\n        <main class=\"au-screen-main\">\n          <div class=\"au-screen-tabs\"><div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--warning\"></span> API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot\"></span> Database</button>\n      </div></div>\n          <div class=\"au-screen-subtabs\"><div class=\"au-cluster\">\n        <button class=\"au-subtab au-subtab--selected\">3000:11200</button>\n        <button class=\"au-subtab\">Console</button>\n        <button class=\"au-subtab\">Metrics</button>\n        <button class=\"au-subtab\">Diagnostics</button>\n        <button class=\"au-subtab\">Git</button>\n      </div></div>\n          <div class=\"au-pane au-screen-pane\"><div class=\"au-cluster\">\n        <button class=\"au-browser-button\">‹</button>\n        <button class=\"au-browser-button\">›</button>\n        <button class=\"au-browser-button\">↻</button>\n        <input class=\"au-address-bar\" value=\"http://localhost:11200/\" readonly />\n      </div></div>\n        </main>\n      </div>\n    </div>"
     },
     {
       "id": "desktop-console",
@@ -203,23 +221,38 @@
       "height": 900,
       "hero": false,
       "livePath": "",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      "layout": "desktop-shell",
+      "components": [
+        "screen",
+        "chrome",
+        "screen-body",
+        "screen-rail",
+        "workspace-add",
+        "workspace",
+        "screen-main",
+        "screen-tabs",
+        "app-tab",
+        "screen-subtabs",
+        "subtab",
+        "screen-pane",
+        "console"
       ],
       "requiredClasses": [
-        "au-console",
+        "au-screen",
+        "au-chrome",
+        "au-screen-body",
+        "au-screen-rail",
+        "au-workspace-add",
+        "au-workspace",
+        "au-screen-main",
+        "au-screen-tabs",
         "au-app-tab",
-        "au-subtab"
+        "au-screen-subtabs",
+        "au-subtab",
+        "au-screen-pane",
+        "au-console"
       ],
-      "requiredDesktopClasses": [
-        "subTab"
-      ],
-      "requiredMobileComponents": [],
-      "copy": [
-        "Storefront",
-        "[install] npm install"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--desktop\" style=\"width:1440px;height:900px\">\n  <div class=\"au-chrome au-cluster\" style=\"justify-content:space-between;padding:0 0.75rem;\">\n    <span class=\"au-cluster\">\n      <span class=\"au-title-tool au-chrome-icon\">☰</span>\n      <span class=\"au-title-tool au-chrome-icon\">↻</span>\n      <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n    </span>\n    <strong class=\"au-chrome-title\">Agent-Up</strong>\n    <span class=\"au-cluster\">\n      <span class=\"au-chrome-button au-chrome-icon\">−</span>\n      <span class=\"au-chrome-button au-chrome-icon\">□</span>\n      <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n    </span>\n  </div>\n  <div class=\"au-screenshot-body\"><aside class=\"au-rail au-screenshot-rail\">\n    <div class=\"au-cluster\" style=\"justify-content:space-between;\">\n      <span class=\"au-field-label\">Workspaces</span>\n      <button class=\"au-workspace-add\" type=\"button\">+</button>\n    </div>\n    <div class=\"au-workspace au-workspace--selected\">\n      <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n      <span class=\"au-status-dot au-status-dot--healthy\"></span>\n      <span>\n        <strong class=\"au-workspace-name\">Harbor Shop</strong>\n        <small class=\"au-workspace-branch\">main</small>\n      </span>\n    </div>\n  </aside><main class=\"au-screenshot-main\"><div class=\"au-screenshot-tabs\" role=\"tablist\">\n    <button class=\"au-app-tab au-app-tab--selected\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n    <button class=\"au-app-tab\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n  </div><div class=\"au-screenshot-subtabs\">\n    <button class=\"au-subtab\" type=\"button\">9100</button>\n    <button class=\"au-subtab au-subtab--selected\" type=\"button\">Console</button>\n    <button class=\"au-subtab\" type=\"button\">Metrics</button>\n    <button class=\"au-subtab\" type=\"button\">Diagnostics</button>\n    <button class=\"au-subtab\" type=\"button\">Database</button>\n    <button class=\"au-subtab\" type=\"button\">Git</button>\n  </div><div class=\"au-screenshot-pane\"><pre class=\"au-console\">[install] npm install\nStorefront listening on WEB_PORT</pre></div></main></div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:1440px;height:900px\">\n      <div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong class=\"au-chrome-title\">Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>\n      <div class=\"au-screen-body\">\n        <aside class=\"au-rail au-screen-rail\">\n          <div class=\"au-cluster\">\n            <span class=\"au-field-label\">Workspaces</span>\n            <button class=\"au-workspace-add\">+</button>\n          </div>\n          <div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--warning\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">main</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n      </div>\n        </aside>\n        <main class=\"au-screen-main\">\n          <div class=\"au-screen-tabs\"><div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--warning\"></span> API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot\"></span> Database</button>\n      </div></div>\n          <div class=\"au-screen-subtabs\"><div class=\"au-cluster\">\n        <button class=\"au-subtab au-subtab--selected\">3000:11200</button>\n        <button class=\"au-subtab\">Console</button>\n        <button class=\"au-subtab\">Metrics</button>\n        <button class=\"au-subtab\">Diagnostics</button>\n        <button class=\"au-subtab\">Git</button>\n      </div></div>\n          <div class=\"au-pane au-screen-pane\"><pre class=\"au-console\">[install] npm install\nlistening on http://127.0.0.1:11200\nready in 842 ms</pre></div>\n        </main>\n      </div>\n    </div>"
     },
     {
       "id": "desktop-git",
@@ -232,29 +265,38 @@
       "height": 900,
       "hero": false,
       "livePath": "",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml",
-        "AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx",
-        "AgentUp.Mobile/src/features/git/components/GitHistoryPanel.tsx",
-        "AgentUp.Mobile/src/features/git/components/GitFileViewer.tsx"
+      "layout": "desktop-shell",
+      "components": [
+        "screen",
+        "chrome",
+        "screen-body",
+        "screen-rail",
+        "workspace-add",
+        "workspace",
+        "screen-main",
+        "screen-tabs",
+        "app-tab",
+        "screen-subtabs",
+        "subtab",
+        "screen-pane",
+        "git-change-list"
       ],
       "requiredClasses": [
-        "au-git-change-list",
-        "au-git-row",
-        "au-git-status",
-        "au-checkbox"
+        "au-screen",
+        "au-chrome",
+        "au-screen-body",
+        "au-screen-rail",
+        "au-workspace-add",
+        "au-workspace",
+        "au-screen-main",
+        "au-screen-tabs",
+        "au-app-tab",
+        "au-screen-subtabs",
+        "au-subtab",
+        "au-screen-pane",
+        "au-git-change-list"
       ],
-      "requiredDesktopClasses": [
-        "gitNodeRow"
-      ],
-      "requiredMobileComponents": [
-        "gitChangeList"
-      ],
-      "copy": [
-        "ProductGrid.tsx",
-        "orders.ts"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--desktop\" style=\"width:1440px;height:900px\">\n  <div class=\"au-chrome au-cluster\" style=\"justify-content:space-between;padding:0 0.75rem;\">\n    <span class=\"au-cluster\">\n      <span class=\"au-title-tool au-chrome-icon\">☰</span>\n      <span class=\"au-title-tool au-chrome-icon\">↻</span>\n      <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n    </span>\n    <strong class=\"au-chrome-title\">Agent-Up</strong>\n    <span class=\"au-cluster\">\n      <span class=\"au-chrome-button au-chrome-icon\">−</span>\n      <span class=\"au-chrome-button au-chrome-icon\">□</span>\n      <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n    </span>\n  </div>\n  <div class=\"au-screenshot-body\"><aside class=\"au-rail au-screenshot-rail\">\n    <div class=\"au-cluster\" style=\"justify-content:space-between;\">\n      <span class=\"au-field-label\">Workspaces</span>\n      <button class=\"au-workspace-add\" type=\"button\">+</button>\n    </div>\n    <div class=\"au-workspace au-workspace--selected\">\n      <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n      <span class=\"au-status-dot au-status-dot--healthy\"></span>\n      <span>\n        <strong class=\"au-workspace-name\">Harbor Shop</strong>\n        <small class=\"au-workspace-branch\">main</small>\n      </span>\n    </div>\n  </aside><main class=\"au-screenshot-main\"><div class=\"au-screenshot-tabs\" role=\"tablist\">\n    <button class=\"au-app-tab au-app-tab--selected\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n    <button class=\"au-app-tab\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n  </div><div class=\"au-screenshot-subtabs\">\n    <button class=\"au-subtab\" type=\"button\">9100</button>\n    <button class=\"au-subtab\" type=\"button\">Console</button>\n    <button class=\"au-subtab\" type=\"button\">Metrics</button>\n    <button class=\"au-subtab\" type=\"button\">Diagnostics</button>\n    <button class=\"au-subtab\" type=\"button\">Database</button>\n    <button class=\"au-subtab au-subtab--selected\" type=\"button\">Git</button>\n  </div><div class=\"au-screenshot-pane au-pane\"><div class=\"au-git-change-list\" style=\"padding:0.5rem;\">\n    <div class=\"au-cluster\" style=\"margin-bottom:0.5rem;\">\n      <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Review <span class=\"au-git-insertions\">+2</span> <span class=\"au-git-deletions\">−0</span></button>\n      <button class=\"au-button au-button--compact\" type=\"button\">Commit <span class=\"au-git-insertions au-git-insertions--on-primary\">+2</span></button>\n    </div>\n    <div class=\"au-git-row\">\n      <span class=\"au-checkbox au-checkbox--checked\"></span>\n      <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n      <span class=\"au-git-change-name au-git-change-name--directory\">apps</span>\n    </div>\n    <div class=\"au-git-row au-git-row--selected\">\n      <span class=\"au-checkbox au-checkbox--checked\"></span>\n      <span class=\"au-git-tree-guide\"></span>\n      <span class=\"au-git-change-name\">ProductGrid.tsx</span>\n      <span class=\"au-git-status au-git-status--modified\">M</span>\n    </div>\n    <div class=\"au-git-row\">\n      <span class=\"au-checkbox au-checkbox--checked\"></span>\n      <span class=\"au-git-tree-guide\"></span>\n      <span class=\"au-git-change-name\">orders.ts</span>\n      <span class=\"au-git-status au-git-status--modified\">M</span>\n    </div>\n  </div></div></main></div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:1440px;height:900px\">\n      <div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong class=\"au-chrome-title\">Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>\n      <div class=\"au-screen-body\">\n        <aside class=\"au-rail au-screen-rail\">\n          <div class=\"au-cluster\">\n            <span class=\"au-field-label\">Workspaces</span>\n            <button class=\"au-workspace-add\">+</button>\n          </div>\n          <div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--warning\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">main</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n      </div>\n        </aside>\n        <main class=\"au-screen-main\">\n          <div class=\"au-screen-tabs\"><div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--warning\"></span> API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot\"></span> Database</button>\n      </div></div>\n          <div class=\"au-screen-subtabs\"><div class=\"au-cluster\">\n        <button class=\"au-subtab au-subtab--selected\">3000:11200</button>\n        <button class=\"au-subtab\">Console</button>\n        <button class=\"au-subtab\">Metrics</button>\n        <button class=\"au-subtab\">Diagnostics</button>\n        <button class=\"au-subtab\">Git</button>\n      </div></div>\n          <div class=\"au-pane au-screen-pane\"><div class=\"au-git-change-list\" style=\"padding: 0.5rem;\">\n        <div class=\"au-cluster\" style=\"margin-bottom: 0.5rem;\">\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Review <span class=\"au-git-insertions\">+12</span> <span class=\"au-git-deletions\">−4</span></button>\n          <button class=\"au-button au-button--compact\" type=\"button\">Commit <span class=\"au-git-insertions au-git-insertions--on-primary\">+12</span> <span class=\"au-git-deletions au-git-deletions--on-primary\">−4</span></button>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">Changes</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">src</span>\n        </div>\n        <div class=\"au-git-row au-git-row--selected\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">AgentChatScreen.tsx</span>\n          <span class=\"au-git-status au-git-status--modified\">M</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">new-view.ts</span>\n          <span class=\"au-git-status au-git-status--added\">+</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">scratch.md</span>\n          <span class=\"au-git-status au-git-status--untracked\">?</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--collapsed\" type=\"button\">▸</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">legacy</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">obsolete.css</span>\n          <span class=\"au-git-status au-git-status--deleted\">−</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">storefront.tsx</span>\n          <span class=\"au-git-status au-git-status--renamed\">→</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">agent-up.json</span>\n          <span class=\"au-git-status au-git-status--conflicted\">!</span>\n        </div>\n      </div></div>\n        </main>\n      </div>\n    </div>"
     },
     {
       "id": "desktop-history",
@@ -267,27 +309,40 @@
       "height": 900,
       "hero": false,
       "livePath": "",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml",
-        "AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx",
-        "AgentUp.Mobile/src/features/git/components/GitHistoryPanel.tsx",
-        "AgentUp.Mobile/src/features/git/components/GitFileViewer.tsx"
+      "layout": "desktop-shell",
+      "components": [
+        "screen",
+        "chrome",
+        "screen-body",
+        "screen-rail",
+        "workspace-add",
+        "workspace",
+        "screen-main",
+        "screen-tabs",
+        "app-tab",
+        "screen-subtabs",
+        "subtab",
+        "screen-pane",
+        "git-log-detail",
+        "git-log-row"
       ],
       "requiredClasses": [
-        "au-git-log",
-        "au-git-log-row",
-        "au-git-log-detail"
+        "au-screen",
+        "au-chrome",
+        "au-screen-body",
+        "au-screen-rail",
+        "au-workspace-add",
+        "au-workspace",
+        "au-screen-main",
+        "au-screen-tabs",
+        "au-app-tab",
+        "au-screen-subtabs",
+        "au-subtab",
+        "au-screen-pane",
+        "au-git-log-detail",
+        "au-git-log-row"
       ],
-      "requiredDesktopClasses": [
-        "gitLogRow"
-      ],
-      "requiredMobileComponents": [
-        "gitLog"
-      ],
-      "copy": [
-        "feat(storefront): featured product grid"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--desktop\" style=\"width:1440px;height:900px\">\n  <div class=\"au-chrome au-cluster\" style=\"justify-content:space-between;padding:0 0.75rem;\">\n    <span class=\"au-cluster\">\n      <span class=\"au-title-tool au-chrome-icon\">☰</span>\n      <span class=\"au-title-tool au-chrome-icon\">↻</span>\n      <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n    </span>\n    <strong class=\"au-chrome-title\">Agent-Up</strong>\n    <span class=\"au-cluster\">\n      <span class=\"au-chrome-button au-chrome-icon\">−</span>\n      <span class=\"au-chrome-button au-chrome-icon\">□</span>\n      <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n    </span>\n  </div>\n  <div class=\"au-screenshot-body\"><aside class=\"au-rail au-screenshot-rail\">\n    <div class=\"au-cluster\" style=\"justify-content:space-between;\">\n      <span class=\"au-field-label\">Workspaces</span>\n      <button class=\"au-workspace-add\" type=\"button\">+</button>\n    </div>\n    <div class=\"au-workspace au-workspace--selected\">\n      <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n      <span class=\"au-status-dot au-status-dot--healthy\"></span>\n      <span>\n        <strong class=\"au-workspace-name\">Harbor Shop</strong>\n        <small class=\"au-workspace-branch\">main</small>\n      </span>\n    </div>\n  </aside><main class=\"au-screenshot-main\"><div class=\"au-screenshot-tabs\" role=\"tablist\">\n    <button class=\"au-app-tab au-app-tab--selected\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n    <button class=\"au-app-tab\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n  </div><div class=\"au-screenshot-subtabs\">\n    <button class=\"au-subtab\" type=\"button\">9100</button>\n    <button class=\"au-subtab\" type=\"button\">Console</button>\n    <button class=\"au-subtab\" type=\"button\">Metrics</button>\n    <button class=\"au-subtab\" type=\"button\">Diagnostics</button>\n    <button class=\"au-subtab\" type=\"button\">Database</button>\n    <button class=\"au-subtab au-subtab--selected\" type=\"button\">Git</button>\n  </div><div class=\"au-screenshot-pane au-pane\"><div class=\"au-git-log\">\n    <div class=\"au-git-log-detail\">\n      <span class=\"au-git-log-subject\">feat(storefront): featured product grid</span>\n      <span class=\"au-git-log-author\">Demo</span>\n      <div class=\"au-cluster\">\n        <span class=\"au-git-log-ref au-git-log-ref--head\">HEAD</span>\n        <span class=\"au-git-log-ref\">main</span>\n      </div>\n    </div>\n    <div class=\"au-git-log-track\">\n      <div>\n        <div class=\"au-git-log-row au-git-log-row--selected\"><span class=\"au-git-log-time\">22.09.26 07:30</span></div>\n      </div>\n      <div class=\"au-git-log-graph-scroll\">\n        <div class=\"au-git-log-row\">\n          <svg class=\"au-git-log-graph\" width=\"28\" height=\"28\" viewBox=\"0 0 28 28\" aria-hidden=\"true\">\n            <g class=\"au-git-log-lane-0\">\n              <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"14\" cy=\"14\" r=\"3.5\"></circle>\n            </g>\n          </svg>\n        </div>\n      </div>\n    </div>\n  </div></div></main></div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:1440px;height:900px\">\n      <div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong class=\"au-chrome-title\">Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>\n      <div class=\"au-screen-body\">\n        <aside class=\"au-rail au-screen-rail\">\n          <div class=\"au-cluster\">\n            <span class=\"au-field-label\">Workspaces</span>\n            <button class=\"au-workspace-add\">+</button>\n          </div>\n          <div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--warning\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">main</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n      </div>\n        </aside>\n        <main class=\"au-screen-main\">\n          <div class=\"au-screen-tabs\"><div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--warning\"></span> API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot\"></span> Database</button>\n      </div></div>\n          <div class=\"au-screen-subtabs\"><div class=\"au-cluster\">\n        <button class=\"au-subtab au-subtab--selected\">3000:11200</button>\n        <button class=\"au-subtab\">Console</button>\n        <button class=\"au-subtab\">Metrics</button>\n        <button class=\"au-subtab\">Diagnostics</button>\n        <button class=\"au-subtab\">Git</button>\n      </div></div>\n          <div class=\"au-pane au-screen-pane\"><div class=\"au-git-log-detail\">\n        <span class=\"au-git-log-subject\">fix(packaging): seal platform verification gaps</span>\n        <span class=\"au-git-log-author\">Daniel Mass</span>\n        <div class=\"au-cluster\">\n          <span class=\"au-git-log-ref au-git-log-ref--head\">HEAD</span>\n          <span class=\"au-git-log-ref\">369-mobile</span>\n          <span class=\"au-git-log-ref au-git-log-ref--remote\">origin/main</span>\n          <span class=\"au-git-log-ref au-git-log-ref--tag\">v3.47.0</span>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Checkout</button>\n        </div>\n      </div><div class=\"au-git-log\">\n        <div class=\"au-git-log-track\">\n          <div>\n            <div class=\"au-git-log-row au-git-log-row--selected\">\n              <span class=\"au-git-log-time\">16.09.26 05:16</span>\n            </div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">16.09.26 05:14</span>\n            </div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">16.09.26 05:10</span>\n            </div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">15.09.26 18:26</span>\n            </div>\n          </div>\n          <div class=\"au-git-log-graph-scroll\">\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"70\" height=\"28\" viewBox=\"0 0 70 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n                <g class=\"au-git-log-lane-1\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 0 L 21 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 14 L 21 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-2\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 0 L 35 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 14 L 35 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-3\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 49 0 L 49 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 49 14 C 49 21, 63 21, 63 28\"></path>\n                </g>\n              </svg>\n            </div>\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"70\" height=\"28\" viewBox=\"0 0 70 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n                <g class=\"au-git-log-lane-1\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 0 L 21 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 14 L 21 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-2\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 0 L 35 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 14 L 35 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-3\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 0 L 63 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 14 L 63 28\"></path>\n                </g>\n              </svg>\n            </div>\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"70\" height=\"28\" viewBox=\"0 0 70 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-1\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 0 L 21 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 14 L 21 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"21\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n                <g class=\"au-git-log-lane-2\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 0 L 35 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 14 L 35 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-3\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 0 L 63 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 14 L 63 28\"></path>\n                </g>\n              </svg>\n            </div>\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"70\" height=\"28\" viewBox=\"0 0 70 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-1\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 0 L 21 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 14 L 21 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-2\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 0 L 35 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 14 L 35 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"35\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n                <g class=\"au-git-log-lane-3\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 0 L 63 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 14 L 63 28\"></path>\n                </g>\n              </svg>\n            </div>\n          </div>\n        </div>\n      </div></div>\n        </main>\n      </div>\n    </div>"
     },
     {
       "id": "desktop-agents",
@@ -300,26 +355,36 @@
       "height": 900,
       "hero": false,
       "livePath": "",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml",
-        "AgentUp.Chat/src/components/AgentChatScreen.tsx"
+      "layout": "desktop-shell",
+      "components": [
+        "screen",
+        "chrome",
+        "screen-body",
+        "screen-rail",
+        "workspace-add",
+        "workspace",
+        "screen-main",
+        "screen-tabs",
+        "app-tab",
+        "screen-pane",
+        "choice",
+        "chat-transcript"
       ],
       "requiredClasses": [
-        "au-chat-user",
-        "au-chat-work",
-        "au-card",
-        "au-choice"
+        "au-screen",
+        "au-chrome",
+        "au-screen-body",
+        "au-screen-rail",
+        "au-workspace-add",
+        "au-workspace",
+        "au-screen-main",
+        "au-screen-tabs",
+        "au-app-tab",
+        "au-screen-pane",
+        "au-choice",
+        "au-chat-transcript"
       ],
-      "requiredDesktopClasses": [],
-      "requiredMobileComponents": [
-        "chatUser",
-        "chatWork"
-      ],
-      "copy": [
-        "Codex",
-        "Harbor Shop"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--desktop\" style=\"width:1440px;height:900px\">\n  <div class=\"au-chrome au-cluster\" style=\"justify-content:space-between;padding:0 0.75rem;\">\n    <span class=\"au-cluster\">\n      <span class=\"au-title-tool au-chrome-icon\">☰</span>\n      <span class=\"au-title-tool au-chrome-icon\">↻</span>\n      <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n    </span>\n    <strong class=\"au-chrome-title\">Agent-Up</strong>\n    <span class=\"au-cluster\">\n      <span class=\"au-chrome-button au-chrome-icon\">−</span>\n      <span class=\"au-chrome-button au-chrome-icon\">□</span>\n      <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n    </span>\n  </div>\n  <div class=\"au-screenshot-body\"><aside class=\"au-rail au-screenshot-rail\">\n    <div class=\"au-cluster\" style=\"justify-content:space-between;\">\n      <span class=\"au-field-label\">Workspaces</span>\n      <button class=\"au-workspace-add\" type=\"button\">+</button>\n    </div>\n    <div class=\"au-workspace au-workspace--selected\">\n      <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n      <span class=\"au-status-dot au-status-dot--healthy\"></span>\n      <span>\n        <strong class=\"au-workspace-name\">Harbor Shop</strong>\n        <small class=\"au-workspace-branch\">main</small>\n      </span>\n    </div>\n  </aside><main class=\"au-screenshot-main\"><div class=\"au-screenshot-tabs\" role=\"tablist\"><button class=\"au-app-tab au-app-tab--selected\" type=\"button\">Agent</button></div><div class=\"au-screenshot-pane au-pane\" style=\"padding:1rem;\">\n      <div class=\"au-stack\">\n        <button class=\"au-choice au-choice--selected\" type=\"button\">Codex <span class=\"au-accent\">Available</span></button>\n        <div class=\"au-chat-transcript\">\n          <div class=\"au-chat-user\">What is running in Harbor Shop?</div>\n          <div class=\"au-chat-work\"><span class=\"au-field-label\">Tool</span> workspace status</div>\n          <div class=\"au-card\"><span class=\"au-field-label\">Codex</span><p>Harbor Shop is running locally. The storefront is showing three featured products, and the Orders API reports twelve open orders.</p></div>\n        </div>\n      </div>\n    </div></main></div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:1440px;height:900px\">\n      <div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong class=\"au-chrome-title\">Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>\n      <div class=\"au-screen-body\">\n        <aside class=\"au-rail au-screen-rail\">\n          <div class=\"au-cluster\">\n            <span class=\"au-field-label\">Workspaces</span>\n            <button class=\"au-workspace-add\">+</button>\n          </div>\n          <div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--warning\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">main</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n      </div>\n        </aside>\n        <main class=\"au-screen-main\">\n          <div class=\"au-screen-tabs\"><div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--warning\"></span> API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot\"></span> Database</button>\n      </div></div>\n          \n          <div class=\"au-pane au-screen-pane\"><div class=\"au-stack\">\n        <button class=\"au-choice au-choice--selected\" type=\"button\">Codex <span class=\"au-accent\">Available</span></button>\n        <button class=\"au-choice\" type=\"button\" disabled>Cursor <span class=\"au-muted\">Not installed</span></button>\n      </div><div class=\"au-chat-transcript\">\n        <div class=\"au-chat-user\">Hey, please look up TX 1320 M3 offers</div>\n        <button class=\"au-chat-run\" type=\"button\">Worked · 2 tools · Thought ▸</button>\n        <div class=\"au-chat-work\"><span class=\"au-field-label\">Tool</span> Web search: TX 1320 M3</div>\n        <button class=\"au-chat-thought\" type=\"button\">\n          <span class=\"au-field-label\">Thought</span>\n        </button>\n        <div class=\"au-card\"><span class=\"au-field-label\">Codex</span><p>A good used price is roughly €140–200.</p></div>\n      </div></div>\n        </main>\n      </div>\n    </div>"
     },
     {
       "id": "desktop-diagnostics",
@@ -332,22 +397,40 @@
       "height": 900,
       "hero": false,
       "livePath": "",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      "layout": "desktop-shell",
+      "components": [
+        "screen",
+        "chrome",
+        "screen-body",
+        "screen-rail",
+        "workspace-add",
+        "workspace",
+        "screen-main",
+        "screen-tabs",
+        "app-tab",
+        "screen-subtabs",
+        "subtab",
+        "screen-pane",
+        "audit-table",
+        "page-jump"
       ],
       "requiredClasses": [
+        "au-screen",
+        "au-chrome",
+        "au-screen-body",
+        "au-screen-rail",
+        "au-workspace-add",
+        "au-workspace",
+        "au-screen-main",
+        "au-screen-tabs",
+        "au-app-tab",
+        "au-screen-subtabs",
+        "au-subtab",
+        "au-screen-pane",
         "au-audit-row",
-        "au-audit-header",
         "au-page-jump"
       ],
-      "requiredDesktopClasses": [
-        "auditTableRow"
-      ],
-      "requiredMobileComponents": [],
-      "copy": [
-        "Storefront"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--desktop\" style=\"width:1440px;height:900px\">\n  <div class=\"au-chrome au-cluster\" style=\"justify-content:space-between;padding:0 0.75rem;\">\n    <span class=\"au-cluster\">\n      <span class=\"au-title-tool au-chrome-icon\">☰</span>\n      <span class=\"au-title-tool au-chrome-icon\">↻</span>\n      <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n    </span>\n    <strong class=\"au-chrome-title\">Agent-Up</strong>\n    <span class=\"au-cluster\">\n      <span class=\"au-chrome-button au-chrome-icon\">−</span>\n      <span class=\"au-chrome-button au-chrome-icon\">□</span>\n      <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n    </span>\n  </div>\n  <div class=\"au-screenshot-body\"><aside class=\"au-rail au-screenshot-rail\">\n    <div class=\"au-cluster\" style=\"justify-content:space-between;\">\n      <span class=\"au-field-label\">Workspaces</span>\n      <button class=\"au-workspace-add\" type=\"button\">+</button>\n    </div>\n    <div class=\"au-workspace au-workspace--selected\">\n      <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n      <span class=\"au-status-dot au-status-dot--healthy\"></span>\n      <span>\n        <strong class=\"au-workspace-name\">Harbor Shop</strong>\n        <small class=\"au-workspace-branch\">main</small>\n      </span>\n    </div>\n  </aside><main class=\"au-screenshot-main\"><div class=\"au-screenshot-tabs\" role=\"tablist\">\n    <button class=\"au-app-tab au-app-tab--selected\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n    <button class=\"au-app-tab\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n  </div><div class=\"au-screenshot-subtabs\">\n    <button class=\"au-subtab\" type=\"button\">9100</button>\n    <button class=\"au-subtab\" type=\"button\">Console</button>\n    <button class=\"au-subtab\" type=\"button\">Metrics</button>\n    <button class=\"au-subtab au-subtab--selected\" type=\"button\">Diagnostics</button>\n    <button class=\"au-subtab\" type=\"button\">Database</button>\n    <button class=\"au-subtab\" type=\"button\">Git</button>\n  </div><div class=\"au-screenshot-pane au-pane\">\n      <div class=\"au-audit-header\">Time · Kind · Message</div>\n      <div class=\"au-audit-row\">08:00 · process · Storefront listening on WEB_PORT</div>\n      <div class=\"au-audit-row\">08:00 · process · Orders API listening on API_PORT</div>\n      <div class=\"au-cluster\" style=\"margin-top:0.75rem;\">\n        <button class=\"au-page-jump au-page-jump--current\" type=\"button\">1</button>\n      </div>\n    </div></main></div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:1440px;height:900px\">\n      <div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong class=\"au-chrome-title\">Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>\n      <div class=\"au-screen-body\">\n        <aside class=\"au-rail au-screen-rail\">\n          <div class=\"au-cluster\">\n            <span class=\"au-field-label\">Workspaces</span>\n            <button class=\"au-workspace-add\">+</button>\n          </div>\n          <div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--warning\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">main</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n      </div>\n        </aside>\n        <main class=\"au-screen-main\">\n          <div class=\"au-screen-tabs\"><div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--warning\"></span> API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot\"></span> Database</button>\n      </div></div>\n          <div class=\"au-screen-subtabs\"><div class=\"au-cluster\">\n        <button class=\"au-subtab au-subtab--selected\">3000:11200</button>\n        <button class=\"au-subtab\">Console</button>\n        <button class=\"au-subtab\">Metrics</button>\n        <button class=\"au-subtab\">Diagnostics</button>\n        <button class=\"au-subtab\">Git</button>\n      </div></div>\n          <div class=\"au-pane au-screen-pane\"><div class=\"au-panel\">\n        <div class=\"au-audit-header\">Time · Kind · Message</div>\n        <div class=\"au-audit-row\">12:01 · process · listening on 11200</div>\n        <div class=\"au-audit-row\" style=\"color: var(--au-color-text-danger)\">12:02 · browser · net::ERR_CONNECTION_REFUSED</div>\n      </div><div class=\"au-cluster\">\n        <button class=\"au-page-jump\">1</button>\n        <button class=\"au-page-jump au-page-jump--current\">2</button>\n        <button class=\"au-page-jump\">3</button>\n      </div></div>\n        </main>\n      </div>\n    </div>"
     },
     {
       "id": "desktop-metrics",
@@ -360,21 +443,40 @@
       "height": 900,
       "hero": false,
       "livePath": "",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      "layout": "desktop-shell",
+      "components": [
+        "screen",
+        "chrome",
+        "screen-body",
+        "screen-rail",
+        "workspace-add",
+        "workspace",
+        "screen-main",
+        "screen-tabs",
+        "app-tab",
+        "screen-subtabs",
+        "subtab",
+        "screen-pane",
+        "metrics-card",
+        "metrics-chart"
       ],
       "requiredClasses": [
+        "au-screen",
+        "au-chrome",
+        "au-screen-body",
+        "au-screen-rail",
+        "au-workspace-add",
+        "au-workspace",
+        "au-screen-main",
+        "au-screen-tabs",
+        "au-app-tab",
+        "au-screen-subtabs",
+        "au-subtab",
+        "au-screen-pane",
         "au-metrics-card",
         "au-metrics-chart"
       ],
-      "requiredDesktopClasses": [
-        "metricsSummaryCard"
-      ],
-      "requiredMobileComponents": [],
-      "copy": [
-        "Harbor Shop"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--desktop\" style=\"width:1440px;height:900px\">\n  <div class=\"au-chrome au-cluster\" style=\"justify-content:space-between;padding:0 0.75rem;\">\n    <span class=\"au-cluster\">\n      <span class=\"au-title-tool au-chrome-icon\">☰</span>\n      <span class=\"au-title-tool au-chrome-icon\">↻</span>\n      <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n    </span>\n    <strong class=\"au-chrome-title\">Agent-Up</strong>\n    <span class=\"au-cluster\">\n      <span class=\"au-chrome-button au-chrome-icon\">−</span>\n      <span class=\"au-chrome-button au-chrome-icon\">□</span>\n      <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n    </span>\n  </div>\n  <div class=\"au-screenshot-body\"><aside class=\"au-rail au-screenshot-rail\">\n    <div class=\"au-cluster\" style=\"justify-content:space-between;\">\n      <span class=\"au-field-label\">Workspaces</span>\n      <button class=\"au-workspace-add\" type=\"button\">+</button>\n    </div>\n    <div class=\"au-workspace au-workspace--selected\">\n      <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n      <span class=\"au-status-dot au-status-dot--healthy\"></span>\n      <span>\n        <strong class=\"au-workspace-name\">Harbor Shop</strong>\n        <small class=\"au-workspace-branch\">main</small>\n      </span>\n    </div>\n  </aside><main class=\"au-screenshot-main\"><div class=\"au-screenshot-tabs\" role=\"tablist\">\n    <button class=\"au-app-tab au-app-tab--selected\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n    <button class=\"au-app-tab\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n  </div><div class=\"au-screenshot-subtabs\">\n    <button class=\"au-subtab\" type=\"button\">9100</button>\n    <button class=\"au-subtab\" type=\"button\">Console</button>\n    <button class=\"au-subtab au-subtab--selected\" type=\"button\">Metrics</button>\n    <button class=\"au-subtab\" type=\"button\">Diagnostics</button>\n    <button class=\"au-subtab\" type=\"button\">Database</button>\n    <button class=\"au-subtab\" type=\"button\">Git</button>\n  </div><div class=\"au-screenshot-pane au-pane\" style=\"padding:1rem;\">\n      <div class=\"au-cluster\">\n        <div class=\"au-metrics-card\"><span class=\"au-eyebrow\">CPU</span><strong>4.2%</strong></div>\n        <div class=\"au-metrics-card\"><span class=\"au-eyebrow\">Memory</span><strong>256 MB</strong></div>\n      </div>\n      <div class=\"au-metrics-chart\" style=\"margin-top:1rem;\">Harbor Shop · CPU · memory · request duration</div>\n    </div></main></div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:1440px;height:900px\">\n      <div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong class=\"au-chrome-title\">Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>\n      <div class=\"au-screen-body\">\n        <aside class=\"au-rail au-screen-rail\">\n          <div class=\"au-cluster\">\n            <span class=\"au-field-label\">Workspaces</span>\n            <button class=\"au-workspace-add\">+</button>\n          </div>\n          <div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--warning\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">main</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n      </div>\n        </aside>\n        <main class=\"au-screen-main\">\n          <div class=\"au-screen-tabs\"><div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--warning\"></span> API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot\"></span> Database</button>\n      </div></div>\n          <div class=\"au-screen-subtabs\"><div class=\"au-cluster\">\n        <button class=\"au-subtab au-subtab--selected\">3000:11200</button>\n        <button class=\"au-subtab\">Console</button>\n        <button class=\"au-subtab\">Metrics</button>\n        <button class=\"au-subtab\">Diagnostics</button>\n        <button class=\"au-subtab\">Git</button>\n      </div></div>\n          <div class=\"au-pane au-screen-pane\"><div class=\"au-metrics-card\"><span class=\"au-eyebrow\">p95</span><strong>128 ms</strong></div><div class=\"au-metrics-chart\">CPU · memory · request duration</div></div>\n        </main>\n      </div>\n    </div>"
     },
     {
       "id": "desktop-validation",
@@ -387,18 +489,38 @@
       "height": 900,
       "hero": false,
       "livePath": "",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      "layout": "desktop-shell",
+      "components": [
+        "screen",
+        "chrome",
+        "screen-body",
+        "screen-rail",
+        "workspace-add",
+        "workspace",
+        "screen-main",
+        "screen-tabs",
+        "app-tab",
+        "screen-subtabs",
+        "subtab",
+        "screen-pane",
+        "validation-stage"
       ],
       "requiredClasses": [
+        "au-screen",
+        "au-chrome",
+        "au-screen-body",
+        "au-screen-rail",
+        "au-workspace-add",
+        "au-workspace",
+        "au-screen-main",
+        "au-screen-tabs",
+        "au-app-tab",
+        "au-screen-subtabs",
+        "au-subtab",
+        "au-screen-pane",
         "au-validation-stage"
       ],
-      "requiredDesktopClasses": [],
-      "requiredMobileComponents": [],
-      "copy": [
-        "Harbor Shop"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--desktop\" style=\"width:1440px;height:900px\">\n  <div class=\"au-chrome au-cluster\" style=\"justify-content:space-between;padding:0 0.75rem;\">\n    <span class=\"au-cluster\">\n      <span class=\"au-title-tool au-chrome-icon\">☰</span>\n      <span class=\"au-title-tool au-chrome-icon\">↻</span>\n      <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n    </span>\n    <strong class=\"au-chrome-title\">Agent-Up</strong>\n    <span class=\"au-cluster\">\n      <span class=\"au-chrome-button au-chrome-icon\">−</span>\n      <span class=\"au-chrome-button au-chrome-icon\">□</span>\n      <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n    </span>\n  </div>\n  <div class=\"au-screenshot-body\"><aside class=\"au-rail au-screenshot-rail\">\n    <div class=\"au-cluster\" style=\"justify-content:space-between;\">\n      <span class=\"au-field-label\">Workspaces</span>\n      <button class=\"au-workspace-add\" type=\"button\">+</button>\n    </div>\n    <div class=\"au-workspace au-workspace--selected\">\n      <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n      <span class=\"au-status-dot au-status-dot--healthy\"></span>\n      <span>\n        <strong class=\"au-workspace-name\">Harbor Shop</strong>\n        <small class=\"au-workspace-branch\">main</small>\n      </span>\n    </div>\n  </aside><main class=\"au-screenshot-main\"><div class=\"au-screenshot-tabs\" role=\"tablist\">\n    <button class=\"au-app-tab au-app-tab--selected\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n    <button class=\"au-app-tab\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n  </div><div class=\"au-screenshot-subtabs\">\n    <button class=\"au-subtab au-subtab--selected\" type=\"button\">9100</button>\n    <button class=\"au-subtab\" type=\"button\">Console</button>\n    <button class=\"au-subtab\" type=\"button\">Metrics</button>\n    <button class=\"au-subtab\" type=\"button\">Diagnostics</button>\n    <button class=\"au-subtab\" type=\"button\">Database</button>\n    <button class=\"au-subtab\" type=\"button\">Git</button>\n  </div><div class=\"au-screenshot-pane au-pane\" style=\"padding:1rem;\">\n      <p class=\"au-page-title\">Validation</p>\n      <div class=\"au-stack\">\n        <div class=\"au-validation-stage au-validation-stage--passed\">Open storefront · passed</div>\n        <div class=\"au-validation-stage au-validation-stage--running\">Place order · running</div>\n        <div class=\"au-validation-stage au-validation-stage--failed\">Mark shipped · failed</div>\n      </div>\n    </div></main></div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:1440px;height:900px\">\n      <div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong class=\"au-chrome-title\">Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>\n      <div class=\"au-screen-body\">\n        <aside class=\"au-rail au-screen-rail\">\n          <div class=\"au-cluster\">\n            <span class=\"au-field-label\">Workspaces</span>\n            <button class=\"au-workspace-add\">+</button>\n          </div>\n          <div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--warning\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">main</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n      </div>\n        </aside>\n        <main class=\"au-screen-main\">\n          <div class=\"au-screen-tabs\"><div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--warning\"></span> API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot\"></span> Database</button>\n      </div></div>\n          <div class=\"au-screen-subtabs\"><div class=\"au-cluster\">\n        <button class=\"au-subtab au-subtab--selected\">3000:11200</button>\n        <button class=\"au-subtab\">Console</button>\n        <button class=\"au-subtab\">Metrics</button>\n        <button class=\"au-subtab\">Diagnostics</button>\n        <button class=\"au-subtab\">Git</button>\n      </div></div>\n          <div class=\"au-pane au-screen-pane\"><div class=\"au-stack\">\n        <div class=\"au-validation-stage au-validation-stage--passed\">Sign in · passed</div>\n        <div class=\"au-validation-stage au-validation-stage--running\">Open checkout · running</div>\n        <div class=\"au-validation-stage au-validation-stage--failed\">Pay · failed</div>\n      </div></div>\n        </main>\n      </div>\n    </div>"
     },
     {
       "id": "desktop-database",
@@ -411,24 +533,42 @@
       "height": 900,
       "hero": false,
       "livePath": "",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      "layout": "desktop-shell",
+      "components": [
+        "screen",
+        "chrome",
+        "screen-body",
+        "screen-rail",
+        "workspace-add",
+        "workspace",
+        "screen-main",
+        "screen-tabs",
+        "app-tab",
+        "screen-subtabs",
+        "subtab",
+        "screen-pane",
+        "db-list",
+        "sql-editor",
+        "db-run"
       ],
       "requiredClasses": [
+        "au-screen",
+        "au-chrome",
+        "au-screen-body",
+        "au-screen-rail",
+        "au-workspace-add",
+        "au-workspace",
+        "au-screen-main",
+        "au-screen-tabs",
+        "au-app-tab",
+        "au-screen-subtabs",
+        "au-subtab",
+        "au-screen-pane",
+        "au-list-item",
         "au-code-editor",
-        "au-db-run",
-        "au-db-header-cell",
-        "au-list-item"
+        "au-db-run"
       ],
-      "requiredDesktopClasses": [
-        "sqlEditor",
-        "dbRunButton"
-      ],
-      "requiredMobileComponents": [],
-      "copy": [
-        "Harbor Shop"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--desktop\" style=\"width:1440px;height:900px\">\n  <div class=\"au-chrome au-cluster\" style=\"justify-content:space-between;padding:0 0.75rem;\">\n    <span class=\"au-cluster\">\n      <span class=\"au-title-tool au-chrome-icon\">☰</span>\n      <span class=\"au-title-tool au-chrome-icon\">↻</span>\n      <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n    </span>\n    <strong class=\"au-chrome-title\">Agent-Up</strong>\n    <span class=\"au-cluster\">\n      <span class=\"au-chrome-button au-chrome-icon\">−</span>\n      <span class=\"au-chrome-button au-chrome-icon\">□</span>\n      <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n    </span>\n  </div>\n  <div class=\"au-screenshot-body\"><aside class=\"au-rail au-screenshot-rail\">\n    <div class=\"au-cluster\" style=\"justify-content:space-between;\">\n      <span class=\"au-field-label\">Workspaces</span>\n      <button class=\"au-workspace-add\" type=\"button\">+</button>\n    </div>\n    <div class=\"au-workspace au-workspace--selected\">\n      <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n      <span class=\"au-status-dot au-status-dot--healthy\"></span>\n      <span>\n        <strong class=\"au-workspace-name\">Harbor Shop</strong>\n        <small class=\"au-workspace-branch\">main</small>\n      </span>\n    </div>\n  </aside><main class=\"au-screenshot-main\"><div class=\"au-screenshot-tabs\" role=\"tablist\">\n    <button class=\"au-app-tab au-app-tab--selected\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n    <button class=\"au-app-tab\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n  </div><div class=\"au-screenshot-subtabs\">\n    <button class=\"au-subtab\" type=\"button\">9100</button>\n    <button class=\"au-subtab\" type=\"button\">Console</button>\n    <button class=\"au-subtab\" type=\"button\">Metrics</button>\n    <button class=\"au-subtab\" type=\"button\">Diagnostics</button>\n    <button class=\"au-subtab au-subtab--selected\" type=\"button\">Database</button>\n    <button class=\"au-subtab\" type=\"button\">Git</button>\n  </div><div class=\"au-screenshot-pane au-pane\" style=\"padding:1rem;\">\n      <div class=\"au-stack\">\n        <div class=\"au-list-item au-list-item--selected\">orders</div>\n        <div class=\"au-list-item\">customers</div>\n        <textarea class=\"au-code-editor\">select * from orders limit 20;</textarea>\n        <button class=\"au-db-run\" type=\"button\">Run</button>\n        <div class=\"au-cluster\">\n          <div class=\"au-db-header-cell\">id</div>\n          <div class=\"au-db-data-cell\">1008</div>\n        </div>\n      </div>\n    </div></main></div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:1440px;height:900px\">\n      <div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong class=\"au-chrome-title\">Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>\n      <div class=\"au-screen-body\">\n        <aside class=\"au-rail au-screen-rail\">\n          <div class=\"au-cluster\">\n            <span class=\"au-field-label\">Workspaces</span>\n            <button class=\"au-workspace-add\">+</button>\n          </div>\n          <div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--warning\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">main</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n      </div>\n        </aside>\n        <main class=\"au-screen-main\">\n          <div class=\"au-screen-tabs\"><div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--warning\"></span> API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot\"></span> Database</button>\n      </div></div>\n          <div class=\"au-screen-subtabs\"><div class=\"au-cluster\">\n        <button class=\"au-subtab au-subtab--selected\">3000:11200</button>\n        <button class=\"au-subtab\">Console</button>\n        <button class=\"au-subtab\">Metrics</button>\n        <button class=\"au-subtab\">Diagnostics</button>\n        <button class=\"au-subtab\">Git</button>\n      </div></div>\n          <div class=\"au-pane au-screen-pane\"><div class=\"au-stack\">\n        <div class=\"au-list-item au-list-item--selected\">orders</div>\n        <div class=\"au-list-item\">customers</div>\n      </div><textarea class=\"au-code-editor\">select * from orders limit 20;</textarea><button class=\"au-db-run\">Run</button></div>\n        </main>\n      </div>\n    </div>"
     },
     {
       "id": "desktop-capabilities",
@@ -441,22 +581,34 @@
       "height": 900,
       "hero": false,
       "livePath": "",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"
+      "layout": "desktop-shell",
+      "components": [
+        "screen",
+        "chrome",
+        "screen-body",
+        "screen-rail",
+        "workspace-add",
+        "workspace",
+        "screen-main",
+        "screen-tabs",
+        "app-tab",
+        "screen-pane",
+        "capability-catalog"
       ],
       "requiredClasses": [
-        "au-overlay-panel",
-        "au-card",
-        "au-badge"
+        "au-screen",
+        "au-chrome",
+        "au-screen-body",
+        "au-screen-rail",
+        "au-workspace-add",
+        "au-workspace",
+        "au-screen-main",
+        "au-screen-tabs",
+        "au-app-tab",
+        "au-screen-pane",
+        "au-overlay-panel"
       ],
-      "requiredDesktopClasses": [],
-      "requiredMobileComponents": [],
-      "copy": [
-        ".NET",
-        "Docker",
-        "Codex"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--desktop\" style=\"width:1440px;height:900px\">\n  <div class=\"au-chrome au-cluster\" style=\"justify-content:space-between;padding:0 0.75rem;\">\n    <span class=\"au-cluster\">\n      <span class=\"au-title-tool au-chrome-icon\">☰</span>\n      <span class=\"au-title-tool au-chrome-icon\">↻</span>\n      <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n    </span>\n    <strong class=\"au-chrome-title\">Agent-Up</strong>\n    <span class=\"au-cluster\">\n      <span class=\"au-chrome-button au-chrome-icon\">−</span>\n      <span class=\"au-chrome-button au-chrome-icon\">□</span>\n      <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n    </span>\n  </div>\n  <div class=\"au-screenshot-body\"><aside class=\"au-rail au-screenshot-rail\">\n    <div class=\"au-cluster\" style=\"justify-content:space-between;\">\n      <span class=\"au-field-label\">Workspaces</span>\n      <button class=\"au-workspace-add\" type=\"button\">+</button>\n    </div>\n    <div class=\"au-workspace au-workspace--selected\">\n      <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n      <span class=\"au-status-dot au-status-dot--healthy\"></span>\n      <span>\n        <strong class=\"au-workspace-name\">Harbor Shop</strong>\n        <small class=\"au-workspace-branch\">main</small>\n      </span>\n    </div>\n  </aside><main class=\"au-screenshot-main\"><div class=\"au-screenshot-tabs\" role=\"tablist\"><button class=\"au-app-tab au-app-tab--selected\" type=\"button\">Overview</button></div><div class=\"au-screenshot-pane\" style=\"display:grid;place-items:center;\">\n      <div class=\"au-overlay-panel\" style=\"padding:1.25rem;max-width:36rem;\">\n        <p class=\"au-page-title\">Capability modules</p>\n        <p class=\"au-muted\">Enable packages on this Server. Clients never talk to the remote registry.</p>\n        <div class=\"au-stack\" style=\"margin-top:1rem;\">\n          <div class=\"au-card\"><strong>.NET</strong><p class=\"au-muted\">agent-up · 1.0.0</p><span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Ready</span></div>\n          <div class=\"au-card\"><strong>Docker</strong><p class=\"au-muted\">agent-up · 1.0.0</p><span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Ready</span></div>\n          <div class=\"au-card\"><strong>Codex</strong><p class=\"au-muted\">agent-up · 1.0.0</p><span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Ready</span></div>\n        </div>\n      </div>\n    </div></main></div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:1440px;height:900px\">\n      <div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong class=\"au-chrome-title\">Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>\n      <div class=\"au-screen-body\">\n        <aside class=\"au-rail au-screen-rail\">\n          <div class=\"au-cluster\">\n            <span class=\"au-field-label\">Workspaces</span>\n            <button class=\"au-workspace-add\">+</button>\n          </div>\n          <div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--warning\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">main</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n      </div>\n        </aside>\n        <main class=\"au-screen-main\">\n          <div class=\"au-screen-tabs\"><div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--warning\"></span> API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot\"></span> Database</button>\n      </div></div>\n          \n          <div class=\"au-pane au-screen-pane\"><div class=\"au-overlay-panel\" style=\"padding: 1.25rem; max-width: 36rem;\">\n        <p class=\"au-page-title\">Capability modules</p>\n        <p class=\"au-muted\">Enable packages on this Server. Clients never talk to the remote registry.</p>\n        <div class=\"au-stack\" style=\"margin-top: 1rem;\">\n          <div class=\"au-card\">\n            <strong>.NET</strong>\n            <p class=\"au-muted\">Ready · toolchain</p>\n            <div class=\"au-cluster\">\n              <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Disable</button>\n            </div>\n          </div>\n          <div class=\"au-card\">\n            <strong>Docker</strong>\n            <p class=\"au-muted\">Not enabled</p>\n            <div class=\"au-cluster\">\n              <button class=\"au-button au-button--compact\" type=\"button\">Enable</button>\n            </div>\n          </div>\n        </div>\n      </div></div>\n        </main>\n      </div>\n    </div>"
     },
     {
       "id": "desktop-file-viewer",
@@ -469,25 +621,38 @@
       "height": 900,
       "hero": false,
       "livePath": "",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml",
-        "AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx",
-        "AgentUp.Mobile/src/features/git/components/GitHistoryPanel.tsx",
-        "AgentUp.Mobile/src/features/git/components/GitFileViewer.tsx"
+      "layout": "desktop-shell",
+      "components": [
+        "screen",
+        "chrome",
+        "screen-body",
+        "screen-rail",
+        "workspace-add",
+        "workspace",
+        "screen-main",
+        "screen-tabs",
+        "app-tab",
+        "screen-subtabs",
+        "subtab",
+        "screen-pane",
+        "file-viewer"
       ],
       "requiredClasses": [
-        "au-file-viewer",
-        "au-file-viewer-line",
-        "au-overlay-panel"
+        "au-screen",
+        "au-chrome",
+        "au-screen-body",
+        "au-screen-rail",
+        "au-workspace-add",
+        "au-workspace",
+        "au-screen-main",
+        "au-screen-tabs",
+        "au-app-tab",
+        "au-screen-subtabs",
+        "au-subtab",
+        "au-screen-pane",
+        "au-file-viewer"
       ],
-      "requiredDesktopClasses": [],
-      "requiredMobileComponents": [
-        "fileViewer"
-      ],
-      "copy": [
-        "ProductGrid.tsx"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--desktop\" style=\"width:1440px;height:900px\">\n  <div class=\"au-chrome au-cluster\" style=\"justify-content:space-between;padding:0 0.75rem;\">\n    <span class=\"au-cluster\">\n      <span class=\"au-title-tool au-chrome-icon\">☰</span>\n      <span class=\"au-title-tool au-chrome-icon\">↻</span>\n      <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n    </span>\n    <strong class=\"au-chrome-title\">Agent-Up</strong>\n    <span class=\"au-cluster\">\n      <span class=\"au-chrome-button au-chrome-icon\">−</span>\n      <span class=\"au-chrome-button au-chrome-icon\">□</span>\n      <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n    </span>\n  </div>\n  <div class=\"au-screenshot-body\"><aside class=\"au-rail au-screenshot-rail\">\n    <div class=\"au-cluster\" style=\"justify-content:space-between;\">\n      <span class=\"au-field-label\">Workspaces</span>\n      <button class=\"au-workspace-add\" type=\"button\">+</button>\n    </div>\n    <div class=\"au-workspace au-workspace--selected\">\n      <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n      <span class=\"au-status-dot au-status-dot--healthy\"></span>\n      <span>\n        <strong class=\"au-workspace-name\">Harbor Shop</strong>\n        <small class=\"au-workspace-branch\">main</small>\n      </span>\n    </div>\n  </aside><main class=\"au-screenshot-main\"><div class=\"au-screenshot-tabs\" role=\"tablist\">\n    <button class=\"au-app-tab au-app-tab--selected\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n    <button class=\"au-app-tab\" type=\"button\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n  </div><div class=\"au-screenshot-subtabs\">\n    <button class=\"au-subtab\" type=\"button\">9100</button>\n    <button class=\"au-subtab\" type=\"button\">Console</button>\n    <button class=\"au-subtab\" type=\"button\">Metrics</button>\n    <button class=\"au-subtab\" type=\"button\">Diagnostics</button>\n    <button class=\"au-subtab\" type=\"button\">Database</button>\n    <button class=\"au-subtab au-subtab--selected\" type=\"button\">Git</button>\n  </div><div class=\"au-screenshot-pane\" style=\"display:grid;place-items:center;padding:1rem;\"><div class=\"au-overlay-panel au-file-viewer\">\n    <div class=\"au-file-viewer-header\">\n      <span class=\"au-file-viewer-path\">apps/storefront/ProductGrid.tsx</span>\n      <span class=\"au-file-viewer-status\">Modified</span>\n      <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Close</button>\n    </div>\n    <div class=\"au-file-viewer-nav\">\n      <button class=\"au-file-viewer-jump\" type=\"button\">@@ −1,3 +1,4 @@</button>\n    </div>\n    <div class=\"au-file-viewer-body\">\n      <div class=\"au-file-viewer-line au-file-viewer-line--added au-file-viewer-line--current\">\n        <span class=\"au-file-viewer-gutter\">1</span>\n        <span class=\"au-file-viewer-prefix au-file-viewer-prefix--added\">+</span>\n        <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">export const</span> featured = [<span class=\"au-syntax-string\">'Harbor Mug'</span>];</span>\n      </div>\n      <div class=\"au-file-viewer-line\">\n        <span class=\"au-file-viewer-gutter\">2</span>\n        <span class=\"au-file-viewer-prefix\"> </span>\n        <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">export function</span> <span class=\"au-syntax-function\">ProductGrid</span>() {</span>\n      </div>\n    </div>\n  </div></div></main></div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:1440px;height:900px\">\n      <div class=\"au-chrome au-cluster\" style=\"justify-content: space-between; padding: 0 0.75rem;\">\n        <span class=\"au-cluster\">\n          <span class=\"au-title-tool au-chrome-icon\">☰</span>\n          <span class=\"au-title-tool au-chrome-icon\">↻</span>\n          <span class=\"au-badge au-badge--healthy\"><span class=\"au-status-dot au-status-dot--healthy\"></span>Server online</span>\n        </span>\n        <strong class=\"au-chrome-title\">Agent-Up</strong>\n        <span class=\"au-cluster\">\n          <span class=\"au-chrome-button au-chrome-icon\">−</span>\n          <span class=\"au-chrome-button au-chrome-icon\">□</span>\n          <span class=\"au-chrome-button au-chrome-close au-chrome-icon\">×</span>\n        </span>\n      </div>\n      <div class=\"au-screen-body\">\n        <aside class=\"au-rail au-screen-rail\">\n          <div class=\"au-cluster\">\n            <span class=\"au-field-label\">Workspaces</span>\n            <button class=\"au-workspace-add\">+</button>\n          </div>\n          <div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--warning\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">main</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n      </div>\n        </aside>\n        <main class=\"au-screen-main\">\n          <div class=\"au-screen-tabs\"><div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--warning\"></span> API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot\"></span> Database</button>\n      </div></div>\n          <div class=\"au-screen-subtabs\"><div class=\"au-cluster\">\n        <button class=\"au-subtab au-subtab--selected\">3000:11200</button>\n        <button class=\"au-subtab\">Console</button>\n        <button class=\"au-subtab\">Metrics</button>\n        <button class=\"au-subtab\">Diagnostics</button>\n        <button class=\"au-subtab\">Git</button>\n      </div></div>\n          <div class=\"au-pane au-screen-pane\"><div class=\"au-overlay-panel au-file-viewer\" style=\"max-width: 42rem;\">\n        <div class=\"au-file-viewer-header\">\n          <span class=\"au-file-viewer-path\">AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx</span>\n          <span class=\"au-file-viewer-status\">Modified</span>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Close</button>\n        </div>\n        <div class=\"au-file-viewer-nav\">\n          <button class=\"au-file-viewer-jump\" type=\"button\">@@ −48,6 +48,18 @@</button>\n          <button class=\"au-file-viewer-jump\" type=\"button\">@@ −265,12 +277,40 @@</button>\n          <input class=\"au-file-viewer-goto\" value=\"52\" readonly aria-label=\"Go to line\" />\n        </div>\n        <div class=\"au-file-viewer-body\">\n          <div class=\"au-file-viewer-line au-file-viewer-line--meta\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">diff --git a/GitChangesPanel.tsx b/GitChangesPanel.tsx</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--hunk\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">@@ −48,6 +48,18 @@ export function GitChangesPanel</span>\n          </div>\n          <div class=\"au-file-viewer-line\">\n            <span class=\"au-file-viewer-gutter\">48</span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">const</span> [diff, setDiff] = <span class=\"au-syntax-function\">useState</span>(<span class=\"au-syntax-keyword\">null</span>);</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--deleted\">\n            <span class=\"au-file-viewer-gutter\">49</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--deleted\">−</span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">return</span> &lt;<span class=\"au-syntax-type\">Text</span>&gt;{diffText(diff)}&lt;/<span class=\"au-syntax-type\">Text</span>&gt;;</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--added au-file-viewer-line--current\">\n            <span class=\"au-file-viewer-gutter\">52</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--added\">+</span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">return</span> &lt;<span class=\"au-syntax-type\">GitFileViewer</span> diff={diff} <span class=\"au-syntax-property\">onClose</span>={close} /&gt;;</span>\n          </div>\n          <div class=\"au-file-viewer-line\">\n            <span class=\"au-file-viewer-gutter\">53</span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-plain\">    </span><span class=\"au-syntax-keyword\">return</span> foo;</span>\n          </div>\n          <div class=\"au-file-viewer-line\">\n            <span class=\"au-file-viewer-gutter\">54</span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-comment\">// Filename opens inspection. Checkbox stays selection.</span></span>\n          </div>\n        </div>\n      </div></div>\n        </main>\n      </div>\n    </div>"
     },
     {
       "id": "mobile-sign-in",
@@ -500,27 +665,20 @@
       "height": 844,
       "hero": false,
       "livePath": "/connect",
-      "appSources": [
-        "AgentUp.Mobile/src/features/servers/components/ServerSetupScreen.tsx",
-        "AgentUp.Mobile/src/features/shell/components/AppShellLayout.tsx",
-        "AgentUp.Mobile/src/features/shell/components/AppNavBar.tsx",
-        "AgentUp.Mobile/src/features/shell/components/WorkspaceTabBar.tsx"
+      "layout": "mobile-list",
+      "components": [
+        "screen",
+        "mobile-bar",
+        "screen-mobile-body",
+        "sign-in"
       ],
       "requiredClasses": [
-        "au-sign-in",
-        "au-choice",
-        "au-button",
-        "au-mobile-bar"
+        "au-screen",
+        "au-mobile-bar",
+        "au-screen-mobile-body",
+        "au-sign-in"
       ],
-      "requiredDesktopClasses": [],
-      "requiredMobileComponents": [
-        "signIn",
-        "choice"
-      ],
-      "copy": [
-        "Demo"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--mobile\" style=\"width:390px;height:844px\">\n  <div class=\"au-mobile-bar au-cluster\"><strong>Connect</strong></div>\n  <div class=\"au-screenshot-mobile-body\"><form class=\"au-sign-in au-stack\">\n    <p class=\"au-eyebrow\">Agent-Up Server</p>\n    <h2 class=\"au-page-title\">Connect to server</h2>\n    <p class=\"au-muted\">Choose a saved server or enter a URL.</p>\n    <span class=\"au-field-label\">Server URL</span>\n    <input class=\"au-input\" value=\"http://127.0.0.1:9\" readonly />\n    <span class=\"au-field-label\">Saved servers</span>\n    <div class=\"au-sign-in-list\">\n      <button class=\"au-choice au-choice--compact au-choice--selected\" type=\"button\" title=\"http://127.0.0.1:9\"><span class=\"au-choice-label\">Demo</span></button>\n    </div>\n    <button class=\"au-button\" type=\"button\">Connect</button>\n  </form></div>\n  \n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:390px;height:844px\">\n      <div class=\"au-mobile-bar au-cluster\"><strong>Workspaces</strong></div>\n      <div class=\"au-screen-mobile-body\"><form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Server</p>\n        <h2 class=\"au-page-title\">Connect to server</h2>\n        <p class=\"au-muted\">Choose a saved server or enter a URL.</p>\n        <span class=\"au-field-label\">Server URL</span>\n        <input class=\"au-input\" placeholder=\"http://localhost:5000\" />\n        <span class=\"au-field-label\">Saved servers</span>\n        <div class=\"au-sign-in-list\">\n          <button class=\"au-choice au-choice--compact au-choice--selected\" type=\"button\" title=\"http://127.0.0.1:9\"><span class=\"au-choice-label\">Demo</span></button>\n          <button class=\"au-choice au-choice--compact\" type=\"button\" title=\"https://agent-up.massivecreationlab.com\"><span class=\"au-choice-label\">https://agent-up.massivecreationlab.com</span></button>\n        </div>\n        <button class=\"au-button\" type=\"button\">Connect</button>\n      </form></div>\n    </div>"
     },
     {
       "id": "mobile-workspaces",
@@ -533,27 +691,20 @@
       "height": 844,
       "hero": false,
       "livePath": "/",
-      "appSources": [
-        "AgentUp.Mobile/src/features/servers/components/ServerSetupScreen.tsx",
-        "AgentUp.Mobile/src/features/shell/components/AppShellLayout.tsx",
-        "AgentUp.Mobile/src/features/shell/components/AppNavBar.tsx",
-        "AgentUp.Mobile/src/features/shell/components/WorkspaceTabBar.tsx",
-        "AgentUp.Mobile/src/features/workspaces/components/WorkspaceListScreen.tsx"
+      "layout": "mobile-list",
+      "components": [
+        "screen",
+        "mobile-bar",
+        "screen-mobile-body",
+        "workspace"
       ],
       "requiredClasses": [
-        "au-workspace",
+        "au-screen",
         "au-mobile-bar",
-        "au-button"
+        "au-screen-mobile-body",
+        "au-workspace"
       ],
-      "requiredDesktopClasses": [],
-      "requiredMobileComponents": [
-        "workspace",
-        "mobileBar"
-      ],
-      "copy": [
-        "Harbor Shop"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--mobile\" style=\"width:390px;height:844px\">\n  <div class=\"au-mobile-bar au-cluster\"><strong>Workspaces</strong></div>\n  <div class=\"au-screenshot-mobile-body\"><div class=\"au-stack\">\n    <div class=\"au-workspace au-workspace--selected\">\n      <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n      <span class=\"au-status-dot au-status-dot--healthy\"></span>\n      <span>\n        <strong class=\"au-workspace-name\">Harbor Shop</strong>\n        <small class=\"au-workspace-branch\">main</small>\n      </span>\n    </div>\n    <button class=\"au-button\" type=\"button\">Clone</button>\n  </div></div>\n  \n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:390px;height:844px\">\n      <div class=\"au-mobile-bar au-cluster\"><strong>Workspaces</strong></div>\n      <div class=\"au-screen-mobile-body\"><div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--warning\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">main</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n      </div></div>\n    </div>"
     },
     {
       "id": "mobile-apps",
@@ -566,29 +717,22 @@
       "height": 844,
       "hero": false,
       "livePath": "/workspace/harbor-shop",
-      "appSources": [
-        "AgentUp.Mobile/src/features/servers/components/ServerSetupScreen.tsx",
-        "AgentUp.Mobile/src/features/shell/components/AppShellLayout.tsx",
-        "AgentUp.Mobile/src/features/shell/components/AppNavBar.tsx",
-        "AgentUp.Mobile/src/features/shell/components/WorkspaceTabBar.tsx",
-        "AgentUp.Mobile/src/features/workspaces/components/WorkspaceDashboardScreen.tsx"
+      "layout": "mobile-shell",
+      "components": [
+        "screen",
+        "mobile-bar",
+        "screen-mobile-body",
+        "workspace",
+        "mobile-tab-bar"
       ],
       "requiredClasses": [
-        "au-mobile-tab-bar",
+        "au-screen",
+        "au-mobile-bar",
+        "au-screen-mobile-body",
         "au-workspace",
-        "au-status-dot"
+        "au-mobile-tab-bar"
       ],
-      "requiredDesktopClasses": [],
-      "requiredMobileComponents": [
-        "workspace",
-        "mobileTabBar",
-        "navTab"
-      ],
-      "copy": [
-        "Storefront",
-        "Orders API"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--mobile\" style=\"width:390px;height:844px\">\n  <div class=\"au-mobile-bar au-cluster\"><strong>apps</strong></div>\n  <div class=\"au-screenshot-mobile-body\"><div class=\"au-stack\">\n    <div class=\"au-workspace au-workspace--selected\">\n      <span class=\"au-status-dot au-status-dot--healthy\"></span>\n      <span><strong class=\"au-workspace-name\">Storefront</strong><small class=\"au-workspace-branch\">Running</small></span>\n    </div>\n    <div class=\"au-workspace\">\n      <span class=\"au-status-dot au-status-dot--healthy\"></span>\n      <span><strong class=\"au-workspace-name\">Orders API</strong><small class=\"au-workspace-branch\">Running</small></span>\n    </div>\n  </div></div>\n  <div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n    <button class=\"au-subtab au-nav-tab au-subtab--selected\" type=\"button\" aria-selected=\"true\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n      Apps\n    </button>\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path></svg>\n      Git\n    </button>\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z\"></path></svg>\n      Agents\n    </button>\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2\"></path></svg>\n      Settings\n    </button>\n  </div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:390px;height:844px\">\n      <div class=\"au-mobile-bar au-cluster\"><strong>Workspaces</strong></div>\n      <div class=\"au-screen-mobile-body\"><div class=\"au-stack\">\n        <div class=\"au-workspace au-workspace--selected\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">checkout-fix</strong>\n            <small class=\"au-workspace-branch\">feat/checkout</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot au-status-dot--warning\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">pricing</strong>\n            <small class=\"au-workspace-branch\">feat/pricing</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">▶</button>\n          <span class=\"au-status-dot\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">main</strong>\n            <small class=\"au-workspace-branch\">main</small>\n          </span>\n          <button class=\"au-workspace-delete\" type=\"button\">×</button>\n        </div>\n      </div></div>\n      <div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18\"></path></svg>\n          Settings\n        </button>\n      </div>\n    </div>"
     },
     {
       "id": "mobile-git",
@@ -601,27 +745,22 @@
       "height": 844,
       "hero": false,
       "livePath": "/workspace/harbor-shop/git",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml",
-        "AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx",
-        "AgentUp.Mobile/src/features/git/components/GitHistoryPanel.tsx",
-        "AgentUp.Mobile/src/features/git/components/GitFileViewer.tsx",
-        "AgentUp.Mobile/src/features/shell/components/WorkspaceTabBar.tsx"
+      "layout": "mobile-shell",
+      "components": [
+        "screen",
+        "mobile-bar",
+        "screen-mobile-body",
+        "git-change-list",
+        "mobile-tab-bar"
       ],
       "requiredClasses": [
+        "au-screen",
+        "au-mobile-bar",
+        "au-screen-mobile-body",
         "au-git-change-list",
-        "au-git-row",
         "au-mobile-tab-bar"
       ],
-      "requiredDesktopClasses": [],
-      "requiredMobileComponents": [
-        "gitChangeList",
-        "mobileTabBar"
-      ],
-      "copy": [
-        "ProductGrid.tsx"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--mobile\" style=\"width:390px;height:844px\">\n  <div class=\"au-mobile-bar au-cluster\"><strong>Git</strong></div>\n  <div class=\"au-screenshot-mobile-body\"><div class=\"au-git-change-list\" style=\"padding:0.5rem;\">\n    <div class=\"au-cluster\" style=\"margin-bottom:0.5rem;\">\n      <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Review <span class=\"au-git-insertions\">+2</span> <span class=\"au-git-deletions\">−0</span></button>\n      <button class=\"au-button au-button--compact\" type=\"button\">Commit <span class=\"au-git-insertions au-git-insertions--on-primary\">+2</span></button>\n    </div>\n    <div class=\"au-git-row\">\n      <span class=\"au-checkbox au-checkbox--checked\"></span>\n      <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n      <span class=\"au-git-change-name au-git-change-name--directory\">apps</span>\n    </div>\n    <div class=\"au-git-row au-git-row--selected\">\n      <span class=\"au-checkbox au-checkbox--checked\"></span>\n      <span class=\"au-git-tree-guide\"></span>\n      <span class=\"au-git-change-name\">ProductGrid.tsx</span>\n      <span class=\"au-git-status au-git-status--modified\">M</span>\n    </div>\n    <div class=\"au-git-row\">\n      <span class=\"au-checkbox au-checkbox--checked\"></span>\n      <span class=\"au-git-tree-guide\"></span>\n      <span class=\"au-git-change-name\">orders.ts</span>\n      <span class=\"au-git-status au-git-status--modified\">M</span>\n    </div>\n  </div></div>\n  <div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n      Apps\n    </button>\n    <button class=\"au-subtab au-nav-tab au-subtab--selected\" type=\"button\" aria-selected=\"true\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path></svg>\n      Git\n    </button>\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z\"></path></svg>\n      Agents\n    </button>\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2\"></path></svg>\n      Settings\n    </button>\n  </div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:390px;height:844px\">\n      <div class=\"au-mobile-bar au-cluster\"><strong>Workspaces</strong></div>\n      <div class=\"au-screen-mobile-body\"><div class=\"au-git-change-list\" style=\"padding: 0.5rem;\">\n        <div class=\"au-cluster\" style=\"margin-bottom: 0.5rem;\">\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Review <span class=\"au-git-insertions\">+12</span> <span class=\"au-git-deletions\">−4</span></button>\n          <button class=\"au-button au-button--compact\" type=\"button\">Commit <span class=\"au-git-insertions au-git-insertions--on-primary\">+12</span> <span class=\"au-git-deletions au-git-deletions--on-primary\">−4</span></button>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">Changes</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">src</span>\n        </div>\n        <div class=\"au-git-row au-git-row--selected\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">AgentChatScreen.tsx</span>\n          <span class=\"au-git-status au-git-status--modified\">M</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">new-view.ts</span>\n          <span class=\"au-git-status au-git-status--added\">+</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">scratch.md</span>\n          <span class=\"au-git-status au-git-status--untracked\">?</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--collapsed\" type=\"button\">▸</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">legacy</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">obsolete.css</span>\n          <span class=\"au-git-status au-git-status--deleted\">−</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">storefront.tsx</span>\n          <span class=\"au-git-status au-git-status--renamed\">→</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">agent-up.json</span>\n          <span class=\"au-git-status au-git-status--conflicted\">!</span>\n        </div>\n      </div></div>\n      <div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18\"></path></svg>\n          Settings\n        </button>\n      </div>\n    </div>"
     },
     {
       "id": "mobile-review",
@@ -634,26 +773,22 @@
       "height": 844,
       "hero": false,
       "livePath": "/workspace/harbor-shop/git/review",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml",
-        "AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx",
-        "AgentUp.Mobile/src/features/git/components/GitHistoryPanel.tsx",
-        "AgentUp.Mobile/src/features/git/components/GitFileViewer.tsx"
+      "layout": "mobile-shell",
+      "components": [
+        "screen",
+        "mobile-bar",
+        "screen-mobile-body",
+        "git-change-list",
+        "mobile-tab-bar"
       ],
       "requiredClasses": [
-        "au-git-row",
-        "au-button",
-        "au-mobile-bar"
+        "au-screen",
+        "au-mobile-bar",
+        "au-screen-mobile-body",
+        "au-git-change-list",
+        "au-mobile-tab-bar"
       ],
-      "requiredDesktopClasses": [],
-      "requiredMobileComponents": [
-        "gitChangeList"
-      ],
-      "copy": [
-        "ProductGrid.tsx",
-        "orders.ts"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--mobile\" style=\"width:390px;height:844px\">\n  <div class=\"au-mobile-bar au-cluster\"><strong>Git review</strong></div>\n  <div class=\"au-screenshot-mobile-body\"><div class=\"au-stack\">\n    <p class=\"au-page-title\">Review</p>\n    <p class=\"au-muted\">Harbor Shop proposal queue is empty. Unassigned files stay on the working tree.</p>\n    <div class=\"au-git-row\"><span class=\"au-git-change-name\">ProductGrid.tsx</span><span class=\"au-git-status au-git-status--modified\">M</span></div>\n    <div class=\"au-git-row\"><span class=\"au-git-change-name\">orders.ts</span><span class=\"au-git-status au-git-status--modified\">M</span></div>\n    <button class=\"au-button\" type=\"button\">Commit</button>\n  </div></div>\n  <div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n      Apps\n    </button>\n    <button class=\"au-subtab au-nav-tab au-subtab--selected\" type=\"button\" aria-selected=\"true\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path></svg>\n      Git\n    </button>\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z\"></path></svg>\n      Agents\n    </button>\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2\"></path></svg>\n      Settings\n    </button>\n  </div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:390px;height:844px\">\n      <div class=\"au-mobile-bar au-cluster\"><strong>Workspaces</strong></div>\n      <div class=\"au-screen-mobile-body\"><div class=\"au-git-change-list\" style=\"padding: 0.5rem;\">\n        <div class=\"au-cluster\" style=\"margin-bottom: 0.5rem;\">\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Review <span class=\"au-git-insertions\">+12</span> <span class=\"au-git-deletions\">−4</span></button>\n          <button class=\"au-button au-button--compact\" type=\"button\">Commit <span class=\"au-git-insertions au-git-insertions--on-primary\">+12</span> <span class=\"au-git-deletions au-git-deletions--on-primary\">−4</span></button>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">Changes</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">src</span>\n        </div>\n        <div class=\"au-git-row au-git-row--selected\">\n          <span class=\"au-checkbox au-checkbox--checked\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">AgentChatScreen.tsx</span>\n          <span class=\"au-git-status au-git-status--modified\">M</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">new-view.ts</span>\n          <span class=\"au-git-status au-git-status--added\">+</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">scratch.md</span>\n          <span class=\"au-git-status au-git-status--untracked\">?</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--collapsed\" type=\"button\">▸</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">legacy</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">obsolete.css</span>\n          <span class=\"au-git-status au-git-status--deleted\">−</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">storefront.tsx</span>\n          <span class=\"au-git-status au-git-status--renamed\">→</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-checkbox\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">agent-up.json</span>\n          <span class=\"au-git-status au-git-status--conflicted\">!</span>\n        </div>\n      </div></div>\n      <div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18\"></path></svg>\n          Settings\n        </button>\n      </div>\n    </div>"
     },
     {
       "id": "mobile-history",
@@ -666,26 +801,24 @@
       "height": 844,
       "hero": false,
       "livePath": "/workspace/harbor-shop/git/history",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml",
-        "AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx",
-        "AgentUp.Mobile/src/features/git/components/GitHistoryPanel.tsx",
-        "AgentUp.Mobile/src/features/git/components/GitFileViewer.tsx"
+      "layout": "mobile-shell",
+      "components": [
+        "screen",
+        "mobile-bar",
+        "screen-mobile-body",
+        "git-log-detail",
+        "git-log-row",
+        "mobile-tab-bar"
       ],
       "requiredClasses": [
-        "au-git-log",
+        "au-screen",
+        "au-mobile-bar",
+        "au-screen-mobile-body",
+        "au-git-log-detail",
         "au-git-log-row",
-        "au-git-log-detail"
+        "au-mobile-tab-bar"
       ],
-      "requiredDesktopClasses": [],
-      "requiredMobileComponents": [
-        "gitLog",
-        "gitLogRow"
-      ],
-      "copy": [
-        "feat(storefront): featured product grid"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--mobile\" style=\"width:390px;height:844px\">\n  <div class=\"au-mobile-bar au-cluster\"><strong>Git history</strong></div>\n  <div class=\"au-screenshot-mobile-body\"><div class=\"au-git-log\">\n    <div class=\"au-git-log-detail\">\n      <span class=\"au-git-log-subject\">feat(storefront): featured product grid</span>\n      <span class=\"au-git-log-author\">Demo</span>\n      <div class=\"au-cluster\">\n        <span class=\"au-git-log-ref au-git-log-ref--head\">HEAD</span>\n        <span class=\"au-git-log-ref\">main</span>\n      </div>\n    </div>\n    <div class=\"au-git-log-track\">\n      <div>\n        <div class=\"au-git-log-row au-git-log-row--selected\"><span class=\"au-git-log-time\">22.09.26 07:30</span></div>\n      </div>\n      <div class=\"au-git-log-graph-scroll\">\n        <div class=\"au-git-log-row\">\n          <svg class=\"au-git-log-graph\" width=\"28\" height=\"28\" viewBox=\"0 0 28 28\" aria-hidden=\"true\">\n            <g class=\"au-git-log-lane-0\">\n              <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"14\" cy=\"14\" r=\"3.5\"></circle>\n            </g>\n          </svg>\n        </div>\n      </div>\n    </div>\n  </div></div>\n  <div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n      Apps\n    </button>\n    <button class=\"au-subtab au-nav-tab au-subtab--selected\" type=\"button\" aria-selected=\"true\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path></svg>\n      Git\n    </button>\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z\"></path></svg>\n      Agents\n    </button>\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2\"></path></svg>\n      Settings\n    </button>\n  </div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:390px;height:844px\">\n      <div class=\"au-mobile-bar au-cluster\"><strong>Workspaces</strong></div>\n      <div class=\"au-screen-mobile-body\"><div class=\"au-git-log-detail\">\n        <span class=\"au-git-log-subject\">fix(packaging): seal platform verification gaps</span>\n        <span class=\"au-git-log-author\">Daniel Mass</span>\n        <div class=\"au-cluster\">\n          <span class=\"au-git-log-ref au-git-log-ref--head\">HEAD</span>\n          <span class=\"au-git-log-ref\">369-mobile</span>\n          <span class=\"au-git-log-ref au-git-log-ref--remote\">origin/main</span>\n          <span class=\"au-git-log-ref au-git-log-ref--tag\">v3.47.0</span>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Checkout</button>\n        </div>\n      </div><div class=\"au-git-log\">\n        <div class=\"au-git-log-track\">\n          <div>\n            <div class=\"au-git-log-row au-git-log-row--selected\">\n              <span class=\"au-git-log-time\">16.09.26 05:16</span>\n            </div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">16.09.26 05:14</span>\n            </div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">16.09.26 05:10</span>\n            </div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">15.09.26 18:26</span>\n            </div>\n          </div>\n          <div class=\"au-git-log-graph-scroll\">\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"70\" height=\"28\" viewBox=\"0 0 70 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n                <g class=\"au-git-log-lane-1\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 0 L 21 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 14 L 21 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-2\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 0 L 35 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 14 L 35 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-3\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 49 0 L 49 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 49 14 C 49 21, 63 21, 63 28\"></path>\n                </g>\n              </svg>\n            </div>\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"70\" height=\"28\" viewBox=\"0 0 70 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n                <g class=\"au-git-log-lane-1\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 0 L 21 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 14 L 21 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-2\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 0 L 35 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 14 L 35 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-3\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 0 L 63 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 14 L 63 28\"></path>\n                </g>\n              </svg>\n            </div>\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"70\" height=\"28\" viewBox=\"0 0 70 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-1\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 0 L 21 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 14 L 21 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"21\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n                <g class=\"au-git-log-lane-2\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 0 L 35 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 14 L 35 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-3\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 0 L 63 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 14 L 63 28\"></path>\n                </g>\n              </svg>\n            </div>\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"70\" height=\"28\" viewBox=\"0 0 70 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-1\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 0 L 21 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 21 14 L 21 28\"></path>\n                </g>\n                <g class=\"au-git-log-lane-2\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 0 L 35 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 35 14 L 35 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"35\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n                <g class=\"au-git-log-lane-3\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 0 L 63 14\"></path>\n                  <path class=\"au-git-log-graph-edge\" d=\"M 63 14 L 63 28\"></path>\n                </g>\n              </svg>\n            </div>\n          </div>\n        </div>\n      </div></div>\n      <div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18\"></path></svg>\n          Settings\n        </button>\n      </div>\n    </div>"
     },
     {
       "id": "mobile-agents",
@@ -698,28 +831,22 @@
       "height": 844,
       "hero": false,
       "livePath": "/workspace/harbor-shop/agents",
-      "appSources": [
-        "AgentUp.Mobile/src/features/servers/components/ServerSetupScreen.tsx",
-        "AgentUp.Mobile/src/features/shell/components/AppShellLayout.tsx",
-        "AgentUp.Mobile/src/features/shell/components/AppNavBar.tsx",
-        "AgentUp.Mobile/src/features/shell/components/WorkspaceTabBar.tsx",
-        "AgentUp.Chat/src/components/AgentChatScreen.tsx",
-        "AgentUp.Mobile/src/features/agents/components/AgentsOverviewScreen.tsx"
+      "layout": "mobile-shell",
+      "components": [
+        "screen",
+        "mobile-bar",
+        "screen-mobile-body",
+        "choice",
+        "mobile-tab-bar"
       ],
       "requiredClasses": [
+        "au-screen",
+        "au-mobile-bar",
+        "au-screen-mobile-body",
         "au-choice",
-        "au-chat-user",
-        "au-card"
+        "au-mobile-tab-bar"
       ],
-      "requiredDesktopClasses": [],
-      "requiredMobileComponents": [
-        "choice",
-        "chatUser"
-      ],
-      "copy": [
-        "Codex"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--mobile\" style=\"width:390px;height:844px\">\n  <div class=\"au-mobile-bar au-cluster\"><strong>Agents</strong></div>\n  <div class=\"au-screenshot-mobile-body\"><div class=\"au-stack\">\n    <button class=\"au-choice au-choice--selected\" type=\"button\">Codex <span class=\"au-accent\">Available</span></button>\n    <div class=\"au-chat-user\">Open Harbor Shop</div>\n    <div class=\"au-card\"><span class=\"au-field-label\">Codex</span><p>Harbor Shop is running locally. The storefront is showing three featured products, and the Orders API reports twelve open orders.</p></div>\n  </div></div>\n  <div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n      Apps\n    </button>\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path></svg>\n      Git\n    </button>\n    <button class=\"au-subtab au-nav-tab au-subtab--selected\" type=\"button\" aria-selected=\"true\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z\"></path></svg>\n      Agents\n    </button>\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2\"></path></svg>\n      Settings\n    </button>\n  </div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:390px;height:844px\">\n      <div class=\"au-mobile-bar au-cluster\"><strong>Workspaces</strong></div>\n      <div class=\"au-screen-mobile-body\"><div class=\"au-stack\">\n        <button class=\"au-choice au-choice--selected\" type=\"button\">Codex <span class=\"au-accent\">Available</span></button>\n        <button class=\"au-choice\" type=\"button\" disabled>Cursor <span class=\"au-muted\">Not installed</span></button>\n      </div></div>\n      <div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18\"></path></svg>\n          Settings\n        </button>\n      </div>\n    </div>"
     },
     {
       "id": "mobile-settings",
@@ -732,30 +859,22 @@
       "height": 844,
       "hero": false,
       "livePath": "/workspace/harbor-shop/settings",
-      "appSources": [
-        "AgentUp.Mobile/src/features/servers/components/ServerSetupScreen.tsx",
-        "AgentUp.Mobile/src/features/shell/components/AppShellLayout.tsx",
-        "AgentUp.Mobile/src/features/shell/components/AppNavBar.tsx",
-        "AgentUp.Mobile/src/features/shell/components/WorkspaceTabBar.tsx",
-        "AgentUp.Mobile/src/features/workspaces/components/WorkspaceSettingsScreen.tsx",
-        "AgentUp.Mobile/src/features/capabilities/components/CapabilitiesScreen.tsx"
+      "layout": "mobile-shell",
+      "components": [
+        "screen",
+        "mobile-bar",
+        "screen-mobile-body",
+        "capability-catalog",
+        "mobile-tab-bar"
       ],
       "requiredClasses": [
-        "au-workspace",
-        "au-mobile-tab-bar",
-        "au-button"
+        "au-screen",
+        "au-mobile-bar",
+        "au-screen-mobile-body",
+        "au-overlay-panel",
+        "au-mobile-tab-bar"
       ],
-      "requiredDesktopClasses": [],
-      "requiredMobileComponents": [
-        "workspace",
-        "mobileTabBar"
-      ],
-      "copy": [
-        ".NET",
-        "Docker",
-        "Codex"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--mobile\" style=\"width:390px;height:844px\">\n  <div class=\"au-mobile-bar au-cluster\"><strong>settings</strong></div>\n  <div class=\"au-screenshot-mobile-body\"><div class=\"au-stack\">\n    <p class=\"au-field-label\">Capabilities</p>\n    <p class=\"au-muted\">Enable packages on this Server. Clients never talk to the remote registry.</p>\n    <div class=\"au-workspace\"><span><strong class=\"au-workspace-name\">.NET</strong><small class=\"au-workspace-branch\">Ready</small></span><button class=\"au-button au-button--secondary\" type=\"button\">Disable</button></div>\n    <div class=\"au-workspace\"><span><strong class=\"au-workspace-name\">Docker</strong><small class=\"au-workspace-branch\">Ready</small></span><button class=\"au-button au-button--secondary\" type=\"button\">Disable</button></div>\n    <div class=\"au-workspace\"><span><strong class=\"au-workspace-name\">Codex</strong><small class=\"au-workspace-branch\">Ready</small></span><button class=\"au-button au-button--secondary\" type=\"button\">Disable</button></div>\n  </div></div>\n  <div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n      Apps\n    </button>\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path></svg>\n      Git\n    </button>\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z\"></path></svg>\n      Agents\n    </button>\n    <button class=\"au-subtab au-nav-tab au-subtab--selected\" type=\"button\" aria-selected=\"true\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2\"></path></svg>\n      Settings\n    </button>\n  </div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:390px;height:844px\">\n      <div class=\"au-mobile-bar au-cluster\"><strong>Workspaces</strong></div>\n      <div class=\"au-screen-mobile-body\"><div class=\"au-overlay-panel\" style=\"padding: 1.25rem; max-width: 36rem;\">\n        <p class=\"au-page-title\">Capability modules</p>\n        <p class=\"au-muted\">Enable packages on this Server. Clients never talk to the remote registry.</p>\n        <div class=\"au-stack\" style=\"margin-top: 1rem;\">\n          <div class=\"au-card\">\n            <strong>.NET</strong>\n            <p class=\"au-muted\">Ready · toolchain</p>\n            <div class=\"au-cluster\">\n              <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Disable</button>\n            </div>\n          </div>\n          <div class=\"au-card\">\n            <strong>Docker</strong>\n            <p class=\"au-muted\">Not enabled</p>\n            <div class=\"au-cluster\">\n              <button class=\"au-button au-button--compact\" type=\"button\">Enable</button>\n            </div>\n          </div>\n        </div>\n      </div></div>\n      <div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18\"></path></svg>\n          Settings\n        </button>\n      </div>\n    </div>"
     },
     {
       "id": "mobile-file-viewer",
@@ -768,24 +887,22 @@
       "height": 844,
       "hero": false,
       "livePath": "/workspace/harbor-shop/git",
-      "appSources": [
-        "AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml",
-        "AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx",
-        "AgentUp.Mobile/src/features/git/components/GitHistoryPanel.tsx",
-        "AgentUp.Mobile/src/features/git/components/GitFileViewer.tsx"
+      "layout": "mobile-shell",
+      "components": [
+        "screen",
+        "mobile-bar",
+        "screen-mobile-body",
+        "file-viewer",
+        "mobile-tab-bar"
       ],
       "requiredClasses": [
+        "au-screen",
+        "au-mobile-bar",
+        "au-screen-mobile-body",
         "au-file-viewer",
-        "au-file-viewer-line"
+        "au-mobile-tab-bar"
       ],
-      "requiredDesktopClasses": [],
-      "requiredMobileComponents": [
-        "fileViewer"
-      ],
-      "copy": [
-        "ProductGrid.tsx"
-      ],
-      "html": "<div class=\"au-theme au-screenshot au-screenshot--mobile\" style=\"width:390px;height:844px\">\n  <div class=\"au-mobile-bar au-cluster\"><strong>file viewer</strong></div>\n  <div class=\"au-screenshot-mobile-body\"><div class=\"au-overlay-panel au-file-viewer\">\n    <div class=\"au-file-viewer-header\">\n      <span class=\"au-file-viewer-path\">apps/storefront/ProductGrid.tsx</span>\n      <span class=\"au-file-viewer-status\">Modified</span>\n      <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Close</button>\n    </div>\n    <div class=\"au-file-viewer-nav\">\n      <button class=\"au-file-viewer-jump\" type=\"button\">@@ −1,3 +1,4 @@</button>\n    </div>\n    <div class=\"au-file-viewer-body\">\n      <div class=\"au-file-viewer-line au-file-viewer-line--added au-file-viewer-line--current\">\n        <span class=\"au-file-viewer-gutter\">1</span>\n        <span class=\"au-file-viewer-prefix au-file-viewer-prefix--added\">+</span>\n        <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">export const</span> featured = [<span class=\"au-syntax-string\">'Harbor Mug'</span>];</span>\n      </div>\n      <div class=\"au-file-viewer-line\">\n        <span class=\"au-file-viewer-gutter\">2</span>\n        <span class=\"au-file-viewer-prefix\"> </span>\n        <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">export function</span> <span class=\"au-syntax-function\">ProductGrid</span>() {</span>\n      </div>\n    </div>\n  </div></div>\n  <div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n      Apps\n    </button>\n    <button class=\"au-subtab au-nav-tab au-subtab--selected\" type=\"button\" aria-selected=\"true\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path></svg>\n      Git\n    </button>\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z\"></path></svg>\n      Agents\n    </button>\n    <button class=\"au-subtab au-nav-tab\" type=\"button\" aria-selected=\"false\">\n      <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2\"></path></svg>\n      Settings\n    </button>\n  </div>\n</div>"
+      "html": "<div class=\"au-theme au-screen\" style=\"width:390px;height:844px\">\n      <div class=\"au-mobile-bar au-cluster\"><strong>Workspaces</strong></div>\n      <div class=\"au-screen-mobile-body\"><div class=\"au-overlay-panel au-file-viewer\" style=\"max-width: 42rem;\">\n        <div class=\"au-file-viewer-header\">\n          <span class=\"au-file-viewer-path\">AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx</span>\n          <span class=\"au-file-viewer-status\">Modified</span>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Close</button>\n        </div>\n        <div class=\"au-file-viewer-nav\">\n          <button class=\"au-file-viewer-jump\" type=\"button\">@@ −48,6 +48,18 @@</button>\n          <button class=\"au-file-viewer-jump\" type=\"button\">@@ −265,12 +277,40 @@</button>\n          <input class=\"au-file-viewer-goto\" value=\"52\" readonly aria-label=\"Go to line\" />\n        </div>\n        <div class=\"au-file-viewer-body\">\n          <div class=\"au-file-viewer-line au-file-viewer-line--meta\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">diff --git a/GitChangesPanel.tsx b/GitChangesPanel.tsx</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--hunk\">\n            <span class=\"au-file-viewer-gutter\"></span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\">@@ −48,6 +48,18 @@ export function GitChangesPanel</span>\n          </div>\n          <div class=\"au-file-viewer-line\">\n            <span class=\"au-file-viewer-gutter\">48</span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">const</span> [diff, setDiff] = <span class=\"au-syntax-function\">useState</span>(<span class=\"au-syntax-keyword\">null</span>);</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--deleted\">\n            <span class=\"au-file-viewer-gutter\">49</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--deleted\">−</span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">return</span> &lt;<span class=\"au-syntax-type\">Text</span>&gt;{diffText(diff)}&lt;/<span class=\"au-syntax-type\">Text</span>&gt;;</span>\n          </div>\n          <div class=\"au-file-viewer-line au-file-viewer-line--added au-file-viewer-line--current\">\n            <span class=\"au-file-viewer-gutter\">52</span>\n            <span class=\"au-file-viewer-prefix au-file-viewer-prefix--added\">+</span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-keyword\">return</span> &lt;<span class=\"au-syntax-type\">GitFileViewer</span> diff={diff} <span class=\"au-syntax-property\">onClose</span>={close} /&gt;;</span>\n          </div>\n          <div class=\"au-file-viewer-line\">\n            <span class=\"au-file-viewer-gutter\">53</span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-plain\">    </span><span class=\"au-syntax-keyword\">return</span> foo;</span>\n          </div>\n          <div class=\"au-file-viewer-line\">\n            <span class=\"au-file-viewer-gutter\">54</span>\n            <span class=\"au-file-viewer-prefix\"> </span>\n            <span class=\"au-file-viewer-code\"><span class=\"au-syntax-comment\">// Filename opens inspection. Checkbox stays selection.</span></span>\n          </div>\n        </div>\n      </div></div>\n      <div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H8l-4 3V7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18\"></path></svg>\n          Settings\n        </button>\n      </div>\n    </div>"
     }
   ]
 }

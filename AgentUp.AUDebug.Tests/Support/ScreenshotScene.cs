@@ -17,11 +17,8 @@ internal static class ScreenshotScene
             Height = 900,
             Hero = hero,
             LivePath = "",
-            AppSources = ["AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml"],
-            RequiredClasses = ["au-workspace"],
-            RequiredDesktopClasses = ["wsEntry"],
-            RequiredMobileComponents = [],
-            Copy = ["Harbor Shop"]
+            Components = ["workspace"],
+            RequiredClasses = ["au-workspace"]
         };
 
     public static ScreenshotSceneDto Mobile(string view = "apps")
@@ -37,10 +34,7 @@ internal static class ScreenshotScene
             Height = 844,
             Hero = false,
             LivePath = $"/workspace/harbor-shop/{view}",
-            AppSources = ["AgentUp.Mobile/src/features/shell/components/WorkspaceTabBar.tsx"],
+            Components = ["mobile-tab-bar"],
             RequiredClasses = ["au-mobile-tab-bar"],
-            RequiredDesktopClasses = [],
-            RequiredMobileComponents = ["mobileTabBar"],
-            Copy = ["Harbor Shop"]
         };
 }

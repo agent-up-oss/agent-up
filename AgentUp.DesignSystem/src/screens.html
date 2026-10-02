@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Agent-Up assembled screens</title>
+</head>
+<body class="au-theme">
+  <!-- Layouts compose catalog components. Scenes only name regions and which component fills them. -->
+  <section data-au-layout="desktop-shell">
+    <div data-au-use="screen">
+      <div data-au-use="chrome"></div>
+      <div data-au-use="screen-body">
+        <div data-au-use="screen-rail">
+          <div class="au-cluster">
+            <span class="au-field-label">Workspaces</span>
+            <div data-au-use="workspace-add"></div>
+          </div>
+          <div data-au-use="workspace"></div>
+        </div>
+        <div data-au-use="screen-main">
+          <div data-au-use="screen-tabs" data-au-slot="tabs"></div>
+          <div data-au-use="screen-subtabs" data-au-slot="subtabs"></div>
+          <div data-au-use="screen-pane" data-au-slot="pane"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section data-au-layout="desktop-center">
+    <div data-au-use="screen">
+      <div data-au-use="chrome"></div>
+      <div data-au-use="screen-center" data-au-slot="pane"></div>
+    </div>
+  </section>
+
+  <section data-au-layout="mobile-shell">
+    <div data-au-use="screen">
+      <div data-au-use="mobile-bar"></div>
+      <div data-au-use="screen-mobile-body" data-au-slot="pane"></div>
+      <div data-au-use="mobile-tab-bar"></div>
+    </div>
+  </section>
+
+  <section data-au-layout="mobile-list">
+    <div data-au-use="screen">
+      <div data-au-use="mobile-bar"></div>
+      <div data-au-use="screen-mobile-body" data-au-slot="pane"></div>
+    </div>
+  </section>
+
+  <section data-au-screen="sign-in" data-au-title="Sign-in" data-au-intro="Connect to a Server from a compact pane on the canvas. Saved URLs ellipsize; selecting one applies the stored sign-in." data-au-desktop="desktop-sign-in" data-au-mobile="mobile-sign-in"></section>
+  <section data-au-screen="workspaces" data-au-title="Workspaces" data-au-intro="Each checkout stays identifiable on the rail. Desktop shows the selected workspace overview; Mobile lists the same rows on their own screen." data-au-desktop="desktop-workspaces" data-au-mobile="mobile-workspaces"></section>
+  <section data-au-screen="applications" data-au-title="Applications" data-au-intro="Each tab is a running application surface. Desktop opens the allocated HTTP port; Mobile lists Apps in the workspace bottom bar." data-au-desktop="desktop-applications" data-au-mobile="mobile-apps"></section>
+  <section data-au-screen="console" data-au-title="Console" data-au-intro="Application stdout lives next to the running app, including [install] output. This surface is Desktop chrome; Mobile does not host a console." data-au-desktop="desktop-console"></section>
+  <section data-au-screen="git" data-au-title="Git" data-au-intro="Working-tree review. Desktop Git changes and Mobile Git show the same change tree. Neither surface mutates the agent commit queue." data-au-desktop="desktop-git" data-au-mobile="mobile-git"></section>
+  <section data-au-screen="review" data-au-title="Review" data-au-intro="Mobile Review reads the Server-owned proposal queue. It does not reconstruct ancestry or infer verification state locally." data-au-mobile="mobile-review"></section>
+  <section data-au-screen="history" data-au-title="History" data-au-intro="A bounded commit log with graph lanes, a pinned timestamp column, and a sticky selected-commit detail." data-au-desktop="desktop-history" data-au-mobile="mobile-history"></section>
+  <section data-au-screen="file-viewer" data-au-title="File viewer" data-au-intro="Readonly inspection of a changed file: hunk jumps, line kinds, and syntax tokens. It is not a second editor." data-au-desktop="desktop-file-viewer" data-au-mobile="mobile-file-viewer"></section>
+  <section data-au-screen="agents" data-au-title="Agents" data-au-intro="Desktop Agent is the live ACP session. Mobile Agents is the picker that opens that session." data-au-desktop="desktop-agents" data-au-mobile="mobile-agents"></section>
+  <section data-au-screen="diagnostics" data-au-title="Diagnostics" data-au-intro="Paginated audit rows for the selected application: process, browser, and health evidence. Desktop hosts this next to Console and Metrics." data-au-desktop="desktop-diagnostics"></section>
+  <section data-au-screen="metrics" data-au-title="Metrics" data-au-intro="CPU, memory, and request duration for the selected application, on quieter metrics cards rather than a dashboard theme." data-au-desktop="desktop-metrics"></section>
+  <section data-au-screen="validation" data-au-title="Validation" data-au-intro="Recorded GUI flows with visible pass, running, and failed stages. The Server owns the flow; Desktop renders it." data-au-desktop="desktop-validation"></section>
+  <section data-au-screen="database" data-au-title="Database" data-au-intro="Query the application database from the same application chrome, with a selected table and a run control." data-au-desktop="desktop-database"></section>
+  <section data-au-screen="capabilities" data-au-title="Capabilities" data-au-intro="Enable Server-owned modules. Desktop uses an overlay; Mobile Settings is the same list on the workspace tab. Clients never talk to the remote registry." data-au-desktop="desktop-capabilities" data-au-mobile="mobile-settings"></section>
+
+  <section data-au-scene="desktop-sign-in" data-au-platform="desktop" data-au-view="sign-in" data-au-title="Desktop sign-in" data-au-layout="desktop-center">
+    <div data-au-region="pane" data-au-use="sign-in"></div>
+  </section>
+  <section data-au-scene="desktop-workspaces" data-au-platform="desktop" data-au-view="workspaces" data-au-title="Desktop workspaces" data-au-layout="desktop-shell">
+    <div data-au-region="tabs" data-au-use="app-tab"></div>
+    <div data-au-region="pane" data-au-use="metrics-card"></div>
+  </section>
+  <section data-au-scene="desktop-applications" data-au-platform="desktop" data-au-view="applications" data-au-title="Desktop applications" data-au-layout="desktop-shell" data-au-hero="true">
+    <div data-au-region="tabs" data-au-use="app-tab"></div>
+    <div data-au-region="subtabs" data-au-use="subtab"></div>
+    <div data-au-region="pane" data-au-use="address-bar"></div>
+  </section>
+  <section data-au-scene="desktop-console" data-au-platform="desktop" data-au-view="console" data-au-title="Desktop console" data-au-layout="desktop-shell">
+    <div data-au-region="tabs" data-au-use="app-tab"></div>
+    <div data-au-region="subtabs" data-au-use="subtab"></div>
+    <div data-au-region="pane" data-au-use="console"></div>
+  </section>
+  <section data-au-scene="desktop-git" data-au-platform="desktop" data-au-view="git" data-au-title="Desktop Git changes" data-au-layout="desktop-shell">
+    <div data-au-region="tabs" data-au-use="app-tab"></div>
+    <div data-au-region="subtabs" data-au-use="subtab"></div>
+    <div data-au-region="pane" data-au-use="git-change-list"></div>
+  </section>
+  <section data-au-scene="desktop-history" data-au-platform="desktop" data-au-view="history" data-au-title="Desktop Git history" data-au-layout="desktop-shell">
+    <div data-au-region="tabs" data-au-use="app-tab"></div>
+    <div data-au-region="subtabs" data-au-use="subtab"></div>
+    <div data-au-region="pane" data-au-use="git-log-detail"></div>
+    <div data-au-region="pane" data-au-use="git-log-row"></div>
+  </section>
+  <section data-au-scene="desktop-agents" data-au-platform="desktop" data-au-view="agents" data-au-title="Desktop Agent" data-au-layout="desktop-shell">
+    <div data-au-region="tabs" data-au-use="app-tab"></div>
+    <div data-au-region="pane" data-au-use="choice"></div>
+    <div data-au-region="pane" data-au-use="chat-transcript"></div>
+  </section>
+  <section data-au-scene="desktop-diagnostics" data-au-platform="desktop" data-au-view="diagnostics" data-au-title="Desktop diagnostics" data-au-layout="desktop-shell">
+    <div data-au-region="tabs" data-au-use="app-tab"></div>
+    <div data-au-region="subtabs" data-au-use="subtab"></div>
+    <div data-au-region="pane" data-au-use="audit-table"></div>
+    <div data-au-region="pane" data-au-use="page-jump"></div>
+  </section>
+  <section data-au-scene="desktop-metrics" data-au-platform="desktop" data-au-view="metrics" data-au-title="Desktop metrics" data-au-layout="desktop-shell">
+    <div data-au-region="tabs" data-au-use="app-tab"></div>
+    <div data-au-region="subtabs" data-au-use="subtab"></div>
+    <div data-au-region="pane" data-au-use="metrics-card"></div>
+    <div data-au-region="pane" data-au-use="metrics-chart"></div>
+  </section>
+  <section data-au-scene="desktop-validation" data-au-platform="desktop" data-au-view="validation" data-au-title="Desktop validation" data-au-layout="desktop-shell">
+    <div data-au-region="tabs" data-au-use="app-tab"></div>
+    <div data-au-region="subtabs" data-au-use="subtab"></div>
+    <div data-au-region="pane" data-au-use="validation-stage"></div>
+  </section>
+  <section data-au-scene="desktop-database" data-au-platform="desktop" data-au-view="database" data-au-title="Desktop database" data-au-layout="desktop-shell">
+    <div data-au-region="tabs" data-au-use="app-tab"></div>
+    <div data-au-region="subtabs" data-au-use="subtab"></div>
+    <div data-au-region="pane" data-au-use="db-list"></div>
+    <div data-au-region="pane" data-au-use="sql-editor"></div>
+    <div data-au-region="pane" data-au-use="db-run"></div>
+  </section>
+  <section data-au-scene="desktop-capabilities" data-au-platform="desktop" data-au-view="capabilities" data-au-title="Desktop capabilities" data-au-layout="desktop-shell">
+    <div data-au-region="tabs" data-au-use="app-tab"></div>
+    <div data-au-region="pane" data-au-use="capability-catalog"></div>
+  </section>
+  <section data-au-scene="desktop-file-viewer" data-au-platform="desktop" data-au-view="file-viewer" data-au-title="Desktop file viewer" data-au-layout="desktop-shell">
+    <div data-au-region="tabs" data-au-use="app-tab"></div>
+    <div data-au-region="subtabs" data-au-use="subtab"></div>
+    <div data-au-region="pane" data-au-use="file-viewer"></div>
+  </section>
+
+  <section data-au-scene="mobile-sign-in" data-au-platform="mobile" data-au-view="sign-in" data-au-title="Mobile sign-in" data-au-layout="mobile-list" data-au-live="/connect">
+    <div data-au-region="pane" data-au-use="sign-in"></div>
+  </section>
+  <section data-au-scene="mobile-workspaces" data-au-platform="mobile" data-au-view="workspaces" data-au-title="Mobile workspaces" data-au-layout="mobile-list" data-au-live="/">
+    <div data-au-region="pane" data-au-use="workspace"></div>
+  </section>
+  <section data-au-scene="mobile-apps" data-au-platform="mobile" data-au-view="apps" data-au-title="Mobile apps" data-au-layout="mobile-shell" data-au-live="/workspace/harbor-shop">
+    <div data-au-region="pane" data-au-use="workspace"></div>
+  </section>
+  <section data-au-scene="mobile-git" data-au-platform="mobile" data-au-view="git" data-au-title="Mobile Git" data-au-layout="mobile-shell" data-au-live="/workspace/harbor-shop/git">
+    <div data-au-region="pane" data-au-use="git-change-list"></div>
+  </section>
+  <section data-au-scene="mobile-review" data-au-platform="mobile" data-au-view="review" data-au-title="Mobile Git review" data-au-layout="mobile-shell" data-au-live="/workspace/harbor-shop/git/review">
+    <div data-au-region="pane" data-au-use="git-change-list"></div>
+  </section>
+  <section data-au-scene="mobile-history" data-au-platform="mobile" data-au-view="history" data-au-title="Mobile Git history" data-au-layout="mobile-shell" data-au-live="/workspace/harbor-shop/git/history">
+    <div data-au-region="pane" data-au-use="git-log-detail"></div>
+    <div data-au-region="pane" data-au-use="git-log-row"></div>
+  </section>
+  <section data-au-scene="mobile-agents" data-au-platform="mobile" data-au-view="agents" data-au-title="Mobile Agents" data-au-layout="mobile-shell" data-au-live="/workspace/harbor-shop/agents">
+    <div data-au-region="pane" data-au-use="choice"></div>
+  </section>
+  <section data-au-scene="mobile-settings" data-au-platform="mobile" data-au-view="settings" data-au-title="Mobile settings" data-au-layout="mobile-shell" data-au-live="/workspace/harbor-shop/settings">
+    <div data-au-region="pane" data-au-use="capability-catalog"></div>
+  </section>
+  <section data-au-scene="mobile-file-viewer" data-au-platform="mobile" data-au-view="file-viewer" data-au-title="Mobile file viewer" data-au-layout="mobile-shell" data-au-live="/workspace/harbor-shop/git">
+    <div data-au-region="pane" data-au-use="file-viewer"></div>
+  </section>
+</body>
+</html>

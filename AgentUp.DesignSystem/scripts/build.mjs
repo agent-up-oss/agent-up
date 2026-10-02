@@ -5,7 +5,7 @@ import { emitCSharpColors, emitStyles, emitThemeResources } from './lib/avalonia
 import { catalogIndex, parseCatalog } from './lib/catalog.mjs';
 import { parseCustomProperties, parseRules } from './lib/css.mjs';
 import { emitNative } from './lib/native.mjs';
-import { framedSceneHtml, screenshotScenes, screenshotScreens, wrapSceneDocument } from './lib/screenshots.mjs';
+import { assembleScreens, framedSceneHtml, wrapSceneDocument } from './lib/screens.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const src = resolve(root, 'src');
@@ -16,6 +16,7 @@ const marketing = await readFile(resolve(src, 'marketing.css'), 'utf8');
 const docs = await readFile(resolve(src, 'docs.css'), 'utf8');
 const screenshotShell = await readFile(resolve(src, 'screenshots', 'shell.css'), 'utf8');
 const catalogHtml = await readCatalogHtml(src);
+const screensHtml = await readFile(resolve(src, 'screens.html'), 'utf8');
 const css = `${primitives.trim()}\n\n${product.trim()}\n`;
 const screenshotCss = `${css}\n${marketing}\n${screenshotShell}\n`;
 const tokens = parseCustomProperties(primitives);
@@ -30,6 +31,7 @@ for (const name of required) {
 
 const catalog = parseCatalog(catalogHtml);
 if (catalog.surfaces.length < 8) throw new Error('Design catalog is missing required product surfaces.');
+const assembled = assembleScreens(catalog, screensHtml);
 const rules = parseRules(`${css}\n${marketing}`);
 const index = catalogIndex(catalog);
 const native = emitNative(tokens, rules);
@@ -65,12 +67,12 @@ const outputs = new Map([
   ['dist/web/syntax/highlight.d.ts', highlightTypes],
   ['dist/web/syntax/grammars.json', `${JSON.stringify(grammars, null, 2)}\n`],
   ['dist/dotnet/AgentUpSyntaxGrammars.g.cs', emitSyntaxGrammars(grammars)],
-  ['dist/web/screenshots.json', `${JSON.stringify({ screens: screenshotScreens(), scenes: screenshotManifest() }, null, 2)}\n`],
+  ['dist/web/screenshots.json', `${JSON.stringify({ screens: assembled.screens, scenes: screenshotManifest(assembled.scenes) }, null, 2)}\n`],
   ['dist/web/screenshots.css', screenshotCss],
   ['dist/web/screenshot-shell.css', screenshotShell],
 ]);
 
-for (const scene of screenshotScenes()) {
+for (const scene of assembled.scenes) {
   outputs.set(`dist/web/screenshots/${scene.htmlFile}`, wrapSceneDocument(scene, screenshotCss));
 }
 
@@ -111,8 +113,8 @@ ${JSON.stringify(value, null, 2)}
 `;
 }
 
-function screenshotManifest() {
-  return screenshotScenes().map(scene => ({
+function screenshotManifest(scenes) {
+  return scenes.map(scene => ({
     id: scene.id,
     surface: scene.surface,
     view: scene.view,
@@ -123,11 +125,9 @@ function screenshotManifest() {
     height: scene.height,
     hero: scene.hero,
     livePath: scene.livePath,
-    appSources: scene.appSources,
+    layout: scene.layout,
+    components: scene.components,
     requiredClasses: scene.requiredClasses,
-    requiredDesktopClasses: scene.requiredDesktopClasses,
-    requiredMobileComponents: scene.requiredMobileComponents,
-    copy: scene.copy,
     html: framedSceneHtml(scene),
   }));
 }

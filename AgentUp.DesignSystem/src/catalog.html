@@ -656,6 +656,36 @@ ready in 842 ms</pre>
     </article>
   </section>
 
+  <section data-au-surface="screens" data-au-title="Assembled screens" data-au-intro="A screen is a layout of catalog components. Desktop and Mobile consume the same region tree. Do not restyle a second screenshot shell.">
+    <article data-au-component="screen" data-au-title="Screen" data-au-note="The window is a column of catalog chrome plus a body. Capture size is a persist concern, not a second theme." data-au-avalonia="Border" data-au-class="au-screen" data-au-desktop-class="productScreen">
+      <div class="au-screen"></div>
+    </article>
+    <article data-au-component="screen-body" data-au-title="Screen body" data-au-note="Desktop body is the rail beside the main column. Mobile does not use this grid." data-au-avalonia="Border" data-au-class="au-screen-body" data-au-desktop-class="productScreenBody">
+      <div class="au-screen-body"></div>
+    </article>
+    <article data-au-component="screen-rail" data-au-title="Screen rail" data-au-note="Rail layout sits on au-rail paint. Do not invent a screenshot-only sidebar." data-au-avalonia="Border" data-au-class="au-screen-rail" data-au-desktop-class="productScreenRail">
+      <aside class="au-rail au-screen-rail"></aside>
+    </article>
+    <article data-au-component="screen-main" data-au-title="Screen main" data-au-note="Tabs, subtabs, then a pane. The pane is au-pane, not a full-bleed slab." data-au-avalonia="Border" data-au-class="au-screen-main" data-au-desktop-class="productScreenMain">
+      <main class="au-screen-main"></main>
+    </article>
+    <article data-au-component="screen-tabs" data-au-title="Screen tab strip" data-au-note="Host for au-app-tab. The strip is structure; selection stays on the tab." data-au-avalonia="Border" data-au-class="au-screen-tabs" data-au-desktop-class="productScreenTabs">
+      <div class="au-screen-tabs"></div>
+    </article>
+    <article data-au-component="screen-subtabs" data-au-title="Screen subtab strip" data-au-note="Host for au-subtab. Secondary selection stays neutral." data-au-avalonia="Border" data-au-class="au-screen-subtabs" data-au-desktop-class="productScreenSubtabs">
+      <div class="au-screen-subtabs"></div>
+    </article>
+    <article data-au-component="screen-pane" data-au-title="Screen pane slot" data-au-note="Working region inset. Pair with au-pane for the surface." data-au-avalonia="Border" data-au-class="au-screen-pane" data-au-desktop-class="productScreenPane">
+      <div class="au-pane au-screen-pane"></div>
+    </article>
+    <article data-au-component="screen-center" data-au-title="Centered screen" data-au-note="Sign-in sits in the remaining canvas, not in an overlay." data-au-avalonia="Border" data-au-class="au-screen-center" data-au-desktop-class="productScreenCenter">
+      <div class="au-screen-center"></div>
+    </article>
+    <article data-au-component="screen-mobile-body" data-au-title="Mobile body" data-au-note="Scrolls between the top bar and the tab bar." data-au-avalonia="Border" data-au-class="au-screen-mobile-body" data-au-desktop-class="productScreenMobileBody">
+      <div class="au-screen-mobile-body"></div>
+    </article>
+  </section>
+
   <section data-au-surface="voice" data-au-title="Voice" data-au-intro="Product writing is direct and accountable. Lead with what a developer can do, then explain Server ownership.">
     <article data-au-component="voice-card" data-au-title="Positioning" data-au-note="Campaign taglines may vary, but they reconnect to the runtime control plane identity." data-au-avalonia="Border" data-au-class="au-card">
       <div class="au-card"><p class="au-eyebrow">Category</p><p>Local runtime control plane for AI-assisted development.</p></div>

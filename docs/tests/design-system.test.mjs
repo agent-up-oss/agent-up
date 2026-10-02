@@ -8,7 +8,7 @@ const requiredSurfaces = [
   'foundations', 'primitives', 'chrome', 'workspaces', 'applications', 'browser',
   'console', 'git', 'diagnostics', 'metrics', 'validation', 'auth', 'database',
   'mobile', 'documentation', 'marketing', 'voice', 'brand', 'governance',
-  'file-viewer',
+  'file-viewer', 'screens',
 ];
 
 test('the design-system showcase is linked from primary navigation and the footer', async () => {
@@ -48,8 +48,7 @@ test('the showcase is intro, then assembled screens, then the catalog', async ()
   assert.match(page, /dangerouslySetInnerHTML=\{\{ __html: component\.html \}\}/);
   assert.match(page, /aria-label="Live catalog components"/);
   for (const id of [
-    'workspace', 'app-tab', 'git-change-list', 'choice', 'chat-transcript',
-    'sign-in', 'validation-stage', 'mobile-tab-bar',
+    'badge', 'choice', 'workspace', 'app-tab', 'chat-transcript', 'git-change-list',
   ]) {
     assert.match(page, new RegExp(`'${id}'`));
     assert.ok(

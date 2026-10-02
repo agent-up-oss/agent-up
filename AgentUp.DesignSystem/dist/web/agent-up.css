@@ -1041,6 +1041,64 @@
   background: var(--au-color-transparent);
 }
 
+/* Assembled screens. These layout classes compose catalog components into
+ * Desktop and Mobile windows. Apps apply the same classes; they do not
+ * restyle a second screenshot shell. */
+.au-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  color: var(--au-color-text-primary);
+  background: var(--au-color-canvas);
+}
+.au-screen-body {
+  display: grid;
+  grid-template-columns: 16.5rem minmax(0, 1fr);
+  min-height: 0;
+  flex: 1;
+}
+.au-screen-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--au-space-2);
+  min-height: 0;
+  padding: var(--au-space-3);
+  overflow: auto;
+}
+.au-screen-main {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.au-screen-tabs,
+.au-screen-subtabs {
+  display: flex;
+  gap: var(--au-space-1);
+  border-bottom: 1px solid var(--au-color-border-subtle);
+}
+.au-screen-tabs { padding: 0 var(--au-space-3); }
+.au-screen-subtabs { padding: var(--au-space-2) var(--au-space-3); }
+.au-screen-pane {
+  min-height: 0;
+  flex: 1;
+  margin: var(--au-space-3);
+  overflow: auto;
+}
+.au-screen-center {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  flex: 1;
+}
+.au-screen-mobile-body {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  padding: var(--au-space-3);
+}
+
 
 /*
  * Readonly file inspection viewer. Separate from the Git change list so that

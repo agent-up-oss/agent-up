@@ -15,8 +15,9 @@ from the site navbar and footer. The page opens with the contract intro beside a
 live collage of catalog product-control examples. Those examples are the same
 `component.html` definitions as the catalog below, so the intro stays in sync
 when the catalog changes. Assembled Desktop and Mobile screens follow, selected
-by a horizontal chip strip. Those views mount the screenshot HTML definitions
-with catalog classes; they do not embed persisted PNGs. Below that, a vertical
+by a horizontal chip strip. Those views mount assembled screen HTML: `src/screens.html` layouts that
+`data-au-use` catalog component ids. They do not embed persisted PNGs and they
+do not restate component markup. Below that, a vertical
 surface list sits in the left of the content column, and each selected surface
 shows the live components that surface uses.
 
@@ -42,14 +43,15 @@ shows the live components that surface uses.
   numbered spine, contract, fork, facts, surface rows, steps, callout, next).
   It is not compiled into Desktop or Mobile bindings.
 - `src/marketing.css` owns campaign and product-frame compositions.
-- `src/screenshots/shell.css` owns screenshot-only chrome layout (rails, tab
-  strips, viewport size, and the scaled showcase embed). It is compiled into
-  `dist/web/screenshots.css`, `dist/web/screenshot-shell.css`, and per-view HTML
-  under `dist/web/screenshots/`, not into Desktop or Mobile. Docs import the
-  shell so the showcase can mount those definitions live.
-- `scripts/lib/screenshots.mjs` owns the Desktop and Mobile product views
-  persisted into `media/` by `au-debug screenshots persist`, and the screen
-  pairings the showcase tabs through.
+- `src/screenshots/shell.css` owns the scaled showcase embed only. Screen chrome
+  layout lives in `src/product.css` as `.au-screen*` so Desktop can apply the
+  same classes.
+- `src/screens.html` owns assembled screens: named layouts plus scenes that
+  fill regions with `data-au-use` of catalog component ids, including the
+  `screen*` layout shells. `scripts/lib/screens.mjs` inserts leaf catalog HTML
+  and applies empty layout shells as wrappers. Persist writes the result into
+  `media/`. Desktop aliases (`productScreen`, `productScreenRail`, …) compile
+  from those same catalog classes.
 - `brand/voice.json` owns product naming, positioning, capability lifecycle
   language, and editorial principles.
 - `scripts/build.mjs` deterministically copies web assets and compiles the CSS
@@ -171,6 +173,6 @@ npm --prefix AgentUp.DesignSystem test
 The `check` command fails when a generated web, React Native, or Avalonia binding
 does not exactly match the canonical HTML and CSS. Native `font-style` compiles to
 React Native `italic` or `normal`; CSS `oblique` maps to `italic` because React
-Native does not accept `oblique`. Screenshot HTML is generated in the same build;
+Native does not accept `oblique`. Screenshot HTML is generated in the same build from `src/screens.html`;
 refresh `media/` with `au-debug screenshots persist` and prove the shots still
-match the apps with `au-debug screenshots validate`.
+compose catalog component HTML with `au-debug screenshots validate`.

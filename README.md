@@ -18,7 +18,7 @@
   </a>
 </p>
 <p align="center">
-  Product screenshots are rendered from the design-system catalog. Refresh the full Desktop and Mobile set with <code>au-debug screenshots persist</code>, then prove they match the apps with <code>au-debug screenshots validate</code>.
+  Product screenshots are assembled from catalog components. Refresh the full Desktop and Mobile set with <code>au-debug screenshots persist</code>, then prove they compose catalog HTML with <code>au-debug screenshots validate</code>.
 </p>
 
 Agent-Up is a local runtime control plane for parallel AI-assisted software development.

@@ -7,7 +7,7 @@ namespace AgentUp.AUDebug.Tests.Features.Screenshots.Provider;
 public sealed class ScreenshotAppContractProviderTests
 {
     [Test]
-    public void Verify_acceptsCatalogClassAndFakeServerCopy()
+    public void Verify_acceptsCatalogComponentHtml()
     {
         var root = Repo();
         ArrangeValid(root);
@@ -21,12 +21,12 @@ public sealed class ScreenshotAppContractProviderTests
     public void Verify_rejectsUnknownClass()
     {
         var root = Repo();
-        ArrangeValid(root, html: """<div class="au-not-a-catalog"></div>""");
+        ArrangeValid(root, html: """<div class="au-workspace">checkout-fix</div><div class="au-not-a-catalog"></div>""");
         var paths = new DebugPathValidator(root);
         var media = new ScreenshotMediaStore(paths);
 
         Assert.That(
-            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene() with { RequiredClasses = [] }),
+            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene()),
             Throws.InvalidOperationException.With.Message.Contains("not in the design-system catalog"));
     }
 
@@ -44,19 +44,7 @@ public sealed class ScreenshotAppContractProviderTests
     }
 
     [Test]
-    public void Verify_missingRequiredClass_throws()
-    {
-        var root = Repo();
-        ArrangeValid(root, html: """<div class="au-workspace">Harbor Shop</div>""");
-        var paths = new DebugPathValidator(root);
-        var media = new ScreenshotMediaStore(paths);
-        Assert.That(
-            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene() with { RequiredClasses = ["au-git-row"] }),
-            Throws.InvalidOperationException.With.Message.Contains("missing required catalog class"));
-    }
-
-    [Test]
-    public void Verify_missingCopyInHtml_throws()
+    public void Verify_missingComponentInHtml_throws()
     {
         var root = Repo();
         ArrangeValid(root, html: """<div class="au-workspace"></div>""");
@@ -64,32 +52,31 @@ public sealed class ScreenshotAppContractProviderTests
         var media = new ScreenshotMediaStore(paths);
         Assert.That(
             () => new ScreenshotAppContractProvider(paths, media).Verify(Scene()),
-            Throws.InvalidOperationException.With.Message.Contains("missing Demo copy"));
+            Throws.InvalidOperationException.With.Message.Contains("missing catalog component"));
     }
 
     [Test]
-    public void Verify_missingDesktopClass_throws()
-    {
-        var root = Repo();
-        ArrangeValid(root);
-        File.WriteAllText(Path.Join(root, "AgentUp.Desktop", "MainWindow.axaml"), "<Border />");
-        var paths = new DebugPathValidator(root);
-        var media = new ScreenshotMediaStore(paths);
-        Assert.That(
-            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene()),
-            Throws.InvalidOperationException.With.Message.Contains("Desktop class"));
-    }
-
-    [Test]
-    public void Verify_missingMobileComponent_throws()
+    public void Verify_unknownComponentId_throws()
     {
         var root = Repo();
         ArrangeValid(root);
         var paths = new DebugPathValidator(root);
         var media = new ScreenshotMediaStore(paths);
         Assert.That(
-            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene() with { RequiredMobileComponents = ["mobileTabBar"] }),
-            Throws.InvalidOperationException.With.Message.Contains("auBox('mobileTabBar')"));
+            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene() with { Components = ["not-a-component"] }),
+            Throws.InvalidOperationException.With.Message.Contains("unknown catalog component"));
+    }
+
+    [Test]
+    public void Verify_emptyComponents_throws()
+    {
+        var root = Repo();
+        ArrangeValid(root);
+        var paths = new DebugPathValidator(root);
+        var media = new ScreenshotMediaStore(paths);
+        Assert.That(
+            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene() with { Components = [] }),
+            Throws.InvalidOperationException.With.Message.Contains("does not name catalog components"));
     }
 
     [Test]
@@ -106,65 +93,35 @@ public sealed class ScreenshotAppContractProviderTests
     }
 
     [Test]
-    public void Verify_missingFakeServer_throws()
+    public void Verify_missingCatalog_throws()
     {
         var root = Repo();
         ArrangeValid(root);
-        File.Delete(Path.Join(root, "AgentUp.FakeServer", "definition.json"));
+        File.Delete(Path.Join(root, "AgentUp.DesignSystem", "dist", "web", "catalog.json"));
         var paths = new DebugPathValidator(root);
         var media = new ScreenshotMediaStore(paths);
         Assert.That(
             () => new ScreenshotAppContractProvider(paths, media).Verify(Scene()),
-            Throws.InvalidOperationException.With.Message.Contains("definition.json is missing"));
+            Throws.InvalidOperationException.With.Message.Contains("catalog is missing"));
     }
 
     [Test]
-    public void Verify_missingAppSource_throws()
+    public void Verify_layoutShell_acceptsFilledRoot()
     {
         var root = Repo();
-        ArrangeValid(root);
-        File.Delete(Path.Join(root, "AgentUp.Desktop", "MainWindow.axaml"));
-        var paths = new DebugPathValidator(root);
-        var media = new ScreenshotMediaStore(paths);
-        Assert.That(
-            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene()),
-            Throws.InvalidOperationException.With.Message.Contains("App source"));
-    }
-
-    [Test]
-    public void Verify_acceptsQuotedAuBox()
-    {
-        var root = Repo();
-        ArrangeValid(root);
-        var mobile = Path.Join(root, "AgentUp.Mobile");
-        Directory.CreateDirectory(mobile);
-        File.WriteAllText(Path.Join(mobile, "Tabs.tsx"), """auBox("mobileTabBar")""");
-        var paths = new DebugPathValidator(root);
-        var media = new ScreenshotMediaStore(paths);
-        Assert.DoesNotThrow(() => new ScreenshotAppContractProvider(paths, media).Verify(
-            Scene() with
-            {
-                AppSources = ["AgentUp.Mobile/Tabs.tsx"],
-                RequiredDesktopClasses = [],
-                RequiredMobileComponents = ["mobileTabBar"]
-            }));
-    }
-
-    [Test]
-    public void Verify_rejectsCopyMissingFromFakeServer()
-    {
-        var root = Repo();
-        ArrangeValid(root, definition: "{ \"displayName\": \"Other Shop\" }");
+        ArrangeValid(
+            root,
+            html: """<div class="au-screen"><div class="au-workspace">checkout-fix</div></div>""",
+            css: ".au-workspace { color: black; } .au-screen { color: black; }",
+            catalog: """{ "surfaces": [ { "components": [ { "id": "screen", "html": "<div class=\"au-screen\"></div>" }, { "id": "workspace", "html": "<div class=\"au-workspace\">checkout-fix</div>" } ] } ] }""");
         var paths = new DebugPathValidator(root);
         var media = new ScreenshotMediaStore(paths);
 
-        Assert.That(
-            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene()),
-            Throws.InvalidOperationException.With.Message.Contains("FakeServer"));
+        Assert.DoesNotThrow(() => new ScreenshotAppContractProvider(paths, media).Verify(Scene() with { Components = ["screen", "workspace"] }));
     }
 
     [Test]
-    public void Verify_repositoryScenesMatchApps()
+    public void Verify_repositoryScenesComposeCatalog()
     {
         var root = RepositoryRootProvider.Find(TestContext.CurrentContext.TestDirectory)
                    ?? throw new InvalidOperationException("Could not find agent-up.sln.");
@@ -186,11 +143,7 @@ public sealed class ScreenshotAppContractProviderTests
             View = "workspaces",
             HtmlFile = "desktop-workspaces.html",
             MediaFile = "desktop-workspaces.png",
-            AppSources = ["AgentUp.Desktop/MainWindow.axaml"],
-            RequiredClasses = ["au-workspace"],
-            RequiredDesktopClasses = ["wsEntry"],
-            RequiredMobileComponents = [],
-            Copy = ["Harbor Shop"]
+            Components = ["workspace"]
         };
 
     private static string Repo()
@@ -201,19 +154,16 @@ public sealed class ScreenshotAppContractProviderTests
         return root;
     }
 
-    private static void ArrangeValid(string root, string? html = null, string? definition = null)
+    private static void ArrangeValid(string root, string? html = null, string? css = null, string? catalog = null)
     {
         var dist = Path.Join(root, "AgentUp.DesignSystem", "dist", "web", "screenshots");
         Directory.CreateDirectory(dist);
-        File.WriteAllText(Path.Join(root, "AgentUp.DesignSystem", "dist", "web", "screenshots.css"), ".au-workspace { color: black; }");
+        File.WriteAllText(Path.Join(root, "AgentUp.DesignSystem", "dist", "web", "screenshots.css"), css ?? ".au-workspace { color: black; }");
+        File.WriteAllText(
+            Path.Join(root, "AgentUp.DesignSystem", "dist", "web", "catalog.json"),
+            catalog ?? """{ "surfaces": [ { "components": [ { "id": "workspace", "html": "<div class=\"au-workspace\">checkout-fix</div>" } ] } ] }""");
         File.WriteAllText(
             Path.Join(dist, "desktop-workspaces.html"),
-            html ?? """<div class="au-workspace">Harbor Shop</div>""");
-        var desktop = Path.Join(root, "AgentUp.Desktop");
-        Directory.CreateDirectory(desktop);
-        File.WriteAllText(Path.Join(desktop, "MainWindow.axaml"), """<Border Classes="wsEntry" />""");
-        var fake = Path.Join(root, "AgentUp.FakeServer");
-        Directory.CreateDirectory(fake);
-        File.WriteAllText(Path.Join(fake, "definition.json"), definition ?? """{ "displayName": "Harbor Shop" }""");
+            html ?? """<div class="au-workspace">checkout-fix</div>""");
     }
 }

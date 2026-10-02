@@ -991,6 +991,46 @@ const agentUpTheme = Object.freeze({
       paddingVertical: 12,
       backgroundColor: "#00000000",
     }),
+    screen: Object.freeze({
+      minHeight: "100%",
+      color: "#f5fbf7",
+      backgroundColor: "#0a0b0c",
+    }),
+    screenBody: Object.freeze({
+      minHeight: 0,
+    }),
+    screenRail: Object.freeze({
+      minHeight: 0,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+    }),
+    screenMain: Object.freeze({
+      minWidth: 0,
+      minHeight: 0,
+    }),
+    screenTabs: Object.freeze({
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+      paddingHorizontal: 12,
+      paddingVertical: 0,
+    }),
+    screenSubtabs: Object.freeze({
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    }),
+    screenPane: Object.freeze({
+      minHeight: 0,
+    }),
+    screenCenter: Object.freeze({
+      minHeight: 0,
+    }),
+    screenMobileBody: Object.freeze({
+      minHeight: 0,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+    }),
     fileViewer: Object.freeze({
       minHeight: 256,
       minWidth: 288,

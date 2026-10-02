@@ -57,9 +57,9 @@ public sealed class DebugOutputService
             Screenshots:
               screenshots persist        Render every Desktop and Mobile product view from the design-system
                                          catalog and write PNGs into media/, including media/screenshot.png.
-              screenshots validate       Prove those PNGs are catalog classes plus FakeServer copy that the
-                                         real apps use, then regenerate and pixel-match media/. --live also
-                                         checks hosted Mobile Demo copy after au-debug up.
+              screenshots validate       Prove assembled screens compose catalog component HTML, then
+                                         regenerate and pixel-match media/. --live also probes hosted
+                                         Mobile pages after au-debug up.
               screenshots desktop [view] Capture one or every Desktop design-system view.
               screenshots mobile [view]  Capture one or every Mobile design-system view.
 
@@ -83,7 +83,7 @@ public sealed class DebugOutputService
               --password <pw>            Admin password for login commands (else $AGENTUP_ADMIN_PASSWORD).
               --heading <text>           Scroll that heading into view (docs screenshot).
               --full-page                Capture the whole docs page, not just the viewport.
-              --live                     Also check hosted Mobile Demo copy (screenshots validate).
+              --live                     Also probe hosted Mobile pages (screenshots validate).
             """);
         return 0;
     }

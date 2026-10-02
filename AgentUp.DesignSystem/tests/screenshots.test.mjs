@@ -2,20 +2,31 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import test from 'node:test';
-import { desktopSize, framedSceneHtml, mobileSize, screenshotScenes, screenshotScreens, wrapSceneDocument } from '../scripts/lib/screenshots.mjs';
+import catalog from '../dist/web/catalog.json' with { type: 'json' };
+import {
+  assembleScreens,
+  desktopSize,
+  framedSceneHtml,
+  isLayoutShell,
+  mobileSize,
+  wrapSceneDocument,
+} from '../scripts/lib/screens.mjs';
 
 const repository = resolve(new URL('../..', import.meta.url).pathname);
 const css = await readFile(new URL('../dist/web/screenshots.css', import.meta.url), 'utf8');
-const definition = await readFile(resolve(repository, 'AgentUp.FakeServer/definition.json'), 'utf8');
+const screensHtml = await readFile(new URL('../src/screens.html', import.meta.url), 'utf8');
+const assembled = assembleScreens(catalog, screensHtml);
+const components = Object.fromEntries(
+  catalog.surfaces.flatMap(surface => surface.components.map(component => [component.id, component])),
+);
 const allowed = new Set([...css.matchAll(/\.((?:au-[a-z0-9-]+))/g)].map(match => match[1]));
 const requiredViews = {
   desktop: ['sign-in', 'workspaces', 'applications', 'console', 'git', 'history', 'agents', 'diagnostics', 'metrics', 'validation', 'database', 'capabilities', 'file-viewer'],
   mobile: ['sign-in', 'workspaces', 'apps', 'git', 'review', 'history', 'agents', 'settings', 'file-viewer'],
 };
 
-test('assembled screens pair every screenshot scene for the showcase', () => {
-  const scenes = screenshotScenes();
-  const screens = screenshotScreens();
+test('assembled screens pair every scene for the showcase', () => {
+  const { scenes, screens } = assembled;
   const used = [];
   const ids = new Set(scenes.map(scene => scene.id));
   assert.equal(new Set(screens.map(screen => screen.id)).size, screens.length);
@@ -29,61 +40,68 @@ test('assembled screens pair every screenshot scene for the showcase', () => {
     }
   }
   assert.equal(new Set(used).size, used.length, 'assembled screens reuse a scene');
-  assert.deepEqual([...used].sort(), [...ids].sort(), 'assembled screens drifted from screenshot scenes');
+  assert.deepEqual([...used].sort(), [...ids].sort(), 'assembled screens drifted from scenes');
 });
 
-test('framed screenshot HTML is a catalog fragment the showcase can mount', () => {
-  for (const scene of screenshotScenes()) {
+test('framed screen HTML is a catalog fragment the showcase can mount', () => {
+  for (const scene of assembled.scenes) {
     const html = framedSceneHtml(scene);
-    assert.match(html, /au-screenshot/);
+    assert.match(html, /au-screen/);
+    assert.doesNotMatch(html, /au-screenshot-/);
     assert.doesNotMatch(html, /<!DOCTYPE html>/);
     assert.equal(html, wrapSceneDocument(scene, css).match(/<body class="au-theme">\n([\s\S]*)\n<\/body>/)?.[1]);
   }
 });
 
-test('screenshot scenes cover every major Desktop and Mobile view once', () => {
-  const scenes = screenshotScenes();
+test('assembled scenes cover every major Desktop and Mobile view once', () => {
+  const scenes = assembled.scenes;
   const ids = scenes.map(scene => scene.id);
   assert.equal(new Set(ids).size, ids.length);
   assert.equal(scenes.filter(scene => scene.hero).length, 1);
   assert.equal(scenes.find(scene => scene.hero)?.id, 'desktop-applications');
   for (const [surface, views] of Object.entries(requiredViews)) {
     const got = scenes.filter(scene => scene.surface === surface).map(scene => scene.view);
-    assert.deepEqual(got, views, `${surface} screenshot views drifted`);
+    assert.deepEqual(got, views, `${surface} assembled views drifted`);
   }
 });
 
-test('screenshot HTML uses catalog classes, FakeServer copy, and the classes the apps ship', async () => {
+test('assembled screens insert catalog component HTML instead of restating it', () => {
   const missing = [];
-  for (const scene of screenshotScenes()) {
+  for (const scene of assembled.scenes) {
     const html = wrapSceneDocument(scene, css);
+    assert.ok(scene.components.length > 0, `${scene.id} uses no catalog components`);
     const classes = [...html.matchAll(/class="([^"]+)"/g)]
       .flatMap(match => match[1].split(/\s+/))
       .filter(Boolean);
     for (const name of classes) {
-      if (name.startsWith('au-screenshot')) continue;
       if (!allowed.has(name)) missing.push(`${scene.id} unknown class ${name}`);
     }
-    for (const name of scene.requiredClasses) {
-      if (!classes.includes(name)) missing.push(`${scene.id} missing class ${name}`);
-    }
-    const sources = await Promise.all(scene.appSources.map(path => readFile(resolve(repository, path), 'utf8')));
-    const joined = sources.join('\n');
-    for (const name of scene.requiredDesktopClasses) {
-      if (!joined.includes(name)) missing.push(`${scene.id} missing Desktop class ${name}`);
-    }
-    for (const name of scene.requiredMobileComponents) {
-      if (!joined.includes(`auBox('${name}'`) && !joined.includes(`auBox("${name}"`)) {
-        missing.push(`${scene.id} missing auBox('${name}')`);
+    for (const id of scene.components) {
+      const component = components[id];
+      if (!component) {
+        missing.push(`${scene.id} unknown component ${id}`);
+        continue;
       }
-    }
-    for (const copy of scene.copy) {
-      if (!html.includes(copy)) missing.push(`${scene.id} HTML missing copy ${copy}`);
-      if (!definition.includes(copy)) missing.push(`${scene.id} FakeServer missing copy ${copy}`);
+      if (!isLayoutShell(component.html) && !html.includes(component.html)) {
+        missing.push(`${scene.id} missing catalog HTML for ${id}`);
+      }
+      if (!classes.includes(component.rootClass)) missing.push(`${scene.id} missing class ${component.rootClass}`);
     }
     const size = scene.surface === 'mobile' ? mobileSize : desktopSize;
     assert.equal(scene.width, size.width, scene.id);
     assert.equal(scene.height, size.height, scene.id);
   }
-  assert.deepEqual(missing, [], 'screenshot scenes drifted from the catalog or the apps');
+  assert.deepEqual(missing, [], 'assembled screens drifted from the catalog');
+});
+
+test('assembled screen source does not duplicate catalog component markup', async () => {
+  const source = await readFile(resolve(repository, 'AgentUp.DesignSystem/src/screens.html'), 'utf8');
+  assert.match(source, /data-au-use="sign-in"/);
+  assert.match(source, /data-au-use="screen"/);
+  assert.match(source, /data-au-layout="desktop-shell"/);
+  assert.doesNotMatch(source, /Harbor Mug|ProductGrid\.tsx|http:\/\/127\.0\.0\.1:9/);
+  assert.doesNotMatch(source, /class="au-screen"/);
+  assert.doesNotMatch(source, /class="au-chrome"/);
+  assert.doesNotMatch(source, /class="au-git-row"/);
+  assert.doesNotMatch(source, /class="au-sign-in"/);
 });
