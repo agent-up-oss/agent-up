@@ -44,6 +44,8 @@ export function GitHistoryPanel({ workspaceId }: { workspaceId: string }) {
 
   useEffect(() => {
     gate.current.begin();
+    commitsRef.current = [];
+    pagedRef.current = false;
   }, [scopeKey]);
 
   const rows = useMemo(() => layoutGitLog(commits, locals), [commits, locals]);
@@ -90,19 +92,22 @@ export function GitHistoryPanel({ workspaceId }: { workspaceId: string }) {
   const loadMore = async () => {
     if (!server || loadingMore || !hasMore) return;
     if (commitsRef.current.length === 0) return;
+    const ticket = gate.current.current();
     setLoadingMore(true);
     setError(null);
     try {
       const history = await getLog(server, workspaceId, GIT_LOG_PAGE_SIZE, commitsRef.current.length);
+      if (!gate.current.isCurrent(ticket)) return;
       applyPage(history?.commits, history?.hasMore ?? (history?.commits.length === GIT_LOG_PAGE_SIZE), true);
     } catch (cause) {
+      if (!gate.current.isCurrent(ticket)) return;
       if (isUnauthorized(cause)) {
         expireActiveCredential();
         return;
       }
       setError(cause instanceof Error ? cause.message : 'Could not load older commits.');
     } finally {
-      setLoadingMore(false);
+      if (gate.current.isCurrent(ticket)) setLoadingMore(false);
     }
   };
 

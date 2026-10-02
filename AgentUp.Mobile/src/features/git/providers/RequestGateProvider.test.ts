@@ -51,6 +51,15 @@ test('a ticket read before the gate advances is stale afterwards', () => {
   assert.equal(gate.isCurrent(ticket), false, 'work from the previous context must not apply');
 });
 
+test('loadMore must not merge a page after the scope gate advances', () => {
+  const gate = createRequestGate();
+  gate.begin();
+  const loadMoreTicket = gate.current();
+
+  gate.begin();
+  assert.equal(gate.isCurrent(loadMoreTicket), false);
+});
+
 test('the same workspace id on two connections needs two gates', () => {
   const first = createRequestGate();
   const second = createRequestGate();
