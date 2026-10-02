@@ -20,6 +20,7 @@ using AgentUp.Desktop.Features.Database.ViewModels;
 using AgentUp.Desktop.Features.Entitlements.Controllers;
 using AgentUp.Desktop.Features.Entitlements.Providers;
 using AgentUp.Desktop.Features.Entitlements.Services;
+using AgentUp.Desktop.Features.Authentication.Controllers;
 using AgentUp.Desktop.Features.Authentication.Providers;
 using AgentUp.Desktop.Features.Authentication.Services;
 using AgentUp.Desktop.Features.Authentication.ViewModels;
