@@ -352,6 +352,104 @@ public sealed class ServerConnectionServiceTests
         Assert.That(service.Surfaces(), Is.EqualTo(ClientSurfaceAvailability.Real));
     }
 
+    [Test]
+    public void CurrentId_returnsTheActiveSavedServerId()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var service = FakeServerTestComposition.Connections(store, http);
+        var saved = service.Save("http://127.0.0.1:5100", "token-1");
+
+        Assert.That(service.CurrentId(), Is.EqualTo(saved.Id));
+    }
+
+    [Test]
+    public void CurrentId_fallsBackToTheUrlWhenNoSavedServerMatches()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5100/") };
+        var service = FakeServerTestComposition.Connections(store, http);
+
+        Assert.That(service.CurrentId(), Is.EqualTo("http://127.0.0.1:5100"));
+    }
+
+    [Test]
+    public void Save_usesTheRecommendedIdForTheRecommendedUrl()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var recommended = new RecommendedServer("recommended", "http://127.0.0.1:5288", "Agent-Up Cloud");
+        var service = FakeServerTestComposition.Connections(store, http, recommended: recommended);
+
+        var saved = service.Save("http://127.0.0.1:5288", "token-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(saved.Id, Is.EqualTo("recommended"));
+            Assert.That(saved.IsRecommended, Is.True);
+            Assert.That(saved.CanRemove, Is.False);
+            Assert.That(saved.DisplayName, Is.EqualTo("Agent-Up Cloud"));
+        });
+    }
+
+    [Test]
+    public void Activate_connectsTheRecommendedServerByConfiguredId()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var recommended = new RecommendedServer("cloud", "http://127.0.0.1:5288", "Agent-Up Cloud");
+        var service = FakeServerTestComposition.Connections(store, http, recommended: recommended);
+
+        var activated = service.Activate("cloud");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(activated.Url, Is.EqualTo("http://127.0.0.1:5288"));
+            Assert.That(activated.IsRecommended, Is.True);
+            Assert.That(service.CurrentId(), Is.EqualTo("cloud"));
+        });
+    }
+
+    [Test]
+    public void Activate_connectsTheRecommendedServerByAlias()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var recommended = new RecommendedServer("cloud", "http://127.0.0.1:5288", "Agent-Up Cloud");
+        var service = FakeServerTestComposition.Connections(store, http, recommended: recommended);
+
+        var activated = service.Activate("recommended");
+
+        Assert.That(activated.Url, Is.EqualTo("http://127.0.0.1:5288"));
+        Assert.That(activated.IsRecommended, Is.True);
+    }
+
+    [Test]
+    public void Remove_refusesASavedCopyOfTheRecommendedUrl()
+    {
+        var store = new InMemoryServerConnectionStore();
+        store.Save(new ServerSelection
+        {
+            Servers =
+            [
+                new ConfiguredServer
+                {
+                    Id = "copied",
+                    Url = "http://127.0.0.1:5288"
+                }
+            ],
+            ActiveServerId = "copied"
+        });
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var recommended = new RecommendedServer("recommended", "http://127.0.0.1:5288", "Agent-Up Cloud");
+        var service = FakeServerTestComposition.Connections(store, http, recommended: recommended);
+
+        service.Remove("copied");
+
+        Assert.That(service.List().Servers.Any(server => server.IsRecommended), Is.True);
+        Assert.That(store.Load().Servers.Any(server => server.Id == "copied"), Is.True);
+    }
+
     private static List<SavedServerDto> UserServers(
         ServerConnectionService service)
         => service.List().Servers.Where(server => !server.IsFake).ToList();

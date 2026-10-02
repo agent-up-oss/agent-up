@@ -141,7 +141,7 @@ public class MainViewModelTests
     public async Task InitializeAsync_showsExpiredLogin_whenTheWorkspaceListRequiresSignIn()
     {
         var handler = new StatusCodeHandler(HttpStatusCode.Unauthorized);
-        var workspaceHttp = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        using var workspaceHttp = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
         using var authHttp = new DisposableTestHttpClient(request =>
             HttpTestResponses.LegacyOrPayload(request, new { authenticationRequired = true }));
         var login = new LoginViewModel(AuthenticationTestController.Create(authHttp));

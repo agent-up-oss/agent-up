@@ -59,6 +59,65 @@ public sealed class PlanCardPresenterTests
         });
     }
 
+    [Test]
+    public void Present_returnsUnavailableWhenTheDocumentIsMissing()
+    {
+        var card = PlanCardPresenter.Present(null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(card.DisplayName, Is.EqualTo("Plan unavailable"));
+            Assert.That(card.Billing, Is.Empty);
+            Assert.That(card.Available, Is.False);
+            Assert.That(card.Features, Is.Empty);
+            Assert.That(card.Limits, Is.Empty);
+            Assert.That(PlanCardPresenter.IsFeatureAvailable(null, PlanCardPresenter.WorkspaceCreateFeature), Is.False);
+        });
+    }
+
+    [Test]
+    public void Present_defaultsWhenFeaturesLimitsAndNamesAreMissing()
+    {
+        var document = new EntitlementsDocumentDto(
+            "1", "local", "admin", "selfHosted", "community", null, null, "rev", "2030-01-01", null, null);
+
+        var card = PlanCardPresenter.Present(document);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(card.DisplayName, Is.EqualTo("Plan"));
+            Assert.That(card.Billing, Is.Empty);
+            Assert.That(card.Summary, Is.EqualTo("0 of 0 operations available"));
+            Assert.That(card.Available, Is.True);
+            Assert.That(document.ApiVersion, Is.EqualTo("1"));
+            Assert.That(document.ConnectionId, Is.EqualTo("local"));
+            Assert.That(document.Subject, Is.EqualTo("admin"));
+            Assert.That(document.Source, Is.EqualTo("selfHosted"));
+            Assert.That(document.Edition, Is.EqualTo("community"));
+        });
+    }
+
+    [Test]
+    public void IsFeatureAvailable_isTrueOnlyWhenTheNamedFeatureIsEnabled()
+    {
+        var document = Document(
+            "Community",
+            "free",
+            "community",
+            new Dictionary<string, EntitlementFeatureDocument> { ["agent.prompt"] = new(true) },
+            new Dictionary<string, EntitlementLimitDocument> { ["workspace.count"] = new(null, 1) });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(PlanCardPresenter.IsFeatureAvailable(document, "agent.prompt"), Is.True);
+            Assert.That(PlanCardPresenter.IsFeatureAvailable(document, PlanCardPresenter.WorkspaceCreateFeature), Is.False);
+            Assert.That(document.Revision, Is.EqualTo("1"));
+            Assert.That(document.ExpiresAt, Is.Null);
+            Assert.That(document.Limits!["workspace.count"].Max, Is.Null);
+            Assert.That(document.Limits["workspace.count"].Used, Is.EqualTo(1));
+        });
+    }
+
     private static EntitlementsDocumentDto Document(
         string displayName,
         string billing,

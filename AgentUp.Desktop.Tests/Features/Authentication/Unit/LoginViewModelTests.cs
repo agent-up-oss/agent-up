@@ -577,6 +577,24 @@ public sealed class LoginViewModelTests
     }
 
     [Test]
+    public async Task ShowExpiredAsync_doesNotCompleteWhenAuthenticationIsDisabled()
+    {
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request, HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var login = new LoginViewModel(CreateController(http));
+        login.ServerUrl = "http://127.0.0.1:5100";
+
+        await login.ShowExpiredAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.IsVisible, Is.True);
+            Assert.That(login.NeedsPassword, Is.False);
+            Assert.That(login.ErrorMessage, Is.EqualTo("This saved sign-in is no longer valid."));
+        });
+    }
+
+    [Test]
     public async Task ConnectCommand_DoesNotTreatAMalformedConnectionDocumentAsLegacy()
     {
         using var http = new DisposableTestHttpClient(request =>

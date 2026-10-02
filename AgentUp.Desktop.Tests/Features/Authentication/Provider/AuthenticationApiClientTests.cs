@@ -97,8 +97,38 @@ public class AuthenticationApiClientTests
         });
     }
 
+    [Test]
+    public async Task ResolveConnectionAsync_throwsWhenTheDocumentIsNull()
+    {
+        using var http = new DisposableTestHttpClient(_ => Json(HttpStatusCode.OK, "null"));
+        var client = new AuthenticationApiClient(http.Client);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await client.ResolveConnectionAsync());
+        Assert.That(exception!.Message, Is.EqualTo("This Server did not return a connection document."));
+    }
+
+    [Test]
+    public async Task ResolveConnectionAsync_throwsWhenTheServerUrlIsNotConfigured()
+    {
+        using var http = new HttpClient(new NullDocumentHandler());
+        var client = new AuthenticationApiClient(http);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await client.ResolveConnectionAsync());
+        Assert.That(exception!.Message, Is.EqualTo("The Server URL is not configured."));
+    }
+
     private static HttpResponseMessage Json(HttpStatusCode status, string json) => new(status)
     {
         Content = new StringContent(json, Encoding.UTF8, "application/json")
     };
+
+    private sealed class NullDocumentHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => Task.FromResult(Json(HttpStatusCode.OK, "null"));
+    }
 }
