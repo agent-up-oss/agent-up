@@ -5,7 +5,7 @@ import { emitCSharpColors, emitStyles, emitThemeResources } from './lib/avalonia
 import { catalogIndex, parseCatalog } from './lib/catalog.mjs';
 import { parseCustomProperties, parseRules } from './lib/css.mjs';
 import { emitNative } from './lib/native.mjs';
-import { screenshotScenes, wrapSceneDocument } from './lib/screenshots.mjs';
+import { framedSceneHtml, screenshotScenes, screenshotScreens, wrapSceneDocument } from './lib/screenshots.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const src = resolve(root, 'src');
@@ -65,8 +65,9 @@ const outputs = new Map([
   ['dist/web/syntax/highlight.d.ts', highlightTypes],
   ['dist/web/syntax/grammars.json', `${JSON.stringify(grammars, null, 2)}\n`],
   ['dist/dotnet/AgentUpSyntaxGrammars.g.cs', emitSyntaxGrammars(grammars)],
-  ['dist/web/screenshots.json', `${JSON.stringify({ scenes: screenshotManifest() }, null, 2)}\n`],
+  ['dist/web/screenshots.json', `${JSON.stringify({ screens: screenshotScreens(), scenes: screenshotManifest() }, null, 2)}\n`],
   ['dist/web/screenshots.css', screenshotCss],
+  ['dist/web/screenshot-shell.css', screenshotShell],
 ]);
 
 for (const scene of screenshotScenes()) {
@@ -127,6 +128,7 @@ function screenshotManifest() {
     requiredDesktopClasses: scene.requiredDesktopClasses,
     requiredMobileComponents: scene.requiredMobileComponents,
     copy: scene.copy,
+    html: framedSceneHtml(scene),
   }));
 }
 

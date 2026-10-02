@@ -1497,3 +1497,19 @@ html, body {
   min-height: 100%;
 }
 
+.au-screenshot-embed {
+  container-type: inline-size;
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--au-screenshot-width) / var(--au-screenshot-height);
+  overflow: hidden;
+}
+.au-screenshot-embed__scale {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  transform: scale(calc(100cqi / (var(--au-screenshot-width) * 1px)));
+  pointer-events: none;
+}
+

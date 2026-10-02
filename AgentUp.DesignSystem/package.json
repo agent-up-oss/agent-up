@@ -15,6 +15,7 @@
     "./catalog": "./dist/web/catalog.json",
     "./catalog.html": "./dist/web/catalog.html",
     "./screenshots": "./dist/web/screenshots.json",
+    "./screenshot-shell.css": "./dist/web/screenshot-shell.css",
     "./syntax": {
       "types": "./src/syntax/highlight.d.ts",
       "default": "./src/syntax/highlight.mjs"

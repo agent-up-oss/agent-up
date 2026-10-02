@@ -375,6 +375,107 @@ export function screenshotScenes() {
   ];
 }
 
+export function screenshotScreens() {
+  return [
+    screen({
+      id: 'sign-in',
+      title: 'Sign-in',
+      intro: 'Connect to a Server from a compact pane on the canvas. Saved URLs ellipsize; selecting one applies the stored sign-in.',
+      desktopId: 'desktop-sign-in',
+      mobileId: 'mobile-sign-in',
+    }),
+    screen({
+      id: 'workspaces',
+      title: 'Workspaces',
+      intro: 'Each checkout stays identifiable on the rail. Desktop shows the selected workspace overview; Mobile lists the same rows on their own screen.',
+      desktopId: 'desktop-workspaces',
+      mobileId: 'mobile-workspaces',
+    }),
+    screen({
+      id: 'applications',
+      title: 'Applications',
+      intro: 'Each tab is a running application surface. Desktop opens the allocated HTTP port; Mobile lists Apps in the workspace bottom bar.',
+      desktopId: 'desktop-applications',
+      mobileId: 'mobile-apps',
+    }),
+    screen({
+      id: 'console',
+      title: 'Console',
+      intro: 'Application stdout lives next to the running app, including [install] output. This surface is Desktop chrome; Mobile does not host a console.',
+      desktopId: 'desktop-console',
+    }),
+    screen({
+      id: 'git',
+      title: 'Git',
+      intro: 'Working-tree review. Desktop Git changes and Mobile Git show the same change tree. Neither surface mutates the agent commit queue.',
+      desktopId: 'desktop-git',
+      mobileId: 'mobile-git',
+    }),
+    screen({
+      id: 'review',
+      title: 'Review',
+      intro: 'Mobile Review reads the Server-owned proposal queue. It does not reconstruct ancestry or infer verification state locally.',
+      mobileId: 'mobile-review',
+    }),
+    screen({
+      id: 'history',
+      title: 'History',
+      intro: 'A bounded commit log with graph lanes, a pinned timestamp column, and a sticky selected-commit detail.',
+      desktopId: 'desktop-history',
+      mobileId: 'mobile-history',
+    }),
+    screen({
+      id: 'file-viewer',
+      title: 'File viewer',
+      intro: 'Readonly inspection of a changed file: hunk jumps, line kinds, and syntax tokens. It is not a second editor.',
+      desktopId: 'desktop-file-viewer',
+      mobileId: 'mobile-file-viewer',
+    }),
+    screen({
+      id: 'agents',
+      title: 'Agents',
+      intro: 'Desktop Agent is the live ACP session. Mobile Agents is the picker that opens that session.',
+      desktopId: 'desktop-agents',
+      mobileId: 'mobile-agents',
+    }),
+    screen({
+      id: 'diagnostics',
+      title: 'Diagnostics',
+      intro: 'Paginated audit rows for the selected application: process, browser, and health evidence. Desktop hosts this next to Console and Metrics.',
+      desktopId: 'desktop-diagnostics',
+    }),
+    screen({
+      id: 'metrics',
+      title: 'Metrics',
+      intro: 'CPU, memory, and request duration for the selected application, on quieter metrics cards rather than a dashboard theme.',
+      desktopId: 'desktop-metrics',
+    }),
+    screen({
+      id: 'validation',
+      title: 'Validation',
+      intro: 'Recorded GUI flows with visible pass, running, and failed stages. The Server owns the flow; Desktop renders it.',
+      desktopId: 'desktop-validation',
+    }),
+    screen({
+      id: 'database',
+      title: 'Database',
+      intro: 'Query the application database from the same application chrome, with a selected table and a run control.',
+      desktopId: 'desktop-database',
+    }),
+    screen({
+      id: 'capabilities',
+      title: 'Capabilities',
+      intro: 'Enable Server-owned modules. Desktop uses an overlay; Mobile Settings is the same list on the workspace tab. Clients never talk to the remote registry.',
+      desktopId: 'desktop-capabilities',
+      mobileId: 'mobile-settings',
+    }),
+  ];
+}
+
+export function framedSceneHtml(scene) {
+  return frame(scene);
+}
+
 export function wrapSceneDocument(scene, css) {
   const size = scene.surface === 'mobile' ? mobileSize : desktopSize;
   return `<!DOCTYPE html>
@@ -401,6 +502,16 @@ function scene(value) {
     height: value.surface === 'mobile' ? mobileSize.height : desktopSize.height,
     livePath: value.livePath ?? '',
     tab: value.tab ?? '',
+  };
+}
+
+function screen(value) {
+  return {
+    id: value.id,
+    title: value.title,
+    intro: value.intro,
+    desktopId: value.desktopId ?? '',
+    mobileId: value.mobileId ?? '',
   };
 }
 

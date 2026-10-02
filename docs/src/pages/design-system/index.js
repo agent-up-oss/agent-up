@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import catalog from '@agent-up/design-system/catalog';
+import screenshots from '@agent-up/design-system/screenshots';
 import { agentUpTheme } from '@agent-up/design-system/native';
 import voice from '@agent-up/design-system/brand/voice.json';
-import agentUpMark from '@agent-up/design-system/brand/mark.svg';
 import styles from './index.module.css';
 
 const extra = {
@@ -45,69 +45,219 @@ function Example({ component }) {
   </article>;
 }
 
+const playgroundControls = [
+  'badge',
+  'choice',
+  'workspace',
+  'app-tab',
+  'chat-transcript',
+  'git-change-list',
+];
+
+const catalogById = Object.fromEntries(
+  catalog.surfaces.flatMap(surface => surface.components.map(component => [component.id, component])),
+);
+
+const catalogSelection = [
+  ['au-tab', 'au-tab--selected'],
+  ['au-app-tab', 'au-app-tab--selected'],
+  ['au-subtab', 'au-subtab--selected'],
+  ['au-choice', 'au-choice--selected'],
+  ['au-workspace', 'au-workspace--selected'],
+  ['au-git-row', 'au-git-row--selected'],
+  ['au-list-item', 'au-list-item--selected'],
+  ['au-page-jump', 'au-page-jump--current'],
+  ['au-workspace-avatar', 'au-workspace-avatar--selected'],
+];
+
+function activateCatalogExample(root, event) {
+  const node = event.target;
+  if (!(node instanceof Element) || !root.contains(node)) return;
+  if (node.closest('input, textarea, select, a')) return;
+
+  const checkbox = node.closest('.au-checkbox');
+  if (checkbox && root.contains(checkbox)) {
+    event.preventDefault();
+    checkbox.classList.toggle('au-checkbox--checked');
+    return;
+  }
+
+  for (const [base, selected] of catalogSelection) {
+    const control = node.closest(`.${base}`);
+    if (!control || !root.contains(control) || control.disabled) continue;
+    event.preventDefault();
+    for (const sibling of root.querySelectorAll(`.${base}`)) {
+      sibling.classList.toggle(selected, sibling === control);
+      if (sibling.hasAttribute('aria-selected')) sibling.setAttribute('aria-selected', sibling === control ? 'true' : 'false');
+      if (sibling.hasAttribute('aria-pressed')) sibling.setAttribute('aria-pressed', sibling === control ? 'true' : 'false');
+    }
+    return;
+  }
+
+  const button = node.closest('button');
+  if (button && root.contains(button)) event.preventDefault();
+}
+
+function CatalogControl({ component }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    const onClick = event => activateCatalogExample(root, event);
+    const onSubmit = event => event.preventDefault();
+    root.addEventListener('click', onClick);
+    root.addEventListener('submit', onSubmit);
+    return () => {
+      root.removeEventListener('click', onClick);
+      root.removeEventListener('submit', onSubmit);
+    };
+  }, [component.html]);
+
+  return <article className="au-card" data-au-component={component.id}>
+    <div ref={ref} dangerouslySetInnerHTML={{ __html: component.html }} />
+  </article>;
+}
+
+function IntroPlayground() {
+  const controls = playgroundControls.map(id => catalogById[id]).filter(Boolean);
+  return <div className={`au-grid ${styles.playground}`} aria-label="Live catalog components">
+    {controls.map(component => <CatalogControl key={component.id} component={component} />)}
+  </div>;
+}
+
+function ScenePreview({ scene, label, compact }) {
+  if (!scene?.html) return null;
+  return <figure className={`${styles.preview}${compact ? ` ${styles.previewMobile}` : ''}`}>
+    <div
+      className="au-product-frame au-screenshot-embed"
+      style={{
+        '--au-screenshot-width': scene.width,
+        '--au-screenshot-height': scene.height,
+      }}
+      aria-label={label}
+    >
+      <div
+        className="au-screenshot-embed__scale"
+        aria-hidden="true"
+        ref={node => { if (node) node.inert = true; }}
+        dangerouslySetInnerHTML={{ __html: scene.html }}
+      />
+    </div>
+    <figcaption className="au-field-label">{label}</figcaption>
+  </figure>;
+}
+
 export default function DesignSystemPage() {
   const surfaces = catalog.surfaces;
   const ids = useMemo(() => surfaces.map(surface => surface.id), [surfaces]);
+  const screens = screenshots.screens;
+  const screenIds = useMemo(() => screens.map(item => item.id), [screens]);
+  const scenes = useMemo(
+    () => Object.fromEntries(screenshots.scenes.map(scene => [scene.id, scene])),
+    [],
+  );
   const [active, setActive] = useState(ids[0]);
+  const [activeScreen, setActiveScreen] = useState(screenIds.includes('applications') ? 'applications' : screenIds[0]);
 
   useEffect(() => {
     const sync = () => {
       const hash = window.location.hash.replace('#', '');
       if (ids.includes(hash)) setActive(hash);
+      const selected = new URLSearchParams(window.location.search).get('screen');
+      if (selected && screenIds.includes(selected)) setActiveScreen(selected);
     };
     sync();
     window.addEventListener('hashchange', sync);
-    return () => window.removeEventListener('hashchange', sync);
-  }, [ids]);
+    window.addEventListener('popstate', sync);
+    return () => {
+      window.removeEventListener('hashchange', sync);
+      window.removeEventListener('popstate', sync);
+    };
+  }, [ids, screenIds]);
 
   const select = id => {
     setActive(id);
     window.history.replaceState(null, '', `#${id}`);
   };
 
+  const selectScreen = id => {
+    setActiveScreen(id);
+    const url = new URL(window.location.href);
+    url.searchParams.set('screen', id);
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+  };
+
   const surface = surfaces.find(item => item.id === active) ?? surfaces[0];
+  const screen = screens.find(item => item.id === activeScreen) ?? screens[0];
+  const desktop = screen.desktopId ? scenes[screen.desktopId] : null;
+  const mobile = screen.mobileId ? scenes[screen.mobileId] : null;
+  const paired = Boolean(desktop && mobile);
 
   return <Layout title="Design System" description="The canonical Agent-Up product, interface, and marketing design system.">
     <main className={`au-theme ${styles.page}`}>
       <header>
-        <div className="au-container au-marketing-hero">
+        <div className={`au-container au-marketing-hero ${styles.intro}`}>
           <div>
             <p className="au-eyebrow">Agent-Up design system</p>
-            <h1 className="au-display">The HTML and CSS are the product contract.</h1>
-            <p className="au-lede">Every surface below is a live catalog example. Desktop, Mobile, docs, and marketing apply these classes and compiled bindings. They do not invent a second theme from the palette.</p>
+            <h1 className={`au-display ${styles.introTitle}`}>The HTML and CSS are the product contract.</h1>
+            <p className="au-lede">The collage mounts the catalog examples for the product controls. Click a tab, checkbox, or workspace row to see the catalog selected states. Desktop, Mobile, docs, and marketing apply these same classes. They do not invent a second theme from the palette.</p>
             <div className="au-cluster">
-              <a className="au-button" href="#catalog">Open the catalog</a>
+              <a className="au-button" href="#screens">View assembled screens</a>
+              <a className="au-button au-button--secondary" href="#catalog">Open the catalog</a>
               <Link className="au-button au-button--secondary" to="/developer-guide/repo/design-system">Implementation contract</Link>
             </div>
           </div>
-          <div className="au-product-frame" aria-label="Agent-Up interface example">
-            <div className="au-product-frame__chrome">
-              <span>☰ &nbsp;↻</span>
-              <span className="au-logo-lockup"><img src={agentUpMark} alt="" />Agent-Up</span>
-              <span className="au-product-frame__actions">− □ ×</span>
-            </div>
-            <div className={styles.demoShell}>
-              <aside className="au-rail">
-                <strong>Workspaces</strong>
-                <div className="au-workspace au-workspace--selected"><span className="au-status-dot au-status-dot--healthy" /><span><b className="au-workspace-name">checkout-fix</b><small className="au-workspace-branch">feat/checkout</small></span></div>
-                <div className="au-workspace"><span className="au-status-dot" /><span><b className="au-workspace-name">pricing</b><small className="au-workspace-branch">feat/pricing</small></span></div>
-              </aside>
-              <div>
-                <div className="au-tabs">
-                  <button className="au-tab au-tab--selected" aria-selected="true">Storefront</button>
-                  <button className="au-tab">API</button>
-                  <button className="au-tab">Database</button>
-                </div>
-                <div className={styles.demoContent}>
-                  <span className="au-badge au-badge--healthy"><span className="au-status-dot au-status-dot--healthy" />3000:11200</span>
-                  <h3 className="au-heading">Each tab is a surface</h3>
-                  <p className="au-muted">The catalog is grouped the way Agent-Up is used: chrome, workspaces, applications, browser, console, Git, diagnostics, metrics, validation, auth, Mobile, and marketing.</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <IntroPlayground />
         </div>
       </header>
+
+      <section className={`au-section ${styles.overview}`} id="screens">
+        <div className={`au-container ${styles.overviewInner}`}>
+          <div className={styles.overviewHead}>
+            <p className="au-eyebrow">Assembled screens</p>
+            <h2 className={`au-title ${styles.overviewTitle}`}>Desktop and Mobile, from one catalog.</h2>
+            <p className="au-lede">Each tab mounts the live screenshot definition: catalog classes plus screenshot shells, not a PNG. Desktop and Mobile sit side by side.</p>
+          </div>
+
+          <div className={styles.screenNav}>
+            <nav aria-label="Assembled screens">
+              <div className={styles.screenChipRow} role="tablist" aria-orientation="horizontal">
+                {screens.map(item => (
+                  <button
+                    key={item.id}
+                    id={`screen-tab-${item.id}`}
+                    type="button"
+                    className={`au-chip${item.id === activeScreen ? ' au-chip--selected' : ''} ${styles.screenChip}`}
+                    role="tab"
+                    aria-selected={item.id === activeScreen}
+                    aria-controls={`screen-panel-${item.id}`}
+                    onClick={() => selectScreen(item.id)}
+                  >
+                    {item.title}
+                  </button>
+                ))}
+              </div>
+            </nav>
+
+            <section
+              id={`screen-panel-${screen.id}`}
+              className={styles.screenPanel}
+              role="tabpanel"
+              aria-labelledby={`screen-tab-${screen.id}`}
+            >
+              <div className={styles.screenCopy}>
+                <h3 className="au-page-title">{screen.title}</h3>
+                <p className="au-muted">{screen.intro}</p>
+              </div>
+              <div className={paired ? styles.pair : styles.pairSingle}>
+                {desktop ? <ScenePreview scene={desktop} label="Desktop" /> : null}
+                {mobile ? <ScenePreview scene={mobile} label="Mobile" compact /> : null}
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
 
       <div className={`au-section ${styles.shell}`} id="catalog">
         <div className={`au-container ${styles.catalog}`}>

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import test from 'node:test';
-import { desktopSize, mobileSize, screenshotScenes, wrapSceneDocument } from '../scripts/lib/screenshots.mjs';
+import { desktopSize, framedSceneHtml, mobileSize, screenshotScenes, screenshotScreens, wrapSceneDocument } from '../scripts/lib/screenshots.mjs';
 
 const repository = resolve(new URL('../..', import.meta.url).pathname);
 const css = await readFile(new URL('../dist/web/screenshots.css', import.meta.url), 'utf8');
@@ -12,6 +12,34 @@ const requiredViews = {
   desktop: ['sign-in', 'workspaces', 'applications', 'console', 'git', 'history', 'agents', 'diagnostics', 'metrics', 'validation', 'database', 'capabilities', 'file-viewer'],
   mobile: ['sign-in', 'workspaces', 'apps', 'git', 'review', 'history', 'agents', 'settings', 'file-viewer'],
 };
+
+test('assembled screens pair every screenshot scene for the showcase', () => {
+  const scenes = screenshotScenes();
+  const screens = screenshotScreens();
+  const used = [];
+  const ids = new Set(scenes.map(scene => scene.id));
+  assert.equal(new Set(screens.map(screen => screen.id)).size, screens.length);
+  for (const screen of screens) {
+    assert.ok(screen.title, `${screen.id} is missing a title`);
+    assert.ok(screen.intro, `${screen.id} is missing an intro`);
+    assert.ok(screen.desktopId || screen.mobileId, `${screen.id} has no assembled scene`);
+    for (const sceneId of [screen.desktopId, screen.mobileId].filter(Boolean)) {
+      assert.ok(ids.has(sceneId), `${screen.id} points at missing scene ${sceneId}`);
+      used.push(sceneId);
+    }
+  }
+  assert.equal(new Set(used).size, used.length, 'assembled screens reuse a scene');
+  assert.deepEqual([...used].sort(), [...ids].sort(), 'assembled screens drifted from screenshot scenes');
+});
+
+test('framed screenshot HTML is a catalog fragment the showcase can mount', () => {
+  for (const scene of screenshotScenes()) {
+    const html = framedSceneHtml(scene);
+    assert.match(html, /au-screenshot/);
+    assert.doesNotMatch(html, /<!DOCTYPE html>/);
+    assert.equal(html, wrapSceneDocument(scene, css).match(/<body class="au-theme">\n([\s\S]*)\n<\/body>/)?.[1]);
+  }
+});
 
 test('screenshot scenes cover every major Desktop and Mobile view once', () => {
   const scenes = screenshotScenes();

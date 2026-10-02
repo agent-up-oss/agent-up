@@ -1,4 +1,56 @@
 .page { min-height: 100vh; }
+.intro { min-width: 0; }
+.introTitle { max-width: 100%; }
+.playground { min-width: 0; align-items: start; }
+.overview { padding-bottom: var(--au-space-4); }
+.overviewInner { display: grid; gap: var(--au-space-8); min-width: 0; }
+.overviewHead { display: grid; gap: var(--au-space-4); max-width: 46rem; }
+.overviewTitle { max-width: 100%; }
+.screenNav {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--au-space-6);
+  min-width: 0;
+}
+.screenChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--au-space-2);
+  max-width: 100%;
+}
+.screenChip {
+  min-height: 2.75rem;
+  padding-inline: var(--au-space-4);
+  cursor: pointer;
+}
+.screenPanel {
+  display: grid;
+  gap: var(--au-space-6);
+  min-width: 0;
+  width: 100%;
+  overflow-x: hidden;
+}
+.screenCopy { display: grid; gap: var(--au-space-2); max-width: 46rem; }
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 0.55fr);
+  gap: var(--au-space-6);
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+.pairSingle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  max-width: 64rem;
+  min-width: 0;
+}
+.preview { display: grid; gap: var(--au-space-2); min-width: 0; width: 100%; }
+.previewMobile {
+  width: min(100%, 24rem);
+  margin-inline: auto;
+}
 .shell { padding-bottom: var(--au-space-16); }
 .catalog {
   display: grid;
@@ -29,24 +81,18 @@
 .examples { display: grid; gap: var(--au-space-8); }
 .example { display: grid; gap: var(--au-space-3); }
 .exampleHead { display: grid; gap: var(--au-space-1); }
-.demoShell { display: grid; grid-template-columns: 11rem minmax(0, 1fr); min-height: 22rem; }
-.demoShell aside { padding: var(--au-space-4); }
-.demoContent {
-  min-height: 16rem;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  padding: clamp(1.5rem, 5vw, 3rem);
-  gap: var(--au-space-3);
-}
-.demoContent p { max-width: 32rem; margin: 0; }
 .voiceGrid { display: grid; gap: var(--au-space-4); }
 .voiceCopy { max-width: 54rem; margin: 0; }
 
 @media (max-width: 960px) {
   .catalog { grid-template-columns: 1fr; }
+  .pair { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 760px) {
-  .demoShell { grid-template-columns: 1fr; }
+  .screenChipRow {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: var(--au-space-2);
+  }
+  .screenChip { flex: 0 0 auto; }
 }

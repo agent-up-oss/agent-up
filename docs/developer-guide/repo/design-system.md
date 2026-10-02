@@ -11,7 +11,12 @@ so another repository can consume the same contract through an npm dependency or
 an Agent-Up Git submodule.
 
 The public showcase is available at [/design-system](/design-system). It is linked
-from the site navbar and footer. The page is a tabbed catalog: a vertical
+from the site navbar and footer. The page opens with the contract intro beside a
+live collage of catalog product-control examples. Those examples are the same
+`component.html` definitions as the catalog below, so the intro stays in sync
+when the catalog changes. Assembled Desktop and Mobile screens follow, selected
+by a horizontal chip strip. Those views mount the screenshot HTML definitions
+with catalog classes; they do not embed persisted PNGs. Below that, a vertical
 surface list sits in the left of the content column, and each selected surface
 shows the live components that surface uses.
 
@@ -38,10 +43,13 @@ shows the live components that surface uses.
   It is not compiled into Desktop or Mobile bindings.
 - `src/marketing.css` owns campaign and product-frame compositions.
 - `src/screenshots/shell.css` owns screenshot-only chrome layout (rails, tab
-  strips, viewport size). It is compiled into `dist/web/screenshots.css` and
-  per-view HTML under `dist/web/screenshots/`, not into Desktop or Mobile.
+  strips, viewport size, and the scaled showcase embed). It is compiled into
+  `dist/web/screenshots.css`, `dist/web/screenshot-shell.css`, and per-view HTML
+  under `dist/web/screenshots/`, not into Desktop or Mobile. Docs import the
+  shell so the showcase can mount those definitions live.
 - `scripts/lib/screenshots.mjs` owns the Desktop and Mobile product views
-  persisted into `media/` by `au-debug screenshots persist`.
+  persisted into `media/` by `au-debug screenshots persist`, and the screen
+  pairings the showcase tabs through.
 - `brand/voice.json` owns product naming, positioning, capability lifecycle
   language, and editorial principles.
 - `scripts/build.mjs` deterministically copies web assets and compiles the CSS

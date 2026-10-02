@@ -2,6 +2,7 @@
 @import '@agent-up/design-system/styles.css';
 @import '@agent-up/design-system/marketing.css';
 @import '@agent-up/design-system/docs.css';
+@import '@agent-up/design-system/screenshot-shell.css';
 
 :root,
 [data-theme='dark'] {
