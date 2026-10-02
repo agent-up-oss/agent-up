@@ -11,6 +11,11 @@ using AgentUp.AUDebug.Features.Host.Services;
 using AgentUp.AUDebug.Features.Mobile.Controllers;
 using AgentUp.AUDebug.Features.Mobile.Providers;
 using AgentUp.AUDebug.Features.Mobile.Services;
+using AgentUp.AUDebug.Features.Screens.Controllers;
+using AgentUp.AUDebug.Features.Screens.Interfaces;
+using AgentUp.AUDebug.Features.Screens.Models;
+using AgentUp.AUDebug.Features.Screens.Providers;
+using AgentUp.AUDebug.Features.Screens.Services;
 using AgentUp.AUDebug.Features.Screenshots.Controllers;
 using AgentUp.AUDebug.Features.Screenshots.Providers;
 using AgentUp.AUDebug.Features.Screenshots.Services;
@@ -81,6 +86,18 @@ public static class AuDebugRunnerFactory
                 new ChromiumLiveAppProbe(processes, environment, paths),
                 sessions,
                 probe));
-        return new HostController(host, desktop, mobile, docs, tests, screenshotsController, new DebugArgParser(), outputService);
+        var screens = new ScreensController(
+            new ScreensCommandService(
+                new ProductScreenCatalog(),
+                new ScreenCaptureStore(paths),
+                new ScreenSurfaceHostProvider(
+                    processes,
+                    environment,
+                    paths,
+                    new ScreenReadyProbeProvider(new HttpClient { Timeout = TimeSpan.FromSeconds(2) }, processes, environment, paths)),
+                surface => surface == ProductSurface.Desktop
+                    ? new DesktopScreenSurface(processes, environment, paths)
+                    : new MobileScreenSurface(processes, environment, paths)));
+        return new HostController(host, desktop, mobile, docs, tests, screenshotsController, screens, new DebugArgParser(), outputService);
     }
 }

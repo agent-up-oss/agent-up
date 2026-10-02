@@ -14,6 +14,7 @@ internal static class DebugDomain
     public const string MobileSurface = "mobile";
     public const string DesktopSurface = "desktop";
 
+    public const string ScreensVerb = "screens";
     public const string ScreenshotAction = "screenshot";
     public const string OpenAgentAction = "open-agent";
     public const string LoginAction = "login";
@@ -29,6 +30,10 @@ internal static class DebugDomain
 
     /// <summary>A screenshots persist/validate/capture command.</summary>
     public static DebugCommandDtoBuilder Screenshots(string action) => new DebugCommandDtoBuilder("screenshots", action).Doing(action);
+
+    /// <summary>A product-screens command for one surface, or for every surface.</summary>
+    public static DebugCommandDtoBuilder Screens(string surface = "all")
+        => new DebugCommandDtoBuilder(ScreensVerb, surface == "all" ? null : surface).Doing(surface);
 
     /// <summary>A command with no surface, such as <c>test</c> or <c>build</c>.</summary>
     public static DebugCommandDtoBuilder Verb(string verb) => new(verb, null);

@@ -4,6 +4,7 @@ using AgentUp.AUDebug.Features.Host.DTOs;
 using AgentUp.AUDebug.Features.Host.Interfaces;
 using AgentUp.AUDebug.Features.Host.Services;
 using AgentUp.AUDebug.Features.Mobile.Controllers;
+using AgentUp.AUDebug.Features.Screens.Controllers;
 using AgentUp.AUDebug.Features.Screenshots.Controllers;
 using AgentUp.AUDebug.Features.Test.Controllers;
 
@@ -17,6 +18,7 @@ public sealed class HostController
     private readonly DocsController _docs;
     private readonly TestController _tests;
     private readonly ScreenshotsController _screenshots;
+    private readonly ScreensController _screens;
     private readonly IDebugArgParser _parser;
     private readonly DebugOutputService _output;
 
@@ -27,6 +29,7 @@ public sealed class HostController
         DocsController docs,
         TestController tests,
         ScreenshotsController screenshots,
+        ScreensController screens,
         IDebugArgParser parser,
         DebugOutputService output)
     {
@@ -36,6 +39,7 @@ public sealed class HostController
         _docs = docs;
         _tests = tests;
         _screenshots = screenshots;
+        _screens = screens;
         _parser = parser;
         _output = output;
     }
@@ -49,7 +53,7 @@ public sealed class HostController
         if (error is not null)
             return _output.WriteError(error);
 
-        return await Route(_host, _desktop, _mobile, _docs, _tests, _screenshots, _output, command!, cancellationToken);
+        return await Route(_host, _desktop, _mobile, _docs, _tests, _screenshots, _screens, _output, command!, cancellationToken);
     }
 
     private static Task<int> Route(
@@ -59,6 +63,7 @@ public sealed class HostController
         DocsController docs,
         TestController tests,
         ScreenshotsController screenshots,
+        ScreensController screens,
         DebugOutputService output,
         DebugCommandDto command,
         CancellationToken cancellationToken)
@@ -72,6 +77,7 @@ public sealed class HostController
             "mobile" => WriteAsync(output, () => mobile.RunAsync(command, cancellationToken)),
             "docs" => WriteAsync(output, () => docs.ScreenshotAsync(command, cancellationToken)),
             "screenshots" => WriteAsync(output, () => screenshots.RunAsync(command, cancellationToken)),
+            "screens" => WriteAsync(output, () => screens.RunAsync(command, cancellationToken)),
             "test" or "build" => WriteAsync(output, () => tests.RunAsync(command, cancellationToken)),
             _ => Task.FromResult(output.WriteError($"Error: unknown command '{command.Verb}'."))
         };

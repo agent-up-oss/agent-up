@@ -8,6 +8,8 @@ using AgentUp.AUDebug.Features.Host.Providers;
 using AgentUp.AUDebug.Features.Host.Services;
 using AgentUp.AUDebug.Features.Mobile.Controllers;
 using AgentUp.AUDebug.Features.Mobile.Services;
+using AgentUp.AUDebug.Features.Screens.Controllers;
+using AgentUp.AUDebug.Features.Screens.Services;
 using AgentUp.AUDebug.Features.Screenshots.Controllers;
 using AgentUp.AUDebug.Features.Screenshots.Services;
 using AgentUp.AUDebug.Features.Test.Controllers;
@@ -175,6 +177,12 @@ public sealed class HostControllerTests
                 new FakeScreenshotLiveAppProbe(),
                 sessions,
                 probe));
-        return new HostController(host, desktop, mobile, docs, testController, screenshots, new DebugArgParser(), debugOutput);
+        var screens = new ScreensController(
+            new ScreensCommandService(
+                new FakeProductScreenCatalog(),
+                new FakeScreenCaptureStore(),
+                new FakeScreenSurfaceHost(),
+                surface => new FakeProductScreenSurface(surface)));
+        return new HostController(host, desktop, mobile, docs, testController, screenshots, screens, new DebugArgParser(), debugOutput);
     }
 }

@@ -128,6 +128,9 @@ public sealed class DebugArgParser : IDebugArgParser
         if (verb == "screenshots")
             return ParseScreenshots(positionals, password, timeoutSeconds, detach, live);
 
+        if (verb == "screens")
+            return ParseScreens(positionals, password, timeoutSeconds, detach);
+
         if (verb is not ("desktop" or "mobile" or "docs"))
             return (null, $"Error: unknown command '{verb}'.");
 
@@ -175,6 +178,35 @@ public sealed class DebugArgParser : IDebugArgParser
                 PagePath: pagePath,
                 Heading: heading,
                 FullPage: fullPage),
+            null);
+    }
+
+    private static (DebugCommandDto? Command, string? Error) ParseScreens(
+        IReadOnlyList<string> positionals,
+        string? password,
+        int? timeoutSeconds,
+        bool detach)
+    {
+        var action = positionals.Count >= 2 ? positionals[1] : "all";
+        if (action is not ("all" or "desktop" or "mobile"))
+            return (null, $"Error: unknown screens surface '{action}'.");
+        if (positionals.Count > 3)
+            return (null, "Error: 'screens' takes at most a surface and one screen name.");
+
+        var view = positionals.Count == 3 ? positionals[2] : null;
+        if (view is not null && action == "all")
+            return (null, "Error: 'screens <screen>' needs a surface, such as 'screens desktop git'.");
+
+        return (
+            new DebugCommandDto(
+                "screens",
+                action == "all" ? null : action,
+                action,
+                null,
+                password,
+                TimeSpan.FromSeconds(timeoutSeconds ?? DebugLayout.ScreensTimeoutSeconds),
+                detach,
+                View: view),
             null);
     }
 

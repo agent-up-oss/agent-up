@@ -324,4 +324,55 @@ public sealed class DebugArgParserTests
         var (_, error) = _parser.Parse(["screenshots", "persist", "nope"]);
         Assert.That(error, Does.Contain("does not take extra arguments"));
     }
+
+    [Test]
+    public void Screens_defaultsToBothSurfacesWithTheLongWatchdog()
+    {
+        var (command, error) = new DebugArgParser().Parse(["screens"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(error, Is.Null);
+            Assert.That(command!.Verb, Is.EqualTo("screens"));
+            Assert.That(command.Action, Is.EqualTo("all"));
+            Assert.That(command.Timeout, Is.EqualTo(TimeSpan.FromSeconds(DebugLayout.ScreensTimeoutSeconds)));
+        });
+    }
+
+    [Test]
+    public void Screens_takesASurfaceAndOneScreenName()
+    {
+        var (command, error) = new DebugArgParser().Parse(["screens", "desktop", "git"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(error, Is.Null);
+            Assert.That(command!.Action, Is.EqualTo("desktop"));
+            Assert.That(command.View, Is.EqualTo("git"));
+        });
+    }
+
+    [Test]
+    public void Screens_rejectsAnUnknownSurface()
+    {
+        var (command, error) = new DebugArgParser().Parse(["screens", "tablet"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(command, Is.Null);
+            Assert.That(error, Does.Contain("unknown screens surface 'tablet'"));
+        });
+    }
+
+    [Test]
+    public void Screens_rejectsAScreenNameWithoutASurface()
+    {
+        var (command, error) = new DebugArgParser().Parse(["screens", "git", "extra"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(command, Is.Null);
+            Assert.That(error, Is.Not.Null);
+        });
+    }
 }

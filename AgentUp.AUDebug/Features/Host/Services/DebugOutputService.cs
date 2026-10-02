@@ -63,6 +63,14 @@ public sealed class DebugOutputService
               screenshots desktop [view] Capture one or every Desktop design-system view.
               screenshots mobile [view]  Capture one or every Mobile design-system view.
 
+            Screens:
+              screens                    Drive the real Desktop and Mobile clients through every
+                                         design-system page-assembly screen on the built-in Demo
+                                         server, interacting with each one first, and write the
+                                         PNGs plus screens.json into artifacts/product-screens/.
+              screens desktop [screen]   Only Desktop, or one Desktop screen.
+              screens mobile [screen]    Only Mobile, or one Mobile screen.
+
             Tests:
               test                       Run every visual-iteration suite.
               test all                   Same as test.
@@ -78,7 +86,7 @@ public sealed class DebugOutputService
             Options:
               --timeout <seconds>        Watchdog for readiness, tests, and one-shot commands.
                                          Default 30s; test, build, and screenshots persist/validate
-                                         default to 180s, all to 600s.
+                                         default to 180s, screens and all to 600s.
               --detach                   After up is ready, return without following logs.
               --password <pw>            Admin password for login commands (else $AGENTUP_ADMIN_PASSWORD).
               --heading <text>           Scroll that heading into view (docs screenshot).

@@ -106,34 +106,19 @@ public sealed class XdoToolDesktopDriver : IDesktopWindowDriver
         return string.IsNullOrWhiteSpace(line) ? null : line.Trim();
     }
 
-    private async Task<ProcessResult> RunToolAsync(
+    private Task<ProcessResult> RunToolAsync(
         string executable,
         string nixPackage,
         IReadOnlyList<string> arguments,
         CancellationToken cancellationToken,
         string? standardInput = null)
-    {
-        var display = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["DISPLAY"] = _environment.Display
-        };
-        var found = _environment.FindOnPath(executable);
-        if (found is not null)
-        {
-            return await _processes.RunAsync(
-                new AllowlistedCommand(executable, arguments, _paths.RepositoryRoot, display, standardInput),
-                cancellationToken);
-        }
-
-        var quoted = string.Join(' ', arguments.Select(BashQuote.Single));
-        var command = $"{executable} {quoted}";
-        return await _processes.RunAsync(
-            new AllowlistedCommand(
-                "nix-shell",
-                ["-p", nixPackage, "--run", command],
-                _paths.RepositoryRoot,
-                display,
-                standardInput),
-            cancellationToken);
-    }
+        => X11ToolRunner.RunAsync(
+            _processes,
+            _environment,
+            _paths.RepositoryRoot,
+            executable,
+            nixPackage,
+            arguments,
+            cancellationToken,
+            standardInput);
 }
