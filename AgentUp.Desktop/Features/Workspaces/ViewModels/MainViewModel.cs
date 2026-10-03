@@ -241,8 +241,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
                     Overview.Clear();
                 else
                     _ = Overview.LoadAsync(ws.Id);
-                Git.PrepareWorkspace(ws?.Id, ws?.Branch);
-                _ = Git.LoadAsync(ws?.Id);
+                Git.PrepareWorkspace(ws?.Id, ws?.Branch, Login.CurrentConnectionId);
+                _ = Git.LoadAsync(ws?.Id, connectionId: Login.CurrentConnectionId);
                 _ = Agent.LoadAsync(ws?.Id);
                 LoadValidation();
             });
@@ -723,7 +723,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     {
         await Sidebar.LoadAsync();
         if (Sidebar.RequiresSignIn)
-            Login.ShowExpired();
+            await Login.ShowExpiredAsync();
     }
 
     internal void ResetLocalSession()
@@ -751,7 +751,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     {
         await Sidebar.LoadAsync();
         if (Sidebar.RequiresSignIn)
-            Login.ShowExpired();
+            await Login.ShowExpiredAsync();
     }
 
 

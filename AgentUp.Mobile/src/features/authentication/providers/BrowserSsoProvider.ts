@@ -5,8 +5,8 @@ export type PendingSsoStart = {
   state: string;
 };
 
-export function usesBrowserSso(connection: { authentication?: { mode?: string } } | null | undefined): boolean {
-  return connection?.authentication?.mode === 'browserSso';
+export function usesBrowserSso(authMode: string | undefined): boolean {
+  return authMode === 'browserSso';
 }
 
 export function createSsoState(): string {

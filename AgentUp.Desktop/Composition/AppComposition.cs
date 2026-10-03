@@ -26,7 +26,8 @@ public static class AppComposition
             new FileServerConnectionStore(),
             http,
             fakeServers,
-            agentEventsHttp);
+            agentEventsHttp,
+            RecommendedServerProvider.Read());
         var authentication = new AuthenticationController(
             new AuthenticationService(new AuthenticationApiClient(http)),
             connections);

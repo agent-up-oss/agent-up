@@ -76,8 +76,14 @@ provider behind them, so the whole path is exercised without signing in to a rea
 `AgentUp.Mobile.E2E` drives them through the real mobile client on an iOS simulator, an Android
 emulator, and the installable web build. Device-code scenarios wait until the challenge carries
 the user code, not only the sign-in URL: the CLI prints the URL first, and treating that as ready
-is how the installable-web suite approved a challenge with no code. See the Testing section of
-`AGENTS.md`.
+is how the installable-web suite approved a challenge with no code. The Detox Jest envelope must
+outlive the pasted-code wait budget (challenge, in-app browser return, code submit, ready); a
+smaller envelope kills the test with `Exceeded timeout` instead of naming the wait. The method
+button wait must outlive schedule rendering the session: Detox synchronization is off, so the
+picker tap returns before the client shows the sign-in methods. A free-port check that
+binds and closes leaves `TIME_WAIT`; the identity provider then dies with address already in use,
+so the harness probes by connecting and retries a bind failure on the next port. See the
+Testing section of `AGENTS.md`.
 
 The disposable native harness enables cleartext transport because its simulator and emulator must
 reach Server and identity-provider processes on ephemeral CI-host ports. That exception is applied
@@ -93,12 +99,19 @@ Native Detox launches the harness through `agent-up-chat://connect` instead of t
 connect form. The method-button tap uses the same 60s visibility budget as the picker and Open:
 iOS can still be laying out after the Server already reports that sign-in is required. Android
 Fabric's `replaceText` does not update React state, so Connect was a no-op and the suite timed
-out on a picker the chat never mounted. The installable-web suite still fills the form. After
-launch the native suite waits for the picker, the connect form, or the picker
+out on a picker the chat never mounted. The installable-web suite still fills the form. When a
+native pasted-code flow returns from the system browser, Detox delivers that connect URL again
+so an iOS process reclaimed in the background remounts the same workspace. After launch the
+native suite waits for the picker, the connect form, or the picker
 prompt as a condition: a 500ms peek at the form skipped Connect when the deep link missed, and
 then waited a minute for a picker the chat never mounted. A launcher Application Not Responding
 dialog is force-stopped without sending Home, because Home relaunches that same dialog over the
 app.
+
+Each end-to-end stack waits for its Server and identity-provider processes to close before removing
+its temporary data directory. In particular, the Server can still flush its Chromium profile after
+receiving `SIGTERM`; deleting the directory before process close races that writer and makes web
+cleanup fail with `ENOTEMPTY` after an otherwise successful scenario.
 
 ### Keeping the suites quick
 

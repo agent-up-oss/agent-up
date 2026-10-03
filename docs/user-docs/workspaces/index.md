@@ -92,7 +92,7 @@ Switching workspaces should restore the relevant running applications and browse
 Desktop and Mobile always list a built-in Demo server. Desktop shows the connect picker on every launch before talking to a local Server. It is sample state inside the client, not a running Agent-Up Server.
 </DocStep>
 <DocStep title="Connect with the Server URL">
-Saved servers stay on the client; only one is active.
+Saved servers stay on the client; only one is active. Sign-in follows that Server's `authentication.mode`.
 </DocStep>
 <DocStep title="Use HTTPS off loopback">
 Remote servers must use HTTPS. Loopback HTTP remains for local development.

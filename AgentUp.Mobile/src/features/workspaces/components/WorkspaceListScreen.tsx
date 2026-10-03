@@ -4,8 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
 import { canCloneWorkspace } from '../providers/CloneInputProvider';
 import { statusDotStyle, workspaceLedState } from '../providers/WorkspaceStatusProvider';
-import { EntitlementCard } from '@/features/entitlements/components/EntitlementCard';
-import { isFeatureAvailable, presentEntitlements, workspaceCreateFeature, workspaceCreateUnavailableMessage, type EntitlementCard as EntitlementCardModel } from '@/features/entitlements/models/Entitlements';
+import { PlanCard } from '@/features/entitlements/components/PlanCard';
+import { isFeatureAvailable, presentPlanCard, workspaceCreateFeature, workspaceCreateUnavailableMessage, type PlanCard as PlanCardModel } from '@/features/entitlements/models/Entitlements';
 import { getEntitlements } from '@/features/entitlements/providers/EntitlementsApiProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
@@ -16,19 +16,19 @@ export function WorkspaceListScreen() {
   const [branch, setBranch] = useState('main');
   const [cloning, setCloning] = useState(false);
   const [cloneError, setCloneError] = useState<string | null>(null);
-  const [edition, setEdition] = useState<EntitlementCardModel | null>(null);
+  const [plan, setPlan] = useState<PlanCardModel | null>(null);
   const [canCreate, setCanCreate] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!server) {
-      setEdition(null);
+      setPlan(null);
       setCanCreate(true);
       return;
     }
     let cancelled = false;
     void getEntitlements(server).then(document => {
       if (cancelled) return;
-      setEdition(presentEntitlements(document));
+      setPlan(presentPlanCard(document));
       setCanCreate(isFeatureAvailable(document, workspaceCreateFeature));
     });
     return () => { cancelled = true; };
@@ -64,7 +64,7 @@ export function WorkspaceListScreen() {
       <Text style={styles.subtitle}>
         {server ? `Connected to ${server.url}` : 'No server selected. Connect from the login screen.'}
       </Text>
-      {edition && <EntitlementCard card={edition} />}
+      {plan && <PlanCard card={plan} />}
 
       {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}

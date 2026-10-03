@@ -17,6 +17,9 @@ using AgentUp.Desktop.Features.Database.Controllers;
 using AgentUp.Desktop.Features.Database.Providers;
 using AgentUp.Desktop.Features.Database.Services;
 using AgentUp.Desktop.Features.Database.ViewModels;
+using AgentUp.Desktop.Features.Entitlements.Controllers;
+using AgentUp.Desktop.Features.Entitlements.Providers;
+using AgentUp.Desktop.Features.Entitlements.Services;
 using AgentUp.Desktop.Features.Authentication.Controllers;
 using AgentUp.Desktop.Features.Authentication.Providers;
 using AgentUp.Desktop.Features.Authentication.Services;
@@ -96,9 +99,12 @@ public static class MainViewModelFactory
         GitApiClient? gitClient = null,
         AgentApiClient? agentClient = null,
         LoginViewModel? login = null,
-        CapabilityModulesApiClient? capabilityModulesClient = null)
+        CapabilityModulesApiClient? capabilityModulesClient = null,
+        HttpClient? entitlementsHttp = null)
     {
         var workspaces = new WorkspacesController(new WorkspaceListService(workspaceClient));
+        var entitlements = new EntitlementsController(new EntitlementsService(
+            new EntitlementsApiClient(entitlementsHttp ?? DefaultAuthHttpClient)));
         var applications = new ApplicationsController(new ApplicationSelectionService());
         var console = new ConsoleController(new ConsoleOutputService(consoleClient));
         var metrics = new MetricsController(new MetricsTimelineService(
@@ -118,7 +124,7 @@ public static class MainViewModelFactory
                 capabilityModulesClient ?? new CapabilityModulesApiClient(DefaultCapabilityHttpClient))));
 
         return new MainViewModel(
-            new WorkspaceListViewModel(workspaces),
+            new WorkspaceListViewModel(workspaces, entitlements),
             new ApplicationListViewModel(applications),
             new ConsoleViewModel(console),
             new MetricsViewModel(metrics),
@@ -148,7 +154,8 @@ public static class MainViewModelFactory
             gitClient: new GitApiClient(http),
             capabilityModulesClient: new CapabilityModulesApiClient(http),
             agentClient: new AgentApiClient(http, agentEventsHttp ?? http),
-            login: login ?? CreateLogin(http));
+            login: login ?? CreateLogin(http),
+            entitlementsHttp: http);
     }
 
     public static HostMetricsController CreateHostMetricsController(HttpClient http) =>

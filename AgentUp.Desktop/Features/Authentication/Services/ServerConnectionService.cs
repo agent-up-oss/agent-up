@@ -11,7 +11,8 @@ public sealed class ServerConnectionService(
     IServerConnectionStore store,
     HttpClient http,
     FakeServerController fakeServers,
-    HttpClient? agentEventsHttp = null)
+    HttpClient? agentEventsHttp = null,
+    RecommendedServer? recommended = null)
 {
     public SavedServerListDto List()
     {
@@ -33,13 +34,15 @@ public sealed class ServerConnectionService(
         {
             existing = new ConfiguredServer
             {
-                Id = Guid.NewGuid().ToString("N"),
-                Url = normalized
+                Id = MatchesRecommended(normalized) ? RecommendedId() : Guid.NewGuid().ToString("N"),
+                Url = normalized,
+                DisplayName = RecommendedDisplayName(normalized)
             };
             selection.Servers.Add(existing);
         }
 
         existing.Url = normalized;
+        existing.DisplayName = RecommendedDisplayName(normalized) ?? existing.DisplayName;
         if (accessToken is not null)
             existing.AccessToken = accessToken;
 
@@ -53,6 +56,11 @@ public sealed class ServerConnectionService(
     {
         if (string.Equals(id, FakeServerIdentity.Id, StringComparison.Ordinal))
             return ActivateFake();
+
+        if (recommended is not null
+            && (string.Equals(id, recommended.Id, StringComparison.Ordinal)
+                || string.Equals(id, RecommendedServer.RecommendedId, StringComparison.Ordinal)))
+            return Save(recommended.Url, accessToken: null);
 
         var selection = store.Load();
         var server = selection.Servers.FirstOrDefault(candidate => candidate.Id == id)
@@ -71,8 +79,16 @@ public sealed class ServerConnectionService(
     {
         if (string.Equals(id, FakeServerIdentity.Id, StringComparison.Ordinal))
             return;
+        if (recommended is not null
+            && (string.Equals(id, recommended.Id, StringComparison.Ordinal)
+                || string.Equals(id, RecommendedServer.RecommendedId, StringComparison.Ordinal)))
+            return;
 
         var selection = store.Load();
+        var target = selection.Servers.FirstOrDefault(server => server.Id == id);
+        if (target is not null && MatchesRecommended(target.Url))
+            return;
+
         selection.Servers.RemoveAll(server =>
             server.Id == id && !FakeServerIdentity.Matches(server.Url));
         if (selection.ActiveServerId == id)
@@ -105,6 +121,14 @@ public sealed class ServerConnectionService(
         var uri = ServerSessionProvider.CurrentUri(http)
             ?? SecureServerUrlProvider.ResolveServerUri();
         return SecureServerUrlProvider.Normalize(uri);
+    }
+
+    public string CurrentId()
+    {
+        var url = CurrentUrl();
+        var match = List().Servers.FirstOrDefault(server =>
+            string.Equals(server.Url, url, StringComparison.OrdinalIgnoreCase));
+        return match?.Id ?? url;
     }
 
     private SavedServerDto ActivateFake()
@@ -144,25 +168,45 @@ public sealed class ServerConnectionService(
             || selection.Servers.Any(server =>
                 server.Id == selection.ActiveServerId && FakeServerIdentity.Matches(server.Url));
         var servers = new List<SavedServerDto> { ToFakeDto(fakeActive) };
+        if (recommended is not null)
+            servers.Add(ToRecommendedDto(selection));
         servers.AddRange(selection.Servers
-            .Where(server => !FakeServerIdentity.Matches(server.Url) && server.Id != FakeServerIdentity.Id)
+            .Where(server => !FakeServerIdentity.Matches(server.Url)
+                && server.Id != FakeServerIdentity.Id
+                && !MatchesRecommended(server.Url))
             .Select(server => ToDto(server, selection.ActiveServerId)));
 
         var current = servers.FirstOrDefault(server => server.IsActive)?.Url
-            ?? servers.FirstOrDefault(server => !server.IsFake)?.Url
+            ?? servers.FirstOrDefault(server => !server.IsFake && !server.IsRecommended)?.Url
             ?? "";
         return new SavedServerListDto(servers, current);
     }
 
-    private static SavedServerDto ToDto(ConfiguredServer server, string? activeServerId)
+    private SavedServerDto ToRecommendedDto(ServerSelection selection)
+    {
+        var saved = selection.Servers.FirstOrDefault(server => MatchesRecommended(server.Url));
+        var id = saved?.Id ?? recommended!.Id;
+        return new SavedServerDto(
+            id,
+            recommended!.Url,
+            !string.IsNullOrWhiteSpace(saved?.AccessToken),
+            id == selection.ActiveServerId,
+            recommended.DisplayName,
+            false,
+            false,
+            true);
+    }
+
+    private SavedServerDto ToDto(ConfiguredServer server, string? activeServerId)
         => new(
             server.Id,
             server.Url,
             !string.IsNullOrWhiteSpace(server.AccessToken),
             server.Id == activeServerId,
-            server.Url,
-            true,
-            false);
+            RecommendedDisplayName(server.Url) ?? server.DisplayName ?? server.Url,
+            !MatchesRecommended(server.Url),
+            false,
+            MatchesRecommended(server.Url));
 
     private static SavedServerDto ToFakeDto(bool isActive)
         => new(
@@ -172,5 +216,15 @@ public sealed class ServerConnectionService(
             isActive,
             FakeServerIdentity.DisplayName,
             false,
-            true);
+            true,
+            false);
+
+    private bool MatchesRecommended(string url)
+        => recommended is not null
+           && string.Equals(url, recommended.Url, StringComparison.OrdinalIgnoreCase);
+
+    private string RecommendedId() => recommended?.Id ?? RecommendedServer.RecommendedId;
+
+    private string? RecommendedDisplayName(string url)
+        => MatchesRecommended(url) ? recommended!.DisplayName : null;
 }

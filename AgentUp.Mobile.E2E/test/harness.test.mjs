@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
+import { createServer } from 'node:net';
 import test from 'node:test';
 
 import { createIdpControl, loginIdFrom } from '../harness/idpControl.mjs';
 import { hasTransport, isTerminalSignInError, isUsableChallenge, waitForChallenge } from '../harness/signInFlows.mjs';
 import { shimScript } from '../harness/shims.mjs';
 import { AGENT_PROFILES, hostOriginFor, hostPortsToReverse, profilesFor, serverEnvironment } from '../harness/stackConfig.mjs';
-import { freePort, portWindow, removeWorkspaceTree } from '../harness/stack.mjs';
+import { freePort, isFree, portWindow, removeWorkspaceTree } from '../harness/stack.mjs';
 import { waitFor } from '../harness/wait.mjs';
 
 test('each stack serves three agent modules, with the codex slot chosen explicitly', () => {
@@ -129,6 +130,34 @@ test('native Detox reverses those host ports before launchApp', async () => {
     'The chat fetches the Server as soon as the connect URL lands, so reverse must happen in the same beforeAll that starts the stack.',
   );
   assert.equal(beforeAll.includes('device.launchApp'), false);
+});
+
+test('native pasted-code sign-in restores the connect URL when it returns from the browser', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../detox/signIn.test.js', import.meta.url), 'utf8');
+  const returnToApp = source.slice(
+    source.indexOf('if (carriedCode)'),
+    source.indexOf("await harness.waitForAgentState", source.indexOf('if (carriedCode)')),
+  );
+
+  assert.match(returnToApp, /url: connectLaunchUrl\(stack\.serverOriginForClient, stack\.workspace\.id\)/);
+});
+
+test('native sign-in waits for the method button after the Server reports authentication_required', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../detox/signIn.test.js', import.meta.url), 'utf8');
+  assert.match(source, /await tap\(`agent-auth-method-\$\{methodId\}`, 60_000\)/);
+});
+
+test('the Detox Jest envelope outlives the pasted-code wait budget', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const jestConfig = await readFile(new URL('../detox/jest.config.js', import.meta.url), 'utf8');
+  const match = jestConfig.match(/testTimeout:\s*([\d_]+)/);
+  assert.ok(match, 'detox/jest.config.js must set testTimeout');
+  const timeout = Number(match[1].replaceAll('_', ''));
+  // Named waits in the pasted-code body sum to 570s. 300s was smaller than that and Jest
+  // killed iOS after login/code 202 instead of waiting for ready.
+  assert.ok(timeout >= 720_000, `testTimeout ${timeout} must cover the pasted-code wait budget`);
 });
 
 test('each agent gets a launcher that names it explicitly', () => {
@@ -277,5 +306,30 @@ test('a worker hands out distinct ports from a window it owns alone', async () =
   assert.equal(new Set(ports).size, ports.length);
   for (const port of ports) {
     assert.ok(port >= portWindow.base && port < portWindow.base + portWindow.size, `${port} is outside the window`);
+  }
+});
+
+test('a free-port probe does not leave the port bound', async () => {
+  const port = await freePort();
+  assert.equal(await isFree(port), true);
+  await new Promise((resolve, reject) => {
+    const server = createServer();
+    server.once('error', reject);
+    server.listen(port, '127.0.0.1', () => {
+      server.close(error => error ? reject(error) : resolve());
+    });
+  });
+});
+
+test('a port with a listener is not handed out as free', async () => {
+  const server = createServer();
+  const port = await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => resolve(server.address().port));
+  });
+  try {
+    assert.equal(await isFree(port), false);
+  } finally {
+    await new Promise(resolve => server.close(resolve));
   }
 });

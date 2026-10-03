@@ -9,6 +9,7 @@ import type { CommitQueue } from '../models/CommitQueue';
 import type { GitConfirmCopy } from '../providers/GitBranchPickerProvider';
 import { commitFiles, discardFiles, getChanges, getCommitQueue, getFileDiff } from '../providers/GitApiProvider';
 import { createRequestGate, type RequestGate } from '../providers/RequestGateProvider';
+import { workspaceScopeKey } from '@/features/workspaces/providers/WorkspaceScopeKeyProvider';
 import {
   canCommitSelection,
   canDiscardSelection,
@@ -49,9 +50,10 @@ export function GitChangesPanel({
   onSelectedFilesChange?: (files: string[]) => void;
   reloadNonce?: number;
 } = {}) {
-  const { expireActiveCredential } = useServers();
+  const { expireActiveCredential, activeServer } = useServers();
   const { server, selectedWorkspace } = useWorkspaces();
   const workspaceId = workspaceIdProp ?? selectedWorkspace?.id ?? null;
+  const scopeKey = workspaceScopeKey(activeServer?.id ?? '', workspaceId ?? '');
   const overview = mode === 'overview';
 
   const [tree, setTree] = useState<GitChangeTree | null>(null);
@@ -83,30 +85,31 @@ export function GitChangesPanel({
 
   useEffect(() => {
     mutateGate.begin();
+    treeGate.begin();
     mutating.current = false;
     setBusy(false);
-  }, [server, workspaceId, mutateGate]);
+  }, [scopeKey, mutateGate, treeGate]);
 
-  const selectionWorkspace = useRef<string | null>(null);
+  const selectionScope = useRef<string | null>(null);
 
   const applyTree = useCallback((changes: GitChangeTree | null) => {
     setTree(changes);
     const flattened = flattenChangeTree(changes);
     setSelected(current => {
-      const keep = selectionWorkspace.current === workspaceId ? current : [];
-      selectionWorkspace.current = workspaceId;
+      const keep = selectionScope.current === scopeKey ? current : [];
+      selectionScope.current = scopeKey;
       return retainSelectedPaths(flattened, keep);
     });
     setCollapsed(current => retainCollapsedPaths(flattened, current));
     setStale(false);
     setConfirm(null);
-  }, [workspaceId]);
+  }, [scopeKey]);
 
   const load = useCallback(async (silent = false, apply = !silent) => {
     if (silent && inflightLoads.current > 0) return;
     const ticket = treeGate.begin();
     if (!server || !workspaceId) {
-      selectionWorkspace.current = null;
+      selectionScope.current = null;
       setTree(null);
       setQueue(null);
       setSelected([]);

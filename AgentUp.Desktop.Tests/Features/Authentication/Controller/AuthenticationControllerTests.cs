@@ -31,6 +31,21 @@ public sealed class AuthenticationControllerTests
     }
 
     [Test]
+    public async Task ResolveConnectionAsync_DelegatesToService()
+    {
+        using var http = new DisposableTestHttpClient(request =>
+            request.RequestUri?.AbsolutePath == "/api/connection"
+                ? Json(HttpStatusCode.NotFound, "{}")
+                : Json(HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var controller = CreateController(http);
+
+        var connection = await controller.ResolveConnectionAsync();
+
+        Assert.That(connection.IsLegacy, Is.True);
+    }
+
+
+    [Test]
     public void SaveServer_PersistsNormalizedUrl()
     {
         using var http = new DisposableTestHttpClient(_ =>

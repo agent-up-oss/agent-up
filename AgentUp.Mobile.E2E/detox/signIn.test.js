@@ -99,9 +99,10 @@ describe('agent sign-in', () => {
       const offered = await harness.waitForAgentState(stack.serverUrl, stack.workspace.id, 'authentication_required');
       const methodId = offered.authMethods?.[0]?.id;
       if (!methodId) throw new Error('The agent offered no subscription sign-in method.');
-      // The Server can report authentication_required before React Native has laid the method
-      // buttons out. iOS Detox then logs "Layers needs layout" / "Main Queue pending" and a
-      // 30s visibility wait expires while the picker and Open still use 60s. Keep sync off:
+      // Synchronization is off, so the picker tap returns before the session renders. The Server
+      // can also report authentication_required before React Native has laid the method buttons
+      // out. iOS Detox then logs "Layers needs layout" / "Main Queue pending" and a 30s
+      // visibility wait expires while the picker and Open still use 60s. Keep sync off:
       // scheduleAgent has opened the event stream, and Detox waiting for idle is how the
       // picker itself used to starve.
       await device.disableSynchronization();
@@ -125,7 +126,11 @@ describe('agent sign-in', () => {
         // suspends what is not in front, so it stops answering Detox at all. That reads as a tap
         // that was never delivered rather than as anything the client did, and it is exactly how
         // this scenario failed while the other three passed: they never return to the app.
-        await device.launchApp({ newInstance: false, launchArgs: SYNC_OFF });
+        await device.launchApp({
+          newInstance: false,
+          url: connectLaunchUrl(stack.serverOriginForClient, stack.workspace.id),
+          launchArgs: SYNC_OFF,
+        });
         await device.disableSynchronization();
 
         // The pasted-code shape: the value travels back through the client, exactly as a user

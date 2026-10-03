@@ -9,7 +9,7 @@
     "displayName": "Demo",
     "authentication": {
       "mode": "disabled",
-      "prompt": "",
+      "prompt": "Authentication is not required for this Server.",
       "identifierRequired": false
     },
     "workspacePresentation": "serverScoped"

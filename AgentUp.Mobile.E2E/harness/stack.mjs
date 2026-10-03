@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import { mkdtemp, mkdir, rm } from 'node:fs/promises';
-import { createServer } from 'node:net';
+import { createConnection } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -8,7 +9,6 @@ import { createIdpControl } from './idpControl.mjs';
 import { supervise } from './supervise.mjs';
 import { writeShims } from './shims.mjs';
 import { hostOriginFor, hostPortsToReverse, profilesFor, serverEnvironment } from './stackConfig.mjs';
-import { waitFor } from './wait.mjs';
 
 
 /**
@@ -28,25 +28,17 @@ export async function startStack({ platform, codexSchema, serverDll, testAgentEx
   const processes = [];
   const dispose = async () => {
     for (const child of processes.reverse()) {
-      stop(child);
+      await stopProcess(child);
     }
-    await Promise.all(processes.map(child => waitStopped(child)));
     await removeWorkspaceTree(root);
   };
 
   try {
-    const idpPort = await freePort();
-    const idpPublicOrigin = hostOriginFor(platform, idpPort);
-    const idp = supervise('test-idp', spawn(
-      join(binDir, 'test-idp'),
-      ['--port', String(idpPort), '--public-origin', idpPublicOrigin],
-      { stdio: ['ignore', 'pipe', 'pipe'] },
-    ));
+    const idp = await startIdentityProvider(platform, binDir);
     processes.push(idp.child);
 
+    const { idpPort, idpPublicOrigin, control } = idp;
     const idpUrl = `http://localhost:${idpPort}`;
-    const control = createIdpControl(idpUrl);
-    await idp.answers('the test identity provider to answer', () => control.health());
 
     const serverPort = await freePort();
     const serverUrl = `http://localhost:${serverPort}`;
@@ -96,6 +88,19 @@ export async function startStack({ platform, codexSchema, serverDll, testAgentEx
   }
 }
 
+/**
+ * Stops a stack process and waits until its handles are closed before its data directory is
+ * removed. Sending SIGTERM without waiting let the Server's Chromium profile writer race rm(),
+ * which intermittently left a new file in the directory while Node was removing it.
+ */
+export async function stopProcess(child) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+
+  const closed = once(child, 'close');
+  child.kill('SIGTERM');
+  await closed;
+}
+
 async function registerWorkspace(serverUrl, worktree) {
   const response = await fetch(`${serverUrl}/api/workspaces`, {
     method: 'POST',
@@ -142,39 +147,6 @@ export async function removeWorkspaceTree(root) {
   await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 }
 
-function stop(child) {
-  if (hasExited(child)) return;
-  try {
-    child.kill('SIGTERM');
-  } catch {
-    // already gone
-  }
-}
-
-async function waitStopped(child) {
-  if (hasExited(child)) return;
-  try {
-    await waitFor('the stack process to exit', () => hasExited(child), {
-      timeoutMs: 5_000,
-      intervalMs: 50,
-    });
-  } catch {
-    try {
-      child.kill('SIGKILL');
-    } catch {
-      // already gone
-    }
-    await waitFor('the stack process to exit after SIGKILL', () => hasExited(child), {
-      timeoutMs: 2_000,
-      intervalMs: 50,
-    }).catch(() => {});
-  }
-}
-
-function hasExited(child) {
-  return child.exitCode !== null || child.signalCode !== null;
-}
-
 export async function freePort() {
   for (let attempt = 0; attempt < WINDOW; attempt++) {
     const port = BASE + (offset++ % WINDOW);
@@ -187,10 +159,54 @@ export async function freePort() {
 /** The window this worker hands ports out of, so a test can assert workers cannot overlap. */
 export const portWindow = { base: BASE, size: WINDOW };
 
-function isFree(port) {
+/**
+ * Starts the identity provider on a port from this worker's window.
+ *
+ * A named port is not negotiable once the child is told to bind it, so a bind failure has to
+ * cost another port rather than the run. Installable-web workers used to die on TIME_WAIT from
+ * the listen-and-close probe: HttpListener then reported "Nothing could be bound on port 24000".
+ */
+async function startIdentityProvider(platform, binDir) {
+  let lastError;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const idpPort = await freePort();
+    const idpPublicOrigin = hostOriginFor(platform, idpPort);
+    const idp = supervise('test-idp', spawn(
+      join(binDir, 'test-idp'),
+      ['--port', String(idpPort), '--public-origin', idpPublicOrigin],
+      { stdio: ['ignore', 'pipe', 'pipe'] },
+    ));
+    const control = createIdpControl(`http://localhost:${idpPort}`);
+    try {
+      await idp.answers('the test identity provider to answer', () => control.health());
+      return { child: idp.child, idpPort, idpPublicOrigin, control };
+    } catch (cause) {
+      lastError = cause;
+      await stopProcess(idp.child);
+      if (!idp.ended) throw cause;
+    }
+  }
+
+  throw lastError;
+}
+
+/**
+ * True when nothing is accepting on the port.
+ *
+ * Binding and closing a probe leaves TIME_WAIT, and the identity provider's HttpListener then
+ * fails with address already in use. Connecting avoids occupying the port: ECONNREFUSED means it
+ * is free, and an accepted connection means it is not.
+ */
+export function isFree(port) {
   return new Promise(resolve => {
-    const probe = createServer();
-    probe.once('error', () => resolve(false));
-    probe.listen(port, '127.0.0.1', () => probe.close(() => resolve(true)));
+    const socket = createConnection({ port, host: '127.0.0.1' });
+    socket.once('connect', () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.once('error', () => {
+      socket.destroy();
+      resolve(true);
+    });
   });
 }

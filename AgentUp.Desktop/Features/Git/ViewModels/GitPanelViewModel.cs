@@ -6,6 +6,7 @@ using AgentUp.Desktop.Features.Git.Controllers;
 using AgentUp.Desktop.Features.Git.DTOs;
 using AgentUp.Desktop.Features.Git.Models;
 using AgentUp.Desktop.Features.Git.Providers;
+using AgentUp.Desktop.Features.Workspaces.Models;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Git.ViewModels;
@@ -20,6 +21,8 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     private int _treeRequest;
     private int _diffRequest;
     private string? _workspaceId;
+    private string? _connectionId;
+    private string? _scopeKey;
     private bool _isVisible;
     private bool _isLoading;
     private bool _isBusy;
@@ -318,12 +321,15 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         private set => this.RaiseAndSetIfChanged(ref _isHistoryOpen, value);
     }
 
-    public void PrepareWorkspace(string? workspaceId, string? branch)
+    public void PrepareWorkspace(string? workspaceId, string? branch, string? connectionId = null)
     {
-        if (string.Equals(_workspaceId, workspaceId, StringComparison.Ordinal))
+        var scope = ScopeFor(connectionId, workspaceId);
+        if (string.Equals(_scopeKey, scope, StringComparison.Ordinal))
             return;
 
+        _connectionId = connectionId;
         _workspaceId = workspaceId;
+        _scopeKey = scope;
         Nodes.Clear();
         ClearQueue();
         SelectedFileCount = 0;
@@ -340,11 +346,19 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         RaiseListProperties();
     }
 
-    public async Task LoadAsync(string? workspaceId, CancellationToken cancellationToken = default, bool silent = false)
+    public async Task LoadAsync(
+        string? workspaceId,
+        CancellationToken cancellationToken = default,
+        bool silent = false,
+        string? connectionId = null)
     {
+        if (connectionId is not null || workspaceId is null)
+            _connectionId = connectionId;
         var request = ++_treeRequest;
-        var sameWorkspace = string.Equals(_workspaceId, workspaceId, StringComparison.Ordinal);
+        var scope = ScopeFor(_connectionId, workspaceId);
+        var sameWorkspace = string.Equals(_scopeKey, scope, StringComparison.Ordinal);
         _workspaceId = workspaceId;
+        _scopeKey = scope;
         if (!silent)
         {
             _diffRequest++;
@@ -454,6 +468,9 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         ClearConfirm();
         IsHistoryOpen = false;
         Diff.Hide();
+        _workspaceId = null;
+        _connectionId = null;
+        _scopeKey = null;
         RaiseListProperties();
     }
 
@@ -1038,6 +1055,9 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 
         return false;
     }
+
+    private static string? ScopeFor(string? connectionId, string? workspaceId)
+        => workspaceId is null ? null : WorkspaceScopeKey.For(connectionId ?? "", workspaceId);
 
     private void RaiseListProperties()
     {
