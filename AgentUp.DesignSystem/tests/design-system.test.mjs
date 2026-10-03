@@ -256,9 +256,17 @@ test('marketing feature cards open Desktop and Mobile screenshots', () => {
   const surface = catalog.surfaces.find(item => item.id === 'marketing');
   const card = surface?.components.find(item => item.id === 'feature-card');
   assert.ok(card?.html.includes('au-feature-card'));
-  assert.ok(card?.html.includes('au-feature-card__shot'));
+  assert.ok(card?.html.includes('au-feature-card__preview'));
+  assert.ok(card?.html.includes('au-muted'));
   assert.match(marketing, /\.au-feature-card \{[^}]*surface-raised/);
   assert.match(marketing, /\.au-feature-modal \{[^}]*position:\s*fixed/);
+  assert.match(marketing, /\.au-marketing-hero--workspace/);
+  assert.match(marketing, /\.au-hero-pair \{/);
+  assert.match(marketing, /\.au-marketing-hero__lockup \{[^}]*white-space:\s*nowrap/);
+  assert.match(marketing, /\.au-marketing-hero--workspace \.au-title \{\s*white-space:\s*nowrap/);
+  assert.match(marketing, /\.au-feature-card__preview \{[^}]*place-items:\s*center/);
+  assert.match(marketing, /\.au-marketing-hero--workspace \{[^}]*min-height:\s*calc\(100svh/);
+  assert.match(marketing, /\.au-feature-card--history \.au-feature-card__preview \{[^}]*padding:\s*var\(--au-space-6\)/);
 });
 
 test('validation sidebar nests micro-checks under greater steps', () => {

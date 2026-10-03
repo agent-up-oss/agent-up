@@ -22,6 +22,12 @@ public sealed class DocsPageUrlProviderTests
     }
 
     [Test]
+    public void Resolve_keepsMarketingHome()
+    {
+        Assert.That(DocsPageUrlProvider.Resolve("/"), Is.EqualTo($"{DebugLayout.DocsUrl}/"));
+    }
+
+    [Test]
     public void Resolve_keepsDeveloperGuideAndDesignSystem()
     {
         Assert.That(

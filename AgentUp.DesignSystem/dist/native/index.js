@@ -1442,13 +1442,14 @@ export const agentUpTheme = Object.freeze({
       letterSpacing: 7,
     }),
     featureCard: Object.freeze({
-      paddingHorizontal: 20,
-      paddingVertical: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
       color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 16,
+      maxWidth: "100%",
     }),
     proof: Object.freeze({
       backgroundColor: "#ffffff14",

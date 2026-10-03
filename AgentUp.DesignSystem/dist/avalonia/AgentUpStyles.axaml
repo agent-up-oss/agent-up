@@ -2820,14 +2820,14 @@
     <Setter Property="LetterSpacing" Value="7"/>
   </Style>
   <Style Selector="Border.au-feature-card">
-    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness5}"/>
+    <Setter Property="Padding" Value="12,8"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusXl}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-feature-card">
-    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness5}"/>
+    <Setter Property="Padding" Value="12,8"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
   </Style>

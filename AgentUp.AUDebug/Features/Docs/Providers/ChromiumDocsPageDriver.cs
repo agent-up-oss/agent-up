@@ -130,6 +130,17 @@ public sealed class ChromiumDocsPageDriver : IDocsPageCapture
                 cancellationToken);
             ChromiumCdpMessageProvider.ThrowIfEvaluateFailed(metrics, "Docs viewport");
         }
+        else
+        {
+            var metrics = await SendAsync(
+                socket,
+                ChromiumCdpMessageProvider.SetDeviceMetrics(
+                    DebugLayout.DocsViewportWidth,
+                    DebugLayout.DocsViewportHeight,
+                    id++),
+                cancellationToken);
+            ChromiumCdpMessageProvider.ThrowIfEvaluateFailed(metrics, "Docs viewport");
+        }
 
         var screenshot = await SendAsync(
             socket,

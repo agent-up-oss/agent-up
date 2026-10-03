@@ -164,9 +164,16 @@ Desktop is the reference rendering:
 - Product UI and design-system product screenshots are preferred to speculative
   illustrations. Persist those shots with `au-debug screenshots persist`; do not
   reconstruct Desktop or Mobile chrome in docs HTML. The marketing homepage
-  shows customer-facing slices as `.au-feature-card` tiles. A click opens
-  Desktop and Mobile shots together in `.au-feature-modal`. Sign-in and other
-  tooling overlays stay out of that grid.
+  is a left lockup plus `.au-feature-card` tiles on the right. The lockup
+  title stays on one line and sits beside a 3x3 grid that fits a 1440x900
+  viewport at 100% zoom, vertically centered with that grid. Feature tiles
+  center the relevant catalog component, with
+  preview sample data, in a fixed inset viewport instead of stretching a
+  screenshot crop, and use one short `.au-muted` line instead of a subtitle. A click opens Desktop
+  and Mobile shots together in `.au-feature-modal`, portaled to
+  `document.body` so it stays a viewport overlay. The connect pane is the
+  Multi-server tile. File viewer and other tooling overlays stay out of that
+  grid.
 
 Mobile uses the same sign-in pane, workspace row, and type scale as Desktop.
 Primary actions stay 44px; chrome stays compact. Documentation prioritizes

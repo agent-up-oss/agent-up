@@ -6,6 +6,7 @@ public static class DocsPageUrlProvider
 {
     private static readonly string[] AllowedRoots =
     [
+        "/",
         "/docs",
         "/developer-guide",
         "/design-system"
@@ -63,5 +64,5 @@ public static class DocsPageUrlProvider
                                              || character is '_' or '-' or '.');
 
     private static string PathError(string? pagePath)
-        => $"Error: docs page path '{pagePath}' is not a hosted docs, developer-guide, or design-system path.";
+        => $"Error: docs page path '{pagePath}' is not a hosted home, docs, developer-guide, or design-system path.";
 }

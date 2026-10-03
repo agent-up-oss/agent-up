@@ -39,6 +39,7 @@ Cold Desktop compiles can exceed 30 seconds. Pass `--timeout 120` for those runs
 ./au-debug desktop screenshot
 ./au-debug mobile screenshot
 ./au-debug docs screenshot
+./au-debug docs screenshot / --full-page
 ./au-debug docs screenshot /docs/workspaces --full-page
 ./au-debug docs screenshot /developer-guide/workspaces --heading "Orchestration MCP"
 ./au-debug screenshots persist
@@ -57,7 +58,7 @@ Cold Desktop compiles can exceed 30 seconds. Pass `--timeout 120` for those runs
 
 `status` probes the hosted Server, Mobile, and docs URLs and checks that the Desktop window is present. Do not curl those ports or call `xdotool` from the shell; those checks belong inside `au-debug`.
 
-`docs screenshot` captures the hosted Docusaurus site after `up` is ready. With no path it captures `/docs/`. Pass a site path under `/docs/`, `/developer-guide/`, or `/design-system` to inspect one page. `--heading` scrolls that heading into the 1440x900 viewport before capture. `--full-page` captures the whole document. Both flags can be used together.
+`docs screenshot` captures the hosted Docusaurus site after `up` is ready. With no path it captures `/docs/`. Pass `/` for the marketing homepage, or a site path under `/docs/`, `/developer-guide/`, or `/design-system` to inspect one page. `--heading` scrolls that heading into the 1440x900 viewport before capture. Viewport captures always emulate that size so a 100% zoom check is the same on every host. `--full-page` captures the whole document. Both flags can be used together.
 
 ## Product screenshots
 
@@ -166,7 +167,7 @@ Every one-shot command and `up` readiness uses a 30 second watchdog by default (
 |---|---|
 | Server | `http://127.0.0.1:5001` |
 | Mobile web | `http://127.0.0.1:10102` |
-| Docs | `http://127.0.0.1:10100` (`/docs/`, `/developer-guide/`, `/design-system`) |
+| Docs | `http://127.0.0.1:10100` (`/`, `/docs/`, `/developer-guide/`, `/design-system`) |
 | Desktop | native window titled `Agent-Up` |
 
 Mobile `./au-debug build mobile` (or `./au-debug test mobile`) must have produced a web export before `up` serves Mobile. Desktop is launched through `run-desktop.sh`.

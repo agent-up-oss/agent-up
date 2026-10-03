@@ -50,7 +50,7 @@ public sealed class DebugOutputService
 
             Docs:
               docs screenshot [path]     Capture a hosted docs page (default /docs/) and print the file path.
-                                         Path may be /docs/..., /developer-guide/..., or /design-system.
+                                         Path may be /, /docs/..., /developer-guide/..., or /design-system.
                                          Use --heading <text> to scroll a heading into view, --full-page
                                          to capture the whole document instead of the 1440x900 viewport.
 

@@ -199,11 +199,9 @@ export default function DesignSystemPage() {
         <div className={`au-container au-marketing-hero ${styles.intro}`}>
           <div>
             <p className="au-eyebrow">Agent-Up design system</p>
-            <h1 className={`au-display ${styles.introTitle}`}>The HTML and CSS are the product contract.</h1>
-            <p className="au-lede">The collage mounts the catalog examples for the product controls. Click a tab, checkbox, or workspace row to see the catalog selected states. Desktop, Mobile, docs, and marketing apply these same classes. They do not invent a second theme from the palette.</p>
+            <h1 className={`au-display ${styles.introTitle}`}>One design schema</h1>
+            <p className="au-lede">Every app, every docs appearance, every post and everything else uses the same design schema.</p>
             <div className="au-cluster">
-              <a className="au-button" href="#screens">View assembled screens</a>
-              <a className="au-button au-button--secondary" href="#catalog">Open the catalog</a>
               <Link className="au-button au-button--secondary" to="/developer-guide/repo/design-system">Implementation contract</Link>
             </div>
           </div>

@@ -2085,20 +2085,28 @@
         {
           "id": "feature-card",
           "title": "Feature card",
-          "note": "A customer-facing slice. The crop is a persisted product screenshot. Click opens Desktop and Mobile together.",
+          "note": "A customer-facing slice. The preview is the relevant catalog component, centered at its natural size in a fixed viewport. One short line summarizes the slice. Click opens Desktop and Mobile together.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
           "rootClass": "au-feature-card",
           "classes": [
             "au-feature-card",
-            "au-feature-card__shot",
+            "au-feature-card__preview",
+            "au-feature-card__preview-inner",
+            "au-workspace",
+            "au-workspace--selected",
+            "au-lifecycle-button",
+            "au-status-dot",
+            "au-status-dot--healthy",
+            "au-workspace-name",
+            "au-workspace-branch",
+            "au-workspace-delete",
             "au-feature-card__body",
             "au-heading",
-            "au-muted",
-            "au-field-label"
+            "au-muted"
           ],
-          "html": "<button class=\"au-feature-card\" type=\"button\">\n        <span class=\"au-feature-card__shot\"></span>\n        <div class=\"au-feature-card__body\">\n          <h3 class=\"au-heading\">Applications</h3>\n          <p class=\"au-muted\">Start local processes and Docker services as one managed environment.</p>\n          <p class=\"au-field-label\">Desktop and Mobile</p>\n        </div>\n      </button>"
+          "html": "<div class=\"au-feature-card\" role=\"button\">\n        <div class=\"au-feature-card__preview\">\n          <div class=\"au-feature-card__preview-inner\">\n            <div class=\"au-workspace au-workspace--selected\">\n              <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n              <span class=\"au-status-dot au-status-dot--healthy\"></span>\n              <span>\n                <strong class=\"au-workspace-name\">Harbor Shop</strong>\n                <small class=\"au-workspace-branch\">main</small>\n              </span>\n              <button class=\"au-workspace-delete\" type=\"button\">×</button>\n            </div>\n          </div>\n        </div>\n        <div class=\"au-feature-card__body\">\n          <h3 class=\"au-heading\">Workspaces</h3>\n          <p class=\"au-muted\">Each agent gets its own space.</p>\n        </div>\n      </div>"
         }
       ]
     },
