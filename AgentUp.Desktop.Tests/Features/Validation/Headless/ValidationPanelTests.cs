@@ -8,10 +8,11 @@ namespace AgentUp.Desktop.Tests.Features.Validation.Headless;
 public sealed class ValidationPanelTests
 {
     [AvaloniaTest]
-    public async Task Validation_sidebar_isOpen_forTheSelectedWorkspace()
+    public async Task Validation_sidebar_isCollapsed_whenAnApplicationIsSelected()
     {
         var app = await AppDriver.LaunchWithWorkspacesAsync([DesktopDomain.WorkspaceWithApplications().Build()]);
         var viewModel = (MainViewModel)app.Window.DataContext!;
+        await app.Content.SelectApplicationTabAsync();
 
         await HeadlessExtensions.FlushAsync();
 
@@ -20,28 +21,31 @@ public sealed class ValidationPanelTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(viewModel.IsValidationOpen, Is.True);
+            Assert.That(viewModel.ShowValidation, Is.True);
+            Assert.That(viewModel.IsValidationOpen, Is.False);
+            Assert.That(viewModel.Validation!.IsCollapsed, Is.True);
             Assert.That(app.Window.FindControl<Border>("ValidationPanel")!.IsVisible, Is.True);
-            Assert.That(app.Window.FindControl<ItemsControl>("ValidationFlowList"), Is.Not.Null);
-            Assert.That(app.Window.FindControl<Button>("ValidationToggle"), Is.Not.Null);
+            Assert.That(app.Window.FindControl<Border>("ValidationPanel")!.Width, Is.EqualTo(56));
+            Assert.That(app.Window.FindControl<Button>("ValidationToggleCollapsed"), Is.Not.Null);
         });
     }
 
     [AvaloniaTest]
-    public async Task Validation_sidebar_collapsesFromItsHeaderToggle()
+    public async Task Validation_sidebar_expandsFromItsCollapsedRailToggle()
     {
         var app = await AppDriver.LaunchWithWorkspacesAsync([DesktopDomain.WorkspaceWithApplications().Build()]);
         var viewModel = (MainViewModel)app.Window.DataContext!;
-        var toggle = app.Window.FindControl<Button>("ValidationToggle")!;
+        await app.Content.SelectApplicationTabAsync();
+        var toggle = app.Window.FindControl<Button>("ValidationToggleCollapsed")!;
 
         await app.Window.ClickControlAsync(toggle);
         await HeadlessExtensions.FlushAsync();
 
         Assert.Multiple(() =>
         {
-            Assert.That(viewModel.Validation!.IsCollapsed, Is.True);
-            Assert.That(viewModel.IsValidationOpen, Is.False);
-            Assert.That(app.Window.FindControl<Border>("ValidationPanel")!.Width, Is.EqualTo(56));
+            Assert.That(viewModel.Validation!.IsCollapsed, Is.False);
+            Assert.That(viewModel.IsValidationOpen, Is.True);
+            Assert.That(app.Window.FindControl<Border>("ValidationPanel")!.Width, Is.EqualTo(360));
         });
     }
 }

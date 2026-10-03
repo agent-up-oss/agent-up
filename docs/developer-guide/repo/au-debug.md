@@ -101,8 +101,9 @@ Output goes to `artifacts/product-screens/<surface>/<screen>.png`, with
 the ones that were not captured, and why.
 
 Four Desktop screens are in that second group. The Demo connection reports no Database,
-Diagnostics, Validation, or Metrics entitlement, so Desktop does not build those tabs and
-there is nothing to photograph. Capture them against a real Server workspace instead.
+Diagnostics, or Metrics entitlement, so Desktop does not build those tabs. Validation is a
+collapsed sidebar on the selected application, not a dedicated screen. Capture the tab
+surfaces against a real Server workspace instead.
 
 `screens` starts what it needs and stops only that: the Desktop window, and the Mobile web
 host on `http://127.0.0.1:10102`. A surface already running — because `au-debug up` is up —

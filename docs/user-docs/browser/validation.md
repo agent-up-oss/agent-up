@@ -10,7 +10,7 @@ A validation check is a user-meaningful route through the GUI, not an implementa
 
 <DocSteps>
 <DocStep title="Open Validation">
-Use the Validation sidebar of the selected Desktop workspace for the currently selected application.
+Select an application in a Desktop workspace. The Validation sidebar appears on the right and starts collapsed.
 </DocStep>
 <DocStep title="Play the check">
 Each check shows the user journey it validates and can be played in the Desktop application view so you can watch the recorded steps and their expected outcomes.
