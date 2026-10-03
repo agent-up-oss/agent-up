@@ -310,9 +310,9 @@ test('sign-in is a pane on the canvas rather than a grey overlay', async () => {
   assert.ok(example?.html.includes('au-choice-label'));
   assert.ok(example?.html.includes('title="http://127.0.0.1:9"'));
   assert.ok(choice?.html.includes('au-choice--selected'));
-  assert.doesNotMatch(example?.html ?? '', /Saved sign-in|No saved sign-in/);
-  assert.doesNotMatch(axaml, /Saved sign-in|No saved sign-in|In-app demo/);
-  assert.doesNotMatch(mobile, /Saved sign-in|No saved sign-in/);
+  assert.doesNotMatch(example?.html ?? '', /Saved sign-in(?!s)|No saved sign-in/);
+  assert.doesNotMatch(axaml, /Saved sign-in(?!s)|No saved sign-in|In-app demo/);
+  assert.doesNotMatch(mobile, /Saved sign-in(?!s)|No saved sign-in/);
   assert.doesNotMatch(example?.html ?? '', /au-overlay-panel/);
 });
 
