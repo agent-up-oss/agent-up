@@ -11,7 +11,14 @@ so another repository can consume the same contract through an npm dependency or
 an Agent-Up Git submodule.
 
 The public showcase is available at [/design-system](/design-system). It is linked
-from the site navbar and footer. The page is a tabbed catalog: a vertical
+from the site navbar and footer. The page opens with the contract intro beside a
+live collage of catalog product-control examples. Those examples are the same
+`component.html` definitions as the catalog below, so the intro stays in sync
+when the catalog changes. Assembled Desktop and Mobile screens follow, selected
+by a horizontal chip strip. Those views mount assembled screen HTML: `src/screens.html` layouts that
+`data-au-use` catalog component ids. Desktop and Mobile sit side by side at
+matched height and use the full page width. They do not embed persisted PNGs and they
+do not restate component markup. Below that, a vertical
 surface list sits in the left of the content column, and each selected surface
 shows the live components that surface uses.
 
@@ -37,6 +44,15 @@ shows the live components that surface uses.
   numbered spine, contract, fork, facts, surface rows, steps, callout, next).
   It is not compiled into Desktop or Mobile bindings.
 - `src/marketing.css` owns campaign and product-frame compositions.
+- `src/screenshots/shell.css` owns the scaled showcase embed only. Screen chrome
+  layout lives in `src/product.css` as `.au-screen*` so Desktop can apply the
+  same classes.
+- `src/screens.html` owns assembled screens: named layouts plus scenes that
+  fill regions with `data-au-use` of catalog component ids, including the
+  `screen*` layout shells. `scripts/lib/screens.mjs` inserts leaf catalog HTML
+  and applies empty layout shells as wrappers. Persist writes the result into
+  `media/`. Desktop aliases (`productScreen`, `productScreenRail`, …) compile
+  from those same catalog classes.
 - `brand/voice.json` owns product naming, positioning, capability lifecycle
   language, and editorial principles.
 - `scripts/build.mjs` deterministically copies web assets and compiles the CSS
@@ -107,6 +123,14 @@ Desktop is the reference rendering:
   `.au-git-log-graph-scroll`, and a sticky `.au-git-log-detail` header for the
   selected commit. Ref chips stay in that header. Lanes use `--au-color-git-lane-*`.
   Do not render ASCII `| * |` glyphs.
+- Validation is `.au-validation-sidebar`, a right rail on the selected
+  application, not a full-screen pane. `.au-validation-flow` cards nest
+  `.au-validation-stage` greater steps and `.au-validation-check` micro-checks.
+  Glyphs use `.au-validation-glyph` with `--passed`, `--running`, and
+  `--failed`; pending stays muted. Play is `.au-validation-play`, a
+  selected-strong pill. Collapse uses `.au-workspace-add`. Do not paint a
+  stage as a fat status card. The default rail is
+  `.au-validation-sidebar--collapsed`.
 - File inspection is `.au-file-viewer`: a readonly overlay with
   `.au-file-viewer-header` (path + status), `.au-file-viewer-nav` hunk jumps,
   `.au-file-viewer-line` rows, and `.au-syntax-*` tokens. Added lines use the
@@ -137,8 +161,19 @@ Desktop is the reference rendering:
 - Red identifies errors, failures, and destructive actions.
 - Ambient neon glow, decorative green grids, green borders around every surface,
   and accent-tinted hover states are retired.
-- Product UI and real product screenshots are preferred to speculative
-  illustrations.
+- Product UI and design-system product screenshots are preferred to speculative
+  illustrations. Persist those shots with `au-debug screenshots persist`; do not
+  reconstruct Desktop or Mobile chrome in docs HTML. The marketing homepage
+  is a left lockup plus `.au-feature-card` tiles on the right. The lockup
+  title stays on one line and sits beside a 3x3 grid that fits a 1440x900
+  viewport at 100% zoom, vertically centered with that grid. Feature tiles
+  center the relevant catalog component, with
+  preview sample data, in a fixed inset viewport instead of stretching a
+  screenshot crop, and use one short `.au-muted` line instead of a subtitle. A click opens Desktop
+  and Mobile shots together in `.au-feature-modal`, portaled to
+  `document.body` so it stays a viewport overlay. The connect pane is the
+  Multi-server tile. File viewer and other tooling overlays stay out of that
+  grid.
 
 Mobile uses the same sign-in pane, workspace row, and type scale as Desktop.
 Primary actions stay 44px; chrome stays compact. Documentation prioritizes
@@ -157,4 +192,6 @@ npm --prefix AgentUp.DesignSystem test
 The `check` command fails when a generated web, React Native, or Avalonia binding
 does not exactly match the canonical HTML and CSS. Native `font-style` compiles to
 React Native `italic` or `normal`; CSS `oblique` maps to `italic` because React
-Native does not accept `oblique`.
+Native does not accept `oblique`. Screenshot HTML is generated in the same build from `src/screens.html`;
+refresh `media/` with `au-debug screenshots persist` and prove the shots still
+compose catalog component HTML with `au-debug screenshots validate`.

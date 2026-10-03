@@ -305,11 +305,12 @@ public class MainViewModelTests
         vm.SelectedShellTab = WorkspaceShellTab.Agent;
         Assert.That(vm.ShowAgent, Is.True);
         Assert.That(vm.Agent.IsVisible, Is.True);
-        Assert.That(vm.IsValidationOpen, Is.True);
+        Assert.That(vm.ShowValidation, Is.False);
+        Assert.That(vm.IsValidationOpen, Is.False);
     }
 
     [Test]
-    public async Task InitializeAsync_opensValidationSidebar_forTheSelectedApplication()
+    public async Task InitializeAsync_keepsValidationSidebarHidden_untilAnApplicationIsSelected()
     {
         var dto = DesktopDomain.WorkspaceServing(3000).Build();
         var vm = CreateVm(FakeWorkspaceClient([dto]));
@@ -318,9 +319,19 @@ public class MainViewModelTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(vm.IsValidationOpen, Is.True);
-            Assert.That(vm.Validation!.IsCollapsed, Is.False);
+            Assert.That(vm.ShowValidation, Is.False);
+            Assert.That(vm.IsValidationOpen, Is.False);
+            Assert.That(vm.Validation!.IsCollapsed, Is.True);
             Assert.That(vm.ShellTabs.Select(tab => tab.Label), Is.EqualTo(new[] { "Overview", "Agent", "Git" }));
+        });
+
+        vm.SelectedShellTab = WorkspaceShellTab.Application;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.ShowValidation, Is.True);
+            Assert.That(vm.IsValidationOpen, Is.False);
+            Assert.That(vm.Validation!.IsCollapsed, Is.True);
         });
     }
 
@@ -981,8 +992,9 @@ public class MainViewModelTests
             Assert.That(vm.SubTabs.OfType<AuditSubTabViewModel>(), Is.Empty);
             Assert.That(vm.SubTabs.OfType<MetricsSubTabViewModel>(), Is.Empty);
             Assert.That(vm.SubTabs.OfType<ConsoleSubTabViewModel>(), Is.Not.Empty);
-            Assert.That(vm.ShowValidation, Is.False);
+            Assert.That(vm.ShowValidation, Is.True);
             Assert.That(vm.IsValidationOpen, Is.False);
+            Assert.That(vm.Validation!.IsCollapsed, Is.True);
         });
     }
 

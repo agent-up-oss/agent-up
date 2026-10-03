@@ -91,6 +91,8 @@ const config = {
     locales: ['en'],
   },
 
+  staticDirectories: ['static', '../media'],
+
   presets: [
     [
       'classic',

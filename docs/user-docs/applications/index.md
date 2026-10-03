@@ -31,6 +31,9 @@ Applications consume ports through environment variables such as `WEB_PORT`. The
 <DocSurface mobile>Apps shows workspace start/stop and live health above the application list, then opens each application as an inner page. HTTP UIs load through the Server proxy. `desktopApplications` use the streamed viewer.</DocSurface>
 </DocSurfaces>
 
+<p><img src="/desktop-applications.png" alt="Desktop applications showing Harbor Shop Storefront" /></p>
+<p><img src="/mobile-apps.png" alt="Mobile apps showing Storefront and Orders API" /></p>
+
 ## Application tabs
 
 Selecting an application opens Console, Metrics, Diagnostics, and, when `database` is true, a Postgres explorer.

@@ -11,6 +11,14 @@ using AgentUp.AUDebug.Features.Host.Services;
 using AgentUp.AUDebug.Features.Mobile.Controllers;
 using AgentUp.AUDebug.Features.Mobile.Providers;
 using AgentUp.AUDebug.Features.Mobile.Services;
+using AgentUp.AUDebug.Features.Screens.Controllers;
+using AgentUp.AUDebug.Features.Screens.Interfaces;
+using AgentUp.AUDebug.Features.Screens.Models;
+using AgentUp.AUDebug.Features.Screens.Providers;
+using AgentUp.AUDebug.Features.Screens.Services;
+using AgentUp.AUDebug.Features.Screenshots.Controllers;
+using AgentUp.AUDebug.Features.Screenshots.Providers;
+using AgentUp.AUDebug.Features.Screenshots.Services;
 using AgentUp.AUDebug.Features.Test.Controllers;
 using AgentUp.AUDebug.Features.Test.Providers;
 using AgentUp.AUDebug.Features.Test.Services;
@@ -67,6 +75,29 @@ public static class AuDebugRunnerFactory
                 new DebugTestSuiteCatalog(),
                 new DebugTestProcessRunner(processes, paths),
                 writer));
-        return new HostController(host, desktop, mobile, docs, tests, new DebugArgParser(), outputService);
+        var screenshotMedia = new ScreenshotMediaStore(paths);
+        var screenshotsController = new ScreenshotsController(
+            new ScreenshotCommandService(
+                new ScreenshotManifestStore(paths),
+                screenshotMedia,
+                screenshots,
+                new ScreenshotAppContractProvider(paths, screenshotMedia),
+                new ScreenshotPngComparer(),
+                new ChromiumLiveAppProbe(processes, environment, paths),
+                sessions,
+                probe));
+        var screens = new ScreensController(
+            new ScreensCommandService(
+                new ProductScreenCatalog(),
+                new ScreenCaptureStore(paths),
+                new ScreenSurfaceHostProvider(
+                    processes,
+                    environment,
+                    paths,
+                    new ScreenReadyProbeProvider(new HttpClient { Timeout = TimeSpan.FromSeconds(2) }, processes, environment, paths)),
+                surface => surface == ProductSurface.Desktop
+                    ? new DesktopScreenSurface(processes, environment, paths)
+                    : new MobileScreenSurface(processes, environment, paths)));
+        return new HostController(host, desktop, mobile, docs, tests, screenshotsController, screens, new DebugArgParser(), outputService);
     }
 }

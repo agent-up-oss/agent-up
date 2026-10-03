@@ -49,6 +49,70 @@ public static class ChromiumCdpMessageProvider
             }
         });
 
+    public static string MobileDeviceMetrics(int width, int height, int id)
+        => JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["id"] = id,
+            ["method"] = "Emulation.setDeviceMetricsOverride",
+            ["params"] = new Dictionary<string, object?>
+            {
+                ["width"] = width,
+                ["height"] = height,
+                ["deviceScaleFactor"] = 1,
+                ["mobile"] = true
+            }
+        });
+
+    public static string Navigate(string url, int id)
+        => JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["id"] = id,
+            ["method"] = "Page.navigate",
+            ["params"] = new Dictionary<string, object?> { ["url"] = url }
+        });
+
+    public static string MouseEvent(string type, int x, int y, int id)
+        => JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["id"] = id,
+            ["method"] = "Input.dispatchMouseEvent",
+            ["params"] = new Dictionary<string, object?>
+            {
+                ["type"] = type,
+                ["x"] = x,
+                ["y"] = y,
+                ["button"] = "left",
+                ["buttons"] = type == "mouseReleased" ? 0 : 1,
+                ["clickCount"] = 1
+            }
+        });
+
+    public static string InsertText(string text, int id)
+        => JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["id"] = id,
+            ["method"] = "Input.insertText",
+            ["params"] = new Dictionary<string, object?> { ["text"] = text }
+        });
+
+    /// <summary>
+    /// The point an element-locating evaluation returned, or null while the element is not there.
+    /// </summary>
+    public static (int X, int Y)? ReadPoint(string json, string action)
+    {
+        ThrowIfEvaluateFailed(json, action);
+        using var document = JsonDocument.Parse(json);
+        if (!document.RootElement.TryGetProperty("result", out var body)
+            || !body.TryGetProperty("result", out var result)
+            || !result.TryGetProperty("value", out var value)
+            || value.ValueKind != JsonValueKind.Object
+            || !value.TryGetProperty("x", out var x)
+            || !value.TryGetProperty("y", out var y))
+            return null;
+
+        return (x.GetInt32(), y.GetInt32());
+    }
+
     public static void ThrowIfEvaluateFailed(string json, string action)
     {
         using var document = JsonDocument.Parse(json);

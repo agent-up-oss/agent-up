@@ -25,6 +25,9 @@ Desktop chrome for the live session is the **Agent** tab. Mobile chrome for the 
 <DocSurface mobile>Agents lists saved sessions and Server-discovered ACP agents, then opens the selected chat as an inner page.</DocSurface>
 </DocSurfaces>
 
+<p><img src="/desktop-agents.png" alt="Desktop Agent tab showing Codex and Harbor Shop" /></p>
+<p><img src="/mobile-agents.png" alt="Mobile Agents tab showing Codex" /></p>
+
 ## Workspace agent CLIs
 
 Saved sessions from every enabled ACP agent appear together within the current workspace. Each row shows the agent, the agent-generated short description, and the branch last associated with the session. Select a row to resume it; sessions from another workspace never appear in this list.

@@ -34,7 +34,7 @@ public sealed class ValidationViewModelTests
     }
 
     [Test]
-    public async Task ToggleCommand_collapsesTheSidebarRail()
+    public async Task ToggleCommand_expandsTheSidebarRail()
     {
         using var http = new HttpClient { BaseAddress = new Uri("http://server/") };
         var api = new ValidationFlowApiClient(http);
@@ -44,17 +44,17 @@ public sealed class ValidationViewModelTests
                 api,
                 new AgentUp.Desktop.Features.Browser.Controllers.BrowserInteractionController()));
 
-        Assert.That(vm.IsExpanded, Is.True);
-        Assert.That(vm.Width, Is.EqualTo(360));
+        Assert.That(vm.IsCollapsed, Is.True);
+        Assert.That(vm.Width, Is.EqualTo(56));
 
         await vm.ToggleCommand.Execute().FirstAsync();
 
         Assert.Multiple(() =>
         {
-            Assert.That(vm.IsCollapsed, Is.True);
-            Assert.That(vm.IsExpanded, Is.False);
-            Assert.That(vm.Width, Is.EqualTo(56));
-            Assert.That(vm.ToggleIcon, Is.EqualTo("‹"));
+            Assert.That(vm.IsCollapsed, Is.False);
+            Assert.That(vm.IsExpanded, Is.True);
+            Assert.That(vm.Width, Is.EqualTo(360));
+            Assert.That(vm.ToggleIcon, Is.EqualTo("›"));
         });
     }
 

@@ -17,6 +17,9 @@
     <img width="80%" src="media/screenshot.png" alt="Agent-Up showing isolated workspaces, an allocated port, application tabs, and the workspace browser surface">
   </a>
 </p>
+<p align="center">
+  Product screenshots are assembled from catalog components. Refresh the full Desktop and Mobile set with <code>au-debug screenshots persist</code>, then prove they compose catalog HTML with <code>au-debug screenshots validate</code>.
+</p>
 
 Agent-Up is a local runtime control plane for parallel AI-assisted software development.
 
