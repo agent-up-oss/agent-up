@@ -1170,12 +1170,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         var source = webView.Source;
         if (source is null) return;
 
-        var address = source.ToString();
-        if (_proxiedPortTabs.Contains(_activeTabKey)
-            && DataContext is MainViewModel { SelectedSubTab: PortSubTabViewModel { IsHttp: true } portTab })
-        {
-            address = LogicalApplicationUri(source, portTab.AllocatedPort).ToString();
-        }
+        var proxied = _proxiedPortTabs.Contains(_activeTabKey);
+        var address = DataContext is MainViewModel { SelectedSubTab: PortSubTabViewModel { IsHttp: true } portTab }
+            ? BrowserAddress(source, _serverBaseUrl, portTab.AllocatedPort, proxied)
+            : source.ToString();
 
         _lastKnownBrowserUrls[_activeTabKey] = address;
         if (DataContext is MainViewModel vm && !AddressBar.IsFocused)
@@ -1189,6 +1187,21 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             Query = proxyUri.Query.TrimStart('?'),
             Fragment = proxyUri.Fragment.TrimStart('#')
         }.Uri;
+
+    internal static string BrowserAddress(
+        Uri source,
+        string serverBaseUrl,
+        int allocatedPort,
+        bool proxied)
+        => proxied && IsSameOrigin(source, serverBaseUrl)
+            ? LogicalApplicationUri(source, allocatedPort).AbsoluteUri
+            : source.AbsoluteUri;
+
+    internal static bool IsSameOrigin(Uri source, string serverBaseUrl)
+        => Uri.TryCreate(serverBaseUrl, UriKind.Absolute, out var serverUri)
+           && string.Equals(source.Scheme, serverUri.Scheme, StringComparison.OrdinalIgnoreCase)
+           && string.Equals(source.Host, serverUri.Host, StringComparison.OrdinalIgnoreCase)
+           && source.Port == serverUri.Port;
 
     private void OnAddressPollTimerTick(object? sender, EventArgs e)
         => _ = PollActiveBrowserAddressAsync();

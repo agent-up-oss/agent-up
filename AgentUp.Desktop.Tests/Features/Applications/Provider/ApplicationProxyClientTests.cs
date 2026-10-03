@@ -52,6 +52,38 @@ public sealed class ApplicationProxyClientTests
         Assert.That(result, Is.EqualTo(new Uri("http://127.0.0.1:4312/docs/page?view=full#details")));
     }
 
+    [TestCase("https://REMOTE.example/docs", "https://remote.example", true)]
+    [TestCase("http://remote.example/docs", "https://remote.example", false)]
+    [TestCase("https://other.example/docs", "https://remote.example", false)]
+    [TestCase("https://remote.example:8443/docs", "https://remote.example", false)]
+    [TestCase("https://remote.example/docs", "not-a-url", false)]
+    public void IsSameOrigin_RequiresMatchingSchemeHostAndPort(
+        string source,
+        string serverBaseUrl,
+        bool expected)
+    {
+        Assert.That(MainWindow.IsSameOrigin(new Uri(source), serverBaseUrl), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void BrowserAddress_MapsOnlyAnActiveProxyOrigin()
+    {
+        var source = new Uri("https://remote.example/account?tab=security#keys");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(
+                MainWindow.BrowserAddress(source, "https://remote.example", 4312, proxied: true),
+                Is.EqualTo("http://127.0.0.1:4312/account?tab=security#keys"));
+            Assert.That(
+                MainWindow.BrowserAddress(source, "https://other.example", 4312, proxied: true),
+                Is.EqualTo(source.ToString()));
+            Assert.That(
+                MainWindow.BrowserAddress(source, "https://remote.example", 4312, proxied: false),
+                Is.EqualTo(source.ToString()));
+        });
+    }
+
     [Test]
     public async Task IssueNavigationUriAsync_ReissuesAnExpiredTicket()
     {

@@ -268,7 +268,9 @@ public sealed class ApplicationProxyBootstrapPageTests
         Assert.That(html, Does.Contain(ApplicationProxyConstants.TicketHeader));
         Assert.That(html, Does.Contain("#ticket="));
         Assert.That(html, Does.Contain("returnPath"));
-        Assert.That(html, Does.Contain("returnPath.charAt(1) === \"/\""));
+        Assert.That(html, Does.Contain("new URL(value || \"/\", location.origin)"));
+        Assert.That(html, Does.Contain("resolved.origin === location.origin"));
+        Assert.That(html, Does.Contain("fallback = sameOriginPath(target)"));
     }
 }
 

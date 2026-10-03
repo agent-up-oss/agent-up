@@ -1,6 +1,7 @@
 using AgentUp.Desktop.Tests.Support;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
+using System.Net;
 
 namespace AgentUp.Desktop.Tests.Features.Applications.Headless;
 
@@ -36,6 +37,25 @@ public sealed class RemoteApplicationTabTests
                 webView.Source.Fragment,
                 Is.EqualTo("#ticket=desktop-ticket&return=%2Fdocs%3Fview%3Dfull"));
         });
+
+    }
+
+    [AvaloniaTest]
+    public async Task RemoteServer_ShowsAnErrorPageWhenTicketIssuanceFails()
+    {
+        var workspace = DesktopDomain.WorkspaceServing(4312).Build();
+        NativeWebView? webView = null;
+        var (app, _) = await AppDriver.LaunchWithFakeHttpAsync(
+            workspace,
+            () => webView = new NativeWebView(),
+            new Uri("https://remote.example/"),
+            configured => configured.ApplicationProxyTicket = () =>
+                new HttpResponseMessage(HttpStatusCode.BadGateway));
+
+        await WaitUntilAsync(() => webView?.Source is { IsFile: true });
+
+        Assert.That(File.ReadAllText(webView!.Source!.LocalPath), Does.Contain("Could not open application"));
+        app.Window.Close();
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition)
