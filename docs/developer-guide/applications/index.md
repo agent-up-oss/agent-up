@@ -54,6 +54,7 @@ Allocated HTTP application ports stay bound on the Server host. Remote clients r
 <DocSteps>
 <DocStep title="Issue a ticket">
 The ticket travels in `X-Agent-Up-Ticket` or a URL fragment consumed by a Server-owned bootstrap page, never as a query string.
+The bootstrap fragment may carry a root-relative return path so Desktop can preserve an application's current path and query while establishing the proxy session.
 </DocStep>
 <DocStep title="Set an HttpOnly cookie">
 Bootstrap reverse-proxies unmatched paths to `http://127.0.0.1:{port}`. GET and ticket-consuming bootstrap requests redirect to `/` on the Server origin.

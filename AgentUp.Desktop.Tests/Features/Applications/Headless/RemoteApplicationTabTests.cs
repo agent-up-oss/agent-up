@@ -23,14 +23,18 @@ public sealed class RemoteApplicationTabTests
                 expiresAt = DateTimeOffset.UtcNow.AddSeconds(30)
             }));
 
-        app.Window.NavigateTo(workspace.Id, "http://127.0.0.1:4312/");
-        await WaitUntilAsync(() => handler.ApplicationProxyTicketRequests >= 1 && webView?.Source is not null);
+        app.Window.NavigateTo(workspace.Id, "http://127.0.0.1:4312/docs?view=full");
+        await WaitUntilAsync(() =>
+            handler.ApplicationProxyTicketRequests >= 2
+            && webView?.Source?.Fragment.Contains("return=", StringComparison.Ordinal) == true);
 
         Assert.Multiple(() =>
         {
             Assert.That(webView!.Source!.Host, Is.EqualTo("remote.example"));
             Assert.That(webView.Source.AbsolutePath, Is.EqualTo($"/apps/{workspace.Id}/4312"));
-            Assert.That(webView.Source.Fragment, Is.EqualTo("#ticket=desktop-ticket"));
+            Assert.That(
+                webView.Source.Fragment,
+                Is.EqualTo("#ticket=desktop-ticket&return=%2Fdocs%3Fview%3Dfull"));
         });
     }
 

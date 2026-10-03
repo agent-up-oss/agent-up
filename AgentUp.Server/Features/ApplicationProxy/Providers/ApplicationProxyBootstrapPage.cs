@@ -24,6 +24,9 @@ public sealed class ApplicationProxyBootstrapPage : IApplicationProxyBootstrapPa
               var ticket = location.hash.indexOf(prefix) === 0
                 ? decodeURIComponent(location.hash.slice(prefix.length).split("&")[0])
                 : "";
+              var returnMatch = location.hash.match(/(?:^#|&)return=([^&]*)/);
+              var returnPath = returnMatch ? decodeURIComponent(returnMatch[1]) : "/";
+              if (returnPath.charAt(0) !== "/" || returnPath.charAt(1) === "/") returnPath = "/";
               history.replaceState(null, "", location.pathname);
               if (!ticket) return;
               var headers = new Headers();
@@ -31,7 +34,8 @@ public sealed class ApplicationProxyBootstrapPage : IApplicationProxyBootstrapPa
               fetch(location.pathname, { method: "POST", headers: headers, credentials: "same-origin", redirect: "manual" })
                 .then(function (response) {
                   var target = response.headers.get("Location");
-                  location.replace(target && target.charAt(0) === "/" && target.charAt(1) !== "/" ? target : "/");
+                  var fallback = target && target.charAt(0) === "/" && target.charAt(1) !== "/" ? target : "/";
+                  location.replace(returnPath === "/" ? fallback : returnPath);
                 })
                 .catch(function () { location.replace("/"); });
             })();

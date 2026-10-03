@@ -11,6 +11,7 @@ public sealed class ApplicationProxyClient(HttpClient http, TimeProvider? clock 
         Uri serverUri,
         string workspaceId,
         int allocatedPort,
+        string? destinationPathAndQuery = null,
         CancellationToken cancellationToken = default)
     {
         // A ticket can expire while the request is in flight. Reissue once rather than
@@ -18,7 +19,7 @@ public sealed class ApplicationProxyClient(HttpClient http, TimeProvider? clock 
         for (var attempt = 0; attempt < 2; attempt++)
         {
             using var response = await http.PostAsJsonAsync(
-                "api/apps/tickets",
+                new Uri(serverUri, "/api/apps/tickets"),
                 new { workspaceId, allocatedPort },
                 cancellationToken);
             response.EnsureSuccessStatusCode();
@@ -30,9 +31,16 @@ public sealed class ApplicationProxyClient(HttpClient http, TimeProvider? clock 
                 continue;
 
             var bootstrapUri = new Uri(serverUri, ticket.BootstrapPath);
+            var fragment = $"ticket={Uri.EscapeDataString(ticket.Ticket)}";
+            if (!string.IsNullOrWhiteSpace(destinationPathAndQuery)
+                && destinationPathAndQuery != "/")
+            {
+                fragment += $"&return={Uri.EscapeDataString(destinationPathAndQuery)}";
+            }
+
             return new UriBuilder(bootstrapUri)
             {
-                Fragment = $"ticket={Uri.EscapeDataString(ticket.Ticket)}"
+                Fragment = fragment
             }.Uri;
         }
 

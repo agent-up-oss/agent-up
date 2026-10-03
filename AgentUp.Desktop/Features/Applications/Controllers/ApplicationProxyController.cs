@@ -8,6 +8,12 @@ public sealed class ApplicationProxyController(ApplicationProxyService proxy)
         Uri serverUri,
         string workspaceId,
         int allocatedPort,
+        string? destinationPathAndQuery = null,
         CancellationToken cancellationToken = default)
-        => proxy.IssueNavigationUriAsync(serverUri, workspaceId, allocatedPort, cancellationToken);
+        => proxy.IssueNavigationUriAsync(
+            serverUri,
+            workspaceId,
+            allocatedPort,
+            destinationPathAndQuery,
+            cancellationToken);
 }

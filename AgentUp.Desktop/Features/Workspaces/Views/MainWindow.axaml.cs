@@ -51,6 +51,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     // Last successfully navigated http URL per tabKey; absent means tab is in error state.
     private readonly Dictionary<string, string> _lastKnownBrowserUrls = new();
     private readonly Dictionary<string, int> _navigationVersions = new();
+    private readonly HashSet<string> _proxiedPortTabs = [];
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
     private readonly HttpClient _serverHttp;
@@ -914,7 +915,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
                 navigationUri = await _applicationProxy.IssueNavigationAsync(
                     new Uri(_serverBaseUrl),
                     workspaceId,
-                    destination.Port);
+                    destination.Port,
+                    destination.PathAndQuery);
             }
             catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidDataException or InvalidOperationException or TaskCanceledException)
             {
@@ -941,6 +943,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
             if (errorHtml is null)
             {
+                if (navigationUri == destination)
+                    _proxiedPortTabs.Remove(tabKey);
+                else
+                    _proxiedPortTabs.Add(tabKey);
                 NavigateWebView(webView, navigationUri);
             }
             else
@@ -1161,13 +1167,28 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (DataContext is not MainViewModel { ShowDisplayView: true }) return;
 
         if (_activeTabKey is null || !_webViews.TryGetValue(_activeTabKey, out var webView)) return;
-        var src = webView.Source?.ToString();
-        if (string.IsNullOrWhiteSpace(src)) return;
+        var source = webView.Source;
+        if (source is null) return;
 
-        _lastKnownBrowserUrls[_activeTabKey] = src;
+        var address = source.ToString();
+        if (_proxiedPortTabs.Contains(_activeTabKey)
+            && DataContext is MainViewModel { SelectedSubTab: PortSubTabViewModel { IsHttp: true } portTab })
+        {
+            address = LogicalApplicationUri(source, portTab.AllocatedPort).ToString();
+        }
+
+        _lastKnownBrowserUrls[_activeTabKey] = address;
         if (DataContext is MainViewModel vm && !AddressBar.IsFocused)
-            vm.UpdateAddressFromBrowser(_activeWorkspaceId, src);
+            vm.UpdateAddressFromBrowser(_activeWorkspaceId, address);
     }
+
+    internal static Uri LogicalApplicationUri(Uri proxyUri, int allocatedPort)
+        => new UriBuilder(Uri.UriSchemeHttp, "127.0.0.1", allocatedPort)
+        {
+            Path = proxyUri.AbsolutePath,
+            Query = proxyUri.Query.TrimStart('?'),
+            Fragment = proxyUri.Fragment.TrimStart('#')
+        }.Uri;
 
     private void OnAddressPollTimerTick(object? sender, EventArgs e)
         => _ = PollActiveBrowserAddressAsync();
@@ -1405,6 +1426,7 @@ code {
 
         _webViewErrors.Clear();
         _lastKnownBrowserUrls.Clear();
+        _proxiedPortTabs.Clear();
         _navigationVersions.Clear();
         _activeWorkspaceId = null;
         _activeTabKey = null;
@@ -1437,6 +1459,7 @@ code {
             try { disposable.Dispose(); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
 
         _lastKnownBrowserUrls.Remove(tabKey);
+        _proxiedPortTabs.Remove(tabKey);
         _navigationVersions.Remove(tabKey);
         ClosePopups(tabKey);
     }
