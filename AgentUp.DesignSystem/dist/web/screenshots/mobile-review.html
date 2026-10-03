@@ -896,17 +896,132 @@
   border-radius: var(--au-radius-lg);
 }
 
-/* Validation */
-.au-validation-stage {
-  padding: var(--au-space-4);
-  color: var(--au-color-text-secondary);
-  background: var(--au-color-surface);
-  border: 1px solid var(--au-color-border-subtle);
-  border-radius: var(--au-radius-lg);
+/* Validation. A right rail, not a full-screen tab. Status lives on the
+ * glyph: healthy, warning, danger, or muted pending. Greater steps nest
+ * micro-checks; the parent glyph is the roll-up. */
+.au-validation-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 22.5rem;
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+  overflow: auto;
+  color: var(--au-color-text-primary);
+  background: var(--au-color-canvas);
+  border-left: 1px solid var(--au-color-border-subtle);
 }
-.au-validation-stage--passed { border-color: var(--au-color-status-healthy); }
-.au-validation-stage--failed { border-color: var(--au-color-status-danger); background: var(--au-color-surface-danger); }
-.au-validation-stage--running { border-color: var(--au-color-status-warning); }
+.au-validation-sidebar--collapsed {
+  width: 3.5rem;
+  padding: 0.625rem 0 0.375rem;
+  align-items: center;
+}
+.au-validation-sidebar-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--au-space-2);
+  padding: 0.625rem 0.625rem 0.375rem 1rem;
+}
+.au-validation-sidebar-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+.au-validation-sidebar-copy p { margin: 0; }
+.au-validation-sidebar-head .au-accent {
+  font-size: var(--au-font-size-ui-xs);
+  font-weight: var(--au-weight-ui-strong);
+}
+.au-validation-sidebar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 0.5rem 1.125rem 1.125rem;
+}
+.au-validation-play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.44rem 0.75rem;
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-selected-strong);
+  border: 0;
+  border-radius: var(--au-radius-sm);
+  font-size: var(--au-font-size-ui-sm);
+  font-weight: var(--au-weight-ui-strong);
+  white-space: nowrap;
+}
+.au-validation-flow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--au-space-2);
+  padding: var(--au-space-3);
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-raised);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-md);
+}
+.au-validation-flow-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--au-space-2);
+  align-items: start;
+}
+.au-validation-flow-head > .au-validation-glyph {
+  width: 1.125rem;
+  font-size: 1rem;
+}
+.au-validation-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--au-space-1);
+  min-width: 0;
+}
+.au-validation-copy strong { color: var(--au-color-text-primary); }
+.au-validation-copy p {
+  margin: 0;
+  color: var(--au-color-text-secondary);
+}
+.au-validation-copy .au-muted { color: var(--au-color-text-muted); }
+.au-validation-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--au-space-3);
+  margin-left: 1.5rem;
+}
+.au-validation-stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--au-space-1);
+  color: var(--au-color-text-primary);
+  background: var(--au-color-transparent);
+}
+.au-validation-step,
+.au-validation-check {
+  display: grid;
+  grid-template-columns: 0.875rem minmax(0, 1fr);
+  gap: var(--au-space-2);
+  align-items: start;
+  font-size: var(--au-font-size-ui-sm);
+}
+.au-validation-check { color: var(--au-color-text-secondary); }
+.au-validation-checks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--au-space-1);
+  margin-left: 1.125rem;
+}
+.au-validation-glyph {
+  width: 0.875rem;
+  color: var(--au-color-text-muted);
+  font-weight: var(--au-weight-ui-strong);
+}
+.au-validation-glyph--passed { color: var(--au-color-status-healthy); }
+.au-validation-glyph--failed { color: var(--au-color-status-danger); }
+.au-validation-glyph--running { color: var(--au-color-status-warning); }
 
 /* Auth / first-run.
  * Sign-in is a pane on the canvas, not an overlay dialog. Overlay grey
@@ -1131,6 +1246,9 @@
   min-height: 0;
   flex: 1;
 }
+.au-screen-body:has(> .au-screen-aside) {
+  grid-template-columns: 16.5rem minmax(0, 1fr) auto;
+}
 .au-screen-rail {
   display: flex;
   flex-direction: column;
@@ -1186,6 +1304,12 @@
   gap: var(--au-space-3);
   padding: var(--au-space-3);
   overflow: auto;
+}
+.au-screen-aside {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
 }
 .au-screen-pane:has(.au-storefront),
 .au-screen-pane:has(.au-console) {

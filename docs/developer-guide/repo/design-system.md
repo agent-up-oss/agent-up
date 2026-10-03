@@ -122,6 +122,14 @@ Desktop is the reference rendering:
   `.au-git-log-graph-scroll`, and a sticky `.au-git-log-detail` header for the
   selected commit. Ref chips stay in that header. Lanes use `--au-color-git-lane-*`.
   Do not render ASCII `| * |` glyphs.
+- Validation is `.au-validation-sidebar`, a right rail on the selected
+  application, not a full-screen pane. `.au-validation-flow` cards nest
+  `.au-validation-stage` greater steps and `.au-validation-check` micro-checks.
+  Glyphs use `.au-validation-glyph` with `--passed`, `--running`, and
+  `--failed`; pending stays muted. Play is `.au-validation-play`, a
+  selected-strong pill. Collapse uses `.au-workspace-add`. Do not paint a
+  stage as a fat status card. The default rail is
+  `.au-validation-sidebar--collapsed`.
 - File inspection is `.au-file-viewer`: a readonly overlay with
   `.au-file-viewer-header` (path + status), `.au-file-viewer-nav` hunk jumps,
   `.au-file-viewer-line` rows, and `.au-syntax-*` tokens. Added lines use the

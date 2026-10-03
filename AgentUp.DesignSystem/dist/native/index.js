@@ -803,24 +803,80 @@ export const agentUpTheme = Object.freeze({
       borderColor: "#ffffff14",
       borderRadius: 12,
     }),
-    validationStage: Object.freeze({
-      paddingHorizontal: 16,
-      paddingVertical: 16,
-      color: "#c2d2ca",
-      backgroundColor: "#121416",
+    validationSidebar: Object.freeze({
+      width: 360,
+      minHeight: 0,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      color: "#f5fbf7",
+      backgroundColor: "#0a0b0c",
+      borderLeftWidth: 1,
+      borderLeftColor: "#ffffff14",
+    }),
+    validationSidebarCollapsed: Object.freeze({
+      width: 56,
+    }),
+    validationSidebarHead: Object.freeze({
+      paddingHorizontal: 10,
+      paddingVertical: 10,
+    }),
+    validationSidebarCopy: Object.freeze({
+      minWidth: 0,
+    }),
+    validationPlay: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 7.04,
+      color: "#f5fbf7",
+      backgroundColor: "#0f3220",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderRadius: 6,
+      fontSize: 12,
+      fontWeight: '600',
+      whiteSpace: 'nowrap',
+    }),
+    validationFlow: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
       borderWidth: 1,
       borderColor: "#ffffff14",
-      borderRadius: 12,
+      borderRadius: 8,
     }),
-    validationStagePassed: Object.freeze({
-      borderColor: "#22c55e",
+    validationCopy: Object.freeze({
+      minWidth: 0,
     }),
-    validationStageFailed: Object.freeze({
-      borderColor: "#d84f4f",
-      backgroundColor: "#261a1c",
+    validationSteps: Object.freeze({
+      marginLeft: 24,
     }),
-    validationStageRunning: Object.freeze({
-      borderColor: "#e0a128",
+    validationStage: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#00000000",
+    }),
+    validationStep: Object.freeze({
+      fontSize: 12,
+    }),
+    validationCheck: Object.freeze({
+      fontSize: 12,
+      color: "#c2d2ca",
+    }),
+    validationChecks: Object.freeze({
+      marginLeft: 18,
+    }),
+    validationGlyph: Object.freeze({
+      width: 14,
+      color: "#8a9a92",
+      fontWeight: '600',
+    }),
+    validationGlyphPassed: Object.freeze({
+      color: "#22c55e",
+    }),
+    validationGlyphFailed: Object.freeze({
+      color: "#d84f4f",
+    }),
+    validationGlyphRunning: Object.freeze({
+      color: "#e0a128",
     }),
     signIn: Object.freeze({
       paddingHorizontal: 20,
@@ -1052,6 +1108,10 @@ export const agentUpTheme = Object.freeze({
       minHeight: 0,
       paddingHorizontal: 0,
       paddingVertical: 0,
+    }),
+    screenAside: Object.freeze({
+      minWidth: 0,
+      minHeight: 0,
     }),
     screenCenter: Object.freeze({
       minHeight: 0,

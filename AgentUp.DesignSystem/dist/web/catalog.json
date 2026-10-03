@@ -1313,24 +1313,112 @@
     {
       "id": "validation",
       "title": "Validation",
-      "intro": "Validation flows describe the user-meaningful route through the GUI. Passed, failed, and running must not share one green.",
+      "intro": "Validation is a right sidebar on the selected application, not a full-screen tab. A flow is greater steps; each step nests micro-checks. Glyph color is the only status paint: healthy, warning, and danger. Pass and fail roll up.",
       "components": [
         {
-          "id": "validation-stage",
-          "title": "Stages",
-          "note": "Passed uses healthy, failed uses danger, running uses warning.",
+          "id": "validation-sidebar",
+          "title": "Sidebar",
+          "note": "The rail sits beside the running app. Play is a selected-strong pill; collapse uses the workspace-add control. Status lives on the glyphs. Desktop starts this rail collapsed.",
+          "avalonia": "Border",
+          "desktopClass": "validationSidebar",
+          "desktopHost": "",
+          "rootClass": "au-validation-sidebar",
+          "classes": [
+            "au-validation-sidebar",
+            "au-validation-sidebar-head",
+            "au-validation-sidebar-copy",
+            "au-accent",
+            "au-muted",
+            "au-workspace-add",
+            "au-validation-sidebar-list",
+            "au-validation-flow",
+            "au-validation-flow-head",
+            "au-validation-glyph",
+            "au-validation-glyph--running",
+            "au-validation-copy",
+            "au-validation-play",
+            "au-validation-steps",
+            "au-validation-stage",
+            "au-validation-step",
+            "au-validation-glyph--passed",
+            "au-validation-checks",
+            "au-validation-check",
+            "au-validation-glyph--failed"
+          ],
+          "html": "<aside class=\"au-validation-sidebar\">\n        <div class=\"au-validation-sidebar-head\">\n          <div class=\"au-validation-sidebar-copy\">\n            <p class=\"au-accent\">Validation</p>\n            <p class=\"au-muted\">Checks for the displayed app</p>\n          </div>\n          <button class=\"au-workspace-add\" type=\"button\">›</button>\n        </div>\n        <div class=\"au-validation-sidebar-list\">\n        <div class=\"au-validation-flow\">\n          <div class=\"au-validation-flow-head\">\n            <span class=\"au-validation-glyph au-validation-glyph--running\">●</span>\n            <div class=\"au-validation-copy\">\n              <strong>Checkout reaches the cart</strong>\n              <p>A shopper opens Harbor Shop and sees the featured goods, then the cart.</p>\n              <p class=\"au-muted\">Starts at /</p>\n            </div>\n            <button class=\"au-validation-play\" type=\"button\">▶ Play</button>\n          </div>\n          <div class=\"au-validation-steps\">\n            <div class=\"au-validation-stage\">\n              <div class=\"au-validation-step\">\n                <span class=\"au-validation-glyph au-validation-glyph--passed\">✓</span>\n                <span>Starting page</span>\n              </div>\n              <div class=\"au-validation-checks\">\n                <div class=\"au-validation-check\">\n                  <span class=\"au-validation-glyph au-validation-glyph--passed\">✓</span>\n                  <span>Title is \"Harbor Shop\"</span>\n                </div>\n                <div class=\"au-validation-check\">\n                  <span class=\"au-validation-glyph au-validation-glyph--passed\">✓</span>\n                  <span>Text contains \"Harbor Mug\"</span>\n                </div>\n              </div>\n            </div>\n            <div class=\"au-validation-stage\">\n              <div class=\"au-validation-step\">\n                <span class=\"au-validation-glyph au-validation-glyph--running\">●</span>\n                <span>Open checkout</span>\n              </div>\n              <div class=\"au-validation-checks\">\n                <div class=\"au-validation-check\">\n                  <span class=\"au-validation-glyph au-validation-glyph--running\">●</span>\n                  <span>URL is /checkout</span>\n                </div>\n                <div class=\"au-validation-check\">\n                  <span class=\"au-validation-glyph\">○</span>\n                  <span>Text contains \"Cart\"</span>\n                </div>\n              </div>\n            </div>\n          </div>\n        </div>\n        <div class=\"au-validation-flow\">\n          <div class=\"au-validation-flow-head\">\n            <span class=\"au-validation-glyph au-validation-glyph--failed\">✗</span>\n            <div class=\"au-validation-copy\">\n              <strong>Guest can place an order</strong>\n              <p>A guest reaches checkout and the order total is visible.</p>\n              <p class=\"au-muted\">Starts at /checkout</p>\n            </div>\n            <button class=\"au-validation-play\" type=\"button\">▶ Play</button>\n          </div>\n          <div class=\"au-validation-steps\">\n            <div class=\"au-validation-stage\">\n              <div class=\"au-validation-step\">\n                <span class=\"au-validation-glyph au-validation-glyph--failed\">✗</span>\n                <span>Starting page</span>\n              </div>\n              <div class=\"au-validation-checks\">\n                <div class=\"au-validation-check\">\n                  <span class=\"au-validation-glyph au-validation-glyph--failed\">✗</span>\n                  <span>Title is \"Checkout\"</span>\n                </div>\n                <div class=\"au-validation-check\">\n                  <span class=\"au-validation-glyph\">○</span>\n                  <span>Text contains \"Total\"</span>\n                </div>\n              </div>\n            </div>\n          </div>\n        </div>\n        </div>\n      </aside>"
+        },
+        {
+          "id": "validation-sidebar-collapsed",
+          "title": "Collapsed rail",
+          "note": "The default. A 56px rail keeps the toggle; the running app keeps the pane.",
           "avalonia": "Border",
           "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-validation-sidebar",
+          "classes": [
+            "au-validation-sidebar",
+            "au-validation-sidebar--collapsed",
+            "au-workspace-add"
+          ],
+          "html": "<aside class=\"au-validation-sidebar au-validation-sidebar--collapsed\">\n        <button class=\"au-workspace-add\" type=\"button\">‹</button>\n      </aside>"
+        },
+        {
+          "id": "validation-flow",
+          "title": "Flow",
+          "note": "One recorded journey. The glyph is the rolled-up state of its greater steps. Play is a selected-strong pill.",
+          "avalonia": "Border",
+          "desktopClass": "validationFlow",
+          "desktopHost": "",
+          "rootClass": "au-validation-flow",
+          "classes": [
+            "au-validation-flow",
+            "au-validation-flow-head",
+            "au-validation-glyph",
+            "au-validation-glyph--passed",
+            "au-validation-copy",
+            "au-muted",
+            "au-validation-play"
+          ],
+          "html": "<div class=\"au-validation-flow\">\n        <div class=\"au-validation-flow-head\">\n          <span class=\"au-validation-glyph au-validation-glyph--passed\">✓</span>\n          <div class=\"au-validation-copy\">\n            <strong>Checkout reaches the cart</strong>\n            <p>A shopper opens Harbor Shop and sees the featured goods, then the cart.</p>\n            <p class=\"au-muted\">Starts at /</p>\n          </div>\n          <button class=\"au-validation-play\" type=\"button\">▶ Play</button>\n        </div>\n      </div>"
+        },
+        {
+          "id": "validation-stage",
+          "title": "Greater step",
+          "note": "A stage is a user-meaningful stop. Its glyph is the roll-up of the micro-checks beneath it. Do not paint the row as a fat status card.",
+          "avalonia": "Border",
+          "desktopClass": "validationStage",
           "desktopHost": "",
           "rootClass": "au-validation-stage",
           "classes": [
             "au-stack",
             "au-validation-stage",
-            "au-validation-stage--passed",
-            "au-validation-stage--running",
-            "au-validation-stage--failed"
+            "au-validation-step",
+            "au-validation-glyph",
+            "au-validation-glyph--passed",
+            "au-validation-checks",
+            "au-validation-check",
+            "au-validation-glyph--running",
+            "au-validation-glyph--failed"
           ],
-          "html": "<div class=\"au-stack\">\n        <div class=\"au-validation-stage au-validation-stage--passed\">Sign in · passed</div>\n        <div class=\"au-validation-stage au-validation-stage--running\">Open checkout · running</div>\n        <div class=\"au-validation-stage au-validation-stage--failed\">Pay · failed</div>\n      </div>"
+          "html": "<div class=\"au-stack\">\n        <div class=\"au-validation-stage\">\n          <div class=\"au-validation-step\">\n            <span class=\"au-validation-glyph au-validation-glyph--passed\">✓</span>\n            <span>Starting page</span>\n          </div>\n          <div class=\"au-validation-checks\">\n            <div class=\"au-validation-check\">\n              <span class=\"au-validation-glyph au-validation-glyph--passed\">✓</span>\n              <span>Title is \"Harbor Shop\"</span>\n            </div>\n          </div>\n        </div>\n        <div class=\"au-validation-stage\">\n          <div class=\"au-validation-step\">\n            <span class=\"au-validation-glyph au-validation-glyph--running\">●</span>\n            <span>Open checkout</span>\n          </div>\n          <div class=\"au-validation-checks\">\n            <div class=\"au-validation-check\">\n              <span class=\"au-validation-glyph au-validation-glyph--running\">●</span>\n              <span>URL is /checkout</span>\n            </div>\n          </div>\n        </div>\n        <div class=\"au-validation-stage\">\n          <div class=\"au-validation-step\">\n            <span class=\"au-validation-glyph au-validation-glyph--failed\">✗</span>\n            <span>Pay</span>\n          </div>\n          <div class=\"au-validation-checks\">\n            <div class=\"au-validation-check\">\n              <span class=\"au-validation-glyph au-validation-glyph--failed\">✗</span>\n              <span>Text contains \"Order placed\"</span>\n            </div>\n          </div>\n        </div>\n      </div>"
+        },
+        {
+          "id": "validation-check",
+          "title": "Micro-check",
+          "note": "The smallest assertion. Passed, running, failed, and pending must not share one green.",
+          "avalonia": "Border",
+          "desktopClass": "validationCheck",
+          "desktopHost": "",
+          "rootClass": "au-validation-check",
+          "classes": [
+            "au-stack",
+            "au-validation-check",
+            "au-validation-glyph",
+            "au-validation-glyph--passed",
+            "au-validation-glyph--running",
+            "au-validation-glyph--failed"
+          ],
+          "html": "<div class=\"au-stack\">\n        <div class=\"au-validation-check\">\n          <span class=\"au-validation-glyph au-validation-glyph--passed\">✓</span>\n          <span>Title is \"Harbor Shop\"</span>\n        </div>\n        <div class=\"au-validation-check\">\n          <span class=\"au-validation-glyph au-validation-glyph--running\">●</span>\n          <span>URL is /checkout</span>\n        </div>\n        <div class=\"au-validation-check\">\n          <span class=\"au-validation-glyph au-validation-glyph--failed\">✗</span>\n          <span>Text contains \"Order placed\"</span>\n        </div>\n        <div class=\"au-validation-check\">\n          <span class=\"au-validation-glyph\">○</span>\n          <span>Text contains \"Cart\"</span>\n        </div>\n      </div>"
         }
       ]
     },
@@ -2105,6 +2193,19 @@
             "au-screen-pane"
           ],
           "html": "<div class=\"au-screen-pane\"></div>"
+        },
+        {
+          "id": "screen-aside",
+          "title": "Screen aside",
+          "note": "Right rail for the Validation sidebar. Empty scenes omit it. Do not turn Validation into a full-bleed pane.",
+          "avalonia": "Border",
+          "desktopClass": "productScreenAside",
+          "desktopHost": "",
+          "rootClass": "au-screen-aside",
+          "classes": [
+            "au-screen-aside"
+          ],
+          "html": "<aside class=\"au-screen-aside\"></aside>"
         },
         {
           "id": "screen-center",

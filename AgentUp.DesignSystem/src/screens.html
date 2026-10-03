@@ -20,6 +20,7 @@
           <div data-au-use="screen-toolbar" data-au-slot="toolbar"></div>
           <div data-au-use="screen-pane" data-au-slot="pane"></div>
         </div>
+        <div data-au-use="screen-aside" data-au-slot="aside"></div>
       </div>
       <div data-au-use="screen-overlay" data-au-slot="overlay"></div>
     </div>
@@ -59,7 +60,7 @@
   <section data-au-screen="agents" data-au-title="Agents" data-au-intro="Desktop Agent is the live ACP session. Mobile Agents is the picker that opens that session." data-au-desktop="desktop-agents" data-au-mobile="mobile-agents"></section>
   <section data-au-screen="diagnostics" data-au-title="Diagnostics" data-au-intro="Paginated audit rows for the selected application: process, browser, and health evidence. Desktop hosts this next to Console and Metrics." data-au-desktop="desktop-diagnostics"></section>
   <section data-au-screen="metrics" data-au-title="Metrics" data-au-intro="CPU, memory, and request duration for the selected application, on quieter metrics cards rather than a dashboard theme." data-au-desktop="desktop-metrics"></section>
-  <section data-au-screen="validation" data-au-title="Validation" data-au-intro="Recorded GUI flows with visible pass, running, and failed stages. The Server owns the flow; Desktop renders it." data-au-desktop="desktop-validation"></section>
+  <section data-au-screen="validation" data-au-title="Validation" data-au-intro="Recorded GUI flows live in a right sidebar on the selected application. Greater steps nest micro-checks; pass and fail roll up. The rail starts collapsed." data-au-desktop="desktop-validation"></section>
   <section data-au-screen="database" data-au-title="Database" data-au-intro="Query the application database from the same application chrome, with a selected table and a run control." data-au-desktop="desktop-database"></section>
   <section data-au-screen="capabilities" data-au-title="Capabilities" data-au-intro="Enable Server-owned modules. Desktop uses an overlay; Mobile Settings is the same list on the workspace tab. Clients never talk to the remote registry." data-au-desktop="desktop-capabilities" data-au-mobile="mobile-settings"></section>
 
@@ -123,7 +124,9 @@
     <div data-au-region="chrome" data-au-use="chrome"></div>
     <div data-au-region="tabs" data-au-use="workspace-tabs-applications"></div>
     <div data-au-region="subtabs" data-au-use="subtab"></div>
-    <div data-au-region="pane" data-au-use="validation-stage"></div>
+    <div data-au-region="toolbar" data-au-use="address-bar"></div>
+    <div data-au-region="pane" data-au-use="storefront"></div>
+    <div data-au-region="aside" data-au-use="validation-sidebar"></div>
   </section>
   <section data-au-scene="desktop-database" data-au-platform="desktop" data-au-view="database" data-au-title="Desktop database" data-au-layout="desktop-shell">
     <div data-au-region="chrome" data-au-use="chrome"></div>
