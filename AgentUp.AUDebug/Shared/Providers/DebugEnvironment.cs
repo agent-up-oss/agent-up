@@ -22,17 +22,10 @@ public sealed class DebugEnvironment : IDebugEnvironment
             .FirstOrDefault(File.Exists);
     }
 
-    public string? FindChromium()
-    {
-        foreach (var name in ChromiumNames)
-        {
-            var path = FindOnPath(name);
-            if (path is not null && !IsInjectingWrapper(path))
-                return path;
-        }
-
-        return null;
-    }
+    public string? FindChromium() =>
+        ChromiumNames
+            .Select(FindOnPath)
+            .FirstOrDefault(path => path is not null && !IsInjectingWrapper(path));
 
     private static readonly string[] ChromiumNames =
     [
@@ -55,6 +48,10 @@ public sealed class DebugEnvironment : IDebugEnvironment
             return reader.ReadToEnd().Contains("--remote-debugging-port", StringComparison.Ordinal);
         }
         catch (IOException)
+        {
+            return true;
+        }
+        catch (UnauthorizedAccessException)
         {
             return true;
         }

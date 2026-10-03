@@ -124,6 +124,29 @@ public sealed class DebugEnvironmentTests
     }
 
     [Test]
+    public void FindChromium_skipsUnauthorizedPathCandidate()
+    {
+        var directory = Path.Join(Path.GetTempPath(), "au-debug-chrome-unauth", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var chromium = Path.Join(directory, "chromium");
+        File.WriteAllBytes(chromium, [0x7F, 0x45, 0x4C, 0x46]);
+        File.SetUnixFileMode(chromium, UnixFileMode.UserExecute);
+        var stable = Path.Join(directory, "google-chrome-stable");
+        File.WriteAllBytes(stable, [0x7F, 0x45, 0x4C, 0x46]);
+        var previous = Environment.GetEnvironmentVariable("PATH");
+        try
+        {
+            Environment.SetEnvironmentVariable("PATH", directory);
+            Assert.That(new DebugEnvironment().FindChromium(), Is.EqualTo(stable));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("PATH", previous);
+            File.SetUnixFileMode(chromium, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+    }
+
+    [Test]
     public void FindChromium_skipsUnreadableWrapper()
     {
         var directory = Path.Join(Path.GetTempPath(), "au-debug-chrome-sock", Guid.NewGuid().ToString("N"));
