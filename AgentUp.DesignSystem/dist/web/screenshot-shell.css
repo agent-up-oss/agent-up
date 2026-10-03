@@ -10,7 +10,9 @@
   position: absolute;
   top: 0;
   left: 0;
-  transform-origin: top left;
+  width: calc(var(--au-screenshot-width) * 1px);
+  height: calc(var(--au-screenshot-height) * 1px);
+  transform-origin: 0 0;
   transform: scale(calc(100cqi / (var(--au-screenshot-width) * 1px)));
   pointer-events: none;
 }

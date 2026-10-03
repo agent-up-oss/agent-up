@@ -16,7 +16,8 @@ live collage of catalog product-control examples. Those examples are the same
 `component.html` definitions as the catalog below, so the intro stays in sync
 when the catalog changes. Assembled Desktop and Mobile screens follow, selected
 by a horizontal chip strip. Those views mount assembled screen HTML: `src/screens.html` layouts that
-`data-au-use` catalog component ids. They do not embed persisted PNGs and they
+`data-au-use` catalog component ids. Desktop and Mobile sit side by side at
+matched height and use the full page width. They do not embed persisted PNGs and they
 do not restate component markup. Below that, a vertical
 surface list sits in the left of the content column, and each selected surface
 shows the live components that surface uses.
@@ -162,7 +163,10 @@ Desktop is the reference rendering:
   and accent-tinted hover states are retired.
 - Product UI and design-system product screenshots are preferred to speculative
   illustrations. Persist those shots with `au-debug screenshots persist`; do not
-  reconstruct Desktop or Mobile chrome in docs HTML.
+  reconstruct Desktop or Mobile chrome in docs HTML. The marketing homepage
+  shows customer-facing slices as `.au-feature-card` tiles. A click opens
+  Desktop and Mobile shots together in `.au-feature-modal`. Sign-in and other
+  tooling overlays stay out of that grid.
 
 Mobile uses the same sign-in pane, workspace row, and type scale as Desktop.
 Primary actions stay 44px; chrome stays compact. Documentation prioritizes

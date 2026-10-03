@@ -41,6 +41,9 @@ test('the showcase is intro, then assembled screens, then the catalog', async ()
   assert.match(page, /dangerouslySetInnerHTML=\{\{ __html: scene\.html \}\}/);
   assert.match(page, /au-chip/);
   assert.match(page, /aria-orientation="horizontal"/);
+  assert.match(page, /side by side at the same height/);
+  assert.match(css, /flex: var\(--au-preview-aspect/);
+  assert.doesNotMatch(css, /\.previewMobile/);
   assert.match(page, /au-marketing-hero/);
   assert.match(page, /function IntroPlayground/);
   assert.match(page, /playgroundControls/);

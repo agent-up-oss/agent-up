@@ -3,7 +3,13 @@
 .introTitle { max-width: 100%; }
 .playground { min-width: 0; align-items: start; }
 .overview { padding-bottom: var(--au-space-4); }
-.overviewInner { display: grid; gap: var(--au-space-8); min-width: 0; }
+.overviewInner {
+  display: grid;
+  gap: var(--au-space-8);
+  width: 100%;
+  min-width: 0;
+  padding-inline: clamp(1rem, 3vw, 2.5rem);
+}
 .overviewHead { display: grid; gap: var(--au-space-4); max-width: 46rem; }
 .overviewTitle { max-width: 100%; }
 .screenNav {
@@ -32,24 +38,22 @@
 }
 .screenCopy { display: grid; gap: var(--au-space-2); max-width: 46rem; }
 .pair {
-  display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(0, 0.55fr);
-  gap: var(--au-space-6);
-  align-items: start;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--au-space-5);
   width: 100%;
   min-width: 0;
 }
-.pairSingle {
+.preview {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  width: 100%;
-  max-width: 64rem;
+  flex: var(--au-preview-aspect, 1.6) 1 0;
+  gap: var(--au-space-2);
   min-width: 0;
+  width: auto;
 }
-.preview { display: grid; gap: var(--au-space-2); min-width: 0; width: 100%; }
-.previewMobile {
-  width: min(100%, 24rem);
-  margin-inline: auto;
+.preview:only-child {
+  flex: 1 1 auto;
+  width: 100%;
 }
 .shell { padding-bottom: var(--au-space-16); }
 .catalog {
@@ -86,7 +90,8 @@
 
 @media (max-width: 960px) {
   .catalog { grid-template-columns: 1fr; }
-  .pair { grid-template-columns: minmax(0, 1fr); }
+  .pair { flex-direction: column; }
+  .preview { flex: 0 0 auto; width: 100%; }
 }
 @media (max-width: 760px) {
   .screenChipRow {

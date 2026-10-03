@@ -252,6 +252,15 @@ test('Git change list uses catalog status glyphs instead of restyled rows', asyn
   assert.ok(collapsed?.html.includes('au-git-tree-toggle--collapsed'));
 });
 
+test('marketing feature cards open Desktop and Mobile screenshots', () => {
+  const surface = catalog.surfaces.find(item => item.id === 'marketing');
+  const card = surface?.components.find(item => item.id === 'feature-card');
+  assert.ok(card?.html.includes('au-feature-card'));
+  assert.ok(card?.html.includes('au-feature-card__shot'));
+  assert.match(marketing, /\.au-feature-card \{[^}]*surface-raised/);
+  assert.match(marketing, /\.au-feature-modal \{[^}]*position:\s*fixed/);
+});
+
 test('validation sidebar nests micro-checks under greater steps', () => {
   const surface = catalog.surfaces.find(item => item.id === 'validation');
   const sidebar = surface?.components.find(item => item.id === 'validation-sidebar');

@@ -2081,6 +2081,24 @@
             "au-do-dont__label--dont"
           ],
           "html": "<div class=\"au-do-dont\">\n        <div class=\"au-card\"><div class=\"au-do-dont__label au-do-dont__label--do\">✓ Do</div><p>Use a real product crop and one meaningful green marker.</p></div>\n        <div class=\"au-card\"><div class=\"au-do-dont__label au-do-dont__label--dont\">× Don't</div><p>Do not outline every card, heading, and connector in luminous green.</p></div>\n      </div>"
+        },
+        {
+          "id": "feature-card",
+          "title": "Feature card",
+          "note": "A customer-facing slice. The crop is a persisted product screenshot. Click opens Desktop and Mobile together.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "rootClass": "au-feature-card",
+          "classes": [
+            "au-feature-card",
+            "au-feature-card__shot",
+            "au-feature-card__body",
+            "au-heading",
+            "au-muted",
+            "au-field-label"
+          ],
+          "html": "<button class=\"au-feature-card\" type=\"button\">\n        <span class=\"au-feature-card__shot\"></span>\n        <div class=\"au-feature-card__body\">\n          <h3 class=\"au-heading\">Applications</h3>\n          <p class=\"au-muted\">Start local processes and Docker services as one managed environment.</p>\n          <p class=\"au-field-label\">Desktop and Mobile</p>\n        </div>\n      </button>"
         }
       ]
     },

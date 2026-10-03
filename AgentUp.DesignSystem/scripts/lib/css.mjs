@@ -133,6 +133,9 @@ export function inferAvaloniaType(className) {
 export const layoutOnly = new Set([
   'au-container', 'au-stack', 'au-cluster', 'au-grid', 'au-section', 'au-reading',
   'au-marketing-hero', 'au-nav-icon', 'au-sign-in-list', 'au-validation-sidebar-list',
+  'au-feature-grid', 'au-feature-card__shot', 'au-feature-card__body', 'au-feature-modal',
+  'au-feature-modal__panel', 'au-feature-modal__head', 'au-feature-modal__pair',
+  'au-feature-modal__shot',
   'au-git-heading', 'au-git-branch-row', 'au-git-actions', 'au-git-branch', 'au-git-history',
   'au-git-review', 'au-git-review-head', 'au-overlay-header', 'au-drawer-server',
   'au-file-viewer-footer', 'au-file-viewer-heading', 'au-git-log--flush',

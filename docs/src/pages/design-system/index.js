@@ -126,9 +126,9 @@ function IntroPlayground() {
   </div>;
 }
 
-function ScenePreview({ scene, label, compact }) {
+function ScenePreview({ scene, label }) {
   if (!scene?.html) return null;
-  return <figure className={`${styles.preview}${compact ? ` ${styles.previewMobile}` : ''}`}>
+  return <figure className={styles.preview} style={{ '--au-preview-aspect': scene.width / scene.height }}>
     <div
       className="au-product-frame au-screenshot-embed"
       style={{
@@ -192,7 +192,6 @@ export default function DesignSystemPage() {
   const screen = screens.find(item => item.id === activeScreen) ?? screens[0];
   const desktop = screen.desktopId ? scenes[screen.desktopId] : null;
   const mobile = screen.mobileId ? scenes[screen.mobileId] : null;
-  const paired = Boolean(desktop && mobile);
 
   return <Layout title="Design System" description="The canonical Agent-Up product, interface, and marketing design system.">
     <main className={`au-theme ${styles.page}`}>
@@ -213,11 +212,11 @@ export default function DesignSystemPage() {
       </header>
 
       <section className={`au-section ${styles.overview}`} id="screens">
-        <div className={`au-container ${styles.overviewInner}`}>
+        <div className={styles.overviewInner}>
           <div className={styles.overviewHead}>
             <p className="au-eyebrow">Assembled screens</p>
             <h2 className={`au-title ${styles.overviewTitle}`}>Desktop and Mobile, from one catalog.</h2>
-            <p className="au-lede">Each tab mounts the live screenshot definition: catalog classes plus screenshot shells, not a PNG. Desktop and Mobile sit side by side.</p>
+            <p className="au-lede">Each tab mounts the live screenshot definition: catalog classes plus screenshot shells, not a PNG. Desktop and Mobile sit side by side at the same height.</p>
           </div>
 
           <div className={styles.screenNav}>
@@ -250,9 +249,9 @@ export default function DesignSystemPage() {
                 <h3 className="au-page-title">{screen.title}</h3>
                 <p className="au-muted">{screen.intro}</p>
               </div>
-              <div className={paired ? styles.pair : styles.pairSingle}>
+              <div className={styles.pair}>
                 {desktop ? <ScenePreview scene={desktop} label="Desktop" /> : null}
-                {mobile ? <ScenePreview scene={mobile} label="Mobile" compact /> : null}
+                {mobile ? <ScenePreview scene={mobile} label="Mobile" /> : null}
               </div>
             </section>
           </div>

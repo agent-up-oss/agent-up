@@ -13,12 +13,6 @@
 .browser > p:last-child { max-width: 34rem; color: var(--au-color-text-muted); line-height: var(--au-line-relaxed); }
 .preview { margin-top: var(--au-space-4); color: var(--au-color-text-faint); font-size: var(--au-font-size-xs); }
 .statement { background: var(--au-color-surface); }
-.capabilities { margin-top: var(--au-space-8); }
-.capabilities article { display: grid; grid-template-columns: auto 1fr; gap: var(--au-space-3); align-content: start; }
-.capabilities p { grid-column: 1 / -1; margin: 0; }
-.shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--au-space-4); margin-top: var(--au-space-8); }
-.shots img { display: block; width: 100%; height: auto; border-radius: var(--au-radius-md); }
-.shots figcaption { margin-top: var(--au-space-2); }
 .finalCta { padding-bottom: clamp(6rem, 14vw, 11rem); }
 @media (max-width: 900px) {
   .appShell { grid-template-columns: 1fr; }

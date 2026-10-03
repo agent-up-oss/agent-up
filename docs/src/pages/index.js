@@ -1,42 +1,44 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
+import screenshots from '@agent-up/design-system/screenshots';
 import voice from '@agent-up/design-system/brand/voice.json';
 import styles from './index.module.css';
 
-const capabilities = [
-  ['Workspaces', 'Keep each checkout, branch, and runtime identity unambiguous.'],
-  ['Applications', 'Start local processes and Docker services as one managed environment.'],
-  ['Ports', 'Allocate workspace-specific ranges instead of negotiating collisions by hand.'],
-  ['Browser', 'Keep independent human and automation sessions bound to the right workspace.'],
-  ['Diagnostics', 'Bring logs, health, browser events, and runtime evidence back to one place.'],
-  ['Review', 'Inspect the running result and its Git changes without turning Agent-Up into an IDE.'],
+const featureIds = [
+  'workspaces',
+  'applications',
+  'git',
+  'review',
+  'history',
+  'agents',
+  'diagnostics',
+  'validation',
+  'capabilities',
 ];
 
-const shots = [
-  ['desktop-sign-in.png', 'Desktop sign-in'],
-  ['desktop-workspaces.png', 'Desktop workspaces'],
-  ['desktop-applications.png', 'Desktop applications'],
-  ['desktop-console.png', 'Desktop console'],
-  ['desktop-git.png', 'Desktop Git changes'],
-  ['desktop-history.png', 'Desktop Git history'],
-  ['desktop-agents.png', 'Desktop Agent'],
-  ['desktop-diagnostics.png', 'Desktop diagnostics'],
-  ['desktop-metrics.png', 'Desktop metrics'],
-  ['desktop-validation.png', 'Desktop validation'],
-  ['desktop-database.png', 'Desktop database'],
-  ['desktop-capabilities.png', 'Desktop capabilities'],
-  ['desktop-file-viewer.png', 'Desktop file viewer'],
-  ['mobile-sign-in.png', 'Mobile sign-in'],
-  ['mobile-workspaces.png', 'Mobile workspaces'],
-  ['mobile-apps.png', 'Mobile apps'],
-  ['mobile-git.png', 'Mobile Git'],
-  ['mobile-review.png', 'Mobile Git review'],
-  ['mobile-history.png', 'Mobile Git history'],
-  ['mobile-agents.png', 'Mobile Agents'],
-  ['mobile-settings.png', 'Mobile settings'],
-  ['mobile-file-viewer.png', 'Mobile file viewer'],
-];
+const featureTitles = {
+  review: 'Commits',
+  capabilities: 'Configuration',
+};
+
+function sceneFile(sceneId) {
+  return sceneId ? `/${sceneId}.png` : null;
+}
+
+function featureFromScreen(screen) {
+  const desktop = sceneFile(screen.desktopId);
+  const mobile = sceneFile(screen.mobileId);
+  return {
+    id: screen.id,
+    title: featureTitles[screen.id] ?? screen.title,
+    body: screen.intro,
+    desktop,
+    mobile,
+    preview: desktop ?? mobile,
+    platforms: [desktop && 'Desktop', mobile && 'Mobile'].filter(Boolean).join(' and '),
+  };
+}
 
 function ProductFrame() {
   return <div className="au-product-frame" aria-label="Agent-Up Desktop applications">
@@ -44,7 +46,63 @@ function ProductFrame() {
   </div>;
 }
 
+function ShotPair({ desktop, mobile }) {
+  return <div className="au-feature-modal__pair">
+    {desktop ? <figure className="au-feature-modal__shot" style={{ '--au-preview-aspect': 1440 / 900 }}>
+      <img src={desktop} width={1440} height={900} alt="Desktop" />
+      <figcaption className="au-field-label">Desktop</figcaption>
+    </figure> : null}
+    {mobile ? <figure className="au-feature-modal__shot" style={{ '--au-preview-aspect': 390 / 844 }}>
+      <img src={mobile} width={390} height={844} alt="Mobile" />
+      <figcaption className="au-field-label">Mobile</figcaption>
+    </figure> : null}
+  </div>;
+}
+
+function FeatureModal({ feature, onClose }) {
+  useEffect(() => {
+    const onKey = event => { if (event.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [onClose]);
+
+  return <div className="au-scrim au-feature-modal" onClick={onClose}>
+    <div
+      className="au-overlay-panel au-feature-modal__panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={`feature-${feature.id}-title`}
+      onClick={event => event.stopPropagation()}
+    >
+      <div className="au-feature-modal__head">
+        <div>
+          <p className="au-eyebrow">{feature.platforms}</p>
+          <h3 className="au-page-title" id={`feature-${feature.id}-title`}>{feature.title}</h3>
+          <p className="au-muted">{feature.body}</p>
+        </div>
+        <button className="au-workspace-add" type="button" onClick={onClose} aria-label="Close">×</button>
+      </div>
+      <ShotPair desktop={feature.desktop} mobile={feature.mobile} />
+    </div>
+  </div>;
+}
+
 export default function Home() {
+  const features = useMemo(
+    () => featureIds
+      .map(id => screenshots.screens.find(screen => screen.id === id))
+      .filter(Boolean)
+      .map(featureFromScreen),
+    [],
+  );
+  const [openId, setOpenId] = useState(null);
+  const open = features.find(item => item.id === openId) ?? null;
+
   return <Layout title="Agent-Up" description={voice.category}>
     <main className={`au-theme ${styles.page}`}>
       <header className="au-container au-marketing-hero">
@@ -67,19 +125,30 @@ export default function Home() {
         <p className="au-lede">Git worktrees keep changes apart. Agent-Up keeps their running environments identifiable, operable, and reviewable.</p>
       </div></section>
 
-      <section className="au-section"><div className="au-container">
+      <section className="au-section" id="features"><div className="au-container">
         <p className="au-eyebrow">One Server · many clients</p>
         <h2 className="au-title">One source of truth for what is actually running.</h2>
-        <p className="au-lede">Desktop, Mobile, CLI, and MCP request actions and render state. Agent-Up Server owns orchestration.</p>
-        <div className={`au-grid ${styles.capabilities}`}>{capabilities.map(([title, body]) => <article className="au-card" key={title}><span className="au-status-dot au-status-dot--healthy"/><h3 className="au-heading">{title}</h3><p className="au-muted">{body}</p></article>)}</div>
+        <p className="au-lede">Desktop, Mobile, CLI, and MCP request actions and render state. Agent-Up Server owns orchestration. Open a slice to see both clients.</p>
+        <div className="au-feature-grid">
+          {features.map(feature => (
+            <button
+              key={feature.id}
+              className="au-feature-card"
+              type="button"
+              onClick={() => setOpenId(feature.id)}
+            >
+              {feature.preview ? <img className="au-feature-card__shot" src={feature.preview} alt="" /> : null}
+              <div className="au-feature-card__body">
+                <h3 className="au-heading">{feature.title}</h3>
+                <p className="au-muted">{feature.body}</p>
+                <p className="au-field-label">{feature.platforms}</p>
+              </div>
+            </button>
+          ))}
+        </div>
       </div></section>
 
-      <section className="au-section"><div className="au-container">
-        <p className="au-eyebrow">Product screenshots</p>
-        <h2 className="au-title">Every major view, from the design system.</h2>
-        <p className="au-lede">These shots are rendered from catalog classes and Demo Harbor Shop copy, then persisted with <code>au-debug screenshots persist</code>.</p>
-        <div className={styles.shots}>{shots.map(([file, title]) => <figure className="au-card" key={file}><img src={`/${file}`} alt={title} /><figcaption className="au-muted">{title}</figcaption></figure>)}</div>
-      </div></section>
+      {open ? <FeatureModal feature={open} onClose={() => setOpenId(null)} /> : null}
 
       <section className="au-section"><div className="au-container au-do-dont">
         <article className="au-card"><p className="au-eyebrow">Agent-Up owns</p><h2 className="au-heading">The development environment around your applications.</h2><p className="au-muted">Workspace identity, managed processes, allocated ports, Docker lifecycle, browser automation, diagnostics, and runtime history.</p></article>
