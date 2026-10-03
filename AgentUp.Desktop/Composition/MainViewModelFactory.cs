@@ -1,4 +1,5 @@
 using AgentUp.Desktop.Features.Applications.Controllers;
+using AgentUp.Desktop.Features.Applications.Providers;
 using AgentUp.Desktop.Features.Applications.Services;
 using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Agents.Controllers;
@@ -51,6 +52,9 @@ namespace AgentUp.Desktop.Composition;
 
 public static class MainViewModelFactory
 {
+    public static ApplicationProxyController CreateApplicationProxyController(HttpClient http)
+        => new(new ApplicationProxyService(new ApplicationProxyClient(http)));
+
     private static readonly HttpClient DefaultAuthHttpClient = new()
     {
         BaseAddress = new Uri("http://127.0.0.1:5000")

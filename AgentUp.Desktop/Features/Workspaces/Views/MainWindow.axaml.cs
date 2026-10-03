@@ -21,9 +21,6 @@ using Avalonia.VisualTree;
 using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Applications.Controllers;
-using AgentUp.Desktop.Features.Applications.Providers;
-using AgentUp.Desktop.Features.Applications.Services;
-using AgentUp.Desktop.Features.Authentication.Providers;
 using AgentUp.Desktop.Features.Audit.Controllers;
 using AgentUp.Desktop.Features.Metrics.Controllers;
 using AgentUp.Desktop.Features.Browser.Controllers;
@@ -57,7 +54,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
     private readonly HttpClient _serverHttp;
-    private readonly ApplicationsController _applications;
+    private readonly ApplicationProxyController _applicationProxy;
     private readonly FakeServerController? _fakeServers;
     private string _serverBaseUrl;
     private WorkspaceEventClient? _workspaceEventClient;
@@ -228,9 +225,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _serverBaseUrl = NormalizeServerBaseUrl(serverHttp.BaseAddress)
             ?? throw new ArgumentException("The server HTTP client requires a base address.", nameof(serverHttp));
         _serverHttp = serverHttp;
-        _applications = new ApplicationsController(
-            new ApplicationSelectionService(),
-            new ApplicationProxyClient(serverHttp));
+        _applicationProxy = MainViewModelFactory.CreateApplicationProxyController(serverHttp);
         _fakeServers = fakeServers;
     }
 
@@ -916,7 +911,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         {
             try
             {
-                navigationUri = await _applications.IssueProxyNavigationAsync(
+                navigationUri = await _applicationProxy.IssueNavigationAsync(
                     new Uri(_serverBaseUrl),
                     workspaceId,
                     destination.Port);
@@ -964,7 +959,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
     internal static bool ShouldUseApplicationProxy(string serverBaseUrl)
         => Uri.TryCreate(serverBaseUrl, UriKind.Absolute, out var serverUri)
-           && !SecureServerUrlProvider.IsLoopback(serverUri);
+           && !ServerAddressProvider.IsLoopback(serverUri);
 
     private async Task<string?> LoadDemoApplicationHtmlAsync(string workspaceId, int allocatedPort)
     {

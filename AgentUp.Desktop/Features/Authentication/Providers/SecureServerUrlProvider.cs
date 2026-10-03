@@ -1,3 +1,5 @@
+using AgentUp.Desktop.Shared.Providers;
+
 namespace AgentUp.Desktop.Features.Authentication.Providers;
 
 public static class SecureServerUrlProvider
@@ -30,6 +32,5 @@ public static class SecureServerUrlProvider
     }
 
     public static bool IsLoopback(Uri uri)
-        => uri.IsLoopback
-           || uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase);
+        => ServerAddressProvider.IsLoopback(uri);
 }
