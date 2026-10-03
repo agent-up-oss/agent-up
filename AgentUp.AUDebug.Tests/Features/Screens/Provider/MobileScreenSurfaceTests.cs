@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AgentUp.AUDebug.Features.Host.DTOs;
 using AgentUp.AUDebug.Features.Screens.DTOs;
 using AgentUp.AUDebug.Features.Screens.Models;
@@ -89,6 +90,66 @@ public sealed class MobileScreenSurfaceTests
         Assert.That(surface.Surface, Is.EqualTo(ProductSurface.Mobile));
     }
 
+    [Test]
+    public async Task Open_connectsToTheDebuggerThenDrivesAndCapturesThePage()
+    {
+        using var debugger = new FakeChromiumDebugEndpoint
+        {
+            JsonListFailures = 1,
+            MissingPointReplies = 2
+        };
+        var processes = new FakeProcessRunner();
+        var environment = new FakeEnvironment();
+        environment.Executables["chromium"] = "/usr/bin/chromium";
+        var root = NewRoot();
+        using var browser = StartHeldBrowser();
+        processes.StartOverride = _ => browser;
+        var surface = new MobileScreenSurface(processes, environment, new FakePathValidator(root), debugger.Port);
+        var shot = Path.Join(root, "mobile.png");
+        var pid = browser.Id;
+
+        try
+        {
+            await surface.OpenAsync(CancellationToken.None);
+            await surface.RunAsync(
+                [
+                    ScreenStepDto.Navigate("/apps", 0),
+                    ScreenStepDto.Tap("Git", 0),
+                    ScreenStepDto.Fill("Server URL", "demo") with { DelayMs = 0 },
+                    ScreenStepDto.Settle(0)
+                ],
+                CancellationToken.None);
+            await surface.CaptureAsync(shot, CancellationToken.None);
+            await surface.DisposeAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(debugger.Methods, Does.Contain("Emulation.setDeviceMetricsOverride"));
+                Assert.That(debugger.Methods, Does.Contain("Page.navigate"));
+                Assert.That(debugger.Methods, Does.Contain("Runtime.evaluate"));
+                Assert.That(debugger.Methods, Does.Contain("Input.dispatchMouseEvent"));
+                Assert.That(debugger.Methods, Does.Contain("Input.insertText"));
+                Assert.That(debugger.Methods, Does.Contain("Page.captureScreenshot"));
+                Assert.That(File.ReadAllBytes(shot), Is.EqualTo(FakeChromiumDebugEndpoint.Png));
+                Assert.That(processes.Killed, Does.Contain(pid));
+            });
+        }
+        finally
+        {
+            TryKill(pid);
+        }
+    }
+
+    [Test]
+    public void Capture_reportsWhenTheSurfaceWasNotOpened()
+    {
+        var surface = Surface(new FakeProcessRunner(), new FakeEnvironment());
+
+        Assert.That(
+            async () => await surface.CaptureAsync("/tmp/mobile.png", CancellationToken.None),
+            Throws.InvalidOperationException.With.Message.Contains("were not opened"));
+    }
+
     private static MobileScreenSurface Surface(FakeProcessRunner processes, FakeEnvironment environment)
         => new(processes, environment, new FakePathValidator(NewRoot()), FreePort());
 
@@ -104,5 +165,31 @@ public sealed class MobileScreenSurfaceTests
         using var socket = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
         socket.Start();
         return ((System.Net.IPEndPoint)socket.LocalEndpoint).Port;
+    }
+
+    private static Process StartHeldBrowser()
+        => Process.Start(new ProcessStartInfo
+        {
+            FileName = "sleep",
+            Arguments = "60",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        })!;
+
+    private static void TryKill(int pid)
+    {
+        try
+        {
+            Process.GetProcessById(pid).Kill(entireProcessTree: true);
+        }
+        catch (ArgumentException exception)
+        {
+            TestContext.WriteLine(exception.Message);
+        }
+        catch (InvalidOperationException exception)
+        {
+            TestContext.WriteLine(exception.Message);
+        }
     }
 }
