@@ -76,8 +76,14 @@ provider behind them, so the whole path is exercised without signing in to a rea
 `AgentUp.Mobile.E2E` drives them through the real mobile client on an iOS simulator, an Android
 emulator, and the installable web build. Device-code scenarios wait until the challenge carries
 the user code, not only the sign-in URL: the CLI prints the URL first, and treating that as ready
-is how the installable-web suite approved a challenge with no code. See the Testing section of
-`AGENTS.md`.
+is how the installable-web suite approved a challenge with no code. The Detox Jest envelope must
+outlive the pasted-code wait budget (challenge, in-app browser return, code submit, ready); a
+smaller envelope kills the test with `Exceeded timeout` instead of naming the wait. The method
+button wait must outlive schedule rendering the session: Detox synchronization is off, so the
+picker tap returns before the client shows the sign-in methods. A free-port check that
+binds and closes leaves `TIME_WAIT`; the identity provider then dies with address already in use,
+so the harness probes by connecting and retries a bind failure on the next port. See the
+Testing section of `AGENTS.md`.
 
 The disposable native harness enables cleartext transport because its simulator and emulator must
 reach Server and identity-provider processes on ephemeral CI-host ports. That exception is applied

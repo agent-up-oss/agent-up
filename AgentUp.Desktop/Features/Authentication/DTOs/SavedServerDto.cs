@@ -7,4 +7,5 @@ public sealed record SavedServerDto(
     bool IsActive,
     string DisplayName,
     bool CanRemove,
-    bool IsFake);
+    bool IsFake,
+    bool IsRecommended);

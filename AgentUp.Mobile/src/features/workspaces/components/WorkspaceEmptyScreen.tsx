@@ -3,8 +3,8 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, Text
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
 import { canCloneWorkspace } from '../providers/CloneInputProvider';
-import { EntitlementCard } from '@/features/entitlements/components/EntitlementCard';
-import { isFeatureAvailable, presentEntitlements, workspaceCreateFeature, workspaceCreateUnavailableMessage, type EntitlementCard as EntitlementCardModel } from '@/features/entitlements/models/Entitlements';
+import { PlanCard } from '@/features/entitlements/components/PlanCard';
+import { isFeatureAvailable, presentPlanCard, workspaceCreateFeature, workspaceCreateUnavailableMessage, type PlanCard as PlanCardModel } from '@/features/entitlements/models/Entitlements';
 import { getEntitlements } from '@/features/entitlements/providers/EntitlementsApiProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
@@ -15,19 +15,19 @@ export function WorkspaceEmptyScreen() {
   const [branch, setBranch] = useState('main');
   const [cloning, setCloning] = useState(false);
   const [cloneError, setCloneError] = useState<string | null>(null);
-  const [edition, setEdition] = useState<EntitlementCardModel | null>(null);
+  const [plan, setPlan] = useState<PlanCardModel | null>(null);
   const [canCreate, setCanCreate] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!server) {
-      setEdition(null);
+      setPlan(null);
       setCanCreate(true);
       return;
     }
     let cancelled = false;
     void getEntitlements(server).then(document => {
       if (cancelled) return;
-      setEdition(presentEntitlements(document));
+      setPlan(presentPlanCard(document));
       setCanCreate(isFeatureAvailable(document, workspaceCreateFeature));
     });
     return () => { cancelled = true; };
@@ -65,7 +65,7 @@ export function WorkspaceEmptyScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
           <Text accessibilityRole="header" style={styles.title}>No workspaces</Text>
-          {edition && <EntitlementCard card={edition} />}
+          {plan && <PlanCard card={plan} />}
           <Text style={styles.empty}>{canCreate === false ? workspaceCreateUnavailableMessage : 'Clone a repository with Add to get started.'}</Text>
           <Text style={styles.subtitle}>
             {server ? `Connected to ${server.url}` : 'Connect to a server to manage workspaces.'}

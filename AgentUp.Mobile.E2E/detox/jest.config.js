@@ -2,7 +2,11 @@
 module.exports = {
   rootDir: '..',
   testMatch: ['<rootDir>/detox/**/*.test.js'],
-  testTimeout: 300_000,
+  // Pasted-code iOS named waits sum to 570s (picker 60 + auth-required 60 + method 60 +
+  // challenge 120 + open 60 + code field 30 + submit 30 + ready 150) plus returning from
+  // the in-app browser. An envelope smaller than that kills the test with "Exceeded timeout"
+  // instead of naming the wait that is actually stuck.
+  testTimeout: 720_000,
   maxWorkers: 1,
   globalSetup: 'detox/runners/jest/globalSetup',
   globalTeardown: 'detox/runners/jest/globalTeardown',

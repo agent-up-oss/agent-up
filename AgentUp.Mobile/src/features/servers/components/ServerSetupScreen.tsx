@@ -7,13 +7,15 @@ import { hasSavedSignIn } from '../models/ConfiguredServer';
 import { resolvePresetServerUrl, rememberPresetWorkspace, takePendingWorkspace, workspaceHref } from '../providers/PresetServerProvider';
 import { normalizeServerUrl, probeServer } from '../providers/ServerUrlProvider';
 import { recordServerConnectionAudit } from '../providers/MobileAuditProvider';
-import { getAuthenticationStatus, getConnection, login, ensureCredentialTransportAllowed } from '../../authentication/providers/AuthenticationProvider';
-import { browserSsoStartUrl, createSsoState, readSsoCallback, rememberSsoStart, takePendingSsoStart, usesBrowserSso } from '../../authentication/providers/BrowserSsoProvider';
+import { nextExpiredSignInGuard } from '../providers/ExpiredSignInGuardProvider';
+import { login, ensureCredentialTransportAllowed } from '../../authentication/providers/AuthenticationProvider';
+import { connectionSignInSurface, resolveConnectionSource } from '../../authentication/providers/ConnectionSourceProvider';
+import { browserSsoStartUrl, createSsoState, readSsoCallback, rememberSsoStart, takePendingSsoStart } from '../../authentication/providers/BrowserSsoProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { fakeServers } from '@/features/fake-server/controllers/FakeServerController';
 import { fakeServerDisplayName } from '@/features/fake-server/models/FakeServerIdentity';
 
-type FormMode = 'add' | 'password' | 'cloud' | 'sso';
+type FormMode = 'add' | 'password' | 'sso' | 'issued';
 
 export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { presetServerUrl?: string; presetWorkspaceId?: string }) {
   const router = useRouter();
@@ -22,12 +24,13 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
   const [password, setPassword] = useState('');
-  const [loginUrl, setLoginUrl] = useState<string | null>(cloudServer?.url ?? null);
-  const [formMode, setFormMode] = useState<FormMode>(cloudServer ? 'cloud' : 'add');
-  const [ssoDisplayName, setSsoDisplayName] = useState('this Server');
-  const [ssoPrompt, setSsoPrompt] = useState('');
+  const [loginUrl, setLoginUrl] = useState<string | null>(null);
+  const [formMode, setFormMode] = useState<FormMode>('add');
+  const [signInName, setSignInName] = useState('this Server');
+  const [signInPrompt, setSignInPrompt] = useState('');
   const connectionInFlight = useRef(false);
   const appliedPreset = useRef(false);
+  const appliedExpired = useRef(false);
 
   const showAddForm = () => {
     setFormMode('add');
@@ -37,20 +40,30 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
     setUrl('');
   };
 
-  const showCloudLogin = () => {
-    if (!cloudServer) return;
-    setFormMode('cloud');
-    setLoginUrl(cloudServer.url);
+  const showPassword = (serverUrl: string, displayName: string, prompt: string) => {
+    setFormMode('password');
+    setLoginUrl(serverUrl);
+    setSignInName(displayName || 'this Server');
+    setSignInPrompt(prompt);
+    setUrl(serverUrl);
     setPassword('');
-    setUrl('');
-    setStatus('');
   };
 
   const showBrowserSso = (serverUrl: string, displayName: string, prompt: string) => {
     setFormMode('sso');
     setLoginUrl(serverUrl);
-    setSsoDisplayName(displayName || 'this Server');
-    setSsoPrompt(prompt);
+    setSignInName(displayName || 'this Server');
+    setSignInPrompt(prompt);
+    setUrl(serverUrl);
+    setPassword('');
+    setStatus('');
+  };
+
+  const showIssuedCredential = (serverUrl: string, displayName: string, prompt: string) => {
+    setFormMode('issued');
+    setLoginUrl(serverUrl);
+    setSignInName(displayName || 'this Server');
+    setSignInPrompt(prompt);
     setUrl(serverUrl);
     setPassword('');
     setStatus('');
@@ -80,7 +93,8 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
           router.replace(workspaceHref(presetWorkspaceId));
           return;
         }
-        showCloudLogin();
+        setUrl(target.url);
+        void tryAndSave(target.url);
         return;
       }
       const saved = savedServers.find(server => server.url === target.url);
@@ -90,24 +104,19 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
         return;
       }
       setUrl(target.url);
-      setLoginUrl(saved ? target.url : null);
-      setFormMode(saved ? 'password' : 'add');
-      setStatus('');
+      void tryAndSave(target.url);
     } catch {
       setStatus('The linked server URL is not valid.');
     }
   }, [ready, presetServerUrl, presetWorkspaceId, cloudServer, savedServers, router, selectServer]);
 
   useEffect(() => {
-    if (!requiresSignIn || !activeServer) return;
-    if (activeServer.isRecommended) {
-      showCloudLogin();
-      return;
-    }
+    const next = nextExpiredSignInGuard(requiresSignIn, !!activeServer, appliedExpired.current);
+    appliedExpired.current = next.applied;
+    if (!next.run || !activeServer) return;
     setUrl(activeServer.url);
-    setFormMode('password');
-    setLoginUrl(activeServer.url);
-    setStatus('This saved sign-in is no longer valid. Enter the administrator password.');
+    setStatus('This saved sign-in is no longer valid.');
+    void tryAndSave(activeServer.url);
   }, [requiresSignIn, activeServer]);
 
   const tryAndSave = async (candidate = url) => {
@@ -125,27 +134,25 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
         router.replace(workspaceHref(presetWorkspaceId));
         return;
       }
-      if (cloudServer && normalized === cloudServer.url) {
-        showCloudLogin();
+      const connection = await resolveConnectionSource(normalized);
+      const surface = connectionSignInSurface(connection);
+      if (surface === 'none') {
+        await probeServer(normalized);
+        void recordServerConnectionAudit(normalized, 'success');
+        saveServer(normalized); setUrl(''); setStatus(`Connected to ${normalized}`); router.replace(workspaceHref(presetWorkspaceId));
         return;
       }
-      const connection = await getConnection(normalized);
-      const auth = await getAuthenticationStatus(normalized);
-      if (auth.authenticationRequired) {
-        ensureCredentialTransportAllowed(normalized);
-        if (usesBrowserSso(connection) && connection) {
-          showBrowserSso(normalized, connection.displayName, connection.authentication.prompt);
-          return;
-        }
-        setUrl(normalized);
-        setLoginUrl(normalized);
-        setFormMode('password');
-        setStatus(connection?.authentication.prompt || 'Enter the administrator password to continue.');
+      ensureCredentialTransportAllowed(normalized);
+      if (surface === 'browserSso') {
+        showBrowserSso(normalized, connection.displayName, connection.prompt);
         return;
       }
-      await probeServer(normalized);
-      void recordServerConnectionAudit(normalized, 'success');
-      saveServer(normalized); setUrl(''); setStatus(`Connected to ${normalized}`); router.replace(workspaceHref(presetWorkspaceId));
+      if (surface === 'externalBearer') {
+        showIssuedCredential(normalized, connection.displayName, connection.prompt);
+        return;
+      }
+      showPassword(normalized, connection.displayName, connection.prompt);
+      setStatus(connection.prompt || 'Enter the administrator password to continue.');
     } catch (error) {
       const fallback = tryNormalize(candidate);
       if (fallback) void recordServerConnectionAudit(fallback, 'failure', error instanceof Error ? error.message : String(error));
@@ -171,16 +178,6 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
     void tryAndSave(saved.url);
   };
 
-  const openCloud = () => {
-    if (!cloudServer || busy) return;
-    if (hasSavedSignIn(cloudServer)) {
-      selectServer(cloudServer.id);
-      router.replace(workspaceHref(presetWorkspaceId));
-      return;
-    }
-    showCloudLogin();
-  };
-
   const startSso = (serverUrl: string) => {
     rememberPresetWorkspace(presetWorkspaceId);
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -200,10 +197,11 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
 
   const signIn = async () => {
     if (!loginUrl || busy) return;
-    if (formMode === 'cloud' || formMode === 'sso') {
+    if (formMode === 'sso') {
       startSso(loginUrl);
       return;
     }
+    if (formMode !== 'password') return;
     setBusy(true);
     try {
       const result = await login(loginUrl, password, fetch);
@@ -214,31 +212,31 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
     finally { setBusy(false); connectionInFlight.current = false; }
   };
 
-  const cloudName = cloudServer?.displayName ?? 'Agent-Up Cloud';
+  const recommendedName = cloudServer?.displayName ?? 'Agent-Up Cloud';
+  const highlightedUrl = loginUrl ?? activeServer?.url ?? null;
 
   return <SafeAreaView style={styles.screen}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
     <View style={styles.card}>
-      {formMode === 'cloud' ? <>
-        <Text style={styles.eyebrow}>{cloudName.toUpperCase()}</Text>
-        <Text accessibilityRole="header" style={styles.title}>Login via {cloudName}</Text>
-        <Pressable testID="server-sso-continue" accessibilityRole="button" disabled={busy} onPress={() => void signIn()}
-          style={[styles.button, busy && styles.disabled]}>
-          {busy ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.buttonText}>Continue</Text>}
-        </Pressable>
-      </> : formMode === 'sso' ? <>
+      {formMode === 'sso' ? <>
         <Text style={styles.eyebrow}>BROWSER SIGN-IN</Text>
-        <Text accessibilityRole="header" style={styles.title}>Sign in to {ssoDisplayName}</Text>
-        <Text style={styles.subtitle}>{ssoPrompt || 'Continue in the browser to receive an access token.'}</Text>
+        <Text accessibilityRole="header" style={styles.title}>Sign in to {signInName}</Text>
+        <Text style={styles.subtitle}>{signInPrompt || 'Continue in the browser to receive an access token.'}</Text>
         <Pressable testID="server-sso-continue" accessibilityRole="button" disabled={busy} onPress={() => void signIn()}
           style={[styles.button, busy && styles.disabled]}>
           {busy ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.buttonText}>Continue</Text>}
         </Pressable>
+      </> : formMode === 'issued' ? <>
+        <Text style={styles.eyebrow}>ISSUED CREDENTIAL</Text>
+        <Text accessibilityRole="header" style={styles.title}>Sign in to {signInName}</Text>
+        <Text style={styles.subtitle}>
+          {signInPrompt || 'This Server expects an issued credential. Saved sign-ins still work; password login is not available.'}
+        </Text>
       </> : <>
         <Text style={styles.eyebrow}>Agent-Up Server</Text>
         <Text accessibilityRole="header" style={styles.title}>{formMode === 'password' ? 'Sign in' : 'Connect to server'}</Text>
         <Text style={styles.subtitle}>
           {formMode === 'password'
-            ? 'Enter the administrator password to continue.'
+            ? (signInPrompt || 'Enter the administrator password to continue.')
             : 'Choose a saved server or enter a URL. Switching replaces this client\'s local workspace and browser state.'}
         </Text>
         <Text style={styles.label}>Server URL</Text>
@@ -263,7 +261,7 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
       {!!status && <Text accessibilityRole="alert" style={requiresSignIn ? styles.errorStatus : styles.status}>{status}</Text>}
       <Text style={styles.label}>Saved servers</Text>
       {servers.filter(server => server.isFake).map(server => {
-        const isActive = server.id === activeServer?.id && formMode !== 'cloud';
+        const isActive = highlightedUrl === server.url || server.id === activeServer?.id;
         return (
           <Pressable key={server.id} accessibilityRole="button"
             accessibilityState={{ selected: isActive }}
@@ -276,15 +274,15 @@ export function ServerSetupScreen({ presetServerUrl, presetWorkspaceId }: { pres
       })}
       {cloudServer && (
         <Pressable accessibilityRole="button"
-          accessibilityState={{ selected: formMode === 'cloud' || activeServer?.id === cloudServer.id }}
-          accessibilityLabel={cloudName}
-          onPress={openCloud} disabled={busy}
-          style={[styles.savedRow, (formMode === 'cloud' || activeServer?.isRecommended) && styles.savedRowActive]}>
-          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.savedUrl}>{cloudName}</Text>
+          accessibilityState={{ selected: highlightedUrl === cloudServer.url || activeServer?.id === cloudServer.id }}
+          accessibilityLabel={recommendedName}
+          onPress={() => openSaved(cloudServer.id)} disabled={busy}
+          style={[styles.savedRow, (highlightedUrl === cloudServer.url || activeServer?.isRecommended) && styles.savedRowActive]}>
+          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.savedUrl}>{recommendedName}</Text>
         </Pressable>
       )}
       {savedServers.map(server => {
-        const isActive = server.id === activeServer?.id && formMode !== 'cloud';
+        const isActive = highlightedUrl === server.url || server.id === activeServer?.id;
         return (
           <View key={server.id} style={styles.savedLine}>
             <Pressable accessibilityRole="button" accessibilityState={{ selected: isActive }}

@@ -647,11 +647,21 @@ repeated `permissions` claims. When `workspace` is present, the Server refuses
 other workspace ids under `/api/workspaces`.
 
 `GET /api/connection` is anonymous connection metadata (`kind`, authentication
-mode, sign-in prompt, whether a username is required). `GET /api/entitlements`
-is the authenticated permission document clients render: feature keys are
-operation permissions such as `agent.prompt` and `git.write`, not product
-editions. A self-hosted Server always returns the community document with every
-operation available.
+mode, sign-in prompt, whether a username is required). Clients populate a
+shared `ConnectionSource` from it and choose sign-in UI from
+`authentication.mode`. An unknown `apiVersion`, `kind`, or
+`authentication.mode` is a hard error. A Server that does not answer
+`GET /api/connection` is treated as legacy self-hosted only after
+`GET /api/auth/status` succeeds. `GET /api/entitlements`
+is the authenticated permission document clients render as one plan card of
+`features` and `limits`: feature keys are operation permissions such as
+`agent.prompt` and `git.write`, not product editions. A self-hosted Server
+always returns the community document with every operation available. Clients
+must not branch on edition names.
+
+Cache keys, SSE cursors, and in-flight request gates on Desktop and Mobile are
+compound `(saved connection id, workspace id)` so two Servers that both expose
+a workspace called `main` do not share client-local state.
 
 `Examples/browser-sso` is a runnable identity front door that advertises `browserSso`
 and returns a restricted entitlement document. The OSS Server itself never emits
@@ -679,7 +689,7 @@ The Desktop is an Avalonia client for humans. It displays workspaces, browser ta
 
 Applications declared in `desktopApplications` are displayed in session-ticketed streamed application tabs. Desktop must not launch their virtual displays, capture frames, or own input/session state. Existing HTTP application tabs continue to connect directly to their allocated ports and do not use the streaming path.
 
-It connects to one Server at a time and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. It must not own runtime state; its Git tab Git changes surface displays the Server-owned proposal queue, including entry order, messages, and verification state. Every launch is the connect picker: Desktop does not probe a packaged or repository Server URL until the user chooses a saved server or enters a URL, and the list always includes a built-in **Demo** entry. Only while that entry is connected does Desktop intercept `HttpClient` with the in-process fake backend from `AgentUp.FakeServer/definition.json`. While Demo is active, Desktop hides Validation, Database, Diagnostics, and Metrics. Disconnecting and connecting to a real Server works without restart. Full guide: `docs/developer-guide/workspaces/index.md` and `docs/developer-guide/applications/index.md`.
+It connects to one Server at a time and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. It must not own runtime state; its Git tab Git changes surface displays the Server-owned proposal queue, including entry order, messages, and verification state. Every launch is the connect picker: Desktop does not probe a packaged or repository Server URL until the user chooses a saved server or enters a URL, and the list always includes a built-in **Demo** entry. When `AGENTUP_RECOMMENDED_SERVER_URL` is set, that connection is listed after Demo and cannot be removed, matching Mobile. Sign-in UI is chosen from `GET /api/connection` `authentication.mode`. Only while Demo is connected does Desktop intercept `HttpClient` with the in-process fake backend from `AgentUp.FakeServer/definition.json`. While Demo is active, Desktop hides Validation, Database, Diagnostics, and Metrics. Disconnecting and connecting to a real Server works without restart. Full guide: `docs/developer-guide/workspaces/index.md` and `docs/developer-guide/applications/index.md`.
 
 Installed Desktop packages must install or depend on a local Server service rather than embedding orchestration in the Desktop process.
 
@@ -890,7 +900,7 @@ Sign-in runs in its own workflow, `.github/workflows/mobile-agent-auth-ci.yml`, 
 
 Every process the harness starts is watched by `AgentUp.Mobile.E2E/harness/supervise.mjs`, because a stack that fails to come up has to say why. Without it a process that dies on startup looks exactly like a slow one: the wait runs its full minute and reports `fetch failed`, which is true and useless - and that is precisely how one run lost the identity provider and left nothing behind to explain it. What each process said is kept and reported, and its death ends the wait at once instead of a minute later.
 
-These tests must not be flaky, and that is enforced rather than hoped for. No fixed delays: `AgentUp.Mobile.E2E/scripts/forbid-sleep.mjs` fails the build on `setTimeout`, `device.sleep`, or `page.waitForTimeout` outside the wait helper, and every wait is a condition plus a deadline that names what it was waiting for. Approval is a control-plane call to the test identity provider at a moment the test chooses, never a wait on a polling interval and never a click driven into a browser's DOM. Ports are ephemeral, versions are pinned (simulator runtime, system image, API level, Detox, Playwright), app state is reset per case, and there are no retries: a retry hides a flake instead of surfacing it. Android's pre-test wake script keeps the powered emulator awake and disables its screen timeout before checking focus, so the screen cannot lock while the harness starts its processes and leave Espresso attached to a root without window focus. A focused window is not ready if it is an Application Not Responding dialog or the Google first-run wizard; those are dismissed and the wait continues until a normal window holds focus. When the focused ANR is the launcher, Home is not sent, because that key relaunches the same dialog over the app.
+These tests must not be flaky, and that is enforced rather than hoped for. No fixed delays: `AgentUp.Mobile.E2E/scripts/forbid-sleep.mjs` fails the build on `setTimeout`, `device.sleep`, or `page.waitForTimeout` outside the wait helper, and every wait is a condition plus a deadline that names what it was waiting for. The Detox Jest `testTimeout` must outlive the pasted-code wait budget, or Jest kills the test with a nameless timeout. The method button wait must outlive schedule rendering the session, because Detox synchronization is off and the picker tap returns before the client applies `authentication_required`. A free-port check that binds and closes leaves TIME_WAIT; the identity provider then dies with address already in use, so the harness probes by connecting and retries a bind failure on the next port. Approval is a control-plane call to the test identity provider at a moment the test chooses, never a wait on a polling interval and never a click driven into a browser's DOM. Ports are ephemeral, versions are pinned (simulator runtime, system image, API level, Detox, Playwright), app state is reset per case, and there are no retries: a retry hides a flake instead of surfacing it. Android's pre-test wake script keeps the powered emulator awake and disables its screen timeout before checking focus, so the screen cannot lock while the harness starts its processes and leave Espresso attached to a root without window focus. A focused window is not ready if it is an Application Not Responding dialog or the Google first-run wizard; those are dismissed and the wait continues until a normal window holds focus. When the focused ANR is the launcher, Home is not sent, because that key relaunches the same dialog over the app.
 
 The mobile CI jobs sit at the same dependency tier as `docs` and `jetbrains-plugin`, and each publishes the Server and test agents itself instead of taking an artifact from the .NET chain. That publish runs while the job is already provisioning an emulator or an Xcode toolchain; an artifact dependency would serialise the mobile suite behind the slowest jobs in the pipeline.
 

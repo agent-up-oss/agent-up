@@ -1,6 +1,8 @@
 using AgentUp.Desktop.Shared.Models;
 using System.Collections.ObjectModel;
 using System.Reactive;
+using AgentUp.Desktop.Features.Entitlements.Controllers;
+using AgentUp.Desktop.Features.Entitlements.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using ReactiveUI;
@@ -10,9 +12,11 @@ namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
 public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
 {
     private readonly WorkspacesController _workspaces;
+    private readonly EntitlementsController? _entitlements;
     private WorkspaceItemViewModel? _selectedWorkspace;
     private bool _isCollapsed;
     private bool _isLoading;
+    private bool _canCreateWorkspace = true;
     private string? _errorMessage;
 
     public ObservableCollection<WorkspaceItemViewModel> Workspaces { get; } = [];
@@ -20,6 +24,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
     public WorkspaceDeleteConfirmationViewModel DeleteConfirmation { get; }
 
     public WorkspaceCloneViewModel AddWorkspace { get; }
+
+    public PlanCardViewModel Plan { get; } = new();
 
     public WorkspaceItemViewModel? SelectedWorkspace
     {
@@ -75,6 +81,20 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
 
     public bool RequiresSignIn { get; private set; }
 
+    public bool CanCreateWorkspace
+    {
+        get => _canCreateWorkspace;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _canCreateWorkspace, value);
+            this.RaisePropertyChanged(nameof(EmptyStateHint));
+        }
+    }
+
+    public string EmptyStateHint => CanCreateWorkspace
+        ? "Clone a repository with + or run agent-up start in a project that has agent-up.json."
+        : "This Server does not allow adding workspaces from the client.";
+
     public bool ShowEmptyState => _selectedWorkspace is null && _errorMessage is null && !_isLoading;
     public string ServerStatusText => _errorMessage is not null
         ? "SERVER OFFLINE"
@@ -85,9 +105,10 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
     public ReactiveCommand<Unit, Unit> ToggleCommand { get; }
     public ReactiveCommand<Unit, Unit> ShowAddWorkspaceCommand { get; }
 
-    public WorkspaceListViewModel(WorkspacesController workspaces)
+    public WorkspaceListViewModel(WorkspacesController workspaces, EntitlementsController? entitlements = null)
     {
         _workspaces = workspaces;
+        _entitlements = entitlements;
         WorkspaceDeleteConfirmationViewModel? deleteConfirmation = null;
         deleteConfirmation = new WorkspaceDeleteConfirmationViewModel(
             id => DeleteWorkspaceAsync(id),
@@ -97,7 +118,9 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
             (repository, branch) => CloneWorkspaceAsync(repository, branch));
         RefreshCommand = ReactiveCommand.CreateFromTask(LoadAsync);
         ToggleCommand = ReactiveCommand.Create(() => { IsCollapsed = !IsCollapsed; });
-        ShowAddWorkspaceCommand = ReactiveCommand.Create(AddWorkspace.Show);
+        ShowAddWorkspaceCommand = ReactiveCommand.Create(
+            AddWorkspace.Show,
+            this.WhenAnyValue(x => x.CanCreateWorkspace));
     }
 
     // Clones a repository into the Server-owned source clones root and selects the workspace the
@@ -310,6 +333,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
 
             if (SelectedWorkspace is null || !Workspaces.Any(w => w.Id == SelectedWorkspace.Id))
                 SelectedWorkspace = Workspaces.FirstOrDefault();
+
+            await LoadPlanAsync(ct);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
@@ -333,6 +358,22 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         ErrorMessage = null;
         RequiresSignIn = false;
         IsLoading = false;
+        CanCreateWorkspace = true;
+        Plan.Clear();
+    }
+
+    private async Task LoadPlanAsync(CancellationToken ct)
+    {
+        if (_entitlements is null)
+        {
+            CanCreateWorkspace = true;
+            Plan.Clear();
+            return;
+        }
+
+        var plan = await _entitlements.GetPlanAsync(ct);
+        CanCreateWorkspace = plan.CanCreateWorkspace;
+        Plan.Apply(plan.Card);
     }
 
     private void ApplyWorkspaceOrder(IReadOnlyList<WorkspaceDto> orderedDtos)

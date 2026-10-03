@@ -44,6 +44,39 @@ public sealed class GitPanelViewModelTests
     }
 
     [Test]
+    public async Task PrepareWorkspace_doesNotReuseStateForTheSameWorkspaceIdOnAnotherServer()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
+        await panel.LoadAsync("main", connectionId: "server-a");
+        panel.Nodes[5].IsSelected = true;
+
+        panel.PrepareWorkspace("main", "other", "server-b");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(panel.Branch, Is.EqualTo("other"));
+            Assert.That(panel.SelectedFileCount, Is.EqualTo(0));
+            Assert.That(panel.FileCount, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public async Task PrepareWorkspace_keepsStateWhenTheConnectionAndWorkspaceStayTheSame()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
+        await panel.LoadAsync("main", connectionId: "server-a");
+        panel.Nodes[5].IsSelected = true;
+
+        panel.PrepareWorkspace("main", "ignored", "server-a");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(panel.SelectedFileCount, Is.EqualTo(1));
+            Assert.That(panel.FileCount, Is.EqualTo(3));
+        });
+    }
+
+    [Test]
     public async Task SelectingTheChangesRootSelectsEveryFile()
     {
         var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });

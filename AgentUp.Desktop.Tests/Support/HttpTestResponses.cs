@@ -20,4 +20,14 @@ internal static class HttpTestResponses
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
     internal static HttpResponseMessage Empty(HttpStatusCode statusCode)
         => new(statusCode);
+
+    internal static bool IsConnectionRequest(HttpRequestMessage request)
+        => request.Method == HttpMethod.Get
+           && string.Equals(request.RequestUri?.AbsolutePath, "/api/connection", StringComparison.OrdinalIgnoreCase);
+
+    internal static HttpResponseMessage LegacyOrJson(HttpRequestMessage request, HttpStatusCode statusCode, string json)
+        => IsConnectionRequest(request) ? Empty(HttpStatusCode.NotFound) : Text(statusCode, json);
+
+    internal static HttpResponseMessage LegacyOrPayload(HttpRequestMessage request, object payload)
+        => IsConnectionRequest(request) ? Empty(HttpStatusCode.NotFound) : Json(payload);
 }

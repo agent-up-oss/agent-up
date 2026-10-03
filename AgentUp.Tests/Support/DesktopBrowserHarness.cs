@@ -150,7 +150,8 @@ internal sealed class DesktopBrowserHarness : IAsyncDisposable
             database,
             audit,
             validation,
-            capabilityModulesClient: capabilities);
+            capabilityModulesClient: capabilities,
+            entitlementsHttp: http);
         var mainWindow = new MainWindow(http) { DataContext = viewModel };
         mainWindow.WebViewFactory = () =>
         {
