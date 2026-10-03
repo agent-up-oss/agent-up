@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { extname, resolve } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { agentUpTheme, auBox, auText } from '../dist/native/index.js';
 import catalog from '../dist/web/catalog.json' with { type: 'json' };
 import {
@@ -16,7 +17,7 @@ import {
 } from '../scripts/lib/css.mjs';
 
 const root = new URL('..', import.meta.url);
-const repository = resolve(new URL('../..', import.meta.url).pathname);
+const repository = fileURLToPath(new URL('../..', import.meta.url));
 const visualProperties = new Set([
   'Background', 'Foreground', 'BorderBrush', 'BorderThickness', 'CornerRadius',
   'FontSize', 'FontWeight', 'FontFamily', 'MinHeight',

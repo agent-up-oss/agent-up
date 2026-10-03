@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import catalog from '../dist/web/catalog.json' with { type: 'json' };
 import {
   assembleScreens,
@@ -12,7 +13,7 @@ import {
   wrapSceneDocument,
 } from '../scripts/lib/screens.mjs';
 
-const repository = resolve(new URL('../..', import.meta.url).pathname);
+const repository = fileURLToPath(new URL('../..', import.meta.url));
 const css = await readFile(new URL('../dist/web/screenshots.css', import.meta.url), 'utf8');
 const screensHtml = await readFile(new URL('../src/screens.html', import.meta.url), 'utf8');
 const assembled = assembleScreens(catalog, screensHtml);

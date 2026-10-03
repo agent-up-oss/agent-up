@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { agentUpTheme, auBox, auText } from '../dist/native/index.js';
 import catalog from '../dist/web/catalog.json' with { type: 'json' };
 import { detectLanguage, tokenizeLine } from '../src/syntax/highlight.mjs';
@@ -31,8 +33,7 @@ test('file viewer catalog owns inspection chrome, line kinds, and syntax tokens'
 
 test('Mobile and Desktop bind the file viewer instead of a plain text dump', async () => {
   const { readFile } = await import('node:fs/promises');
-  const { resolve } = await import('node:path');
-  const repository = resolve(new URL('../..', import.meta.url).pathname);
+  const repository = fileURLToPath(new URL('../..', import.meta.url));
   const axaml = await readFile(resolve(repository, 'AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml'), 'utf8');
   assert.match(axaml, /Classes="au-overlay-panel au-file-viewer"/);
   assert.match(axaml, /x:Name="GitFileDiffLines"/);
