@@ -20,6 +20,7 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.Applications.ViewModels;
+using AgentUp.Desktop.Features.Applications.Controllers;
 using AgentUp.Desktop.Features.Audit.Controllers;
 using AgentUp.Desktop.Features.Metrics.Controllers;
 using AgentUp.Desktop.Features.Browser.Controllers;
@@ -51,9 +52,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     // Last successfully navigated http URL per tabKey; absent means tab is in error state.
     private readonly Dictionary<string, string> _lastKnownBrowserUrls = new();
     private readonly Dictionary<string, int> _navigationVersions = new();
+    private readonly HashSet<string> _proxiedPortTabs = [];
     private readonly CompositeDisposable _subscriptions = new();
     private readonly DispatcherTimer _addressPollTimer;
     private readonly HttpClient _serverHttp;
+    private readonly ApplicationProxyController _applicationProxy;
     private readonly FakeServerController? _fakeServers;
     private string _serverBaseUrl;
     private WorkspaceEventClient? _workspaceEventClient;
@@ -224,6 +227,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _serverBaseUrl = NormalizeServerBaseUrl(serverHttp.BaseAddress)
             ?? throw new ArgumentException("The server HTTP client requires a base address.", nameof(serverHttp));
         _serverHttp = serverHttp;
+        _applicationProxy = MainViewModelFactory.CreateApplicationProxyController(serverHttp);
         _fakeServers = fakeServers;
     }
 
@@ -913,7 +917,30 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         var demoHtml = demo
             ? await LoadDemoApplicationHtmlAsync(workspaceId, destination.Port)
             : null;
-        var errorHtml = demo ? null : await BrowserProbe(destination);
+        Uri navigationUri = destination;
+        string? errorHtml = null;
+        if (!demo && ShouldUseApplicationProxy(_serverBaseUrl))
+        {
+            try
+            {
+                navigationUri = await _applicationProxy.IssueNavigationAsync(
+                    new Uri(_serverBaseUrl),
+                    workspaceId,
+                    destination.Port,
+                    destination.PathAndQuery);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or JsonException or InvalidDataException or InvalidOperationException or TaskCanceledException)
+            {
+                errorHtml = BuildBrowserErrorHtml(
+                    "Could not open application",
+                    ex.Message,
+                    destination);
+            }
+        }
+        else if (!demo)
+        {
+            errorHtml = await BrowserProbe(destination);
+        }
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             if (!CanTouchWebView(tabKey, webView)) return;
@@ -927,7 +954,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
 
             if (errorHtml is null)
             {
-                NavigateWebView(webView, destination);
+                if (navigationUri == destination)
+                    _proxiedPortTabs.Remove(tabKey);
+                else
+                    _proxiedPortTabs.Add(tabKey);
+                NavigateWebView(webView, navigationUri);
             }
             else
             {
@@ -942,6 +973,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
             _fakeServers,
             _serverBaseUrl,
             DataContext is MainViewModel viewModel ? viewModel.Login.CurrentServerUrl : null);
+
+    internal static bool ShouldUseApplicationProxy(string serverBaseUrl)
+        => Uri.TryCreate(serverBaseUrl, UriKind.Absolute, out var serverUri)
+           && !ServerAddressProvider.IsLoopback(serverUri);
 
     private async Task<string?> LoadDemoApplicationHtmlAsync(string workspaceId, int allocatedPort)
     {
@@ -1143,13 +1178,41 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         if (DataContext is not MainViewModel { ShowDisplayView: true }) return;
 
         if (_activeTabKey is null || !_webViews.TryGetValue(_activeTabKey, out var webView)) return;
-        var src = webView.Source?.ToString();
-        if (string.IsNullOrWhiteSpace(src)) return;
+        var source = webView.Source;
+        if (source is null) return;
 
-        _lastKnownBrowserUrls[_activeTabKey] = src;
+        var proxied = _proxiedPortTabs.Contains(_activeTabKey);
+        var address = DataContext is MainViewModel { SelectedSubTab: PortSubTabViewModel { IsHttp: true } portTab }
+            ? BrowserAddress(source, _serverBaseUrl, portTab.AllocatedPort, proxied)
+            : source.ToString();
+
+        _lastKnownBrowserUrls[_activeTabKey] = address;
         if (DataContext is MainViewModel vm && !AddressBar.IsFocused)
-            vm.UpdateAddressFromBrowser(_activeWorkspaceId, src);
+            vm.UpdateAddressFromBrowser(_activeWorkspaceId, address);
     }
+
+    internal static Uri LogicalApplicationUri(Uri proxyUri, int allocatedPort)
+        => new UriBuilder(Uri.UriSchemeHttp, "127.0.0.1", allocatedPort)
+        {
+            Path = proxyUri.AbsolutePath,
+            Query = proxyUri.Query.TrimStart('?'),
+            Fragment = proxyUri.Fragment.TrimStart('#')
+        }.Uri;
+
+    internal static string BrowserAddress(
+        Uri source,
+        string serverBaseUrl,
+        int allocatedPort,
+        bool proxied)
+        => proxied && IsSameOrigin(source, serverBaseUrl)
+            ? LogicalApplicationUri(source, allocatedPort).AbsoluteUri
+            : source.AbsoluteUri;
+
+    internal static bool IsSameOrigin(Uri source, string serverBaseUrl)
+        => Uri.TryCreate(serverBaseUrl, UriKind.Absolute, out var serverUri)
+           && string.Equals(source.Scheme, serverUri.Scheme, StringComparison.OrdinalIgnoreCase)
+           && string.Equals(source.Host, serverUri.Host, StringComparison.OrdinalIgnoreCase)
+           && source.Port == serverUri.Port;
 
     private void OnAddressPollTimerTick(object? sender, EventArgs e)
         => _ = PollActiveBrowserAddressAsync();
@@ -1387,6 +1450,7 @@ code {
 
         _webViewErrors.Clear();
         _lastKnownBrowserUrls.Clear();
+        _proxiedPortTabs.Clear();
         _navigationVersions.Clear();
         _activeWorkspaceId = null;
         _activeTabKey = null;
@@ -1420,6 +1484,7 @@ code {
             try { disposable.Dispose(); } catch (InvalidOperationException ex) { Trace.TraceWarning(ex.Message); }
 
         _lastKnownBrowserUrls.Remove(tabKey);
+        _proxiedPortTabs.Remove(tabKey);
         _navigationVersions.Remove(tabKey);
         ClosePopups(tabKey);
     }
