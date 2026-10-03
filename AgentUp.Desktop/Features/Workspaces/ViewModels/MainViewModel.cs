@@ -60,7 +60,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public CapabilityModulesViewModel? Modules { get; }
     internal IValidationReplayConnector? ValidationReplay { get; }
     public bool IsValidationOpen => ShowValidation && Validation is { IsCollapsed: false };
-    public bool ShowValidation => Login.Surfaces.Validation && Validation is not null;
+    public bool ShowValidation =>
+        Login.Surfaces.Validation && Validation is not null && ShowApplicationChrome;
     public bool IsModulesCatalogOpen => Modules is { IsOpen: true };
 
     public ObservableCollection<WorkspaceShellTabItemViewModel> ShellTabs { get; } =
@@ -309,6 +310,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
                 this.RaisePropertyChanged(nameof(ShowApplicationChrome));
                 this.RaisePropertyChanged(nameof(ShowNoApplications));
                 this.RaisePropertyChanged(nameof(SelectedApplicationTab));
+                this.RaisePropertyChanged(nameof(ShowValidation));
+                this.RaisePropertyChanged(nameof(IsValidationOpen));
                 LoadValidation();
                 if (app is null) return;
                 var workspaceId = Sidebar.SelectedWorkspace?.Id;

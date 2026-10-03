@@ -43,6 +43,9 @@ public sealed class ProductScreenCatalogTests
                 Is.EquivalentTo(new[] { "diagnostics", "metrics", "validation", "database" }));
             Assert.That(unavailable.All(screen => screen.UnavailableReason.Length > 0), Is.True);
             Assert.That(unavailable.All(screen => screen.Steps.Count == 0), Is.True);
+            Assert.That(
+                unavailable.Single(screen => screen.View == "validation").UnavailableReason,
+                Does.Contain("sidebar"));
         });
     }
 

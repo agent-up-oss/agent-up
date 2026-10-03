@@ -251,6 +251,24 @@ test('Git change list uses catalog status glyphs instead of restyled rows', asyn
   assert.ok(collapsed?.html.includes('au-git-tree-toggle--collapsed'));
 });
 
+test('validation sidebar nests micro-checks under greater steps', () => {
+  const surface = catalog.surfaces.find(item => item.id === 'validation');
+  const sidebar = surface?.components.find(item => item.id === 'validation-sidebar');
+  const collapsed = surface?.components.find(item => item.id === 'validation-sidebar-collapsed');
+  assert.ok(sidebar?.html.includes('au-validation-flow'));
+  assert.ok(sidebar?.html.includes('au-validation-stage'));
+  assert.ok(sidebar?.html.includes('au-validation-check'));
+  assert.ok(sidebar?.html.includes('au-validation-play'));
+  assert.ok(sidebar?.html.includes('au-workspace-add'));
+  assert.ok(sidebar?.html.includes('au-validation-copy'));
+  assert.ok(sidebar?.html.includes('au-validation-glyph--running'));
+  assert.ok(sidebar?.html.includes('au-validation-glyph--failed'));
+  assert.doesNotMatch(sidebar?.html ?? '', /au-validation-stage--passed/);
+  assert.ok(collapsed?.html.includes('au-validation-sidebar--collapsed'));
+  assert.ok(collapsed?.html.includes('au-workspace-add'));
+  assert.match(product, /\.au-validation-play \{[^}]*surface-selected-strong/);
+});
+
 test('tappable cards are catalog buttons instead of local picker chrome', async () => {
   assert.match(avaloniaStyles, /Selector="Button\.au-choice"/);
   assert.match(avaloniaStyles, /Button\.au-choice:pointerover/);

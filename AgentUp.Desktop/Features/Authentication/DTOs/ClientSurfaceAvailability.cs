@@ -8,7 +8,7 @@ public sealed record ClientSurfaceAvailability(
 {
     public static ClientSurfaceAvailability Real { get; } = new(true, true, true, true);
 
-    public static ClientSurfaceAvailability Demo { get; } = new(false, false, false, false);
+    public static ClientSurfaceAvailability Demo { get; } = new(false, false, true, false);
 
     public static ClientSurfaceAvailability ForActiveServer(bool isDemo)
         => isDemo ? Demo : Real;

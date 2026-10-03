@@ -1555,30 +1555,151 @@
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
   </Style>
-  <Style Selector="Border.au-validation-stage">
-    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness4}"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
-    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusLg}"/>
+  <Style Selector="Border.au-validation-sidebar">
+    <Setter Property="Width" Value="360"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+    <Setter Property="BorderThickness" Value="1,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-validation-sidebar">
+    <Setter Property="Width" Value="360"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="Border.validationSidebar">
+    <Setter Property="Width" Value="360"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+    <Setter Property="BorderThickness" Value="1,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.validationSidebar">
+    <Setter Property="Width" Value="360"/>
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="Border.au-validation-sidebar--collapsed">
+    <Setter Property="Width" Value="56"/>
+  </Style>
+  <Style Selector="TextBlock.au-validation-sidebar--collapsed">
+    <Setter Property="Width" Value="56"/>
+  </Style>
+  <Style Selector="Border.au-validation-sidebar-head">
+    <Setter Property="Padding" Value="16,10,10,6"/>
+  </Style>
+  <Style Selector="TextBlock.au-validation-sidebar-head">
+    <Setter Property="Padding" Value="16,10,10,6"/>
+  </Style>
+  <Style Selector="Border.au-validation-sidebar-copy">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.au-validation-sidebar-copy">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="Border.au-validation-play">
+    <Setter Property="Padding" Value="12,7.04"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-validation-play">
+    <Setter Property="Padding" Value="12,7.04"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="Border.au-validation-flow">
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusMd}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
   </Style>
+  <Style Selector="TextBlock.au-validation-flow">
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+  </Style>
+  <Style Selector="Border.validationFlow">
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusMd}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.validationFlow">
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+  </Style>
+  <Style Selector="Border.au-validation-copy">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.au-validation-copy">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="Border.au-validation-steps">
+    <Setter Property="Margin" Value="24,0,0,0"/>
+  </Style>
+  <Style Selector="TextBlock.au-validation-steps">
+    <Setter Property="Margin" Value="24,0,0,0"/>
+  </Style>
+  <Style Selector="Border.au-validation-stage">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
   <Style Selector="TextBlock.au-validation-stage">
-    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness4}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="Border.validationStage">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.validationStage">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-validation-step">
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
+  <Style Selector="TextBlock.au-validation-check">
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
   </Style>
-  <Style Selector="Border.au-validation-stage--passed">
-    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorStatusHealthyBrush}"/>
+  <Style Selector="TextBlock.validationCheck">
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
-  <Style Selector="Border.au-validation-stage--failed">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorStatusDangerBrush}"/>
+  <Style Selector="Border.au-validation-checks">
+    <Setter Property="Margin" Value="18,0,0,0"/>
   </Style>
-  <Style Selector="TextBlock.au-validation-stage--failed">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
+  <Style Selector="TextBlock.au-validation-checks">
+    <Setter Property="Margin" Value="18,0,0,0"/>
   </Style>
-  <Style Selector="Border.au-validation-stage--running">
-    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorStatusWarningBrush}"/>
+  <Style Selector="Border.au-validation-glyph">
+    <Setter Property="Width" Value="14"/>
+  </Style>
+  <Style Selector="TextBlock.au-validation-glyph">
+    <Setter Property="Width" Value="14"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="TextBlock.au-validation-glyph--passed">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorStatusHealthyBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-validation-glyph--failed">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorStatusDangerBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-validation-glyph--running">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorStatusWarningBrush}"/>
   </Style>
   <Style Selector="Border.au-sign-in">
     <Setter Property="Padding" Value="{DynamicResource AgentUpThickness5}"/>
@@ -2137,6 +2258,22 @@
   <Style Selector="TextBlock.productScreenPane">
     <Setter Property="MinHeight" Value="0"/>
     <Setter Property="Padding" Value="0"/>
+  </Style>
+  <Style Selector="Border.au-screen-aside">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.au-screen-aside">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="Border.productScreenAside">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.productScreenAside">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="MinHeight" Value="0"/>
   </Style>
   <Style Selector="Border.au-screen-center">
     <Setter Property="MinHeight" Value="0"/>

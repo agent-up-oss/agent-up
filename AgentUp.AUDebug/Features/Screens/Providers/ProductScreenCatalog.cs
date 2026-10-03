@@ -18,17 +18,21 @@ namespace AgentUp.AUDebug.Features.Screens.Providers;
 /// changes what the later screens show.
 /// </para>
 /// <para>
-/// Four Desktop screens are marked unavailable. The Demo connection reports no Database,
-/// Diagnostics, Validation, or Metrics surface, so Desktop never builds those tabs and
-/// there is nothing to point at. They stay listed, with their reason, rather than being
+/// Four Desktop screens are marked unavailable. Demo has no Database, Diagnostics, or
+/// Metrics tab, and Validation is a collapsed sidebar on the selected application rather
+/// than a dedicated screen. They stay listed, with their reason, rather than being
 /// dropped, so a run still accounts for every documented screen.
 /// </para>
 /// </remarks>
 public sealed class ProductScreenCatalog : IProductScreenCatalog
 {
-    private const string DemoHidesSurface =
-        "The Demo connection reports no Database, Diagnostics, Validation, or Metrics entitlement, "
+    private const string DemoHidesTab =
+        "The Demo connection reports no Database, Diagnostics, or Metrics entitlement, "
         + "so Desktop does not build this tab. Capture it against a real Server workspace.";
+
+    private const string ValidationIsSidebar =
+        "Desktop validation is a collapsed sidebar on the selected application, not a dedicated tab, "
+        + "so there is no Validation screen to photograph on Demo.";
 
     private const string FirstPrompt = "What is running in this workspace?";
     private const string SecondPrompt = "Add a promo banner to the storefront.";
@@ -103,7 +107,7 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
         ]),
         Unavailable("diagnostics", "Desktop diagnostics"),
         Unavailable("metrics", "Desktop metrics"),
-        Unavailable("validation", "Desktop validation"),
+        Unavailable("validation", "Desktop validation", ValidationIsSidebar),
         Unavailable("database", "Desktop database")
     ];
 
@@ -218,6 +222,6 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
             Steps = steps
         };
 
-    private static ProductScreenDto Unavailable(string view, string title)
-        => DesktopScreen(view, title, []) with { Available = false, UnavailableReason = DemoHidesSurface };
+    private static ProductScreenDto Unavailable(string view, string title, string? reason = null)
+        => DesktopScreen(view, title, []) with { Available = false, UnavailableReason = reason ?? DemoHidesTab };
 }

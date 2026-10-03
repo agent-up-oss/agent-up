@@ -129,4 +129,10 @@ test('assembled Demo scenes insert Harbor Shop catalog HTML', () => {
   const mobileGit = assembled.scenes.find(scene => scene.id === 'mobile-git');
   assert.ok(mobileGit.html.includes('<textarea class="au-input"'));
   assert.ok(!mobileGit.html.includes('autofocus'));
+  const validation = assembled.scenes.find(scene => scene.id === 'desktop-validation');
+  assert.ok(validation.html.includes(components.storefront.html));
+  assert.ok(validation.html.includes(components['validation-sidebar'].html));
+  assert.ok(validation.html.includes('au-screen-aside'));
+  assert.ok(validation.html.includes('au-validation-check'));
+  assert.ok(!validation.components.includes('validation-stage'));
 });
