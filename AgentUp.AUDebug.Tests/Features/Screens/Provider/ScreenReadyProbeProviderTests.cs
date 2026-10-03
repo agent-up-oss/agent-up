@@ -39,23 +39,30 @@ public sealed class ScreenReadyProbeProviderTests
     }
 
     [Test]
-    public async Task WaitForUrl_returnsOnceTheHostAnswers()
+    public async Task WaitForUrl_pollsUntilTheHostAnswers()
     {
         using var listener = new HttpListener();
         var prefix = $"http://127.0.0.1:{FreePort()}/";
         listener.Prefixes.Add(prefix);
-        listener.Start();
-        var served = Respond(listener);
+        var started = Task.Run(async () =>
+        {
+            await Task.Delay(200);
+            listener.Start();
+            var context = await listener.GetContextAsync();
+            context.Response.StatusCode = 200;
+            context.Response.Close();
+        });
         try
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
             await Probe(http, new FakeProcessRunner()).WaitForUrlAsync(prefix, CancellationToken.None);
-            Assert.Pass();
+            Assert.That(started.IsCompleted, Is.True);
         }
         finally
         {
-            await served;
-            listener.Stop();
+            if (listener.IsListening)
+                listener.Stop();
+            await started;
         }
     }
 
@@ -92,6 +99,36 @@ public sealed class ScreenReadyProbeProviderTests
         await Probe(http, processes).WaitForDesktopWindowAsync(CancellationToken.None);
 
         Assert.Pass();
+    }
+
+    [Test]
+    public async Task WaitForDesktopWindow_pollsUntilTheWindowAppears()
+    {
+        var searches = 0;
+        var processes = new FakeProcessRunner();
+        processes.OnRun = _ =>
+        {
+            searches++;
+            processes.NextResult = searches == 1 ? new(1, "", "") : new(0, "4242\n", "");
+        };
+        using var http = new HttpClient();
+
+        await Probe(http, processes).WaitForDesktopWindowAsync(CancellationToken.None);
+
+        Assert.That(searches, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task IsReady_isFalseWhenTheHostAcceptsThenStalls()
+    {
+        using var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        using var http = new HttpClient { Timeout = TimeSpan.FromMilliseconds(250) };
+
+        Assert.That(
+            await Probe(http, new FakeProcessRunner()).IsReadyAsync($"http://127.0.0.1:{port}/", CancellationToken.None),
+            Is.False);
     }
 
     private static ScreenReadyProbeProvider Probe(HttpClient http, FakeProcessRunner processes)

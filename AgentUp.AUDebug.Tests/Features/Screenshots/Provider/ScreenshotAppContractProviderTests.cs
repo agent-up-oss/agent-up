@@ -93,16 +93,43 @@ public sealed class ScreenshotAppContractProviderTests
     }
 
     [Test]
-    public void Verify_missingCatalog_throws()
+    public void Verify_catalogWithoutSurfaces_throws()
     {
         var root = Repo();
-        ArrangeValid(root);
-        File.Delete(Path.Join(root, "AgentUp.DesignSystem", "dist", "web", "catalog.json"));
+        ArrangeValid(root, catalog: """{ }""");
         var paths = new DebugPathValidator(root);
         var media = new ScreenshotMediaStore(paths);
         Assert.That(
             () => new ScreenshotAppContractProvider(paths, media).Verify(Scene()),
-            Throws.InvalidOperationException.With.Message.Contains("catalog is missing"));
+            Throws.InvalidOperationException.With.Message.Contains("missing surfaces"));
+    }
+
+    [Test]
+    public void Verify_catalogWithNoComponents_throws()
+    {
+        var root = Repo();
+        ArrangeValid(root, catalog: """{ "surfaces": [] }""");
+        var paths = new DebugPathValidator(root);
+        var media = new ScreenshotMediaStore(paths);
+        Assert.That(
+            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene()),
+            Throws.InvalidOperationException.With.Message.Contains("has no components"));
+    }
+
+    [Test]
+    public void Verify_layoutShellMissingFromHtml_throws()
+    {
+        var root = Repo();
+        ArrangeValid(
+            root,
+            html: """<div class="au-workspace">checkout-fix</div>""",
+            css: ".au-workspace { color: black; } .au-screen { color: black; }",
+            catalog: """{ "surfaces": [ { "components": [ { "id": "screen", "html": "<div class=\"au-screen\"></div>" }, { "id": "workspace", "html": "<div class=\"au-workspace\">checkout-fix</div>" } ] } ] }""");
+        var paths = new DebugPathValidator(root);
+        var media = new ScreenshotMediaStore(paths);
+        Assert.That(
+            () => new ScreenshotAppContractProvider(paths, media).Verify(Scene() with { Components = ["screen", "workspace"] }),
+            Throws.InvalidOperationException.With.Message.Contains("missing catalog component 'screen'"));
     }
 
     [Test]

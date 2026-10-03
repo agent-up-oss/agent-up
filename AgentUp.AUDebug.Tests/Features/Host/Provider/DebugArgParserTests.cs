@@ -375,4 +375,20 @@ public sealed class DebugArgParserTests
             Assert.That(error, Is.Not.Null);
         });
     }
+
+    [Test]
+    public void Screens_rejectsAllPlusAScreenName()
+    {
+        var (_, error) = new DebugArgParser().Parse(["screens", "all", "git"]);
+
+        Assert.That(error, Does.Contain("needs a surface"));
+    }
+
+    [Test]
+    public void Screens_rejectsAFourthArgument()
+    {
+        var (_, error) = new DebugArgParser().Parse(["screens", "desktop", "git", "extra"]);
+
+        Assert.That(error, Does.Contain("at most a surface and one screen name"));
+    }
 }
