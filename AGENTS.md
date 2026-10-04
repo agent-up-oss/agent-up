@@ -1139,9 +1139,10 @@ do nothing but call the platform (`WindowsAutoStartRegistrar.cs` reaching the re
 `LaunchctlProcess.cs` starting launchctl) are excluded by name. Split the decidable part
 out and cover it; never exclude a file to avoid writing a test.
 
-`codecov.yml` sets the same 90% patch target. Its `ignore` list also carries `**/*.axaml`,
-because `coverage.include` scopes the local gate to `**/*.cs` and Codecov has no include
-list of its own - without it a view change fails a pull request the local gate passed. Its
+`codecov.yml` sets the same 90% patch target. Its `ignore` list also carries `**/*.axaml`
+and `AgentUp.DesignSystem/dist/dotnet/**`, because `coverage.include` scopes the local gate
+to production-project `**/*.cs` and Codecov has no include list of its own - without those
+entries a view or generated binding change fails a pull request the local gate passed. Its
 `ignore` list must contain every `coverage.exclude` glob - `AgentUp.Architecture.Tests` enforces that, because a glob missing
 there fails a pull request the local gate passed, on lines this repository has already
 decided carry no information. The two numbers are still not identical: Codecov counts

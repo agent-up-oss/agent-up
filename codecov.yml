@@ -30,6 +30,10 @@ ignore:
   # Codecov has no include list, so without this it measures Avalonia markup the local gate
   # never looked at, and a change to a view fails a pull request the local gate passed.
   - "**/*.axaml"
+  # Generated Avalonia bindings sit outside coverage.include. Codecov still sees them
+  # because Desktop compiles the files in, so a new icon geometry fails patch coverage
+  # even when AgentUpIconGeometryTests already parse every path.
+  - "AgentUp.DesignSystem/dist/dotnet/**"
   - "**/Composition/**"
   - "**/Program.cs"
   - "**/App.axaml.cs"
