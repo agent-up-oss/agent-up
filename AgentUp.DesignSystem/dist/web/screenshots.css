@@ -421,6 +421,14 @@
   font-family: var(--au-font-mono);
   font-size: var(--au-font-size-xs);
 }
+/* A generated state of the component above, set off by an accent rule so it reads as another
+   view of the same component rather than a second component. */
+.au-example__state {
+  display: grid;
+  gap: var(--au-space-2);
+  padding-left: var(--au-space-4);
+  border-left: 2px solid var(--au-color-border-selected);
+}
 .au-panel {
   color: var(--au-color-text-primary);
   background: var(--au-color-surface);

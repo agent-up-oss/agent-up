@@ -22,7 +22,12 @@
     },
     "./avalonia": "./dist/avalonia/AgentUpTheme.axaml",
     "./avalonia-styles": "./dist/avalonia/AgentUpStyles.axaml",
-    "./brand/*": "./brand/*"
+    "./brand/*": "./brand/*",
+    "./icons": "./dist/web/icons.json",
+    "./native-icons": "./dist/native/icons.js",
+    "./native-icon-types": "./dist/native/icons.d.ts",
+    "./sequence": "./dist/web/sequence.js",
+    "./sequence-types": "./dist/web/sequence.d.ts"
   },
   "scripts": {
     "build": "node scripts/build.mjs",

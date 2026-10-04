@@ -130,6 +130,26 @@ export function inferAvaloniaType(className) {
   return 'Border';
 }
 
+/**
+ * Classes the HTML surface owns outright, which are not ported to Avalonia or React Native.
+ *
+ * Two kinds live here. The screen shell (`au-screen*`) is a CSS flex and grid layout that
+ * describes how a scene document is composed for a screenshot; Desktop builds its own shell
+ * from Grid and DockPanel and references none of it, and a Border cannot carry a flex model,
+ * so emitting it produced bindings no surface could use. The Demo fixtures (`au-storefront`,
+ * `au-capability-catalog`) are the Harbor Shop sample a screenshot needs, not product UI, and
+ * have no business in a shipped client bundle.
+ *
+ * This is deliberately a short list in source rather than a heuristic: a class stops reaching
+ * the product surfaces only when someone writes it here, and the diff shows it.
+ */
+export const webOnly = new Set([
+  'au-screen', 'au-screen-body', 'au-screen-rail', 'au-screen-main', 'au-screen-tabs',
+  'au-screen-subtabs', 'au-screen-toolbar', 'au-screen-pane', 'au-screen-aside',
+  'au-screen-center', 'au-screen-mobile-body', 'au-screen-overlay',
+  'au-storefront', 'au-capability-catalog',
+]);
+
 export const layoutOnly = new Set([
   'au-container', 'au-stack', 'au-cluster', 'au-grid', 'au-section', 'au-reading',
   'au-marketing-hero', 'au-marketing-hero--workspace', 'au-marketing-hero__lockup',

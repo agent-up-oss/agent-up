@@ -2,6 +2,7 @@ import {
   formatNumber,
   inferAvaloniaType,
   layoutOnly,
+  webOnly,
   parseSelector,
   pascal,
   toPx,
@@ -75,7 +76,7 @@ export function emitStyles(rules, tokens, index) {
     const templateSetters = setters.filter(([property]) => ['Background', 'Foreground', 'BorderBrush', 'Padding'].includes(property));
     for (const selector of rule.selectors) {
       const parsed = parseSelector(selector);
-      if (!parsed || layoutOnly.has(parsed.baseClass)) continue;
+      if (!parsed || layoutOnly.has(parsed.baseClass) || webOnly.has(parsed.baseClass)) continue;
       for (const avaloniaSelector of avaloniaSelectors(parsed, index)) {
         add(avaloniaSelector, allowedSetters(avaloniaSelector, setters));
         const hostType = avaloniaSelector.split(/[:.\s]/)[0];

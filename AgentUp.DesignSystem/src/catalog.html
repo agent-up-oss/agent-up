@@ -155,8 +155,8 @@
     <article data-au-component="chrome" data-au-title="Title bar" data-au-note="Keep the mark small. Never add glow around the window. Connected chrome carries sidebar, reload, and the Server badge." data-au-avalonia="Border" data-au-class="au-chrome">
       <div class="au-chrome">
         <span class="au-cluster">
-          <span class="au-title-tool au-chrome-icon"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></span>
-          <span class="au-title-tool au-chrome-icon"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 4v6h-6"></path></svg></span>
+          <span class="au-title-tool au-chrome-icon"><span data-au-icon="menu"></span></span>
+          <span class="au-title-tool au-chrome-icon"><span data-au-icon="reload"></span></span>
           <span class="au-badge au-badge--healthy"><span class="au-status-dot au-status-dot--healthy"></span>SERVER ONLINE</span>
         </span>
         <span class="au-logo-lockup"><span class="au-chrome-mark"></span><strong class="au-chrome-title">Agent-Up</strong></span>
@@ -200,8 +200,8 @@
   </section>
 
   <section data-au-surface="workspaces" data-au-title="Workspaces" data-au-intro="A workspace is the managed runtime and source identity. Do not name every row after an agent unless that is the display name.">
-    <article data-au-component="workspace" data-au-title="Workspace row" data-au-note="Idle rows are transparent and hover with the neutral state layer. The selected checkout takes an accent tint plus a 2px accent rule on its leading edge, never a saturated fill. Start, identity, and delete are the same controls on Desktop and Mobile. A running workspace shows stop, not play." data-au-avalonia="Border" data-au-class="au-workspace" data-au-desktop-class="wsEntry" data-au-desktop-host="ListBoxItem">
-      <div class="au-workspace au-workspace--selected">
+    <article data-au-component="workspace" data-au-title="Workspace row" data-au-note="Idle rows are transparent and hover with the neutral state layer. The selected checkout takes an accent tint plus a 2px accent rule on its leading edge, never a saturated fill. Start, identity, and delete are the same controls on Desktop and Mobile. A running workspace shows stop, not play." data-au-avalonia="Border" data-au-class="au-workspace" data-au-desktop-class="wsEntry" data-au-desktop-host="ListBoxItem" data-au-states="selected=au-workspace/au-workspace--selected" data-au-state-examples="selected:0|Selected workspace|The open checkout takes the accent tint plus a 2px accent rule.">
+      <div class="au-workspace">
         <button class="au-lifecycle-button" type="button">■</button>
         <span class="au-status-dot au-status-dot--healthy"></span>
         <span>
@@ -273,7 +273,7 @@
         <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
       </div>
     </article>
-    <article data-au-component="workspace-tabs" data-au-title="Workspace tabs" data-au-note="Overview, Agent, and Git sit with the application tabs. Overview is selected. A hairline separates workspace chrome from running apps." data-au-avalonia="Border" data-au-class="au-app-tab">
+    <article data-au-component="workspace-tabs" data-au-title="Workspace tabs" data-au-note="Overview, Agent, and Git sit with the application tabs. Overview is selected. A hairline separates workspace chrome from running apps." data-au-avalonia="Border" data-au-class="au-app-tab" data-au-states="selected=au-app-tab/au-app-tab--selected" data-au-state-examples="selected:1|Agent tab selected|The live ACP session is the primary selection when Agent is open.;selected:2|Git tab selected|Working-tree review is the primary selection when Git is open.;selected:3|Application tab selected|Storefront is the primary selection when the running app is open.">
       <div class="au-cluster">
         <button class="au-app-tab au-app-tab--selected">Overview</button>
         <button class="au-app-tab">Agent</button>
@@ -283,46 +283,13 @@
         <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
       </div>
     </article>
-    <article data-au-component="workspace-tabs-agent" data-au-title="Agent tab selected" data-au-note="The live ACP session is the primary selection when Agent is open." data-au-avalonia="Border" data-au-class="au-app-tab">
-      <div class="au-cluster">
-        <button class="au-app-tab">Overview</button>
-        <button class="au-app-tab au-app-tab--selected">Agent</button>
-        <button class="au-app-tab">Git</button>
-        <span class="au-tab-sep"></span>
-        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
-        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
-      </div>
-    </article>
-    <article data-au-component="workspace-tabs-git" data-au-title="Git tab selected" data-au-note="Working-tree review is the primary selection when Git is open." data-au-avalonia="Border" data-au-class="au-app-tab">
-      <div class="au-cluster">
-        <button class="au-app-tab">Overview</button>
-        <button class="au-app-tab">Agent</button>
-        <button class="au-app-tab au-app-tab--selected">Git</button>
-        <span class="au-tab-sep"></span>
-        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
-        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
-      </div>
-    </article>
-    <article data-au-component="workspace-tabs-applications" data-au-title="Application tab selected" data-au-note="Storefront is the primary selection when the running app is open." data-au-avalonia="Border" data-au-class="au-app-tab">
-      <div class="au-cluster">
-        <button class="au-app-tab">Overview</button>
-        <button class="au-app-tab">Agent</button>
-        <button class="au-app-tab">Git</button>
-        <span class="au-tab-sep"></span>
-        <button class="au-app-tab au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
-        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
-      </div>
-    </article>
-    <article data-au-component="subtab" data-au-title="Port and tool tabs" data-au-note="The second row is secondary to the application tabs, so its selected state stays neutral: the active state layer, not the accent." data-au-avalonia="Border" data-au-class="au-subtab" data-au-desktop-class="subTab" data-au-desktop-host="ListBoxItem">
+    <article data-au-component="subtab" data-au-title="Port and tool tabs" data-au-note="The second row is secondary to the application tabs, so its selected state stays neutral: the active state layer, not the accent. Desktop builds the allocated port, then Console, Diagnostics, Metrics and Database." data-au-avalonia="Border" data-au-class="au-subtab" data-au-desktop-class="subTab" data-au-desktop-host="ListBoxItem" data-au-states="selected=au-subtab/au-subtab--selected" data-au-state-examples="selected:1|Console subtab selected|Console is still a secondary selection. It uses the active layer, not the accent underline.;selected:2|Diagnostics subtab selected|The audit trail for the selected application sits beside Console.;selected:3|Metrics subtab selected|CPU, memory and request duration for the selected application.;selected:4|Database subtab selected|The database explorer for the selected application.">
       <div class="au-cluster">
         <button class="au-subtab au-subtab--selected"><span class="au-status-dot au-status-dot--healthy"></span> 3000:9100</button>
         <button class="au-subtab">Console</button>
-      </div>
-    </article>
-    <article data-au-component="subtab-console" data-au-title="Console subtab selected" data-au-note="Console is still a secondary selection. It uses the active layer, not the accent underline." data-au-avalonia="Border" data-au-class="au-subtab">
-      <div class="au-cluster">
-        <button class="au-subtab"><span class="au-status-dot au-status-dot--healthy"></span> 3000:9100</button>
-        <button class="au-subtab au-subtab--selected">Console</button>
+        <button class="au-subtab">Diagnostics</button>
+        <button class="au-subtab">Metrics</button>
+        <button class="au-subtab">Database</button>
       </div>
     </article>
     <article data-au-component="storefront" data-au-title="Storefront pane" data-au-note="The application surface is catalog cards and buttons, not a restyled screenshot shell. Prices and the primary cart action carry green because they are meaning." data-au-avalonia="Border" data-au-class="au-storefront">
@@ -455,8 +422,8 @@ Storefront listening on WEB_PORT</pre>
       <div class="au-git-toolbar">
         <div class="au-git-branch-row">
           <button class="au-button au-button--secondary au-button--compact au-git-branch" type="button">main <span class="au-muted">▾</span></button>
-          <button class="au-browser-button" type="button"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14l6-6 6 6"></path></svg></button>
-          <button class="au-browser-button" type="button"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10l6 6 6-6"></path></svg></button>
+          <button class="au-browser-button" type="button"><span data-au-icon="chevron-up"></span></button>
+          <button class="au-browser-button" type="button"><span data-au-icon="chevron-down"></span></button>
         </div>
         <div class="au-git-actions">
           <button class="au-browser-button" type="button">↻</button>
@@ -598,15 +565,8 @@ Storefront listening on WEB_PORT</pre>
     <article data-au-component="git-tree-toggle-collapsed" data-au-title="Collapsed directory" data-au-note="A collapsed directory uses the dropdown chevron and hides nested rows. Checking it still selects every file under it." data-au-avalonia="Button" data-au-class="au-git-tree-toggle--collapsed" data-au-desktop-class="gitTreeToggleCollapsed">
       <button class="au-git-tree-toggle au-git-tree-toggle--collapsed" type="button">▸</button>
     </article>
-    <article data-au-component="git-row" data-au-title="Change row" data-au-note="Checkbox and filename are separate hit targets. Hover is the neutral state layer. The open file takes the selected tint plus a 2px accent rule; checked boxes do not." data-au-avalonia="Border" data-au-class="au-git-row" data-au-desktop-class="gitNodeRow">
-      <div class="au-git-row au-git-row--selected">
-        <span class="au-checkbox au-checkbox--checked"></span>
-        <span class="au-git-change-name">PromoBanner.tsx</span>
-        <span class="au-git-status au-git-status--modified">M</span>
-      </div>
-    </article>
-    <article data-au-component="git-row-selected" data-au-title="Open change" data-au-note="Opening a file is the primary selection on this list. Many-of-many checkboxes stay on the checkbox itself." data-au-avalonia="Border" data-au-class="au-git-row--selected" data-au-desktop-class="gitNodeRowSelected">
-      <div class="au-git-row au-git-row--selected">
+    <article data-au-component="git-row" data-au-title="Change row" data-au-note="Checkbox and filename are separate hit targets. Hover is the neutral state layer. The open file takes the selected tint plus a 2px accent rule; checked boxes do not." data-au-avalonia="Border" data-au-class="au-git-row" data-au-desktop-class="gitNodeRow" data-au-states="selected=au-git-row/au-git-row--selected" data-au-state-examples="selected:0|Open change|Opening a file is the primary selection on this list. Many-of-many checkboxes stay neutral." data-au-modifier-classes="au-git-row--selected=gitNodeRowSelected">
+      <div class="au-git-row">
         <span class="au-checkbox au-checkbox--checked"></span>
         <span class="au-git-change-name">PromoBanner.tsx</span>
         <span class="au-git-status au-git-status--modified">M</span>
@@ -651,7 +611,7 @@ Storefront listening on WEB_PORT</pre>
         <div class="au-audit-row" style="color: var(--au-color-text-danger)">12:02 · browser · net::ERR_CONNECTION_REFUSED</div>
       </div>
     </article>
-    <article data-au-component="page-jump" data-au-title="Pagination" data-au-note="The current page uses the neutral active layer. Other pages carry no border at all: an accent outline on an inactive control is the rule this system exists to prevent." data-au-avalonia="Border" data-au-class="au-page-jump" data-au-desktop-class="auditPageJumpInner">
+    <article data-au-component="page-jump" data-au-title="Pagination" data-au-note="The current page uses the neutral active layer. Other pages carry no border at all: an accent outline on an inactive control is the rule this system exists to prevent." data-au-avalonia="Border" data-au-class="au-page-jump" data-au-desktop-class="auditPageJumpInner" data-au-states="current=au-page-jump/au-page-jump--current" data-au-state-examples="current:0|First page current|The current page is a filled pill and the others stay neutral." data-au-modifier-classes="au-page-jump--current=auditPageJumpInnerCurrent">
       <div class="au-cluster">
         <button class="au-page-jump">1</button>
         <button class="au-page-jump au-page-jump--current">2</button>
@@ -660,9 +620,6 @@ Storefront listening on WEB_PORT</pre>
     </article>
     <article data-au-component="audit-header" data-au-title="Audit header" data-au-note="Table headers stay muted and structurally neutral." data-au-avalonia="Border" data-au-class="au-audit-header" data-au-desktop-class="auditTableHeader">
       <div class="au-audit-header">Time · Kind · Message</div>
-    </article>
-    <article data-au-component="page-jump-current" data-au-title="Current page" data-au-note="The current page uses the selected fill." data-au-avalonia="Border" data-au-class="au-page-jump--current" data-au-desktop-class="auditPageJumpInnerCurrent">
-      <button class="au-page-jump au-page-jump--current">2</button>
     </article>
   </section>
 
@@ -854,6 +811,7 @@ Storefront listening on WEB_PORT</pre>
         <span class="au-field-label">Saved servers</span>
         <div class="au-sign-in-list">
           <button class="au-choice au-choice--compact" type="button" title="http://127.0.0.1:9"><span class="au-choice-label">Demo</span></button>
+          <button class="au-button au-button--secondary au-button--compact" type="button">Remove</button>
         </div>
         <button class="au-button" type="button">Connect</button>
       </form>
@@ -869,8 +827,33 @@ Storefront listening on WEB_PORT</pre>
         <span class="au-field-label">Saved servers</span>
         <div class="au-sign-in-list">
           <button class="au-choice au-choice--compact" type="button" title="http://127.0.0.1:9"><span class="au-choice-label">Demo</span></button>
+          <button class="au-button au-button--secondary au-button--compact" type="button">Remove</button>
           <button class="au-button au-button--secondary" type="button">Add server</button>
         </div>
+      </form>
+    </article>
+    <article data-au-component="sign-in-password" data-au-title="Password sign-in" data-au-note="A localAdministrator Server asks for the admin password after the URL is tried. Desktop and Mobile render the same pane; the Demo connection never reaches this state, so it is documented here rather than photographed." data-au-avalonia="Border" data-au-class="au-sign-in">
+      <form class="au-sign-in au-stack">
+        <p class="au-eyebrow">Agent-Up Server</p>
+        <h2 class="au-page-title">Sign in</h2>
+        <p class="au-muted">Enter the administrator password to continue.</p>
+        <span class="au-field-label">Server URL</span>
+        <input class="au-input" value="http://127.0.0.1:9" readonly />
+        <span class="au-field-label">Admin password</span>
+        <input class="au-input" type="password" value="xxxxxxxxxxxx" readonly />
+        <button class="au-button" type="button">Sign in</button>
+        <p class="au-error-banner">The password was not accepted.</p>
+      </form>
+    </article>
+    <article data-au-component="sign-in-browser" data-au-title="Browser sign-in" data-au-note="A Server advertising browserSso issues a credential through the browser instead of a password. Examples/browser-sso is the runnable front door for this state; the OSS Server never emits it." data-au-avalonia="Border" data-au-class="au-sign-in">
+      <form class="au-sign-in au-stack">
+        <p class="au-eyebrow">Agent-Up Cloud</p>
+        <h2 class="au-page-title">Sign in</h2>
+        <span class="au-field-label">Browser sign-in</span>
+        <p class="au-muted">Continue in the browser to receive an access token.</p>
+        <button class="au-button" type="button">Continue</button>
+        <span class="au-field-label">Issued credential</span>
+        <p class="au-callout au-callout--warning">This Server requires an issued credential. Saved sign-ins still work; password login is not available.</p>
       </form>
     </article>
     <article data-au-component="tutorial" data-au-title="Tutorial actions" data-au-note="First-run next/back are compact product buttons, not marketing CTAs." data-au-avalonia="Border" data-au-class="au-tutorial-button" data-au-desktop-class="tutorialButton" data-au-desktop-host="Button">
@@ -906,41 +889,12 @@ Storefront listening on WEB_PORT</pre>
   </section>
 
   <section data-au-surface="mobile" data-au-title="Mobile" data-au-intro="Mobile uses the same catalog components as Desktop. Primary actions stay 44px; compact chrome keeps catalog size.">
-    <article data-au-component="mobile-bar" data-au-title="Top bar" data-au-note="The PWA and native chrome stay on the canonical canvas with a subtle divider, not a green outline. Title plus a compact Reload." data-au-avalonia="Border" data-au-class="au-mobile-bar">
+    <article data-au-component="mobile-bar" data-au-title="Top bar" data-au-note="The PWA and native chrome stay on the canonical canvas with a subtle divider, not a floating card. A screen names the title it shows and which controls it carries; AppNavBar takes the same title as a prop." data-au-avalonia="Border" data-au-class="au-mobile-bar" data-au-parts="menu title reload" data-au-props-examples="title=Git; parts=menu title|Git top bar|Inner Git pages keep the hamburger and the Git title.;;title=Changes; parts=back title|Back bar|Inner Git Review and History return through the nav-bar back control.;;title=History; parts=back title|History back bar|History is an inner page. Back returns to Git.;;parts=menu|Agents top bar|The picker chrome is the hamburger only until a session is open.;;title=Settings; parts=menu title reload|Settings top bar|Settings keeps Reload next to the title.">
       <div class="au-mobile-bar">
-        <span class="au-title-tool au-chrome-icon"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></span>
-        <strong>Harbor Shop</strong>
-        <button class="au-button au-button--secondary au-button--compact" type="button">Reload</button>
-      </div>
-    </article>
-    <article data-au-component="mobile-bar-git" data-au-title="Git top bar" data-au-note="Inner Git pages keep the hamburger and the Git title." data-au-avalonia="Border" data-au-class="au-mobile-bar">
-      <div class="au-mobile-bar">
-        <span class="au-title-tool au-chrome-icon"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></span>
-        <strong>Git</strong>
-      </div>
-    </article>
-    <article data-au-component="mobile-bar-agents" data-au-title="Agents top bar" data-au-note="The picker chrome is the hamburger only until a session is open." data-au-avalonia="Border" data-au-class="au-mobile-bar">
-      <div class="au-mobile-bar">
-        <span class="au-title-tool au-chrome-icon"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></span>
-      </div>
-    </article>
-    <article data-au-component="mobile-bar-settings" data-au-title="Settings top bar" data-au-note="Settings keeps Reload next to the title." data-au-avalonia="Border" data-au-class="au-mobile-bar">
-      <div class="au-mobile-bar">
-        <span class="au-title-tool au-chrome-icon"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></span>
-        <strong>Settings</strong>
-        <button class="au-button au-button--secondary au-button--compact" type="button">Reload</button>
-      </div>
-    </article>
-    <article data-au-component="mobile-bar-back" data-au-title="Back bar" data-au-note="Inner Git Review and History return through the nav-bar back control." data-au-avalonia="Border" data-au-class="au-mobile-bar">
-      <div class="au-mobile-bar">
-        <span class="au-title-tool au-chrome-icon">‹</span>
-        <strong>Changes</strong>
-      </div>
-    </article>
-    <article data-au-component="mobile-bar-history" data-au-title="History back bar" data-au-note="History is an inner page. Back returns to Git." data-au-avalonia="Border" data-au-class="au-mobile-bar">
-      <div class="au-mobile-bar">
-        <span class="au-title-tool au-chrome-icon">‹</span>
-        <strong>History</strong>
+        <span class="au-title-tool au-chrome-icon" data-au-part="menu"><span data-au-icon="menu"></span></span>
+        <span class="au-title-tool au-chrome-icon" data-au-part="back">‹</span>
+        <strong data-au-part="title" data-au-text="title">Harbor Shop</strong>
+        <button class="au-button au-button--secondary au-button--compact" type="button" data-au-part="reload">Reload</button>
       </div>
     </article>
     <article data-au-component="drawer" data-au-title="Navigation drawer" data-au-note="The Mobile overlay rail uses the same canvas as the Desktop rail. Contrast comes from the selected workspace row and a hairline edge, not a raised grey panel. Server shows only the signed-in host plus Logout." data-au-avalonia="Border" data-au-class="au-drawer">
@@ -960,82 +914,22 @@ Storefront listening on WEB_PORT</pre>
         </div>
       </div>
     </article>
-    <article data-au-component="mobile-tab-bar" data-au-title="Bottom tabs" data-au-note="Workspace chrome is Apps, Git, Agents, then Settings. Each tab has a 20px outline icon plus label. Selected uses the catalog subtab selected state, which is neutral." data-au-avalonia="Border" data-au-class="au-mobile-tab-bar">
+    <article data-au-component="mobile-tab-bar" data-au-title="Bottom tabs" data-au-note="Workspace chrome is Apps, Git, Agents, then Settings. Each tab has a 20px outline icon plus label. Selected uses the catalog subtab selected state, which is neutral." data-au-avalonia="Border" data-au-class="au-mobile-tab-bar" data-au-states="selected=au-nav-tab/au-subtab--selected" data-au-state-examples="selected:1|Git bottom tab|Git is the selected workspace tab.;selected:2|Agents bottom tab|Agents is the selected workspace tab.;selected:3|Settings bottom tab|Settings is the selected workspace tab.">
       <div class="au-mobile-tab-bar au-cluster" role="tablist">
         <button class="au-subtab au-nav-tab au-subtab--selected" aria-selected="true">
-          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
+          <span data-au-icon="apps"></span>
           Apps
         </button>
         <button class="au-subtab au-nav-tab">
-          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 16.2 16 8"></path><path d="M18 8.6v6.8"></path></svg>
+          <span data-au-icon="git"></span>
           Git
         </button>
         <button class="au-subtab au-nav-tab">
-          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9"></path><path d="M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z"></path></svg>
+          <span data-au-icon="agents"></span>
           Agents
         </button>
         <button class="au-subtab au-nav-tab">
-          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          Settings
-        </button>
-      </div>
-    </article>
-    <article data-au-component="mobile-tab-bar-git" data-au-title="Git bottom tab" data-au-note="Git is the selected workspace tab." data-au-avalonia="Border" data-au-class="au-mobile-tab-bar">
-      <div class="au-mobile-tab-bar au-cluster" role="tablist">
-        <button class="au-subtab au-nav-tab">
-          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
-          Apps
-        </button>
-        <button class="au-subtab au-nav-tab au-subtab--selected" aria-selected="true">
-          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 16.2 16 8"></path><path d="M18 8.6v6.8"></path></svg>
-          Git
-        </button>
-        <button class="au-subtab au-nav-tab">
-          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9"></path><path d="M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z"></path></svg>
-          Agents
-        </button>
-        <button class="au-subtab au-nav-tab">
-          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          Settings
-        </button>
-      </div>
-    </article>
-    <article data-au-component="mobile-tab-bar-agents" data-au-title="Agents bottom tab" data-au-note="Agents is the selected workspace tab." data-au-avalonia="Border" data-au-class="au-mobile-tab-bar">
-      <div class="au-mobile-tab-bar au-cluster" role="tablist">
-        <button class="au-subtab au-nav-tab">
-          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
-          Apps
-        </button>
-        <button class="au-subtab au-nav-tab">
-          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 16.2 16 8"></path><path d="M18 8.6v6.8"></path></svg>
-          Git
-        </button>
-        <button class="au-subtab au-nav-tab au-subtab--selected" aria-selected="true">
-          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9"></path><path d="M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z"></path></svg>
-          Agents
-        </button>
-        <button class="au-subtab au-nav-tab">
-          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          Settings
-        </button>
-      </div>
-    </article>
-    <article data-au-component="mobile-tab-bar-settings" data-au-title="Settings bottom tab" data-au-note="Settings is the selected workspace tab." data-au-avalonia="Border" data-au-class="au-mobile-tab-bar">
-      <div class="au-mobile-tab-bar au-cluster" role="tablist">
-        <button class="au-subtab au-nav-tab">
-          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
-          Apps
-        </button>
-        <button class="au-subtab au-nav-tab">
-          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 16.2 16 8"></path><path d="M18 8.6v6.8"></path></svg>
-          Git
-        </button>
-        <button class="au-subtab au-nav-tab">
-          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9"></path><path d="M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z"></path></svg>
-          Agents
-        </button>
-        <button class="au-subtab au-nav-tab au-subtab--selected" aria-selected="true">
-          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span data-au-icon="settings"></span>
           Settings
         </button>
       </div>
@@ -1216,40 +1110,40 @@ Storefront listening on WEB_PORT</pre>
   </section>
 
   <section data-au-surface="screens" data-au-title="Assembled screens" data-au-intro="A screen is a layout of catalog components. Desktop and Mobile consume the same region tree. Do not restyle a second screenshot shell.">
-    <article data-au-component="screen" data-au-title="Screen" data-au-note="The window is a column of catalog chrome plus a body. Capture size is a persist concern, not a second theme." data-au-avalonia="Border" data-au-class="au-screen" data-au-desktop-class="productScreen">
+    <article data-au-component="screen" data-au-title="Screen" data-au-note="The window is a column of catalog chrome plus a body. Capture size is a persist concern, not a second theme." data-au-avalonia="Border" data-au-class="au-screen">
       <div class="au-screen"></div>
     </article>
-    <article data-au-component="screen-body" data-au-title="Screen body" data-au-note="Desktop body is the rail beside the main column. Mobile does not use this grid." data-au-avalonia="Border" data-au-class="au-screen-body" data-au-desktop-class="productScreenBody">
+    <article data-au-component="screen-body" data-au-title="Screen body" data-au-note="Desktop body is the rail beside the main column. Mobile does not use this grid." data-au-avalonia="Border" data-au-class="au-screen-body">
       <div class="au-screen-body"></div>
     </article>
-    <article data-au-component="screen-rail" data-au-title="Screen rail" data-au-note="Rail layout sits on au-rail paint. Do not invent a screenshot-only sidebar." data-au-avalonia="Border" data-au-class="au-screen-rail" data-au-desktop-class="productScreenRail">
+    <article data-au-component="screen-rail" data-au-title="Screen rail" data-au-note="Rail layout sits on au-rail paint. Do not invent a screenshot-only sidebar." data-au-avalonia="Border" data-au-class="au-screen-rail">
       <aside class="au-rail au-screen-rail"></aside>
     </article>
-    <article data-au-component="screen-main" data-au-title="Screen main" data-au-note="Tabs, subtabs, then a pane. The pane is au-pane, not a full-bleed slab." data-au-avalonia="Border" data-au-class="au-screen-main" data-au-desktop-class="productScreenMain">
+    <article data-au-component="screen-main" data-au-title="Screen main" data-au-note="Tabs, subtabs, then a pane. The pane is au-pane, not a full-bleed slab." data-au-avalonia="Border" data-au-class="au-screen-main">
       <main class="au-screen-main"></main>
     </article>
-    <article data-au-component="screen-tabs" data-au-title="Screen tab strip" data-au-note="Host for au-app-tab. The strip is structure; selection stays on the tab." data-au-avalonia="Border" data-au-class="au-screen-tabs" data-au-desktop-class="productScreenTabs">
+    <article data-au-component="screen-tabs" data-au-title="Screen tab strip" data-au-note="Host for au-app-tab. The strip is structure; selection stays on the tab." data-au-avalonia="Border" data-au-class="au-screen-tabs">
       <div class="au-screen-tabs"></div>
     </article>
-    <article data-au-component="screen-subtabs" data-au-title="Screen subtab strip" data-au-note="Host for au-subtab. Secondary selection stays neutral." data-au-avalonia="Border" data-au-class="au-screen-subtabs" data-au-desktop-class="productScreenSubtabs">
+    <article data-au-component="screen-subtabs" data-au-title="Screen subtab strip" data-au-note="Host for au-subtab. Secondary selection stays neutral." data-au-avalonia="Border" data-au-class="au-screen-subtabs">
       <div class="au-screen-subtabs"></div>
     </article>
-    <article data-au-component="screen-toolbar" data-au-title="Screen toolbar" data-au-note="Host for the address bar under application subtabs. Empty when the scene has no browser chrome." data-au-avalonia="Border" data-au-class="au-screen-toolbar" data-au-desktop-class="productScreenToolbar">
+    <article data-au-component="screen-toolbar" data-au-title="Screen toolbar" data-au-note="Host for the address bar under application subtabs. Empty when the scene has no browser chrome." data-au-avalonia="Border" data-au-class="au-screen-toolbar">
       <div class="au-screen-toolbar"></div>
     </article>
-    <article data-au-component="screen-pane" data-au-title="Screen pane slot" data-au-note="Working region. Pair with au-pane or a catalog surface; do not force a second screenshot shell." data-au-avalonia="Border" data-au-class="au-screen-pane" data-au-desktop-class="productScreenPane">
+    <article data-au-component="screen-pane" data-au-title="Screen pane slot" data-au-note="Working region. Pair with au-pane or a catalog surface; do not force a second screenshot shell." data-au-avalonia="Border" data-au-class="au-screen-pane">
       <div class="au-screen-pane"></div>
     </article>
-    <article data-au-component="screen-aside" data-au-title="Screen aside" data-au-note="Right rail for the Validation sidebar. Empty scenes omit it. Do not turn Validation into a full-bleed pane." data-au-avalonia="Border" data-au-class="au-screen-aside" data-au-desktop-class="productScreenAside">
+    <article data-au-component="screen-aside" data-au-title="Screen aside" data-au-note="Right rail for the Validation sidebar. Empty scenes omit it. Do not turn Validation into a full-bleed pane." data-au-avalonia="Border" data-au-class="au-screen-aside">
       <aside class="au-screen-aside"></aside>
     </article>
-    <article data-au-component="screen-center" data-au-title="Centered screen" data-au-note="Sign-in sits in the remaining canvas, not in an overlay." data-au-avalonia="Border" data-au-class="au-screen-center" data-au-desktop-class="productScreenCenter">
+    <article data-au-component="screen-center" data-au-title="Centered screen" data-au-note="Sign-in sits in the remaining canvas, not in an overlay." data-au-avalonia="Border" data-au-class="au-screen-center">
       <div class="au-screen-center"></div>
     </article>
-    <article data-au-component="screen-mobile-body" data-au-title="Mobile body" data-au-note="Scrolls between the top bar and the tab bar." data-au-avalonia="Border" data-au-class="au-screen-mobile-body" data-au-desktop-class="productScreenMobileBody">
+    <article data-au-component="screen-mobile-body" data-au-title="Mobile body" data-au-note="Scrolls between the top bar and the tab bar." data-au-avalonia="Border" data-au-class="au-screen-mobile-body">
       <div class="au-screen-mobile-body"></div>
     </article>
-    <article data-au-component="screen-overlay" data-au-title="Screen overlay" data-au-note="File viewer and capability modules sit above a scrim. The overlay is layout, not a second theme." data-au-avalonia="Border" data-au-class="au-screen-overlay" data-au-desktop-class="productScreenOverlay">
+    <article data-au-component="screen-overlay" data-au-title="Screen overlay" data-au-note="File viewer and capability modules sit above a scrim. The overlay is layout, not a second theme." data-au-avalonia="Border" data-au-class="au-screen-overlay">
       <div class="au-scrim au-screen-overlay"></div>
     </article>
   </section>

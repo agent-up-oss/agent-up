@@ -372,6 +372,8 @@ const agentUpTheme = Object.freeze({
       borderRadius: 12,
       fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 12,
+      borderLeftWidth: 2,
+      borderLeftColor: "#00b85059",
     }),
     panel: Object.freeze({
       color: "#f5fbf7",
@@ -1064,70 +1066,10 @@ const agentUpTheme = Object.freeze({
       paddingVertical: 12,
       backgroundColor: "#00000000",
     }),
-    screen: Object.freeze({
-      minHeight: "100%",
-      color: "#f5fbf7",
-      backgroundColor: "#0a0b0c",
-    }),
-    screenBody: Object.freeze({
-      minHeight: 0,
-    }),
-    screenRail: Object.freeze({
-      minHeight: 0,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
-    }),
-    screenMain: Object.freeze({
-      minWidth: 0,
-      minHeight: 0,
-    }),
-    screenTabs: Object.freeze({
-      borderBottomWidth: 1,
-      borderBottomColor: "#ffffff14",
-      paddingHorizontal: 12,
-      paddingVertical: 0,
-    }),
-    screenSubtabs: Object.freeze({
-      borderBottomWidth: 1,
-      borderBottomColor: "#ffffff14",
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-    }),
     tabSep: Object.freeze({
       width: 1,
       height: 18,
       backgroundColor: "#ffffff29",
-    }),
-    screenToolbar: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderBottomWidth: 1,
-      borderBottomColor: "#ffffff14",
-    }),
-    screenPane: Object.freeze({
-      minHeight: 0,
-      paddingHorizontal: 0,
-      paddingVertical: 0,
-    }),
-    screenAside: Object.freeze({
-      minWidth: 0,
-      minHeight: 0,
-    }),
-    screenCenter: Object.freeze({
-      minHeight: 0,
-    }),
-    screenMobileBody: Object.freeze({
-      minHeight: 0,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
-    }),
-    screenOverlay: Object.freeze({
-      paddingHorizontal: 0,
-      paddingVertical: 0,
-    }),
-    fileViewerMobile: Object.freeze({
-      paddingHorizontal: 20,
-      paddingVertical: 20,
     }),
     gitLog: Object.freeze({
       minHeight: 192,
@@ -1135,15 +1077,6 @@ const agentUpTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 12,
-    }),
-    storefront: Object.freeze({
-      maxWidth: 736,
-      paddingHorizontal: 16,
-      paddingVertical: 20,
-    }),
-    capabilityCatalog: Object.freeze({
-      paddingHorizontal: 20,
-      paddingVertical: 20,
     }),
     fileViewer: Object.freeze({
       minHeight: 256,

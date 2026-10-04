@@ -7,7 +7,7 @@ import { agentUpTheme, auBox, auText } from '../dist/native/index.js';
 import catalog from '../dist/web/catalog.json' with { type: 'json' };
 import {
   camel,
-  layoutOnly,
+  layoutOnly, webOnly,
   parseCustomProperties,
   parseRules,
   parseSelector,
@@ -74,7 +74,7 @@ test('compileable class rules become native components and Avalonia selectors', 
   for (const rule of rules) {
     for (const selector of rule.selectors) {
       const parsed = parseSelector(selector);
-      if (!parsed || layoutOnly.has(parsed.baseClass)) continue;
+      if (!parsed || layoutOnly.has(parsed.baseClass) || webOnly.has(parsed.baseClass)) continue;
       if (parsed.pseudo && parsed.pseudo !== 'disabled') continue;
       const className = parsed.modifierClass ?? parsed.baseClass;
       const visual = rule.declarations.some(([property]) =>

@@ -1,4 +1,4 @@
-import { camel, formatNumber, layoutOnly, nativeLiteral, parseSelector, toPx, varName } from './css.mjs';
+import { camel, formatNumber, layoutOnly, nativeLiteral, parseSelector, toPx, varName, webOnly } from './css.mjs';
 
 const boxKeys = new Set([
   'backgroundColor', 'borderWidth', 'borderColor', 'borderRadius',
@@ -22,7 +22,7 @@ export function emitNative(tokens, rules) {
   for (const rule of rules) {
     for (const selector of rule.selectors) {
       const parsed = parseSelector(selector);
-      if (!parsed || layoutOnly.has(parsed.baseClass)) continue;
+      if (!parsed || layoutOnly.has(parsed.baseClass) || webOnly.has(parsed.baseClass)) continue;
       if (parsed.pseudo && parsed.pseudo !== 'disabled') continue;
       if (parsed.selected) continue;
       const baseName = (parsed.modifierClass ?? parsed.baseClass).replace(/^au-/, '').replaceAll('--', '-');

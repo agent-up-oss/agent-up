@@ -10,8 +10,10 @@ import {
   framedSceneHtml,
   isLayoutShell,
   mobileSize,
+  sceneStylesheetHref,
   wrapSceneDocument,
 } from '../scripts/lib/screens.mjs';
+import { normaliseStates } from '../scripts/lib/states.mjs';
 
 const repository = fileURLToPath(new URL('../..', import.meta.url));
 const css = await readFile(new URL('../dist/web/screenshots.css', import.meta.url), 'utf8');
@@ -23,7 +25,7 @@ const components = Object.fromEntries(
 const allowed = new Set([...css.matchAll(/\.((?:au-[a-z0-9-]+))/g)].map(match => match[1]));
 const requiredViews = {
   desktop: ['sign-in', 'workspaces', 'applications', 'console', 'git', 'history', 'agents', 'diagnostics', 'metrics', 'validation', 'database', 'capabilities', 'file-viewer'],
-  mobile: ['sign-in', 'workspaces', 'apps', 'git', 'review', 'history', 'agents', 'settings', 'file-viewer'],
+  mobile: ['sign-in', 'workspaces', 'apps', 'git', 'review', 'history', 'agents', 'settings', 'file-viewer', 'agent', 'application', 'workspace-list'],
 };
 
 test('assembled screens pair every scene for the showcase', () => {
@@ -50,7 +52,7 @@ test('framed screen HTML is a catalog fragment the showcase can mount', () => {
     assert.match(html, /au-screen/);
     assert.doesNotMatch(html, /au-screenshot-/);
     assert.doesNotMatch(html, /<!DOCTYPE html>/);
-    assert.equal(html, wrapSceneDocument(scene, css).match(/<body class="au-theme">\n([\s\S]*)\n<\/body>/)?.[1]);
+    assert.equal(html, wrapSceneDocument(scene).match(/<body class="au-theme">\n([\s\S]*)\n<\/body>/)?.[1]);
   }
 });
 
@@ -69,7 +71,7 @@ test('assembled scenes cover every major Desktop and Mobile view once', () => {
 test('assembled screens insert catalog component HTML instead of restating it', () => {
   const missing = [];
   for (const scene of assembled.scenes) {
-    const html = wrapSceneDocument(scene, css);
+    const html = wrapSceneDocument(scene);
     assert.ok(scene.components.length > 0, `${scene.id} uses no catalog components`);
     const classes = [...html.matchAll(/class="([^"]+)"/g)]
       .flatMap(match => match[1].split(/\s+/))
@@ -83,7 +85,12 @@ test('assembled screens insert catalog component HTML instead of restating it', 
         missing.push(`${scene.id} unknown component ${id}`);
         continue;
       }
-      if (!isLayoutShell(component.html) && !html.includes(component.html)) {
+      // A component the scene parameterised differs from its catalog example: a state moved a
+      // declared modifier, which is neutralised on both sides, and a prop replaced copy, which
+      // cannot be re-derived, so the generator recorded the resolved fragment to compare with.
+      const expected = scene.componentFragments[id] ?? component.html;
+      const sceneHtml = normaliseStates(html, scene.stateModifiers);
+      if (!isLayoutShell(expected) && !sceneHtml.includes(normaliseStates(expected, scene.stateModifiers))) {
         missing.push(`${scene.id} missing catalog HTML for ${id}`);
       }
       if (!classes.includes(component.rootClass)) missing.push(`${scene.id} missing class ${component.rootClass}`);

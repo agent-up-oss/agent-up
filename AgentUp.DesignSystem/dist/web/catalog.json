@@ -12,6 +12,11 @@
           "avalonia": "Window",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-theme",
           "classes": [
             "au-theme"
@@ -25,6 +30,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-swatch",
           "classes": [
             "au-cluster",
@@ -39,6 +49,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-heading",
           "classes": [
             "au-eyebrow",
@@ -63,6 +78,11 @@
           "avalonia": "Button",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-button",
           "classes": [
             "au-cluster",
@@ -80,6 +100,11 @@
           "avalonia": "TextBox",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-input",
           "classes": [
             "au-stack",
@@ -95,6 +120,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-badge",
           "classes": [
             "au-cluster",
@@ -118,6 +148,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-checkbox",
           "classes": [
             "au-cluster",
@@ -133,6 +168,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-card",
           "classes": [
             "au-grid",
@@ -150,6 +190,11 @@
           "avalonia": "Button",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-choice",
           "classes": [
             "au-stack",
@@ -167,6 +212,11 @@
           "avalonia": "Button",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-chat-thought",
           "classes": [
             "au-grid",
@@ -183,6 +233,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-chat-user",
           "classes": [
             "au-chat-user"
@@ -196,6 +251,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-chat-work",
           "classes": [
             "au-chat-work",
@@ -210,6 +270,11 @@
           "avalonia": "Button",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-chat-run",
           "classes": [
             "au-chat-run"
@@ -223,6 +288,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-chat-transcript",
           "classes": [
             "au-chat-transcript",
@@ -239,6 +309,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-agent-header",
           "classes": [
             "au-agent-header",
@@ -257,6 +332,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-agent-prompt",
           "classes": [
             "au-agent-prompt",
@@ -272,6 +352,11 @@
           "avalonia": "Button",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-choice",
           "classes": [
             "au-stack",
@@ -291,6 +376,11 @@
           "avalonia": "Button",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-tab",
           "classes": [
             "au-tabs",
@@ -306,6 +396,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-pane",
           "classes": [
             "au-pane",
@@ -321,6 +416,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-overlay-panel",
           "classes": [
             "au-overlay-panel",
@@ -336,6 +436,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-callout",
           "classes": [
             "au-callout"
@@ -349,6 +454,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-code",
           "classes": [
             "au-code"
@@ -369,6 +479,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-chrome",
           "classes": [
             "au-chrome",
@@ -395,6 +510,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-chrome",
           "classes": [
             "au-chrome",
@@ -415,6 +535,11 @@
           "avalonia": "Border",
           "desktopClass": "chromeButton",
           "desktopHost": "Button",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-chrome-button",
           "classes": [
             "au-cluster",
@@ -431,6 +556,11 @@
           "avalonia": "Border",
           "desktopClass": "chromeClose",
           "desktopHost": "Button",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-chrome-close",
           "classes": [
             "au-chrome-button",
@@ -446,6 +576,11 @@
           "avalonia": "Border",
           "desktopClass": "titleToolButton",
           "desktopHost": "Button",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-title-tool",
           "classes": [
             "au-cluster",
@@ -461,6 +596,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-chrome-title",
           "classes": [
             "au-chrome-title"
@@ -481,10 +621,21 @@
           "avalonia": "Border",
           "desktopClass": "wsEntry",
           "desktopHost": "ListBoxItem",
+          "states": "selected=au-workspace/au-workspace--selected",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [
+            {
+              "state": "selected:0",
+              "title": "Selected workspace",
+              "note": "The open checkout takes the accent tint plus a 2px accent rule.",
+              "html": "<div class=\"au-workspace au-workspace--selected\">\n        <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n        <span class=\"au-status-dot au-status-dot--healthy\"></span>\n        <span>\n          <strong class=\"au-workspace-name\">Harbor Shop</strong>\n          <small class=\"au-workspace-branch\">main</small>\n        </span>\n        <button class=\"au-workspace-delete\" type=\"button\">×</button>\n      </div>"
+            }
+          ],
           "rootClass": "au-workspace",
           "classes": [
             "au-workspace",
-            "au-workspace--selected",
             "au-lifecycle-button",
             "au-status-dot",
             "au-status-dot--healthy",
@@ -492,7 +643,7 @@
             "au-workspace-branch",
             "au-workspace-delete"
           ],
-          "html": "<div class=\"au-workspace au-workspace--selected\">\n        <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n        <span class=\"au-status-dot au-status-dot--healthy\"></span>\n        <span>\n          <strong class=\"au-workspace-name\">Harbor Shop</strong>\n          <small class=\"au-workspace-branch\">main</small>\n        </span>\n        <button class=\"au-workspace-delete\" type=\"button\">×</button>\n      </div>"
+          "html": "<div class=\"au-workspace\">\n        <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n        <span class=\"au-status-dot au-status-dot--healthy\"></span>\n        <span>\n          <strong class=\"au-workspace-name\">Harbor Shop</strong>\n          <small class=\"au-workspace-branch\">main</small>\n        </span>\n        <button class=\"au-workspace-delete\" type=\"button\">×</button>\n      </div>"
         },
         {
           "id": "workspace-head",
@@ -501,6 +652,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-workspace-head",
           "classes": [
             "au-workspace-head",
@@ -516,6 +672,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-overview",
           "classes": [
             "au-overview",
@@ -537,6 +698,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "wsName",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-workspace-name",
           "classes": [
             "au-workspace-name"
@@ -550,6 +716,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "wsBranch",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-workspace-branch",
           "classes": [
             "au-workspace-branch"
@@ -563,6 +734,11 @@
           "avalonia": "Border",
           "desktopClass": "wsAvatar",
           "desktopHost": "ListBoxItem",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-workspace-avatar",
           "classes": [
             "au-cluster",
@@ -578,6 +754,11 @@
           "avalonia": "Border",
           "desktopClass": "wsAddButton",
           "desktopHost": "Button",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-workspace-add",
           "classes": [
             "au-workspace-add"
@@ -591,6 +772,11 @@
           "avalonia": "Button",
           "desktopClass": "wsDeleteButton",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-workspace-delete",
           "classes": [
             "au-workspace-delete"
@@ -604,6 +790,11 @@
           "avalonia": "Border",
           "desktopClass": "wsLifecycleButton",
           "desktopHost": "Button",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-lifecycle-button",
           "classes": [
             "au-cluster",
@@ -627,6 +818,11 @@
           "avalonia": "Border",
           "desktopClass": "appTab",
           "desktopHost": "ListBoxItem",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-app-tab",
           "classes": [
             "au-cluster",
@@ -644,6 +840,30 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "selected=au-app-tab/au-app-tab--selected",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [
+            {
+              "state": "selected:1",
+              "title": "Agent tab selected",
+              "note": "The live ACP session is the primary selection when Agent is open.",
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
+            },
+            {
+              "state": "selected:2",
+              "title": "Git tab selected",
+              "note": "Working-tree review is the primary selection when Git is open.",
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
+            },
+            {
+              "state": "selected:3",
+              "title": "Application tab selected",
+              "note": "Storefront is the primary selection when the running app is open.",
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
+            }
+          ],
           "rootClass": "au-app-tab",
           "classes": [
             "au-cluster",
@@ -656,66 +876,42 @@
           "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
         },
         {
-          "id": "workspace-tabs-agent",
-          "title": "Agent tab selected",
-          "note": "The live ACP session is the primary selection when Agent is open.",
-          "avalonia": "Border",
-          "desktopClass": "",
-          "desktopHost": "",
-          "rootClass": "au-app-tab",
-          "classes": [
-            "au-cluster",
-            "au-app-tab",
-            "au-app-tab--selected",
-            "au-tab-sep",
-            "au-status-dot",
-            "au-status-dot--healthy"
-          ],
-          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
-        },
-        {
-          "id": "workspace-tabs-git",
-          "title": "Git tab selected",
-          "note": "Working-tree review is the primary selection when Git is open.",
-          "avalonia": "Border",
-          "desktopClass": "",
-          "desktopHost": "",
-          "rootClass": "au-app-tab",
-          "classes": [
-            "au-cluster",
-            "au-app-tab",
-            "au-app-tab--selected",
-            "au-tab-sep",
-            "au-status-dot",
-            "au-status-dot--healthy"
-          ],
-          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
-        },
-        {
-          "id": "workspace-tabs-applications",
-          "title": "Application tab selected",
-          "note": "Storefront is the primary selection when the running app is open.",
-          "avalonia": "Border",
-          "desktopClass": "",
-          "desktopHost": "",
-          "rootClass": "au-app-tab",
-          "classes": [
-            "au-cluster",
-            "au-app-tab",
-            "au-tab-sep",
-            "au-app-tab--selected",
-            "au-status-dot",
-            "au-status-dot--healthy"
-          ],
-          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
-        },
-        {
           "id": "subtab",
           "title": "Port and tool tabs",
-          "note": "The second row is secondary to the application tabs, so its selected state stays neutral: the active state layer, not the accent.",
+          "note": "The second row is secondary to the application tabs, so its selected state stays neutral: the active state layer, not the accent. Desktop builds the allocated port, then Console, Diagnostics, Metrics and Database.",
           "avalonia": "Border",
           "desktopClass": "subTab",
           "desktopHost": "ListBoxItem",
+          "states": "selected=au-subtab/au-subtab--selected",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [
+            {
+              "state": "selected:1",
+              "title": "Console subtab selected",
+              "note": "Console is still a secondary selection. It uses the active layer, not the accent underline.",
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-subtab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> 3000:9100</button>\n        <button class=\"au-subtab au-subtab--selected\">Console</button>\n        <button class=\"au-subtab\">Diagnostics</button>\n        <button class=\"au-subtab\">Metrics</button>\n        <button class=\"au-subtab\">Database</button>\n      </div>"
+            },
+            {
+              "state": "selected:2",
+              "title": "Diagnostics subtab selected",
+              "note": "The audit trail for the selected application sits beside Console.",
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-subtab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> 3000:9100</button>\n        <button class=\"au-subtab\">Console</button>\n        <button class=\"au-subtab au-subtab--selected\">Diagnostics</button>\n        <button class=\"au-subtab\">Metrics</button>\n        <button class=\"au-subtab\">Database</button>\n      </div>"
+            },
+            {
+              "state": "selected:3",
+              "title": "Metrics subtab selected",
+              "note": "CPU, memory and request duration for the selected application.",
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-subtab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> 3000:9100</button>\n        <button class=\"au-subtab\">Console</button>\n        <button class=\"au-subtab\">Diagnostics</button>\n        <button class=\"au-subtab au-subtab--selected\">Metrics</button>\n        <button class=\"au-subtab\">Database</button>\n      </div>"
+            },
+            {
+              "state": "selected:4",
+              "title": "Database subtab selected",
+              "note": "The database explorer for the selected application.",
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-subtab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> 3000:9100</button>\n        <button class=\"au-subtab\">Console</button>\n        <button class=\"au-subtab\">Diagnostics</button>\n        <button class=\"au-subtab\">Metrics</button>\n        <button class=\"au-subtab au-subtab--selected\">Database</button>\n      </div>"
+            }
+          ],
           "rootClass": "au-subtab",
           "classes": [
             "au-cluster",
@@ -724,24 +920,7 @@
             "au-status-dot",
             "au-status-dot--healthy"
           ],
-          "html": "<div class=\"au-cluster\">\n        <button class=\"au-subtab au-subtab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> 3000:9100</button>\n        <button class=\"au-subtab\">Console</button>\n      </div>"
-        },
-        {
-          "id": "subtab-console",
-          "title": "Console subtab selected",
-          "note": "Console is still a secondary selection. It uses the active layer, not the accent underline.",
-          "avalonia": "Border",
-          "desktopClass": "",
-          "desktopHost": "",
-          "rootClass": "au-subtab",
-          "classes": [
-            "au-cluster",
-            "au-subtab",
-            "au-status-dot",
-            "au-status-dot--healthy",
-            "au-subtab--selected"
-          ],
-          "html": "<div class=\"au-cluster\">\n        <button class=\"au-subtab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> 3000:9100</button>\n        <button class=\"au-subtab au-subtab--selected\">Console</button>\n      </div>"
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-subtab au-subtab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> 3000:9100</button>\n        <button class=\"au-subtab\">Console</button>\n        <button class=\"au-subtab\">Diagnostics</button>\n        <button class=\"au-subtab\">Metrics</button>\n        <button class=\"au-subtab\">Database</button>\n      </div>"
         },
         {
           "id": "storefront",
@@ -750,6 +929,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-storefront",
           "classes": [
             "au-storefront",
@@ -780,6 +964,11 @@
           "avalonia": "TextBox",
           "desktopClass": "addressBar",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-address-bar",
           "classes": [
             "au-cluster",
@@ -795,6 +984,11 @@
           "avalonia": "Border",
           "desktopClass": "browserButton",
           "desktopHost": "Button",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-browser-button",
           "classes": [
             "au-browser-button"
@@ -808,6 +1002,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-error-banner",
           "classes": [
             "au-error-banner"
@@ -828,6 +1027,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-console",
           "classes": [
             "au-console"
@@ -848,6 +1052,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-change-list",
           "classes": [
             "au-git-change-list",
@@ -872,6 +1081,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-toolbar",
           "classes": [
             "au-git-toolbar",
@@ -896,6 +1110,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-toolbar",
           "classes": [
             "au-git-toolbar",
@@ -921,6 +1140,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-heading",
           "classes": [
             "au-git-heading",
@@ -936,6 +1160,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-commit",
           "classes": [
             "au-git-commit",
@@ -951,6 +1180,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-commit",
           "classes": [
             "au-git-commit",
@@ -970,6 +1204,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-commit",
           "classes": [
             "au-stack",
@@ -1003,6 +1242,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-log",
           "classes": [
             "au-stack",
@@ -1031,6 +1275,11 @@
           "avalonia": "Border",
           "desktopClass": "gitTreeGuide",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-tree-guide",
           "classes": [
             "au-git-row",
@@ -1047,6 +1296,11 @@
           "avalonia": "Button",
           "desktopClass": "gitTreeToggle",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-tree-toggle",
           "classes": [
             "au-git-tree-toggle",
@@ -1061,6 +1315,11 @@
           "avalonia": "Button",
           "desktopClass": "gitTreeToggleCollapsed",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-tree-toggle--collapsed",
           "classes": [
             "au-git-tree-toggle",
@@ -1075,36 +1334,28 @@
           "avalonia": "Border",
           "desktopClass": "gitNodeRow",
           "desktopHost": "",
+          "states": "selected=au-git-row/au-git-row--selected",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "au-git-row--selected=gitNodeRowSelected",
+          "stateExamples": [
+            {
+              "state": "selected:0",
+              "title": "Open change",
+              "note": "Opening a file is the primary selection on this list. Many-of-many checkboxes stay neutral.",
+              "html": "<div class=\"au-git-row au-git-row--selected\">\n        <span class=\"au-checkbox au-checkbox--checked\"></span>\n        <span class=\"au-git-change-name\">PromoBanner.tsx</span>\n        <span class=\"au-git-status au-git-status--modified\">M</span>\n      </div>"
+            }
+          ],
           "rootClass": "au-git-row",
           "classes": [
             "au-git-row",
-            "au-git-row--selected",
             "au-checkbox",
             "au-checkbox--checked",
             "au-git-change-name",
             "au-git-status",
             "au-git-status--modified"
           ],
-          "html": "<div class=\"au-git-row au-git-row--selected\">\n        <span class=\"au-checkbox au-checkbox--checked\"></span>\n        <span class=\"au-git-change-name\">PromoBanner.tsx</span>\n        <span class=\"au-git-status au-git-status--modified\">M</span>\n      </div>"
-        },
-        {
-          "id": "git-row-selected",
-          "title": "Open change",
-          "note": "Opening a file is the primary selection on this list. Many-of-many checkboxes stay on the checkbox itself.",
-          "avalonia": "Border",
-          "desktopClass": "gitNodeRowSelected",
-          "desktopHost": "",
-          "rootClass": "au-git-row--selected",
-          "classes": [
-            "au-git-row",
-            "au-git-row--selected",
-            "au-checkbox",
-            "au-checkbox--checked",
-            "au-git-change-name",
-            "au-git-status",
-            "au-git-status--modified"
-          ],
-          "html": "<div class=\"au-git-row au-git-row--selected\">\n        <span class=\"au-checkbox au-checkbox--checked\"></span>\n        <span class=\"au-git-change-name\">PromoBanner.tsx</span>\n        <span class=\"au-git-status au-git-status--modified\">M</span>\n      </div>"
+          "html": "<div class=\"au-git-row\">\n        <span class=\"au-checkbox au-checkbox--checked\"></span>\n        <span class=\"au-git-change-name\">PromoBanner.tsx</span>\n        <span class=\"au-git-status au-git-status--modified\">M</span>\n      </div>"
         },
         {
           "id": "git-change-name",
@@ -1113,6 +1364,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "gitChangeName",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-change-name",
           "classes": [
             "au-git-change-name"
@@ -1126,6 +1382,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "gitChangeNameDirectory",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-change-name--directory",
           "classes": [
             "au-git-change-name",
@@ -1140,6 +1401,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-status",
           "classes": [
             "au-cluster",
@@ -1161,6 +1427,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-insertions",
           "classes": [
             "au-git-insertions"
@@ -1174,6 +1445,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-deletions",
           "classes": [
             "au-git-deletions"
@@ -1187,6 +1463,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-insertions--on-primary",
           "classes": [
             "au-button",
@@ -1202,6 +1483,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-deletions--on-primary",
           "classes": [
             "au-button",
@@ -1224,6 +1510,11 @@
           "avalonia": "Border",
           "desktopClass": "auditTableRow",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-audit-row",
           "classes": [
             "au-panel",
@@ -1239,6 +1530,18 @@
           "avalonia": "Border",
           "desktopClass": "auditPageJumpInner",
           "desktopHost": "",
+          "states": "current=au-page-jump/au-page-jump--current",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "au-page-jump--current=auditPageJumpInnerCurrent",
+          "stateExamples": [
+            {
+              "state": "current:0",
+              "title": "First page current",
+              "note": "The current page is a filled pill and the others stay neutral.",
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-page-jump au-page-jump--current\">1</button>\n        <button class=\"au-page-jump\">2</button>\n        <button class=\"au-page-jump\">3</button>\n      </div>"
+            }
+          ],
           "rootClass": "au-page-jump",
           "classes": [
             "au-cluster",
@@ -1254,25 +1557,16 @@
           "avalonia": "Border",
           "desktopClass": "auditTableHeader",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-audit-header",
           "classes": [
             "au-audit-header"
           ],
           "html": "<div class=\"au-audit-header\">Time · Kind · Message</div>"
-        },
-        {
-          "id": "page-jump-current",
-          "title": "Current page",
-          "note": "The current page uses the selected fill.",
-          "avalonia": "Border",
-          "desktopClass": "auditPageJumpInnerCurrent",
-          "desktopHost": "",
-          "rootClass": "au-page-jump--current",
-          "classes": [
-            "au-page-jump",
-            "au-page-jump--current"
-          ],
-          "html": "<button class=\"au-page-jump au-page-jump--current\">2</button>"
         }
       ]
     },
@@ -1288,6 +1582,11 @@
           "avalonia": "Border",
           "desktopClass": "metricsSummaryCard",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-metrics-card",
           "classes": [
             "au-metrics-card",
@@ -1302,6 +1601,11 @@
           "avalonia": "Border",
           "desktopClass": "metricsChartCard",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-metrics-chart",
           "classes": [
             "au-metrics-chart"
@@ -1322,6 +1626,11 @@
           "avalonia": "Border",
           "desktopClass": "validationSidebar",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-validation-sidebar",
           "classes": [
             "au-validation-sidebar",
@@ -1354,6 +1663,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-validation-sidebar",
           "classes": [
             "au-validation-sidebar",
@@ -1369,6 +1683,11 @@
           "avalonia": "Border",
           "desktopClass": "validationFlow",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-validation-flow",
           "classes": [
             "au-validation-flow",
@@ -1388,6 +1707,11 @@
           "avalonia": "Border",
           "desktopClass": "validationStage",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-validation-stage",
           "classes": [
             "au-stack",
@@ -1409,6 +1733,11 @@
           "avalonia": "Border",
           "desktopClass": "validationCheck",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-validation-check",
           "classes": [
             "au-stack",
@@ -1434,6 +1763,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-sign-in",
           "classes": [
             "au-sign-in",
@@ -1447,9 +1781,11 @@
             "au-choice",
             "au-choice--compact",
             "au-choice-label",
-            "au-button"
+            "au-button",
+            "au-button--secondary",
+            "au-button--compact"
           ],
-          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Server</p>\n        <h2 class=\"au-page-title\">Agent-Up Server</h2>\n        <p class=\"au-muted\">Choose a saved server or enter a URL. Switching replaces this window's local workspace and browser state.</p>\n        <span class=\"au-field-label\">Server URL</span>\n        <input class=\"au-input\" value=\"http://127.0.0.1:9\" readonly autofocus />\n        <span class=\"au-field-label\">Saved servers</span>\n        <div class=\"au-sign-in-list\">\n          <button class=\"au-choice au-choice--compact\" type=\"button\" title=\"http://127.0.0.1:9\"><span class=\"au-choice-label\">Demo</span></button>\n        </div>\n        <button class=\"au-button\" type=\"button\">Connect</button>\n      </form>"
+          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Server</p>\n        <h2 class=\"au-page-title\">Agent-Up Server</h2>\n        <p class=\"au-muted\">Choose a saved server or enter a URL. Switching replaces this window's local workspace and browser state.</p>\n        <span class=\"au-field-label\">Server URL</span>\n        <input class=\"au-input\" value=\"http://127.0.0.1:9\" readonly autofocus />\n        <span class=\"au-field-label\">Saved servers</span>\n        <div class=\"au-sign-in-list\">\n          <button class=\"au-choice au-choice--compact\" type=\"button\" title=\"http://127.0.0.1:9\"><span class=\"au-choice-label\">Demo</span></button>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Remove</button>\n        </div>\n        <button class=\"au-button\" type=\"button\">Connect</button>\n      </form>"
         },
         {
           "id": "sign-in-mobile",
@@ -1458,6 +1794,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-sign-in",
           "classes": [
             "au-sign-in",
@@ -1472,9 +1813,62 @@
             "au-choice",
             "au-choice--compact",
             "au-choice-label",
-            "au-button--secondary"
+            "au-button--secondary",
+            "au-button--compact"
           ],
-          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Server</p>\n        <h2 class=\"au-page-title\">Connect to server</h2>\n        <p class=\"au-muted\">Choose a saved server or enter a URL. Switching replaces this client's local workspace and browser state.</p>\n        <span class=\"au-field-label\">Server URL</span>\n        <input class=\"au-input\" value=\"http://127.0.0.1:9\" readonly />\n        <button class=\"au-button\" type=\"button\">Try and save</button>\n        <span class=\"au-field-label\">Saved servers</span>\n        <div class=\"au-sign-in-list\">\n          <button class=\"au-choice au-choice--compact\" type=\"button\" title=\"http://127.0.0.1:9\"><span class=\"au-choice-label\">Demo</span></button>\n          <button class=\"au-button au-button--secondary\" type=\"button\">Add server</button>\n        </div>\n      </form>"
+          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Server</p>\n        <h2 class=\"au-page-title\">Connect to server</h2>\n        <p class=\"au-muted\">Choose a saved server or enter a URL. Switching replaces this client's local workspace and browser state.</p>\n        <span class=\"au-field-label\">Server URL</span>\n        <input class=\"au-input\" value=\"http://127.0.0.1:9\" readonly />\n        <button class=\"au-button\" type=\"button\">Try and save</button>\n        <span class=\"au-field-label\">Saved servers</span>\n        <div class=\"au-sign-in-list\">\n          <button class=\"au-choice au-choice--compact\" type=\"button\" title=\"http://127.0.0.1:9\"><span class=\"au-choice-label\">Demo</span></button>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Remove</button>\n          <button class=\"au-button au-button--secondary\" type=\"button\">Add server</button>\n        </div>\n      </form>"
+        },
+        {
+          "id": "sign-in-password",
+          "title": "Password sign-in",
+          "note": "A localAdministrator Server asks for the admin password after the URL is tried. Desktop and Mobile render the same pane; the Demo connection never reaches this state, so it is documented here rather than photographed.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-sign-in",
+          "classes": [
+            "au-sign-in",
+            "au-stack",
+            "au-eyebrow",
+            "au-page-title",
+            "au-muted",
+            "au-field-label",
+            "au-input",
+            "au-button",
+            "au-error-banner"
+          ],
+          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Server</p>\n        <h2 class=\"au-page-title\">Sign in</h2>\n        <p class=\"au-muted\">Enter the administrator password to continue.</p>\n        <span class=\"au-field-label\">Server URL</span>\n        <input class=\"au-input\" value=\"http://127.0.0.1:9\" readonly />\n        <span class=\"au-field-label\">Admin password</span>\n        <input class=\"au-input\" type=\"password\" value=\"xxxxxxxxxxxx\" readonly />\n        <button class=\"au-button\" type=\"button\">Sign in</button>\n        <p class=\"au-error-banner\">The password was not accepted.</p>\n      </form>"
+        },
+        {
+          "id": "sign-in-browser",
+          "title": "Browser sign-in",
+          "note": "A Server advertising browserSso issues a credential through the browser instead of a password. Examples/browser-sso is the runnable front door for this state; the OSS Server never emits it.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-sign-in",
+          "classes": [
+            "au-sign-in",
+            "au-stack",
+            "au-eyebrow",
+            "au-page-title",
+            "au-field-label",
+            "au-muted",
+            "au-button",
+            "au-callout",
+            "au-callout--warning"
+          ],
+          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Cloud</p>\n        <h2 class=\"au-page-title\">Sign in</h2>\n        <span class=\"au-field-label\">Browser sign-in</span>\n        <p class=\"au-muted\">Continue in the browser to receive an access token.</p>\n        <button class=\"au-button\" type=\"button\">Continue</button>\n        <span class=\"au-field-label\">Issued credential</span>\n        <p class=\"au-callout au-callout--warning\">This Server requires an issued credential. Saved sign-ins still work; password login is not available.</p>\n      </form>"
         },
         {
           "id": "tutorial",
@@ -1483,6 +1877,11 @@
           "avalonia": "Border",
           "desktopClass": "tutorialButton",
           "desktopHost": "Button",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-tutorial-button",
           "classes": [
             "au-cluster",
@@ -1498,6 +1897,11 @@
           "avalonia": "Border",
           "desktopClass": "tutorialSecondaryButton",
           "desktopHost": "Button",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-tutorial-button--secondary",
           "classes": [
             "au-tutorial-button",
@@ -1519,6 +1923,11 @@
           "avalonia": "Border",
           "desktopClass": "dbListItem",
           "desktopHost": "ListBoxItem",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-list-item",
           "classes": [
             "au-stack",
@@ -1534,6 +1943,11 @@
           "avalonia": "TextBox",
           "desktopClass": "sqlEditor",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-code-editor",
           "classes": [
             "au-code-editor"
@@ -1547,6 +1961,11 @@
           "avalonia": "Button",
           "desktopClass": "dbRunButton",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-db-run",
           "classes": [
             "au-db-run"
@@ -1560,6 +1979,11 @@
           "avalonia": "Border",
           "desktopClass": "dbHeaderCell",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-db-header-cell",
           "classes": [
             "au-db-header-cell"
@@ -1573,6 +1997,11 @@
           "avalonia": "Border",
           "desktopClass": "dbDataCell",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-db-data-cell",
           "classes": [
             "au-db-data-cell"
@@ -1589,10 +2018,46 @@
         {
           "id": "mobile-bar",
           "title": "Top bar",
-          "note": "The PWA and native chrome stay on the canonical canvas with a subtle divider, not a green outline. Title plus a compact Reload.",
+          "note": "The PWA and native chrome stay on the canonical canvas with a subtle divider, not a floating card. A screen names the title it shows and which controls it carries; AppNavBar takes the same title as a prop.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "menu title reload",
+          "propsExamples": [
+            {
+              "props": "title=Git; parts=menu title",
+              "title": "Git top bar",
+              "note": "Inner Git pages keep the hamburger and the Git title.",
+              "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n        <strong>Git</strong>\n      </div>"
+            },
+            {
+              "props": "title=Changes; parts=back title",
+              "title": "Back bar",
+              "note": "Inner Git Review and History return through the nav-bar back control.",
+              "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\">‹</span>\n        <strong>Changes</strong>\n      </div>"
+            },
+            {
+              "props": "title=History; parts=back title",
+              "title": "History back bar",
+              "note": "History is an inner page. Back returns to Git.",
+              "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\">‹</span>\n        <strong>History</strong>\n      </div>"
+            },
+            {
+              "props": "parts=menu",
+              "title": "Agents top bar",
+              "note": "The picker chrome is the hamburger only until a session is open.",
+              "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n      </div>"
+            },
+            {
+              "props": "title=Settings; parts=menu title reload",
+              "title": "Settings top bar",
+              "note": "Settings keeps Reload next to the title.",
+              "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n        <strong>Settings</strong>\n        <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Reload</button>\n      </div>"
+            }
+          ],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-mobile-bar",
           "classes": [
             "au-mobile-bar",
@@ -1603,88 +2068,8 @@
             "au-button--secondary",
             "au-button--compact"
           ],
-          "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n        <strong>Harbor Shop</strong>\n        <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Reload</button>\n      </div>"
-        },
-        {
-          "id": "mobile-bar-git",
-          "title": "Git top bar",
-          "note": "Inner Git pages keep the hamburger and the Git title.",
-          "avalonia": "Border",
-          "desktopClass": "",
-          "desktopHost": "",
-          "rootClass": "au-mobile-bar",
-          "classes": [
-            "au-mobile-bar",
-            "au-title-tool",
-            "au-chrome-icon",
-            "au-nav-icon"
-          ],
-          "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n        <strong>Git</strong>\n      </div>"
-        },
-        {
-          "id": "mobile-bar-agents",
-          "title": "Agents top bar",
-          "note": "The picker chrome is the hamburger only until a session is open.",
-          "avalonia": "Border",
-          "desktopClass": "",
-          "desktopHost": "",
-          "rootClass": "au-mobile-bar",
-          "classes": [
-            "au-mobile-bar",
-            "au-title-tool",
-            "au-chrome-icon",
-            "au-nav-icon"
-          ],
-          "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n      </div>"
-        },
-        {
-          "id": "mobile-bar-settings",
-          "title": "Settings top bar",
-          "note": "Settings keeps Reload next to the title.",
-          "avalonia": "Border",
-          "desktopClass": "",
-          "desktopHost": "",
-          "rootClass": "au-mobile-bar",
-          "classes": [
-            "au-mobile-bar",
-            "au-title-tool",
-            "au-chrome-icon",
-            "au-nav-icon",
-            "au-button",
-            "au-button--secondary",
-            "au-button--compact"
-          ],
-          "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n        <strong>Settings</strong>\n        <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Reload</button>\n      </div>"
-        },
-        {
-          "id": "mobile-bar-back",
-          "title": "Back bar",
-          "note": "Inner Git Review and History return through the nav-bar back control.",
-          "avalonia": "Border",
-          "desktopClass": "",
-          "desktopHost": "",
-          "rootClass": "au-mobile-bar",
-          "classes": [
-            "au-mobile-bar",
-            "au-title-tool",
-            "au-chrome-icon"
-          ],
-          "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\">‹</span>\n        <strong>Changes</strong>\n      </div>"
-        },
-        {
-          "id": "mobile-bar-history",
-          "title": "History back bar",
-          "note": "History is an inner page. Back returns to Git.",
-          "avalonia": "Border",
-          "desktopClass": "",
-          "desktopHost": "",
-          "rootClass": "au-mobile-bar",
-          "classes": [
-            "au-mobile-bar",
-            "au-title-tool",
-            "au-chrome-icon"
-          ],
-          "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\">‹</span>\n        <strong>History</strong>\n      </div>"
+          "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n        <strong>Harbor Shop</strong>\n        <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Reload</button>\n      </div>",
+          "source": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\" data-au-part=\"menu\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n        <span class=\"au-title-tool au-chrome-icon\" data-au-part=\"back\">‹</span>\n        <strong data-au-part=\"title\" data-au-text=\"title\">Harbor Shop</strong>\n        <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\" data-au-part=\"reload\">Reload</button>\n      </div>"
         },
         {
           "id": "drawer",
@@ -1693,6 +2078,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-drawer",
           "classes": [
             "au-drawer",
@@ -1716,6 +2106,30 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "selected=au-nav-tab/au-subtab--selected",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [
+            {
+              "state": "selected:1",
+              "title": "Git bottom tab",
+              "note": "Git is the selected workspace tab.",
+              "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab\" aria-selected=\"false\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
+            },
+            {
+              "state": "selected:2",
+              "title": "Agents bottom tab",
+              "note": "Agents is the selected workspace tab.",
+              "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab\" aria-selected=\"false\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
+            },
+            {
+              "state": "selected:3",
+              "title": "Settings bottom tab",
+              "note": "Settings is the selected workspace tab.",
+              "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab\" aria-selected=\"false\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
+            }
+          ],
           "rootClass": "au-mobile-tab-bar",
           "classes": [
             "au-mobile-tab-bar",
@@ -1728,66 +2142,17 @@
           "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
         },
         {
-          "id": "mobile-tab-bar-git",
-          "title": "Git bottom tab",
-          "note": "Git is the selected workspace tab.",
-          "avalonia": "Border",
-          "desktopClass": "",
-          "desktopHost": "",
-          "rootClass": "au-mobile-tab-bar",
-          "classes": [
-            "au-mobile-tab-bar",
-            "au-cluster",
-            "au-subtab",
-            "au-nav-tab",
-            "au-nav-icon",
-            "au-subtab--selected"
-          ],
-          "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
-        },
-        {
-          "id": "mobile-tab-bar-agents",
-          "title": "Agents bottom tab",
-          "note": "Agents is the selected workspace tab.",
-          "avalonia": "Border",
-          "desktopClass": "",
-          "desktopHost": "",
-          "rootClass": "au-mobile-tab-bar",
-          "classes": [
-            "au-mobile-tab-bar",
-            "au-cluster",
-            "au-subtab",
-            "au-nav-tab",
-            "au-nav-icon",
-            "au-subtab--selected"
-          ],
-          "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
-        },
-        {
-          "id": "mobile-tab-bar-settings",
-          "title": "Settings bottom tab",
-          "note": "Settings is the selected workspace tab.",
-          "avalonia": "Border",
-          "desktopClass": "",
-          "desktopHost": "",
-          "rootClass": "au-mobile-tab-bar",
-          "classes": [
-            "au-mobile-tab-bar",
-            "au-cluster",
-            "au-subtab",
-            "au-nav-tab",
-            "au-nav-icon",
-            "au-subtab--selected"
-          ],
-          "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
-        },
-        {
           "id": "mobile-list",
           "title": "Workspace list",
           "note": "The Mobile list is the workspace row, not a second card language.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-workspace",
           "classes": [
             "au-workspace",
@@ -1806,6 +2171,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-app-list",
           "classes": [
             "au-app-list",
@@ -1833,6 +2203,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-doc-kicker",
           "classes": [
             "au-cluster",
@@ -1851,6 +2226,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-doc-what",
           "classes": [
             "au-doc-what",
@@ -1866,6 +2246,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-doc-meta",
           "classes": [
             "au-doc-meta",
@@ -1882,6 +2267,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-doc-focus",
           "classes": [
             "au-pane",
@@ -1898,6 +2288,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-doc-spine",
           "classes": [
             "au-doc-spine",
@@ -1915,6 +2310,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-doc-contract",
           "classes": [
             "au-doc-contract",
@@ -1930,6 +2330,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-doc-fork",
           "classes": [
             "au-doc-fork",
@@ -1947,6 +2352,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-doc-facts",
           "classes": [
             "au-doc-facts",
@@ -1964,6 +2374,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-doc-surfaces",
           "classes": [
             "au-doc-surfaces-wrap",
@@ -1981,6 +2396,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-doc-steps",
           "classes": [
             "au-doc-steps",
@@ -2000,6 +2420,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-doc-callout",
           "classes": [
             "au-callout",
@@ -2019,6 +2444,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-doc-next",
           "classes": [
             "au-doc-next",
@@ -2042,6 +2472,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-product-frame",
           "classes": [
             "au-product-frame",
@@ -2058,6 +2493,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-proof",
           "classes": [
             "au-proof",
@@ -2072,6 +2512,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-do-dont",
           "classes": [
             "au-do-dont",
@@ -2089,6 +2534,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-feature-card",
           "classes": [
             "au-feature-card",
@@ -2120,8 +2570,13 @@
           "title": "Screen",
           "note": "The window is a column of catalog chrome plus a body. Capture size is a persist concern, not a second theme.",
           "avalonia": "Border",
-          "desktopClass": "productScreen",
+          "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-screen",
           "classes": [
             "au-screen"
@@ -2133,8 +2588,13 @@
           "title": "Screen body",
           "note": "Desktop body is the rail beside the main column. Mobile does not use this grid.",
           "avalonia": "Border",
-          "desktopClass": "productScreenBody",
+          "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-screen-body",
           "classes": [
             "au-screen-body"
@@ -2146,8 +2606,13 @@
           "title": "Screen rail",
           "note": "Rail layout sits on au-rail paint. Do not invent a screenshot-only sidebar.",
           "avalonia": "Border",
-          "desktopClass": "productScreenRail",
+          "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-screen-rail",
           "classes": [
             "au-rail",
@@ -2160,8 +2625,13 @@
           "title": "Screen main",
           "note": "Tabs, subtabs, then a pane. The pane is au-pane, not a full-bleed slab.",
           "avalonia": "Border",
-          "desktopClass": "productScreenMain",
+          "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-screen-main",
           "classes": [
             "au-screen-main"
@@ -2173,8 +2643,13 @@
           "title": "Screen tab strip",
           "note": "Host for au-app-tab. The strip is structure; selection stays on the tab.",
           "avalonia": "Border",
-          "desktopClass": "productScreenTabs",
+          "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-screen-tabs",
           "classes": [
             "au-screen-tabs"
@@ -2186,8 +2661,13 @@
           "title": "Screen subtab strip",
           "note": "Host for au-subtab. Secondary selection stays neutral.",
           "avalonia": "Border",
-          "desktopClass": "productScreenSubtabs",
+          "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-screen-subtabs",
           "classes": [
             "au-screen-subtabs"
@@ -2199,8 +2679,13 @@
           "title": "Screen toolbar",
           "note": "Host for the address bar under application subtabs. Empty when the scene has no browser chrome.",
           "avalonia": "Border",
-          "desktopClass": "productScreenToolbar",
+          "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-screen-toolbar",
           "classes": [
             "au-screen-toolbar"
@@ -2212,8 +2697,13 @@
           "title": "Screen pane slot",
           "note": "Working region. Pair with au-pane or a catalog surface; do not force a second screenshot shell.",
           "avalonia": "Border",
-          "desktopClass": "productScreenPane",
+          "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-screen-pane",
           "classes": [
             "au-screen-pane"
@@ -2225,8 +2715,13 @@
           "title": "Screen aside",
           "note": "Right rail for the Validation sidebar. Empty scenes omit it. Do not turn Validation into a full-bleed pane.",
           "avalonia": "Border",
-          "desktopClass": "productScreenAside",
+          "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-screen-aside",
           "classes": [
             "au-screen-aside"
@@ -2238,8 +2733,13 @@
           "title": "Centered screen",
           "note": "Sign-in sits in the remaining canvas, not in an overlay.",
           "avalonia": "Border",
-          "desktopClass": "productScreenCenter",
+          "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-screen-center",
           "classes": [
             "au-screen-center"
@@ -2251,8 +2751,13 @@
           "title": "Mobile body",
           "note": "Scrolls between the top bar and the tab bar.",
           "avalonia": "Border",
-          "desktopClass": "productScreenMobileBody",
+          "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-screen-mobile-body",
           "classes": [
             "au-screen-mobile-body"
@@ -2264,8 +2769,13 @@
           "title": "Screen overlay",
           "note": "File viewer and capability modules sit above a scrim. The overlay is layout, not a second theme.",
           "avalonia": "Border",
-          "desktopClass": "productScreenOverlay",
+          "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-screen-overlay",
           "classes": [
             "au-scrim",
@@ -2287,6 +2797,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-card",
           "classes": [
             "au-card",
@@ -2308,6 +2823,11 @@
           "avalonia": "StackPanel",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-logo-lockup",
           "classes": [
             "au-logo-lockup"
@@ -2328,6 +2848,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-code",
           "classes": [
             "au-code"
@@ -2348,6 +2873,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-overlay-panel",
           "classes": [
             "au-overlay-panel",
@@ -2373,6 +2903,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-app-list",
           "classes": [
             "au-app-list",
@@ -2391,6 +2926,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-card",
           "classes": [
             "au-card",
@@ -2416,6 +2956,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-file-viewer",
           "classes": [
             "au-overlay-panel",
@@ -2457,6 +3002,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-file-viewer",
           "classes": [
             "au-overlay-panel",
@@ -2496,6 +3046,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-file-viewer-header",
           "classes": [
             "au-file-viewer-header",
@@ -2514,6 +3069,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-file-viewer-path",
           "classes": [
             "au-file-viewer-path"
@@ -2527,6 +3087,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-file-viewer-status",
           "classes": [
             "au-file-viewer-status"
@@ -2540,6 +3105,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-file-viewer-nav",
           "classes": [
             "au-file-viewer-nav",
@@ -2555,6 +3125,11 @@
           "avalonia": "Button",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-file-viewer-jump",
           "classes": [
             "au-file-viewer-jump"
@@ -2568,6 +3143,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-file-viewer-line",
           "classes": [
             "au-file-viewer-line",
@@ -2586,6 +3166,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-file-viewer-line--added",
           "classes": [
             "au-file-viewer-line",
@@ -2605,6 +3190,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-file-viewer-line--deleted",
           "classes": [
             "au-file-viewer-line",
@@ -2624,6 +3214,11 @@
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-file-viewer-line--hunk",
           "classes": [
             "au-file-viewer-line",
@@ -2641,6 +3236,11 @@
           "avalonia": "Border",
           "desktopClass": "fileViewerLineCurrent",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-file-viewer-line--current",
           "classes": [
             "au-file-viewer-line",
@@ -2659,6 +3259,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-file-viewer-gutter",
           "classes": [
             "au-file-viewer-gutter"
@@ -2672,6 +3277,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-syntax-keyword",
           "classes": [
             "au-cluster",
@@ -2691,6 +3301,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-syntax-string",
           "classes": [
             "au-syntax-string"
@@ -2704,6 +3319,11 @@
           "avalonia": "TextBlock",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-syntax-comment",
           "classes": [
             "au-syntax-comment"
@@ -2724,6 +3344,11 @@
           "avalonia": "Border",
           "desktopClass": "gitLogDetail",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-log-detail",
           "classes": [
             "au-git-log-detail",
@@ -2747,6 +3372,11 @@
           "avalonia": "Border",
           "desktopClass": "gitLogRow",
           "desktopHost": "ListBoxItem",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-log-row",
           "classes": [
             "au-git-log",
@@ -2769,13 +3399,24 @@
         {
           "id": "git-log-mobile",
           "title": "Mobile history",
-          "note": "Mobile history is graph-first: timestamps plus lane nodes. The used Demo log is two commits.",
+          "note": "Mobile history is graph-first: the selected commit detail sits above a track of timestamps plus lane nodes, which is the order GitHistoryPanel renders. The used Demo log is two commits.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-log",
           "classes": [
             "au-git-log",
+            "au-git-log-detail",
+            "au-git-log-subject",
+            "au-git-log-author",
+            "au-cluster",
+            "au-git-log-ref",
+            "au-git-log-ref--head",
             "au-git-log-track",
             "au-git-log-row",
             "au-git-log-time",
@@ -2786,7 +3427,7 @@
             "au-git-log-graph-node",
             "au-git-log-graph-node--filled"
           ],
-          "html": "<div class=\"au-git-log\">\n        <div class=\"au-git-log-track\">\n          <div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">02.10.26 14:33</span>\n            </div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">22.09.26 07:30</span>\n            </div>\n          </div>\n          <div class=\"au-git-log-graph-scroll\">\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"28\" height=\"28\" viewBox=\"0 0 28 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n              </svg>\n            </div>\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"28\" height=\"28\" viewBox=\"0 0 28 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n              </svg>\n            </div>\n          </div>\n        </div>\n      </div>"
+          "html": "<div class=\"au-git-log\">\n        <div class=\"au-git-log-detail\">\n          <span class=\"au-git-log-subject\">feat(storefront): add the weekly promo banner</span>\n          <span class=\"au-git-log-author\">Demo</span>\n          <div class=\"au-cluster\">\n            <span class=\"au-git-log-ref au-git-log-ref--head\">HEAD</span>\n          </div>\n        </div>\n        <div class=\"au-git-log-track\">\n          <div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">02.10.26 14:33</span>\n            </div>\n            <div class=\"au-git-log-row\">\n              <span class=\"au-git-log-time\">22.09.26 07:30</span>\n            </div>\n          </div>\n          <div class=\"au-git-log-graph-scroll\">\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"28\" height=\"28\" viewBox=\"0 0 28 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 14 L 7 28\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n              </svg>\n            </div>\n            <div class=\"au-git-log-row\">\n              <svg class=\"au-git-log-graph\" width=\"28\" height=\"28\" viewBox=\"0 0 28 28\" aria-hidden=\"true\">\n                <g class=\"au-git-log-lane-0\">\n                  <path class=\"au-git-log-graph-edge\" d=\"M 7 0 L 7 14\"></path>\n                  <circle class=\"au-git-log-graph-node au-git-log-graph-node--filled\" cx=\"7\" cy=\"14\" r=\"3.5\"></circle>\n                </g>\n              </svg>\n            </div>\n          </div>\n        </div>\n      </div>"
         },
         {
           "id": "git-log-graph",
@@ -2795,6 +3436,11 @@
           "avalonia": "Border",
           "desktopClass": "gitLogGraph",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-log-graph",
           "classes": [
             "au-git-log-graph",
@@ -2813,6 +3459,11 @@
           "avalonia": "Button",
           "desktopClass": "gitLogRef",
           "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
           "rootClass": "au-git-log-ref",
           "classes": [
             "au-cluster",

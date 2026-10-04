@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Agent-Up icons</title>
+</head>
+<body>
+  <!--
+    The single declaration of every product icon.
+
+    Agent-Up drew its icons three unrelated ways: hand-written inline SVG here, Ionicons by
+    name on Mobile, and Unicode glyphs in Avalonia TextBlocks on Desktop. Nothing made those
+    three agree, so a design-system screenshot could never match a real screenshot at the icon
+    level however well the rest of the screen was centralised.
+
+    The geometry lives here once and is emitted for each surface: inline SVG for HTML, a
+    StreamGeometry string for Avalonia, and a path list for react-native-svg. A surface adopting
+    the emitted icons is a separate change in that surface; what this file settles is that there
+    is one place the geometry comes from.
+
+    Every path is drawn on a 24x24 grid, stroked rather than filled, so one declaration works at
+    any size and inherits its colour from the text around it.
+  -->
+  <svg data-au-icon="menu" data-au-title="Menu" data-au-note="The Mobile top-bar drawer control and the Desktop sidebar toggle."><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+  <svg data-au-icon="reload" data-au-title="Reload" data-au-note="Re-reads Server-owned state for the selected workspace."><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 4v6h-6"></path></svg>
+  <svg data-au-icon="chevron-down" data-au-title="Chevron down" data-au-note="Expands a collapsed region, such as the Git branch picker."><path d="M6 10l6 6 6-6"></path></svg>
+  <svg data-au-icon="chevron-up" data-au-title="Chevron up" data-au-note="Collapses an expanded region."><path d="M6 14l6-6 6 6"></path></svg>
+  <svg data-au-icon="apps" data-au-title="Apps" data-au-note="The Apps workspace tab. Mobile draws this as Ionicons grid-outline today."><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
+  <svg data-au-icon="git" data-au-title="Git" data-au-note="The Git workspace tab. Mobile draws this as Ionicons git-branch-outline today."><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 16.2 16 8"></path><path d="M18 8.6v6.8"></path></svg>
+  <svg data-au-icon="agents" data-au-title="Agents" data-au-note="The Agents workspace tab. Mobile draws this as Ionicons chatbubbles-outline today."><path d="M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9"></path><path d="M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z"></path></svg>
+  <svg data-au-icon="settings" data-au-title="Settings" data-au-note="The Settings workspace tab. Mobile draws this as Ionicons settings-outline today."><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+</body>
+</html>
