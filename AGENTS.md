@@ -678,7 +678,28 @@ The Server starts even when `AGENTUP_ADMIN_PASSWORD` is unset; login succeeds on
 after that password is configured. For local development, Server, Desktop, and
 CLI load a repository-root `.env` file when present; see `.env.example`.
 MCP routes remain unauthenticated and must accept connections only from a
-loopback address, even when the REST listener is exposed to another subnet.
+loopback address, even when the REST listener is exposed to another subnet. The
+network restriction is the authentication, so the two must not be separated: do
+not relax the loopback check without putting a credential check in its place.
+
+An authenticated mode for non-loopback callers is planned and must not change
+that default. It reuses `ExternalBearerCredentialValidator` and the named
+operation permissions rather than adding a second token model; each endpoint
+requires the operation permission matching its slice; an unauthenticated
+non-loopback caller still receives `404` rather than `401`; and the hostname,
+issuer, and audience stay deployment configuration, so Agent-Up ships no default
+endpoint and depends on no particular identity provider. Two preconditions
+belong to that work. The `workspace` claim must be enforced on MCP tool
+**arguments**, because `WorkspaceBindingMiddleware` reads route values while MCP
+carries the target in the JSON-RPC body. And the advertised toolset must be
+filtered by the caller's `permissions`, which no MCP endpoint does today —
+`McpEndpointSessionProvider.ConfigureAsync` already receives the `HttpContext`
+and is where both belong.
+
+Several MCP tools identify their target with an absolute `worktreePath` on the
+Server host. That assumes the caller shares the Server's filesystem. New tools
+should accept a workspace id, and existing ones should gain it alongside the
+path rather than replacing it.
 
 Full guide: `docs/developer-guide/workspaces/index.md`.
 
@@ -1063,6 +1084,15 @@ satisfying. Receipts live in `.git/agent-up/verification/receipts.json` - outsid
 working tree, because a committed receipt would travel in a pull request and satisfy
 another machine's guard against bytes it never tested.
 
+That placement is deliberate and stays. It also means the evidence cannot be shown to
+anyone, so a separate **export** is planned: a report naming the checks, their states, the
+revision, and a digest over the covered file hashes - never the per-file hash map. The
+export is evidence to read, not an input to a gate, and the two types stay distinct so the
+confusion is not expressible: `verify guard` must never be satisfiable by an exported
+document, and that needs a test saying so. Skipped checks (`ciOnly`, wrong platform) are
+reported as skipped with a reason and never counted as proven; overstating there removes
+the only reason the document is worth anything.
+
 Order matters: **run verification before enqueueing commits.** `enqueue_commit` restores
 tracked files to their pre-change state, so a receipt produced afterwards would cover a
 working tree that no longer holds the change.
@@ -1265,6 +1295,8 @@ Read: `docs/user-docs/verification/index.md` and `docs/developer-guide/verificat
 Agent-Up uses declarative repository configuration through `agent-up.json`. Applications declare launch commands, port environment variables, browser paths, and Docker setup without source-code integration.
 
 Capability sections whose names match enabled runtime-kind modules are the preferred shape for ecosystem-aware requirements. First-party `dotnet` and `docker` use that same generic path. The registry `enabled.json` stores package id plus **package** version; `sdk` on a runtime entry is a **technology** version the module delivers. The Server loads enabled capability DLLs and calls `IRuntimeCapability` / `IAgentCapability`. The legacy `applications` list remains supported for executable-plus-arguments commands, and legacy Docker `services` remain supported for compatibility. ACP agents are listed from enabled agent-kind modules by module id, not a first-party enum.
+
+`CapabilityKind.Allowed` is `runtime` and `agent` today. A third kind, `forge`, is planned for repository hosting providers: a forge has no Nix closure to deliver and no ACP session to run, so it belongs beside the other two rather than inside either. It follows the pattern `AgentUp.Sdk.Agent` set — its own SDK project and an `IForgeCapability` contract — and is read-only to begin with, exposing the change proposal open against the current branch, its check results, its review threads with stable ids, and mergeability against the base branch. Those thread ids are what `enqueue_review_fix_commit` already requires as `reviewIssueId`. Forge credentials are Server-owned and per workspace, stored the way agent credentials are; they never reach `agent-up.json` and never reach a managed process environment. A workspace with no forge enabled must behave exactly as it does today, and the clients display that state without mutating it.
 
 Read: `docs/user-docs/configuration/index.md` and `docs/developer-guide/configuration/index.md`.
 
