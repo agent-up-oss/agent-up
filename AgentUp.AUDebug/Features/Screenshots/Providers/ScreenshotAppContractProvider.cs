@@ -16,6 +16,10 @@ public sealed class ScreenshotAppContractProvider : IScreenshotAppContract
         @"\.((?:au-[a-z0-9-]+))",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+    private static readonly Regex AriaStateAttribute = new(
+        "(aria-selected|aria-pressed|aria-current)=\"[^\"]*\"",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     private static readonly Regex LayoutShell = new(
         @"^<([a-z][a-z0-9]*)\b[^>]*>\s*</\1>$",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -47,10 +51,12 @@ public sealed class ScreenshotAppContractProvider : IScreenshotAppContract
         if (scene.Components.Count == 0)
             throw new InvalidOperationException($"{scene.Id} does not name catalog components to compose.");
 
+        var sceneHtml = NormaliseStates(html, scene.StateModifiers);
         foreach (var id in scene.Components)
         {
-            if (!catalog.TryGetValue(id, out var componentHtml))
+            if (!catalog.TryGetValue(id, out var catalogHtml))
                 throw new InvalidOperationException($"{scene.Id} references unknown catalog component '{id}'.");
+            var componentHtml = scene.ComponentFragments.TryGetValue(id, out var fragment) ? fragment : catalogHtml;
             if (IsLayoutShell(componentHtml))
             {
                 var missing = ShellClasses(componentHtml).Where(name => !htmlClasses.Contains(name)).ToArray();
@@ -59,9 +65,33 @@ public sealed class ScreenshotAppContractProvider : IScreenshotAppContract
                 continue;
             }
 
-            if (!html.Contains(componentHtml, StringComparison.Ordinal))
+            if (!sceneHtml.Contains(NormaliseStates(componentHtml, scene.StateModifiers), StringComparison.Ordinal))
                 throw new InvalidOperationException($"{scene.Id} HTML is missing catalog component '{id}'.");
         }
+    }
+
+    /// <summary>
+    /// Removes the state modifier classes a scene is allowed to have moved, and flattens the
+    /// aria attributes that track them.
+    /// </summary>
+    /// <remarks>
+    /// A scene composes catalog components and may set a declared state on one, so the markup
+    /// it renders differs from the catalog example in exactly those classes. Neutralising them
+    /// on both sides keeps this a verbatim comparison against the catalog for everything else,
+    /// rather than dropping to a weaker check because one class is allowed to move.
+    /// </remarks>
+    private static string NormaliseStates(string html, IReadOnlyList<string> modifiers)
+    {
+        var normalised = AriaStateAttribute.Replace(html, "$1=\"\u0000\"");
+        if (modifiers.Count == 0) return normalised;
+        var drop = modifiers.ToHashSet(StringComparer.Ordinal);
+        return HtmlClassAttribute.Replace(normalised, match =>
+        {
+            var kept = match.Groups[1].Value
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(name => !drop.Contains(name));
+            return $"class=\"{string.Join(' ', kept)}\"";
+        });
     }
 
     private string ReadCss()

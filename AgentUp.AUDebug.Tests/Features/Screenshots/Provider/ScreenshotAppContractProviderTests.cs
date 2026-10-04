@@ -148,6 +148,50 @@ public sealed class ScreenshotAppContractProviderTests
     }
 
     [Test]
+    public void Verify_acceptsADeclaredStateModifierMovedByTheScene()
+    {
+        var root = Repo();
+        ArrangeValid(
+            root,
+            html: StateHtml("Git"),
+            css: ".au-tab { color: black; } .au-tab--selected { color: white; }",
+            catalog: StateCatalog());
+        var paths = new DebugPathValidator(root);
+        var media = new ScreenshotMediaStore(paths);
+
+        Assert.DoesNotThrow(() => new ScreenshotAppContractProvider(paths, media).Verify(
+            Scene() with { Components = ["tabs"], StateModifiers = ["au-tab--selected"] }));
+    }
+
+    [Test]
+    public void Verify_declaringAStateModifierDoesNotExcuseOtherDifferences()
+    {
+        var root = Repo();
+        ArrangeValid(
+            root,
+            html: StateHtml("Commit"),
+            css: ".au-tab { color: black; } .au-tab--selected { color: white; }",
+            catalog: StateCatalog());
+        var paths = new DebugPathValidator(root);
+        var media = new ScreenshotMediaStore(paths);
+
+        Assert.That(
+            () => new ScreenshotAppContractProvider(paths, media).Verify(
+                Scene() with { Components = ["tabs"], StateModifiers = ["au-tab--selected"] }),
+            Throws.InvalidOperationException.With.Message.Contains("missing catalog component"));
+    }
+
+    /// <summary>The scene's markup: selection has moved to the second tab, whose label is given.</summary>
+    private static string StateHtml(string secondLabel)
+        => $"<div class=\"au-tab\">Overview</div><div class=\"au-tab au-tab--selected\">{secondLabel}</div>";
+
+    /// <summary>The catalog example: selection sits on the first tab, and the second reads "Git".</summary>
+    private static string StateCatalog()
+        => "{ \"surfaces\": [ { \"components\": [ { \"id\": \"tabs\", \"html\": \""
+           + "<div class=\\\"au-tab au-tab--selected\\\">Overview</div><div class=\\\"au-tab\\\">Git</div>"
+           + "\" } ] } ] }";
+
+    [Test]
     public void Verify_repositoryScenesComposeCatalog()
     {
         var root = RepositoryRootProvider.Find(TestContext.CurrentContext.TestDirectory)
