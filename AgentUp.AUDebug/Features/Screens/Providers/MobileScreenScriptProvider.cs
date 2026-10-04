@@ -55,6 +55,15 @@ public static class MobileScreenScriptProvider
               const innermost = matches.filter(node => !matches.some(other => other !== node && node.contains(other)));
               const target = innermost[0] || matches[0];
               if (!target) return null;
+              // Fill leaves the composer focused. Headless mobile Chromium then keeps the
+              // visual viewport on that field, so a control at the top of the shell — Go back
+              // after the agent prompts — is on the page and still misses every hit-test.
+              if (document.activeElement && document.activeElement !== target && typeof document.activeElement.blur === 'function') {
+                document.activeElement.blur();
+              }
+              if (typeof target.scrollIntoView === 'function') {
+                target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+              }
               const box = target.getBoundingClientRect();
               if (box.width === 0 || box.height === 0) return null;
               const fractions = [0.5, 0.25, 0.75, 0.1, 0.9];

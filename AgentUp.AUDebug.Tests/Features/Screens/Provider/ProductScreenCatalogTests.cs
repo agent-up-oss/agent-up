@@ -64,6 +64,24 @@ public sealed class ProductScreenCatalogTests
     }
 
     [Test]
+    public void Catalog_leavesInnerMobilePagesByRoutingInsteadOfTheBackControl()
+    {
+        var taps = new ProductScreenCatalog()
+            .Screens(ProductSurface.Mobile)
+            .SelectMany(screen => screen.Steps)
+            .Where(step => step.Kind == ScreenStepKind.Tap)
+            .Select(step => step.Target)
+            .ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(taps, Does.Contain("Open Codex"));
+            Assert.That(taps, Does.Not.Contain("Go back"));
+            Assert.That(taps, Does.Not.Contain("Codex"));
+        });
+    }
+
+    [Test]
     public void Catalog_sizesDesktopAndMobileForTheirOwnSurface()
     {
         var catalog = new ProductScreenCatalog();

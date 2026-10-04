@@ -40,6 +40,8 @@ public sealed class MobileScreenScriptProviderTests
         {
             Assert.That(script, Does.Contain("elementFromPoint"));
             Assert.That(script, Does.Contain("target.contains(hit)"));
+            Assert.That(script, Does.Contain("activeElement.blur"));
+            Assert.That(script, Does.Contain("scrollIntoView"));
         });
     }
 

@@ -130,10 +130,10 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
         [
             ScreenStepDto.Tap("Close sidebar", 1200),
             ScreenStepDto.Tap("Agents", 1500),
-            ScreenStepDto.Tap("Codex", 2500),
+            ScreenStepDto.Tap("Open Codex", 2500),
             .. MobilePrompt(FirstPrompt),
             .. MobilePrompt(SecondPrompt),
-            ScreenStepDto.Tap("Go back", 2500)
+            ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}/agents")
         ]),
         MobileScreen("git", "Mobile Git",
         [
@@ -159,7 +159,6 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
         ]),
         MobileScreen("review", "Mobile Git review",
         [
-            ScreenStepDto.Tap("Go back", 2500),
             ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}/git/review"),
             ScreenStepDto.Tap($"Select {ProductGridPath}"),
             ScreenStepDto.Tap($"Select {OrdersPath}"),
@@ -168,7 +167,6 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
         ]),
         MobileScreen("settings", "Mobile settings",
         [
-            ScreenStepDto.Tap("Go back", 2000),
             ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}"),
             ScreenStepDto.Tap("Settings", 2000),
             ScreenStepDto.Tap("Disable", 1500)
@@ -178,14 +176,12 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
         // navigates away from the workspace tabs the earlier routes depend on.
         MobileScreen("agent", "Mobile agent chat",
         [
-            ScreenStepDto.Tap("Go back", 2000),
             ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}/agents"),
-            ScreenStepDto.Tap("Codex", 2500),
+            ScreenStepDto.Tap("Open Codex", 2500),
             ScreenStepDto.Settle(1200)
         ]),
         MobileScreen("application", "Mobile application space",
         [
-            ScreenStepDto.Tap("Go back", 2000),
             ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}/application/Storefront", 4000)
         ]),
         MobileScreen("workspace-list", "Mobile workspace list",
