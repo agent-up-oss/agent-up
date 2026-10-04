@@ -148,12 +148,122 @@ public sealed class McpWorkspaceArgumentBinderTests
         Assert.That(decision.Allowed, Is.False);
     }
 
-    private sealed class Catalog(bool pathBelongs) : IBoundWorkspaceCatalog
+    [Test]
+    public async Task BindAsync_FillsAnOmittedWorktreePathFromTheBoundWorkspace()
+    {
+        var binder = new McpWorkspaceArgumentBinder(new Catalog(true, ServerDomain.WorktreePath));
+        var decision = await binder.BindAsync(
+            "ws-a",
+            new Dictionary<string, JsonElement>(),
+            ["worktreePath"],
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(decision.Allowed, Is.True);
+            Assert.That(decision.Arguments["worktreePath"].GetString(), Is.EqualTo(ServerDomain.WorktreePath));
+        });
+    }
+
+    [Test]
+    public async Task BindAsync_PinsTheWorkspaceIdInsteadOfThePathWhenTheToolTakesBoth()
+    {
+        var binder = new McpWorkspaceArgumentBinder(new Catalog(true, ServerDomain.WorktreePath));
+        var decision = await binder.BindAsync(
+            "ws-a",
+            new Dictionary<string, JsonElement>(),
+            ["workspaceId", "worktreePath"],
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(decision.Arguments["workspaceId"].GetString(), Is.EqualTo("ws-a"));
+            Assert.That(decision.Arguments.ContainsKey("worktreePath"), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task BindAsync_LeavesThePathAloneWhenTheBoundWorkspaceIsNotRegistered()
+    {
+        var binder = new McpWorkspaceArgumentBinder(new Catalog(true));
+        var decision = await binder.BindAsync(
+            "ws-a",
+            new Dictionary<string, JsonElement>(),
+            ["worktreePath"],
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(decision.Allowed, Is.True);
+            Assert.That(decision.Arguments.ContainsKey("worktreePath"), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task BindAsync_KeepsAWorktreePathTheCallerSuppliedToAPathOnlyTool()
+    {
+        var binder = new McpWorkspaceArgumentBinder(new Catalog(true, ServerDomain.SecondWorktreePath));
+        var decision = await binder.BindAsync(
+            "ws-a",
+            new Dictionary<string, JsonElement>
+            {
+                ["worktreePath"] = JsonSerializer.SerializeToElement(ServerDomain.WorktreePath)
+            },
+            ["worktreePath"],
+            CancellationToken.None);
+
+        Assert.That(decision.Arguments["worktreePath"].GetString(), Is.EqualTo(ServerDomain.WorktreePath));
+    }
+
+    [Test]
+    public async Task BindAsync_ReplacesTheOwnPathACallerSentWithTheBoundId()
+    {
+        var binder = new McpWorkspaceArgumentBinder(new Catalog(true, ServerDomain.WorktreePath));
+        var decision = await binder.BindAsync(
+            "ws-a",
+            new Dictionary<string, JsonElement>
+            {
+                ["worktreePath"] = JsonSerializer.SerializeToElement(ServerDomain.WorktreePath)
+            },
+            ["workspaceId", "worktreePath"],
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(decision.Allowed, Is.True);
+            Assert.That(decision.Arguments["workspaceId"].GetString(), Is.EqualTo("ws-a"));
+            Assert.That(decision.Arguments.ContainsKey("worktreePath"), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task BindAsync_DropsARepositoryPathFilterThatCouldStillReadAcrossWorkspaces()
+    {
+        var binder = new McpWorkspaceArgumentBinder(new Catalog(true, ServerDomain.WorktreePath));
+        var decision = await binder.BindAsync(
+            "ws-a",
+            new Dictionary<string, JsonElement>
+            {
+                ["repositoryPath"] = JsonSerializer.SerializeToElement(ServerDomain.RepositoryPath)
+            },
+            ["workspaceId", "repositoryPath"],
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(decision.Arguments["workspaceId"].GetString(), Is.EqualTo("ws-a"));
+            Assert.That(decision.Arguments.ContainsKey("repositoryPath"), Is.False);
+        });
+    }
+
+    private sealed class Catalog(bool pathBelongs, string? worktreePath = null) : IBoundWorkspaceCatalog
     {
         public Task<bool> PathTargetsWorkspaceAsync(
             string boundWorkspace,
             string path,
             CancellationToken cancellationToken)
             => Task.FromResult(pathBelongs);
+
+        public string? WorktreePathFor(string boundWorkspace) => worktreePath;
     }
 }

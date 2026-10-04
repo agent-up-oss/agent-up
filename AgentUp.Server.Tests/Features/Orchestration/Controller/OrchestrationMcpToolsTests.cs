@@ -68,7 +68,7 @@ public sealed class OrchestrationMcpToolsTests
                     .Build()
             ]);
 
-        var result = await _tools.StartWorkspace("/repos/inventory", CancellationToken.None);
+        var result = await _tools.StartWorkspace(worktreePath: "/repos/inventory");
 
         Assert.That(result.Succeeded, Is.True);
         var workspace = _registry.GetAll().Single();
@@ -85,7 +85,7 @@ public sealed class OrchestrationMcpToolsTests
             "Inventory",
             Display: new WorkspaceDisplayConfiguration("Agent 2 - Search", "Search flow"));
 
-        var result = await _tools.StartWorkspace("/repos/inventory", CancellationToken.None);
+        var result = await _tools.StartWorkspace(worktreePath: "/repos/inventory");
 
         Assert.That(result.Succeeded, Is.True);
         var workspace = _registry.GetAll().Single();
@@ -104,13 +104,73 @@ public sealed class OrchestrationMcpToolsTests
     {
         _configuration.Configuration = null;
 
-        var result = await _tools.StartWorkspace("/repos/missing-config", CancellationToken.None);
+        var result = await _tools.StartWorkspace(worktreePath: "/repos/missing-config");
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("agent-up.json was not found"));
         Assert.That(result.Message, Does.Contain("docs/user-docs/configuration/index.md"));
         Assert.That(result.Message, Does.Contain("ask the user"));
         Assert.That(_registry.GetAll(), Is.Empty);
+    }
+
+    [Test]
+    public async Task StartWorkspace_StartsAnAlreadyRegisteredWorkspaceNamedById()
+    {
+        _configuration.Configuration = new AgentUpConfiguration(
+            "App",
+            [new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.ApiCommand).At("/").Build()]);
+        await _tools.StartWorkspace(worktreePath: "/repos/app");
+        var registered = _registry.GetAll().Single();
+        await _tools.StopWorkspace(registered.Id);
+
+        var result = await _tools.StartWorkspace(workspaceId: registered.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            Assert.That(_registry.GetAll(), Has.Count.EqualTo(1));
+            Assert.That(_registry.GetById(registered.Id)!.State, Is.EqualTo(WorkspaceState.Running));
+        });
+    }
+
+    [Test]
+    public async Task StartWorkspace_RefusesAWorkspaceIdAndAWorktreePathTogether()
+    {
+        var result = await _tools.StartWorkspace("ws-a", "/repos/app");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("not both"));
+            Assert.That(_registry.GetAll(), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task StartWorkspace_RefusesNeitherAWorkspaceIdNorAWorktreePath()
+    {
+        var result = await _tools.StartWorkspace();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("Both were omitted"));
+            Assert.That(_registry.GetAll(), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task StartWorkspace_NamesAnUnregisteredWorkspaceRatherThanRegisteringIt()
+    {
+        var result = await _tools.StartWorkspace(workspaceId: "ws-missing");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("ws-missing"));
+            Assert.That(result.Message, Does.Contain("not registered"));
+            Assert.That(_registry.GetAll(), Is.Empty);
+        });
     }
 
     // The context resource is the one thing every agent reads before it does anything, so
@@ -213,7 +273,7 @@ public sealed class OrchestrationMcpToolsTests
         _configuration.Configuration = new AgentUpConfiguration(
             "App",
             [new ApplicationDefinitionBuilder("App", ServerDomain.ApiCommand).At("/").Build()]);
-        await _tools.StartWorkspace("/repos/app", CancellationToken.None);
+        await _tools.StartWorkspace(worktreePath: "/repos/app");
         var workspace = _registry.GetAll().Single();
         var tools = new OrchestrationMcpTools(
             CreateWorkspaceController(
@@ -241,7 +301,7 @@ public sealed class OrchestrationMcpToolsTests
         _configuration.Configuration = new AgentUpConfiguration(
             "App",
             [new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.ApiCommand).At("/").Build()]);
-        await _tools.StartWorkspace("/repos/app", CancellationToken.None);
+        await _tools.StartWorkspace(worktreePath: "/repos/app");
         var workspace = _registry.GetAll().Single();
 
         await _processOutput.AppendAsync(workspace.Id, "Web", "older");
@@ -270,7 +330,7 @@ public sealed class OrchestrationMcpToolsTests
         _configuration.Configuration = new AgentUpConfiguration(
             "App",
             [new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.ApiCommand).At("/").Build()]);
-        await _tools.StartWorkspace("/repos/app", CancellationToken.None);
+        await _tools.StartWorkspace(worktreePath: "/repos/app");
         var workspace = _registry.GetAll().Single();
 
         await _processOutput.AppendAsync(workspace.Id, "Web", "token=abc123");

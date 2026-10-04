@@ -1,7 +1,9 @@
 using AgentUp.Server.Features.Verification.Controllers;
 using AgentUp.Server.Features.Verification.DTOs;
 using AgentUp.Server.Features.Verification.Services;
+using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 using AgentUp.Verification.Features.Verification.Models;
 using AgentUp.Verification.Features.Verification.Providers;
 using AgentUp.Verification.Features.Verification.Services;
@@ -34,7 +36,8 @@ public sealed class VerificationMcpToolsTests
         VerificationConfiguration configuration,
         IReadOnlyDictionary<string, string> changed,
         InMemoryReceiptLedgerStore ledger,
-        ScriptedCheckRunner runner)
+        ScriptedCheckRunner runner,
+        WorkspaceRegistry? registry = null)
     {
         var plans = new VerificationPlanService(
             new StubVerificationConfigurationLoader(configuration),
@@ -45,19 +48,33 @@ public sealed class VerificationMcpToolsTests
             plans,
             new VerificationRunService(plans, ledger, runner, new FakeVerificationClock()),
             new VerificationGuardService(plans, ledger),
-            new VerificationReportService()));
+            new VerificationReportService(),
+            ServerTestComposition.CreateWorkspaceTargetController(
+                registry ?? ServerTestComposition.CreateRegistry())));
     }
 
+    // Every tool here resolves its target through one shared boundary, so the refusal is
+    // asserted once across the tools rather than repeated per tool.
     [Test]
-    public async Task PlanVerification_rejectsAMissingWorktreePath()
+    public async Task NoVerificationTool_actsWhenTheCallNamesNoWorkspace()
     {
-        var result = await ToolsOver(Rules(), Changed(ServerSource), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner())
-            .PlanVerification("  ", CancellationToken.None);
+        var tools = ToolsOver(Rules(), Changed(ServerSource), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner());
+
+        var results = new[]
+        {
+            await tools.PlanVerification(),
+            await tools.RunVerification(),
+            await tools.RunVerificationCheck("server"),
+            await tools.GuardVerification()
+        };
 
         Assert.Multiple(() =>
         {
-            Assert.That(result.Succeeded, Is.False);
-            Assert.That(result.Message, Does.Contain("worktreePath"));
+            foreach (var result in results)
+            {
+                Assert.That(result.Succeeded, Is.False);
+                Assert.That(result.Message, Does.Contain("worktreePath"));
+            }
         });
     }
 
@@ -65,7 +82,7 @@ public sealed class VerificationMcpToolsTests
     public async Task PlanVerification_reportsTheChecksTheStaticRulesRequire()
     {
         var result = await ToolsOver(Rules(), Changed(ServerSource), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner())
-            .PlanVerification(Worktree, CancellationToken.None);
+            .PlanVerification(worktreePath: Worktree);
 
         var plan = (VerificationPlanDto)result.Data!;
         Assert.Multiple(() =>
@@ -87,9 +104,10 @@ public sealed class VerificationMcpToolsTests
             plans,
             new VerificationRunService(plans, ledger, new ScriptedCheckRunner(), new FakeVerificationClock()),
             new VerificationGuardService(plans, ledger),
-            new VerificationReportService()));
+            new VerificationReportService(),
+            ServerTestComposition.CreateWorkspaceTargetController(ServerTestComposition.CreateRegistry())));
 
-        var result = await tools.PlanVerification(Worktree, CancellationToken.None);
+        var result = await tools.PlanVerification(worktreePath: Worktree);
 
         Assert.Multiple(() =>
         {
@@ -103,7 +121,7 @@ public sealed class VerificationMcpToolsTests
     public async Task GuardVerification_failsWhenARequiredCheckHasNeverRun()
     {
         var result = await ToolsOver(Rules(), Changed(ServerSource), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner())
-            .GuardVerification(Worktree, CancellationToken.None);
+            .GuardVerification(worktreePath: Worktree);
 
         Assert.Multiple(() =>
         {
@@ -119,8 +137,8 @@ public sealed class VerificationMcpToolsTests
         var ledger = new InMemoryReceiptLedgerStore();
         var tools = ToolsOver(Rules(), Changed(ServerSource), ledger, new ScriptedCheckRunner());
 
-        var run = await tools.RunVerification(Worktree, CancellationToken.None);
-        var guard = await tools.GuardVerification(Worktree, CancellationToken.None);
+        var run = await tools.RunVerification(worktreePath: Worktree);
+        var guard = await tools.GuardVerification(worktreePath: Worktree);
 
         Assert.Multiple(() =>
         {
@@ -136,11 +154,11 @@ public sealed class VerificationMcpToolsTests
         // Run the checks, then keep editing, then stop: the receipt must not still count.
         var ledger = new InMemoryReceiptLedgerStore();
         await ToolsOver(Rules(), Changed(ServerSource), ledger, new ScriptedCheckRunner())
-            .RunVerification(Worktree, CancellationToken.None);
+            .RunVerification(worktreePath: Worktree);
 
         var edited = new Dictionary<string, string>(StringComparer.Ordinal) { [ServerSource] = "sha256:edited-after-the-run" };
         var guard = await ToolsOver(Rules(), edited, ledger, new ScriptedCheckRunner())
-            .GuardVerification(Worktree, CancellationToken.None);
+            .GuardVerification(worktreePath: Worktree);
 
         Assert.Multiple(() =>
         {
@@ -158,7 +176,7 @@ public sealed class VerificationMcpToolsTests
                 Changed(ServerSource),
                 new InMemoryReceiptLedgerStore(),
                 new ScriptedCheckRunner())
-            .GuardVerification(Worktree, CancellationToken.None);
+            .GuardVerification(worktreePath: Worktree);
 
         var dto = (VerificationGuardDto)result.Data!;
         Assert.Multiple(() =>
@@ -173,7 +191,7 @@ public sealed class VerificationMcpToolsTests
     public async Task GuardVerification_failsWhenAChangedFileMatchesNoPathRule()
     {
         var result = await ToolsOver(Rules(), Changed(UnmappedSource), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner())
-            .GuardVerification(Worktree, CancellationToken.None);
+            .GuardVerification(worktreePath: Worktree);
 
         Assert.That(((VerificationGuardDto)result.Data!).UnmatchedFiles, Is.EqualTo(new[] { UnmappedSource }));
     }
@@ -185,7 +203,7 @@ public sealed class VerificationMcpToolsTests
         var runner = new ScriptedCheckRunner(exitCodes);
 
         var result = await ToolsOver(Rules(), Changed(ServerSource), new InMemoryReceiptLedgerStore(), runner)
-            .RunVerification(Worktree, CancellationToken.None);
+            .RunVerification(worktreePath: Worktree);
 
         Assert.Multiple(() =>
         {
@@ -199,7 +217,7 @@ public sealed class VerificationMcpToolsTests
     public async Task RunVerificationCheck_rejectsACheckTheChangesDoNotRequire()
     {
         var result = await ToolsOver(Rules(), Changed(ServerSource), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner())
-            .RunVerificationCheck(Worktree, "mobile", CancellationToken.None);
+            .RunVerificationCheck("mobile", worktreePath: Worktree);
 
         Assert.Multiple(() =>
         {
@@ -213,7 +231,7 @@ public sealed class VerificationMcpToolsTests
     {
         var runner = new ScriptedCheckRunner();
         var result = await ToolsOver(Rules(), Changed(ServerSource), new InMemoryReceiptLedgerStore(), runner)
-            .RunVerificationCheck(Worktree, "server", CancellationToken.None);
+            .RunVerificationCheck("server", worktreePath: Worktree);
 
         Assert.Multiple(() =>
         {
@@ -226,8 +244,64 @@ public sealed class VerificationMcpToolsTests
     public async Task RunVerification_saysThereIsNothingToRunWhenNothingChanged()
     {
         var result = await ToolsOver(Rules(), Changed(), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner())
-            .RunVerification(Worktree, CancellationToken.None);
+            .RunVerification(worktreePath: Worktree);
 
         Assert.That(result.Message, Does.Contain("Nothing to run"));
+    }
+
+    [Test]
+    public async Task PlanVerification_plansForARegisteredWorkspaceNamedById()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace().At(Worktree).Build());
+
+        var result = await ToolsOver(
+                Rules(),
+                Changed(ServerSource),
+                new InMemoryReceiptLedgerStore(),
+                new ScriptedCheckRunner(),
+                registry)
+            .PlanVerification(workspaceId: workspace.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            Assert.That(((VerificationPlanDto)result.Data!).Checks, Is.Not.Empty);
+        });
+    }
+
+    [Test]
+    public async Task PlanVerification_refusesAWorkspaceIdAndAWorktreePathTogether()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace().At(Worktree).Build());
+
+        var result = await ToolsOver(
+                Rules(),
+                Changed(ServerSource),
+                new InMemoryReceiptLedgerStore(),
+                new ScriptedCheckRunner(),
+                registry)
+            .PlanVerification(workspace.Id, Worktree);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("not both"));
+        });
+    }
+
+    [Test]
+    public async Task PlanVerification_namesAnUnregisteredWorkspaceRatherThanAMissingPath()
+    {
+        var result = await ToolsOver(Rules(), Changed(ServerSource), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner())
+            .PlanVerification(workspaceId: "ws-missing");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("ws-missing"));
+            Assert.That(result.Message, Does.Contain("not registered"));
+        });
     }
 }

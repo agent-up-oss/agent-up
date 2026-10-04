@@ -1,20 +1,29 @@
 using AgentUp.Server.Features.Commits.DTOs;
 using AgentUp.Server.Features.Commits.Controllers;
+using AgentUp.Server.Features.Workspaces.Controllers;
+using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Shared.Interfaces;
 
 namespace AgentUp.Server.Features.Commits.Services;
 
-public sealed class CommitQueueMcpService(CommitsController commits)
+/// <summary>
+/// The MCP-facing commit queue. Every tool names its target either by registered workspace
+/// id or by absolute worktree path, so a caller that does not share the Server's filesystem
+/// can still queue commits.
+/// </summary>
+public sealed class CommitQueueMcpService(CommitsController commits, WorkspaceTargetController workspaces)
 {
     public async Task<McpToolResult> EnqueueCommit(
-        string worktreePath,
         string slice,
         string message,
         IReadOnlyList<string> files,
+        string? workspaceId,
+        string? worktreePath,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(worktreePath))
-            return new McpToolResult(false, "worktreePath is required.");
+        var target = workspaces.Resolve(workspaceId, worktreePath);
+        if (!target.Resolved)
+            return TargetFailure(target);
         if (string.IsNullOrWhiteSpace(slice))
             return new McpToolResult(false, "slice is required.");
         if (string.IsNullOrWhiteSpace(message))
@@ -22,34 +31,21 @@ public sealed class CommitQueueMcpService(CommitsController commits)
         if (files.Count == 0)
             return new McpToolResult(false, "At least one file is required.");
 
-        try
-        {
-            var result = await commits.EnqueueAsync(worktreePath, new EnqueueRequest(slice, message, files), cancellationToken);
-            if (!result.Succeeded && result.Message.StartsWith("Queue operation failed:", StringComparison.Ordinal))
-                return new McpToolResult(false, "Commit queue operation failed.");
-
-            return new McpToolResult(result.Succeeded, result.Message, result);
-        }
-        catch (IOException)
-        {
-            return new McpToolResult(false, "Commit queue operation failed.");
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return new McpToolResult(false, "Commit queue operation failed.");
-        }
+        return await EnqueueAsync(target.WorktreePath!, new EnqueueRequest(slice, message, files), cancellationToken);
     }
 
     public async Task<McpToolResult> EnqueueReviewFixCommit(
-        string worktreePath,
         string reviewIssueId,
         string slice,
         string message,
         IReadOnlyList<string> files,
+        string? workspaceId,
+        string? worktreePath,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(worktreePath))
-            return new McpToolResult(false, "worktreePath is required.");
+        var target = workspaces.Resolve(workspaceId, worktreePath);
+        if (!target.Resolved)
+            return TargetFailure(target);
         if (string.IsNullOrWhiteSpace(reviewIssueId))
             return new McpToolResult(false, "reviewIssueId is required.");
         if (string.IsNullOrWhiteSpace(slice))
@@ -59,34 +55,24 @@ public sealed class CommitQueueMcpService(CommitsController commits)
         if (files.Count == 0)
             return new McpToolResult(false, "At least one file is required.");
 
-        try
-        {
-            var result = await commits.EnqueueAsync(worktreePath, new EnqueueRequest(slice, message, files, reviewIssueId), cancellationToken);
-            if (!result.Succeeded && result.Message.StartsWith("Queue operation failed:", StringComparison.Ordinal))
-                return new McpToolResult(false, "Commit queue operation failed.");
-
-            return new McpToolResult(result.Succeeded, result.Message, result);
-        }
-        catch (IOException)
-        {
-            return new McpToolResult(false, "Commit queue operation failed.");
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return new McpToolResult(false, "Commit queue operation failed.");
-        }
+        return await EnqueueAsync(
+            target.WorktreePath!,
+            new EnqueueRequest(slice, message, files, reviewIssueId),
+            cancellationToken);
     }
 
     public async Task<McpToolResult> GetCommitsStatus(
-        string worktreePath,
+        string? workspaceId,
+        string? worktreePath,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(worktreePath))
-            return new McpToolResult(false, "worktreePath is required.");
+        var target = workspaces.Resolve(workspaceId, worktreePath);
+        if (!target.Resolved)
+            return TargetFailure(target);
 
         try
         {
-            var status = await commits.GetStatusAsync(worktreePath, cancellationToken);
+            var status = await commits.GetStatusAsync(target.WorktreePath!, cancellationToken);
             var message = status.Entries.Count == 0
                 ? "No queued commit entries."
                 : $"{status.Entries.Count} queued entr{(status.Entries.Count == 1 ? "y" : "ies")}.";
@@ -107,15 +93,17 @@ public sealed class CommitQueueMcpService(CommitsController commits)
     }
 
     public async Task<McpToolResult> GuardCommits(
-        string worktreePath,
+        string? workspaceId,
+        string? worktreePath,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(worktreePath))
-            return new McpToolResult(false, "worktreePath is required.");
+        var target = workspaces.Resolve(workspaceId, worktreePath);
+        if (!target.Resolved)
+            return TargetFailure(target);
 
         try
         {
-            var result = await commits.GuardAsync(worktreePath, cancellationToken);
+            var result = await commits.GuardAsync(target.WorktreePath!, cancellationToken);
             var message = result.Success && result.ContinueWorktreePath is not null
                 ? $"Commit queue guard passed. Continue dependent work in {result.ContinueWorktreePath}."
                 : result.Success
@@ -138,15 +126,17 @@ public sealed class CommitQueueMcpService(CommitsController commits)
     }
 
     public async Task<McpToolResult> GetCommitChanges(
-        string worktreePath,
+        string? workspaceId,
+        string? worktreePath,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(worktreePath))
-            return new McpToolResult(false, "worktreePath is required.");
+        var target = workspaces.Resolve(workspaceId, worktreePath);
+        if (!target.Resolved)
+            return TargetFailure(target);
 
         try
         {
-            var changes = await commits.GetChangesAsync(worktreePath, cancellationToken);
+            var changes = await commits.GetChangesAsync(target.WorktreePath!, cancellationToken);
             var message = changes.UnassignedFiles.Count == 0
                 ? "No unassigned modified files."
                 : $"{changes.UnassignedFiles.Count} unassigned modified file(s).";
@@ -167,92 +157,152 @@ public sealed class CommitQueueMcpService(CommitsController commits)
     }
 
     public Task<McpToolResult> InspectCommit(
-        string worktreePath,
         string entryRef,
         bool includePatch,
+        string? workspaceId,
+        string? worktreePath,
         CancellationToken cancellationToken)
         => EntryResultAsync(
-            worktreePath,
+            workspaces.Resolve(workspaceId, worktreePath),
             entryRef,
-            () => commits.InspectAsync(worktreePath, entryRef, includePatch, cancellationToken),
+            path => commits.InspectAsync(path, entryRef, includePatch, cancellationToken),
             result => new McpToolResult(true, $"Commit entry '{result.Entry.Slice}'.", result));
 
     public Task<McpToolResult> UpdateCommitMessage(
-        string worktreePath,
         string entryRef,
         string message,
+        string? workspaceId,
+        string? worktreePath,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(message))
             return Task.FromResult(new McpToolResult(false, "message is required."));
 
-        return EntryResultAsync(worktreePath, entryRef, () => commits.UpdateMessageAsync(worktreePath, entryRef, message, cancellationToken));
+        return EntryResultAsync(
+            workspaces.Resolve(workspaceId, worktreePath),
+            entryRef,
+            path => commits.UpdateMessageAsync(path, entryRef, message, cancellationToken));
     }
+
     public Task<McpToolResult> AddCommitFiles(
-        string worktreePath,
         string entryRef,
         IReadOnlyList<string> files,
+        string? workspaceId,
+        string? worktreePath,
         CancellationToken cancellationToken)
     {
         if (files.Count == 0)
             return Task.FromResult(new McpToolResult(false, "At least one file is required."));
 
-        return EntryResultAsync(worktreePath, entryRef, () => commits.AddFilesAsync(worktreePath, entryRef, files, cancellationToken));
+        return EntryResultAsync(
+            workspaces.Resolve(workspaceId, worktreePath),
+            entryRef,
+            path => commits.AddFilesAsync(path, entryRef, files, cancellationToken));
     }
 
     public Task<McpToolResult> RemoveCommitFiles(
-        string worktreePath,
         string entryRef,
         IReadOnlyList<string> files,
+        string? workspaceId,
+        string? worktreePath,
         CancellationToken cancellationToken)
     {
         if (files.Count == 0)
             return Task.FromResult(new McpToolResult(false, "At least one file is required."));
 
-        return EntryResultAsync(worktreePath, entryRef, () => commits.RemoveFilesAsync(worktreePath, entryRef, files, cancellationToken));
+        return EntryResultAsync(
+            workspaces.Resolve(workspaceId, worktreePath),
+            entryRef,
+            path => commits.RemoveFilesAsync(path, entryRef, files, cancellationToken));
     }
 
     public Task<McpToolResult> RemoveCommit(
-        string worktreePath,
         string entryRef,
+        string? workspaceId,
+        string? worktreePath,
         CancellationToken cancellationToken)
-        => EntryResultAsync(worktreePath, entryRef, () => commits.RemoveAsync(worktreePath, entryRef, cancellationToken));
+        => EntryResultAsync(
+            workspaces.Resolve(workspaceId, worktreePath),
+            entryRef,
+            path => commits.RemoveAsync(path, entryRef, cancellationToken));
 
     public Task<McpToolResult> RestoreCommit(
-        string worktreePath,
         string entryId,
+        string? workspaceId,
+        string? worktreePath,
         CancellationToken cancellationToken)
-        => EntryResultAsync(worktreePath, entryId, () => commits.RestoreArchivedAsync(worktreePath, entryId, cancellationToken));
+        => EntryResultAsync(
+            workspaces.Resolve(workspaceId, worktreePath),
+            entryId,
+            path => commits.RestoreArchivedAsync(path, entryId, cancellationToken));
 
     public Task<McpToolResult> ClearCommits(
-        string worktreePath,
+        string? workspaceId,
+        string? worktreePath,
         CancellationToken cancellationToken)
-        => WorktreeResultAsync(worktreePath, () => commits.ClearAsync(worktreePath, cancellationToken));
+        => WorktreeResultAsync(
+            workspaces.Resolve(workspaceId, worktreePath),
+            path => commits.ClearAsync(path, cancellationToken));
 
     public Task<McpToolResult> BeginCommitEdit(
-        string worktreePath,
         string entryRef,
+        string? workspaceId,
+        string? worktreePath,
         CancellationToken cancellationToken)
-        => EntryResultAsync(worktreePath, entryRef, () => commits.BeginEditAsync(worktreePath, entryRef, cancellationToken));
+        => EntryResultAsync(
+            workspaces.Resolve(workspaceId, worktreePath),
+            entryRef,
+            path => commits.BeginEditAsync(path, entryRef, cancellationToken));
 
     public Task<McpToolResult> SaveCommitEdit(
-        string worktreePath,
+        string? workspaceId,
+        string? worktreePath,
         CancellationToken cancellationToken)
-        => WorktreeResultAsync(worktreePath, () => commits.SaveEditAsync(worktreePath, cancellationToken));
+        => WorktreeResultAsync(
+            workspaces.Resolve(workspaceId, worktreePath),
+            path => commits.SaveEditAsync(path, cancellationToken));
 
     public Task<McpToolResult> AbortCommitEdit(
-        string worktreePath,
+        string? workspaceId,
+        string? worktreePath,
         CancellationToken cancellationToken)
-        => WorktreeResultAsync(worktreePath, () => commits.AbortEditAsync(worktreePath, cancellationToken));
+        => WorktreeResultAsync(
+            workspaces.Resolve(workspaceId, worktreePath),
+            path => commits.AbortEditAsync(path, cancellationToken));
 
-    private async Task<McpToolResult> WorktreeResultAsync(string worktreePath, Func<Task<CommitEditResult>> operation)
+    private async Task<McpToolResult> EnqueueAsync(
+        string worktreePath,
+        EnqueueRequest request,
+        CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(worktreePath))
-            return new McpToolResult(false, "worktreePath is required.");
+        try
+        {
+            var result = await commits.EnqueueAsync(worktreePath, request, cancellationToken);
+            if (!result.Succeeded && result.Message.StartsWith("Queue operation failed:", StringComparison.Ordinal))
+                return new McpToolResult(false, "Commit queue operation failed.");
+
+            return new McpToolResult(result.Succeeded, result.Message, result);
+        }
+        catch (IOException)
+        {
+            return new McpToolResult(false, "Commit queue operation failed.");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return new McpToolResult(false, "Commit queue operation failed.");
+        }
+    }
+
+    private static async Task<McpToolResult> WorktreeResultAsync(
+        WorkspaceTargetResolution target,
+        Func<string, Task<CommitEditResult>> operation)
+    {
+        if (!target.Resolved)
+            return TargetFailure(target);
 
         try
         {
-            return ToMcpResult(await operation());
+            return ToMcpResult(await operation(target.WorktreePath!));
         }
         catch (InvalidOperationException ex)
         {
@@ -268,26 +318,26 @@ public sealed class CommitQueueMcpService(CommitsController commits)
         }
     }
 
-    private Task<McpToolResult> EntryResultAsync(
-        string worktreePath,
+    private static Task<McpToolResult> EntryResultAsync(
+        WorkspaceTargetResolution target,
         string entryRef,
-        Func<Task<CommitEditResult>> operation)
-        => EntryResultAsync(worktreePath, entryRef, operation, ToMcpResult);
+        Func<string, Task<CommitEditResult>> operation)
+        => EntryResultAsync(target, entryRef, operation, ToMcpResult);
 
-    private async Task<McpToolResult> EntryResultAsync<T>(
-        string worktreePath,
+    private static async Task<McpToolResult> EntryResultAsync<T>(
+        WorkspaceTargetResolution target,
         string entryRef,
-        Func<Task<T>> operation,
+        Func<string, Task<T>> operation,
         Func<T, McpToolResult> map)
     {
-        if (string.IsNullOrWhiteSpace(worktreePath))
-            return new McpToolResult(false, "worktreePath is required.");
+        if (!target.Resolved)
+            return TargetFailure(target);
         if (string.IsNullOrWhiteSpace(entryRef))
             return new McpToolResult(false, "entryRef is required.");
 
         try
         {
-            return map(await operation());
+            return map(await operation(target.WorktreePath!));
         }
         catch (InvalidOperationException ex)
         {
@@ -302,6 +352,9 @@ public sealed class CommitQueueMcpService(CommitsController commits)
             return new McpToolResult(false, "Commit queue operation failed.");
         }
     }
+
+    private static McpToolResult TargetFailure(WorkspaceTargetResolution target)
+        => new(false, target.Error!);
 
     private static McpToolResult ToMcpResult(CommitEditResult result)
         => new(result.Success, result.Message, result);

@@ -4,12 +4,27 @@ using AgentUp.Server.Features.Authentication.Models;
 
 namespace AgentUp.Server.Features.Authentication.Services;
 
+/// <summary>
+/// Pins an MCP tool call to the workspace its token names.
+/// </summary>
+/// <remarks>
+/// A bound session is never shown a workspace target in the advertised schema, so it
+/// supplies none and this fills them in: the bound id for every id parameter, and - only
+/// when a tool identifies its target by path alone - that workspace's worktree path.
+/// <para>
+/// A tool that takes both is pinned by the id, and any path target the caller sent anyway
+/// is dropped once it has been checked against the bound workspace. Leaving it in place
+/// would reach the tool as two targets at once, which every target-taking tool refuses,
+/// and keeping a path filter the schema no longer advertises is the one way a bound
+/// session could still read across workspaces.
+/// </para>
+/// </remarks>
 public sealed class McpWorkspaceArgumentBinder(IBoundWorkspaceCatalog catalog)
 {
     public async Task<McpWorkspaceBindingDecision> BindAsync(
         string boundWorkspace,
         IReadOnlyDictionary<string, JsonElement> arguments,
-        IReadOnlyList<string> workspaceIdParameters,
+        IReadOnlyList<string> targetParameters,
         CancellationToken cancellationToken)
     {
         var rewritten = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
@@ -22,7 +37,7 @@ public sealed class McpWorkspaceArgumentBinder(IBoundWorkspaceCatalog catalog)
             if (string.IsNullOrWhiteSpace(text))
                 continue;
 
-            if (IsWorkspaceIdParameter(key, workspaceIdParameters))
+            if (IsWorkspaceIdParameter(key, targetParameters))
             {
                 if (!string.Equals(text, boundWorkspace, StringComparison.Ordinal))
                     return McpWorkspaceBindingDecision.Forbid(Refusal(boundWorkspace, text));
@@ -36,15 +51,49 @@ public sealed class McpWorkspaceArgumentBinder(IBoundWorkspaceCatalog catalog)
                 return McpWorkspaceBindingDecision.Forbid(Refusal(boundWorkspace, text));
         }
 
-        foreach (var name in workspaceIdParameters.Where(name => !HasText(rewritten, name)))
+        var idParameters = targetParameters.Where(name => IsWorkspaceIdParameter(name, targetParameters)).ToArray();
+        if (idParameters.Length == 0)
+        {
+            InjectWorktreePath(boundWorkspace, targetParameters, rewritten);
+            return McpWorkspaceBindingDecision.Allow(rewritten);
+        }
+
+        foreach (var name in idParameters.Where(name => !HasText(rewritten, name)))
             rewritten[name] = JsonSerializer.SerializeToElement(boundWorkspace);
+        foreach (var name in rewritten.Keys.Where(McpWorkspaceTargetArguments.IsPathName).ToArray())
+            rewritten.Remove(name);
 
         return McpWorkspaceBindingDecision.Allow(rewritten);
     }
 
-    private static bool IsWorkspaceIdParameter(string key, IReadOnlyList<string> workspaceIdParameters)
-        => McpWorkspaceTargetArguments.IsAlwaysBoundName(key) && !McpWorkspaceTargetArguments.IsPathName(key)
-           || workspaceIdParameters.Contains(key, StringComparer.OrdinalIgnoreCase);
+    /// <summary>
+    /// Fills in the path of a tool whose only workspace target is a Server-host path. A
+    /// tool that also takes an id is pinned by that id instead, so it is left alone.
+    /// </summary>
+    private void InjectWorktreePath(
+        string boundWorkspace,
+        IReadOnlyList<string> targetParameters,
+        Dictionary<string, JsonElement> rewritten)
+    {
+        var pathParameters = targetParameters
+            .Where(McpWorkspaceTargetArguments.IsPathName)
+            .Where(name => !HasText(rewritten, name))
+            .ToArray();
+        if (pathParameters.Length == 0)
+            return;
+
+        var worktreePath = catalog.WorktreePathFor(boundWorkspace);
+        if (string.IsNullOrWhiteSpace(worktreePath))
+            return;
+
+        foreach (var name in pathParameters)
+            rewritten[name] = JsonSerializer.SerializeToElement(worktreePath);
+    }
+
+    private static bool IsWorkspaceIdParameter(string key, IReadOnlyList<string> targetParameters)
+        => !McpWorkspaceTargetArguments.IsPathName(key)
+           && (McpWorkspaceTargetArguments.IsAlwaysBoundName(key)
+               || targetParameters.Contains(key, StringComparer.OrdinalIgnoreCase));
 
     private static bool HasText(IReadOnlyDictionary<string, JsonElement> arguments, string name)
         => arguments.TryGetValue(name, out var value) && !string.IsNullOrWhiteSpace(ReadArgumentText(value));

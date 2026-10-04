@@ -1,4 +1,7 @@
+using System.Net;
 using AgentUp.Server.Features.Authentication.Controllers;
+using AgentUp.Server.Features.Orchestration.DTOs;
+using AgentUp.Server.Features.Orchestration.Providers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Server;
@@ -84,46 +87,97 @@ public sealed class McpEndpointSessionProvider
         "disable_capability_module"
     };
 
+    private const string CommitsInstructions =
+        "Agent-Up commit queue MCP server. Use these tools only for commit queue guard, inspection, enqueue, metadata edits, edit sessions, archive, restore, and clear operations.";
+
+    private const string VerificationInstructions =
+        "Agent-Up verification MCP server. Test selection is owned by the static path rules in agent-up.json, not by you: plan_verification shows what the current changes require and you cannot narrow it. Run run_verification at the end of a task, before enqueueing commits, so receipts cover the code while it is still in the working tree. guard_verification reports whether every required check has a passing receipt matching the current file contents.";
+
+    private const string BrowserInstructions =
+        "Agent-Up browser MCP server. Use these tools to navigate, inspect, and interact with the workspace browser the user watches in Desktop. When recording validation flows, start from the user's goal: infer routes, tabs, and labels from application source or router files when that is faster than live inspection, then perform the journey once and call save_validation_flow. Do not inspect every route before recording. Saved flows replay with staged mouse movement, half-second attention pings, navigation waits, and visible expectations.";
+
+    private const string AuditInstructions =
+        "Agent-Up audit MCP server. Use these tools to query durable workspace, browser, MCP, process, source revision, health, and artifact history.";
+
+    private const string CapabilitiesInstructions =
+        "Agent-Up capability modules MCP server. List, enable, and disable registry packages on this Server. Enabling wraps later application and agent launches through nix. Desktop and Mobile never call the remote registry.";
+
+    /// <summary>
+    /// Three narrowings compose here, and the order is what keeps any one of them from widening
+    /// another: the endpoint decides which slice a session serves, the caller's permissions
+    /// remove what its token does not grant, and the workspace pin binds what is left to one
+    /// workspace. Each step only ever removes from what the previous step produced.
+    /// </summary>
     public Task ConfigureAsync(HttpContext context, McpServerOptions options, CancellationToken cancellationToken)
+    {
+        var binding = context.RequestServices.GetService<McpWorkspaceBindingController>();
+        var instructions = InstructionContext(context, binding?.BoundWorkspace(context));
+        ConfigureEndpoint(context, options, instructions);
+        context.RequestServices.GetService<McpToolPermissionController>()?.Restrict(context, options);
+        binding?.Pin(context, options);
+        return Task.CompletedTask;
+    }
+
+    private static void ConfigureEndpoint(HttpContext context, McpServerOptions options, McpInstructionContext instructions)
     {
         if (IsEndpoint(context, "/mcp/commits"))
         {
-            options.ServerInstructions = "Agent-Up commit queue MCP server. Use these tools only for commit queue guard, inspection, enqueue, metadata edits, edit sessions, archive, restore, and clear operations.";
+            options.ServerInstructions = AgentUpMcpGuidance.ForEndpoint(CommitsInstructions, instructions);
             KeepTools(options, CommitTools);
             options.ResourceCollection?.Clear();
         }
         else if (IsEndpoint(context, "/mcp/verification"))
         {
-            options.ServerInstructions = "Agent-Up verification MCP server. Test selection is owned by the static path rules in agent-up.json, not by you: plan_verification shows what the current changes require and you cannot narrow it. Run run_verification at the end of a task, before enqueueing commits, so receipts cover the code while it is still in the working tree. guard_verification reports whether every required check has a passing receipt matching the current file contents.";
+            options.ServerInstructions = AgentUpMcpGuidance.ForEndpoint(VerificationInstructions, instructions);
             KeepTools(options, VerificationTools);
             options.ResourceCollection?.Clear();
         }
         else if (IsEndpoint(context, "/mcp/orchestration"))
         {
+            options.ServerInstructions = AgentUpMcpGuidance.Build(instructions);
             KeepTools(options, OrchestrationTools);
         }
         else if (IsEndpoint(context, "/mcp/browser"))
         {
-            options.ServerInstructions = "Agent-Up browser MCP server. Use these tools to navigate, inspect, and interact with the workspace browser the user watches in Desktop. When recording validation flows, start from the user's goal: infer routes, tabs, and labels from application source or router files when that is faster than live inspection, then perform the journey once and call save_validation_flow. Do not inspect every route before recording. Saved flows replay with staged mouse movement, half-second attention pings, navigation waits, and visible expectations.";
+            options.ServerInstructions = AgentUpMcpGuidance.ForEndpoint(BrowserInstructions, instructions);
             KeepTools(options, BrowserTools);
             options.ResourceCollection?.Clear();
         }
         else if (IsEndpoint(context, "/mcp/audit"))
         {
-            options.ServerInstructions = "Agent-Up audit MCP server. Use these tools to query durable workspace, browser, MCP, process, source revision, health, and artifact history.";
+            options.ServerInstructions = AgentUpMcpGuidance.ForEndpoint(AuditInstructions, instructions);
             KeepTools(options, AuditTools);
             options.ResourceCollection?.Clear();
         }
         else if (IsEndpoint(context, "/mcp/capabilities"))
         {
-            options.ServerInstructions = "Agent-Up capability modules MCP server. List, enable, and disable registry packages on this Server. Enabling wraps later application and agent launches through nix. Desktop and Mobile never call the remote registry.";
+            options.ServerInstructions = AgentUpMcpGuidance.ForEndpoint(CapabilitiesInstructions, instructions);
             KeepTools(options, CapabilityTools);
             options.ResourceCollection?.Clear();
         }
-
-        context.RequestServices.GetService<McpWorkspaceBindingController>()?.Pin(context, options);
-        return Task.CompletedTask;
+        else
+        {
+            options.ServerInstructions = AgentUpMcpGuidance.Build(instructions);
+        }
     }
+
+    /// <summary>
+    /// A pinned session has no workspace to choose, and a caller that reached this Server across
+    /// the network cannot open the paths the Server opens. Everything else is a client sharing
+    /// the Server's host, which is what the path-first advice has always assumed.
+    /// </summary>
+    public static McpInstructionContext InstructionContext(HttpContext context, string? boundWorkspace)
+    {
+        if (!string.IsNullOrWhiteSpace(boundWorkspace))
+            return McpInstructionContext.Pinned(boundWorkspace);
+
+        return SharesServerHost(context.Connection.RemoteIpAddress)
+            ? McpInstructionContext.SharedFilesystem
+            : McpInstructionContext.Remote;
+    }
+
+    private static bool SharesServerHost(IPAddress? remote)
+        => remote is null || IPAddress.IsLoopback(remote);
 
     private static bool IsEndpoint(HttpContext context, string endpoint)
     {

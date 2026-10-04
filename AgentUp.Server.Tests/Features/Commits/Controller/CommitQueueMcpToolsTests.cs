@@ -4,7 +4,9 @@ using AgentUp.Server.Features.Commits.DTOs;
 using AgentUp.Server.Features.Commits.Interfaces;
 using AgentUp.Server.Features.Commits.Models;
 using AgentUp.Server.Features.Commits.Services;
+using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Shared.Interfaces;
+using AgentUp.Server.Tests.Fake;
 using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Commits.Controller;
@@ -14,6 +16,7 @@ public sealed class CommitQueueMcpToolsTests
 {
     private FakeCommitsQueueProvider _queue = null!;
     private FakeCommitsGitProvider _git = null!;
+    private WorkspaceRegistry _registry = null!;
     private CommitQueueMcpTools _tools = null!;
 
     [SetUp]
@@ -21,19 +24,22 @@ public sealed class CommitQueueMcpToolsTests
     {
         _queue = new FakeCommitsQueueProvider();
         _git = new FakeCommitsGitProvider();
+        _registry = ServerTestComposition.CreateRegistry();
         var controller = new CommitsController(new CommitsService(_queue, _git, new CommitPolicyProvider()));
-        _tools = new CommitQueueMcpTools(new CommitQueueMcpService(controller));
+        _tools = new CommitQueueMcpTools(new CommitQueueMcpService(
+            controller,
+            ServerTestComposition.CreateWorkspaceTargetController(_registry)));
     }
 
     [Test]
     public async Task EnqueueCommit_ReturnsSuccess_WhenCommitIsEnqueued()
     {
         var result = await _tools.EnqueueCommit(
-            "/repos/app",
             "feat/new-thing",
             "feat(new-thing): add new thing",
             ["src/Thing.cs"],
-            CancellationToken.None);
+            worktreePath: "/repos/app",
+            cancellationToken: CancellationToken.None);
 
         Assert.That(result.Succeeded, Is.True);
         Assert.That(result.Message, Does.Contain("The tracked files have been restored to their pre-change state"));
@@ -45,9 +51,9 @@ public sealed class CommitQueueMcpToolsTests
     [Test]
     public async Task GuardCommits_BlocksNewWork_WhenQueueHasEntry()
     {
-        await _tools.EnqueueCommit("/repos/app", "feat/s", "feat(s): m", ["a.cs"], CancellationToken.None);
+        await EnqueueAsync();
 
-        var result = await _tools.GuardCommits("/repos/app", CancellationToken.None);
+        var result = await _tools.GuardCommits(worktreePath: "/repos/app");
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("blocked starting new work"));
@@ -76,9 +82,11 @@ public sealed class CommitQueueMcpToolsTests
             .AtGeneration(1)
             .Build());
         var commits = new CommitsService(queue, new FakeCommitsGitProvider(), new CommitPolicyProvider());
-        var tools = new CommitQueueMcpTools(new CommitQueueMcpService(new CommitsController(commits)));
+        var tools = new CommitQueueMcpTools(new CommitQueueMcpService(
+            new CommitsController(commits),
+            ServerTestComposition.CreateWorkspaceTargetController(ServerTestComposition.CreateRegistry())));
 
-        var result = await tools.GuardCommits("/repos/app", CancellationToken.None);
+        var result = await tools.GuardCommits(worktreePath: "/repos/app");
 
         Assert.That(result.Succeeded, Is.True);
         Assert.That(result.Message, Does.Contain("Continue dependent work"));
@@ -90,7 +98,7 @@ public sealed class CommitQueueMcpToolsTests
     {
         _git.OperationState = new GitOperationState("merge", true);
 
-        var result = await _tools.GuardCommits("/repos/app", CancellationToken.None);
+        var result = await _tools.GuardCommits(worktreePath: "/repos/app");
 
         Assert.That(result.Succeeded, Is.False);
         var guard = (CommitGuardResult)result.Data!;
@@ -101,12 +109,11 @@ public sealed class CommitQueueMcpToolsTests
     public async Task EnqueueReviewFixCommit_StoresReviewIssueId()
     {
         var result = await _tools.EnqueueReviewFixCommit(
-            "/repos/app",
             "review-42",
             "Commits",
             "fix(commits): block merge queue use",
             ["AgentUp.Server/Features/Commits/Services/CommitsService.cs"],
-            CancellationToken.None);
+            worktreePath: "/repos/app");
 
         Assert.That(result.Succeeded, Is.True);
         Assert.That(_queue.Stored!.Commits.Single().ReviewIssueId, Is.EqualTo("review-42"));
@@ -116,12 +123,11 @@ public sealed class CommitQueueMcpToolsTests
     public async Task EnqueueReviewFixCommit_RejectsMissingReviewIssueId()
     {
         var result = await _tools.EnqueueReviewFixCommit(
-            "/repos/app",
             "",
             "Commits",
             "fix(commits): block merge queue use",
             ["AgentUp.Server/Features/Commits/Services/CommitsService.cs"],
-            CancellationToken.None);
+            worktreePath: "/repos/app");
 
         Assert.That(result.Succeeded, Is.False);
         Assert.That(result.Message, Does.Contain("reviewIssueId"));
@@ -131,9 +137,9 @@ public sealed class CommitQueueMcpToolsTests
     public async Task GetCommitChanges_ReturnsQueueAssignment()
     {
         _git.ModifiedFiles = ["queued.cs", "loose.cs"];
-        await _tools.EnqueueCommit("/repos/app", "feat/s", "feat(s): m", ["queued.cs"], CancellationToken.None);
+        await EnqueueAsync("queued.cs");
 
-        var result = await _tools.GetCommitChanges("/repos/app", CancellationToken.None);
+        var result = await _tools.GetCommitChanges(worktreePath: "/repos/app");
 
         Assert.That(result.Succeeded, Is.True);
         var changes = (CommitChangesResult)result.Data!;
@@ -144,10 +150,10 @@ public sealed class CommitQueueMcpToolsTests
     [Test]
     public async Task CommitMetadataTools_UpdateQueuedEntry()
     {
-        await _tools.EnqueueCommit("/repos/app", "feat/s", "feat(s): m", ["a.cs"], CancellationToken.None);
+        await EnqueueAsync();
 
-        var message = await _tools.UpdateCommitMessage("/repos/app", "1", "fix(s): updated", CancellationToken.None);
-        var files = await _tools.AddCommitFiles("/repos/app", "1", ["b.cs"], CancellationToken.None);
+        var message = await _tools.UpdateCommitMessage("1", "fix(s): updated", worktreePath: "/repos/app");
+        var files = await _tools.AddCommitFiles("1", ["b.cs"], worktreePath: "/repos/app");
 
         Assert.That(message.Succeeded, Is.True);
         Assert.That(files.Succeeded, Is.True);
@@ -158,11 +164,11 @@ public sealed class CommitQueueMcpToolsTests
     [Test]
     public async Task CommitArchiveTools_RemoveAndRestoreEntry()
     {
-        await _tools.EnqueueCommit("/repos/app", "feat/s", "feat(s): m", ["a.cs"], CancellationToken.None);
+        await EnqueueAsync();
         var entryId = _queue.Stored!.Commits[0].Id;
 
-        var removed = await _tools.RemoveCommit("/repos/app", "1", CancellationToken.None);
-        var restored = await _tools.RestoreCommit("/repos/app", entryId, CancellationToken.None);
+        var removed = await _tools.RemoveCommit("1", worktreePath: "/repos/app");
+        var restored = await _tools.RestoreCommit(entryId, worktreePath: "/repos/app");
 
         Assert.That(removed.Succeeded, Is.True);
         Assert.That(restored.Succeeded, Is.True);
@@ -172,16 +178,174 @@ public sealed class CommitQueueMcpToolsTests
     [Test]
     public async Task CommitEditTools_BeginAndAbortSession()
     {
-        await _tools.EnqueueCommit("/repos/app", "feat/s", "feat(s): m", ["a.cs"], CancellationToken.None);
+        await EnqueueAsync();
 
-        var begin = await _tools.BeginCommitEdit("/repos/app", "1", CancellationToken.None);
-        var abort = await _tools.AbortCommitEdit("/repos/app", CancellationToken.None);
+        var begin = await _tools.BeginCommitEdit("1", worktreePath: "/repos/app");
+        var abort = await _tools.AbortCommitEdit(worktreePath: "/repos/app");
 
         Assert.That(begin.Succeeded, Is.True);
         Assert.That(abort.Succeeded, Is.True);
         Assert.That(_git.PatchApplied, Is.True);
         Assert.That(_git.FilesRestored, Is.True);
         Assert.That(_queue.Stored!.ActiveSession, Is.Null);
+    }
+
+    [Test]
+    public async Task InspectCommit_returnsTheQueuedEntry()
+    {
+        await EnqueueAsync();
+
+        var result = await _tools.InspectCommit("1", includePatch: false, worktreePath: "/repos/app");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            Assert.That(((CommitInspectResult)result.Data!).Entry.Message, Is.EqualTo("feat(s): m"));
+        });
+    }
+
+    [Test]
+    public async Task RemoveCommitFiles_dropsOneFileFromTheQueuedEntry()
+    {
+        await _tools.EnqueueCommit("feat/s", "feat(s): m", ["a.cs", "b.cs"], worktreePath: "/repos/app");
+
+        var result = await _tools.RemoveCommitFiles("1", ["b.cs"], worktreePath: "/repos/app");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            Assert.That(_queue.Stored!.Commits[0].Files, Is.EqualTo(new[] { "a.cs" }));
+        });
+    }
+
+    [Test]
+    public async Task ClearCommits_emptiesTheQueue()
+    {
+        await EnqueueAsync();
+
+        var result = await _tools.ClearCommits(worktreePath: "/repos/app");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            Assert.That(_queue.Stored!.Commits, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task SaveCommitEdit_closesTheEditSessionItOpened()
+    {
+        await EnqueueAsync();
+        await _tools.BeginCommitEdit("1", worktreePath: "/repos/app");
+        _git.ModifiedFiles = ["a.cs"];
+
+        var result = await _tools.SaveCommitEdit(worktreePath: "/repos/app");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            Assert.That(_queue.Stored!.ActiveSession, Is.Null);
+        });
+    }
+
+    // Every tool here resolves its target through one shared boundary, so the refusal is
+    // asserted once across the tools rather than repeated per tool.
+    [Test]
+    public async Task NoCommitsTool_actsWhenTheCallNamesNoWorkspace()
+    {
+        var results = new[]
+        {
+            await _tools.EnqueueCommit("feat/s", "feat(s): m", ["a.cs"]),
+            await _tools.EnqueueReviewFixCommit("review-1", "feat/s", "feat(s): m", ["a.cs"]),
+            await _tools.GuardCommits(),
+            await _tools.GetCommitChanges(),
+            await _tools.InspectCommit("1", includePatch: false),
+            await _tools.ClearCommits()
+        };
+
+        Assert.Multiple(() =>
+        {
+            foreach (var result in results)
+            {
+                Assert.That(result.Succeeded, Is.False);
+                Assert.That(result.Message, Does.Contain("Both were omitted"));
+            }
+        });
+    }
+
+    [Test]
+    public async Task GetCommitsStatus_readsTheQueueOfARegisteredWorkspaceNamedById()
+    {
+        var workspace = await _registry.RegisterAsync(
+            ServerDomain.Workspace().At("/repos/app").Build());
+        await EnqueueAsync();
+
+        var result = await _tools.GetCommitsStatus(workspaceId: workspace.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            Assert.That(((CommitsStatusResult)result.Data!).Entries, Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task GetCommitsStatus_refusesAWorkspaceIdAndAWorktreePathTogether()
+    {
+        var workspace = await _registry.RegisterAsync(
+            ServerDomain.Workspace().At("/repos/app").Build());
+
+        var result = await _tools.GetCommitsStatus(workspace.Id, "/repos/app");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("not both"));
+        });
+    }
+
+    [Test]
+    public async Task GetCommitsStatus_refusesNeitherAWorkspaceIdNorAWorktreePath()
+    {
+        var result = await _tools.GetCommitsStatus();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("Both were omitted"));
+        });
+    }
+
+    [Test]
+    public async Task GetCommitsStatus_namesAnUnregisteredWorkspaceRatherThanAMissingPath()
+    {
+        var result = await _tools.GetCommitsStatus(workspaceId: "ws-missing");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("ws-missing"));
+            Assert.That(result.Message, Does.Contain("not registered"));
+        });
+    }
+
+    [Test]
+    public async Task EnqueueCommit_queuesAgainstARegisteredWorkspaceNamedById()
+    {
+        var workspace = await _registry.RegisterAsync(
+            ServerDomain.Workspace().At("/repos/app").Build());
+
+        var result = await _tools.EnqueueCommit(
+            "feat/s",
+            "feat(s): m",
+            ["a.cs"],
+            workspaceId: workspace.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            Assert.That(_queue.Stored!.Commits, Has.Count.EqualTo(1));
+        });
     }
 
     // The tool description is the only instruction an agent reads before enqueueing, so each
@@ -206,6 +370,9 @@ public sealed class CommitQueueMcpToolsTests
     public void EnqueueCommitDescription_pointsAgentsAtTheStructuredQueueWorktreePath()
         => Assert.That(EnqueueCommitDescription(), Does.Contain("structured queueWorktreePath"));
 
+    private Task<McpToolResult> EnqueueAsync(string file = "a.cs")
+        => _tools.EnqueueCommit("feat/s", "feat(s): m", [file], worktreePath: "/repos/app");
+
     private static string EnqueueCommitDescription()
         => typeof(CommitQueueMcpTools)
             .GetMethod(nameof(CommitQueueMcpTools.EnqueueCommit))!
@@ -226,7 +393,9 @@ public sealed class CommitQueueMcpToolsTests
             proposals,
             new EnabledQueueConfiguration(),
             null);
-        var tools = new CommitQueueMcpTools(new CommitQueueMcpService(new CommitsController(commits)));
+        var tools = new CommitQueueMcpTools(new CommitQueueMcpService(
+            new CommitsController(commits),
+            ServerTestComposition.CreateWorkspaceTargetController(ServerTestComposition.CreateRegistry())));
         var mcp = new MockCommitQueueMcpClient(tools);
         var acp = new MockAcpAgent(mcp, "/repos/app");
 
@@ -306,14 +475,14 @@ public sealed class CommitQueueMcpToolsTests
     private sealed class MockCommitQueueMcpClient(CommitQueueMcpTools tools)
     {
         public Task<McpToolResult> EnqueueAsync(string worktree, string slice, string message, string file)
-            => tools.EnqueueCommit(worktree, slice, message, [file], CancellationToken.None);
+            => tools.EnqueueCommit(slice, message, [file], worktreePath: worktree);
 
         public Task<McpToolResult> GuardAsync(string worktree)
-            => tools.GuardCommits(worktree, CancellationToken.None);
+            => tools.GuardCommits(worktreePath: worktree);
 
         public async Task<CommitsStatusResult> StatusAsync(string worktree)
         {
-            var result = await tools.GetCommitsStatus(worktree, CancellationToken.None);
+            var result = await tools.GetCommitsStatus(worktreePath: worktree);
             return (CommitsStatusResult)result.Data!;
         }
     }

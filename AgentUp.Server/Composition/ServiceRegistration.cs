@@ -10,6 +10,7 @@ using AgentUp.Server.Features.ApplicationProxy.Controllers;
 using AgentUp.Server.Features.ApplicationProxy.Interfaces;
 using AgentUp.Server.Features.ApplicationProxy.Providers;
 using AgentUp.Server.Features.ApplicationProxy.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Authentication.Controllers;
@@ -120,16 +121,33 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IMcpWorkspaceBindingFilterProvider, McpWorkspaceBindingFilterProvider>();
         builder.Services.AddSingleton<McpWorkspaceBindingService>();
         builder.Services.AddSingleton<McpWorkspaceBindingController>();
+        builder.Services.AddSingleton<IMcpToolPermissionFilterProvider, McpToolPermissionFilterProvider>();
+        builder.Services.AddSingleton<McpToolPermissionService>();
+        builder.Services.AddSingleton<McpToolPermissionController>();
         builder.Services.AddTransient<IWorkspaceBindingMiddleware, WorkspaceBindingMiddleware>();
         builder.Services.AddSingleton<ConnectionMetadataProvider>();
         builder.Services.AddSingleton<ConnectionService>();
         builder.Services.AddSingleton<SelfHostedEntitlementsProvider>();
         builder.Services.AddSingleton<EntitlementsService>();
         builder.Services.AddTransient<IMcpNetworkRestrictionMiddleware, McpNetworkRestrictionMiddleware>();
-        builder.Services.AddAuthentication(AgentUpAuthenticationHandler.SchemeName)
+        var mcpRemoteAccess = new McpRemoteAccessProvider(builder.Configuration);
+        var mcpResourceMetadata = new McpProtectedResourceMetadataProvider(builder.Configuration);
+        builder.Services.AddSingleton(mcpRemoteAccess);
+        builder.Services.AddSingleton<IMcpRemoteAccess>(mcpRemoteAccess);
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddSingleton<IAuthorizationHandler, McpEndpointAuthorizationHandler>();
+        var authentication = builder.Services.AddAuthentication(AgentUpAuthenticationHandler.SchemeName)
             .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, AgentUpAuthenticationHandler>(
                 AgentUpAuthenticationHandler.SchemeName, _ => { });
-        builder.Services.AddAuthorization(OperationAuthorization.Configure);
+        // RFC 9728 metadata only makes sense once remote MCP is on and an issuer names the
+        // authorization server; without both, /.well-known/oauth-protected-resource stays absent.
+        if (mcpRemoteAccess.IsEnabled && mcpResourceMetadata.IsConfigured)
+            authentication.AddMcp(options => options.ResourceMetadata = mcpResourceMetadata.Create());
+        builder.Services.AddAuthorization(options =>
+        {
+            OperationAuthorization.Configure(options);
+            McpEndpointAuthorization.Configure(options);
+        });
         builder.Services.AddCors(options => options.AddPolicy(
             WebClientOriginProvider.PolicyName,
             policy => policy
@@ -158,7 +176,8 @@ public static class ServiceRegistration
             .WithTools<AuditMcpTools>()
             .WithTools<DiagnosticsMcpTools>()
             .WithTools<CapabilityModulesMcpTools>()
-            .WithResources<OrchestrationMcpResources>();
+            .WithResources<OrchestrationMcpResources>()
+            .AddAuthorizationFilters();
 #pragma warning restore MCP9004
 
         builder.Services.AddSingleton<WorkspaceEventBus>();
@@ -285,6 +304,8 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<DesktopMcpTools>();
         builder.Services.AddSingleton<WorkspaceStateController>();
         builder.Services.AddSingleton<WorkspaceQueryController>();
+        builder.Services.AddSingleton<WorkspaceTargetService>();
+        builder.Services.AddSingleton<WorkspaceTargetController>();
         builder.Services.AddSingleton<IWorkspaceDiskUsageProvider, WorkspaceDiskUsageProvider>();
         builder.Services.AddSingleton<WorkspaceOverviewService>();
         builder.Services.AddSingleton<WorkspaceProcessManager>();

@@ -7,4 +7,7 @@ public sealed class McpWorkspaceBindingController(McpWorkspaceBindingService bin
 {
     public void Pin(HttpContext context, McpServerOptions options)
         => binding.Pin(context.User, options);
+
+    public string? BoundWorkspace(HttpContext context)
+        => binding.BoundWorkspace(context.User);
 }

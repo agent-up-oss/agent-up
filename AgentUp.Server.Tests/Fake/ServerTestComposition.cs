@@ -108,7 +108,8 @@ internal static class ServerTestComposition
                 registry, processes, configuration, identity, OperatingSystem.IsLinux)),
             new OrchestrationRegistrationService(
                 configuration,
-                identity)));
+                identity),
+            new WorkspaceTargetController(new WorkspaceTargetService(registry))));
 
     /// <summary>
     /// The lifecycle service on the real configuration and identity providers, running as
@@ -187,6 +188,13 @@ internal static class ServerTestComposition
 
     public static WorkspaceStateController CreateWorkspaceStateController(WorkspaceRegistry registry)
         => new(registry, new WorkspaceEventBus());
+
+    /// <summary>
+    /// The Workspaces boundary that turns the workspace id or worktree path an MCP caller
+    /// named into the one worktree path a tool works in.
+    /// </summary>
+    public static WorkspaceTargetController CreateWorkspaceTargetController(WorkspaceRegistry registry)
+        => new(new WorkspaceTargetService(registry));
 
     /// <summary>Stream state over a fresh registry and browser event bus.</summary>
     public static WorkspaceStreamStateService CreateStreamState()

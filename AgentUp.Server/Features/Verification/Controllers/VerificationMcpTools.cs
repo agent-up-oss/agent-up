@@ -8,32 +8,44 @@ namespace AgentUp.Server.Features.Verification.Controllers;
 [McpServerToolType]
 public sealed class VerificationMcpTools(VerificationMcpService service)
 {
+    private const string WorkspaceIdDescription =
+        "Registered workspace id, as returned by start_workspace or list_workspaces. Pass exactly one of "
+        + "workspaceId or worktreePath, and omit both when the session is bound to a workspace.";
+
+    private const string WorktreePathDescription =
+        "Absolute path to the repository worktree on the Server host. Pass exactly one of workspaceId or "
+        + "worktreePath, and omit both when the session is bound to a workspace.";
+
     [McpServerTool(Name = "plan_verification", Title = "Plan Verification")]
     [Description("Shows which checks the current changes require, and why each was selected. Selection comes from the static path rules in agent-up.json, not from you: you cannot narrow the set, only see it. Use this to know what will have to pass before you finish.")]
     public Task<McpToolResult> PlanVerification(
-        [Description("Absolute path to the repository worktree.")] string worktreePath,
-        CancellationToken cancellationToken)
-        => service.PlanVerification(worktreePath, cancellationToken);
+        [Description(WorkspaceIdDescription)] string? workspaceId = null,
+        [Description(WorktreePathDescription)] string? worktreePath = null,
+        CancellationToken cancellationToken = default)
+        => service.PlanVerification(workspaceId, worktreePath, cancellationToken);
 
     [McpServerTool(Name = "run_verification", Title = "Run Verification")]
     [Description("Runs every check the current changes require and records a receipt for each. Call this at the end of a task, before enqueueing commits, so the receipts cover the code while it is still in the working tree. Stops at the first failing check. Checks that cannot run on this platform are skipped and stay required in CI.")]
     public Task<McpToolResult> RunVerification(
-        [Description("Absolute path to the repository worktree.")] string worktreePath,
-        CancellationToken cancellationToken)
-        => service.RunVerification(worktreePath, cancellationToken);
+        [Description(WorkspaceIdDescription)] string? workspaceId = null,
+        [Description(WorktreePathDescription)] string? worktreePath = null,
+        CancellationToken cancellationToken = default)
+        => service.RunVerification(workspaceId, worktreePath, cancellationToken);
 
     [McpServerTool(Name = "run_verification_check", Title = "Run One Verification Check")]
     [Description("Re-runs a single required check by id after a targeted fix, instead of repeating the whole set. The check must already be required by the current changes.")]
     public Task<McpToolResult> RunVerificationCheck(
-        [Description("Absolute path to the repository worktree.")] string worktreePath,
         [Description("Check id as reported by plan_verification, for example 'server' or 'mobile'.")] string checkId,
-        CancellationToken cancellationToken)
-        => service.RunVerificationCheck(worktreePath, checkId, cancellationToken);
+        [Description(WorkspaceIdDescription)] string? workspaceId = null,
+        [Description(WorktreePathDescription)] string? worktreePath = null,
+        CancellationToken cancellationToken = default)
+        => service.RunVerificationCheck(checkId, workspaceId, worktreePath, cancellationToken);
 
     [McpServerTool(Name = "guard_verification", Title = "Guard Verification")]
     [Description("Checks whether every check the current changes require has a passing receipt that matches the current file contents. Fails when a check has never run, failed, or ran against different bytes than are there now. This runs nothing itself, so it is cheap; when it reports unproven checks, call run_verification.")]
     public Task<McpToolResult> GuardVerification(
-        [Description("Absolute path to the repository worktree.")] string worktreePath,
-        CancellationToken cancellationToken)
-        => service.GuardVerification(worktreePath, cancellationToken);
+        [Description(WorkspaceIdDescription)] string? workspaceId = null,
+        [Description(WorktreePathDescription)] string? worktreePath = null,
+        CancellationToken cancellationToken = default)
+        => service.GuardVerification(workspaceId, worktreePath, cancellationToken);
 }

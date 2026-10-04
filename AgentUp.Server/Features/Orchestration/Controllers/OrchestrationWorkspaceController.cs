@@ -11,8 +11,8 @@ public sealed class OrchestrationWorkspaceController
 
     public OrchestrationWorkspaceController(OrchestrationWorkspaceService workspaces) => _workspaces = workspaces;
 
-    public Task<McpToolResult> StartAsync(string worktreePath, CancellationToken cancellationToken) =>
-        _workspaces.StartAsync(worktreePath, cancellationToken);
+    public Task<McpToolResult> StartAsync(string? workspaceId, string? worktreePath, CancellationToken cancellationToken) =>
+        _workspaces.StartAsync(workspaceId, worktreePath, cancellationToken);
 
     public Task<McpToolResult> StopAsync(string? id, string? worktreePath) =>
         _workspaces.StopAsync(id, worktreePath);
