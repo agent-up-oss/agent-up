@@ -41,6 +41,21 @@ It never reads the agent commit queue. Record receipts before enqueue. MCP is lo
 <DocFact label="Receipts">{'.git/agent-up/verification/receipts.json'}</DocFact>
 </DocFacts>
 
+## Planned: receipt export
+
+Receipts live outside the working tree so one cannot travel in a change proposal and satisfy another machine's guard against bytes it never tested. The side effect is that the evidence cannot be shown to anyone — there is no way to answer "what was proven about this revision?" from off the machine that ran it.
+
+A planned export closes that without weakening the ledger.
+
+<DocFacts label="Export rules">
+<DocFact label="Contains">Check ids, commands, exit codes, revision, digest</DocFact>
+<DocFact label="Never contains">The per-file hash map</DocFact>
+<DocFact label="Skipped checks">Reported with a reason, never counted as proven</DocFact>
+<DocFact label="Guard">Must not be satisfiable by an exported document</DocFact>
+</DocFacts>
+
+The export is evidence to read, not an input to a gate. Keep the two types distinct so the confusion cannot be expressed in code.
+
 The field contract is the [agent-up.json reference](/docs/configuration/reference#verification-object). Agent operating rules stay in `AGENTS.md`.
 
 <DocNext href="/developer-guide/commits" title="Commits">

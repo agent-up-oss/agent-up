@@ -20,6 +20,12 @@ Agent-Up is an experimental development preview. It is intended for early techni
 - Agent-Up may work on additional platforms, but they should be treated as unverified until tested.
 - Native Windows Server is not a first-class Nix host. Run Server on WSL2 or Linux. There is no second non-Nix capability install path.
 
+## Automation Access
+
+- The MCP automation interface accepts loopback connections only. Tools reachable on the Server host are not reachable from anywhere else, including your own second machine or a CI runner.
+- Desktop and Mobile are unaffected: they use the REST API, which does support remote connections and authentication.
+- Several MCP tools identify their target by an absolute path on the Server's filesystem, so they assume the caller shares it.
+
 ## Feature Status
 
 | Area | Status |
@@ -39,6 +45,7 @@ Agent-Up is an experimental development preview. It is intended for early techni
 | Event recording | Experimental |
 | Validation flows and Playwright export | Preview |
 | MCP tools | Preview (contracts may change) |
+| MCP access from another machine | Not available — loopback only |
 | CLI | Preview |
 | Cross-platform packaging | Preview |
 
