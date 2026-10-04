@@ -15,6 +15,7 @@ import {
   tokenKey,
   varName,
 } from '../scripts/lib/css.mjs';
+import { emitNative } from '../scripts/lib/native.mjs';
 import { applyProps } from '../scripts/lib/slots.mjs';
 
 const root = new URL('..', import.meta.url);
@@ -95,6 +96,50 @@ test('compileable class rules become native components and Avalonia selectors', 
 test('native font-style stays on the React Native italic/normal union', () => {
   assert.equal(auText('chatThoughtBody').fontStyle, 'italic');
   assert.notEqual(auText('chatThoughtBody').fontStyle, 'oblique');
+});
+
+test('native component styles omit CSS values that abort a production Expo Font host', () => {
+  const css = [
+    ':root { --au-font-sans: Inter, sans-serif; --au-radius-xl: 1rem; --au-color-text-primary: #f5fbf7; }',
+    '.au-button { color: var(--au-color-text-primary); font-family: var(--au-font-sans); border-radius: var(--au-radius-xl) var(--au-radius-xl) 0 0; }',
+    '.au-label { color: var(--au-color-text-primary); white-space: nowrap; }',
+    '.au-display { max-width: 19ch; color: var(--au-color-text-primary); }',
+  ].join('\n');
+  const { js } = emitNative(parseCustomProperties(css), parseRules(css));
+  assert.match(js, /borderRadius: 16/);
+  assert.doesNotMatch(js, /fontFamily:/);
+  assert.doesNotMatch(js, /whiteSpace:/);
+  assert.doesNotMatch(js, /19ch/);
+  assert.doesNotMatch(js, /var\(--au-/);
+});
+
+test('compiled native component styles stay on React Native length and color types', () => {
+  const lengthKeys = new Set([
+    'borderWidth', 'borderRadius', 'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
+    'width', 'height', 'minHeight', 'minWidth', 'maxWidth', 'marginLeft', 'paddingHorizontal', 'paddingVertical',
+    'opacity', 'fontSize', 'letterSpacing',
+  ]);
+  const colorKeys = new Set([
+    'color', 'backgroundColor', 'borderColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor',
+  ]);
+  for (const [name, style] of Object.entries(agentUpTheme.components)) {
+    for (const [key, value] of Object.entries(style)) {
+      if (lengthKeys.has(key)) {
+        const ok = typeof value === 'number' || (typeof value === 'string' && /^\d+(\.\d+)?%$/.test(value));
+        assert.ok(ok, `${name}.${key}=${JSON.stringify(value)} is not a React Native length`);
+      } else if (colorKeys.has(key)) {
+        assert.equal(typeof value, 'string', `${name}.${key} is not a color string`);
+        assert.doesNotMatch(String(value), /var\(--au-/, `${name}.${key} leaked a CSS variable`);
+      } else if (key === 'fontFamily') {
+        assert.doesNotMatch(String(value), /[,"]/, `${name}.fontFamily is a CSS stack`);
+      } else if (key === 'whiteSpace') {
+        assert.fail(`${name}.whiteSpace reached the React Native bundle`);
+      }
+    }
+  }
+  assert.equal(auBox('fileViewerHeader').borderRadius, agentUpTheme.radii.xl);
+  assert.equal(auText('button').fontFamily, undefined);
+  assert.equal(auText('choiceLabel').whiteSpace, undefined);
 });
 
 test('catalog metadata is a complete, unique schema and Desktop aliases compile', () => {

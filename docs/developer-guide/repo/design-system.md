@@ -225,6 +225,11 @@ npm --prefix AgentUp.DesignSystem test
 The `check` command fails when a generated web, React Native, or Avalonia binding
 does not exactly match the canonical HTML and CSS. Native `font-style` compiles to
 React Native `italic` or `normal`; CSS `oblique` maps to `italic` because React
-Native does not accept `oblique`. Screenshot HTML is generated in the same build from `src/screens.html`;
+Native does not accept `oblique`. Native `font-family` is omitted: CSS stacks are
+not React Native font names, and a linked Expo Font module treats an unknown
+family as a production fatal instead of falling back to the system face. Multi-value
+`border-radius`, `white-space`, and `ch` lengths are also omitted or reduced to a
+single pixel radius so Fabric does not abort on a string where it expects a number.
+Screenshot HTML is generated in the same build from `src/screens.html`;
 refresh `media/` with `au-debug screenshots persist` and prove the shots still
 compose catalog component HTML with `au-debug screenshots validate`.
