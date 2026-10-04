@@ -10,7 +10,6 @@ import {
   framedSceneHtml,
   isLayoutShell,
   mobileSize,
-  sceneStylesheetHref,
   wrapSceneDocument,
 } from '../scripts/lib/screens.mjs';
 import { normaliseStates } from '../scripts/lib/states.mjs';
