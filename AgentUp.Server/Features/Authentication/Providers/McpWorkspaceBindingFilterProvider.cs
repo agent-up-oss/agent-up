@@ -78,21 +78,41 @@ public sealed class McpWorkspaceBindingFilterProvider(
 
     private static void FilterListedWorkspaces(CallToolResult result, string boundWorkspace)
     {
-        if (result.StructuredContent is not JsonElement structured
-            || structured.ValueKind is not JsonValueKind.Array)
+        if (result.StructuredContent is JsonElement structured && structured.ValueKind is JsonValueKind.Array)
+            result.StructuredContent = JsonSerializer.SerializeToElement(KeepBoundWorkspaces(structured, boundWorkspace));
+
+        if (result.Content is null)
             return;
 
-        var kept = structured.EnumerateArray()
+        result.Content = result.Content.Select(block => FilterListedWorkspaceText(block, boundWorkspace)).ToList();
+    }
+
+    private static ContentBlock FilterListedWorkspaceText(ContentBlock block, string boundWorkspace)
+    {
+        if (block is not TextContentBlock text || string.IsNullOrWhiteSpace(text.Text))
+            return block;
+
+        try
+        {
+            using var document = JsonDocument.Parse(text.Text);
+            if (document.RootElement.ValueKind is not JsonValueKind.Array)
+                return block;
+
+            return new TextContentBlock { Text = JsonSerializer.Serialize(KeepBoundWorkspaces(document.RootElement, boundWorkspace)) };
+        }
+        catch (JsonException)
+        {
+            return block;
+        }
+    }
+
+    private static JsonElement[] KeepBoundWorkspaces(JsonElement array, string boundWorkspace)
+        => array.EnumerateArray()
             .Where(item => item.ValueKind is JsonValueKind.Object
                            && item.TryGetProperty("id", out var id)
                            && string.Equals(id.GetString(), boundWorkspace, StringComparison.Ordinal))
             .Select(item => item.Clone())
             .ToArray();
-        if (kept.Length == structured.GetArrayLength())
-            return;
-
-        result.StructuredContent = JsonSerializer.SerializeToElement(kept);
-    }
 
     private static CallToolResult Forbid(string? error)
         => new()

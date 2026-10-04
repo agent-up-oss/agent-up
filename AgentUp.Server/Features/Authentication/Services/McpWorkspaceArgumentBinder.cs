@@ -36,11 +36,8 @@ public sealed class McpWorkspaceArgumentBinder(IBoundWorkspaceCatalog catalog)
                 return McpWorkspaceBindingDecision.Forbid(Refusal(boundWorkspace, text));
         }
 
-        foreach (var name in workspaceIdParameters)
-        {
-            if (!HasText(rewritten, name))
-                rewritten[name] = JsonSerializer.SerializeToElement(boundWorkspace);
-        }
+        foreach (var name in workspaceIdParameters.Where(name => !HasText(rewritten, name)))
+            rewritten[name] = JsonSerializer.SerializeToElement(boundWorkspace);
 
         return McpWorkspaceBindingDecision.Allow(rewritten);
     }

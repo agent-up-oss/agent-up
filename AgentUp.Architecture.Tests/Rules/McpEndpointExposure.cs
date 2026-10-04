@@ -160,7 +160,8 @@ public sealed class McpEndpointExposure
     }
 
     private static string? ToolName(MethodDeclarationSyntax method)
-        => method.AttributeLists
+    {
+        return method.AttributeLists
             .SelectMany(list => list.Attributes)
             .Where(attribute => attribute.Name.ToString() is "McpServerTool" or "McpServerToolAttribute")
             .SelectMany(attribute => attribute.ArgumentList?.Arguments ?? default)
@@ -169,9 +170,11 @@ public sealed class McpEndpointExposure
             .OfType<LiteralExpressionSyntax>()
             .Select(literal => literal.Token.ValueText)
             .FirstOrDefault();
+    }
 
     private static string? ParameterDescription(ParameterSyntax parameter)
-        => parameter.AttributeLists
+    {
+        return parameter.AttributeLists
             .SelectMany(list => list.Attributes)
             .Where(attribute => attribute.Name.ToString() is "Description" or "DescriptionAttribute")
             .SelectMany(attribute => attribute.ArgumentList?.Arguments ?? default)
@@ -179,6 +182,7 @@ public sealed class McpEndpointExposure
             .OfType<LiteralExpressionSyntax>()
             .Select(literal => literal.Token.ValueText)
             .FirstOrDefault();
+    }
 
     private static bool IsWorkspaceTarget(string name, string? description)
         => name.Equals("workspaceId", StringComparison.OrdinalIgnoreCase)

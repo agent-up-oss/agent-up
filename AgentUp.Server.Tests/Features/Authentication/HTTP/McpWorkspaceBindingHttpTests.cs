@@ -6,7 +6,6 @@ using System.Text;
 using System.Text.Json;
 using AgentUp.Server;
 using AgentUp.Server.Features.Authentication.DTOs;
-using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -144,11 +143,17 @@ public sealed class McpWorkspaceBindingHttpTests
     {
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", IssueToken(permissions: OperationPermissions.All));
-        var bound = await (await client.PostAsJsonAsync("/api/workspaces", ServerDomain.Workspace().Build()))
-            .Content.ReadFromJsonAsync<Workspace>();
-        var other = await (await client.PostAsJsonAsync("/api/workspaces", ServerDomain.SecondWorkspace().Build()))
-            .Content.ReadFromJsonAsync<Workspace>();
-        return (bound!.Id, other!.Id);
+        var boundId = await RegisterWorkspaceAsync(client, ServerDomain.Workspace().Build());
+        var otherId = await RegisterWorkspaceAsync(client, ServerDomain.SecondWorkspace().Build());
+        return (boundId, otherId);
+    }
+
+    private static async Task<string> RegisterWorkspaceAsync(HttpClient client, object request)
+    {
+        using var response = await client.PostAsJsonAsync("/api/workspaces", request);
+        response.EnsureSuccessStatusCode();
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return document.RootElement.GetProperty("id").GetString()!;
     }
 
     private static async Task<string> InitializeAsync(HttpClient client, string path, string? workspace)
