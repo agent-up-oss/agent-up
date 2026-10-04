@@ -44,9 +44,16 @@ test('the showcase is intro, then assembled screens, then the catalog', async ()
   assert.match(page, /playSequence\(root, scene\.sequence\)/);
   assert.match(page, /au-chip/);
   assert.match(page, /aria-orientation="horizontal"/);
-  assert.match(page, /side by side at the same height/);
-  assert.match(css, /flex: var\(--au-preview-aspect/);
+  assert.match(page, /One central definition/);
+  assert.match(page, /au-screenshot-showcase/);
+  assert.match(page, /au-screenshot-stage/);
+  assert.match(page, /au-screenshot-pair/);
+  assert.match(page, /transform: `scale\(\$\{scale\}\)`/);
+  assert.match(page, /width: scene\.width/);
+  assert.match(page, /height: scene\.height/);
+  assert.doesNotMatch(css, /flex: var\(--au-preview-aspect/);
   assert.doesNotMatch(css, /\.previewMobile/);
+  assert.doesNotMatch(css, /overflow-x:\s*hidden/);
   assert.match(page, /au-marketing-hero/);
   assert.match(page, /function IntroPlayground/);
   assert.match(page, /playgroundControls/);

@@ -16,8 +16,11 @@ live collage of catalog product-control examples. Those examples are the same
 `component.html` definitions as the catalog below, so the intro stays in sync
 when the catalog changes. Assembled Desktop and Mobile screens follow, selected
 by a horizontal chip strip. Those views mount assembled screen HTML: `src/screens.html` layouts that
-`data-au-use` catalog component ids. Desktop and Mobile sit side by side at
-matched height and use the full page width. They do not embed persisted PNGs and they
+`data-au-use` catalog component ids. The heading, chip selection, and Desktop
+and Mobile pair share one centered max-content block so page zoom recedes them
+together. Each scene lays out at native pixels, then scales into one shared
+display height so Desktop and Mobile stay matched and the whole window stays
+visible. They do not embed persisted PNGs and they
 do not restate component markup. Below that, a vertical
 surface list sits in the left of the content column, and each selected surface
 shows the live components that surface uses.
@@ -53,9 +56,12 @@ shows the live components that surface uses.
   numbered spine, contract, fork, facts, surface rows, steps, callout, next).
   It is not compiled into Desktop or Mobile bindings.
 - `src/marketing.css` owns campaign and product-frame compositions.
-- `src/screenshots/shell.css` owns the scaled showcase embed only. Screen chrome
-  layout lives in `src/product.css` as `.au-screen*` so Desktop can apply the
-  same classes.
+- `src/screenshots/shell.css` owns the showcase embed: a centered heading,
+  selection, and pair that lays each scene out at native pixels then scales
+  both frames to one display height. It must not
+  stretch to the viewport or scale with container-query units, because those
+  leave the frame behind when the page zooms. Screen chrome layout lives in
+  `src/product.css` as `.au-screen*` so Desktop can apply the same classes.
 - `src/icons.html` owns every product icon, as stroked path geometry on a 24x24
   grid. `scripts/lib/icons.mjs` inlines it wherever the catalog or a screen writes
   `data-au-icon`, and emits the same geometry as `dist/web/icons.json`,

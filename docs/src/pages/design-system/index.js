@@ -144,8 +144,22 @@ function IntroPlayground() {
   </div>;
 }
 
+function useShowcaseDisplayHeight() {
+  const [height, setHeight] = useState(448);
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 960px)');
+    const sync = () => setHeight(media.matches ? 224 : 448);
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
+  return height;
+}
+
 function ScenePreview({ scene, label }) {
   const mounted = useRef(null);
+  const displayHeight = useShowcaseDisplayHeight();
+  const scale = displayHeight / scene.height;
 
   // A scene that declares a sequence plays it here. The player only moves a modifier class on
   // the markup already mounted, so the elements keep their identity and the CSS transition on
@@ -157,18 +171,31 @@ function ScenePreview({ scene, label }) {
   }, [scene?.id, scene?.sequence]);
 
   if (!scene?.html) return null;
-  return <figure className={styles.preview} style={{ '--au-preview-aspect': scene.width / scene.height }}>
+  return <figure className="au-screenshot-preview">
     <div
       className="au-product-frame au-screenshot-embed"
       style={{
-        '--au-screenshot-width': scene.width,
-        '--au-screenshot-height': scene.height,
+        '--au-screenshot-width': String(scene.width),
+        '--au-screenshot-height': String(scene.height),
+        width: scene.width * scale,
+        height: displayHeight,
+        overflow: 'hidden',
+        position: 'relative',
       }}
       aria-label={label}
     >
       <div
         className="au-screenshot-embed__scale"
         aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: scene.width,
+          height: scene.height,
+          transform: `scale(${scale})`,
+          transformOrigin: '0 0',
+        }}
         ref={node => {
           mounted.current = node;
           if (node) node.inert = true;
@@ -243,47 +270,51 @@ export default function DesignSystemPage() {
 
       <section className={`au-section ${styles.overview}`} id="screens">
         <div className={styles.overviewInner}>
-          <div className={styles.overviewHead}>
-            <p className="au-eyebrow">Assembled screens</p>
-            <h2 className={`au-title ${styles.overviewTitle}`}>Desktop and Mobile, from one catalog.</h2>
-            <p className="au-lede">Each tab mounts the live screenshot definition: catalog classes plus screenshot shells, not a PNG. Desktop and Mobile sit side by side at the same height.</p>
-          </div>
+          <div className="au-screenshot-showcase">
+            <div className={styles.overviewHead}>
+              <p className="au-eyebrow">Assembled screens</p>
+              <h2 className={`au-title ${styles.overviewTitle}`}>One central definition.</h2>
+              <p className="au-lede">Each screen is defined centrally and itself assembled from central component definitions.</p>
+            </div>
 
-          <div className={styles.screenNav}>
-            <nav aria-label="Assembled screens">
-              <div className={styles.screenChipRow} role="tablist" aria-orientation="horizontal">
-                {screens.map(item => (
-                  <button
-                    key={item.id}
-                    id={`screen-tab-${item.id}`}
-                    type="button"
-                    className={`au-chip${item.id === activeScreen ? ' au-chip--selected' : ''} ${styles.screenChip}`}
-                    role="tab"
-                    aria-selected={item.id === activeScreen}
-                    aria-controls={`screen-panel-${item.id}`}
-                    onClick={() => selectScreen(item.id)}
-                  >
-                    {item.title}
-                  </button>
-                ))}
-              </div>
-            </nav>
+            <div className={styles.screenNav}>
+              <nav aria-label="Assembled screens">
+                <div className={styles.screenChipRow} role="tablist" aria-orientation="horizontal">
+                  {screens.map(item => (
+                    <button
+                      key={item.id}
+                      id={`screen-tab-${item.id}`}
+                      type="button"
+                      className={`au-chip${item.id === activeScreen ? ' au-chip--selected' : ''} ${styles.screenChip}`}
+                      role="tab"
+                      aria-selected={item.id === activeScreen}
+                      aria-controls={`screen-panel-${item.id}`}
+                      onClick={() => selectScreen(item.id)}
+                    >
+                      {item.title}
+                    </button>
+                  ))}
+                </div>
+              </nav>
 
-            <section
-              id={`screen-panel-${screen.id}`}
-              className={styles.screenPanel}
-              role="tabpanel"
-              aria-labelledby={`screen-tab-${screen.id}`}
-            >
-              <div className={styles.screenCopy}>
-                <h3 className="au-page-title">{screen.title}</h3>
-                <p className="au-muted">{screen.intro}</p>
-              </div>
-              <div className={styles.pair}>
-                {desktop ? <ScenePreview scene={desktop} label="Desktop" /> : null}
-                {mobile ? <ScenePreview scene={mobile} label="Mobile" /> : null}
-              </div>
-            </section>
+              <section
+                id={`screen-panel-${screen.id}`}
+                className={styles.screenPanel}
+                role="tabpanel"
+                aria-labelledby={`screen-tab-${screen.id}`}
+              >
+                <div className={styles.screenCopy}>
+                  <h3 className="au-page-title">{screen.title}</h3>
+                  <p className="au-muted">{screen.intro}</p>
+                </div>
+                <div className="au-screenshot-stage">
+                  <div className="au-screenshot-pair">
+                    {desktop ? <ScenePreview scene={desktop} label="Desktop" /> : null}
+                    {mobile ? <ScenePreview scene={mobile} label="Mobile" /> : null}
+                  </div>
+                </div>
+              </section>
+            </div>
           </div>
         </div>
       </section>

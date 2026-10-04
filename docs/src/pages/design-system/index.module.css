@@ -9,8 +9,9 @@
   width: 100%;
   min-width: 0;
   padding-inline: clamp(1rem, 3vw, 2.5rem);
+  overflow: auto;
 }
-.overviewHead { display: grid; gap: var(--au-space-4); max-width: 46rem; }
+.overviewHead { display: grid; gap: var(--au-space-4); }
 .overviewTitle { max-width: 100%; }
 .screenNav {
   display: grid;
@@ -34,27 +35,8 @@
   gap: var(--au-space-6);
   min-width: 0;
   width: 100%;
-  overflow-x: hidden;
 }
-.screenCopy { display: grid; gap: var(--au-space-2); max-width: 46rem; }
-.pair {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--au-space-5);
-  width: 100%;
-  min-width: 0;
-}
-.preview {
-  display: grid;
-  flex: var(--au-preview-aspect, 1.6) 1 0;
-  gap: var(--au-space-2);
-  min-width: 0;
-  width: auto;
-}
-.preview:only-child {
-  flex: 1 1 auto;
-  width: 100%;
-}
+.screenCopy { display: grid; gap: var(--au-space-2); }
 .shell { padding-bottom: var(--au-space-16); }
 .catalog {
   display: grid;
@@ -90,8 +72,6 @@
 
 @media (max-width: 960px) {
   .catalog { grid-template-columns: 1fr; }
-  .pair { flex-direction: column; }
-  .preview { flex: 0 0 auto; width: 100%; }
 }
 @media (max-width: 760px) {
   .screenChipRow {

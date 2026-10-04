@@ -144,3 +144,18 @@ test('assembled Demo scenes insert Harbor Shop catalog HTML', () => {
   assert.ok(validation.html.includes('au-validation-check'));
   assert.ok(!validation.components.includes('validation-stage'));
 });
+
+test('the showcase embed keeps the frame on the same pixel box as the screen', async () => {
+  const shell = await readFile(new URL('../src/screenshots/shell.css', import.meta.url), 'utf8');
+  assert.match(shell, /\.au-screenshot-showcase/);
+  assert.match(shell, /\.au-screenshot-stage/);
+  assert.match(shell, /\.au-screenshot-pair/);
+  assert.match(shell, /width: max-content/);
+  assert.match(shell, /margin-inline: auto/);
+  assert.match(shell, /--au-screenshot-display-height: 448/);
+  assert.match(shell, /width: calc\(1px \* var\(--au-screenshot-width\)\)/);
+  assert.match(shell, /height: calc\(1px \* var\(--au-screenshot-height\)\)/);
+  assert.match(shell, /transform: scale\(calc\(var\(--au-screenshot-display-height\) \/ var\(--au-screenshot-height\)\)\)/);
+  assert.match(shell, /\.au-screenshot-embed__scale > \.au-screen/);
+  assert.doesNotMatch(shell, /100cqi|container-type|zoom:|22\.5rem|28rem/);
+});
