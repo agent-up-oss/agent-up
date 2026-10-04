@@ -103,44 +103,116 @@ function dropParts(html, keep) {
 }
 
 function nextPart(html) {
-  const match = html.match(
-    /<([a-z][a-z0-9]*)((?:[^>"']|"[^"]*"|'[^']*')*\sdata-au-part="([^"]+)"(?:[^>"']|"[^"]*"|'[^']*')*)>/i);
-  if (!match) return null;
-  const start = match.index;
-  const openEnd = start + match[0].length;
-  const closeAt = matchingClose(html, match[1], openEnd);
-  if (closeAt < 0) throw new Error(`Unclosed data-au-part '${match[3]}'.`);
-  return {
-    tag: match[1],
-    attributes: match[2],
-    part: match[3],
-    start,
-    openEnd,
-    end: closeAt + `</${match[1]}>`.length,
-  };
+  const marker = 'data-au-part="';
+  let searchFrom = 0;
+  while (searchFrom < html.length) {
+    const markerAt = html.indexOf(marker, searchFrom);
+    if (markerAt < 0) return null;
+    if (markerAt === 0 || !isWhitespace(html[markerAt - 1])) {
+      searchFrom = markerAt + marker.length;
+      continue;
+    }
+    const start = html.lastIndexOf('<', markerAt);
+    if (start < 0) {
+      searchFrom = markerAt + marker.length;
+      continue;
+    }
+    const tag = readTagName(html, start + 1);
+    const openEnd = tag ? findTagEnd(html, start + 1 + tag.length) : -1;
+    if (!tag || openEnd < 0 || markerAt > openEnd) {
+      searchFrom = markerAt + marker.length;
+      continue;
+    }
+    const partStart = markerAt + marker.length;
+    const partEnd = html.indexOf('"', partStart);
+    if (partEnd < 0 || partEnd > openEnd) {
+      searchFrom = markerAt + marker.length;
+      continue;
+    }
+    const part = html.slice(partStart, partEnd);
+    const closeAt = matchingClose(html, tag, openEnd + 1);
+    if (closeAt < 0) throw new Error(`Unclosed data-au-part '${part}'.`);
+    return {
+      tag,
+      attributes: html.slice(start + 1 + tag.length, openEnd),
+      part,
+      start,
+      openEnd: openEnd + 1,
+      end: closeAt + `</${tag}>`.length,
+    };
+  }
+  return null;
 }
 
 function matchingClose(html, tag, from) {
-  const open = new RegExp(`<${tag}\\b[^>]*>`, 'gi');
-  const close = new RegExp(`</${tag}>`, 'gi');
+  const close = `</${tag}>`;
   let depth = 1;
   let cursor = from;
   while (cursor < html.length && depth > 0) {
-    open.lastIndex = cursor;
-    close.lastIndex = cursor;
-    const nextOpen = open.exec(html);
-    const nextClose = close.exec(html);
-    if (!nextClose) return -1;
-    if (nextOpen && nextOpen.index < nextClose.index) {
+    const nextOpen = findOpenTag(html, tag, cursor);
+    const nextClose = html.indexOf(close, cursor);
+    if (nextClose < 0) return -1;
+    if (nextOpen >= 0 && nextOpen < nextClose) {
+      const end = findTagEnd(html, nextOpen + 1 + tag.length);
+      if (end < 0) return -1;
       depth += 1;
-      cursor = nextOpen.index + nextOpen[0].length;
+      cursor = end + 1;
       continue;
     }
     depth -= 1;
-    if (depth === 0) return nextClose.index;
-    cursor = nextClose.index + nextClose[0].length;
+    if (depth === 0) return nextClose;
+    cursor = nextClose + close.length;
   }
   return -1;
+}
+
+function readTagName(html, from) {
+  if (from >= html.length || !isTagStart(html[from])) return '';
+  let end = from + 1;
+  while (end < html.length && isTagContinue(html[end])) end += 1;
+  return html.slice(from, end);
+}
+
+function findOpenTag(html, tag, from) {
+  const needle = `<${tag}`;
+  let at = html.indexOf(needle, from);
+  while (at >= 0) {
+    const after = at + needle.length;
+    if (after >= html.length) return -1;
+    const next = html[after];
+    if (next === '>' || next === '/' || isWhitespace(next)) return at;
+    at = html.indexOf(needle, at + 1);
+  }
+  return -1;
+}
+
+function findTagEnd(html, from) {
+  let quote = '';
+  for (let i = from; i < html.length; i += 1) {
+    const ch = html[i];
+    if (quote) {
+      if (ch === quote) quote = '';
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (ch === '>') return i;
+  }
+  return -1;
+}
+
+function isTagStart(ch) {
+  return ch >= 'a' && ch <= 'z';
+}
+
+function isTagContinue(ch) {
+  return isTagStart(ch) || (ch >= '0' && ch <= '9');
+}
+
+function isWhitespace(ch) {
+  return ch === ' ' || ch === '\n' || ch === '\r' || ch === '\t';
 }
 
 /** Removing an element that sat on its own line otherwise leaves its indentation behind. */
