@@ -29,6 +29,9 @@ Agents still enqueue through the commit queue. This slice does not replace `enqu
 <DocSurface mobile>Open it from the Git tab. The overview lists uncommitted changes; a filename opens the file viewer. History sits next to Push. Inner Review and History pages return through the nav-bar back button.</DocSurface>
 </DocSurfaces>
 
+<p><img src="/desktop-git.png" alt="Desktop Git changes showing ProductGrid.tsx" /></p>
+<p><img src="/mobile-git.png" alt="Mobile Git tab showing ProductGrid.tsx" /></p>
+
 <DocNext href="/docs/git/review" title="Review">
 Choose paths and commit them.
 </DocNext>

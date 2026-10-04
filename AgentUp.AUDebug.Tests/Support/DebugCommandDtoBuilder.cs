@@ -22,6 +22,8 @@ internal sealed class DebugCommandDtoBuilder(string verb, string? surface = null
     private string? _pagePath;
     private string? _heading;
     private bool _fullPage;
+    private string? _view;
+    private bool _live;
 
     public DebugCommandDtoBuilder Doing(string? action)
     {
@@ -77,6 +79,18 @@ internal sealed class DebugCommandDtoBuilder(string verb, string? surface = null
         return this;
     }
 
+    public DebugCommandDtoBuilder ForView(string? view)
+    {
+        _view = view;
+        return this;
+    }
+
+    public DebugCommandDtoBuilder Live()
+    {
+        _live = true;
+        return this;
+    }
+
     public DebugCommandDto Build()
-        => new(verb, surface, _action, _workspaceName, _password, _timeout, _detach, _suite, _pagePath, _heading, _fullPage);
+        => new(verb, surface, _action, _workspaceName, _password, _timeout, _detach, _suite, _pagePath, _heading, _fullPage, _view, _live);
 }

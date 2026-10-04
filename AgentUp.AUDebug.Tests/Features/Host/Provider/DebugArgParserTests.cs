@@ -76,6 +76,7 @@ public sealed class DebugArgParserTests
         Assert.That(command.PagePath, Is.Null);
         Assert.That(command.Heading, Is.Null);
         Assert.That(command.FullPage, Is.False);
+        Assert.That(command.Live, Is.False);
     }
 
     [Test]
@@ -252,5 +253,186 @@ public sealed class DebugArgParserTests
     {
         var (_, error) = _parser.Parse(["desktop", "screenshot", "extra"]);
         Assert.That(error, Does.Contain("does not take extra arguments"));
+    }
+
+    [Test]
+    public void Parse_screenshotsPersist_usesLongerTimeout()
+    {
+        var (command, error) = _parser.Parse(["screenshots", "persist"]);
+
+        Assert.That(error, Is.Null);
+        Assert.That(command!.Verb, Is.EqualTo("screenshots"));
+        Assert.That(command.Action, Is.EqualTo("persist"));
+        Assert.That(command.Timeout, Is.EqualTo(TimeSpan.FromSeconds(DebugLayout.ScreenshotsTimeoutSeconds)));
+        Assert.That(command.Live, Is.False);
+    }
+
+    [Test]
+    public void Parse_screenshotsValidateLive()
+    {
+        var (command, error) = _parser.Parse(["screenshots", "validate", "--live"]);
+
+        Assert.That(error, Is.Null);
+        Assert.That(command!.Action, Is.EqualTo("validate"));
+        Assert.That(command.Live, Is.True);
+    }
+
+    [Test]
+    public void Parse_screenshotsDesktopView()
+    {
+        var (command, error) = _parser.Parse(["screenshots", "desktop", "git"]);
+
+        Assert.That(error, Is.Null);
+        Assert.That(command!.Action, Is.EqualTo("desktop"));
+        Assert.That(command.View, Is.EqualTo("git"));
+        Assert.That(command.Timeout, Is.EqualTo(TimeSpan.FromSeconds(DebugLayout.DefaultTimeoutSeconds)));
+    }
+
+    [Test]
+    public void Parse_liveOnlyForScreenshotsValidate()
+    {
+        var (_, persist) = _parser.Parse(["screenshots", "persist", "--live"]);
+        var (_, status) = _parser.Parse(["status", "--live"]);
+        Assert.That(persist, Does.Contain("only valid for screenshots validate"));
+        Assert.That(status, Does.Contain("only valid for screenshots validate"));
+    }
+
+    [Test]
+    public void Parse_screenshotsUnknownAction_returnsError()
+    {
+        var (_, error) = _parser.Parse(["screenshots", "explode"]);
+        Assert.That(error, Does.Contain("unknown screenshots action"));
+    }
+
+    [Test]
+    public void Parse_screenshotsMissingAction_returnsError()
+    {
+        var (_, error) = _parser.Parse(["screenshots"]);
+        Assert.That(error, Does.Contain("requires an action"));
+    }
+
+    [Test]
+    public void Parse_screenshotsDesktopExtraView_returnsError()
+    {
+        var (_, error) = _parser.Parse(["screenshots", "desktop", "git", "extra"]);
+        Assert.That(error, Does.Contain("takes at most one view name"));
+    }
+
+    [Test]
+    public void Parse_screenshotsPersistExtraArg_returnsError()
+    {
+        var (_, error) = _parser.Parse(["screenshots", "persist", "nope"]);
+        Assert.That(error, Does.Contain("does not take extra arguments"));
+    }
+
+    [Test]
+    public void Screens_defaultsToBothSurfacesWithTheLongWatchdog()
+    {
+        var (command, error) = new DebugArgParser().Parse(["screens"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(error, Is.Null);
+            Assert.That(command!.Verb, Is.EqualTo("screens"));
+            Assert.That(command.Action, Is.EqualTo("all"));
+            Assert.That(command.Timeout, Is.EqualTo(TimeSpan.FromSeconds(DebugLayout.ScreensTimeoutSeconds)));
+        });
+    }
+
+    [Test]
+    public void Screens_takesASurfaceAndOneScreenName()
+    {
+        var (command, error) = new DebugArgParser().Parse(["screens", "desktop", "git"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(error, Is.Null);
+            Assert.That(command!.Action, Is.EqualTo("desktop"));
+            Assert.That(command.View, Is.EqualTo("git"));
+        });
+    }
+
+    [Test]
+    public void Screens_rejectsAnUnknownSurface()
+    {
+        var (command, error) = new DebugArgParser().Parse(["screens", "tablet"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(command, Is.Null);
+            Assert.That(error, Does.Contain("unknown screens surface 'tablet'"));
+        });
+    }
+
+    [Test]
+    public void Screens_rejectsAScreenNameWithoutASurface()
+    {
+        var (command, error) = new DebugArgParser().Parse(["screens", "git", "extra"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(command, Is.Null);
+            Assert.That(error, Is.Not.Null);
+        });
+    }
+
+    [Test]
+    public void Screens_rejectsAllPlusAScreenName()
+    {
+        var (_, error) = new DebugArgParser().Parse(["screens", "all", "git"]);
+
+        Assert.That(error, Does.Contain("needs a surface"));
+    }
+
+    [Test]
+    public void Screens_rejectsAFourthArgument()
+    {
+        var (_, error) = new DebugArgParser().Parse(["screens", "desktop", "git", "extra"]);
+
+        Assert.That(error, Does.Contain("at most a surface and one screen name"));
+    }
+
+    [Test]
+    public void Parse_screensCompare_scopesToEverySurfaceByDefault()
+    {
+        var (command, error) = _parser.Parse(["screens", "compare"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(error, Is.Null);
+            Assert.That(command!.Action, Is.EqualTo("compare"));
+            Assert.That(command.Surface, Is.Null);
+            Assert.That(command.View, Is.Null);
+        });
+    }
+
+    [Test]
+    public void Parse_screensCompare_takesASurfaceAndAScreen()
+    {
+        var (command, error) = _parser.Parse(["screens", "compare", "mobile", "git"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(error, Is.Null);
+            Assert.That(command!.Action, Is.EqualTo("compare"));
+            Assert.That(command.Surface, Is.EqualTo("mobile"));
+            Assert.That(command.View, Is.EqualTo("git"));
+        });
+    }
+
+    [Test]
+    public void Parse_screensCompare_rejectsAScreenWithoutASurface()
+    {
+        var (_, error) = _parser.Parse(["screens", "compare", "git"]);
+
+        Assert.That(error, Does.Contain("unknown screens surface 'git'"));
+    }
+
+    [Test]
+    public void Parse_screensCompare_rejectsExtraArguments()
+    {
+        var (_, error) = _parser.Parse(["screens", "compare", "mobile", "git", "extra"]);
+
+        Assert.That(error, Does.Contain("at most a surface and one screen name"));
     }
 }

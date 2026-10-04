@@ -118,7 +118,7 @@ public class ContentPanelBehaviorTests
     }
 
     [AvaloniaTest]
-    public async Task Content_keepsOverviewBesideValidation_whenWorkspaceIsSelected()
+    public async Task Content_hidesValidation_whenOverviewIsSelected()
     {
         var workspace = DesktopDomain.Workspace().Build();
         var app = await AppDriver.LaunchWithWorkspaceAsync(workspace);
@@ -130,7 +130,7 @@ public class ContentPanelBehaviorTests
         }
 
         Assert.That(app.Window.FindControl<Border>("GitPanel")!.IsVisible, Is.False);
-        Assert.That(app.Window.FindControl<Border>("ValidationPanel")!.IsVisible, Is.True);
+        Assert.That(app.Window.FindControl<Border>("ValidationPanel")!.IsVisible, Is.False);
         Assert.That(app.Content.ShowsAddressNavBar, Is.False);
     }
 

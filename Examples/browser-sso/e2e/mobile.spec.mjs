@@ -20,7 +20,7 @@ test('Mobile signs in through browser SSO and hides create when the document for
     await expect(page.getByRole('heading', { name: 'Sign in to Shared Server' })).toBeVisible();
     await page.locator('#sso-continue').click();
 
-    await expect(page.getByTestId('entitlement-card')).toBeVisible();
+    await expect(page.getByTestId('plan-card')).toBeVisible();
     await expect(page.getByText('Shared Server')).toBeVisible();
     await expect(page.getByText('This Server does not allow adding workspaces from the client.')).toBeVisible();
     await expect(page.getByTestId('shell-right-action')).toHaveCount(0);

@@ -4,7 +4,18 @@ import { fileURLToPath } from 'node:url';
 import { emitCSharpColors, emitStyles, emitThemeResources } from './lib/avalonia.mjs';
 import { catalogIndex, parseCatalog } from './lib/catalog.mjs';
 import { parseCustomProperties, parseRules } from './lib/css.mjs';
+import {
+  emitAvaloniaIcons,
+  emitNativeIconTypes,
+  emitNativeIcons,
+  expandIcons,
+  parseIcons,
+} from './lib/icons.mjs';
 import { emitNative } from './lib/native.mjs';
+import { emitSequencePlayer, emitSequencePlayerTypes } from './lib/sequences.mjs';
+import { assembleScreens, framedSceneHtml, sceneCopy, wrapSceneDocument } from './lib/screens.mjs';
+import { applyDefaultParts, buildPropsExamples, hasContentSlots } from './lib/slots.mjs';
+import { buildStateExamples } from './lib/states.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const src = resolve(root, 'src');
@@ -13,8 +24,12 @@ const primitives = await readFile(resolve(src, 'agent-up.css'), 'utf8');
 const product = await readProductCss(src);
 const marketing = await readFile(resolve(src, 'marketing.css'), 'utf8');
 const docs = await readFile(resolve(src, 'docs.css'), 'utf8');
-const catalogHtml = await readCatalogHtml(src);
+const screenshotShell = await readFile(resolve(src, 'screenshots', 'shell.css'), 'utf8');
+const icons = parseIcons(await readFile(resolve(src, 'icons.html'), 'utf8'));
+const catalogHtml = expandIcons(await readCatalogHtml(src), icons);
+const screensHtml = expandIcons(await readFile(resolve(src, 'screens.html'), 'utf8'), icons);
 const css = `${primitives.trim()}\n\n${product.trim()}\n`;
+const screenshotCss = `${css}\n${marketing}\n${screenshotShell}\n`;
 const tokens = parseCustomProperties(primitives);
 const required = [
   'color-canvas', 'color-surface', 'color-border-subtle', 'color-text-primary',
@@ -27,6 +42,9 @@ for (const name of required) {
 
 const catalog = parseCatalog(catalogHtml);
 if (catalog.surfaces.length < 8) throw new Error('Design catalog is missing required product surfaces.');
+resolveDefaultParts(catalog);
+expandStateExamples(catalog);
+const assembled = assembleScreens(catalog, screensHtml);
 const rules = parseRules(`${css}\n${marketing}`);
 const index = catalogIndex(catalog);
 const native = emitNative(tokens, rules);
@@ -62,7 +80,20 @@ const outputs = new Map([
   ['dist/web/syntax/highlight.d.ts', highlightTypes],
   ['dist/web/syntax/grammars.json', `${JSON.stringify(grammars, null, 2)}\n`],
   ['dist/dotnet/AgentUpSyntaxGrammars.g.cs', emitSyntaxGrammars(grammars)],
+  ['dist/web/screenshots.json', `${JSON.stringify({ screens: assembled.screens, scenes: screenshotManifest(assembled.scenes) }, null, 2)}\n`],
+  ['dist/web/screenshots.css', screenshotCss],
+  ['dist/web/screenshot-shell.css', screenshotShell],
+  ['dist/web/icons.json', `${JSON.stringify({ viewBox: 24, icons }, null, 2)}\n`],
+  ['dist/native/icons.js', emitNativeIcons(icons)],
+  ['dist/native/icons.d.ts', emitNativeIconTypes(icons)],
+  ['dist/dotnet/AgentUpIcons.g.cs', emitAvaloniaIcons(icons)],
+  ['dist/web/sequence.js', emitSequencePlayer()],
+  ['dist/web/sequence.d.ts', emitSequencePlayerTypes()],
 ]);
+
+for (const scene of assembled.scenes) {
+  outputs.set(`dist/web/screenshots/${scene.htmlFile}`, wrapSceneDocument(scene));
+}
 
 for (const [relative, content] of outputs) {
   const path = resolve(root, relative);
@@ -101,6 +132,29 @@ ${JSON.stringify(value, null, 2)}
 `;
 }
 
+function screenshotManifest(scenes) {
+  return scenes.map(scene => ({
+    id: scene.id,
+    surface: scene.surface,
+    view: scene.view,
+    title: scene.title,
+    mediaFile: scene.mediaFile,
+    htmlFile: scene.htmlFile,
+    width: scene.width,
+    height: scene.height,
+    hero: scene.hero,
+    livePath: scene.livePath,
+    layout: scene.layout,
+    components: scene.components,
+    requiredClasses: scene.requiredClasses,
+    stateModifiers: scene.stateModifiers,
+    componentFragments: scene.componentFragments,
+    sequence: scene.sequence,
+    copy: sceneCopy(scene),
+    html: framedSceneHtml(scene),
+  }));
+}
+
 async function readProductCss(directory) {
   const product = await readFile(resolve(directory, 'product.css'), 'utf8');
   const extras = (await readdir(directory))
@@ -109,4 +163,34 @@ async function readProductCss(directory) {
   if (!extras.length) return product;
   const fragments = await Promise.all(extras.map(name => readFile(resolve(directory, name), 'utf8')));
   return `${product}\n\n${fragments.join('\n\n')}`;
+}
+
+/**
+ * Fills in each component's documented state examples from its own markup. The catalog page
+ * renders them beside the component, so a state is documented without a second copy of the
+ * markup that can drift away from the first.
+ */
+function expandStateExamples(value) {
+  for (const surface of value.surfaces) {
+    for (const component of surface.components) {
+      component.stateExamples = buildStateExamples(component);
+      component.propsExamples = buildPropsExamples(component);
+    }
+  }
+}
+
+/**
+ * Renders each component's default parts and strips the authoring markers, so the catalog page
+ * and any screen that does not parameterise the component both show the declared default.
+ */
+function resolveDefaultParts(value) {
+  for (const surface of value.surfaces) {
+    for (const component of surface.components) {
+      if (!hasContentSlots(component)) continue;
+      // `html` is what a plain render shows; `source` keeps the markers a screen needs to
+      // choose a different title or a different leading control.
+      component.source = component.html;
+      component.html = applyDefaultParts(component);
+    }
+  }
 }

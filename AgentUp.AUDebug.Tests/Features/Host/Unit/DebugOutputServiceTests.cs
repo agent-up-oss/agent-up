@@ -30,6 +30,7 @@ public sealed class DebugOutputServiceTests
         Assert.That(output.ToString(), Does.Contain("mobile login"));
         Assert.That(output.ToString(), Does.Contain("desktop open-agent"));
         Assert.That(output.ToString(), Does.Contain("mobile open-agent"));
+        Assert.That(output.ToString(), Does.Contain("screenshots persist"));
         Assert.That(output.ToString(), Does.Contain("status"));
     }
 

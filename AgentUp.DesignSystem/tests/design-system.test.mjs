@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { extname, resolve } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { agentUpTheme, auBox, auText } from '../dist/native/index.js';
 import catalog from '../dist/web/catalog.json' with { type: 'json' };
 import {
   camel,
-  layoutOnly,
+  layoutOnly, webOnly,
   parseCustomProperties,
   parseRules,
   parseSelector,
@@ -14,20 +15,22 @@ import {
   tokenKey,
   varName,
 } from '../scripts/lib/css.mjs';
+import { applyProps } from '../scripts/lib/slots.mjs';
 
 const root = new URL('..', import.meta.url);
-const repository = resolve(new URL('../..', import.meta.url).pathname);
+const repository = fileURLToPath(new URL('../..', import.meta.url));
 const visualProperties = new Set([
   'Background', 'Foreground', 'BorderBrush', 'BorderThickness', 'CornerRadius',
   'FontSize', 'FontWeight', 'FontFamily', 'MinHeight',
 ]);
 const layoutCssProperties = new Set([
   'display', 'grid-template-columns', 'grid-template-rows', 'gap', 'row-gap', 'column-gap',
-  'align-items', 'align-self', 'justify-content', 'justify-items', 'place-items',
+  'align-items', 'align-self', 'align-content', 'justify-content', 'justify-items', 'justify-self', 'place-items',
   'padding', 'padding-block', 'padding-inline', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
   'margin', 'margin-block', 'margin-inline', 'width', 'min-width', 'max-width', 'height', 'min-height', 'max-height',
   'overflow', 'overflow-x', 'overflow-y', 'cursor', 'text-align', 'font',
   '-webkit-box-orient', '-webkit-line-clamp', 'flex-direction', 'flex-wrap', 'flex',
+  'columns', 'column-fill', 'break-inside',
 ]);
 
 const primitives = await readFile(new URL('src/agent-up.css', root), 'utf8');
@@ -73,7 +76,7 @@ test('compileable class rules become native components and Avalonia selectors', 
   for (const rule of rules) {
     for (const selector of rule.selectors) {
       const parsed = parseSelector(selector);
-      if (!parsed || layoutOnly.has(parsed.baseClass)) continue;
+      if (!parsed || layoutOnly.has(parsed.baseClass) || webOnly.has(parsed.baseClass)) continue;
       if (parsed.pseudo && parsed.pseudo !== 'disabled') continue;
       const className = parsed.modifierClass ?? parsed.baseClass;
       const visual = rule.declarations.some(([property]) =>
@@ -213,6 +216,31 @@ test('agent transcript uses catalog user bubbles, work logs, and thought hairlin
   assert.match(mobile, /auBox\('chatWork'\)/);
 });
 
+test('a transcript render can keep only the follow-up turn', () => {
+  const transcript = catalog.surfaces
+    .flatMap(surface => surface.components)
+    .find(component => component.id === 'chat-transcript');
+  const html = applyProps(transcript, 'parts=follow-up reply');
+  assert.match(html, /Add a promo banner to the storefront/);
+  assert.match(html, /PromoBanner2\.tsx/);
+  assert.doesNotMatch(html, /What is running in this workspace/);
+  assert.doesNotMatch(html, /storefront\/PromoBanner\.tsx/);
+});
+
+test('a git history timeline can inject the selected commit and timestamps', () => {
+  const components = catalog.surfaces.flatMap(surface => surface.components);
+  const detail = components.find(component => component.id === 'git-log-detail');
+  const row = components.find(component => component.id === 'git-log-row');
+  const detailHtml = applyProps(detail, 'subject=feat(storefront): add the weekly promo banner; author=Demo');
+  const rowHtml = applyProps(row, 'time-0=02.10.26 14:33; time-6=22.09.26 07:30');
+  assert.match(detailHtml, /feat\(storefront\): add the weekly promo banner/);
+  assert.match(detailHtml, />Demo</);
+  assert.doesNotMatch(detailHtml, /Daniel Mass/);
+  assert.match(rowHtml, /02\.10\.26 14:33/);
+  assert.match(rowHtml, /22\.09\.26 07:30/);
+  assert.doesNotMatch(rowHtml, /16\.09\.26 05:16/);
+});
+
 test('Git change list uses catalog status glyphs instead of restyled rows', async () => {
   assert.equal(agentUpTheme.components.gitStatusAdded.color, agentUpTheme.colors.accentSoft);
   assert.equal(agentUpTheme.components.gitStatusUntracked.color, agentUpTheme.colors.statusHealthy);
@@ -246,7 +274,44 @@ test('Git change list uses catalog status glyphs instead of restyled rows', asyn
   assert.match(mobile, /auText\(statusClass/);
   const list = catalog.surfaces.find(item => item.id === 'git')?.components.find(item => item.id === 'git-change-list');
   assert.ok(list?.html.includes('au-git-tree-guide'));
-  assert.ok(list?.html.includes('au-git-tree-toggle--collapsed'));
+  assert.ok(list?.html.includes('ProductGrid.tsx'));
+  const collapsed = catalog.surfaces.find(item => item.id === 'git')?.components.find(item => item.id === 'git-tree-toggle-collapsed');
+  assert.ok(collapsed?.html.includes('au-git-tree-toggle--collapsed'));
+});
+
+test('marketing feature cards open Desktop and Mobile screenshots', () => {
+  const surface = catalog.surfaces.find(item => item.id === 'marketing');
+  const card = surface?.components.find(item => item.id === 'feature-card');
+  assert.ok(card?.html.includes('au-feature-card'));
+  assert.ok(card?.html.includes('au-feature-card__preview'));
+  assert.ok(card?.html.includes('au-muted'));
+  assert.match(marketing, /\.au-feature-card \{[^}]*surface-raised/);
+  assert.match(marketing, /\.au-feature-modal \{[^}]*position:\s*fixed/);
+  assert.match(marketing, /\.au-marketing-hero--workspace/);
+  assert.match(marketing, /\.au-hero-pair \{/);
+  assert.match(marketing, /\.au-marketing-hero__lockup \{[^}]*white-space:\s*nowrap/);
+  assert.match(marketing, /\.au-marketing-hero--workspace \.au-title \{\s*white-space:\s*nowrap/);
+  assert.match(marketing, /\.au-feature-card__preview \{[^}]*place-items:\s*center/);
+  assert.match(marketing, /\.au-marketing-hero--workspace \{[^}]*min-height:\s*calc\(100svh/);
+  assert.match(marketing, /\.au-feature-card--history \.au-feature-card__preview \{[^}]*padding:\s*var\(--au-space-6\)/);
+});
+
+test('validation sidebar nests micro-checks under greater steps', () => {
+  const surface = catalog.surfaces.find(item => item.id === 'validation');
+  const sidebar = surface?.components.find(item => item.id === 'validation-sidebar');
+  const collapsed = surface?.components.find(item => item.id === 'validation-sidebar-collapsed');
+  assert.ok(sidebar?.html.includes('au-validation-flow'));
+  assert.ok(sidebar?.html.includes('au-validation-stage'));
+  assert.ok(sidebar?.html.includes('au-validation-check'));
+  assert.ok(sidebar?.html.includes('au-validation-play'));
+  assert.ok(sidebar?.html.includes('au-workspace-add'));
+  assert.ok(sidebar?.html.includes('au-validation-copy'));
+  assert.ok(sidebar?.html.includes('au-validation-glyph--running'));
+  assert.ok(sidebar?.html.includes('au-validation-glyph--failed'));
+  assert.doesNotMatch(sidebar?.html ?? '', /au-validation-stage--passed/);
+  assert.ok(collapsed?.html.includes('au-validation-sidebar--collapsed'));
+  assert.ok(collapsed?.html.includes('au-workspace-add'));
+  assert.match(product, /\.au-validation-play \{[^}]*surface-selected-strong/);
 });
 
 test('tappable cards are catalog buttons instead of local picker chrome', async () => {
@@ -284,13 +349,15 @@ test('sign-in is a pane on the canvas rather than a grey overlay', async () => {
   assert.match(mobile, /auText\('choiceLabel'\)/);
   assert.match(mobile, /numberOfLines=\{1\}/);
   const example = catalog.surfaces.find(surface => surface.id === 'auth')?.components.find(item => item.id === 'sign-in');
-  assert.ok(example?.html.includes('au-choice au-choice--compact au-choice--selected'));
+  const choice = catalog.surfaces.find(surface => surface.id === 'primitives')?.components.find(item => item.id === 'choice');
+  assert.ok(example?.html.includes('au-choice au-choice--compact'));
   assert.ok(example?.html.includes('au-sign-in-list'));
   assert.ok(example?.html.includes('au-choice-label'));
-  assert.ok(example?.html.includes('title="https://agent-up.massivecreationlab.com"'));
-  assert.doesNotMatch(example?.html ?? '', /Saved sign-in|No saved sign-in/);
-  assert.doesNotMatch(axaml, /Saved sign-in|No saved sign-in|In-app demo/);
-  assert.doesNotMatch(mobile, /Saved sign-in|No saved sign-in/);
+  assert.ok(example?.html.includes('title="http://127.0.0.1:9"'));
+  assert.ok(choice?.html.includes('au-choice--selected'));
+  assert.doesNotMatch(example?.html ?? '', /Saved sign-in(?!s)|No saved sign-in/);
+  assert.doesNotMatch(axaml, /Saved sign-in(?!s)|No saved sign-in|In-app demo/);
+  assert.doesNotMatch(mobile, /Saved sign-in(?!s)|No saved sign-in/);
   assert.doesNotMatch(example?.html ?? '', /au-overlay-panel/);
 });
 

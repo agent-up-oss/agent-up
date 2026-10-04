@@ -130,7 +130,40 @@ export function inferAvaloniaType(className) {
   return 'Border';
 }
 
+/**
+ * Classes the HTML surface owns outright, which are not ported to Avalonia or React Native.
+ *
+ * Two kinds live here. The screen shell (`au-screen*`) is a CSS flex and grid layout that
+ * describes how a scene document is composed for a screenshot; Desktop builds its own shell
+ * from Grid and DockPanel and references none of it, and a Border cannot carry a flex model,
+ * so emitting it produced bindings no surface could use. The Demo fixtures (`au-storefront`,
+ * `au-capability-catalog`) are the Harbor Shop sample a screenshot needs, not product UI, and
+ * have no business in a shipped client bundle.
+ *
+ * This is deliberately a short list in source rather than a heuristic: a class stops reaching
+ * the product surfaces only when someone writes it here, and the diff shows it.
+ */
+export const webOnly = new Set([
+  'au-screen', 'au-screen-body', 'au-screen-rail', 'au-screen-main', 'au-screen-tabs',
+  'au-screen-subtabs', 'au-screen-toolbar', 'au-screen-pane', 'au-screen-aside',
+  'au-screen-center', 'au-screen-mobile-body', 'au-screen-overlay',
+  'au-storefront', 'au-capability-catalog',
+]);
+
 export const layoutOnly = new Set([
   'au-container', 'au-stack', 'au-cluster', 'au-grid', 'au-section', 'au-reading',
-  'au-marketing-hero', 'au-nav-icon', 'au-sign-in-list',
+  'au-marketing-hero', 'au-marketing-hero--workspace', 'au-marketing-hero__lockup',
+  'au-hero-pair', 'au-hero-pair__shot',
+  'au-nav-icon', 'au-sign-in-list', 'au-validation-sidebar-list',
+  'au-feature-grid', 'au-feature-card__preview-inner', 'au-feature-card__body',
+  'au-feature-card--applications', 'au-feature-card--agents', 'au-feature-card--git',
+  'au-feature-card--history', 'au-feature-card--diagnostics', 'au-feature-card--validation',
+  'au-feature-card--capabilities', 'au-feature-card--sign-in',
+  'au-feature-modal',
+  'au-feature-modal__panel', 'au-feature-modal__head', 'au-feature-modal__pair',
+  'au-feature-modal__shot',
+  'au-git-heading', 'au-git-branch-row', 'au-git-actions', 'au-git-branch', 'au-git-history',
+  'au-git-review', 'au-git-review-head', 'au-overlay-header', 'au-drawer-server',
+  'au-file-viewer-footer', 'au-file-viewer-heading', 'au-git-log--flush',
+  'au-git-commit--mobile', 'au-file-viewer--mobile', 'au-agent-picker',
 ]);

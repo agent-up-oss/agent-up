@@ -30,7 +30,7 @@ export async function startStack({ platform, codexSchema, serverDll, testAgentEx
     for (const child of processes.reverse()) {
       await stopProcess(child);
     }
-    await rm(root, { recursive: true, force: true });
+    await removeWorkspaceTree(root);
   };
 
   try {
@@ -137,6 +137,15 @@ const BASE =
   (Number(process.env.TEST_PARALLEL_INDEX ?? process.env.JEST_WORKER_ID ?? 0) % WORKERS || 0) * WINDOW;
 
 let offset = 0;
+
+/**
+ * The Server hosted-browser manager unpacks Chromium under this tree while the stack is
+ * alive. Deleting it in one shot races that extractor and fails with ENOTEMPTY, so teardown
+ * waits for the processes it started and retries the delete.
+ */
+export async function removeWorkspaceTree(root) {
+  await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+}
 
 export async function freePort() {
   for (let attempt = 0; attempt < WINDOW; attempt++) {

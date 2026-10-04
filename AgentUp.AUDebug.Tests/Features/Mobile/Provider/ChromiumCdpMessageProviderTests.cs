@@ -45,6 +45,103 @@ public sealed class ChromiumCdpMessageProviderTests
         Assert.That(json, Does.Contain("\"width\":1440"));
         Assert.That(json, Does.Contain("\"height\":3200"));
         Assert.That(json, Does.Contain("\"id\":3"));
+        Assert.That(json, Does.Contain("\"mobile\":false"));
+    }
+
+    [Test]
+    public void MobileDeviceMetrics_marksTheEmulationAsAPhone()
+    {
+        var json = ChromiumCdpMessageProvider.MobileDeviceMetrics(390, 844, 7);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(json, Does.Contain("\"Emulation.setDeviceMetricsOverride\""));
+            Assert.That(json, Does.Contain("\"width\":390"));
+            Assert.That(json, Does.Contain("\"height\":844"));
+            Assert.That(json, Does.Contain("\"mobile\":true"));
+            Assert.That(json, Does.Contain("\"id\":7"));
+        });
+    }
+
+    [Test]
+    public void Navigate_loadsTheGivenUrl()
+    {
+        var json = ChromiumCdpMessageProvider.Navigate("http://127.0.0.1:9/connect", 4);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(json, Does.Contain("\"Page.navigate\""));
+            Assert.That(json, Does.Contain("http://127.0.0.1:9/connect"));
+            Assert.That(json, Does.Contain("\"id\":4"));
+        });
+    }
+
+    [Test]
+    public void MouseEvent_releasesTheButtonOnMouseReleased()
+    {
+        var pressed = ChromiumCdpMessageProvider.MouseEvent("mousePressed", 12, 34, 5);
+        var released = ChromiumCdpMessageProvider.MouseEvent("mouseReleased", 12, 34, 6);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(pressed, Does.Contain("\"Input.dispatchMouseEvent\""));
+            Assert.That(pressed, Does.Contain("\"buttons\":1"));
+            Assert.That(released, Does.Contain("\"type\":\"mouseReleased\""));
+            Assert.That(released, Does.Contain("\"buttons\":0"));
+        });
+    }
+
+    [Test]
+    public void InsertText_typesTheValueIntoTheFocusedField()
+    {
+        var json = ChromiumCdpMessageProvider.InsertText("hello", 8);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(json, Does.Contain("\"Input.insertText\""));
+            Assert.That(json, Does.Contain("hello"));
+            Assert.That(json, Does.Contain("\"id\":8"));
+        });
+    }
+
+    [Test]
+    public void ReadPoint_returnsCoordinatesWhenTheElementIsThere()
+    {
+        var point = ChromiumCdpMessageProvider.ReadPoint(
+            """{"id":1,"result":{"result":{"type":"object","value":{"x":12,"y":34}}}}""",
+            "locate Git");
+
+        Assert.That(point, Is.EqualTo((12, 34)));
+    }
+
+    [Test]
+    public void ReadPoint_isNullWhileTheElementIsMissing()
+    {
+        Assert.That(
+            ChromiumCdpMessageProvider.ReadPoint(
+                """{"id":1,"result":{"result":{"type":"object","value":null}}}""",
+                "locate Git"),
+            Is.Null);
+    }
+
+    [Test]
+    public void ReadPoint_isNullWhenTheValueHasNoCoordinates()
+    {
+        Assert.That(
+            ChromiumCdpMessageProvider.ReadPoint(
+                """{"id":1,"result":{"result":{"type":"object","value":{"label":"Git"}}}}""",
+                "locate Git"),
+            Is.Null);
+    }
+
+    [Test]
+    public void ReadPoint_surfacesACdpError()
+    {
+        Assert.That(
+            () => ChromiumCdpMessageProvider.ReadPoint(
+                """{"id":1,"error":{"message":"context gone"}}""",
+                "locate Git"),
+            Throws.InvalidOperationException.With.Message.Contains("locate Git CDP failed"));
     }
 
     [Test]

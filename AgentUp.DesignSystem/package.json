@@ -14,13 +14,21 @@
     "./native-types": "./dist/native/index.d.ts",
     "./catalog": "./dist/web/catalog.json",
     "./catalog.html": "./dist/web/catalog.html",
+    "./screenshots": "./dist/web/screenshots.json",
+    "./screenshot-shell.css": "./dist/web/screenshot-shell.css",
     "./syntax": {
       "types": "./src/syntax/highlight.d.ts",
       "default": "./src/syntax/highlight.mjs"
     },
     "./avalonia": "./dist/avalonia/AgentUpTheme.axaml",
     "./avalonia-styles": "./dist/avalonia/AgentUpStyles.axaml",
-    "./brand/*": "./brand/*"
+    "./brand/*": "./brand/*",
+    "./icons": "./dist/web/icons.json",
+    "./native-icons": "./dist/native/icons.js",
+    "./native-icon-types": "./dist/native/icons.d.ts",
+    "./sequence": "./dist/web/sequence.js",
+    "./sequence-types": "./dist/web/sequence.d.ts",
+    "./slots": "./scripts/lib/slots.mjs"
   },
   "scripts": {
     "build": "node scripts/build.mjs",

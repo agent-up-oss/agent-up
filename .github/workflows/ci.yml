@@ -1029,6 +1029,53 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  # Sits with the native desktop jobs because it needs the same X display and GUI libraries:
+  # it starts the real Desktop window and the real Mobile web client against their built-in
+  # Demo backend, drives each design-system page-assembly screen into a used state, and
+  # uploads the screenshots. It proves nothing and gates nothing - it is evidence to look at.
+  product-screens:
+    name: Product screens
+    runs-on: ubuntu-latest
+    needs: version
+    permissions:
+      contents: read
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: AgentUp.Mobile/package-lock.json
+
+      - name: Install Ubuntu browser test dependencies
+        shell: bash
+        run: ./.github/scripts/install-ubuntu-browser-test-deps.sh
+
+      # xdotool drives the Desktop window and ImageMagick's import captures it.
+      - name: Install window capture dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -o Acquire::Retries=3
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 xdotool imagemagick libsm6 libice6
+
+      - name: Capture product screens
+        shell: bash
+        run: ./.github/scripts/capture-product-screens.sh
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: product-screens
+          path: artifacts/product-screens
+          if-no-files-found: error
+          retention-days: 14
+
   mobile:
     name: Mobile
     runs-on: ubuntu-latest

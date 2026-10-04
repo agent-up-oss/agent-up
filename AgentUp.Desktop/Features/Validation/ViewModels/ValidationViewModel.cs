@@ -13,7 +13,7 @@ public sealed class ValidationViewModel : ReactiveObject
     private readonly ValidationFlowReplayService _replay;
     private string? _activeFlowId;
     private string? _status;
-    private bool _isCollapsed;
+    private bool _isCollapsed = true;
 
     public ValidationViewModel(
         ValidationFlowApiClient client,

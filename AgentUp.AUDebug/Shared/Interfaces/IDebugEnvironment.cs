@@ -6,4 +6,5 @@ public interface IDebugEnvironment
     string Display { get; }
     string? AdminPassword { get; }
     string? FindOnPath(string executableName);
+    string? FindChromium();
 }

@@ -1,0 +1,65 @@
+/* Showcase embed. Screen layout lives in product.css so Desktop can apply it.
+   The heading, selection, and pair share one centered max-content block so they
+   recede together. Each scene lays out at native pixels, then scales into one
+   display height so the whole window stays visible and Desktop matches Mobile. */
+.au-screenshot-showcase {
+  display: grid;
+  gap: var(--au-space-8);
+  width: max-content;
+  margin-inline: auto;
+}
+.au-screenshot-stage {
+  min-width: 0;
+}
+.au-screenshot-pair {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--au-space-5);
+  width: max-content;
+  max-width: none;
+  --au-screenshot-display-height: 448;
+}
+.au-screenshot-preview {
+  display: grid;
+  flex: 0 0 auto;
+  gap: var(--au-space-2);
+  margin: 0;
+}
+.au-screenshot-embed,
+.au-product-frame.au-screenshot-embed {
+  box-sizing: content-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: calc(1px * var(--au-screenshot-display-height) * var(--au-screenshot-width) / var(--au-screenshot-height));
+  min-width: calc(1px * var(--au-screenshot-display-height) * var(--au-screenshot-width) / var(--au-screenshot-height));
+  height: calc(1px * var(--au-screenshot-display-height));
+  overflow: hidden;
+}
+.au-screenshot-embed__scale {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(1px * var(--au-screenshot-width));
+  height: calc(1px * var(--au-screenshot-height));
+  transform-origin: 0 0;
+  transform: scale(calc(var(--au-screenshot-display-height) / var(--au-screenshot-height)));
+  pointer-events: none;
+}
+.au-screenshot-embed__scale > .au-screen {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+@media (max-width: 960px) {
+  .au-screenshot-showcase {
+    width: 100%;
+  }
+  .au-screenshot-pair {
+    flex-direction: column;
+    align-items: center;
+    width: max-content;
+    max-width: 100%;
+    margin-inline: auto;
+    --au-screenshot-display-height: 224;
+  }
+}

@@ -29,6 +29,9 @@ Console output is the first diagnostic source after a failed start, health check
 <DocSurface mcp>Call Orchestration MCP `get_workspace_console` first after browser failures. If that tool is unavailable, query Audit MCP for recent `application` events from `process`.</DocSurface>
 </DocSurfaces>
 
+<p><img src="/desktop-diagnostics.png" alt="Desktop diagnostics showing Storefront process events" /></p>
+<p><img src="/desktop-console.png" alt="Desktop console showing Storefront install output" /></p>
+
 <DocNext href="/docs/verification" title="Verification">
 Required checks before enqueue.
 </DocNext>

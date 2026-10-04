@@ -79,9 +79,7 @@ public sealed class ChromiumMobileDriver : IMobileSurfaceDriver
             "--window-size=1280,800",
             url
         };
-        var chromium = _environment.FindOnPath("chromium")
-                       ?? _environment.FindOnPath("chromium-browser")
-                       ?? _environment.FindOnPath("google-chrome");
+        var chromium = _environment.FindChromium();
         if (chromium is not null)
             return new AllowlistedCommand(Path.GetFileName(chromium), args, _paths.RepositoryRoot);
 

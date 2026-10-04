@@ -5,7 +5,12 @@ public static class DebugLayout
     public const int DefaultTimeoutSeconds = 30;
     public const int TestTimeoutSeconds = 180;
     public const int TestAllTimeoutSeconds = 600;
+    public const int ScreenshotsTimeoutSeconds = 180;
+    public const int ScreensTimeoutSeconds = 600;
     public const int MaxTimeoutSeconds = 600;
+    public const int ScreenshotMaxChannelDelta = 0;
+    public const int DesktopScreenshotWidth = 1440;
+    public const int DesktopScreenshotHeight = 900;
     public const string ServerUrl = "http://127.0.0.1:5001";
     public const string DocsUrl = "http://127.0.0.1:10100";
     public const string DocsPath = "/design-system";
@@ -15,6 +20,7 @@ public static class DebugLayout
     public const int DocsMaxCaptureHeight = 16384;
     public const int DocsDebuggingPort = 19223;
     public const string MobileUrl = "http://127.0.0.1:10102";
+    public const string MobileWebPort = "10102";
     public const string DesktopWindowName = "Agent-Up";
     public const string DesktopWindowClass = "AgentUp.Desktop";
     public const int DesktopLoginFieldX = 550;
@@ -24,4 +30,17 @@ public static class DebugLayout
     public const int DesktopAgentTabY = 52;
     public const int ReusedProcessPid = 0;
     public const string ServerReadyPath = "/api/auth/status";
+
+    /// <summary>The in-process Demo backend both clients expose; no Server process is involved.</summary>
+    public const string DemoServerUrl = "http://127.0.0.1:9";
+
+    public const string DemoServerId = "fake";
+    public const string DemoServerName = "Demo";
+    public const string DemoWorkspaceId = "harbor-shop";
+
+    public const string ProductScreensDirectory = "artifacts/product-screens";
+    public const string ProductScreensManifestFile = "screens.json";
+    public const int ProductScreensDebuggingPort = 19224;
+    public const int MobileScreenWidth = 390;
+    public const int MobileScreenHeight = 844;
 }

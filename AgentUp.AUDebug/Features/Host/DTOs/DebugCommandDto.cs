@@ -11,4 +11,6 @@ public sealed record DebugCommandDto(
     string? Suite = null,
     string? PagePath = null,
     string? Heading = null,
-    bool FullPage = false);
+    bool FullPage = false,
+    string? View = null,
+    bool Live = false);

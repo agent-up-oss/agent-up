@@ -59,13 +59,19 @@ public sealed class FakeDocsPageCapture : IDocsPageCapture
 
 public sealed class FakeWebScreenshotDriver : IWebScreenshotDriver
 {
-    public List<(string Url, string Path, string? UserDataDirectory)> Captures { get; } = [];
+    public List<(string Url, string Path, string? UserDataDirectory, int Width, int Height)> Captures { get; } = [];
     public bool DelayUntilCanceled { get; set; }
     public Exception? CaptureException { get; set; }
 
-    public async Task CaptureAsync(string url, string outputPath, CancellationToken cancellationToken, string? userDataDirectory = null)
+    public async Task CaptureAsync(
+        string url,
+        string outputPath,
+        CancellationToken cancellationToken,
+        string? userDataDirectory = null,
+        int width = 1440,
+        int height = 900)
     {
-        Captures.Add((url, outputPath, userDataDirectory));
+        Captures.Add((url, outputPath, userDataDirectory, width, height));
         if (CaptureException is not null)
             throw CaptureException;
         if (DelayUntilCanceled)
@@ -86,6 +92,12 @@ public sealed class FakeEnvironment : IDebugEnvironment
 
     public string? FindOnPath(string executableName)
         => Executables.TryGetValue(executableName, out var path) ? path : null;
+
+    public string? FindChromium()
+        => FindOnPath("chromium")
+           ?? FindOnPath("chromium-browser")
+           ?? FindOnPath("google-chrome-stable")
+           ?? FindOnPath("google-chrome");
 }
 
 public sealed class FakePathValidator : IDebugPathValidator

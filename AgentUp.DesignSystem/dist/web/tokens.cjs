@@ -178,6 +178,7 @@ const agentUpTheme = Object.freeze({
       borderColor: "#d84f4f4d",
     }),
     choice: Object.freeze({
+      minWidth: 0,
       paddingHorizontal: 16,
       paddingVertical: 16,
       color: "#f5fbf7",
@@ -372,6 +373,8 @@ const agentUpTheme = Object.freeze({
       borderRadius: 12,
       fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 12,
+      borderLeftWidth: 2,
+      borderLeftColor: "#00b85059",
     }),
     panel: Object.freeze({
       color: "#f5fbf7",
@@ -405,10 +408,17 @@ const agentUpTheme = Object.freeze({
     }),
     chrome: Object.freeze({
       minHeight: 42,
+      paddingHorizontal: 12,
+      paddingVertical: 0,
       color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
       borderBottomWidth: 1,
       borderBottomColor: "#ffffff14",
+    }),
+    chromeMark: Object.freeze({
+      width: 18,
+      height: 18,
+      backgroundColor: "#00b850",
     }),
     chromeButton: Object.freeze({
       width: 46,
@@ -471,6 +481,11 @@ const agentUpTheme = Object.freeze({
       borderRightColor: "#ffffff14",
     }),
     drawer: Object.freeze({
+      width: 280,
+      maxWidth: "82%",
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
       borderRightWidth: 1,
       borderRightColor: "#ffffff14",
@@ -571,15 +586,15 @@ const agentUpTheme = Object.freeze({
       borderRadius: 8,
     }),
     sessionLogout: Object.freeze({
-      minHeight: 32,
+      minHeight: 44,
       paddingHorizontal: 12,
-      paddingVertical: 4,
-      color: "#c2d2ca",
+      paddingVertical: 8,
+      color: "#f5fbf7",
       backgroundColor: "#00000000",
       borderWidth: 1,
-      borderColor: "#ffffff14",
-      borderRadius: 6,
-      fontSize: 12,
+      borderColor: "#ffffff29",
+      borderRadius: 8,
+      fontSize: 13,
       fontWeight: '500',
     }),
     addressBar: Object.freeze({
@@ -597,8 +612,12 @@ const agentUpTheme = Object.freeze({
     browserButton: Object.freeze({
       width: 28,
       height: 28,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
       color: "#f5fbf7",
       backgroundColor: "#191c1f",
+      borderWidth: 1,
+      borderColor: "#ffffff29",
       borderRadius: 6,
     }),
     errorBanner: Object.freeze({
@@ -621,6 +640,7 @@ const agentUpTheme = Object.freeze({
       whiteSpace: 'pre',
     }),
     gitChangeList: Object.freeze({
+      minHeight: 0,
       color: "#f5fbf7",
       backgroundColor: "#121416",
       borderWidth: 1,
@@ -786,24 +806,80 @@ const agentUpTheme = Object.freeze({
       borderColor: "#ffffff14",
       borderRadius: 12,
     }),
-    validationStage: Object.freeze({
-      paddingHorizontal: 16,
-      paddingVertical: 16,
-      color: "#c2d2ca",
-      backgroundColor: "#121416",
+    validationSidebar: Object.freeze({
+      width: 360,
+      minHeight: 0,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      color: "#f5fbf7",
+      backgroundColor: "#0a0b0c",
+      borderLeftWidth: 1,
+      borderLeftColor: "#ffffff14",
+    }),
+    validationSidebarCollapsed: Object.freeze({
+      width: 56,
+    }),
+    validationSidebarHead: Object.freeze({
+      paddingHorizontal: 10,
+      paddingVertical: 10,
+    }),
+    validationSidebarCopy: Object.freeze({
+      minWidth: 0,
+    }),
+    validationPlay: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 7.04,
+      color: "#f5fbf7",
+      backgroundColor: "#0f3220",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderRadius: 6,
+      fontSize: 12,
+      fontWeight: '600',
+      whiteSpace: 'nowrap',
+    }),
+    validationFlow: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
       borderWidth: 1,
       borderColor: "#ffffff14",
-      borderRadius: 12,
+      borderRadius: 8,
     }),
-    validationStagePassed: Object.freeze({
-      borderColor: "#22c55e",
+    validationCopy: Object.freeze({
+      minWidth: 0,
     }),
-    validationStageFailed: Object.freeze({
-      borderColor: "#d84f4f",
-      backgroundColor: "#261a1c",
+    validationSteps: Object.freeze({
+      marginLeft: 24,
     }),
-    validationStageRunning: Object.freeze({
-      borderColor: "#e0a128",
+    validationStage: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#00000000",
+    }),
+    validationStep: Object.freeze({
+      fontSize: 12,
+    }),
+    validationCheck: Object.freeze({
+      fontSize: 12,
+      color: "#c2d2ca",
+    }),
+    validationChecks: Object.freeze({
+      marginLeft: 18,
+    }),
+    validationGlyph: Object.freeze({
+      width: 14,
+      color: "#8a9a92",
+      fontWeight: '600',
+    }),
+    validationGlyphPassed: Object.freeze({
+      color: "#22c55e",
+    }),
+    validationGlyphFailed: Object.freeze({
+      color: "#d84f4f",
+    }),
+    validationGlyphRunning: Object.freeze({
+      color: "#e0a128",
     }),
     signIn: Object.freeze({
       paddingHorizontal: 20,
@@ -991,6 +1067,18 @@ const agentUpTheme = Object.freeze({
       paddingVertical: 12,
       backgroundColor: "#00000000",
     }),
+    tabSep: Object.freeze({
+      width: 1,
+      height: 18,
+      backgroundColor: "#ffffff29",
+    }),
+    gitLog: Object.freeze({
+      minHeight: 192,
+      backgroundColor: "#0a0b0c",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+    }),
     fileViewer: Object.freeze({
       minHeight: 256,
       minWidth: 288,
@@ -1154,11 +1242,12 @@ const agentUpTheme = Object.freeze({
     syntaxOperator: Object.freeze({
       color: "#c2d2ca",
     }),
-    gitLog: Object.freeze({
-      backgroundColor: "#0a0b0c",
-      borderWidth: 1,
-      borderColor: "#ffffff14",
-      borderRadius: 12,
+    gitLogFlush: Object.freeze({
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderRadius: 0,
+      backgroundColor: "transparent",
+      minHeight: 0,
     }),
     gitLogDetail: Object.freeze({
       paddingHorizontal: 12,
@@ -1285,6 +1374,16 @@ const agentUpTheme = Object.freeze({
       fontSize: 14,
       fontWeight: '700',
       letterSpacing: 7,
+    }),
+    featureCard: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#f5fbf7",
+      backgroundColor: "#0a0b0c",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 16,
+      maxWidth: "100%",
     }),
     proof: Object.freeze({
       backgroundColor: "#ffffff14",

@@ -27,6 +27,11 @@ export function parseCatalog(html) {
         avalonia: attr(articleAttrs, 'avalonia') || 'Border',
         desktopClass: attr(articleAttrs, 'desktop-class'),
         desktopHost: attr(articleAttrs, 'desktop-host'),
+        states: attr(articleAttrs, 'states'),
+        parts: attr(articleAttrs, 'parts'),
+        propsExamples: attr(articleAttrs, 'props-examples'),
+        modifierClasses: attr(articleAttrs, 'modifier-classes'),
+        stateExamples: attr(articleAttrs, 'state-examples'),
         rootClass,
         classes: uniqueClasses,
         html: articleHtml,
@@ -54,6 +59,9 @@ export function catalogIndex(catalog) {
       }
       if (component.rootClass && component.desktopClass) aliases.set(component.rootClass, [component.desktopClass]);
       if (component.rootClass && component.desktopHost) hosts.set(component.rootClass, component.desktopHost);
+      for (const [className, desktopClass] of parseModifierClasses(component.modifierClasses)) {
+        aliases.set(className, [desktopClass]);
+      }
     }
   }
   return {
@@ -72,4 +80,28 @@ export function catalogIndex(catalog) {
 function attr(raw, name) {
   const match = raw.match(new RegExp(`data-au-${name}="([^"]*)"`));
   return match ? match[1] : '';
+}
+
+/**
+ * The Desktop class name a modifier of this component maps to.
+ *
+ *   data-au-modifier-classes="au-git-row--selected=gitNodeRowSelected"
+ *
+ * Desktop binds these with `Classes.gitNodeRowSelected="{Binding IsOpen}"` while it still
+ * carries its own class vocabulary, so the generated styles have to name them. Naming a
+ * modifier used to require a second catalog component whose only job was to hold the
+ * attribute, which is how a state ended up with a duplicate copy of the markup.
+ */
+function parseModifierClasses(raw) {
+  const pairs = [];
+  for (const entry of (raw ?? '').split(/\s+/).filter(Boolean)) {
+    const split = entry.indexOf('=');
+    if (split < 1) throw new Error(`Modifier class '${entry}' is not '<class>=<desktopClass>'.`);
+    const className = entry.slice(0, split);
+    const desktopClass = entry.slice(split + 1);
+    if (!desktopClass) throw new Error(`Modifier class '${className}' has no Desktop class name.`);
+    if (!className.includes('--')) throw new Error(`'${className}' is not a modifier class.`);
+    pairs.push([className, desktopClass]);
+  }
+  return pairs;
 }

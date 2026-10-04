@@ -1204,6 +1204,7 @@
       "AgentUp.TestAgents/**/*.cs"
     ],
     "exclude": [
+      "AgentUp.DesignSystem/dist/dotnet/**",
       "**/Composition/**",
       "**/Program.cs",
       "**/App.axaml.cs",

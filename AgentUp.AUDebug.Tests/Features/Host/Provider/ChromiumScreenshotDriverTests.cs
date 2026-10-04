@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using AgentUp.AUDebug.Shared.Providers;
 using AgentUp.AUDebug.Tests.Fake;
 
@@ -23,7 +24,11 @@ public sealed class ChromiumScreenshotDriverTests
         Assert.That(processes.Ran[0].FileName, Is.EqualTo("chromium"));
         Assert.That(processes.Ran[0].Arguments, Does.Contain($"--screenshot={destination}"));
         Assert.That(processes.Ran[0].Arguments, Does.Contain("--virtual-time-budget=8000"));
-        Assert.That(processes.Ran[0].Arguments, Does.Not.Contain("--user-data-dir="));
+        Assert.That(processes.Ran[0].Arguments, Does.Contain("--force-device-scale-factor=1"));
+        Assert.That(processes.Ran[0].Arguments, Does.Contain("--window-size=1440,900"));
+        Assert.That(
+            processes.Ran[0].Arguments.Single(argument => argument.StartsWith("--user-data-dir=", StringComparison.Ordinal)),
+            Does.Contain("chrome-profile"));
     }
 
     [Test]
@@ -90,5 +95,39 @@ public sealed class ChromiumScreenshotDriverTests
         Assert.That(
             async () => await driver.CaptureAsync("http://127.0.0.1:10100/", destination, CancellationToken.None),
             Throws.InvalidOperationException.With.Message.Contains("did not write a screenshot file"));
+    }
+
+    [Test]
+    public async Task Capture_usesRequestedWindowSize()
+    {
+        var root = Path.Join(Path.GetTempPath(), "au-debug-shot", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Join(root, ".git", "agent-up", "au-debug", "screenshots"));
+        var destination = Path.Join(root, ".git", "agent-up", "au-debug", "screenshots", "mobile.png");
+        var processes = new FakeProcessRunner();
+        processes.OnRun = _ => File.WriteAllBytes(destination, [1]);
+        var environment = new FakeEnvironment();
+        environment.Executables["chromium"] = "/bin/chromium";
+        var driver = new ChromiumScreenshotDriver(processes, environment, new DebugPathValidator(root));
+
+        await driver.CaptureAsync("file:///tmp/scene.html", destination, CancellationToken.None, null, 390, 844);
+
+        Assert.That(processes.Ran[0].Arguments, Does.Contain("--window-size=390,844"));
+    }
+
+    [Test]
+    public void Capture_wrapsWin32Exception()
+    {
+        var root = Path.Join(Path.GetTempPath(), "au-debug-shot", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Join(root, ".git", "agent-up", "au-debug", "screenshots"));
+        var destination = Path.Join(root, ".git", "agent-up", "au-debug", "screenshots", "docs.png");
+        var processes = new FakeProcessRunner();
+        processes.OnRun = _ => throw new Win32Exception("chromium missing");
+        var environment = new FakeEnvironment();
+        environment.Executables["chromium"] = "/bin/chromium";
+        var driver = new ChromiumScreenshotDriver(processes, environment, new DebugPathValidator(root));
+
+        Assert.That(
+            async () => await driver.CaptureAsync("http://127.0.0.1:10100/", destination, CancellationToken.None),
+            Throws.InvalidOperationException.With.Message.Contains("Could not start Chromium"));
     }
 }

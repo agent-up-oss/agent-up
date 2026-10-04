@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { agentUpTheme, auBox, auText } from '../dist/native/index.js';
 import catalog from '../dist/web/catalog.json' with { type: 'json' };
 import { detectLanguage, tokenizeLine } from '../src/syntax/highlight.mjs';
@@ -9,7 +11,7 @@ test('file viewer catalog owns inspection chrome, line kinds, and syntax tokens'
   assert.ok(surface, 'file-viewer surface is missing from the catalog');
   const ids = new Set(surface.components.map(item => item.id));
   for (const id of [
-    'file-viewer', 'file-viewer-header', 'file-viewer-path', 'file-viewer-status',
+    'file-viewer', 'file-viewer-mobile', 'file-viewer-header', 'file-viewer-path', 'file-viewer-status',
     'file-viewer-nav', 'file-viewer-jump', 'file-viewer-line', 'file-viewer-line-added',
     'file-viewer-line-deleted', 'file-viewer-line-hunk', 'file-viewer-line-current',
     'file-viewer-gutter', 'syntax-keyword', 'syntax-string', 'syntax-comment',
@@ -31,8 +33,7 @@ test('file viewer catalog owns inspection chrome, line kinds, and syntax tokens'
 
 test('Mobile and Desktop bind the file viewer instead of a plain text dump', async () => {
   const { readFile } = await import('node:fs/promises');
-  const { resolve } = await import('node:path');
-  const repository = resolve(new URL('../..', import.meta.url).pathname);
+  const repository = fileURLToPath(new URL('../..', import.meta.url));
   const axaml = await readFile(resolve(repository, 'AgentUp.Desktop/Features/Workspaces/Views/MainWindow.axaml'), 'utf8');
   assert.match(axaml, /Classes="au-overlay-panel au-file-viewer"/);
   assert.match(axaml, /x:Name="GitFileDiffLines"/);

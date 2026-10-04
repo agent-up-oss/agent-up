@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
@@ -12,6 +13,8 @@ namespace AgentUp.AUDebug.Tests.Features.Docs.Provider;
 [NonParallelizable]
 public sealed class ChromiumDocsPageDriverTests
 {
+    private static readonly ConcurrentBag<string> CdpMethods = [];
+
     [Test]
     public void Capture_whenCanceled_killsBrowser()
     {
@@ -146,6 +149,54 @@ public sealed class ChromiumDocsPageDriverTests
         Assert.That(processes.Killed, Has.Count.EqualTo(1));
     }
 
+    [Test]
+    public async Task Capture_setsTheDocumentedViewportForAWindowScreenshot()
+    {
+        var root = Path.Join(Path.GetTempPath(), "au-debug-docs", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Join(root, ".git"));
+        var output = Path.Join(root, ".git", "agent-up", "au-debug", "screenshots", "docs.png");
+        var processes = new FakeProcessRunner();
+        var environment = new FakeEnvironment();
+        environment.Executables["chromium"] = "/bin/chromium";
+        var driver = new ChromiumDocsPageDriver(processes, environment, new FakePathValidator(root));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var listener = new HttpListener();
+        listener.Prefixes.Add($"http://127.0.0.1:{ChromiumDocsPageDriver.DebuggingPort}/");
+        var accept = Task.CompletedTask;
+        while (!CdpMethods.IsEmpty)
+            CdpMethods.TryTake(out _);
+        try
+        {
+            var capture = driver.CaptureAsync(
+                $"{DebugLayout.DocsUrl}/",
+                output,
+                null,
+                false,
+                timeout.Token);
+            await Task.Delay(250, timeout.Token);
+            listener.Start();
+            accept = AcceptCdpAsync(listener, timeout.Token);
+            await capture;
+        }
+        finally
+        {
+            if (listener.IsListening)
+                listener.Stop();
+            listener.Close();
+            try
+            {
+                await accept.WaitAsync(TimeSpan.FromSeconds(2));
+            }
+            catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException or TaskCanceledException or TimeoutException)
+            {
+                TestContext.WriteLine($"Docs CDP listener stopped: {ex.GetType().Name}");
+            }
+        }
+
+        Assert.That(CdpMethods, Does.Contain("Emulation.setDeviceMetricsOverride"));
+        Assert.That(File.Exists(output), Is.True);
+    }
+
     private static async Task AcceptCdpAsync(HttpListener listener, CancellationToken cancellationToken)
     {
         while (listener.IsListening && !cancellationToken.IsCancellationRequested)
@@ -217,6 +268,8 @@ public sealed class ChromiumDocsPageDriverTests
         using var document = JsonDocument.Parse(request);
         var id = document.RootElement.GetProperty("id").GetInt32();
         var method = document.RootElement.GetProperty("method").GetString();
+        if (method is not null)
+            CdpMethods.Add(method);
         if (method == "Runtime.evaluate"
             && document.RootElement.GetProperty("params").GetProperty("expression").GetString() is { } expression
             && expression.Contains("scrollHeight", StringComparison.Ordinal))

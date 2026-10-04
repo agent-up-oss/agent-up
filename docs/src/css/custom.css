@@ -2,6 +2,7 @@
 @import '@agent-up/design-system/styles.css';
 @import '@agent-up/design-system/marketing.css';
 @import '@agent-up/design-system/docs.css';
+@import '@agent-up/design-system/screenshot-shell.css';
 
 :root,
 [data-theme='dark'] {
@@ -36,7 +37,8 @@
   --ifm-card-border-radius: var(--au-radius-md);
 }
 
-html { scroll-behavior: smooth; overflow-x: clip; background: var(--au-color-canvas); }
+html { scroll-behavior: smooth; background: var(--au-color-canvas); }
+body { overflow-x: clip; }
 body, .main-wrapper { color: var(--au-color-text-primary); background: var(--au-color-canvas); }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
