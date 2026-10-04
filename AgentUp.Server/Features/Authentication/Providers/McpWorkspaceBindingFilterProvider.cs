@@ -41,7 +41,7 @@ public sealed class McpWorkspaceBindingFilterProvider(
             Name = tool.Name,
             Title = tool.Title,
             Description = tool.Description,
-            InputSchema = schemas.StripWorkspaceIdProperties(tool.InputSchema),
+            InputSchema = schemas.StripWorkspaceTargetProperties(tool.InputSchema),
             OutputSchema = tool.OutputSchema,
             Annotations = tool.Annotations,
             Icons = tool.Icons,
@@ -59,7 +59,7 @@ public sealed class McpWorkspaceBindingFilterProvider(
         var decision = await binder.BindAsync(
             boundWorkspace,
             arguments,
-            schemas.WorkspaceIdPropertyNames(ToolInputSchema(context.MatchedPrimitive)),
+            schemas.WorkspaceTargetPropertyNames(ToolInputSchema(context.MatchedPrimitive)),
             cancellationToken);
         if (!decision.Allowed)
             return Forbid(decision.Error!);

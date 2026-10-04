@@ -7,6 +7,37 @@ namespace AgentUp.Server.Features.Authentication.Providers;
 public sealed class McpWorkspaceSchemaProvider
 {
     public IReadOnlyList<string> WorkspaceIdPropertyNames(JsonElement schema)
+        => PropertyNames(schema, McpWorkspaceTargetArguments.IsWorkspaceIdName);
+
+    /// <summary>
+    /// Every property that names the workspace a tool acts on: the id parameters and the
+    /// Server-host path parameters. A workspace-bound session is told neither, because the
+    /// binder supplies them, so both are removed from what it is offered.
+    /// </summary>
+    public IReadOnlyList<string> WorkspaceTargetPropertyNames(JsonElement schema)
+        => PropertyNames(
+            schema,
+            (name, description) => McpWorkspaceTargetArguments.IsWorkspaceIdName(name, description)
+                                   || McpWorkspaceTargetArguments.IsPathName(name));
+
+    public JsonElement StripWorkspaceIdProperties(JsonElement schema)
+        => Strip(schema, WorkspaceIdPropertyNames(schema));
+
+    public JsonElement StripWorkspaceTargetProperties(JsonElement schema)
+        => Strip(schema, WorkspaceTargetPropertyNames(schema));
+
+    public static string? ReadDescription(JsonElement property)
+    {
+        if (property.ValueKind is not JsonValueKind.Object)
+            return null;
+        if (!property.TryGetProperty("description", out var description))
+            return null;
+        if (description.ValueKind is not JsonValueKind.String)
+            return null;
+        return description.GetString();
+    }
+
+    private static IReadOnlyList<string> PropertyNames(JsonElement schema, Func<string, string?, bool> matches)
     {
         if (schema.ValueKind is not JsonValueKind.Object)
             return [];
@@ -16,14 +47,13 @@ public sealed class McpWorkspaceSchemaProvider
             return [];
 
         return properties.EnumerateObject()
-            .Where(property => McpWorkspaceTargetArguments.IsWorkspaceIdName(property.Name, ReadDescription(property.Value)))
+            .Where(property => matches(property.Name, ReadDescription(property.Value)))
             .Select(property => property.Name)
             .ToArray();
     }
 
-    public JsonElement StripWorkspaceIdProperties(JsonElement schema)
+    private static JsonElement Strip(JsonElement schema, IReadOnlyList<string> names)
     {
-        var names = WorkspaceIdPropertyNames(schema);
         if (names.Count == 0)
             return schema;
 
@@ -42,16 +72,5 @@ public sealed class McpWorkspaceSchemaProvider
         }
 
         return JsonSerializer.SerializeToElement(root);
-    }
-
-    public static string? ReadDescription(JsonElement property)
-    {
-        if (property.ValueKind is not JsonValueKind.Object)
-            return null;
-        if (!property.TryGetProperty("description", out var description))
-            return null;
-        if (description.ValueKind is not JsonValueKind.String)
-            return null;
-        return description.GetString();
     }
 }

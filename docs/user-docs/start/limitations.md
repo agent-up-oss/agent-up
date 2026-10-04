@@ -22,7 +22,8 @@ Agent-Up is an experimental development preview. It is intended for early techni
 
 ## Automation Access
 
-- The MCP automation interface accepts loopback connections only. Tools reachable on the Server host are not reachable from anywhere else, including your own second machine or a CI runner.
+- The MCP automation interface accepts loopback connections only until you turn on `AGENTUP_MCP_REMOTE_ENABLED`. Until then, tools reachable on the Server host are not reachable from anywhere else, including your own second machine or a CI runner.
+- With it on, a caller from another address must present a bearer token carrying that endpoint's permission; a request with no token still looks like nothing is there. You supply the issuer and audience, because Agent-Up ships no default endpoint and depends on no particular identity provider.
 - Desktop and Mobile are unaffected: they use the REST API, which does support remote connections and authentication.
 - Several MCP tools identify their target by an absolute path on the Server's filesystem, so they assume the caller shares it.
 
@@ -45,7 +46,7 @@ Agent-Up is an experimental development preview. It is intended for early techni
 | Event recording | Experimental |
 | Validation flows and Playwright export | Preview |
 | MCP tools | Preview (contracts may change) |
-| MCP access from another machine | Not available — loopback only |
+| MCP access from another machine | Preview — off by default, requires bearer authentication |
 | CLI | Preview |
 | Cross-platform packaging | Preview |
 

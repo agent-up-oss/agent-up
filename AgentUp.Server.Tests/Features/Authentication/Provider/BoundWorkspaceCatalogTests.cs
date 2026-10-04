@@ -112,6 +112,22 @@ public sealed class BoundWorkspaceCatalogTests
     }
 
     [Test]
+    public async Task WorktreePathFor_ReturnsTheBoundWorktreeSoAPinnedCallerNeedNotNameIt()
+    {
+        var (catalog, boundId) = await CatalogAsync();
+
+        Assert.That(catalog.WorktreePathFor(boundId), Is.EqualTo(ServerDomain.WorktreePath));
+    }
+
+    [Test]
+    public async Task WorktreePathFor_ReturnsNullWhenTheBoundWorkspaceIsNotRegistered()
+    {
+        var (catalog, _) = await CatalogAsync();
+
+        Assert.That(catalog.WorktreePathFor("missing"), Is.Null);
+    }
+
+    [Test]
     public void BothRooted_RequiresEachPathToBeRooted()
     {
         Assert.Multiple(() =>

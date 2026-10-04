@@ -6,7 +6,7 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
 {
     public string GetAgentUpContext() =>
         """
-        Agent-Up manages local AI-assisted development workspaces. Agent-Up is not an application framework, cloud deployment tool, IDE, or application orchestrator.
+        Agent-Up manages AI-assisted development workspaces on the host its Server runs on. Agent-Up is not an application framework, cloud deployment tool, IDE, or application orchestrator.
 
         AgentUp.Server is the single source of truth. Desktop, CLI, MCP clients, and future integrations are clients of the Server. They may display state and request actions, but they must not own runtime state or duplicate orchestration logic.
 
@@ -18,7 +18,7 @@ public sealed class AgentUpContextProvider : IAgentUpContextProvider
 
         The Server owns all ports. Applications consume only environment variables declared in agent-up.json, such as WEB_PORT, API_PORT, AUTH_PORT, or service-specific variables.
 
-        When the user asks to "deploy my app with Agent-Up", "run my app with Agent-Up", "start this workspace", "bring up the app", "serve this repo", or "open the app in Agent-Up", use the registered Agent-Up MCP tools. For those requests, call start_workspace with the absolute repository/worktree path immediately instead of listing workspaces, checking status, curling the Server, shelling through the CLI, or starting application commands directly.
+        When the user asks to "deploy my app with Agent-Up", "run my app with Agent-Up", "start this workspace", "bring up the app", "serve this repo", or "open the app in Agent-Up", use the registered Agent-Up MCP tools rather than curling the Server, shelling through the CLI, or starting application commands directly. How you name the workspace depends on whether you share a filesystem with the Server, and the MCP server instructions for this session say which case you are in. When you share one, call start_workspace with the absolute repository/worktree path immediately instead of listing workspaces or checking status first. When you do not, call list_workspaces, choose the workspace the user means, and pass its id: a path from your machine names nothing the Server can open, and every path a tool returns is a location on the Server's host. A session pinned to one workspace has nothing to choose.
 
         Use list_workspaces and get_workspace_status only when you need to choose among existing workspaces, inspect an already-running workspace, or answer an explicit status/list question. Use stop_workspace when the user asks Agent-Up to stop, shut down, or halt a managed workspace.
 

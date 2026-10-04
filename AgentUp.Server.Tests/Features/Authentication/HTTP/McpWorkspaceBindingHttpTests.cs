@@ -60,6 +60,44 @@ public sealed class McpWorkspaceBindingHttpTests
     }
 
     [Test]
+    public async Task BoundSession_CallsACommitsToolWithNoArgumentsAtAll()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+        var (boundId, _) = await RegisterWorkspacesAsync(client);
+        var session = await InitializeAsync(client, "/mcp/commits", boundId);
+
+        var result = await CallToolAsync(client, "/mcp/commits", session, "guard_commits", arguments: null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(IsBindingRefusal(result), Is.False);
+            Assert.That(result.GetRawText(), Does.Not.Contain("Pass exactly one of workspaceId or worktreePath"));
+        });
+    }
+
+    [Test]
+    public async Task BoundSession_OmitsTheWorktreePathFromAdvertisedCommitsTools()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+        var (boundId, _) = await RegisterWorkspacesAsync(client);
+        var boundSession = await InitializeAsync(client, "/mcp/commits", boundId);
+        var unboundSession = await InitializeAsync(client, "/mcp/commits", workspace: null);
+
+        var boundTools = await ListToolsAsync(client, "/mcp/commits", boundSession);
+        var unboundTools = await ListToolsAsync(client, "/mcp/commits", unboundSession);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(HasParameter(boundTools, "guard_commits", "worktreePath"), Is.False);
+            Assert.That(HasParameter(boundTools, "guard_commits", "workspaceId"), Is.False);
+            Assert.That(HasParameter(unboundTools, "guard_commits", "worktreePath"), Is.True);
+            Assert.That(HasParameter(unboundTools, "guard_commits", "workspaceId"), Is.True);
+        });
+    }
+
+    [Test]
     public async Task BoundSession_OmitsWorkspaceParametersFromAdvertisedTools()
     {
         using var factory = CreateFactory();

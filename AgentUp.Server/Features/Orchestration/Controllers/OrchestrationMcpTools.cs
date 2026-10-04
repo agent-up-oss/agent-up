@@ -23,11 +23,12 @@ public sealed class OrchestrationMcpTools
     }
 
     [McpServerTool(Name = "start_workspace", Title = "Start Workspace")]
-    [Description("Use immediately when the user asks Agent-Up to deploy, run, start, launch, serve, bring up, or open an app/workspace from a known repository/worktree. Do not list workspaces or check status first. Registers or updates from agent-up.json, starts the local development environment, and returns workspace id plus allocated ports for browser validation.")]
+    [Description("Use immediately when the user asks Agent-Up to deploy, run, start, launch, serve, bring up, or open an app/workspace from a known repository/worktree. Do not list workspaces or check status first when you can name that repository/worktree. Registers or updates from agent-up.json, starts the local development environment, and returns workspace id plus allocated ports for browser validation. Pass workspaceId instead to start a workspace this Server already holds, which is the only form available when you do not share its filesystem.")]
     public Task<McpToolResult> StartWorkspace(
-        [Description("Absolute path to the current repository, workspace, or worktree containing agent-up.json.")] string worktreePath,
-        CancellationToken cancellationToken) =>
-        _workspaces.StartAsync(worktreePath, cancellationToken);
+        [Description("Registered workspace id to start again. Pass exactly one of workspaceId or worktreePath, and omit both when the session is bound to a workspace.")] string? workspaceId = null,
+        [Description("Absolute path on the Server host to the repository, workspace, or worktree containing agent-up.json. Registers or updates that workspace before starting it. Pass exactly one of workspaceId or worktreePath, and omit both when the session is bound to a workspace.")] string? worktreePath = null,
+        CancellationToken cancellationToken = default) =>
+        _workspaces.StartAsync(workspaceId, worktreePath, cancellationToken);
 
     [McpServerTool(Name = "stop_workspace", Title = "Stop Workspace")]
     [Description("Use when the user asks Agent-Up to stop, shut down, terminate, or cleanly halt a managed workspace. Stops a registered workspace by workspace id or worktree path.")]

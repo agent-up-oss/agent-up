@@ -13,6 +13,8 @@ namespace AgentUp.Architecture.Tests.Rules;
 public sealed class McpEndpointExposure
 {
     private const string SessionProviderPath = "AgentUp.Server/Shared/Providers/McpEndpointSessionProvider.cs";
+    private const string PermissionMapPath = "AgentUp.Server/Features/Authentication/Providers/McpToolPermissionMap.cs";
+    private const string PermissionsPath = "AgentUp.Server/Features/Authentication/DTOs/OperationPermissions.cs";
 
     [Test]
     public void Every_declared_mcp_tool_is_exposed_by_exactly_one_endpoint()
@@ -80,6 +82,90 @@ public sealed class McpEndpointExposure
             .SelectMany(field => field.DescendantNodes().OfType<LiteralExpressionSyntax>())
             .Select(literal => literal.Token.ValueText)
             .Where(value => value.Length > 0)
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// A tool with no declared permission is refused outright for a permission-scoped caller, so
+    /// forgetting the map entry silently removes the tool rather than leaving it open. That is
+    /// the safe direction to fail, and this rule is what stops it reaching a release.
+    /// </summary>
+    [Test]
+    public void Every_declared_mcp_tool_declares_an_operation_permission()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var mapped = PermissionMappedToolNames(root);
+
+        var undeclared = DeclaredToolNames(root)
+            .Where(name => !mapped.Contains(name))
+            .Order(StringComparer.Ordinal)
+            .Select(name => $"{name} has no entry in McpToolPermissionMap")
+            .ToArray();
+
+        Assert.That(undeclared, Is.Empty,
+            "Every [McpServerTool] must name the operation permission a scoped token needs to call it.");
+    }
+
+    [Test]
+    public void Every_permission_mapped_tool_name_resolves_to_a_declared_tool()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var declared = DeclaredToolNames(root);
+
+        var stale = PermissionMappedToolNames(root)
+            .Where(name => !declared.Contains(name))
+            .Order(StringComparer.Ordinal)
+            .Select(name => $"{name} is mapped to a permission but no [McpServerTool] declares it")
+            .ToArray();
+
+        Assert.That(stale, Is.Empty,
+            "Remove stale McpToolPermissionMap entries when a tool is renamed or deleted.");
+    }
+
+    [Test]
+    public void Mcp_tool_permissions_are_the_same_operation_permissions_rest_uses()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var known = OperationPermissionMemberNames(root);
+
+        var unknown = PermissionMemberReferences(root)
+            .Where(member => !known.Contains(member))
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.That(unknown, Is.Empty,
+            "MCP tools must reuse the OperationPermissions constants REST endpoints already require.");
+    }
+
+    private static HashSet<string> PermissionMappedToolNames(string root)
+    {
+        var (_, rootNode) = ArchitectureFixture.ParseSourceFile(Path.Join(root, PermissionMapPath));
+        return rootNode.DescendantNodes()
+            .OfType<ImplicitElementAccessSyntax>()
+            .SelectMany(access => access.ArgumentList.Arguments)
+            .Select(argument => argument.Expression)
+            .OfType<LiteralExpressionSyntax>()
+            .Select(literal => literal.Token.ValueText)
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
+    private static IEnumerable<string> PermissionMemberReferences(string root)
+    {
+        var (_, rootNode) = ArchitectureFixture.ParseSourceFile(Path.Join(root, PermissionMapPath));
+        return rootNode.DescendantNodes()
+            .OfType<MemberAccessExpressionSyntax>()
+            .Where(access => access.Expression.ToString() == "OperationPermissions")
+            .Select(access => access.Name.Identifier.Text);
+    }
+
+    private static HashSet<string> OperationPermissionMemberNames(string root)
+    {
+        var (_, rootNode) = ArchitectureFixture.ParseSourceFile(Path.Join(root, PermissionsPath));
+        return rootNode.DescendantNodes()
+            .OfType<FieldDeclarationSyntax>()
+            .SelectMany(field => field.Declaration.Variables)
+            .Select(variable => variable.Identifier.Text)
             .ToHashSet(StringComparer.Ordinal);
     }
 

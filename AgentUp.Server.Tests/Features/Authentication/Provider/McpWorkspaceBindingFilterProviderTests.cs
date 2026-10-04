@@ -155,5 +155,7 @@ public sealed class McpWorkspaceBindingFilterProviderTests
             string path,
             CancellationToken cancellationToken)
             => Task.FromResult(true);
+
+        public string? WorktreePathFor(string boundWorkspace) => null;
     }
 }

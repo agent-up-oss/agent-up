@@ -144,6 +144,70 @@ public sealed class McpWorkspaceSchemaProviderTests
     }
 
     [Test]
+    public void WorkspaceTargetPropertyNames_CountsThePathTargetsAWorkspaceIdWouldReplace()
+    {
+        var schema = JsonSerializer.SerializeToElement(new
+        {
+            type = "object",
+            properties = new
+            {
+                workspaceId = new { type = "string", description = "Registered workspace id." },
+                worktreePath = new { type = "string", description = "Absolute path on the Server host." },
+                repositoryPath = new { type = "string" },
+                entryRef = new { type = "string" }
+            }
+        });
+
+        var names = new McpWorkspaceSchemaProvider().WorkspaceTargetPropertyNames(schema);
+
+        Assert.That(names, Is.EqualTo(["workspaceId", "worktreePath", "repositoryPath"]));
+    }
+
+    [Test]
+    public void StripWorkspaceTargetProperties_HidesThePathAPinnedCallerMustNotName()
+    {
+        var schema = JsonSerializer.SerializeToElement(new
+        {
+            type = "object",
+            properties = new
+            {
+                worktreePath = new { type = "string", description = "Absolute path on the Server host." },
+                entryRef = new { type = "string" }
+            },
+            required = new[] { "entryRef" }
+        });
+
+        var stripped = new McpWorkspaceSchemaProvider().StripWorkspaceTargetProperties(schema);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(stripped.GetProperty("properties").TryGetProperty("worktreePath", out _), Is.False);
+            Assert.That(stripped.GetProperty("properties").TryGetProperty("entryRef", out _), Is.True);
+            Assert.That(
+                stripped.GetProperty("required").EnumerateArray().Select(item => item.GetString()),
+                Is.EqualTo(["entryRef"]));
+        });
+    }
+
+    [Test]
+    public void StripWorkspaceIdProperties_KeepsThePathStripWorkspaceTargetPropertiesWouldRemove()
+    {
+        var schema = JsonSerializer.SerializeToElement(new
+        {
+            type = "object",
+            properties = new
+            {
+                workspaceId = new { type = "string", description = "Registered workspace id." },
+                worktreePath = new { type = "string" }
+            }
+        });
+
+        var stripped = new McpWorkspaceSchemaProvider().StripWorkspaceIdProperties(schema);
+
+        Assert.That(stripped.GetProperty("properties").TryGetProperty("worktreePath", out _), Is.True);
+    }
+
+    [Test]
     public void StripWorkspaceIdProperties_IgnoresNullRequiredEntries()
     {
         using var document = JsonDocument.Parse(

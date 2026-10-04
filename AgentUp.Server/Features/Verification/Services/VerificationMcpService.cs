@@ -1,3 +1,5 @@
+using AgentUp.Server.Features.Workspaces.Controllers;
+using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Shared.Interfaces;
 using AgentUp.Verification.Features.Verification.Models;
 using AgentUp.Verification.Features.Verification.Services;
@@ -11,21 +13,30 @@ namespace AgentUp.Server.Features.Verification.Services;
 /// None of these tools accept a check list. Callers say when to act; the static rules say
 /// what that means. A configuration error surfaces as a failed tool result rather than a
 /// silently empty plan.
+/// <para>
+/// Each tool names its target by registered workspace id or by absolute worktree path, so
+/// a caller that does not share the Server's filesystem can still plan and run checks.
+/// </para>
 /// </remarks>
 public sealed class VerificationMcpService(
     VerificationPlanService plans,
     VerificationRunService runs,
     VerificationGuardService guards,
-    VerificationReportService reports)
+    VerificationReportService reports,
+    WorkspaceTargetController workspaces)
 {
-    public async Task<McpToolResult> PlanVerification(string worktreePath, CancellationToken cancellationToken)
+    public async Task<McpToolResult> PlanVerification(
+        string? workspaceId,
+        string? worktreePath,
+        CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(worktreePath))
-            return new McpToolResult(false, "worktreePath is required.");
+        var target = workspaces.Resolve(workspaceId, worktreePath);
+        if (!target.Resolved)
+            return TargetFailure(target);
 
         try
         {
-            var plan = await plans.CreatePlanAsync(worktreePath, cancellationToken);
+            var plan = await plans.CreatePlanAsync(target.WorktreePath!, cancellationToken);
             return new McpToolResult(
                 true,
                 $"{plan.Checks.Count} check(s) required by {plan.ChangedFiles.Count} changed file(s).",
@@ -37,14 +48,18 @@ public sealed class VerificationMcpService(
         }
     }
 
-    public async Task<McpToolResult> RunVerification(string worktreePath, CancellationToken cancellationToken)
+    public async Task<McpToolResult> RunVerification(
+        string? workspaceId,
+        string? worktreePath,
+        CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(worktreePath))
-            return new McpToolResult(false, "worktreePath is required.");
+        var target = workspaces.Resolve(workspaceId, worktreePath);
+        if (!target.Resolved)
+            return TargetFailure(target);
 
         try
         {
-            var outcomes = await runs.RunAsync(worktreePath, cancellationToken);
+            var outcomes = await runs.RunAsync(target.WorktreePath!, cancellationToken);
             var dto = reports.ToRunDto(outcomes);
             var message = outcomes.Count == 0
                 ? "Nothing to run: no check is required by the current changes."
@@ -69,18 +84,20 @@ public sealed class VerificationMcpService(
     }
 
     public async Task<McpToolResult> RunVerificationCheck(
-        string worktreePath,
         string checkId,
+        string? workspaceId,
+        string? worktreePath,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(worktreePath))
-            return new McpToolResult(false, "worktreePath is required.");
+        var target = workspaces.Resolve(workspaceId, worktreePath);
+        if (!target.Resolved)
+            return TargetFailure(target);
         if (string.IsNullOrWhiteSpace(checkId))
             return new McpToolResult(false, "checkId is required.");
 
         try
         {
-            var outcome = await runs.RunSingleAsync(worktreePath, checkId, cancellationToken);
+            var outcome = await runs.RunSingleAsync(target.WorktreePath!, checkId, cancellationToken);
             if (outcome is null)
             {
                 return new McpToolResult(
@@ -109,15 +126,19 @@ public sealed class VerificationMcpService(
         }
     }
 
-    public async Task<McpToolResult> GuardVerification(string worktreePath, CancellationToken cancellationToken)
+    public async Task<McpToolResult> GuardVerification(
+        string? workspaceId,
+        string? worktreePath,
+        CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(worktreePath))
-            return new McpToolResult(false, "worktreePath is required.");
+        var target = workspaces.Resolve(workspaceId, worktreePath);
+        if (!target.Resolved)
+            return TargetFailure(target);
 
         try
         {
-            var report = await guards.GuardAsync(worktreePath, cancellationToken);
-            var plan = await plans.CreatePlanAsync(worktreePath, cancellationToken);
+            var report = await guards.GuardAsync(target.WorktreePath!, cancellationToken);
+            var plan = await plans.CreatePlanAsync(target.WorktreePath!, cancellationToken);
 
             // A warn-enforcement repository still reports its verdicts; only the
             // success flag softens, so a guard failure is always visible.
@@ -131,4 +152,7 @@ public sealed class VerificationMcpService(
             return new McpToolResult(false, exception.Message);
         }
     }
+
+    private static McpToolResult TargetFailure(WorkspaceTargetResolution target)
+        => new(false, target.Error!);
 }

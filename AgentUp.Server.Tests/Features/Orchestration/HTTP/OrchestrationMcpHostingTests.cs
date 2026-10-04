@@ -245,6 +245,8 @@ public sealed class OrchestrationMcpHostingTests
         builder.Services.AddSingleton<ProcessesController>();
         builder.Services.AddSingleton<WorkspaceStateController>();
         builder.Services.AddSingleton<WorkspaceQueryController>();
+        builder.Services.AddSingleton<WorkspaceTargetService>();
+        builder.Services.AddSingleton<WorkspaceTargetController>();
         builder.Services.AddSingleton<BrowserSessionStore>();
         builder.Services.AddSingleton<BrowserRemoteDisplayService>();
         builder.Services.AddSingleton<BrowserEventBus>();

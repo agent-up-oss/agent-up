@@ -13,24 +13,51 @@ public sealed class OrchestrationWorkspaceService
     private readonly WorkspaceStateController _states;
     private readonly OrchestrationRegistrationService _registration;
     private readonly WorkspaceLifecycleController _lifecycle;
+    private readonly WorkspaceTargetController _targets;
 
     public OrchestrationWorkspaceService(
         WorkspaceQueryController workspaces,
         WorkspaceStateController states,
         WorkspaceLifecycleController lifecycle,
-        OrchestrationRegistrationService registration)
+        OrchestrationRegistrationService registration,
+        WorkspaceTargetController targets)
     {
         _workspaces = workspaces;
         _states = states;
         _lifecycle = lifecycle;
         _registration = registration;
+        _targets = targets;
     }
 
-    public async Task<McpToolResult> StartAsync(string worktreePath, CancellationToken cancellationToken)
+    /// <summary>
+    /// Starts the workspace the caller named: a registered id starts what is already
+    /// registered, while a worktree path registers or updates from agent-up.json first.
+    /// </summary>
+    public async Task<McpToolResult> StartAsync(
+        string? workspaceId,
+        string? worktreePath,
+        CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(worktreePath))
-            return new McpToolResult(false, "worktreePath is required.");
+        var target = _targets.Resolve(workspaceId, worktreePath);
+        if (!target.Resolved)
+            return new McpToolResult(false, target.Error!);
 
+        return target.WorkspaceId is not null
+            ? await StartRegisteredTargetAsync(target.WorkspaceId)
+            : await RegisterAndStartAsync(target.WorktreePath!, cancellationToken);
+    }
+
+    private async Task<McpToolResult> StartRegisteredTargetAsync(string workspaceId)
+    {
+        var result = await StartRegisteredAsync(workspaceId);
+        return result with
+        {
+            Data = _workspaces.GetById(workspaceId)
+        };
+    }
+
+    private async Task<McpToolResult> RegisterAndStartAsync(string worktreePath, CancellationToken cancellationToken)
+    {
         RegisterWorkspaceRequest? request;
         try
         {

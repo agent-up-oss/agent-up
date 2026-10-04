@@ -21,7 +21,7 @@ Agent-Up is a workspace manager, not an application framework. Every implementat
 
 MCP is a protocol, not a slice. Each slice General lists that slice's tools and routes.
 
-Those endpoints accept loopback connections only, and are unauthenticated because the network restriction is the authentication. A client that is not on the Server host cannot reach them today. An authenticated mode for non-loopback callers is planned; it keeps the loopback default unchanged and reuses the `externalBearer` credential and named operation permissions the REST surface already has.
+Those endpoints accept loopback connections anonymously, because on loopback the network restriction is the authentication. Any other address is answered with `404` unless `AGENTUP_MCP_REMOTE_ENABLED=true` and `externalBearer` is configured; see [Workspaces](/developer-guide/workspaces#remote-mcp-access) for the permission floor each endpoint requires and what a remote caller without a usable token sees.
 
 ## Start here
 

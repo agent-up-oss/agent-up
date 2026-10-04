@@ -29,6 +29,9 @@ public sealed class BoundWorkspaceCatalog(
         return queuePath is not null && PathsEqual(path, queuePath);
     }
 
+    public string? WorktreePathFor(string boundWorkspace)
+        => workspaces.GetById(boundWorkspace)?.WorktreePath;
+
     private Workspace? FindByPath(string path)
         => workspaces.GetAll().FirstOrDefault(candidate => OwnsPath(candidate, path));
 

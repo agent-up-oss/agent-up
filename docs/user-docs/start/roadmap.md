@@ -19,7 +19,9 @@ Developers and AI agents collaborate inside the same live workspace.
 
 Future work should deepen the Server-owned runtime model, improve workflow inference from recorded events, enrich diagnostics, and keep MCP as the primary path for AI automation. Desktop WebViews, Mobile WebViews, and the Server headless profile stay isolated; they share a workspace, not a browser session.
 
-Two directions follow from that. The automation interface should be reachable by a client that is not on the Server host, under authentication, without changing the loopback-only default — a Server on a workstation or home-lab box should be as automatable as it is browsable. And the evidence a workspace produces should be shareable: a verification receipt proves which checks ran against which exact file contents, and today that proof cannot leave the machine that produced it.
+One direction follows from that. The evidence a workspace produces should be shareable: a verification receipt proves which checks ran against which exact file contents, and today that proof cannot leave the machine that produced it.
+
+The automation interface is now reachable by a client that is not on the Server host, under authentication, without changing the loopback-only default — a Server on a workstation or home-lab box is as automatable as it is browsable.
 
 Where the MCP interface is exposed beyond loopback, the hostname, TLS and identity provider are chosen by whoever runs the Server. Agent-Up ships no default endpoint and depends on no particular provider.
 
@@ -43,7 +45,7 @@ Where the MCP interface is exposed beyond loopback, the hostname, TLS and identi
 | Cross-platform packaging | Preview |
 | Stable installers | Preview |
 | Broad platform support | Preview |
-| Authenticated MCP access from another machine | Planned |
+| Authenticated MCP access from another machine | Preview |
 | Workspace-id addressing for every MCP tool | Planned |
 | Verification receipt export | Planned |
 | Repository hosting capability modules | Planned |
