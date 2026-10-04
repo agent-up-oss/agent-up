@@ -33,12 +33,15 @@ test('the docs import canonical product and marketing styles', async () => {
 test('the showcase is intro, then assembled screens, then the catalog', async () => {
   const page = await readFile(new URL('../src/pages/design-system/index.js', import.meta.url), 'utf8');
   const css = await readFile(new URL('../src/pages/design-system/index.module.css', import.meta.url), 'utf8');
-  const intro = page.indexOf('The HTML and CSS are the product contract.');
+  const intro = page.indexOf('One design schema');
   const screens = page.indexOf('id="screens"');
   const catalogMark = page.indexOf('id="catalog"');
   assert.ok(intro > -1 && screens > intro && catalogMark > screens);
   assert.match(page, /screenshots\.screens/);
   assert.match(page, /dangerouslySetInnerHTML=\{\{ __html: scene\.html \}\}/);
+  // A scene that declares a sequence has to actually play it here, or the motion the design
+  // system emits only exists in the manifest.
+  assert.match(page, /playSequence\(root, scene\.sequence\)/);
   assert.match(page, /au-chip/);
   assert.match(page, /aria-orientation="horizontal"/);
   assert.match(page, /side by side at the same height/);

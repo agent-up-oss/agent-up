@@ -3,6 +3,7 @@ import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import catalog from '@agent-up/design-system/catalog';
 import screenshots from '@agent-up/design-system/screenshots';
+import { playSequence } from '@agent-up/design-system/sequence';
 import { agentUpTheme } from '@agent-up/design-system/native';
 import voice from '@agent-up/design-system/brand/voice.json';
 import styles from './index.module.css';
@@ -42,7 +43,24 @@ function Example({ component }) {
     </div>
     <div className="au-example__preview" dangerouslySetInnerHTML={{ __html: component.html }} />
     {component.note ? <p className="au-muted">{component.note}</p> : null}
+    {(component.stateExamples ?? []).map(example => <SlotExample key={`state:${example.state}`} label={example.state} example={example} />)}
+    {(component.propsExamples ?? []).map(example => <SlotExample key={`props:${example.props}`} label={example.props} example={example} />)}
   </article>;
+}
+
+/**
+ * A documented variation of the component above, generated from that one piece of markup rather
+ * than authored as a second component. The declaration a screen would write is shown with it,
+ * so a reader can see what produced the example.
+ */
+function SlotExample({ label, example }) {
+  return <div className={`au-example__state ${styles.stateExample}`}>
+    <p className="au-field-label">
+      {example.title} · <code>{label}</code>
+    </p>
+    <div className="au-example__preview" dangerouslySetInnerHTML={{ __html: example.html }} />
+    <p className="au-muted">{example.note}</p>
+  </div>;
 }
 
 const playgroundControls = [
@@ -127,6 +145,17 @@ function IntroPlayground() {
 }
 
 function ScenePreview({ scene, label }) {
+  const mounted = useRef(null);
+
+  // A scene that declares a sequence plays it here. The player only moves a modifier class on
+  // the markup already mounted, so the elements keep their identity and the CSS transition on
+  // the component does the tweening; this is the same mechanism a frame grabber steps by hand.
+  useEffect(() => {
+    const root = mounted.current;
+    if (!root || !scene?.sequence?.length) return undefined;
+    return playSequence(root, scene.sequence);
+  }, [scene?.id, scene?.sequence]);
+
   if (!scene?.html) return null;
   return <figure className={styles.preview} style={{ '--au-preview-aspect': scene.width / scene.height }}>
     <div
@@ -140,7 +169,10 @@ function ScenePreview({ scene, label }) {
       <div
         className="au-screenshot-embed__scale"
         aria-hidden="true"
-        ref={node => { if (node) node.inert = true; }}
+        ref={node => {
+          mounted.current = node;
+          if (node) node.inert = true;
+        }}
         dangerouslySetInnerHTML={{ __html: scene.html }}
       />
     </div>

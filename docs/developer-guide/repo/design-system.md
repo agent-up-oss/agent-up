@@ -30,7 +30,16 @@ shows the live components that surface uses.
   application tabs, browser, console, Git, diagnostics, metrics, validation,
   sign-in, and Mobile.
 - `src/catalog.html` owns the shared HTML structure Desktop, Mobile, docs, and the
-  showcase infer from. Surface-specific fragments such as
+  showcase infer from. A component is authored once and parameterised rather than
+  copied: `data-au-states` declares a selection group or a flag, `data-au-parts`
+  and `data-au-text` declare an optional control and a piece of copy, and
+  `data-au-state-examples` / `data-au-props-examples` generate the catalog's
+  documented variations from that one piece of markup. A scene sets them with
+  `data-au-state` and `data-au-props`. Before this a state was a second component
+  with its own copy of the markup, which is how four tab strips differing only in
+  which button carried `--selected` cost four copies of the same five buttons.
+  `data-au-modifier-classes` names the Desktop class a modifier maps to, so
+  naming one no longer needs a component of its own. Surface-specific fragments such as
   `src/catalog-git-log.html` and `src/catalog-file-viewer.html` are concatenated
   at build time so Git history and file inspection can evolve without colliding
   with the working-tree catalog. Avalonia control types and Desktop class aliases
@@ -47,12 +56,26 @@ shows the live components that surface uses.
 - `src/screenshots/shell.css` owns the scaled showcase embed only. Screen chrome
   layout lives in `src/product.css` as `.au-screen*` so Desktop can apply the
   same classes.
+- `src/icons.html` owns every product icon, as stroked path geometry on a 24x24
+  grid. `scripts/lib/icons.mjs` inlines it wherever the catalog or a screen writes
+  `data-au-icon`, and emits the same geometry as `dist/web/icons.json`,
+  `dist/native/icons.js` for react-native-svg, and
+  `dist/dotnet/AgentUpIcons.g.cs` for Avalonia `StreamGeometry`. Desktop draws
+  Unicode glyphs and Mobile names Ionicons today; those two surfaces adopting the
+  emitted geometry is what makes a documented screen match a real one at the icon
+  level.
 - `src/screens.html` owns assembled screens: named layouts plus scenes that
   fill regions with `data-au-use` of catalog component ids, including the
   `screen*` layout shells. `scripts/lib/screens.mjs` inserts leaf catalog HTML
   and applies empty layout shells as wrappers. Persist writes the result into
-  `media/`. Desktop aliases (`productScreen`, `productScreenRail`, …) compile
-  from those same catalog classes.
+  `media/`. The `screen*` shells and the Demo fixtures are web-only
+  (`webOnly` in `scripts/lib/css.mjs`): a Border carries no flex model and
+  Desktop builds its shell from Grid, so emitting them produced bindings no
+  surface could use.
+- Scene documents link `../screenshots.css` rather than inlining it. Twenty-two
+  copies of the same stylesheet made the committed output almost entirely one
+  repeated file; Chromium resolves the sibling over `file://` exactly as it
+  resolves the document.
 - `brand/voice.json` owns product naming, positioning, capability lifecycle
   language, and editorial principles.
 - `scripts/build.mjs` deterministically copies web assets and compiles the CSS

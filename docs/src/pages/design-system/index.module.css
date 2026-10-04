@@ -101,3 +101,8 @@
   }
   .screenChip { flex: 0 0 auto; }
 }
+
+/* Spacing only: `.au-example__state` in the design system owns how a state example looks. */
+.stateExample {
+  margin-block: var(--au-space-4) 0;
+}

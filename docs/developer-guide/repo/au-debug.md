@@ -95,6 +95,8 @@ agent has run, and History after the commit those files went into.
 ./au-debug screens                 # Desktop and Mobile
 ./au-debug screens desktop         # one surface
 ./au-debug screens mobile review   # one screen
+./au-debug screens compare         # hold the last run against the design system
+./au-debug screens compare mobile  # one surface
 ```
 
 Output goes to `artifacts/product-screens/<surface>/<screen>.png`, with
@@ -105,6 +107,28 @@ Four Desktop screens are in that second group. The Demo connection reports no Da
 Diagnostics, or Metrics entitlement, so Desktop does not build those tabs. Validation is a
 collapsed sidebar on the selected application, not a dedicated screen. Capture the tab
 surfaces against a real Server workspace instead.
+
+## Comparing the two
+
+`au-debug screens compare` is the join between the two capture paths. It reads the design
+system's manifest and the last run's, and reports, per screen, the copy the design system
+documents that the real one did not show. It exits non-zero on a divergence or on a documented
+screen the run never captured, so matching the design system to the app is a signal an agent
+can iterate against rather than a job for whoever remembers to open both folders.
+
+It compares copy, not pixels. Fonts, real timestamps and antialiasing differ between a
+Chromium render and an Avalonia window, so a pixel diff between them is noise; what a screen
+says is the part that is supposed to agree, and a missing string names which part drifted.
+
+Mobile is driven over the DevTools protocol and can be asked what it is showing. Desktop is
+driven with `xdotool` and photographed with `import`, neither of which can read the Avalonia
+visual tree, so its screens are reported *not comparable* rather than passed without checking.
+Getting Desktop into the comparison means giving it a way to report its own text.
+
+Those same window-relative points are why a Desktop run now fails when a screen comes out byte
+for byte identical to the one before it: that is what a route does when a layout change has
+moved a control out from under its point, and the run used to carry on and photograph a screen
+that looks plausible and is the wrong one.
 
 `screens` starts what it needs and stops only that: the Desktop window, and the Mobile web
 host on `http://127.0.0.1:10102`. A surface already running — because `au-debug up` is up —
