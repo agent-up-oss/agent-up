@@ -12,8 +12,8 @@ public static class McpEndpointPermissions
 
     public static IReadOnlyList<McpEndpointPermission> All { get; } =
     [
-        new("/mcp/commits", OperationPermissions.GitWrite),
-        new("/mcp/verification", OperationPermissions.GitWrite),
+        new("/mcp/commits", OperationPermissions.GitRead),
+        new("/mcp/verification", OperationPermissions.GitRead),
         new("/mcp/orchestration", OperationPermissions.WorkspaceRead),
         new("/mcp/browser", OperationPermissions.BrowserControl),
         new("/mcp/audit", OperationPermissions.DiagnosticsRead),

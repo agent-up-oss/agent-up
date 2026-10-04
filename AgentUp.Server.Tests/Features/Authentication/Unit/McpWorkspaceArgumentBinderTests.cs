@@ -183,7 +183,7 @@ public sealed class McpWorkspaceArgumentBinderTests
     }
 
     [Test]
-    public async Task BindAsync_LeavesThePathAloneWhenTheBoundWorkspaceIsNotRegistered()
+    public async Task BindAsync_RefusesAPathOnlyToolWhenTheBoundWorkspaceIsNotRegistered()
     {
         var binder = new McpWorkspaceArgumentBinder(new Catalog(true));
         var decision = await binder.BindAsync(
@@ -194,8 +194,9 @@ public sealed class McpWorkspaceArgumentBinderTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(decision.Allowed, Is.True);
-            Assert.That(decision.Arguments.ContainsKey("worktreePath"), Is.False);
+            Assert.That(decision.Allowed, Is.False);
+            Assert.That(decision.Error, Does.Contain("ws-a"));
+            Assert.That(decision.Error, Does.Contain("not registered"));
         });
     }
 

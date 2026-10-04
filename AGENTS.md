@@ -694,10 +694,12 @@ requires `externalBearer` so there is a token to verify. A remote caller that
 presents no token, or one that fails verification, expiry, or audience, is
 unauthenticated and still receives `404`: an Agent-Up Server never advertises
 MCP to a caller who cannot already use it. A verified remote caller that lacks
-the endpoint's permission floor receives `403`. The floors are `browser.control`
-for `/mcp/browser`, `git.write` for `/mcp/commits` and `/mcp/verification`,
+the endpoint's permission floor receives `403`. The floors are the lowest
+permission any tool on that endpoint needs: `browser.control` for
+`/mcp/browser`, `git.read` for `/mcp/commits` and `/mcp/verification`,
 `workspace.read` for `/mcp/orchestration`, `diagnostics.read` for `/mcp/audit`,
-and `server.read` for `/mcp/capabilities`; individual tools require more. The
+and `server.read` for `/mcp/capabilities`; individual tools may still require
+more. The
 `McpNetworkRestrictionMiddleware` runs after `UseAuthentication` so the caller is
 already identified when that decision is made, and loopback anonymity survives
 `RequireAuthorization` through `McpLoopbackOrPermissionRequirement` rather than by

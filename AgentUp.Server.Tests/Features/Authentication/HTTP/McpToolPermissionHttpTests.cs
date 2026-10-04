@@ -149,18 +149,29 @@ public sealed class McpToolPermissionHttpTests
     private static WebApplicationFactory<Program> CreateFactory()
     {
         var dataDirectory = Path.Join(Path.GetTempPath(), $"agent-up-mcp-perm-{Guid.NewGuid():N}");
-        return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        WebApplicationFactory<Program>? root = null;
+        try
         {
-            builder.UseSetting("Storage:DataDirectory", dataDirectory);
-            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
-                new Dictionary<string, string?>
-                {
-                    ["AGENTUP_AUTH_MODE"] = "externalBearer",
-                    ["AGENTUP_EXTERNAL_ISSUER"] = "https://issuer.test",
-                    ["AGENTUP_EXTERNAL_AUDIENCE"] = "environment-1",
-                    ["AGENTUP_EXTERNAL_SIGNING_KEY"] = SigningKey
-                }));
-        });
+            root = new WebApplicationFactory<Program>();
+            var configured = root.WithWebHostBuilder(builder =>
+            {
+                builder.UseSetting("Storage:DataDirectory", dataDirectory);
+                builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
+                    new Dictionary<string, string?>
+                    {
+                        ["AGENTUP_AUTH_MODE"] = "externalBearer",
+                        ["AGENTUP_EXTERNAL_ISSUER"] = "https://issuer.test",
+                        ["AGENTUP_EXTERNAL_AUDIENCE"] = "environment-1",
+                        ["AGENTUP_EXTERNAL_SIGNING_KEY"] = SigningKey
+                    }));
+            });
+            root = null;
+            return configured;
+        }
+        finally
+        {
+            root?.Dispose();
+        }
     }
 
     private static async Task<string> InitializeAsync(HttpClient client, string path, IReadOnlyList<string> permissions)

@@ -54,7 +54,12 @@ public sealed class McpWorkspaceArgumentBinder(IBoundWorkspaceCatalog catalog)
         var idParameters = targetParameters.Where(name => IsWorkspaceIdParameter(name, targetParameters)).ToArray();
         if (idParameters.Length == 0)
         {
-            InjectWorktreePath(boundWorkspace, targetParameters, rewritten);
+            if (!TryInjectWorktreePath(boundWorkspace, targetParameters, rewritten))
+            {
+                return McpWorkspaceBindingDecision.Forbid(
+                    $"Workspace '{boundWorkspace}' bound to this token is not registered.");
+            }
+
             return McpWorkspaceBindingDecision.Allow(rewritten);
         }
 
@@ -69,8 +74,9 @@ public sealed class McpWorkspaceArgumentBinder(IBoundWorkspaceCatalog catalog)
     /// <summary>
     /// Fills in the path of a tool whose only workspace target is a Server-host path. A
     /// tool that also takes an id is pinned by that id instead, so it is left alone.
+    /// Returns false when the tool needs a path and the bound workspace is not registered.
     /// </summary>
-    private void InjectWorktreePath(
+    private bool TryInjectWorktreePath(
         string boundWorkspace,
         IReadOnlyList<string> targetParameters,
         Dictionary<string, JsonElement> rewritten)
@@ -80,14 +86,15 @@ public sealed class McpWorkspaceArgumentBinder(IBoundWorkspaceCatalog catalog)
             .Where(name => !HasText(rewritten, name))
             .ToArray();
         if (pathParameters.Length == 0)
-            return;
+            return true;
 
         var worktreePath = catalog.WorktreePathFor(boundWorkspace);
         if (string.IsNullOrWhiteSpace(worktreePath))
-            return;
+            return false;
 
         foreach (var name in pathParameters)
             rewritten[name] = JsonSerializer.SerializeToElement(worktreePath);
+        return true;
     }
 
     private static bool IsWorkspaceIdParameter(string key, IReadOnlyList<string> targetParameters)

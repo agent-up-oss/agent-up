@@ -122,7 +122,8 @@ public sealed class McpRemoteAccessHttpTests
     }
 
     [TestCase("/mcp/browser", OperationPermissions.DiagnosticsRead)]
-    [TestCase("/mcp/commits", OperationPermissions.GitRead)]
+    [TestCase("/mcp/commits", OperationPermissions.DiagnosticsRead)]
+    [TestCase("/mcp/verification", OperationPermissions.WorkspaceRead)]
     public async Task RemoteMcpForbidsAnAuthenticatedTokenWithoutTheEndpointPermission(
         string path,
         string permission)
@@ -133,6 +134,18 @@ public sealed class McpRemoteAccessHttpTests
         using var response = await InitializeAsync(client, path, IssueToken([permission]), fromRemote: true);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    [TestCase("/mcp/commits", OperationPermissions.GitRead)]
+    [TestCase("/mcp/verification", OperationPermissions.GitRead)]
+    public async Task RemoteMcpAdmitsAReadOnlyTokenAtTheGitEndpointFloor(string path, string permission)
+    {
+        using var factory = CreateFactory(remoteEnabled: true);
+        using var client = factory.CreateClient();
+
+        using var response = await InitializeAsync(client, path, IssueToken([permission]), fromRemote: true);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
     }
 
     [TestCase(true)]
@@ -150,15 +163,26 @@ public sealed class McpRemoteAccessHttpTests
     private static WebApplicationFactory<Program> CreateFactory(bool remoteEnabled)
     {
         var dataDirectory = Path.Join(Path.GetTempPath(), $"agent-up-mcp-remote-{Guid.NewGuid():N}");
-        return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        WebApplicationFactory<Program>? root = null;
+        try
         {
-            builder.UseSetting("Storage:DataDirectory", dataDirectory);
-            builder.UseSetting("AGENTUP_AUTH_MODE", "externalBearer");
-            builder.UseSetting("AGENTUP_EXTERNAL_ISSUER", Issuer);
-            builder.UseSetting("AGENTUP_EXTERNAL_AUDIENCE", Audience);
-            builder.UseSetting("AGENTUP_EXTERNAL_SIGNING_KEY", SigningKey);
-            builder.UseSetting("AGENTUP_MCP_REMOTE_ENABLED", remoteEnabled ? "true" : null);
-        });
+            root = new WebApplicationFactory<Program>();
+            var configured = root.WithWebHostBuilder(builder =>
+            {
+                builder.UseSetting("Storage:DataDirectory", dataDirectory);
+                builder.UseSetting("AGENTUP_AUTH_MODE", "externalBearer");
+                builder.UseSetting("AGENTUP_EXTERNAL_ISSUER", Issuer);
+                builder.UseSetting("AGENTUP_EXTERNAL_AUDIENCE", Audience);
+                builder.UseSetting("AGENTUP_EXTERNAL_SIGNING_KEY", SigningKey);
+                builder.UseSetting("AGENTUP_MCP_REMOTE_ENABLED", remoteEnabled ? "true" : null);
+            });
+            root = null;
+            return configured;
+        }
+        finally
+        {
+            root?.Dispose();
+        }
     }
 
     private static async Task<string> OpenSessionAsync(HttpClient client, string path, string token)

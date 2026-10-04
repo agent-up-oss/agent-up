@@ -103,16 +103,27 @@ public sealed class McpProtectedResourceMetadataHttpTests
     private static WebApplicationFactory<Program> CreateFactory(bool remoteEnabled, string? issuer)
     {
         var dataDirectory = Path.Join(Path.GetTempPath(), $"agent-up-mcp-prm-{Guid.NewGuid():N}");
-        return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        WebApplicationFactory<Program>? root = null;
+        try
         {
-            builder.UseSetting("Storage:DataDirectory", dataDirectory);
-            builder.UseSetting("AGENTUP_AUTH_MODE", issuer is null ? null : "externalBearer");
-            builder.UseSetting("AGENTUP_EXTERNAL_ISSUER", issuer);
-            builder.UseSetting("AGENTUP_EXTERNAL_AUDIENCE", issuer is null ? null : "environment-1");
-            builder.UseSetting(
-                "AGENTUP_EXTERNAL_SIGNING_KEY",
-                issuer is null ? null : "unit-test-signing-key-32-bytes!!");
-            builder.UseSetting("AGENTUP_MCP_REMOTE_ENABLED", remoteEnabled ? "true" : null);
-        });
+            root = new WebApplicationFactory<Program>();
+            var configured = root.WithWebHostBuilder(builder =>
+            {
+                builder.UseSetting("Storage:DataDirectory", dataDirectory);
+                builder.UseSetting("AGENTUP_AUTH_MODE", issuer is null ? null : "externalBearer");
+                builder.UseSetting("AGENTUP_EXTERNAL_ISSUER", issuer);
+                builder.UseSetting("AGENTUP_EXTERNAL_AUDIENCE", issuer is null ? null : "environment-1");
+                builder.UseSetting(
+                    "AGENTUP_EXTERNAL_SIGNING_KEY",
+                    issuer is null ? null : "unit-test-signing-key-32-bytes!!");
+                builder.UseSetting("AGENTUP_MCP_REMOTE_ENABLED", remoteEnabled ? "true" : null);
+            });
+            root = null;
+            return configured;
+        }
+        finally
+        {
+            root?.Dispose();
+        }
     }
 }
