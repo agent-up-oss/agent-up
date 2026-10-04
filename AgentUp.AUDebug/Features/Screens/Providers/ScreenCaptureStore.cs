@@ -42,6 +42,13 @@ public sealed class ScreenCaptureStore : IScreenCaptureStore
         return path;
     }
 
+    public bool IsUnchangedFrom(string path, string? previousPath)
+    {
+        if (previousPath is null || !File.Exists(path) || !File.Exists(previousPath)) return false;
+        if (new FileInfo(path).Length != new FileInfo(previousPath).Length) return false;
+        return File.ReadAllBytes(path).AsSpan().SequenceEqual(File.ReadAllBytes(previousPath));
+    }
+
     private string SurfaceDirectory(string surface)
         => _paths.JoinUnderRoot(DebugLayout.ProductScreensDirectory, surface);
 }

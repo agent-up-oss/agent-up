@@ -113,6 +113,19 @@ public static class ChromiumCdpMessageProvider
         return (x.GetInt32(), y.GetInt32());
     }
 
+    /// <summary>The string an evaluate returned, or null when it returned anything else.</summary>
+    public static string? ReadEvaluateString(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        if (!document.RootElement.TryGetProperty("result", out var body)
+            || !body.TryGetProperty("result", out var result)
+            || !result.TryGetProperty("value", out var value)
+            || value.ValueKind != JsonValueKind.String)
+            return null;
+
+        return value.GetString();
+    }
+
     public static void ThrowIfEvaluateFailed(string json, string action)
     {
         using var document = JsonDocument.Parse(json);

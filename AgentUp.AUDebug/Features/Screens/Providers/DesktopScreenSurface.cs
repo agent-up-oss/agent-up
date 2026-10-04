@@ -56,6 +56,13 @@ public sealed class DesktopScreenSurface : IProductScreenSurface
             throw new InvalidOperationException($"Desktop screen capture failed: {result.StandardError}");
     }
 
+    /// <summary>
+    /// Desktop has no text channel: it is driven with xdotool and photographed with
+    /// ImageMagick, neither of which can read the Avalonia visual tree. The comparison reports
+    /// these screens as not comparable rather than passing them without checking anything.
+    /// </summary>
+    public Task<string?> ReadTextAsync(CancellationToken cancellationToken) => Task.FromResult<string?>(null);
+
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     private async Task StepAsync(ScreenStepDto step, CancellationToken cancellationToken)

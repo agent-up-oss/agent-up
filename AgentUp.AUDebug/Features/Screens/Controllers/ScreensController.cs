@@ -10,5 +10,7 @@ public sealed class ScreensController
     public ScreensController(ScreensCommandService service) => _service = service;
 
     public Task<CommandResultDto> RunAsync(DebugCommandDto command, CancellationToken cancellationToken)
-        => _service.CaptureAsync(command, cancellationToken);
+        => command.Action == "compare"
+            ? _service.CompareAsync(command, cancellationToken)
+            : _service.CaptureAsync(command, cancellationToken);
 }

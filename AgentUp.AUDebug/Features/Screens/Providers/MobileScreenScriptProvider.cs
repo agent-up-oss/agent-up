@@ -70,6 +70,17 @@ public static class MobileScreenScriptProvider
             })()
             """;
 
+    /// <summary>
+    /// The text the screen is showing, for <c>screens compare</c> to hold the design system's
+    /// documented copy against.
+    /// </summary>
+    /// <remarks>
+    /// <c>innerText</c> rather than <c>textContent</c>: it reports what is laid out and visible,
+    /// so copy inside a closed drawer or a hidden tab does not count as being on the screen.
+    /// </remarks>
+    public static string ReadText()
+        => "(() => (document.body && document.body.innerText) || '')()";
+
     /// <summary>Focus the field a step names and report where it is, so the tap lands on it.</summary>
     public static string FocusField(string label)
         => $$"""

@@ -172,6 +172,25 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
             ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}"),
             ScreenStepDto.Tap("Settings", 2000),
             ScreenStepDto.Tap("Disable", 1500)
+        ]),
+        // The agent chat, the application space and the workspace list are the three Mobile
+        // routes the design system documented no screen for. They come last because each
+        // navigates away from the workspace tabs the earlier routes depend on.
+        MobileScreen("agent", "Mobile agent chat",
+        [
+            ScreenStepDto.Tap("Go back", 2000),
+            ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}/agents"),
+            ScreenStepDto.Tap("Codex", 2500),
+            ScreenStepDto.Settle(1200)
+        ]),
+        MobileScreen("application", "Mobile application space",
+        [
+            ScreenStepDto.Tap("Go back", 2000),
+            ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}/application/Storefront", 4000)
+        ]),
+        MobileScreen("workspace-list", "Mobile workspace list",
+        [
+            ScreenStepDto.Navigate("/workspace", 3000)
         ])
     ];
 

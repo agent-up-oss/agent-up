@@ -22,17 +22,26 @@ public sealed class ScreensCommandService
     private readonly IScreenCaptureStore _store;
     private readonly IScreenSurfaceHost _host;
     private readonly Func<string, IProductScreenSurface> _surfaces;
+    private readonly IScreenRunStore _runs;
+    private readonly IDocumentedScreens _documented;
+    private readonly IScreenComparison _comparison;
 
     public ScreensCommandService(
         IProductScreenCatalog catalog,
         IScreenCaptureStore store,
         IScreenSurfaceHost host,
-        Func<string, IProductScreenSurface> surfaces)
+        Func<string, IProductScreenSurface> surfaces,
+        IScreenRunStore runs,
+        IDocumentedScreens documented,
+        IScreenComparison comparison)
     {
         _catalog = catalog;
         _store = store;
         _host = host;
         _surfaces = surfaces;
+        _runs = runs;
+        _documented = documented;
+        _comparison = comparison;
     }
 
     public async Task<CommandResultDto> CaptureAsync(DebugCommandDto command, CancellationToken cancellationToken)
@@ -94,13 +103,20 @@ public sealed class ScreensCommandService
         await using var driver = _surfaces(surface);
         await driver.OpenAsync(cancellationToken);
 
+        string? previous = null;
         foreach (var screen in screens)
-            yield return await CaptureScreenAsync(driver, screen, cancellationToken);
+        {
+            var capture = await CaptureScreenAsync(driver, screen, previous, cancellationToken);
+            if (capture.File is not null)
+                previous = _store.CapturePath(screen.Surface, screen.View);
+            yield return capture;
+        }
     }
 
     private async Task<ScreenCaptureDto> CaptureScreenAsync(
         IProductScreenSurface driver,
         ProductScreenDto screen,
+        string? previousCapture,
         CancellationToken cancellationToken)
     {
         if (!screen.Available)
@@ -109,8 +125,100 @@ public sealed class ScreensCommandService
         await driver.RunAsync(screen.Steps, cancellationToken);
         var path = _store.CapturePath(screen.Surface, screen.View);
         await driver.CaptureAsync(path, cancellationToken);
-        return new ScreenCaptureDto(screen.Id, screen.Surface, screen.View, screen.Title, _store.Relative(path), null);
+        if (_store.IsUnchangedFrom(path, previousCapture))
+        {
+            throw new InvalidOperationException(
+                $"{screen.Id} came out identical to the screen before it, so its steps changed nothing on the client. "
+                + "A Desktop layout change moves the points in DesktopScreenGeometry; re-read them against a 1440x900 Demo session.");
+        }
+
+        var text = await driver.ReadTextAsync(cancellationToken);
+        return new ScreenCaptureDto(screen.Id, screen.Surface, screen.View, screen.Title, _store.Relative(path), null, text);
     }
+
+
+    /// <summary>
+    /// Reports where the screens the design system documents and the real ones diverge.
+    /// </summary>
+    /// <remarks>
+    /// This reads the two manifests and starts nothing, so it is cheap enough to run after every
+    /// capture. It is the half that was missing: both sides were being photographed and neither
+    /// was ever held against the other, which left "match the design system to the app" as a job
+    /// for whoever remembered to open both folders.
+    /// </remarks>
+    public async Task<CommandResultDto> CompareAsync(DebugCommandDto command, CancellationToken cancellationToken)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(command.Timeout);
+        try
+        {
+            return await Task.Run(() => CompareCore(command), timeout.Token);
+        }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            return CommandResultDto.Fail($"Timed out after {(int)command.Timeout.TotalSeconds}s comparing product screens.");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException or JsonException)
+        {
+            return CommandResultDto.Fail(ex.Message);
+        }
+    }
+
+    private CommandResultDto CompareCore(DebugCommandDto command)
+    {
+        var run = _runs.Read()
+                  ?? throw new InvalidOperationException(
+                      "No product screens run to compare. Run au-debug screens first.");
+
+        var documented = _documented.Read().Where(scene => Includes(command, scene.Surface, scene.Id)).ToArray();
+        if (documented.Length == 0)
+            throw new InvalidOperationException(UnknownComparison(command));
+
+        var results = _comparison.Compare(documented, run.Screens);
+        var diverged = results.Where(result => result.Status == ScreenComparisonStatus.Diverged).ToArray();
+        var absent = results.Where(result => result.Status == ScreenComparisonStatus.NotCaptured).ToArray();
+
+        if (diverged.Length > 0 || absent.Length > 0)
+            return CommandResultDto.Fail(Report(results, diverged, absent));
+
+        return CommandResultDto.Ok(Report(results, diverged, absent));
+    }
+
+    private static bool Includes(DebugCommandDto command, string surface, string id)
+    {
+        // Surface carries the scope; Action is "compare" for every one of these.
+        if (command.Surface is not null && surface != command.Surface) return false;
+        if (string.IsNullOrWhiteSpace(command.View)) return true;
+        return id == command.View || id.EndsWith($"-{command.View}", StringComparison.Ordinal);
+    }
+
+    private static string UnknownComparison(DebugCommandDto command)
+        => string.IsNullOrWhiteSpace(command.View)
+            ? $"Error: the design system documents no {command.Surface} screens."
+            : $"Error: the design system documents no screen '{command.View}'.";
+
+    private static string Report(
+        IReadOnlyList<ScreenComparisonDto> results,
+        IReadOnlyList<ScreenComparisonDto> diverged,
+        IReadOnlyList<ScreenComparisonDto> absent)
+    {
+        var matched = results.Count(result => result.Status == ScreenComparisonStatus.Matched);
+        var lines = new List<string>
+        {
+            $"Compared {results.Count} documented screen(s) with the last run: {matched} matched, "
+            + $"{diverged.Count} diverged, {absent.Count} not captured."
+        };
+        foreach (var result in absent)
+            lines.Add($"{result.Id}: {result.Detail}");
+        foreach (var result in diverged)
+            lines.Add($"{result.Id}: the real screen is missing {Quote(result.MissingCopy)}.");
+        foreach (var result in results.Where(entry => entry.Status is ScreenComparisonStatus.Skipped or ScreenComparisonStatus.NotComparable))
+            lines.Add($"{result.Id}: {result.Detail}");
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    private static string Quote(IReadOnlyList<string> copy)
+        => string.Join(", ", copy.Select(entry => $"'{entry}'"));
 
     private IReadOnlyList<string> SelectedSurfaces(DebugCommandDto command)
         => command.Action is ProductSurface.Desktop or ProductSurface.Mobile

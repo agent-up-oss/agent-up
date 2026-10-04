@@ -34,6 +34,12 @@ public sealed class FakeProductScreenSurface : IProductScreenSurface
         return CaptureException is null ? Task.CompletedTask : Task.FromException(CaptureException);
     }
 
+    /// <summary>What this surface reports the screen is showing. Null stands for Desktop, which
+    /// has no text channel.</summary>
+    public string? Text { get; set; }
+
+    public Task<string?> ReadTextAsync(CancellationToken cancellationToken) => Task.FromResult(Text);
+
     public ValueTask DisposeAsync()
     {
         Disposed = true;
@@ -61,6 +67,12 @@ public sealed class FakeScreenSurfaceHost : IScreenSurfaceHost
 
 public sealed class FakeScreenCaptureStore : IScreenCaptureStore
 {
+    /// <summary>Stands for a route whose steps changed nothing on the client.</summary>
+    public bool UnchangedFromPrevious { get; set; }
+
+    public bool IsUnchangedFrom(string path, string? previousPath)
+        => UnchangedFromPrevious && previousPath is not null;
+
     public List<string> Reset0 { get; } = [];
     public ScreenRunManifestDto? Manifest { get; private set; }
 
@@ -125,4 +137,18 @@ public sealed class FakeScreenReadyProbe : IScreenReadyProbe
         DesktopWaits++;
         return Task.CompletedTask;
     }
+}
+
+public sealed class FakeScreenRunStore : IScreenRunStore
+{
+    public ScreenRunManifestDto? Manifest { get; set; }
+
+    public ScreenRunManifestDto? Read() => Manifest;
+}
+
+public sealed class FakeDocumentedScreens : IDocumentedScreens
+{
+    public List<ScreenshotSceneCopyDto> Scenes { get; } = [];
+
+    public IReadOnlyList<ScreenshotSceneCopyDto> Read() => Scenes;
 }

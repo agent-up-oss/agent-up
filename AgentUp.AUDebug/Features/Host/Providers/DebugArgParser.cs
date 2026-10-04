@@ -188,8 +188,14 @@ public sealed class DebugArgParser : IDebugArgParser
         bool detach)
     {
         var action = positionals.Count >= 2 ? positionals[1] : "all";
-        if (action is not ("all" or "desktop" or "mobile"))
+        if (action is not ("all" or "desktop" or "mobile" or "compare"))
             return (null, $"Error: unknown screens surface '{action}'.");
+
+        // compare reads the two manifests, so it takes the surface and screen as its own
+        // arguments: 'screens compare', 'screens compare mobile', 'screens compare mobile git'.
+        if (action == "compare")
+            return ParseScreensCompare(positionals, password, timeoutSeconds, detach);
+
         if (positionals.Count > 3)
             return (null, "Error: 'screens' takes at most a surface and one screen name.");
 
@@ -202,6 +208,36 @@ public sealed class DebugArgParser : IDebugArgParser
                 "screens",
                 action == "all" ? null : action,
                 action,
+                null,
+                password,
+                TimeSpan.FromSeconds(timeoutSeconds ?? DebugLayout.ScreensTimeoutSeconds),
+                detach,
+                View: view),
+            null);
+    }
+
+    private static (DebugCommandDto? Command, string? Error) ParseScreensCompare(
+        IReadOnlyList<string> positionals,
+        string? password,
+        int? timeoutSeconds,
+        bool detach)
+    {
+        if (positionals.Count > 4)
+            return (null, "Error: 'screens compare' takes at most a surface and one screen name.");
+
+        var surface = positionals.Count >= 3 ? positionals[2] : "all";
+        if (surface is not ("all" or "desktop" or "mobile"))
+            return (null, $"Error: unknown screens surface '{surface}'.");
+
+        var view = positionals.Count == 4 ? positionals[3] : null;
+        if (view is not null && surface == "all")
+            return (null, "Error: 'screens compare <screen>' needs a surface, such as 'screens compare mobile git'.");
+
+        return (
+            new DebugCommandDto(
+                "screens",
+                surface == "all" ? null : surface,
+                "compare",
                 null,
                 password,
                 TimeSpan.FromSeconds(timeoutSeconds ?? DebugLayout.ScreensTimeoutSeconds),

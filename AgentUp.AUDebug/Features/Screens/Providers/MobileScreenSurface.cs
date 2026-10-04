@@ -68,6 +68,12 @@ public sealed class MobileScreenSurface : IProductScreenSurface
         await File.WriteAllBytesAsync(outputPath, ChromiumCdpMessageProvider.ReadPng(reply, "Mobile screen capture"), cancellationToken);
     }
 
+    public async Task<string?> ReadTextAsync(CancellationToken cancellationToken)
+    {
+        var reply = await EvaluateAsync(MobileScreenScriptProvider.ReadText(), "read screen text", cancellationToken);
+        return ChromiumCdpMessageProvider.ReadEvaluateString(reply);
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_session is not null)

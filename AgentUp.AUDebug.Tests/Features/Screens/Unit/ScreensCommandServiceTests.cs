@@ -1,5 +1,7 @@
+using AgentUp.AUDebug.Features.Host.DTOs;
 using AgentUp.AUDebug.Features.Screens.DTOs;
 using AgentUp.AUDebug.Features.Screens.Interfaces;
+using AgentUp.AUDebug.Features.Screens.Providers;
 using AgentUp.AUDebug.Features.Screens.Models;
 using AgentUp.AUDebug.Features.Screens.Services;
 using AgentUp.AUDebug.Tests.Fake;
@@ -109,12 +111,112 @@ public sealed class ScreensCommandServiceTests
         });
     }
 
+
+    [Test]
+    public async Task CompareAsync_withoutARun_saysToCaptureFirst()
+    {
+        var service = Service(Catalog(), new FakeScreenCaptureStore(), new FakeScreenSurfaceHost(), new FakeProductScreenSurface(ProductSurface.Mobile));
+
+        var result = await service.CompareAsync(DebugDomain.ScreensCompare().Build(), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.ExitCode, Is.EqualTo(1));
+            Assert.That(result.Message, Does.Contain("Run au-debug screens first"));
+        });
+    }
+
+    [Test]
+    public async Task CompareAsync_realScreenMissingDocumentedCopy_failsAndNamesTheScreen()
+    {
+        var documented = new FakeDocumentedScreens();
+        documented.Scenes.Add(new ScreenshotSceneCopyDto("mobile-git", "mobile", ["Commit message"]));
+        var runs = Run(new ScreenCaptureDto("mobile-git", "mobile", "git", "Mobile Git", "git.png", null, "Changes"));
+        var service = Service(Catalog(), new FakeScreenCaptureStore(), new FakeScreenSurfaceHost(), new FakeProductScreenSurface(ProductSurface.Mobile), runs, documented);
+
+        var result = await service.CompareAsync(DebugDomain.ScreensCompare().Build(), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.ExitCode, Is.EqualTo(1));
+            Assert.That(result.Message, Does.Contain("mobile-git"));
+            Assert.That(result.Message, Does.Contain("'Commit message'"));
+        });
+    }
+
+    [Test]
+    public async Task CompareAsync_everyScreenMatching_succeeds()
+    {
+        var documented = new FakeDocumentedScreens();
+        documented.Scenes.Add(new ScreenshotSceneCopyDto("mobile-git", "mobile", ["Commit message"]));
+        var runs = Run(new ScreenCaptureDto("mobile-git", "mobile", "git", "Mobile Git", "git.png", null, "Changes\nCommit message"));
+        var service = Service(Catalog(), new FakeScreenCaptureStore(), new FakeScreenSurfaceHost(), new FakeProductScreenSurface(ProductSurface.Mobile), runs, documented);
+
+        var result = await service.CompareAsync(DebugDomain.ScreensCompare().Build(), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.ExitCode, Is.Zero);
+            Assert.That(result.Message, Does.Contain("1 matched"));
+        });
+    }
+
+    [Test]
+    public async Task CompareAsync_scopedToASurface_leavesTheOtherAlone()
+    {
+        var documented = new FakeDocumentedScreens();
+        documented.Scenes.Add(new ScreenshotSceneCopyDto("mobile-git", "mobile", ["Commit message"]));
+        documented.Scenes.Add(new ScreenshotSceneCopyDto("desktop-git", "desktop", ["Git changes"]));
+        var runs = Run(new ScreenCaptureDto("desktop-git", "desktop", "git", "Desktop Git changes", "git.png", null, "Git changes"));
+        var service = Service(Catalog(), new FakeScreenCaptureStore(), new FakeScreenSurfaceHost(), new FakeProductScreenSurface(ProductSurface.Desktop), runs, documented);
+
+        var result = await service.CompareAsync(DebugDomain.ScreensCompare(ProductSurface.Desktop).Build(), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.ExitCode, Is.Zero);
+            Assert.That(result.Message, Does.Contain("Compared 1 documented screen"));
+        });
+    }
+
+    private static FakeScreenRunStore Run(params ScreenCaptureDto[] captures)
+        => new() { Manifest = new ScreenRunManifestDto("Demo", "harbor-shop", captures) };
+
+
+
+
+    [Test]
+    public async Task CaptureAsync_screenIdenticalToTheOneBefore_failsInsteadOfPhotographingIt()
+    {
+        var store = new FakeScreenCaptureStore { UnchangedFromPrevious = true };
+        var catalog = Catalog(Screen("sign-in"), Screen("workspaces"));
+        var service = Service(catalog, store, new FakeScreenSurfaceHost(), new FakeProductScreenSurface(ProductSurface.Desktop));
+
+        var result = await service.CaptureAsync(DebugDomain.Screens().Build(), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.ExitCode, Is.EqualTo(1));
+            Assert.That(result.Message, Does.Contain("identical to the screen before it"));
+            Assert.That(result.Message, Does.Contain("DesktopScreenGeometry"));
+        });
+    }
+
     private static ScreensCommandService Service(
         IProductScreenCatalog catalog,
         IScreenCaptureStore store,
         IScreenSurfaceHost host,
-        FakeProductScreenSurface surface)
-        => new(catalog, store, host, _ => surface);
+        FakeProductScreenSurface surface,
+        IScreenRunStore? runs = null,
+        IDocumentedScreens? documented = null)
+        => new(
+            catalog,
+            store,
+            host,
+            _ => surface,
+            runs ?? new FakeScreenRunStore(),
+            documented ?? new FakeDocumentedScreens(),
+            new ScreenComparisonProvider());
 
     private static FakeProductScreenCatalog Catalog(params ProductScreenDto[] screens)
     {

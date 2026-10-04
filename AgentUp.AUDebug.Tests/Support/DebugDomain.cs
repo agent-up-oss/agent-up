@@ -35,6 +35,13 @@ internal static class DebugDomain
     public static DebugCommandDtoBuilder Screens(string surface = "all")
         => new DebugCommandDtoBuilder(ScreensVerb, surface == "all" ? null : surface).Doing(surface);
 
+    /// <summary>
+    /// A screens comparison, optionally scoped to one surface. Compare carries the scope on the
+    /// surface and always names "compare" as its action, which is the shape the parser produces.
+    /// </summary>
+    public static DebugCommandDtoBuilder ScreensCompare(string surface = "all")
+        => new DebugCommandDtoBuilder(ScreensVerb, surface == "all" ? null : surface).Doing("compare");
+
     /// <summary>A command with no surface, such as <c>test</c> or <c>build</c>.</summary>
     public static DebugCommandDtoBuilder Verb(string verb) => new(verb, null);
 }

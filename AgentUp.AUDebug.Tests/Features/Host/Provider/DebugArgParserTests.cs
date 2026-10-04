@@ -391,4 +391,48 @@ public sealed class DebugArgParserTests
 
         Assert.That(error, Does.Contain("at most a surface and one screen name"));
     }
+
+    [Test]
+    public void Parse_screensCompare_scopesToEverySurfaceByDefault()
+    {
+        var (command, error) = _parser.Parse(["screens", "compare"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(error, Is.Null);
+            Assert.That(command!.Action, Is.EqualTo("compare"));
+            Assert.That(command.Surface, Is.Null);
+            Assert.That(command.View, Is.Null);
+        });
+    }
+
+    [Test]
+    public void Parse_screensCompare_takesASurfaceAndAScreen()
+    {
+        var (command, error) = _parser.Parse(["screens", "compare", "mobile", "git"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(error, Is.Null);
+            Assert.That(command!.Action, Is.EqualTo("compare"));
+            Assert.That(command.Surface, Is.EqualTo("mobile"));
+            Assert.That(command.View, Is.EqualTo("git"));
+        });
+    }
+
+    [Test]
+    public void Parse_screensCompare_rejectsAScreenWithoutASurface()
+    {
+        var (_, error) = _parser.Parse(["screens", "compare", "git"]);
+
+        Assert.That(error, Does.Contain("unknown screens surface 'git'"));
+    }
+
+    [Test]
+    public void Parse_screensCompare_rejectsExtraArguments()
+    {
+        var (_, error) = _parser.Parse(["screens", "compare", "mobile", "git", "extra"]);
+
+        Assert.That(error, Does.Contain("at most a surface and one screen name"));
+    }
 }

@@ -97,7 +97,10 @@ public static class AuDebugRunnerFactory
                     new ScreenReadyProbeProvider(new HttpClient { Timeout = TimeSpan.FromSeconds(2) }, processes, environment, paths)),
                 surface => surface == ProductSurface.Desktop
                     ? new DesktopScreenSurface(processes, environment, paths)
-                    : new MobileScreenSurface(processes, environment, paths)));
+                    : new MobileScreenSurface(processes, environment, paths),
+                new ScreenRunStore(paths),
+                new DocumentedScreensProvider(paths),
+                new ScreenComparisonProvider()));
         return new HostController(host, desktop, mobile, docs, tests, screenshotsController, screens, new DebugArgParser(), outputService);
     }
 }

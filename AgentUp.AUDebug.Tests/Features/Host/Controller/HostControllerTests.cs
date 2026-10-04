@@ -9,6 +9,7 @@ using AgentUp.AUDebug.Features.Host.Services;
 using AgentUp.AUDebug.Features.Mobile.Controllers;
 using AgentUp.AUDebug.Features.Mobile.Services;
 using AgentUp.AUDebug.Features.Screens.Controllers;
+using AgentUp.AUDebug.Features.Screens.Providers;
 using AgentUp.AUDebug.Features.Screens.Services;
 using AgentUp.AUDebug.Features.Screenshots.Controllers;
 using AgentUp.AUDebug.Features.Screenshots.Services;
@@ -182,7 +183,10 @@ public sealed class HostControllerTests
                 new FakeProductScreenCatalog(),
                 new FakeScreenCaptureStore(),
                 new FakeScreenSurfaceHost(),
-                surface => new FakeProductScreenSurface(surface)));
+                surface => new FakeProductScreenSurface(surface),
+                new FakeScreenRunStore(),
+                new FakeDocumentedScreens(),
+                new ScreenComparisonProvider()));
         return new HostController(host, desktop, mobile, docs, testController, screenshots, screens, new DebugArgParser(), debugOutput);
     }
 }
