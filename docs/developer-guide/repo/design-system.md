@@ -227,7 +227,9 @@ does not exactly match the canonical HTML and CSS. Native `font-style` compiles 
 React Native `italic` or `normal`; CSS `oblique` maps to `italic` because React
 Native does not accept `oblique`. Native `font-family` is omitted: CSS stacks are
 not React Native font names, and a linked Expo Font module treats an unknown
-family as a production fatal instead of falling back to the system face. Multi-value
+family as a production fatal instead of falling back to the system face. A catalog
+class whose remaining declarations are all omitted, such as `.au-mono`, still
+registers an empty native style so `auText('mono')` does not throw. Multi-value
 `border-radius`, `white-space`, and `ch` lengths are also omitted or reduced to a
 single pixel radius so Fabric does not abort on a string where it expects a number.
 Screenshot HTML is generated in the same build from `src/screens.html`;

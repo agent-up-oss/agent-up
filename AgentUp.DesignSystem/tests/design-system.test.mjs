@@ -100,13 +100,15 @@ test('native font-style stays on the React Native italic/normal union', () => {
 
 test('native component styles omit CSS values that abort a production Expo Font host', () => {
   const css = [
-    ':root { --au-font-sans: Inter, sans-serif; --au-radius-xl: 1rem; --au-color-text-primary: #f5fbf7; }',
+    ':root { --au-font-sans: Inter, sans-serif; --au-font-mono: "JetBrains Mono", monospace; --au-radius-xl: 1rem; --au-color-text-primary: #f5fbf7; }',
     '.au-button { color: var(--au-color-text-primary); font-family: var(--au-font-sans); border-radius: var(--au-radius-xl) var(--au-radius-xl) 0 0; }',
     '.au-label { color: var(--au-color-text-primary); white-space: nowrap; }',
     '.au-display { max-width: 19ch; color: var(--au-color-text-primary); }',
+    '.au-mono { font-family: var(--au-font-mono); }',
   ].join('\n');
   const { js } = emitNative(parseCustomProperties(css), parseRules(css));
   assert.match(js, /borderRadius: 16/);
+  assert.match(js, /    mono: Object\.freeze\(\{\s*\}\)/);
   assert.doesNotMatch(js, /fontFamily:/);
   assert.doesNotMatch(js, /whiteSpace:/);
   assert.doesNotMatch(js, /19ch/);
@@ -140,6 +142,24 @@ test('compiled native component styles stay on React Native length and color typ
   assert.equal(auBox('fileViewerHeader').borderRadius, agentUpTheme.radii.xl);
   assert.equal(auText('button').fontFamily, undefined);
   assert.equal(auText('choiceLabel').whiteSpace, undefined);
+  assert.deepEqual(auText('mono'), {});
+});
+
+test('Mobile and Chat auBox/auText names exist in the native catalog', async () => {
+  const named = /au(?:Box|Text)\(\s*['"]([A-Za-z][A-Za-z0-9]*)['"]/g;
+  const missing = [];
+  for (const dir of [
+    resolve(repository, 'AgentUp.Mobile/src'),
+    resolve(repository, 'AgentUp.Chat/src'),
+  ]) {
+    for (const file of await filesUnder(dir, new Set(['.ts', '.tsx']))) {
+      const source = await readFile(file, 'utf8');
+      for (const match of source.matchAll(named)) {
+        if (!agentUpTheme.components[match[1]]) missing.push(`${file}: ${match[1]}`);
+      }
+    }
+  }
+  assert.deepEqual(missing, [], 'a client names a native component the compiler dropped');
 });
 
 test('catalog metadata is a complete, unique schema and Desktop aliases compile', () => {

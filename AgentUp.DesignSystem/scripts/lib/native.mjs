@@ -28,7 +28,9 @@ export function emitNative(tokens, rules) {
       const baseName = (parsed.modifierClass ?? parsed.baseClass).replace(/^au-/, '').replaceAll('--', '-');
       const name = camel(parsed.pseudo === 'disabled' ? `${baseName}-disabled` : baseName);
       const style = rnStyle(rule.declarations, tokens);
-      if (!Object.keys(style).length) continue;
+      // Keep the catalog name even when every declaration is web-only. `.au-mono`
+      // is only a font-family stack; dropping it makes auText('mono') throw at
+      // Chat module load, which is a launch abort on iOS.
       components[name] = { ...components[name], ...style };
     }
   }

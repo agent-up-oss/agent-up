@@ -152,6 +152,9 @@ const agentUpTheme = Object.freeze({
     muted: Object.freeze({
       color: "#8a9a92",
     }),
+    mono: Object.freeze({
+
+    }),
     accent: Object.freeze({
       color: "#2bf27a",
     }),
@@ -333,6 +336,9 @@ const agentUpTheme = Object.freeze({
     }),
     calloutDanger: Object.freeze({
       backgroundColor: "#261a1c",
+    }),
+    calloutWarning: Object.freeze({
+
     }),
     code: Object.freeze({
       paddingHorizontal: 16,
@@ -826,6 +832,9 @@ const agentUpTheme = Object.freeze({
       borderColor: "#ffffff14",
       borderRadius: 8,
     }),
+    validationFlowHead: Object.freeze({
+
+    }),
     validationCopy: Object.freeze({
       minWidth: 0,
     }),
@@ -1048,12 +1057,42 @@ const agentUpTheme = Object.freeze({
       height: 18,
       backgroundColor: "#ffffff29",
     }),
+    workspaceHead: Object.freeze({
+
+    }),
+    overview: Object.freeze({
+
+    }),
+    overviewGrid: Object.freeze({
+
+    }),
+    gitToolbar: Object.freeze({
+
+    }),
+    gitCommit: Object.freeze({
+
+    }),
     gitLog: Object.freeze({
       minHeight: 192,
       backgroundColor: "#0a0b0c",
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 12,
+    }),
+    storefrontGrid: Object.freeze({
+
+    }),
+    agentHeader: Object.freeze({
+
+    }),
+    agentPrompt: Object.freeze({
+
+    }),
+    appList: Object.freeze({
+
+    }),
+    cartRow: Object.freeze({
+
     }),
     fileViewer: Object.freeze({
       minHeight: 256,
