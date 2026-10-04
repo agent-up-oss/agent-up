@@ -100,20 +100,24 @@ internal sealed class AppDriver
 
     public static async Task<(AppDriver Driver, FakeHttpMessageHandler Handler)> LaunchWithFakeHttpAsync(
         WorkspaceDto workspace,
-        Func<NativeWebView>? webViewFactory = null)
+        Func<NativeWebView>? webViewFactory = null,
+        Uri? serverUri = null,
+        Action<FakeHttpMessageHandler>? configure = null)
     {
         var handler = new FakeHttpMessageHandler([workspace]);
-        var driver = await LaunchAsync([workspace], webViewFactory, handler: handler);
+        configure?.Invoke(handler);
+        var driver = await LaunchAsync([workspace], webViewFactory, handler, serverUri);
         return (driver, handler);
     }
 
     private static async Task<AppDriver> LaunchAsync(
         List<WorkspaceDto> workspaces,
         Func<NativeWebView>? webViewFactory = null,
-        FakeHttpMessageHandler? handler = null)
+        FakeHttpMessageHandler? handler = null,
+        Uri? serverUri = null)
     {
         handler ??= new FakeHttpMessageHandler(workspaces);
-        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        var http = new HttpClient(handler) { BaseAddress = serverUri ?? new Uri("http://localhost:5000") };
         var workspaceClient = new WorkspaceApiClient(http);
         var consoleClient = new ConsoleApiClient(http);
         return await LaunchWithClientsAsync(

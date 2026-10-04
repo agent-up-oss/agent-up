@@ -1,3 +1,5 @@
+using AgentUp.Desktop.Shared.Providers;
+
 namespace AgentUp.Desktop.Features.Authentication.Providers;
 
 public static class SecureServerUrlProvider
@@ -29,7 +31,6 @@ public static class SecureServerUrlProvider
         throw new InvalidOperationException("HTTPS is required for remote Agent-Up server URLs.");
     }
 
-    private static bool IsLoopback(Uri uri)
-        => uri.IsLoopback
-           || uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase);
+    public static bool IsLoopback(Uri uri)
+        => ServerAddressProvider.IsLoopback(uri);
 }
