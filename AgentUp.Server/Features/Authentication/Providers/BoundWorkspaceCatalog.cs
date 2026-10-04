@@ -18,6 +18,9 @@ public sealed class BoundWorkspaceCatalog(
         if (workspace is null)
             return false;
 
+        if (OwnsPath(workspace, path))
+            return true;
+
         var byPath = FindByPath(path);
         if (byPath is not null)
             return string.Equals(byPath.Id, boundWorkspace, StringComparison.Ordinal);
@@ -27,8 +30,10 @@ public sealed class BoundWorkspaceCatalog(
     }
 
     private Workspace? FindByPath(string path)
-        => workspaces.GetAll().FirstOrDefault(candidate =>
-            PathsEqual(path, candidate.WorktreePath) || PathsEqual(path, candidate.RepositoryPath));
+        => workspaces.GetAll().FirstOrDefault(candidate => OwnsPath(candidate, path));
+
+    public static bool OwnsPath(Workspace workspace, string path)
+        => PathsEqual(path, workspace.WorktreePath) || PathsEqual(path, workspace.RepositoryPath);
 
     private async Task<string?> QueueWorktreePathAsync(Workspace workspace, CancellationToken cancellationToken)
     {
