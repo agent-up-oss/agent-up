@@ -54,30 +54,46 @@ public sealed class McpWorkspaceBindingFilterProvider(
         string boundWorkspace,
         CancellationToken cancellationToken)
     {
-        var schema = context.MatchedPrimitive is McpServerTool tool
-            ? tool.ProtocolTool.InputSchema
-            : default;
         var arguments = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
-        if (context.Params?.Arguments is { } supplied)
-        {
-            foreach (var (key, value) in supplied)
-                arguments[key] = value;
-        }
+        CopyArguments(context.Params?.Arguments, arguments);
         var decision = await binder.BindAsync(
             boundWorkspace,
             arguments,
-            schemas.WorkspaceIdPropertyNames(schema),
+            schemas.WorkspaceIdPropertyNames(ToolInputSchema(context.MatchedPrimitive)),
             cancellationToken);
         if (!decision.Allowed)
-            return Forbid(decision.Error);
+            return Forbid(decision.Error!);
 
-        if (context.Params is not null)
-            context.Params.Arguments = new Dictionary<string, JsonElement>(decision.Arguments, StringComparer.OrdinalIgnoreCase);
+        WriteBoundArguments(context.Params, decision.Arguments);
 
         var result = await next(context, cancellationToken);
         if (string.Equals(context.Params?.Name, "list_workspaces", StringComparison.Ordinal))
             FilterListedWorkspaces(result, boundWorkspace);
         return result;
+    }
+
+    public static JsonElement ToolInputSchema(object? matchedPrimitive)
+        => matchedPrimitive is McpServerTool tool ? tool.ProtocolTool.InputSchema : default;
+
+    public static void CopyArguments(
+        IEnumerable<KeyValuePair<string, JsonElement>>? supplied,
+        IDictionary<string, JsonElement> destination)
+    {
+        if (supplied is null)
+            return;
+
+        foreach (var (key, value) in supplied)
+            destination[key] = value;
+    }
+
+    public static void WriteBoundArguments(
+        CallToolRequestParams? parameters,
+        IReadOnlyDictionary<string, JsonElement> arguments)
+    {
+        if (parameters is null)
+            return;
+
+        parameters.Arguments = new Dictionary<string, JsonElement>(arguments, StringComparer.OrdinalIgnoreCase);
     }
 
     public static void FilterListedWorkspaces(CallToolResult result, string boundWorkspace)
@@ -93,7 +109,9 @@ public sealed class McpWorkspaceBindingFilterProvider(
 
     private static ContentBlock FilterListedWorkspaceText(ContentBlock block, string boundWorkspace)
     {
-        if (block is not TextContentBlock text || string.IsNullOrWhiteSpace(text.Text))
+        if (block is not TextContentBlock text)
+            return block;
+        if (string.IsNullOrWhiteSpace(text.Text))
             return block;
 
         try
@@ -110,18 +128,25 @@ public sealed class McpWorkspaceBindingFilterProvider(
         }
     }
 
+    public static bool IsBoundWorkspace(JsonElement item, string boundWorkspace)
+    {
+        if (item.ValueKind is not JsonValueKind.Object)
+            return false;
+        if (!item.TryGetProperty("id", out var id))
+            return false;
+        return string.Equals(id.GetString(), boundWorkspace, StringComparison.Ordinal);
+    }
+
     private static JsonElement[] KeepBoundWorkspaces(JsonElement array, string boundWorkspace)
         => array.EnumerateArray()
-            .Where(item => item.ValueKind is JsonValueKind.Object
-                           && item.TryGetProperty("id", out var id)
-                           && string.Equals(id.GetString(), boundWorkspace, StringComparison.Ordinal))
+            .Where(item => IsBoundWorkspace(item, boundWorkspace))
             .Select(item => item.Clone())
             .ToArray();
 
-    private static CallToolResult Forbid(string? error)
+    private static CallToolResult Forbid(string error)
         => new()
         {
             IsError = true,
-            Content = [new TextContentBlock { Text = error ?? "Workspace binding refused this tool call." }]
+            Content = [new TextContentBlock { Text = error }]
         };
 }

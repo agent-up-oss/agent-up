@@ -8,9 +8,11 @@ public sealed class McpWorkspaceSchemaProvider
 {
     public IReadOnlyList<string> WorkspaceIdPropertyNames(JsonElement schema)
     {
-        if (schema.ValueKind is not JsonValueKind.Object
-            || !schema.TryGetProperty("properties", out var properties)
-            || properties.ValueKind is not JsonValueKind.Object)
+        if (schema.ValueKind is not JsonValueKind.Object)
+            return [];
+        if (!schema.TryGetProperty("properties", out var properties))
+            return [];
+        if (properties.ValueKind is not JsonValueKind.Object)
             return [];
 
         return properties.EnumerateObject()
@@ -42,10 +44,14 @@ public sealed class McpWorkspaceSchemaProvider
         return JsonSerializer.SerializeToElement(root);
     }
 
-    private static string? ReadDescription(JsonElement property)
-        => property.ValueKind is JsonValueKind.Object
-           && property.TryGetProperty("description", out var description)
-           && description.ValueKind is JsonValueKind.String
-            ? description.GetString()
-            : null;
+    public static string? ReadDescription(JsonElement property)
+    {
+        if (property.ValueKind is not JsonValueKind.Object)
+            return null;
+        if (!property.TryGetProperty("description", out var description))
+            return null;
+        if (description.ValueKind is not JsonValueKind.String)
+            return null;
+        return description.GetString();
+    }
 }

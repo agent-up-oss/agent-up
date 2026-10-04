@@ -29,12 +29,14 @@ public sealed class McpWorkspaceBindingHttpTests
 
         var own = await CallToolAsync(client, "/mcp/browser", session, "browser_inspect", new { workspaceId = boundId });
         var injected = await CallToolAsync(client, "/mcp/browser", session, "browser_inspect", new { });
+        var omitted = await CallToolAsync(client, "/mcp/browser", session, "browser_inspect", arguments: null);
         var other = await CallToolAsync(client, "/mcp/browser", session, "browser_inspect", new { workspaceId = otherId });
 
         Assert.Multiple(() =>
         {
             Assert.That(IsBindingRefusal(own), Is.False);
             Assert.That(IsBindingRefusal(injected), Is.False);
+            Assert.That(IsBindingRefusal(omitted), Is.False);
             Assert.That(IsBindingRefusal(other), Is.True);
         });
     }
@@ -186,17 +188,14 @@ public sealed class McpWorkspaceBindingHttpTests
         string path,
         string session,
         string name,
-        object arguments)
+        object? arguments)
     {
+        object payload = arguments is null
+            ? new { jsonrpc = "2.0", id = 2, method = "tools/call", @params = new { name } }
+            : new { jsonrpc = "2.0", id = 2, method = "tools/call", @params = new { name, arguments } };
         using var request = new HttpRequestMessage(HttpMethod.Post, path)
         {
-            Content = JsonContent.Create(new
-            {
-                jsonrpc = "2.0",
-                id = 2,
-                method = "tools/call",
-                @params = new { name, arguments }
-            })
+            Content = JsonContent.Create(payload)
         };
         request.Headers.Add("Mcp-Session-Id", session);
         AddMcpHeaders(request);

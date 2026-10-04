@@ -32,6 +32,18 @@ public sealed class McpWorkspaceBindingServiceTests
         Assert.That(filters.BoundWorkspace, Is.Null);
     }
 
+    [Test]
+    public void Pin_LeavesOptionsUnchangedWhenTheWorkspaceClaimIsBlank()
+    {
+        var filters = new RecordingFilters();
+        var service = new McpWorkspaceBindingService(filters);
+        var user = new ClaimsPrincipal(new ClaimsIdentity([new Claim("workspace", " ")]));
+
+        service.Pin(user, new McpServerOptions());
+
+        Assert.That(filters.BoundWorkspace, Is.Null);
+    }
+
     private sealed class RecordingFilters : IMcpWorkspaceBindingFilterProvider
     {
         public string? BoundWorkspace { get; private set; }

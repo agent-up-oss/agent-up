@@ -78,14 +78,74 @@ public sealed class BoundWorkspaceCatalogTests
         Assert.That(allowed, Is.False);
     }
 
-    [Test]
-    public async Task PathTargetsWorkspaceAsync_TreatsQueueLookupFailuresAsNotMatching()
+    [TestCase(typeof(IOException))]
+    [TestCase(typeof(InvalidOperationException))]
+    [TestCase(typeof(UnauthorizedAccessException))]
+    public async Task PathTargetsWorkspaceAsync_TreatsQueueLookupFailuresAsNotMatching(Type errorType)
     {
-        var (catalog, boundId) = await CatalogAsync(gitError: new IOException("queue unavailable"));
+        var error = (Exception)Activator.CreateInstance(errorType, "queue unavailable")!;
+        var (catalog, boundId) = await CatalogAsync(gitError: error);
 
         var allowed = await catalog.PathTargetsWorkspaceAsync(boundId, "/elsewhere", CancellationToken.None);
 
         Assert.That(allowed, Is.False);
+    }
+
+    [Test]
+    public async Task PathTargetsWorkspaceAsync_AllowsTheBoundRepositoryPath()
+    {
+        var (catalog, boundId) = await CatalogAsync();
+
+        var allowed = await catalog.PathTargetsWorkspaceAsync(boundId, ServerDomain.RepositoryPath, CancellationToken.None);
+
+        Assert.That(allowed, Is.True);
+    }
+
+    [Test]
+    public async Task PathTargetsWorkspaceAsync_RefusesAPathThatIsNotTheBoundQueueWorktree()
+    {
+        var (catalog, boundId) = await CatalogAsync(queuePath: "/managed/queue");
+
+        var allowed = await catalog.PathTargetsWorkspaceAsync(boundId, "/elsewhere", CancellationToken.None);
+
+        Assert.That(allowed, Is.False);
+    }
+
+    [Test]
+    public void BothRooted_RequiresEachPathToBeRooted()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(BoundWorkspaceCatalog.BothRooted("/repo", "/repo/primary"), Is.True);
+            Assert.That(BoundWorkspaceCatalog.BothRooted("primary", "/repo/primary"), Is.False);
+            Assert.That(BoundWorkspaceCatalog.BothRooted("/repo/primary", "primary"), Is.False);
+            Assert.That(BoundWorkspaceCatalog.BothRooted("primary", "secondary"), Is.False);
+        });
+    }
+
+    [Test]
+    public void PathsEqual_ResolvesEquivalentRootedPathsAndRejectsInvalidOnes()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(BoundWorkspaceCatalog.PathsEqual("/repo/./primary", ServerDomain.WorktreePath), Is.True);
+            Assert.That(BoundWorkspaceCatalog.PathsEqual(ServerDomain.WorktreePath, ServerDomain.SecondWorktreePath), Is.False);
+            Assert.That(BoundWorkspaceCatalog.PathsEqual("/\0", ServerDomain.WorktreePath), Is.False);
+            Assert.That(BoundWorkspaceCatalog.PathsEqual(ServerDomain.WorktreePath, "/\0"), Is.False);
+        });
+    }
+
+    [Test]
+    public void TryGetFullPath_ReturnsFalseForPathResolutionFailures()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(BoundWorkspaceCatalog.TryGetFullPath("x", _ => throw new ArgumentException("invalid"), out _), Is.False);
+            Assert.That(BoundWorkspaceCatalog.TryGetFullPath("x", _ => throw new NotSupportedException(), out _), Is.False);
+            Assert.That(BoundWorkspaceCatalog.TryGetFullPath("x", _ => throw new PathTooLongException(), out _), Is.False);
+            Assert.That(BoundWorkspaceCatalog.TryGetFullPath("x", _ => "/resolved", out var fullPath), Is.True);
+            Assert.That(fullPath, Is.EqualTo("/resolved"));
+        });
     }
 
     private static async Task<(BoundWorkspaceCatalog Catalog, string BoundId)> CatalogAsync(
