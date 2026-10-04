@@ -31,4 +31,13 @@ public sealed class SecureServerUrlProviderTests
         Assert.Throws<InvalidOperationException>(() =>
             SecureServerUrlProvider.ResolveServerUri("http://192.168.1.10:5000"));
     }
+
+    [TestCase("http://localhost:5000", true)]
+    [TestCase("http://127.0.0.1:5000", true)]
+    [TestCase("http://[::1]:5000", true)]
+    [TestCase("https://agent-up.example.com", false)]
+    public void IsLoopback_ClassifiesTheActiveConnection(string value, bool expected)
+    {
+        Assert.That(SecureServerUrlProvider.IsLoopback(new Uri(value)), Is.EqualTo(expected));
+    }
 }

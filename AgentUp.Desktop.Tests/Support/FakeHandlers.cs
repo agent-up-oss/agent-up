@@ -13,6 +13,8 @@ internal sealed class FakeHttpMessageHandler(
     private int _viewerTicketAttempts;
 
     public Func<int, Task<HttpResponseMessage>>? ViewerTicket { get; set; }
+    public Func<HttpResponseMessage>? ApplicationProxyTicket { get; set; }
+    public int ApplicationProxyTicketRequests { get; private set; }
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
@@ -24,6 +26,12 @@ internal sealed class FakeHttpMessageHandler(
             return ViewerTicket is null
                 ? Task.FromResult(NotFound())
                 : ViewerTicket(attempt);
+        }
+
+        if (request.Method == HttpMethod.Post && path == "/api/apps/tickets")
+        {
+            ApplicationProxyTicketRequests++;
+            return Task.FromResult(ApplicationProxyTicket?.Invoke() ?? NotFound());
         }
 
         if (GitRoutes.IsChangesRoute(path))

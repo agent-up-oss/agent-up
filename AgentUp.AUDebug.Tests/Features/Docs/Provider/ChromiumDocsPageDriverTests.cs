@@ -131,17 +131,7 @@ public sealed class ChromiumDocsPageDriverTests
         }
         finally
         {
-            if (listener.IsListening)
-                listener.Stop();
-            listener.Close();
-            try
-            {
-                await accept.WaitAsync(TimeSpan.FromSeconds(2));
-            }
-            catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException or TaskCanceledException or TimeoutException)
-            {
-                TestContext.WriteLine($"Docs CDP listener stopped: {ex.GetType().Name}");
-            }
+            await StopCdpListenerAsync(listener, accept);
         }
 
         Assert.That(File.Exists(output), Is.True);
@@ -180,21 +170,45 @@ public sealed class ChromiumDocsPageDriverTests
         }
         finally
         {
-            if (listener.IsListening)
-                listener.Stop();
-            listener.Close();
-            try
-            {
-                await accept.WaitAsync(TimeSpan.FromSeconds(2));
-            }
-            catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException or TaskCanceledException or TimeoutException)
-            {
-                TestContext.WriteLine($"Docs CDP listener stopped: {ex.GetType().Name}");
-            }
+            await StopCdpListenerAsync(listener, accept);
         }
 
         Assert.That(CdpMethods, Does.Contain("Emulation.setDeviceMetricsOverride"));
         Assert.That(File.Exists(output), Is.True);
+    }
+
+    private static async Task StopCdpListenerAsync(HttpListener listener, Task accept)
+    {
+        // HttpListener.Stop can throw ObjectDisposedException while disposing response
+        // streams that the client already closed. Capture already succeeded; do not fail
+        // the test on that cleanup race.
+        try
+        {
+            if (listener.IsListening)
+                listener.Stop();
+        }
+        catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException)
+        {
+            TestContext.WriteLine($"Docs CDP listener stop: {ex.GetType().Name}");
+        }
+
+        try
+        {
+            listener.Close();
+        }
+        catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException)
+        {
+            TestContext.WriteLine($"Docs CDP listener close: {ex.GetType().Name}");
+        }
+
+        try
+        {
+            await accept.WaitAsync(TimeSpan.FromSeconds(2));
+        }
+        catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException or TaskCanceledException or TimeoutException)
+        {
+            TestContext.WriteLine($"Docs CDP listener stopped: {ex.GetType().Name}");
+        }
     }
 
     private static async Task AcceptCdpAsync(HttpListener listener, CancellationToken cancellationToken)
@@ -211,7 +225,19 @@ public sealed class ChromiumDocsPageDriverTests
                 return;
             }
 
-            _ = HandleCdpContextAsync(context, cancellationToken);
+            _ = HandleCdpContextSafelyAsync(context, cancellationToken);
+        }
+    }
+
+    private static async Task HandleCdpContextSafelyAsync(HttpListenerContext context, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await HandleCdpContextAsync(context, cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException or OperationCanceledException or WebSocketException)
+        {
+            TestContext.WriteLine($"Docs CDP context ended: {ex.GetType().Name}");
         }
     }
 

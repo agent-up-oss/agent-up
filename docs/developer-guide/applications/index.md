@@ -9,7 +9,7 @@ title: Applications
 <DocWhat>
 Local commands, Docker services, and Linux GUI processes are Server-owned. The Server launches them, allocates ports, and tickets HTTPS access. Clients never bind application ports themselves.
 
-HTTP tabs connect to allocated loopback ports. `desktopApplications` run on an isolated Xvfb display.
+Desktop HTTP tabs connect directly to allocated ports for a loopback Server and use the ticketed application proxy for a remote Server. `desktopApplications` run on an isolated Xvfb display.
 </DocWhat>
 
 <DocMeta
@@ -54,6 +54,7 @@ Allocated HTTP application ports stay bound on the Server host. Remote clients r
 <DocSteps>
 <DocStep title="Issue a ticket">
 The ticket travels in `X-Agent-Up-Ticket` or a URL fragment consumed by a Server-owned bootstrap page, never as a query string.
+The bootstrap fragment may carry a root-relative return path so Desktop can preserve an application's current path and query while establishing the proxy session.
 </DocStep>
 <DocStep title="Set an HttpOnly cookie">
 Bootstrap reverse-proxies unmatched paths to `http://127.0.0.1:{port}`. GET and ticket-consuming bootstrap requests redirect to `/` on the Server origin.
@@ -68,6 +69,11 @@ That cookie does not authorize REST or MCP routes. Reserved Server prefixes such
 The REST API permits cross-origin browser requests from any HTTP or HTTPS origin, so the Mobile web/PWA client can reach a Server the user points it at. The browser's own mixed-content policy still applies.
 
 <DocSurfaces>
+<DocSurface desktop>
+
+Desktop keeps direct WebView navigation for loopback Server connections. For a non-loopback active connection, it requests a session ticket and opens the Server-owned bootstrap path; switching connections recalculates that choice without a restart.
+
+</DocSurface>
 <DocSurface mobile>
 
 Mobile never opens `http://127.0.0.1:{allocatedPort}` on the device. Native views send the ticket in the `X-Agent-Up-Ticket` header. The installable web client appends `#ticket=` so the secret stays off the HTTP request line.
