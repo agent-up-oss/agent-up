@@ -28,6 +28,8 @@ It never reads the agent commit queue. Record receipts before enqueue. MCP is lo
 
 ## Tools
 
+Every tool on `/mcp/verification` names its target with exactly one of `workspaceId` or `worktreePath`, resolved the same way the commit queue tools resolve theirs. Passing both, or neither, is a validation error, and a workspace-bound session passes neither.
+
 <DocSteps>
 <DocStep title="plan_verification">See which checks the current changes require, and which rule selected each.</DocStep>
 <DocStep title="run_verification">Run every required check and record a receipt per check.</DocStep>

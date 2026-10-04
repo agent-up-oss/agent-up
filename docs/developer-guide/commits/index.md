@@ -48,6 +48,8 @@ Legacy `enqueue_commit` restores tracked files after saving an independent patch
 
 `/mcp/commits` exposes Streamable HTTP and legacy SSE at `/mcp/commits/sse` plus `/mcp/commits/message`. It owns only commit queue tools and exposes no workspace resources.
 
+Every tool here names its target with exactly one of `workspaceId` or `worktreePath`. `workspaceId` is a registered workspace, resolved through the Workspaces slice to its worktree path, so a client that does not share the Server's filesystem can still queue commits; an id that is not registered is reported as not registered rather than as a missing path. `worktreePath` stays an absolute path on the Server host. Passing both, or neither, is a validation error. A workspace-bound session passes neither: both are absent from its advertised schemas and the Server supplies the bound workspace itself.
+
 <DocSteps>
 <DocStep title="enqueue_commit">
 When `commits.enabled` is true, runs the required Verification checks, records the selected delta as the next Git commit in a Server-managed proposal worktree, leaves the developer branch unchanged, and returns the worktree path where the agent must continue dependent work. Without that opt-in it retains the legacy independent-patch behavior during migration.

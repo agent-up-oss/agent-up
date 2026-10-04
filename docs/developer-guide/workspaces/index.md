@@ -28,7 +28,7 @@ Packaged installations run `agent-up-server` on `http://localhost:5000`; the rep
 <DocContract label="Tool">start_workspace</DocContract>
 
 <DocCallout>
-Use `start_workspace` immediately when users ask to deploy, run, start, launch, serve, bring up, or open an app/workspace with Agent-Up. Do not call `list_workspaces` or `get_workspace_status` first when the current repository/worktree is known. Agent-Up starts local development environments; it does not deploy to cloud infrastructure.
+Use `start_workspace` immediately when users ask to deploy, run, start, launch, serve, bring up, or open an app/workspace with Agent-Up. A client sharing the Server's host passes the absolute repository/worktree path and must not call `list_workspaces` or `get_workspace_status` first. A client that reached the Server across the network selects a workspace id through `list_workspaces` instead, because it cannot name a path the Server can open. Agent-Up starts the development environment the Server hosts; it does not deploy to cloud infrastructure.
 </DocCallout>
 
 ## Orchestration MCP
@@ -44,7 +44,7 @@ Use `start_workspace` immediately when users ask to deploy, run, start, launch, 
 
 <DocSteps>
 <DocStep title="start_workspace">
-Registers or updates a workspace from its `agent-up.json`, then starts it. If the file is missing, it tells the agent to read the user configuration guide, search for an existing file, or ask before creating one.
+Takes exactly one of `workspaceId` or `worktreePath`. `worktreePath` registers or updates a workspace from its `agent-up.json` and then starts it; if the file is missing, it tells the agent to read the user configuration guide, search for an existing file, or ask before creating one. `workspaceId` starts a workspace the Server already holds, so a client with no shared filesystem never needs a path. Passing both, or neither, is a validation error, and a bound session passes neither.
 </DocStep>
 <DocStep title="stop_workspace">
 Stops a registered workspace by workspace ID or worktree path.
@@ -62,9 +62,35 @@ Returns concise Agent-Up operating rules for AI agents.
 
 `get_workspace_diagnostics` and `get_workspace_console` are documented on [Diagnostics](/developer-guide/diagnostics). `get_agent_up_json_format` is documented on [Configuration](/developer-guide/configuration).
 
+## Session instructions
+
+`AgentUpMcpGuidance` builds the instructions a client reads on initialize, and `McpEndpointSessionProvider.ConfigureAsync` picks the variant from the session. Only the workspace-addressing rule changes; the validation feedback loop and the commit-queue discipline are the same everywhere.
+
+<DocFacts label="Variants">
+<DocFact label="Shared filesystem">Loopback caller: register the current repository/worktree and pass its absolute path to `start_workspace`.</DocFact>
+<DocFact label="Remote">Non-loopback caller: no shared filesystem, so select a workspace id through `list_workspaces`. Any path a tool returns is a location on the Server's host.</DocFact>
+<DocFact label="Pinned">Token with a `workspace` claim: the session already targets one workspace and has no selection step.</DocFact>
+</DocFacts>
+
+Per-endpoint servers replace the body with their own slice text and keep the same addressing rule appended, so a commits-only or browser-only client is never told a different answer to the filesystem question.
+
+## Permission-scoped toolsets
+
+`McpToolPermissionMap` declares the `OperationPermissions` constant every MCP tool requires, reusing the same permission names REST endpoints do. A session whose token carries `permissions` claims is advertised only the tools those claims allow, and a call that names a removed tool is refused with the missing permission. A caller with no `permissions` claim — loopback anonymous, local administrator, an auth-disabled Server — keeps the full per-endpoint toolset.
+
+The per-endpoint allowlist, the permission filter, and the workspace pin apply in that order and each only removes, so none of them widens another. `AgentUp.Architecture.Tests` fails when a declared tool has no permission entry or an entry names no declared tool.
+
+## Remote MCP access
+
+Loopback MCP is anonymous and stays that way. Every other remote address is hidden with a 404 response unless `AGENTUP_MCP_REMOTE_ENABLED=true`, which also requires `externalBearer` so there is a token to verify.
+
 <DocCallout kind="warning">
-MCP remains unauthenticated for local automation, but `/mcp` requests from a non-loopback remote address are hidden with a 404 response. A presented bearer token that carries a `workspace` claim is still pinned for that MCP session.
+A remote caller with no token, or one that fails signature, expiry, or audience validation, is unauthenticated and still gets 404: the Server must not advertise MCP to a caller who cannot use it. A verified caller missing the endpoint's permission floor gets 403. A presented bearer token that carries a `workspace` claim is still pinned for that MCP session.
 </DocCallout>
+
+`McpEndpointPermissions` holds the floor per endpoint: `browser.control` for `/mcp/browser`, `git.write` for `/mcp/commits` and `/mcp/verification`, `workspace.read` for `/mcp/orchestration`, `diagnostics.read` for `/mcp/audit`, and `server.read` for `/mcp/capabilities`. Individual tools require more, through [Permission-scoped toolsets](#permission-scoped-toolsets). `McpNetworkRestrictionMiddleware` runs after `UseAuthentication` so the caller is already identified when the 404-or-continue decision is made, and loopback anonymity survives `RequireAuthorization` through `McpLoopbackOrPermissionRequirement` rather than by skipping authorization.
+
+With remote access enabled and `AGENTUP_EXTERNAL_ISSUER` set, `/.well-known/oauth-protected-resource` serves RFC 9728 protected resource metadata. Agent-Up is the resource server, so the only authorization server the document names is that issuer, and the resource identifier is derived from the request rather than from a configured hostname. Leave either setting out and the document is absent.
 
 ## Authentication and network boundaries
 
@@ -83,7 +109,7 @@ The REST API uses authentication by default for every REST endpoint unless the e
 `AGENTUP_AUTH_MODE` selects how credentials are validated:
 
 - `localAdministrator` (default): `AGENTUP_ADMIN_PASSWORD` for `POST /api/auth/login`, which returns an in-memory bearer token.
-- `externalBearer`: login is rejected. Present a signed JWT whose `iss` and `aud` match `AGENTUP_EXTERNAL_ISSUER` and `AGENTUP_EXTERNAL_AUDIENCE`. Configure exactly one verification source: an HMAC secret in `AGENTUP_EXTERNAL_SIGNING_KEY`, a PEM-encoded RSA or EC public key in `AGENTUP_EXTERNAL_PUBLIC_KEY`, or an absolute HTTPS JSON Web Key Set endpoint in `AGENTUP_EXTERNAL_JWKS_URI`. `AGENTUP_EXTERNAL_ALGORITHMS` may set a comma-separated signing-algorithm allowlist; `none` is forbidden. Otherwise the selected source defaults to HS256, RS256, ES256, or both RS256 and ES256 for JWKS. JWKS keys are cached for five minutes; expired keys fail closed, fetches time out after five seconds, and all refresh attempts are limited to once per minute so issuer key rotation does not enable outbound request amplification. Optional claims: `workspace`, `tenant`, and repeated `permissions` values. A `workspace` claim binds the caller to that workspace id on REST routes and on MCP tool calls. Bound MCP sessions omit workspace id parameters from advertised tool schemas and refuse `workspaceId`, workspace `id`, `worktreePath`, and `repositoryPath` arguments that name another workspace, including the managed proposal-queue worktree of a different workspace. Protected operations require the matching `permissions` claim; a token with none can still read `GET /api/entitlements`.
+- `externalBearer`: login is rejected. Present a signed JWT whose `iss` and `aud` match `AGENTUP_EXTERNAL_ISSUER` and `AGENTUP_EXTERNAL_AUDIENCE`. Configure exactly one verification source: an HMAC secret in `AGENTUP_EXTERNAL_SIGNING_KEY`, a PEM-encoded RSA or EC public key in `AGENTUP_EXTERNAL_PUBLIC_KEY`, or an absolute HTTPS JSON Web Key Set endpoint in `AGENTUP_EXTERNAL_JWKS_URI`. `AGENTUP_EXTERNAL_ALGORITHMS` may set a comma-separated signing-algorithm allowlist; `none` is forbidden. Otherwise the selected source defaults to HS256, RS256, ES256, or both RS256 and ES256 for JWKS. JWKS keys are cached for five minutes; expired keys fail closed, fetches time out after five seconds, and all refresh attempts are limited to once per minute so issuer key rotation does not enable outbound request amplification. Optional claims: `workspace`, `tenant`, and repeated `permissions` values. A `workspace` claim binds the caller to that workspace id on REST routes and on MCP tool calls. Bound MCP sessions omit every workspace target from advertised tool schemas — workspace id parameters and the `worktreePath` and `repositoryPath` path parameters alike — and refuse `workspaceId`, workspace `id`, `worktreePath`, and `repositoryPath` arguments that name another workspace, including the managed proposal-queue worktree of a different workspace. The Server supplies the bound target instead: the bound id for every id parameter, and the bound workspace's worktree path for a tool whose only target is a path. A path argument a bound caller sent anyway is checked against the bound workspace and then dropped, so it can neither reach a tool as a second target nor act as a filter the schema no longer offers. Protected operations require the matching `permissions` claim; a token with none can still read `GET /api/entitlements`. On MCP, `permissions` claims also scope the advertised toolset, as described under [Permission-scoped toolsets](#permission-scoped-toolsets).
 - `disabled`, or `AGENTUP_AUTH_DISABLED=true`: REST authentication is off.
 
 `GET /api/connection` returns anonymous connection metadata: `apiVersion` (`1`), `connectionId`, `kind` (`selfHosted`), `displayName`, `workspacePresentation` (`serverScoped`), and `authentication` (`mode`, `prompt`, `identifierRequired`). Clients populate a shared `ConnectionSource` from that document and choose sign-in UI from `authentication.mode`: `localAdministrator` is a password form, `externalBearer` expects an issued credential, `browserSso` opens the server's `/api/auth/sso` start URL, and `disabled` connects without a prompt. An unknown `apiVersion`, `kind`, or `authentication.mode` is a hard error. A Server that does not answer `GET /api/connection` is treated as legacy self-hosted only after `GET /api/auth/status` succeeds; a malformed 200 is not legacy. The OSS Server never emits `browserSso`. `Examples/browser-sso` is a runnable identity front door that does, so Mobile can be exercised against that contract. `identifierRequired` is unused.

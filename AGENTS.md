@@ -681,29 +681,62 @@ Set `AGENTUP_AUTH_DISABLED=true` only for an intentionally unauthenticated Serve
 The Server starts even when `AGENTUP_ADMIN_PASSWORD` is unset; login succeeds only
 after that password is configured. For local development, Server, Desktop, and
 CLI load a repository-root `.env` file when present; see `.env.example`.
-MCP routes remain unauthenticated and must accept connections only from a
-loopback address, even when the REST listener is exposed to another subnet. The
-network restriction is the authentication, so the two must not be separated: do
-not relax the loopback check without putting a credential check in its place.
 
-An authenticated mode for non-loopback callers is planned and must not change
-that default. It reuses `ExternalBearerCredentialValidator` and the named
-operation permissions rather than adding a second token model; each endpoint
-requires the operation permission matching its slice; an unauthenticated
-non-loopback caller still receives `404` rather than `401`; and the hostname,
-issuer, and audience stay deployment configuration, so Agent-Up ships no default
-endpoint and depends on no particular identity provider. Two preconditions
-belong to that work. The `workspace` claim must be enforced on MCP tool
-**arguments**, because `WorkspaceBindingMiddleware` reads route values while MCP
-carries the target in the JSON-RPC body. And the advertised toolset must be
-filtered by the caller's `permissions`, which no MCP endpoint does today —
-`McpEndpointSessionProvider.ConfigureAsync` already receives the `HttpContext`
-and is where both belong.
+MCP has two modes and the default one is unchanged. Loopback callers reach
+`/mcp` anonymously and must keep doing so: there the network restriction is the
+authentication, so the two must not be separated. Every other address is
+answered with `404`, and that stays true even when the REST listener is exposed
+to another subnet. Do not relax the loopback check without putting a credential
+check in its place.
 
-Several MCP tools identify their target with an absolute `worktreePath` on the
-Server host. That assumes the caller shares the Server's filesystem. New tools
-should accept a workspace id, and existing ones should gain it alongside the
-path rather than replacing it.
+The second mode is opt-in through `AGENTUP_MCP_REMOTE_ENABLED=true`, which also
+requires `externalBearer` so there is a token to verify. A remote caller that
+presents no token, or one that fails verification, expiry, or audience, is
+unauthenticated and still receives `404`: an Agent-Up Server never advertises
+MCP to a caller who cannot already use it. A verified remote caller that lacks
+the endpoint's permission floor receives `403`. The floors are `browser.control`
+for `/mcp/browser`, `git.write` for `/mcp/commits` and `/mcp/verification`,
+`workspace.read` for `/mcp/orchestration`, `diagnostics.read` for `/mcp/audit`,
+and `server.read` for `/mcp/capabilities`; individual tools require more. The
+`McpNetworkRestrictionMiddleware` runs after `UseAuthentication` so the caller is
+already identified when that decision is made, and loopback anonymity survives
+`RequireAuthorization` through `McpLoopbackOrPermissionRequirement` rather than by
+skipping authorization.
+
+When remote MCP is enabled and `AGENTUP_EXTERNAL_ISSUER` is set, the Server
+publishes RFC 9728 protected resource metadata at
+`/.well-known/oauth-protected-resource`. Agent-Up is the resource server, never
+the authorization server, so the only authorization server advertised is that
+issuer and the resource identifier is derived from the request. Leave either
+setting out and the document is absent. The hostname, issuer, and audience stay
+deployment configuration: Agent-Up ships no default endpoint and depends on no
+particular identity provider.
+
+That remote mode reuses `ExternalBearerCredentialValidator` and the named
+operation permissions rather than adding a second token model. Two preconditions
+belonged to it, and both are in place. The `workspace` claim is
+enforced on MCP tool **arguments**, because `WorkspaceBindingMiddleware` reads
+route values while MCP carries the target in the JSON-RPC body. And the
+advertised toolset is filtered by the caller's `permissions`:
+`McpToolPermissionMap` declares the operation permission every MCP tool needs,
+and `McpEndpointSessionProvider.ConfigureAsync` removes the tools a session's
+`permissions` claims do not allow and refuses a call that names one anyway. A
+caller with no `permissions` claim — loopback anonymous, local administrator, an
+auth-disabled Server — keeps the full per-endpoint toolset. The per-endpoint
+allowlist, the permission filter, and the workspace pin apply in that order and
+each only removes, so none of them widens another. A tool missing from
+`McpToolPermissionMap` fails the architecture suite.
+
+An MCP tool names its workspace with exactly one of `workspaceId` or
+`worktreePath`. `worktreePath` is an absolute path on the Server host and
+assumes the caller shares its filesystem, so every Commits, Verification, and
+`start_workspace` tool takes a registered `workspaceId` alongside it; the
+Workspaces slice resolves that id to the worktree path, and an unregistered id
+is reported as not registered rather than as a missing path. Passing both, or
+neither, is a validation error. A new tool must take the id; it may add the path
+but must not take the path alone. A workspace-bound session passes neither: both
+targets are stripped from its advertised schemas and the Server supplies the
+bound workspace itself.
 
 Full guide: `docs/developer-guide/workspaces/index.md`.
 
@@ -755,7 +788,9 @@ MCP is the primary automation interface for AI agents.
 
 Agents should use MCP directly instead of shelling through the CLI when browser inspection, interaction, diagnostics, logs, screenshots, or Playwright generation are needed. Full guide: `docs/developer-guide/index.md` and the slice Generals.
 
-Agent-Up MCP initialization instructions must tell clients to use `start_workspace` immediately when users ask to deploy, run, start, launch, serve, bring up, or open an app/workspace with Agent-Up; this means starting the local managed development environment, not deploying to cloud infrastructure. Agents should not call `list_workspaces` or `get_workspace_status` first when the current repository/worktree is known.
+Agent-Up MCP initialization instructions must tell clients to use `start_workspace` immediately when users ask to deploy, run, start, launch, serve, bring up, or open an app/workspace with Agent-Up; this means starting the managed development environment the Server hosts, not deploying to cloud infrastructure.
+
+How the client names that workspace depends on whether it shares the Server's filesystem, so the instructions are selected per session in `McpEndpointSessionProvider.ConfigureAsync` and built by `AgentUpMcpGuidance`. A loopback caller gets the path-first advice and must not call `list_workspaces` or `get_workspace_status` first when the current repository/worktree is known. A non-loopback caller is told it shares no filesystem with the Server, to select a workspace id through `list_workspaces`, and that any path a tool returns is a location on the Server's host. A session pinned by a `workspace` claim is told it is pinned and has no selection step. Per-endpoint instructions describe their own slice and carry the same addressing rule; they must not contradict it. Do not write "local" where "the Server's" is meant.
 
 # Configuration Rules
 
