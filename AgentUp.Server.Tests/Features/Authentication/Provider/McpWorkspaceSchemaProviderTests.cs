@@ -66,4 +66,49 @@ public sealed class McpWorkspaceSchemaProviderTests
 
         Assert.That(names, Is.Empty);
     }
+
+    [Test]
+    public void StripWorkspaceIdProperties_RemovesWorkspaceIdWhenRequiredIsAbsent()
+    {
+        var schema = JsonSerializer.SerializeToElement(new
+        {
+            type = "object",
+            properties = new
+            {
+                workspaceId = new { type = "string" },
+                url = new { type = "string" }
+            }
+        });
+
+        var stripped = new McpWorkspaceSchemaProvider().StripWorkspaceIdProperties(schema);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(stripped.GetProperty("properties").TryGetProperty("workspaceId", out _), Is.False);
+            Assert.That(stripped.GetProperty("properties").TryGetProperty("url", out _), Is.True);
+        });
+    }
+
+    [Test]
+    public void WorkspaceIdPropertyNames_ReturnsNothingForANonObjectSchema()
+    {
+        var names = new McpWorkspaceSchemaProvider().WorkspaceIdPropertyNames(
+            JsonSerializer.SerializeToElement("not-an-object"));
+
+        Assert.That(names, Is.Empty);
+    }
+
+    [Test]
+    public void StripWorkspaceIdProperties_LeavesSchemasWithoutWorkspaceParametersUnchanged()
+    {
+        var schema = JsonSerializer.SerializeToElement(new
+        {
+            type = "object",
+            properties = new { url = new { type = "string" } }
+        });
+
+        var stripped = new McpWorkspaceSchemaProvider().StripWorkspaceIdProperties(schema);
+
+        Assert.That(stripped.GetRawText(), Is.EqualTo(schema.GetRawText()));
+    }
 }

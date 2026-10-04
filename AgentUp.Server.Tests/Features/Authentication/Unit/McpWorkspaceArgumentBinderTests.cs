@@ -93,6 +93,28 @@ public sealed class McpWorkspaceArgumentBinderTests
         Assert.That(decision.Allowed, Is.True);
     }
 
+    [Test]
+    public async Task BindAsync_IgnoresBlankAndNonWorkspaceArguments()
+    {
+        var binder = new McpWorkspaceArgumentBinder(new Catalog(true));
+        var decision = await binder.BindAsync(
+            "ws-a",
+            new Dictionary<string, JsonElement>
+            {
+                ["workspaceId"] = JsonSerializer.SerializeToElement(" "),
+                ["url"] = JsonSerializer.SerializeToElement("https://example.test")
+            },
+            ["workspaceId"],
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(decision.Allowed, Is.True);
+            Assert.That(decision.Arguments["workspaceId"].GetString(), Is.EqualTo("ws-a"));
+            Assert.That(decision.Arguments["url"].GetString(), Is.EqualTo("https://example.test"));
+        });
+    }
+
     private sealed class Catalog(bool pathBelongs) : IBoundWorkspaceCatalog
     {
         public Task<bool> PathTargetsWorkspaceAsync(

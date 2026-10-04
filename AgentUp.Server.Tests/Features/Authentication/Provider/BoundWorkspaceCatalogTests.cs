@@ -38,8 +38,59 @@ public sealed class BoundWorkspaceCatalogTests
         Assert.That(allowed, Is.True);
     }
 
+    [Test]
+    public async Task PathTargetsWorkspaceAsync_ReturnsFalseWhenTheWorkspaceIsUnknown()
+    {
+        var (catalog, _) = await CatalogAsync();
+
+        var allowed = await catalog.PathTargetsWorkspaceAsync("missing", ServerDomain.WorktreePath, CancellationToken.None);
+
+        Assert.That(allowed, Is.False);
+    }
+
+    [Test]
+    public async Task PathTargetsWorkspaceAsync_TreatsEquivalentRootedPathsAsTheSameWorktree()
+    {
+        var (catalog, boundId) = await CatalogAsync();
+
+        var allowed = await catalog.PathTargetsWorkspaceAsync(boundId, "/repo/./primary", CancellationToken.None);
+
+        Assert.That(allowed, Is.True);
+    }
+
+    [Test]
+    public async Task PathTargetsWorkspaceAsync_RefusesARelativePath()
+    {
+        var (catalog, boundId) = await CatalogAsync();
+
+        var allowed = await catalog.PathTargetsWorkspaceAsync(boundId, "primary", CancellationToken.None);
+
+        Assert.That(allowed, Is.False);
+    }
+
+    [Test]
+    public async Task PathTargetsWorkspaceAsync_RefusesAnInvalidRootedPath()
+    {
+        var (catalog, boundId) = await CatalogAsync();
+
+        var allowed = await catalog.PathTargetsWorkspaceAsync(boundId, "/\0", CancellationToken.None);
+
+        Assert.That(allowed, Is.False);
+    }
+
+    [Test]
+    public async Task PathTargetsWorkspaceAsync_TreatsQueueLookupFailuresAsNotMatching()
+    {
+        var (catalog, boundId) = await CatalogAsync(gitError: new IOException("queue unavailable"));
+
+        var allowed = await catalog.PathTargetsWorkspaceAsync(boundId, "/elsewhere", CancellationToken.None);
+
+        Assert.That(allowed, Is.False);
+    }
+
     private static async Task<(BoundWorkspaceCatalog Catalog, string BoundId)> CatalogAsync(
-        string? queuePath = null)
+        string? queuePath = null,
+        Exception? gitError = null)
     {
         var registry = ServerTestComposition.CreateRegistry();
         await registry.StartAsync(CancellationToken.None);
@@ -48,7 +99,7 @@ public sealed class BoundWorkspaceCatalogTests
         var queue = ServerDomain.Queue().InWorktree(queuePath).Build();
         var commits = new CommitsController(new CommitsService(
             new StaticQueueProvider(queue),
-            new EmptyGitProvider(),
+            gitError is null ? new EmptyGitProvider() : new ThrowingGitProvider(gitError),
             new CommitPolicyProvider()));
         return (new BoundWorkspaceCatalog(new WorkspaceQueryController(registry), commits), primary.Id);
     }
@@ -84,6 +135,36 @@ public sealed class BoundWorkspaceCatalogTests
 
         public Task<IReadOnlyList<string>> GetModifiedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<IReadOnlyList<string>> GetStagedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<IReadOnlyList<string>> GetUntrackedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<string> GetDiffAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+            => Task.FromResult(string.Empty);
+
+        public Task<bool> HasStagedChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult(false);
+
+        public Task<GitOperationState> GetOperationStateAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult(GitOperationState.None);
+
+        public Task ApplyPatchAsync(string worktreePath, string patch, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task RestoreFilesAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+    }
+
+    private sealed class ThrowingGitProvider(Exception error) : ICommitsGitProvider
+    {
+        public Task<string> GetRepoRootAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromResult(worktreePath);
+
+        public Task<IReadOnlyList<string>> GetModifiedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
+            => Task.FromException<IReadOnlyList<string>>(error);
 
         public Task<IReadOnlyList<string>> GetStagedFilesAsync(string worktreePath, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<string>>([]);

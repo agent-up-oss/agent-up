@@ -40,15 +40,9 @@ public sealed class BoundWorkspaceCatalog(
             var status = await commits.GetStatusAsync(workspace.WorktreePath, cancellationToken);
             return status.QueueWorktreePath;
         }
-        catch (InvalidOperationException)
-        {
-            return null;
-        }
-        catch (IOException)
-        {
-            return null;
-        }
-        catch (UnauthorizedAccessException)
+        catch (Exception exception) when (exception is InvalidOperationException
+            or IOException
+            or UnauthorizedAccessException)
         {
             return null;
         }
@@ -66,15 +60,9 @@ public sealed class BoundWorkspaceCatalog(
         {
             return string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.OrdinalIgnoreCase);
         }
-        catch (ArgumentException)
-        {
-            return false;
-        }
-        catch (NotSupportedException)
-        {
-            return false;
-        }
-        catch (PathTooLongException)
+        catch (Exception exception) when (exception is ArgumentException
+            or NotSupportedException
+            or PathTooLongException)
         {
             return false;
         }

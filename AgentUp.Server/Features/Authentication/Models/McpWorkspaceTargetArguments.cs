@@ -7,14 +7,6 @@ public static class McpWorkspaceTargetArguments
     public const string RepositoryPath = "repositoryPath";
     public const string Id = "id";
 
-    public static readonly IReadOnlyList<string> Names =
-    [
-        WorkspaceId,
-        WorktreePath,
-        RepositoryPath,
-        Id
-    ];
-
     public static bool IsPathName(string name)
         => NamesEqual(name, WorktreePath) || NamesEqual(name, RepositoryPath);
 

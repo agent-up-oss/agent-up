@@ -21,17 +21,12 @@ public sealed class McpWorkspaceSchemaProvider
 
     public JsonElement StripWorkspaceIdProperties(JsonElement schema)
     {
-        if (schema.ValueKind is not JsonValueKind.Object)
-            return schema;
-
         var names = WorkspaceIdPropertyNames(schema);
         if (names.Count == 0)
             return schema;
 
-        var node = JsonNode.Parse(schema.GetRawText());
-        if (node is not JsonObject root || root["properties"] is not JsonObject properties)
-            return schema;
-
+        var root = JsonNode.Parse(schema.GetRawText())!.AsObject();
+        var properties = root["properties"]!.AsObject();
         foreach (var name in names)
             properties.Remove(name);
 

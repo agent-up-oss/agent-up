@@ -23,15 +23,19 @@ public sealed class McpWorkspaceBindingFilterProvider(
         RequestContext<ListToolsRequestParams> context,
         CancellationToken cancellationToken)
     {
-        var result = await next(context, cancellationToken);
+        return HideWorkspaceParameters(await next(context, cancellationToken));
+    }
+
+    public ListToolsResult HideWorkspaceParameters(ListToolsResult result)
+    {
         if (result.Tools is null)
             return result;
 
-        result.Tools = result.Tools.Select(HideWorkspaceParameters).ToList();
+        result.Tools = result.Tools.Select(StripWorkspaceParameters).ToList();
         return result;
     }
 
-    private Tool HideWorkspaceParameters(Tool tool)
+    private Tool StripWorkspaceParameters(Tool tool)
         => new()
         {
             Name = tool.Name,
@@ -76,7 +80,7 @@ public sealed class McpWorkspaceBindingFilterProvider(
         return result;
     }
 
-    private static void FilterListedWorkspaces(CallToolResult result, string boundWorkspace)
+    public static void FilterListedWorkspaces(CallToolResult result, string boundWorkspace)
     {
         if (result.StructuredContent is JsonElement structured && structured.ValueKind is JsonValueKind.Array)
             result.StructuredContent = JsonSerializer.SerializeToElement(KeepBoundWorkspaces(structured, boundWorkspace));
