@@ -12,9 +12,13 @@ an Agent-Up Git submodule.
 
 The public showcase is available at [/design-system](/design-system). It is linked
 from the site navbar and footer. The page opens with the contract intro beside a
-live collage of catalog product-control examples. Those examples are the same
-`component.html` definitions as the catalog below, so the intro stays in sync
-when the catalog changes. Assembled Desktop and Mobile screens follow, selected
+live collage of catalog product-control examples in a two-column view that crops
+overflow so the hero stays filled. The right-hand view is taller than the
+visible area on purpose: extra catalog controls, including a Git history
+timeline, pack the columns and clip at the bottom rather than leaving empty
+canvas. Those examples are the same
+`component.html` definitions as the catalog below, parameterised with
+`data-au-props`, so the intro stays in sync when the catalog changes. Assembled Desktop and Mobile screens follow, selected
 by a horizontal chip strip. Those views mount assembled screen HTML: `src/screens.html` layouts that
 `data-au-use` catalog component ids. The heading, chip selection, and Desktop
 and Mobile pair share one centered max-content block so page zoom recedes them

@@ -95,6 +95,7 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
   </Style>
   <Style Selector="Button.au-choice">
+    <Setter Property="MinWidth" Value="0"/>
     <Setter Property="Padding" Value="{DynamicResource AgentUpThickness4}"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>

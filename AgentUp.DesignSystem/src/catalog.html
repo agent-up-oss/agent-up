@@ -89,12 +89,12 @@
     <article data-au-component="chat-run" data-au-title="Work log" data-au-note="A finished run collapses to this disclosure after the next question. The live run stays open. Nested thoughts stay au-chat-thought. The trailing agent reply is not inside this collapse." data-au-avalonia="Button" data-au-class="au-chat-run">
       <button class="au-chat-run" type="button">Worked · 2 tools · Thought ▸</button>
     </article>
-    <article data-au-component="chat-transcript" data-au-title="Transcript" data-au-note="User bubble, then the raised agent reply. Desktop and Mobile share this stack. Collapse the work log only after the next question; the result stays visible." data-au-avalonia="Border" data-au-class="au-chat-transcript">
+    <article data-au-component="chat-transcript" data-au-title="Transcript" data-au-note="User bubble, then the raised agent reply. Desktop and Mobile share this stack. Collapse the work log only after the next question; the result stays visible. A render names the turns it keeps." data-au-avalonia="Border" data-au-class="au-chat-transcript" data-au-parts="prompt result follow-up reply" data-au-props-examples="parts=follow-up reply|Follow-up turn|The second prompt and reply are the live pair.">
       <div class="au-chat-transcript">
-        <div class="au-chat-user">What is running in this workspace?</div>
-        <div class="au-card"><span class="au-muted">Codex</span><p>I added apps/storefront/PromoBanner.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>
-        <div class="au-chat-user">Add a promo banner to the storefront.</div>
-        <div class="au-card"><span class="au-muted">Codex</span><p>I added apps/storefront/PromoBanner2.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>
+        <div class="au-chat-user" data-au-part="prompt" data-au-text="prompt">What is running in this workspace?</div>
+        <div class="au-card" data-au-part="result"><span class="au-muted" data-au-text="agent">Codex</span><p data-au-text="result">I added apps/storefront/PromoBanner.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>
+        <div class="au-chat-user" data-au-part="follow-up" data-au-text="follow-up">Add a promo banner to the storefront.</div>
+        <div class="au-card" data-au-part="reply"><span class="au-muted" data-au-text="reply-agent">Codex</span><p data-au-text="reply">I added apps/storefront/PromoBanner2.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>
       </div>
     </article>
     <article data-au-component="agent-header" data-au-title="Agent header" data-au-note="The live session names the agent and idle/running state. Stop is danger. Do not paint the header in accent green." data-au-avalonia="Border" data-au-class="au-agent-header">
@@ -527,7 +527,7 @@ Storefront listening on WEB_PORT</pre>
         </div>
       </div>
     </article>
-    <article data-au-component="git-history" data-au-title="History panel" data-au-note="Desktop history is a bounded log with graph nodes, ref chips, and a sticky selected row. Green is selection, not decoration." data-au-avalonia="Border" data-au-class="au-git-log">
+    <article data-au-component="git-history" data-au-title="History panel" data-au-note="Desktop history is a bounded log with graph nodes, ref chips, and a sticky selected row. Green is selection, not decoration. A render can replace the subjects and timestamps." data-au-avalonia="Border" data-au-class="au-git-log">
       <div class="au-stack">
         <div class="au-cluster">
           <button class="au-button au-button--secondary au-button--compact" type="button">Back</button>
@@ -539,14 +539,14 @@ Storefront listening on WEB_PORT</pre>
             <span class="au-status-dot au-status-dot--healthy"></span>
             <span class="au-git-log-ref au-git-log-ref--head">HEAD</span>
             <span class="au-git-log-ref">main</span>
-            <span class="au-git-change-name">feat(storefront): add the weekly promo banner</span>
-            <span class="au-muted">Demo just now</span>
+            <span class="au-git-change-name" data-au-text="head-subject">feat(storefront): add the weekly promo banner</span>
+            <span class="au-muted" data-au-text="head-meta">Demo just now</span>
           </div>
           <div class="au-git-row au-git-row--selected">
             <span class="au-status-dot au-status-dot--healthy"></span>
             <span class="au-git-log-ref">main</span>
-            <span class="au-git-change-name">feat(storefront): featured product grid</span>
-            <span class="au-muted">Demo 22.09.26 07:30</span>
+            <span class="au-git-change-name" data-au-text="base-subject">feat(storefront): featured product grid</span>
+            <span class="au-muted" data-au-text="base-meta">Demo 22.09.26 07:30</span>
           </div>
         </div>
       </div>

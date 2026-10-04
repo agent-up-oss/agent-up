@@ -178,6 +178,7 @@ const agentUpTheme = Object.freeze({
       borderColor: "#d84f4f4d",
     }),
     choice: Object.freeze({
+      minWidth: 0,
       paddingHorizontal: 16,
       paddingVertical: 16,
       color: "#f5fbf7",

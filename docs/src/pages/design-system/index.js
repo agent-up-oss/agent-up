@@ -4,6 +4,7 @@ import Link from '@docusaurus/Link';
 import catalog from '@agent-up/design-system/catalog';
 import screenshots from '@agent-up/design-system/screenshots';
 import { playSequence } from '@agent-up/design-system/sequence';
+import { applyProps } from '@agent-up/design-system/slots';
 import { agentUpTheme } from '@agent-up/design-system/native';
 import voice from '@agent-up/design-system/brand/voice.json';
 import styles from './index.module.css';
@@ -63,14 +64,30 @@ function SlotExample({ label, example }) {
   </div>;
 }
 
-const playgroundControls = [
-  'badge',
-  'choice',
-  'workspace',
-  'app-tab',
-  'chat-transcript',
-  'git-change-list',
+const playgroundColumns = [
+  [
+    { id: 'choice' },
+    { id: 'badge' },
+    { id: 'workspace' },
+    { id: 'app-tab' },
+    { id: 'git-log-row', props: 'time-0=02.10.26 14:33; time-1=02.10.26 11:04; time-2=01.10.26 19:41; time-3=01.10.26 08:12; time-4=30.09.26 16:20; time-5=22.09.26 09:18; time-6=22.09.26 07:30' },
+    { id: 'validation-sidebar' },
+    { id: 'git-log-detail', props: 'subject=feat(storefront): add the weekly promo banner; author=Demo' },
+  ],
+  [
+    { id: 'chat-transcript', props: 'parts=follow-up reply' },
+    { id: 'agent-prompt' },
+    { id: 'git-change-list' },
+    { id: 'git-toolbar' },
+    { id: 'console' },
+    { id: 'audit-table' },
+    { id: 'subtab' },
+    { id: 'metrics-card' },
+    { id: 'page-jump' },
+  ],
 ];
+
+const playgroundControls = playgroundColumns.flat();
 
 const catalogById = Object.fromEntries(
   catalog.surfaces.flatMap(surface => surface.components.map(component => [component.id, component])),
@@ -132,15 +149,28 @@ function CatalogControl({ component }) {
     };
   }, [component.html]);
 
-  return <article className="au-card" data-au-component={component.id}>
+  return <article className={`au-card ${styles.playgroundCard}`} data-au-component={component.id}>
     <div ref={ref} dangerouslySetInnerHTML={{ __html: component.html }} />
   </article>;
 }
 
 function IntroPlayground() {
-  const controls = playgroundControls.map(id => catalogById[id]).filter(Boolean);
-  return <div className={`au-grid ${styles.playground}`} aria-label="Live catalog components">
-    {controls.map(component => <CatalogControl key={component.id} component={component} />)}
+  const columns = playgroundColumns.map(column => column.flatMap(entry => {
+    const component = catalogById[entry.id];
+    if (!component) return [];
+    return [{
+      ...component,
+      html: entry.props ? applyProps(component, entry.props) : component.html,
+    }];
+  }));
+  return <div className={styles.playgroundView}>
+    <div className={styles.playground} aria-label="Live catalog components">
+      {columns.map((column, index) => (
+        <div key={index} className={styles.playgroundColumn}>
+          {column.map(component => <CatalogControl key={component.id} component={component} />)}
+        </div>
+      ))}
+    </div>
   </div>;
 }
 
@@ -256,7 +286,7 @@ export default function DesignSystemPage() {
     <main className={`au-theme ${styles.page}`}>
       <header>
         <div className={`au-container au-marketing-hero ${styles.intro}`}>
-          <div>
+          <div className={styles.introCopy}>
             <p className="au-eyebrow">Agent-Up design system</p>
             <h1 className={`au-display ${styles.introTitle}`}>One design schema</h1>
             <p className="au-lede">Every app, every docs appearance, every post and everything else uses the same design schema.</p>

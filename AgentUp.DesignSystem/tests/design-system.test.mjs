@@ -15,6 +15,7 @@ import {
   tokenKey,
   varName,
 } from '../scripts/lib/css.mjs';
+import { applyProps } from '../scripts/lib/slots.mjs';
 
 const root = new URL('..', import.meta.url);
 const repository = fileURLToPath(new URL('../..', import.meta.url));
@@ -24,11 +25,12 @@ const visualProperties = new Set([
 ]);
 const layoutCssProperties = new Set([
   'display', 'grid-template-columns', 'grid-template-rows', 'gap', 'row-gap', 'column-gap',
-  'align-items', 'align-self', 'justify-content', 'justify-items', 'place-items',
+  'align-items', 'align-self', 'align-content', 'justify-content', 'justify-items', 'justify-self', 'place-items',
   'padding', 'padding-block', 'padding-inline', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
   'margin', 'margin-block', 'margin-inline', 'width', 'min-width', 'max-width', 'height', 'min-height', 'max-height',
   'overflow', 'overflow-x', 'overflow-y', 'cursor', 'text-align', 'font',
   '-webkit-box-orient', '-webkit-line-clamp', 'flex-direction', 'flex-wrap', 'flex',
+  'columns', 'column-fill', 'break-inside',
 ]);
 
 const primitives = await readFile(new URL('src/agent-up.css', root), 'utf8');
@@ -212,6 +214,31 @@ test('agent transcript uses catalog user bubbles, work logs, and thought hairlin
   assert.match(mobile, /auBox\('chatUser'\)/);
   assert.match(mobile, /auBox\('chatRun'\)/);
   assert.match(mobile, /auBox\('chatWork'\)/);
+});
+
+test('a transcript render can keep only the follow-up turn', () => {
+  const transcript = catalog.surfaces
+    .flatMap(surface => surface.components)
+    .find(component => component.id === 'chat-transcript');
+  const html = applyProps(transcript, 'parts=follow-up reply');
+  assert.match(html, /Add a promo banner to the storefront/);
+  assert.match(html, /PromoBanner2\.tsx/);
+  assert.doesNotMatch(html, /What is running in this workspace/);
+  assert.doesNotMatch(html, /storefront\/PromoBanner\.tsx/);
+});
+
+test('a git history timeline can inject the selected commit and timestamps', () => {
+  const components = catalog.surfaces.flatMap(surface => surface.components);
+  const detail = components.find(component => component.id === 'git-log-detail');
+  const row = components.find(component => component.id === 'git-log-row');
+  const detailHtml = applyProps(detail, 'subject=feat(storefront): add the weekly promo banner; author=Demo');
+  const rowHtml = applyProps(row, 'time-0=02.10.26 14:33; time-6=22.09.26 07:30');
+  assert.match(detailHtml, /feat\(storefront\): add the weekly promo banner/);
+  assert.match(detailHtml, />Demo</);
+  assert.doesNotMatch(detailHtml, /Daniel Mass/);
+  assert.match(rowHtml, /02\.10\.26 14:33/);
+  assert.match(rowHtml, /22\.09\.26 07:30/);
+  assert.doesNotMatch(rowHtml, /16\.09\.26 05:16/);
 });
 
 test('Git change list uses catalog status glyphs instead of restyled rows', async () => {

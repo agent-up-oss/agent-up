@@ -27,7 +27,8 @@
     "./native-icons": "./dist/native/icons.js",
     "./native-icon-types": "./dist/native/icons.d.ts",
     "./sequence": "./dist/web/sequence.js",
-    "./sequence-types": "./dist/web/sequence.d.ts"
+    "./sequence-types": "./dist/web/sequence.d.ts",
+    "./slots": "./scripts/lib/slots.mjs"
   },
   "scripts": {
     "build": "node scripts/build.mjs",

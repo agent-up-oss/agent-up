@@ -231,6 +231,7 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  min-width: 0;
   padding: var(--au-space-4);
   color: var(--au-color-text-primary);
   background: var(--au-color-surface-raised);
@@ -253,6 +254,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.au-choice > * {
+  min-width: 0;
 }
 
 .au-button {

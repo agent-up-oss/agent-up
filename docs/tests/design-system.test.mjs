@@ -57,11 +57,23 @@ test('the showcase is intro, then assembled screens, then the catalog', async ()
   assert.match(page, /au-marketing-hero/);
   assert.match(page, /function IntroPlayground/);
   assert.match(page, /playgroundControls/);
+  assert.match(page, /applyProps\(component, entry\.props\)/);
+  assert.match(page, /parts=follow-up reply/);
+  assert.match(page, /styles\.introCopy/);
+  assert.match(css, /\.introCopy[\s\S]*align-self:\s*center/);
+  assert.match(page, /styles\.playgroundCard/);
+  assert.match(css, /\.page \.intro \{[\s\S]*height:\s*calc\(100svh - 4\.5rem\)/);
+  assert.match(css, /\.page \.intro \{[\s\S]*padding-inline:\s*0/);
+  assert.match(css, /\.playgroundCard[\s\S]*max-width:\s*100%/);
+  assert.match(css, /\.playgroundView[\s\S]*overflow:\s*hidden/);
+  assert.match(css, /\.playground \{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\) minmax\(0, 1fr\)/);
+  assert.match(css, /\.playgroundColumn/);
   assert.match(page, /catalogById/);
   assert.match(page, /dangerouslySetInnerHTML=\{\{ __html: component\.html \}\}/);
   assert.match(page, /aria-label="Live catalog components"/);
   for (const id of [
     'badge', 'choice', 'workspace', 'app-tab', 'chat-transcript', 'git-change-list',
+    'git-log-detail', 'git-log-row', 'git-log-ref', 'agent-prompt',
   ]) {
     assert.match(page, new RegExp(`'${id}'`));
     assert.ok(
