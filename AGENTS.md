@@ -645,7 +645,11 @@ closed. JWKS fetches time out after five seconds.
 `AGENTUP_EXTERNAL_ALGORITHMS` optionally pins a comma-separated signing-algorithm
 allowlist; `none` is forbidden. Exactly one verification source must be configured. A token may include `workspace`, `tenant`, and
 repeated `permissions` claims. When `workspace` is present, the Server refuses
-other workspace ids under `/api/workspaces`.
+other workspace ids under `/api/workspaces` and on MCP tool
+calls. Bound MCP sessions omit workspace id parameters from
+advertised tool schemas and refuse `workspaceId`, workspace `id`,
+`worktreePath`, and `repositoryPath` arguments that name another
+workspace.
 
 `GET /api/connection` is anonymous connection metadata (`kind`, authentication
 mode, sign-in prompt, whether a username is required). Clients populate a

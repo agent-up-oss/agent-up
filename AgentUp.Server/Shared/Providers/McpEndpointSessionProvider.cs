@@ -1,4 +1,6 @@
+using AgentUp.Server.Features.Authentication.Controllers;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Server;
 
 namespace AgentUp.Server.Shared.Providers;
@@ -119,6 +121,7 @@ public sealed class McpEndpointSessionProvider
             options.ResourceCollection?.Clear();
         }
 
+        context.RequestServices.GetService<McpWorkspaceBindingController>()?.Pin(context, options);
         return Task.CompletedTask;
     }
 
