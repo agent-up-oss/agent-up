@@ -108,6 +108,86 @@ public sealed class McpEndpointExposure
         Assert.That(markdown, Does.Contain("/mcp/verification"));
     }
 
+    [Test]
+    public void Every_mcp_workspace_target_parameter_is_covered_by_the_binding_guard()
+    {
+        var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
+        var guarded = GuardedArgumentNames(root);
+        var sessionProvider = File.ReadAllText(Path.Join(root, SessionProviderPath));
+        var uncovered = WorkspaceTargetParameters(root)
+            .Where(parameter => !guarded.Contains(parameter.Name))
+            .Select(parameter => $"{parameter.Tool} parameter '{parameter.Name}' is a workspace target but is not in McpWorkspaceTargetArguments")
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.That(sessionProvider, Does.Contain("McpWorkspaceBindingController"));
+        Assert.That(uncovered, Is.Empty,
+            "MCP tools that take a workspace id or worktree path must use a name the workspace-binding guard already recognizes.");
+    }
+
+    private static HashSet<string> GuardedArgumentNames(string root)
+    {
+        var (_, rootNode) = ArchitectureFixture.ParseSourceFile(
+            Path.Join(root, "AgentUp.Server/Features/Authentication/Models/McpWorkspaceTargetArguments.cs"));
+        return rootNode.DescendantNodes()
+            .OfType<LiteralExpressionSyntax>()
+            .Select(literal => literal.Token.ValueText)
+            .Where(value => value.Length > 0 && value.All(character => char.IsLetter(character)))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static IEnumerable<(string Tool, string Name)> WorkspaceTargetParameters(string root)
+    {
+        foreach (var path in ArchitectureFixture.ProductionSourceFiles(root))
+        {
+            var (_, rootNode) = ArchitectureFixture.ParseSourceFile(path);
+            foreach (var method in rootNode.DescendantNodes().OfType<MethodDeclarationSyntax>())
+            {
+                var toolName = ToolName(method);
+                if (toolName is null)
+                    continue;
+
+                foreach (var parameter in method.ParameterList.Parameters)
+                {
+                    var name = parameter.Identifier.Text;
+                    var description = ParameterDescription(parameter);
+                    if (IsWorkspaceTarget(name, description))
+                        yield return (toolName, name);
+                }
+            }
+        }
+    }
+
+    private static string? ToolName(MethodDeclarationSyntax method)
+        => method.AttributeLists
+            .SelectMany(list => list.Attributes)
+            .Where(attribute => attribute.Name.ToString() is "McpServerTool" or "McpServerToolAttribute")
+            .SelectMany(attribute => attribute.ArgumentList?.Arguments ?? default)
+            .Where(argument => argument.NameEquals?.Name.Identifier.Text == "Name")
+            .Select(argument => argument.Expression)
+            .OfType<LiteralExpressionSyntax>()
+            .Select(literal => literal.Token.ValueText)
+            .FirstOrDefault();
+
+    private static string? ParameterDescription(ParameterSyntax parameter)
+        => parameter.AttributeLists
+            .SelectMany(list => list.Attributes)
+            .Where(attribute => attribute.Name.ToString() is "Description" or "DescriptionAttribute")
+            .SelectMany(attribute => attribute.ArgumentList?.Arguments ?? default)
+            .Select(argument => argument.Expression)
+            .OfType<LiteralExpressionSyntax>()
+            .Select(literal => literal.Token.ValueText)
+            .FirstOrDefault();
+
+    private static bool IsWorkspaceTarget(string name, string? description)
+        => name.Equals("workspaceId", StringComparison.OrdinalIgnoreCase)
+           || name.Equals("worktreePath", StringComparison.OrdinalIgnoreCase)
+           || name.Equals("repositoryPath", StringComparison.OrdinalIgnoreCase)
+           || (name.Equals("id", StringComparison.OrdinalIgnoreCase)
+               && description is not null
+               && description.Contains("workspace", StringComparison.OrdinalIgnoreCase));
+
     private static string SliceToolCatalog(string root)
     {
         var slices = new[]
