@@ -104,7 +104,6 @@ const agentUpTheme = Object.freeze({
     theme: Object.freeze({
       color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
-      fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
       fontSize: 16,
     }),
     eyebrow: Object.freeze({
@@ -116,7 +115,6 @@ const agentUpTheme = Object.freeze({
     }),
     display: Object.freeze({
       color: "#f5fbf7",
-      maxWidth: "19ch",
       fontSize: 44,
       fontWeight: '700',
       letterSpacing: -1.1,
@@ -155,7 +153,7 @@ const agentUpTheme = Object.freeze({
       color: "#8a9a92",
     }),
     mono: Object.freeze({
-      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
+
     }),
     accent: Object.freeze({
       color: "#2bf27a",
@@ -201,7 +199,6 @@ const agentUpTheme = Object.freeze({
     }),
     choiceLabel: Object.freeze({
       minWidth: 0,
-      whiteSpace: 'nowrap',
     }),
     button: Object.freeze({
       minHeight: 44,
@@ -212,7 +209,6 @@ const agentUpTheme = Object.freeze({
       borderRadius: 8,
       color: "#000000",
       backgroundColor: "#00b850",
-      fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
       fontSize: 14,
       fontWeight: '600',
       letterSpacing: -0.07,
@@ -244,7 +240,6 @@ const agentUpTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff29",
       borderRadius: 8,
-      fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
       fontSize: 14,
     }),
     badge: Object.freeze({
@@ -319,10 +314,8 @@ const agentUpTheme = Object.freeze({
       borderBottomWidth: 2,
       borderBottomColor: "#00000000",
       backgroundColor: "#00000000",
-      fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
       fontSize: 13,
       fontWeight: '500',
-      whiteSpace: 'nowrap',
     }),
     tabSelected: Object.freeze({
       color: "#f5fbf7",
@@ -344,6 +337,9 @@ const agentUpTheme = Object.freeze({
     calloutDanger: Object.freeze({
       backgroundColor: "#261a1c",
     }),
+    calloutWarning: Object.freeze({
+
+    }),
     code: Object.freeze({
       paddingHorizontal: 16,
       paddingVertical: 16,
@@ -352,7 +348,6 @@ const agentUpTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 8,
-      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 14,
     }),
     swatch: Object.freeze({
@@ -371,7 +366,6 @@ const agentUpTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 12,
-      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 12,
       borderLeftWidth: 2,
       borderLeftColor: "#00b85059",
@@ -462,11 +456,9 @@ const agentUpTheme = Object.freeze({
       color: "#f5fbf7",
       fontSize: 13,
       fontWeight: '600',
-      whiteSpace: 'nowrap',
     }),
     workspaceBranch: Object.freeze({
       color: "#8a9a92",
-      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 11,
     }),
     workspaceSelected: Object.freeze({
@@ -511,7 +503,6 @@ const agentUpTheme = Object.freeze({
     workspaceDelete: Object.freeze({
       width: 24,
       height: 24,
-      marginLeft: "auto",
       paddingHorizontal: 0,
       paddingVertical: 0,
       color: "#8a9a92",
@@ -606,7 +597,6 @@ const agentUpTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 8,
-      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 11,
     }),
     browserButton: Object.freeze({
@@ -635,9 +625,7 @@ const agentUpTheme = Object.freeze({
       paddingVertical: 14,
       color: "#c2d2ca",
       backgroundColor: "#0a0b0c",
-      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 11,
-      whiteSpace: 'pre',
     }),
     gitChangeList: Object.freeze({
       minHeight: 0,
@@ -698,7 +686,6 @@ const agentUpTheme = Object.freeze({
       color: "#f5fbf7",
       fontSize: 13,
       fontWeight: '500',
-      whiteSpace: 'nowrap',
     }),
     gitChangeNameDirectory: Object.freeze({
       color: "#8a9a92",
@@ -708,7 +695,6 @@ const agentUpTheme = Object.freeze({
     gitStatus: Object.freeze({
       width: 14,
       color: "#c2d2ca",
-      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 12,
       fontWeight: '600',
     }),
@@ -836,7 +822,6 @@ const agentUpTheme = Object.freeze({
       borderRadius: 6,
       fontSize: 12,
       fontWeight: '600',
-      whiteSpace: 'nowrap',
     }),
     validationFlow: Object.freeze({
       paddingHorizontal: 12,
@@ -846,6 +831,9 @@ const agentUpTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 8,
+    }),
+    validationFlowHead: Object.freeze({
+
     }),
     validationCopy: Object.freeze({
       minWidth: 0,
@@ -930,7 +918,6 @@ const agentUpTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 8,
-      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 13,
     }),
     dbRun: Object.freeze({
@@ -967,7 +954,6 @@ const agentUpTheme = Object.freeze({
       borderRightColor: "#ffffff14",
       borderBottomWidth: 1,
       borderBottomColor: "#ffffff14",
-      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 11,
     }),
     mobileBar: Object.freeze({
@@ -1033,7 +1019,6 @@ const agentUpTheme = Object.freeze({
     }),
     chatUser: Object.freeze({
       maxWidth: "80%",
-      marginLeft: "auto",
       paddingHorizontal: 16,
       paddingVertical: 12,
       color: "#f5fbf7",
@@ -1072,12 +1057,42 @@ const agentUpTheme = Object.freeze({
       height: 18,
       backgroundColor: "#ffffff29",
     }),
+    workspaceHead: Object.freeze({
+
+    }),
+    overview: Object.freeze({
+
+    }),
+    overviewGrid: Object.freeze({
+
+    }),
+    gitToolbar: Object.freeze({
+
+    }),
+    gitCommit: Object.freeze({
+
+    }),
     gitLog: Object.freeze({
       minHeight: 192,
       backgroundColor: "#0a0b0c",
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 12,
+    }),
+    storefrontGrid: Object.freeze({
+
+    }),
+    agentHeader: Object.freeze({
+
+    }),
+    agentPrompt: Object.freeze({
+
+    }),
+    appList: Object.freeze({
+
+    }),
+    cartRow: Object.freeze({
+
     }),
     fileViewer: Object.freeze({
       minHeight: 256,
@@ -1096,14 +1111,12 @@ const agentUpTheme = Object.freeze({
       backgroundColor: "#191c1f",
       borderBottomWidth: 1,
       borderBottomColor: "#ffffff14",
-      borderRadius: "var(--au-radius-xl) var(--au-radius-xl) 0 0",
+      borderRadius: 16,
     }),
     fileViewerPath: Object.freeze({
       color: "#f5fbf7",
-      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 13,
       fontWeight: '600',
-      whiteSpace: 'nowrap',
     }),
     fileViewerStatus: Object.freeze({
       color: "#8a9a92",
@@ -1129,7 +1142,6 @@ const agentUpTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 6,
-      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 11,
     }),
     fileViewerGoto: Object.freeze({
@@ -1142,7 +1154,6 @@ const agentUpTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 6,
-      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 11,
     }),
     fileViewerBody: Object.freeze({
@@ -1160,9 +1171,7 @@ const agentUpTheme = Object.freeze({
       borderColor: "#00000000",
       borderLeftWidth: 2,
       borderLeftColor: "#00000000",
-      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 11,
-      whiteSpace: 'pre',
     }),
     fileViewerLineAdded: Object.freeze({
       color: "#f5fbf7",
@@ -1189,13 +1198,11 @@ const agentUpTheme = Object.freeze({
     fileViewerGutter: Object.freeze({
       width: 52,
       color: "#718077",
-      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 11,
     }),
     fileViewerPrefix: Object.freeze({
       width: 14,
       color: "#718077",
-      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 11,
     }),
     fileViewerPrefixAdded: Object.freeze({
@@ -1206,13 +1213,10 @@ const agentUpTheme = Object.freeze({
     }),
     fileViewerCode: Object.freeze({
       color: "#c2d2ca",
-      fontFamily: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
       fontSize: 11,
-      whiteSpace: 'pre',
     }),
     syntaxPlain: Object.freeze({
       color: "#c2d2ca",
-      whiteSpace: 'pre',
     }),
     syntaxKeyword: Object.freeze({
       color: "#8bb7ff",
@@ -1316,19 +1320,16 @@ const agentUpTheme = Object.freeze({
       color: "#f5fbf7",
       fontSize: 12,
       fontWeight: '500',
-      whiteSpace: 'nowrap',
     }),
     gitLogAuthor: Object.freeze({
       color: "#8a9a92",
       fontSize: 11,
       fontWeight: '500',
-      whiteSpace: 'nowrap',
     }),
     gitLogTime: Object.freeze({
       width: 108,
       color: "#718077",
       fontSize: 11,
-      whiteSpace: 'nowrap',
     }),
     gitLogRef: Object.freeze({
       maxWidth: 176,
@@ -1342,7 +1343,6 @@ const agentUpTheme = Object.freeze({
       borderRadius: 999,
       fontSize: 11,
       fontWeight: '500',
-      whiteSpace: 'nowrap',
     }),
     gitLogRefHead: Object.freeze({
       color: "#2bf27a",
@@ -1406,7 +1406,7 @@ const agentUpTheme = Object.freeze({
   }),
 });
 const auBoxKeys = new Set(["backgroundColor","borderWidth","borderColor","borderRadius","borderTopWidth","borderTopColor","borderRightWidth","borderRightColor","borderBottomWidth","borderBottomColor","borderLeftWidth","borderLeftColor","width","height","minHeight","minWidth","maxWidth","marginLeft","paddingHorizontal","paddingVertical","opacity","color"]);
-const auTextKeys = new Set(["color","fontSize","fontWeight","opacity","fontFamily","fontStyle","textTransform","letterSpacing","whiteSpace"]);
+const auTextKeys = new Set(["color","fontSize","fontWeight","opacity","fontFamily","fontStyle","textTransform","letterSpacing"]);
 function auPick(names, keys) {
   const out = {};
   for (const name of names) {

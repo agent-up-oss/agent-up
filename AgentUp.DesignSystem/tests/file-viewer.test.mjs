@@ -27,8 +27,8 @@ test('file viewer catalog owns inspection chrome, line kinds, and syntax tokens'
   assert.equal(agentUpTheme.components.syntaxComment.color, agentUpTheme.colors.textMuted);
   assert.equal(auText('syntaxComment').fontStyle, 'italic');
   assert.equal(auBox('fileViewerLineCurrent').backgroundColor, agentUpTheme.colors.surfaceSelected);
-  assert.equal(auText('fileViewerCode').whiteSpace, 'pre');
-  assert.equal(auText('syntaxPlain').whiteSpace, 'pre');
+  assert.equal(auText('fileViewerCode').whiteSpace, undefined);
+  assert.equal(auText('syntaxPlain').whiteSpace, undefined);
 });
 
 test('Mobile and Desktop bind the file viewer instead of a plain text dump', async () => {

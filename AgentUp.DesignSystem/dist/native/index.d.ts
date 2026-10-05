@@ -63,5 +63,4 @@ export declare function auText(...names: Array<string | false | null | undefined
   textTransform?: 'none' | 'capitalize' | 'uppercase' | 'lowercase';
   letterSpacing?: number;
   fontStyle?: 'normal' | 'italic';
-  whiteSpace?: 'normal' | 'nowrap' | 'pre' | 'pre-wrap';
 };
