@@ -74,8 +74,11 @@ To force authentication off even after a password or bearer mode is configured, 
 `AGENTUP_AUTH_DISABLED=true`. Desktop and Mobile skip their login UI in
 that mode.
 
-To expose REST to the LAN, bind the Server to your network interface and protect
-it with HTTPS or a TLS-terminating reverse proxy. Plain HTTP exposes the
+To expose REST to the LAN, set `AGENTUP_ADMIN_PASSWORD` or
+`AGENTUP_AUTH_MODE=externalBearer`, bind the Server to your network interface, and
+protect it with HTTPS or a TLS-terminating reverse proxy. TLS encrypts the
+connection; it does not stop a LAN client from calling REST. Leave authentication
+off only if anonymous LAN access is intentional. Plain HTTP exposes the
 administrator password during login and bearer tokens on the wire. MCP has no
 login because it is intended for local tools, and the Server rejects MCP requests
 whose remote address is not loopback.

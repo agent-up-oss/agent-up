@@ -22,10 +22,22 @@ public sealed class AuthenticationModeProviderTests
     }
 
     [Test]
-    public void ExplicitLocalAdministratorModeSelectsLocalAdministrator()
+    public void ExplicitLocalAdministratorModeWithoutPasswordStaysDisabled()
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?> { ["AGENTUP_AUTH_MODE"] = "localAdministrator" }).Build();
+        Assert.That(new AuthenticationModeProvider(configuration).Current.ToString(), Is.EqualTo("Disabled"));
+    }
+
+    [Test]
+    public void ExplicitLocalAdministratorModeWithPasswordSelectsLocalAdministrator()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["AGENTUP_AUTH_MODE"] = "localAdministrator",
+                ["AGENTUP_ADMIN_PASSWORD"] = "secret"
+            }).Build();
         Assert.That(new AuthenticationModeProvider(configuration).Current.ToString(), Is.EqualTo("LocalAdministrator"));
     }
 

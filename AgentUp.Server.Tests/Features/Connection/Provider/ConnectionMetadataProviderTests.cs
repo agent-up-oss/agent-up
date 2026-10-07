@@ -43,6 +43,36 @@ public sealed class ConnectionMetadataProviderTests
     }
 
     [Test]
+    public void Current_ReportsDisabledWhenLocalAdministratorModeHasNoPassword()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?> { ["AGENTUP_AUTH_MODE"] = "localAdministrator" }).Build();
+        var dto = new ConnectionMetadataProvider(configuration).Current();
+        Assert.Multiple(() =>
+        {
+            Assert.That(dto.Authentication.Mode, Is.EqualTo("disabled"));
+            Assert.That(dto.Authentication.Prompt, Does.Contain("not required"));
+        });
+    }
+
+    [Test]
+    public void Current_ReportsLocalAdministratorWhenModeAndPasswordAreConfigured()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["AGENTUP_AUTH_MODE"] = "localAdministrator",
+                ["AGENTUP_ADMIN_PASSWORD"] = "secret"
+            }).Build();
+        var dto = new ConnectionMetadataProvider(configuration).Current();
+        Assert.Multiple(() =>
+        {
+            Assert.That(dto.Authentication.Mode, Is.EqualTo("localAdministrator"));
+            Assert.That(dto.Authentication.Prompt, Does.Contain("administrator password"));
+        });
+    }
+
+    [Test]
     public void Current_ReportsDisabledModeFromAuthMode()
     {
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(

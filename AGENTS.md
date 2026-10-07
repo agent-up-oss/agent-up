@@ -635,8 +635,9 @@ No orchestration logic belongs in Desktop, CLI, or MCP clients.
 The Server does not require REST authentication until an authentication
 environment variable is set. `GET /api/auth/status` and
 `POST /api/auth/login` are anonymous so clients can decide whether to display
-sign-in. Password login is `localAdministrator` mode, selected by
-`AGENTUP_ADMIN_PASSWORD` or `AGENTUP_AUTH_MODE=localAdministrator`. Set `AGENTUP_AUTH_MODE=externalBearer` to accept a
+sign-in. Password login is `localAdministrator` mode, selected only when
+`AGENTUP_ADMIN_PASSWORD` is set. `AGENTUP_AUTH_MODE=localAdministrator` without a
+password does not enable authentication. Set `AGENTUP_AUTH_MODE=externalBearer` to accept a
 signed bearer token instead of the local administrator password; configure
 `AGENTUP_EXTERNAL_ISSUER`, `AGENTUP_EXTERNAL_AUDIENCE`, and one verification
 source: `AGENTUP_EXTERNAL_SIGNING_KEY` for HMAC, `AGENTUP_EXTERNAL_PUBLIC_KEY`

@@ -69,18 +69,52 @@ public sealed class AuthenticationHttpTests
     }
 
     [Test]
-    public async Task RestRoutes_RequireLogin_WhenAuthModeIsLocalAdministrator()
+    public async Task RestRoutes_AllowAnonymous_WhenLocalAdministratorModeHasNoPassword()
     {
         using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
                 new Dictionary<string, string?>
                 {
                     ["AGENTUP_AUTH_MODE"] = "localAdministrator",
+                    ["AGENTUP_ADMIN_PASSWORD"] = "",
                     ["AGENTUP_AUTH_DISABLED"] = ""
                 })));
         using var client = factory.CreateClient();
 
-        Assert.That((await client.GetAsync("/api/workspaces")).StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        var status = await client.GetFromJsonAsync<LoginResponse>("/api/auth/status");
+        var workspaces = await client.GetAsync("/api/workspaces");
+        Assert.Multiple(() =>
+        {
+            Assert.That(status!.AuthenticationRequired, Is.False);
+            Assert.That(workspaces.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        });
+    }
+
+    [Test]
+    public async Task RestRoutes_RequireLogin_WhenLocalAdministratorModeHasPassword()
+    {
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["AGENTUP_AUTH_MODE"] = "localAdministrator",
+                    ["AGENTUP_ADMIN_PASSWORD"] = "test-password",
+                    ["AGENTUP_AUTH_DISABLED"] = ""
+                })));
+        using var client = factory.CreateClient();
+
+        var unauthorized = await client.GetAsync("/api/workspaces");
+        var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest("test-password"));
+        var credentials = await login.Content.ReadFromJsonAsync<LoginResponse>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", credentials!.AccessToken);
+        var authorized = await client.GetAsync("/api/workspaces");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(unauthorized.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+            Assert.That(login.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(authorized.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        });
     }
 
     [Test]
