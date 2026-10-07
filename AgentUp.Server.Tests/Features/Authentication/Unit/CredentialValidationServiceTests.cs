@@ -13,6 +13,17 @@ namespace AgentUp.Server.Tests.Features.Authentication.Unit;
 public sealed class CredentialValidationServiceTests
 {
     [Test]
+    public async Task DefaultMode_ReturnsUnrestrictedPrincipalWithoutAuthEnvVars()
+    {
+        var principal = await Create().ValidateAsync(null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(principal, Is.Not.Null);
+            Assert.That(principal!.Permissions, Is.EqualTo(OperationPermissions.All));
+        });
+    }
+
+    [Test]
     public async Task DisabledMode_ReturnsUnrestrictedPrincipalWithoutAToken()
     {
         var service = Create(("AGENTUP_AUTH_DISABLED", "true"));

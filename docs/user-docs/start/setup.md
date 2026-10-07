@@ -42,9 +42,9 @@ Packaged installers and GitHub Release assets are published from `https://github
 
 When using an installed Desktop artifact, the Server should already be running as the local `agent-up-server` service.
 
-REST authentication is required by default. Set `AGENTUP_ADMIN_PASSWORD` before
-starting a protected Server, or copy `.env.example` to `.env` in the repository
-root and edit the value there. Server, Desktop, and CLI load that file on startup
+REST authentication is off until you set `AGENTUP_ADMIN_PASSWORD` or
+`AGENTUP_AUTH_MODE=externalBearer`. Copy `.env.example` to `.env` in the repository
+root and uncomment those values when you want a protected Server. Server, Desktop, and CLI load that file on startup
 when it exists; shell environment variables still take precedence.
 
 ```bash
@@ -60,8 +60,8 @@ export AGENTUP_ADMIN_PASSWORD='choose-a-long-password'
 dotnet run --project AgentUp.Server
 ```
 
-Desktop and Mobile prompt for this password when they connect. The Server still
-starts when the password is unset, but login cannot succeed until it is configured.
+Desktop and Mobile prompt for this password only when the Server requires it.
+With no authentication environment variables, they connect without a login form.
 
 Desktop and Mobile can save more than one Server. Switching to another saved
 Server opens that Server's workspaces as a new space on the client; the
@@ -70,8 +70,8 @@ stay on the device so the administrator password is not typed again until that
 Server rejects them. Mobile then returns to the connect screen and asks for
 the password again.
 
-For a deliberately unauthenticated local installation, set
-`AGENTUP_AUTH_DISABLED=true` instead. Desktop and Mobile skip their login UI in
+To force authentication off even after a password or bearer mode is configured, set
+`AGENTUP_AUTH_DISABLED=true`. Desktop and Mobile skip their login UI in
 that mode.
 
 To expose REST to the LAN, bind the Server to your network interface and protect

@@ -9,15 +9,22 @@ namespace AgentUp.Server.Tests.Features.Connection.Controller;
 public sealed class ConnectionControllerTests
 {
     [Test]
-    public void Get_ReturnsSelfHostedLocalAdministratorConnection()
+    public void Get_ReturnsSelfHostedConnectionWithDisabledAuthenticationByDefault()
     {
         var dto = new ConnectionController(CreateService()).Get().Value;
         Assert.Multiple(() =>
         {
             Assert.That(dto!.Kind, Is.EqualTo("selfHosted"));
             Assert.That(dto.WorkspacePresentation, Is.EqualTo("serverScoped"));
-            Assert.That(dto.Authentication.Mode, Is.EqualTo("localAdministrator"));
+            Assert.That(dto.Authentication.Mode, Is.EqualTo("disabled"));
         });
+    }
+
+    [Test]
+    public void Get_ReportsLocalAdministratorWhenPasswordIsConfigured()
+    {
+        var dto = new ConnectionController(CreateService(("AGENTUP_ADMIN_PASSWORD", "secret"))).Get().Value;
+        Assert.That(dto!.Authentication.Mode, Is.EqualTo("localAdministrator"));
     }
 
     [Test]

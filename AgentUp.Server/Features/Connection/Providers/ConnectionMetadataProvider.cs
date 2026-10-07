@@ -33,8 +33,13 @@ public sealed class ConnectionMetadataProvider(IConfiguration configuration)
             return "externalBearer";
         if (string.Equals(mode, "disabled", StringComparison.OrdinalIgnoreCase))
             return "disabled";
+        if (string.Equals(mode, "localAdministrator", StringComparison.OrdinalIgnoreCase))
+            return "localAdministrator";
 
-        return "localAdministrator";
+        if (!string.IsNullOrWhiteSpace(configuration["AGENTUP_ADMIN_PASSWORD"]))
+            return "localAdministrator";
+
+        return "disabled";
     }
 
     private static string Prompt(string mode)

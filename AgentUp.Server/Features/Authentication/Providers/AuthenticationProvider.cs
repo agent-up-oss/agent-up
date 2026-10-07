@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using AgentUp.Server.Features.Authentication.Models;
 
 namespace AgentUp.Server.Features.Authentication.Providers;
 
@@ -11,12 +12,15 @@ public sealed class AuthenticationProvider
     private readonly object _gate = new();
 
     public AuthenticationProvider(IConfiguration configuration)
+        : this(configuration, new AuthenticationModeProvider(configuration))
     {
-        var explicitlyDisabled = string.Equals(
-            configuration["AGENTUP_AUTH_DISABLED"], "true", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public AuthenticationProvider(IConfiguration configuration, AuthenticationModeProvider modes)
+    {
         var password = configuration["AGENTUP_ADMIN_PASSWORD"];
 
-        IsRequired = !explicitlyDisabled;
+        IsRequired = modes.Current != AuthenticationMode.Disabled;
         _password = string.IsNullOrEmpty(password) ? null : Encoding.UTF8.GetBytes(password);
         _sessionLifetime = TimeSpan.FromSeconds(configuration.GetValue("AGENTUP_SESSION_LIFETIME_SECONDS", 86_400));
     }

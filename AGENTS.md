@@ -632,10 +632,11 @@ The Server owns all orchestration:
 
 No orchestration logic belongs in Desktop, CLI, or MCP clients.
 
-The Server requires authentication by default. `GET /api/auth/status` and
+The Server does not require REST authentication until an authentication
+environment variable is set. `GET /api/auth/status` and
 `POST /api/auth/login` are anonymous so clients can decide whether to display
-sign-in. Password login is for `localAdministrator` mode using
-`AGENTUP_ADMIN_PASSWORD`. Set `AGENTUP_AUTH_MODE=externalBearer` to accept a
+sign-in. Password login is `localAdministrator` mode, selected by
+`AGENTUP_ADMIN_PASSWORD` or `AGENTUP_AUTH_MODE=localAdministrator`. Set `AGENTUP_AUTH_MODE=externalBearer` to accept a
 signed bearer token instead of the local administrator password; configure
 `AGENTUP_EXTERNAL_ISSUER`, `AGENTUP_EXTERNAL_AUDIENCE`, and one verification
 source: `AGENTUP_EXTERNAL_SIGNING_KEY` for HMAC, `AGENTUP_EXTERNAL_PUBLIC_KEY`
@@ -677,9 +678,11 @@ Desktop and Mobile may list a recommended connection from
 set, that URL stays in the connection list and cannot be removed. Leave it
 unset for a local-only client.
 
-Set `AGENTUP_AUTH_DISABLED=true` only for an intentionally unauthenticated Server.
-The Server starts even when `AGENTUP_ADMIN_PASSWORD` is unset; login succeeds only
-after that password is configured. For local development, Server, Desktop, and
+REST authentication stays off until `AGENTUP_ADMIN_PASSWORD` or
+`AGENTUP_AUTH_MODE=externalBearer` is set. `AGENTUP_AUTH_DISABLED=true` or
+`AGENTUP_AUTH_MODE=disabled` forces authentication off even when those are
+configured. Clients read `GET /api/connection` and prompt only when the Server
+requires it. For local development, Server, Desktop, and
 CLI load a repository-root `.env` file when present; see `.env.example`.
 
 MCP has two modes and the default one is unchanged. Loopback callers reach

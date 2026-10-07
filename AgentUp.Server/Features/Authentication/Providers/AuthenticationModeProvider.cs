@@ -21,7 +21,12 @@ public sealed class AuthenticationModeProvider
             return AuthenticationMode.ExternalBearer;
         if (string.Equals(mode, "disabled", StringComparison.OrdinalIgnoreCase))
             return AuthenticationMode.Disabled;
+        if (string.Equals(mode, "localAdministrator", StringComparison.OrdinalIgnoreCase))
+            return AuthenticationMode.LocalAdministrator;
 
-        return AuthenticationMode.LocalAdministrator;
+        if (!string.IsNullOrWhiteSpace(configuration["AGENTUP_ADMIN_PASSWORD"]))
+            return AuthenticationMode.LocalAdministrator;
+
+        return AuthenticationMode.Disabled;
     }
 }

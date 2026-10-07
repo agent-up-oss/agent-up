@@ -46,9 +46,16 @@ public sealed class AuthenticationHttpTests
     }
 
     [Test]
-    public async Task RestRoutes_RequireLogin_EvenWhenAdminPasswordIsNotConfigured()
+    public async Task RestRoutes_AllowAnonymous_WhenAuthEnvVarsAreUnset()
     {
-        using var factory = new WebApplicationFactory<Program>();
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["AGENTUP_ADMIN_PASSWORD"] = "",
+                    ["AGENTUP_AUTH_MODE"] = "",
+                    ["AGENTUP_AUTH_DISABLED"] = ""
+                })));
         using var client = factory.CreateClient();
 
         var status = await client.GetFromJsonAsync<LoginResponse>("/api/auth/status");
@@ -56,9 +63,24 @@ public sealed class AuthenticationHttpTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(status!.AuthenticationRequired, Is.True);
-            Assert.That(workspaces.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+            Assert.That(status!.AuthenticationRequired, Is.False);
+            Assert.That(workspaces.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         });
+    }
+
+    [Test]
+    public async Task RestRoutes_RequireLogin_WhenAuthModeIsLocalAdministrator()
+    {
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["AGENTUP_AUTH_MODE"] = "localAdministrator",
+                    ["AGENTUP_AUTH_DISABLED"] = ""
+                })));
+        using var client = factory.CreateClient();
+
+        Assert.That((await client.GetAsync("/api/workspaces")).StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 
     [Test]
