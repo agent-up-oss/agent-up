@@ -632,10 +632,12 @@ The Server owns all orchestration:
 
 No orchestration logic belongs in Desktop, CLI, or MCP clients.
 
-The Server requires authentication by default. `GET /api/auth/status` and
+The Server does not require REST authentication until an authentication
+environment variable is set. `GET /api/auth/status` and
 `POST /api/auth/login` are anonymous so clients can decide whether to display
-sign-in. Password login is for `localAdministrator` mode using
-`AGENTUP_ADMIN_PASSWORD`. Set `AGENTUP_AUTH_MODE=externalBearer` to accept a
+sign-in. Password login is `localAdministrator` mode, selected only when
+`AGENTUP_ADMIN_PASSWORD` is set. `AGENTUP_AUTH_MODE=localAdministrator` without a
+password does not enable authentication. Set `AGENTUP_AUTH_MODE=externalBearer` to accept a
 signed bearer token instead of the local administrator password; configure
 `AGENTUP_EXTERNAL_ISSUER`, `AGENTUP_EXTERNAL_AUDIENCE`, and one verification
 source: `AGENTUP_EXTERNAL_SIGNING_KEY` for HMAC, `AGENTUP_EXTERNAL_PUBLIC_KEY`
@@ -677,9 +679,11 @@ Desktop and Mobile may list a recommended connection from
 set, that URL stays in the connection list and cannot be removed. Leave it
 unset for a local-only client.
 
-Set `AGENTUP_AUTH_DISABLED=true` only for an intentionally unauthenticated Server.
-The Server starts even when `AGENTUP_ADMIN_PASSWORD` is unset; login succeeds only
-after that password is configured. For local development, Server, Desktop, and
+REST authentication stays off until `AGENTUP_ADMIN_PASSWORD` or
+`AGENTUP_AUTH_MODE=externalBearer` is set. `AGENTUP_AUTH_DISABLED=true` or
+`AGENTUP_AUTH_MODE=disabled` forces authentication off even when those are
+configured. Clients read `GET /api/connection` and prompt only when the Server
+requires it. For local development, Server, Desktop, and
 CLI load a repository-root `.env` file when present; see `.env.example`.
 
 MCP has two modes and the default one is unchanged. Loopback callers reach
@@ -955,7 +959,7 @@ Native Detox launches the harness with `agent-up-chat://connect` so the Server o
 
 Detox synchronises on the app being idle, and the chat holds an event stream open for its whole life, so `detox/signIn.test.js` excludes that stream from synchronisation with `detoxURLBlacklistRegex` on the same `launchApp` that mounts the chat. `setURLBlacklist` after launch is too late once the stream is already open: Detox waits for an idle that cannot come. Nothing else relies on that heuristic here - every wait in these suites is a condition on Server state or on an element being visible.
 
-The harness app carries `@config-plugins/detox`, and Android does not run without it. `expo prebuild` generates a plain Android project with no instrumentation: no `androidTest` source set, no `testInstrumentationRunner`, no Detox dependency - so `assembleAndroidTest` produces nothing and every run dies with "Failed to find the app binary". The plugin injects exactly those, plus a maven repo pointing at the npm-pinned copy of Detox so `com.wix:detox:+` resolves to the version the lockfile names. Its peer range still says expo ^53, which is stale metadata rather than a real incompatibility, so the app's `.npmrc` sets `legacy-peer-deps`; what it generates is verified by prebuilding and reading the project, not assumed.
+The harness app carries `@config-plugins/detox`, and Android does not run without it. `expo prebuild` generates a plain Android project with no instrumentation: no `androidTest` source set, no `testInstrumentationRunner`, no Detox dependency - so `assembleAndroidTest` produces nothing and every run dies with "Failed to find the app binary". The plugin injects exactly those, plus a maven repo pointing at the npm-pinned copy of Detox so `com.wix:detox:+` resolves to the version the lockfile names. Its peer range still says expo ^53, which is stale metadata rather than a real incompatibility, so the app's `.npmrc` sets `legacy-peer-deps`; what it generates is verified by prebuilding and reading the project, not assumed. Detox's Android gradle command is `:app:assembleRelease :app:assembleAndroidTest`; an unscoped `assembleAndroidTest` also packages every library module's debug androidTest APK, which this suite never installs.
 
 Sign-in runs in its own workflow, `.github/workflows/mobile-agent-auth-ci.yml`, scoped by path to the things it tests. That filter is the whole correctness argument for the gate, and it includes `AgentUp.Server` and `AgentUp.TestAgents` alongside the client modules: the Server drives every one of these sign-ins and the test agents implement them, so a change to either is exactly what this suite exists to catch. A nightly run covers whatever the filter misses.
 

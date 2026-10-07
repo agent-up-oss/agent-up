@@ -10,6 +10,20 @@ namespace AgentUp.Server.Tests.Features.Authentication.Unit;
 public sealed class AuthenticationServiceTests
 {
     [Test]
+    public void Status_ReportsAuthenticationOffByDefault()
+    {
+        var service = Create();
+        Assert.That(service.Status().AuthenticationRequired, Is.False);
+    }
+
+    [Test]
+    public void Status_ReportsAuthenticationRequiredWhenPasswordIsConfigured()
+    {
+        var service = Create(("AGENTUP_ADMIN_PASSWORD", "secret"));
+        Assert.That(service.Status().AuthenticationRequired, Is.True);
+    }
+
+    [Test]
     public void Login_ReturnsDisabledStatusWithoutAToken_WhenAuthenticationIsDisabled()
     {
         var service = Create(("AGENTUP_AUTH_DISABLED", "true"));

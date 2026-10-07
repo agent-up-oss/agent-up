@@ -13,9 +13,26 @@ namespace AgentUp.Server.Tests.Features.Entitlements.HTTP;
 public sealed class EntitlementsHttpTests
 {
     [Test]
-    public async Task Entitlements_RequireAuthentication()
+    public async Task Entitlements_AreAnonymousWhenAuthenticationIsOff()
     {
-        using var factory = new WebApplicationFactory<Program>();
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["AGENTUP_ADMIN_PASSWORD"] = "",
+                    ["AGENTUP_AUTH_MODE"] = "",
+                    ["AGENTUP_AUTH_DISABLED"] = ""
+                })));
+        using var client = factory.CreateClient();
+        Assert.That((await client.GetAsync("/api/entitlements")).StatusCode, Is.EqualTo(HttpStatusCode.OK));
+    }
+
+    [Test]
+    public async Task Entitlements_RequireAuthenticationWhenPasswordIsConfigured()
+    {
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
+                new Dictionary<string, string?> { ["AGENTUP_ADMIN_PASSWORD"] = "test-password" })));
         using var client = factory.CreateClient();
         Assert.That((await client.GetAsync("/api/entitlements")).StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }

@@ -20,14 +20,53 @@ public class AuthenticationProviderTests
     }
 
     [Test]
-    public void RequiresAuthenticationByDefault_WhenPasswordMissing()
+    public void DoesNotRequireAuthenticationByDefault_WhenAuthEnvVarsAreUnset()
     {
         var service = Create();
         Assert.Multiple(() =>
         {
+            Assert.That(service.IsRequired, Is.False);
+            Assert.That(service.IsAuthenticated(null), Is.True);
+            Assert.That(service.Login("anything"), Is.Null);
+        });
+    }
+
+    [Test]
+    public void RequiresAuthentication_WhenPasswordIsConfigured()
+    {
+        var service = Create(("AGENTUP_ADMIN_PASSWORD", "secret"));
+        Assert.Multiple(() =>
+        {
             Assert.That(service.IsRequired, Is.True);
             Assert.That(service.IsAuthenticated(null), Is.False);
-            Assert.That(service.Login("anything"), Is.Null);
+            Assert.That(service.Login("wrong"), Is.Null);
+        });
+    }
+
+    [Test]
+    public void ExplicitLocalAdministratorModeWithoutPassword_DoesNotRequireAuthentication()
+    {
+        var service = Create(("AGENTUP_AUTH_MODE", "localAdministrator"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(service.IsRequired, Is.False);
+            Assert.That(service.IsAuthenticated(null), Is.True);
+        });
+    }
+
+    [Test]
+    public void ExplicitLocalAdministratorModeWithPassword_AcceptsLogin()
+    {
+        var service = Create(
+            ("AGENTUP_AUTH_MODE", "localAdministrator"),
+            ("AGENTUP_ADMIN_PASSWORD", "secret"));
+        var token = service.Login("secret");
+        Assert.Multiple(() =>
+        {
+            Assert.That(service.IsRequired, Is.True);
+            Assert.That(token, Is.Not.Null);
+            Assert.That(service.IsAuthenticated(token), Is.True);
+            Assert.That(service.Login("wrong"), Is.Null);
         });
     }
 

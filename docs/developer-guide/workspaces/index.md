@@ -94,7 +94,7 @@ With remote access enabled and `AGENTUP_EXTERNAL_ISSUER` set, `/.well-known/oaut
 
 ## Authentication and network boundaries
 
-The REST API uses authentication by default for every REST endpoint unless the endpoint explicitly opts out. `GET /api/auth/status` and `POST /api/auth/login` are anonymous so Desktop, Mobile, and other clients can decide whether to display sign-in.
+The REST API does not require authentication until `AGENTUP_ADMIN_PASSWORD` or `AGENTUP_AUTH_MODE` selects a credential mode. `GET /api/auth/status` and `POST /api/auth/login` are anonymous so Desktop, Mobile, and other clients can decide whether to display sign-in.
 
 <DocFacts>
 <DocFact label="Password">AGENTUP_ADMIN_PASSWORD</DocFact>
@@ -108,9 +108,9 @@ The REST API uses authentication by default for every REST endpoint unless the e
 
 `AGENTUP_AUTH_MODE` selects how credentials are validated:
 
-- `localAdministrator` (default): `AGENTUP_ADMIN_PASSWORD` for `POST /api/auth/login`, which returns an in-memory bearer token.
+- `localAdministrator`: selected only when `AGENTUP_ADMIN_PASSWORD` is set. `AGENTUP_AUTH_MODE=localAdministrator` without a password stays `disabled`, so login cannot lock out. `POST /api/auth/login` returns an in-memory bearer token.
 - `externalBearer`: login is rejected. Present a signed JWT whose `iss` and `aud` match `AGENTUP_EXTERNAL_ISSUER` and `AGENTUP_EXTERNAL_AUDIENCE`. Configure exactly one verification source: an HMAC secret in `AGENTUP_EXTERNAL_SIGNING_KEY`, a PEM-encoded RSA or EC public key in `AGENTUP_EXTERNAL_PUBLIC_KEY`, or an absolute HTTPS JSON Web Key Set endpoint in `AGENTUP_EXTERNAL_JWKS_URI`. `AGENTUP_EXTERNAL_ALGORITHMS` may set a comma-separated signing-algorithm allowlist; `none` is forbidden. Otherwise the selected source defaults to HS256, RS256, ES256, or both RS256 and ES256 for JWKS. JWKS keys are cached for five minutes; expired keys fail closed, fetches time out after five seconds, and all refresh attempts are limited to once per minute so issuer key rotation does not enable outbound request amplification. Optional claims: `workspace`, `tenant`, and repeated `permissions` values. A `workspace` claim binds the caller to that workspace id on REST routes and on MCP tool calls. Bound MCP sessions omit every workspace target from advertised tool schemas — workspace id parameters and the `worktreePath` and `repositoryPath` path parameters alike — and refuse `workspaceId`, workspace `id`, `worktreePath`, and `repositoryPath` arguments that name another workspace, including the managed proposal-queue worktree of a different workspace. The Server supplies the bound target instead: the bound id for every id parameter, and the bound workspace's worktree path for a tool whose only target is a path. A path argument a bound caller sent anyway is checked against the bound workspace and then dropped, so it can neither reach a tool as a second target nor act as a filter the schema no longer offers. Protected operations require the matching `permissions` claim; a token with none can still read `GET /api/entitlements`. On MCP, `permissions` claims also scope the advertised toolset, as described under [Permission-scoped toolsets](#permission-scoped-toolsets).
-- `disabled`, or `AGENTUP_AUTH_DISABLED=true`: REST authentication is off.
+- `disabled` (default): REST authentication is off. Also selected by `AGENTUP_AUTH_MODE=disabled` or `AGENTUP_AUTH_DISABLED=true`, including when a password is configured.
 
 `GET /api/connection` returns anonymous connection metadata: `apiVersion` (`1`), `connectionId`, `kind` (`selfHosted`), `displayName`, `workspacePresentation` (`serverScoped`), and `authentication` (`mode`, `prompt`, `identifierRequired`). Clients populate a shared `ConnectionSource` from that document and choose sign-in UI from `authentication.mode`: `localAdministrator` is a password form, `externalBearer` expects an issued credential, `browserSso` opens the server's `/api/auth/sso` start URL, and `disabled` connects without a prompt. An unknown `apiVersion`, `kind`, or `authentication.mode` is a hard error. A Server that does not answer `GET /api/connection` is treated as legacy self-hosted only after `GET /api/auth/status` succeeds; a malformed 200 is not legacy. The OSS Server never emits `browserSso`. `Examples/browser-sso` is a runnable identity front door that does, so Mobile can be exercised against that contract. `identifierRequired` is unused.
 
@@ -118,11 +118,11 @@ Clients key WebView tabs, Git panel state, SSE cursors, and in-flight request ga
 
 `GET /api/entitlements` returns the authenticated permission document. Feature keys are operation permissions (`workspace.read`, `agent.prompt`, `git.write`, and the rest of the Server operation set). A self-hosted Server always returns `source: selfHosted`, `edition: community`, `billing: free`, and every operation `available: true`. Clients render this document as one plan card driven by `features` and `limits`; they must not branch on edition names.
 
-The Server starts even when `AGENTUP_ADMIN_PASSWORD` is unset. REST routes remain protected in that mode, but local administrator login cannot succeed until the password is configured.
+When no authentication environment variable is set, REST routes are anonymous and `GET /api/connection` reports `disabled`. Desktop, Mobile, CLI, and Tray follow that document: they prompt only when the Server requires a credential.
 
 For local development, copy `.env.example` to `.env` in the repository root. Server, Desktop, and CLI load that file on startup when present. Existing shell environment variables are not overridden.
 
-Set `AGENTUP_AUTH_DISABLED=true` to run without REST authentication. Desktop and Mobile query authentication status and skip their login UI in that mode.
+Set `AGENTUP_ADMIN_PASSWORD` or `AGENTUP_AUTH_MODE=externalBearer` to require REST authentication. `AGENTUP_AUTH_DISABLED=true` turns it off again. Desktop and Mobile query authentication status and skip their login UI when the Server reports `disabled`.
 
 Desktop and Mobile reject remote `http://` Server URLs for administrator login and require HTTPS outside loopback hosts.
 
