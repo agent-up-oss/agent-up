@@ -49,6 +49,27 @@ test('the Android build asks for that Detox by version rather than by range', ()
 // Detox builds its network idling resource at startup, reflects into React Native for a field the
 // New Architecture does not have, and takes the app down before any scenario runs. iOS does not
 // crash, but waiting for idle during launchApp cancelled getAgent and left the picker empty.
+test('the Android gradle command is scoped to the app module', async () => {
+  const { default: config } = await import('../.detoxrc.js');
+  const build = config.apps['android.release'].build;
+
+  assert.match(
+    build,
+    /:app:assembleRelease/,
+    'assembleRelease must be :app-scoped; the suite installs app-release.apk only.',
+  );
+  assert.match(
+    build,
+    /:app:assembleAndroidTest/,
+    'assembleAndroidTest must be :app-scoped; unscoped packaging builds every library debug androidTest APK.',
+  );
+  assert.equal(
+    build.includes(' assembleAndroidTest'),
+    false,
+    'An unscoped assembleAndroidTest reintroduces :expo-constants:packageDebugAndroidTest on the hosted runner.',
+  );
+});
+
 test('native platforms launch with Detox synchronisation off', async () => {
   const { default: config } = await import('../.detoxrc.js');
 

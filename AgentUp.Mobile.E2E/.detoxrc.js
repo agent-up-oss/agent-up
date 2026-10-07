@@ -52,8 +52,12 @@ module.exports = {
         '../AgentUp.Mobile.E2E.App/android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk',
       // --build-cache and --parallel: a cold build of this takes the better part of an hour on a
       // hosted runner, and the cache the CI job persists is only consulted when it is asked for.
+      // Scope both tasks to :app. Unscoped assembleAndroidTest also packages every library
+      // module's debug androidTest APK. This suite never installs those, and
+      // :expo-constants:packageDebugAndroidTest has taken the hosted runner down in
+      // PackageAndroidArtifact$IncrementalSplitterRunnable.
       build:
-        'cd ../AgentUp.Mobile.E2E.App/android && ./gradlew assembleRelease assembleAndroidTest ' +
+        'cd ../AgentUp.Mobile.E2E.App/android && ./gradlew :app:assembleRelease :app:assembleAndroidTest ' +
         '-DtestBuildType=release --build-cache --parallel',
     },
   },
