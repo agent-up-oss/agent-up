@@ -205,7 +205,8 @@ public sealed class LocalInferenceAcpServiceTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        await Agent("just thinking out loud").RunAsync(input, output, error, CancellationToken.None);
+        await Agent(Enumerable.Repeat("just thinking out loud", 16).ToArray())
+            .RunAsync(input, output, error, CancellationToken.None);
 
         Assert.That(LastResult(output)!["stopReason"]!.GetValue<string>(), Is.EqualTo("end_turn"));
     }

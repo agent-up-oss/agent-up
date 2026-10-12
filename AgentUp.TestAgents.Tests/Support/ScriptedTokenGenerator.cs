@@ -16,7 +16,7 @@ internal sealed class ScriptedTokenGenerator(params string[] completions) : ITok
         if (Delay > TimeSpan.Zero)
             await Task.Delay(Delay, cancellationToken);
         if (_completions.Count == 0)
-            return prompt;
+            return "just thinking out loud";
         return _completions.Dequeue();
     }
 
