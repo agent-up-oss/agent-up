@@ -197,6 +197,11 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IAgentSessionRepository>(_ => new AgentSessionRepository(dataDir));
         builder.Services.AddSingleton<AgentSchedulingService>();
         builder.Services.AddSingleton<AgentsController>();
+        builder.Services.AddSingleton<LoopInvariantGuard>();
+        builder.Services.AddSingleton<AutonomousLoopService>();
+        builder.Services.AddSingleton<AutonomousLoopController>();
+        builder.Services.AddSingleton<LoopScenarioCatalog>();
+        builder.Services.AddSingleton<LoopOutcomeBaselineStore>();
         builder.Services.AddSingleton<WorkspaceEventFrameProvider>();
         builder.Services.AddSingleton<WorkspaceEventStreamService>();
         builder.Services.AddSingleton<IWorkspaceRepository>(_ =>

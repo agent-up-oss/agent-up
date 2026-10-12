@@ -402,6 +402,44 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
+    public async Task PromptWaitAsync_returnsAfterThePromptGateIsReleased()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        _process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "end_turn", completed = true });
+
+        var queued = await _service.PromptWaitAsync(_workspace.Id, "hello", CancellationToken.None);
+        var snapshot = _service.InspectLoop(_workspace.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(queued.Error, Is.Null);
+            Assert.That(snapshot.PromptGateReleased, Is.True);
+            Assert.That(snapshot.CompletedTask, Is.True);
+            Assert.That(snapshot.StopReason, Is.EqualTo("end_turn"));
+        });
+    }
+
+    [Test]
+    public async Task AttachPolicy_recordsTheRuleIdWhenTheAgentAsksForPermission()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        Assert.That(_service.AttachPolicy(_workspace.Id, new AllowListedPermissionPolicy("allow-once", "allow-all")), Is.True);
+        _process.BeforePromptCompletes = _ => _process.RequestPermissionAsync(
+            JsonSerializer.SerializeToElement(new { options = new[] { new { optionId = "allow-once" } } }));
+        _process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "end_turn" });
+
+        await _service.PromptWaitAsync(_workspace.Id, "hello", CancellationToken.None);
+        var snapshot = _service.InspectLoop(_workspace.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.PermissionRuleIds, Is.EqualTo(new[] { "allow-all" }));
+            Assert.That(snapshot.PermissionsDrained, Is.True);
+            Assert.That(snapshot.BlockReason, Is.Null);
+        });
+    }
+
+    [Test]
     public async Task PermissionDecision_returnsSelectedAcpOutcome()
     {
         await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
@@ -808,6 +846,8 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     public int ProtocolVersion { get; set; } = 1;
     public Exception? AuthenticateFailure { get; set; }
     public Exception? PromptFailure { get; set; }
+    public JsonElement? PromptResult { get; set; }
+    public Func<CancellationToken, Task>? BeforePromptCompletes { get; set; }
     public Exception? NotifyFailure { get; set; }
     public Exception? StopFailure { get; set; }
     public Exception? SessionLoadFailure { get; set; }
@@ -836,11 +876,15 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
         if (method == "session/prompt")
         {
             if (PromptFailure is not null) throw PromptFailure;
+            if (BeforePromptCompletes is not null)
+                await BeforePromptCompletes(cancellationToken);
             if (HoldPrompt)
             {
                 _prompt = new(TaskCreationOptions.RunContinuationsAsynchronously);
                 return await _prompt.Task.WaitAsync(cancellationToken);
             }
+            if (PromptResult is not null)
+                return PromptResult.Value;
         }
         if (method == "session/new")
             return SessionNewResult ?? JsonSerializer.SerializeToElement(new { sessionId = "session-1" });

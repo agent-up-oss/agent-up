@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.Agents.DTOs;
+using AgentUp.Server.Features.Agents.Interfaces;
 using AgentUp.Server.Features.Agents.Services;
 
 namespace AgentUp.Server.Features.Agents.Controllers;
@@ -10,6 +11,9 @@ public sealed class AgentsController(AgentSchedulingService scheduling, AgentEve
     public Task<AgentScheduleResult> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken) => scheduling.ScheduleAsync(workspaceId, agent, cancellationToken);
     public Task<AgentScheduleResult> ResumeAsync(string workspaceId, string sessionId, CancellationToken cancellationToken) => scheduling.ResumeAsync(workspaceId, sessionId, cancellationToken);
     public Task<AgentActionResult> PromptAsync(string workspaceId, string message, CancellationToken cancellationToken) => scheduling.PromptAsync(workspaceId, message, cancellationToken);
+    public Task<AgentActionResult> PromptWaitAsync(string workspaceId, string message, CancellationToken cancellationToken) => scheduling.PromptWaitAsync(workspaceId, message, cancellationToken);
+    public bool AttachPolicy(string workspaceId, IAgentPermissionPolicy? policy) => scheduling.AttachPolicy(workspaceId, policy);
+    public LoopInspection InspectLoop(string workspaceId) => scheduling.InspectLoop(workspaceId);
     public AgentActionResult Authenticate(string workspaceId, string methodId) => scheduling.Authenticate(workspaceId, methodId);
     public AgentActionResult SubmitLoginCode(string workspaceId, string code) => scheduling.SubmitLoginCode(workspaceId, code);
     public AgentActionResult SubmitLoginCallback(string workspaceId, string url) => scheduling.SubmitLoginCallback(workspaceId, url);
