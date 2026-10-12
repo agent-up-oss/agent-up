@@ -1,0 +1,7 @@
+{
+  "id": "complete-summary",
+  "prompt": "Finish now. Call complete_task with summary 'finished the requested work'.",
+  "scoresOutcome": true,
+  "expectTool": "complete_task",
+  "expectCompleted": true
+}

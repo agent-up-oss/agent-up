@@ -1,0 +1,6 @@
+{
+  "id": "invariant-only",
+  "prompt": "Do not call any tool. Reply with a short greeting instead.",
+  "scoresOutcome": false,
+  "expectCompleted": false
+}

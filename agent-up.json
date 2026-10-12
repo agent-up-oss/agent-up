@@ -255,7 +255,7 @@
         ]
       },
       "server": {
-        "command": "dotnet test AgentUp.Server.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
+        "command": "dotnet test AgentUp.Server.Tests --filter Category!=LoopInference --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
         "tier": "fast",
         "inputs": [
           "AgentUp.Server",
@@ -343,6 +343,21 @@
           "AgentUp.Server",
           "AgentUp.Capabilities.Dotnet",
           "AgentUp.Capabilities.Docker"
+        ]
+      },
+      "loop-inference": {
+        "command": "./.github/scripts/run-loop-inference.sh",
+        "tier": "slow",
+        "platforms": [
+          "linux"
+        ],
+        "ciOnly": true,
+        "inputs": [
+          "loop-coverage",
+          "AgentUp.Server",
+          "AgentUp.Server.Tests",
+          "AgentUp.TestAgents",
+          "AgentUp.TestAgents.Tests"
         ]
       },
       "mobile": {
@@ -769,6 +784,7 @@
         "checks": [
           "server",
           "cross-product-e2e",
+          "loop-inference",
           "patch-coverage"
         ]
       },
@@ -782,6 +798,7 @@
         "match": "AgentUp.Server.Tests/**",
         "checks": [
           "server",
+          "loop-inference",
           "patch-coverage"
         ]
       },
@@ -1060,6 +1077,18 @@
         ]
       },
       {
+        "match": ".github/scripts/run-loop-inference.sh",
+        "checks": [
+          "loop-inference"
+        ]
+      },
+      {
+        "match": "loop-coverage/**",
+        "checks": [
+          "loop-inference"
+        ]
+      },
+      {
         "match": ".github/**",
         "checks": []
       },
@@ -1139,6 +1168,7 @@
         "match": "AgentUp.TestAgents/**",
         "checks": [
           "test-agents",
+          "loop-inference",
           "patch-coverage"
         ]
       },
@@ -1146,6 +1176,7 @@
         "match": "AgentUp.TestAgents.Tests/**",
         "checks": [
           "test-agents",
+          "loop-inference",
           "patch-coverage"
         ]
       },
@@ -1211,7 +1242,8 @@
       "**/Properties/**",
       "**/Resources/**",
       "AgentUp.Tray/Features/AutoStart/WindowsAutoStartRegistrar.cs",
-      "AgentUp.Tray/Features/AutoStart/LaunchctlProcess.cs"
+      "AgentUp.Tray/Features/AutoStart/LaunchctlProcess.cs",
+      "AgentUp.TestAgents/Features/Inference/Providers/LlamaCppTokenGenerator.cs"
     ],
     "sliceExemptions": [
       "AgentUp.Server/Features/Database",
