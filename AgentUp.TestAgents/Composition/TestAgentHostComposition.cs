@@ -7,6 +7,9 @@ using AgentUp.TestAgents.Features.Host.Models;
 using AgentUp.TestAgents.Features.Host.Services;
 using AgentUp.TestAgents.Features.IdentityProvider.Controllers;
 using AgentUp.TestAgents.Features.IdentityProvider.Services;
+using AgentUp.TestAgents.Features.Inference.Controllers;
+using AgentUp.TestAgents.Features.Inference.Providers;
+using AgentUp.TestAgents.Features.Inference.Services;
 
 namespace AgentUp.TestAgents.Composition;
 
@@ -21,5 +24,11 @@ public static class TestAgentHostComposition
             new AcpController(new AcpAgentService()),
             new AuthenticationController(new TestAgentSignInService()),
             new IdentityProviderController(new IdentityProviderHostService()),
+            new InferenceAcpController(
+                new LocalInferenceAcpService(
+                    new LlamaCppTokenGenerator(new GgufModelCache(new HttpDownloader())),
+                    new ToolCallParser(),
+                    new WorktreeToolExecutor(),
+                    new EnvironmentLoopInferenceSettings())),
             new TestAgentConsole(Console.In, Console.Out, Console.Error)));
 }

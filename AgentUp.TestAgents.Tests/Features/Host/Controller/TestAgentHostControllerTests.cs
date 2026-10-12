@@ -10,6 +10,9 @@ using AgentUp.TestAgents.Features.Host.Models;
 using AgentUp.TestAgents.Features.Host.Services;
 using AgentUp.TestAgents.Features.IdentityProvider.Controllers;
 using AgentUp.TestAgents.Features.IdentityProvider.Services;
+using AgentUp.TestAgents.Features.Inference.Controllers;
+using AgentUp.TestAgents.Features.Inference.Providers;
+using AgentUp.TestAgents.Features.Inference.Services;
 using AgentUp.TestAgents.Tests.Support;
 
 namespace AgentUp.TestAgents.Tests.Features.Host.Controller;
@@ -172,5 +175,11 @@ public sealed class TestAgentHostControllerTests
             new AcpController(new AcpAgentService()),
             new AuthenticationController(new TestAgentSignInService(_home)),
             new IdentityProviderController(new IdentityProviderHostService()),
+            new InferenceAcpController(
+                new LocalInferenceAcpService(
+                    new ScriptedTokenGenerator(),
+                    new ToolCallParser(),
+                    new WorktreeToolExecutor(),
+                    new FixedLoopInferenceSettings(42))),
             new TestAgentConsole(input, output, errors)));
 }

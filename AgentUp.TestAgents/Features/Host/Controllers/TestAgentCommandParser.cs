@@ -13,6 +13,7 @@ public static class TestAgentCommandParser
     public const string DeviceCodeName = "test-agent2";
     public const string PastedCodeName = "test-agent3";
     public const string SilentPollName = "test-agent4";
+    public const string LocalInferenceName = "test-agent-infer";
     public const string IdentityProviderName = "test-idp";
 
     public static TestAgentCommand Parse(string programName, IReadOnlyList<string> arguments)
@@ -48,9 +49,10 @@ public static class TestAgentCommandParser
         if (name.StartsWith(DeviceCodeName, StringComparison.Ordinal)) return TestAgentSchema.DeviceCode;
         if (name.StartsWith(PastedCodeName, StringComparison.Ordinal)) return TestAgentSchema.PastedCode;
         if (name.StartsWith(SilentPollName, StringComparison.Ordinal)) return TestAgentSchema.SilentPoll;
+        if (name.StartsWith(LocalInferenceName, StringComparison.Ordinal)) return TestAgentSchema.LocalInference;
         if (name.StartsWith(IdentityProviderName, StringComparison.Ordinal)) return TestAgentSchema.DeviceCode;
         throw new InvalidOperationException(
-            $"'{programName}' is not a test agent. Publish it as {LoopbackRedirectName}, {DeviceCodeName}, {PastedCodeName}, {SilentPollName}, or {IdentityProviderName}.");
+            $"'{programName}' is not a test agent. Publish it as {LoopbackRedirectName}, {DeviceCodeName}, {PastedCodeName}, {SilentPollName}, {LocalInferenceName}, or {IdentityProviderName}.");
     }
 
     internal static TestAgentVerb ReadVerb(IReadOnlyList<string> arguments)
