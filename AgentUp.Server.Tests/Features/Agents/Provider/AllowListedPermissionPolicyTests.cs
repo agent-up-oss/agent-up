@@ -35,4 +35,12 @@ public sealed class AllowListedPermissionPolicyTests
 
         Assert.That(decision, Is.Null);
     }
+
+    [Test]
+    public void Decide_returnsNullWhenOptionsAreMissing()
+    {
+        var request = JsonSerializer.SerializeToElement(new { reason = "no options" });
+
+        Assert.That(new AllowListedPermissionPolicy("allow-once", "allow-all").Decide(request), Is.Null);
+    }
 }

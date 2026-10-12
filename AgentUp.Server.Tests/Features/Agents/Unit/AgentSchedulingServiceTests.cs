@@ -420,6 +420,30 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
+    public async Task PromptWaitAsync_returnsThePromptFailure()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        _process.PromptFailure = new InvalidOperationException("agent crashed");
+
+        var queued = await _service.PromptWaitAsync(_workspace.Id, "hello", CancellationToken.None);
+
+        Assert.That(queued.Error, Does.Contain("agent crashed"));
+    }
+
+    [Test]
+    public void InspectLoop_reportsNotFoundWhenTheWorkspaceHasNoSession()
+    {
+        var snapshot = _service.InspectLoop("missing-workspace");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.StopReason, Is.Null);
+            Assert.That(snapshot.BlockReason, Is.EqualTo("not-found"));
+            Assert.That(snapshot.PermissionsDrained, Is.True);
+        });
+    }
+
+    [Test]
     public async Task AttachPolicy_recordsTheRuleIdWhenTheAgentAsksForPermission()
     {
         await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);

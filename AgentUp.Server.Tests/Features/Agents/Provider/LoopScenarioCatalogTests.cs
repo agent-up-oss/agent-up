@@ -22,7 +22,10 @@ public sealed class LoopScenarioCatalogTests
             {
                 Assert.That(loaded, Has.Count.EqualTo(2));
                 Assert.That(loaded[0].Id, Is.EqualTo("a"));
+                Assert.That(loaded[0].ExpectTool, Is.EqualTo("complete_task"));
+                Assert.That(loaded[0].ExpectCompleted, Is.True);
                 Assert.That(loaded[1].ScoresOutcome, Is.False);
+                Assert.That(loaded[1].ExpectCompleted, Is.False);
             });
         }
         finally

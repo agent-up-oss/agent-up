@@ -95,12 +95,101 @@ public sealed class AutonomousLoopServiceTests
         await harness.Scheduling.DisposeAsync();
     }
 
-    private static LoopRunRequest Request(string workspaceId, int maxIterations = 4) => new(
+    [Test]
+    public async Task RunAsync_failsWhenTheWorkspaceAgentIsNotScheduled()
+    {
+        var harness = await HarnessAsync();
+
+        var result = await harness.Loop.RunAsync(Request("missing-workspace"), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.Failed));
+            Assert.That(result.StopReason, Is.EqualTo("not-found"));
+            Assert.That(result.BlockReason, Does.Contain("not scheduled"));
+        });
+        await harness.Scheduling.DisposeAsync();
+    }
+
+    [Test]
+    public async Task RunAsync_failsWhenContextExceedsTheDeclaredLimit()
+    {
+        var harness = await HarnessAsync();
+        harness.Process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "end_turn" });
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var result = await harness.Loop.RunAsync(Request(harness.Workspace.Id, contextCharLimit: 1), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.Failed));
+            Assert.That(result.StopReason, Is.EqualTo("context_limit"));
+        });
+        await harness.Scheduling.DisposeAsync();
+    }
+
+    [Test]
+    public async Task RunAsync_failsWhenThePromptReturnsAnError()
+    {
+        var harness = await HarnessAsync();
+        harness.Process.PromptFailure = new InvalidOperationException("agent crashed");
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var result = await harness.Loop.RunAsync(Request(harness.Workspace.Id), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.Failed));
+            Assert.That(result.BlockReason, Does.Contain("agent crashed"));
+        });
+        await harness.Scheduling.DisposeAsync();
+    }
+
+    [Test]
+    public async Task RunAsync_stopsAsCancelledWhenTheAgentReportsIt()
+    {
+        var harness = await HarnessAsync();
+        harness.Process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "cancelled" });
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var result = await harness.Loop.RunAsync(Request(harness.Workspace.Id), CancellationToken.None);
+
+        Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.Cancelled));
+        await harness.Scheduling.DisposeAsync();
+    }
+
+    [Test]
+    public async Task RunAsync_returnsMaxIterationsWhenTheCapIsZero()
+    {
+        var harness = await HarnessAsync();
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var result = await harness.Loop.RunAsync(Request(harness.Workspace.Id, maxIterations: 0), CancellationToken.None);
+
+        Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.MaxIterations));
+        await harness.Scheduling.DisposeAsync();
+    }
+
+    [Test]
+    public async Task RunAsync_stopsAsCancelledWhenTheCallerCancelsBeforeAPrompt()
+    {
+        var harness = await HarnessAsync();
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+
+        var result = await harness.Loop.RunAsync(Request(harness.Workspace.Id), cancelled.Token);
+
+        Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.Cancelled));
+        await harness.Scheduling.DisposeAsync();
+    }
+
+    private static LoopRunRequest Request(string workspaceId, int maxIterations = 4, int contextCharLimit = 100_000) => new(
         workspaceId,
         "finish the task",
         maxIterations,
         new AllowListedPermissionPolicy("allow-once", "allow-all"),
-        100_000);
+        contextCharLimit);
 
     private static async Task<Harness> HarnessAsync()
     {

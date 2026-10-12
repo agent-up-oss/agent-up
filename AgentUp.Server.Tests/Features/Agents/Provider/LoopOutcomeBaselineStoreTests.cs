@@ -17,9 +17,30 @@ public sealed class LoopOutcomeBaselineStoreTests
 
         Assert.Multiple(() =>
         {
+            Assert.That(baseline.Model, Is.EqualTo("qwen"));
             Assert.That(baseline.PooledSuccessRate, Is.EqualTo(0.5));
             Assert.That(baseline.Tolerance, Is.EqualTo(0.25));
+            Assert.That(baseline.RecordedAt, Is.EqualTo("2026-10-12"));
         });
+    }
+
+    [Test]
+    public void Read_failsWhenTheBaselineFileIsMissing()
+    {
+        Assert.That(
+            () => new LoopOutcomeBaselineStore().Read("/definitely-missing-loop-baseline.json"),
+            Throws.InvalidOperationException.With.Message.Contains("was not found"));
+    }
+
+    [Test]
+    public void Read_failsWhenTheBaselineFileIsEmpty()
+    {
+        var path = Path.Join(Directory.CreateTempSubdirectory("agent-up-loop-baseline").FullName, "empty.json");
+        File.WriteAllText(path, "null");
+
+        Assert.That(
+            () => new LoopOutcomeBaselineStore().Read(path),
+            Throws.InvalidOperationException.With.Message.Contains("was empty"));
     }
 
     [Test]

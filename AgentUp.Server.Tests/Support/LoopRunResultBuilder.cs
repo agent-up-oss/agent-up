@@ -56,6 +56,30 @@ internal sealed class LoopRunResultBuilder
         return this;
     }
 
+    public LoopRunResultBuilder Context(int chars)
+    {
+        _context = chars;
+        return this;
+    }
+
+    public LoopRunResultBuilder WithoutCompletedTask()
+    {
+        _completed = false;
+        return this;
+    }
+
+    public LoopRunResultBuilder WithoutBlockReason()
+    {
+        _block = null;
+        return this;
+    }
+
+    public LoopRunResultBuilder WithoutStopReason()
+    {
+        _stopReason = null;
+        return this;
+    }
+
     public LoopRunResult Build() => new(
         _terminal,
         _stopReason,
