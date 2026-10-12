@@ -13,9 +13,11 @@ public sealed class GgufModelSpecTests
 
         Assert.Multiple(() =>
         {
+            Assert.That(spec.Id, Is.EqualTo("qwen2.5-1.5b-instruct-q4-k-m"));
             Assert.That(spec.Sha256, Is.EqualTo("6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e"));
             Assert.That(spec.SourceUrl, Does.StartWith("https://huggingface.co/"));
             Assert.That(spec.FileName, Does.EndWith(".gguf"));
+            Assert.That(spec.ContextSize, Is.EqualTo(2048u));
         });
     }
 

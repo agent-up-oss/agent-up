@@ -12,6 +12,7 @@ internal sealed class ScriptedTokenGenerator(params string[] completions) : ITok
     public async Task<string> CompleteAsync(string prompt, uint seed, CancellationToken cancellationToken)
     {
         Calls++;
+        cancellationToken.ThrowIfCancellationRequested();
         if (Delay > TimeSpan.Zero)
             await Task.Delay(Delay, cancellationToken);
         if (_completions.Count == 0)

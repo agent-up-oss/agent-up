@@ -14,12 +14,8 @@ public sealed class WorktreeToolExecutor : IWorktreeTools
         "complete_task", "read_file", "write_file", "list_files"
     };
 
-    public ToolExecutionResult Execute(string worktree, ParsedToolCall call)
-    {
-        if (!Names.Contains(call.Name))
-            return new ToolExecutionResult(false, $"Unknown tool '{call.Name}'.", false);
-
-        return call.Name switch
+    public ToolExecutionResult Execute(string worktree, ParsedToolCall call) =>
+        call.Name switch
         {
             "complete_task" => Complete(call),
             "read_file" => Read(worktree, call),
@@ -27,7 +23,6 @@ public sealed class WorktreeToolExecutor : IWorktreeTools
             "list_files" => List(worktree, call),
             _ => new ToolExecutionResult(false, $"Unknown tool '{call.Name}'.", false)
         };
-    }
 
     private static ToolExecutionResult Complete(ParsedToolCall call)
     {

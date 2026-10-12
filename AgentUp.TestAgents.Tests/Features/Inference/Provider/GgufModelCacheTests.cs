@@ -32,6 +32,56 @@ public sealed class GgufModelCacheTests
     }
 
     [Test]
+    public async Task EnsureAsync_returnsTheCachedFileOnAHashHitWithoutDownloadingAgain()
+    {
+        var root = Directory.CreateTempSubdirectory("agent-up-gguf").FullName;
+        try
+        {
+            var bytes = "gguf"u8.ToArray();
+            var spec = Spec(Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant());
+            var downloader = new FakeHttpDownloader { Bytes = bytes };
+            var cache = new GgufModelCache(downloader, root);
+
+            var first = await cache.EnsureAsync(spec, CancellationToken.None);
+            var second = await cache.EnsureAsync(spec, CancellationToken.None);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(first, Is.EqualTo(second));
+                Assert.That(downloader.Calls, Is.EqualTo(1));
+            });
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task EnsureAsync_deletesADownloadWhoseHashDoesNotMatch()
+    {
+        var root = Directory.CreateTempSubdirectory("agent-up-gguf").FullName;
+        try
+        {
+            var spec = Spec(Convert.ToHexString(SHA256.HashData("expected"u8.ToArray())).ToLowerInvariant());
+            var downloader = new FakeHttpDownloader { Bytes = "wrong"u8.ToArray() };
+
+            var exception = Assert.ThrowsAsync<InvalidOperationException>(
+                () => new GgufModelCache(downloader, root).EnsureAsync(spec, CancellationToken.None));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception!.Message, Does.Contain("hashed"));
+                Assert.That(Directory.GetFiles(root), Is.Empty);
+            });
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task EnsureAsync_deletesACachedFileWhoseHashDoesNotMatch()
     {
         var root = Directory.CreateTempSubdirectory("agent-up-gguf").FullName;
