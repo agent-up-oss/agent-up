@@ -3,7 +3,7 @@ using AgentUp.TestAgents.Features.Acp.Services;
 using AgentUp.TestAgents.Features.Authentication.Controllers;
 using AgentUp.TestAgents.Features.Authentication.Services;
 using AgentUp.TestAgents.Features.Host.Controllers;
-using AgentUp.TestAgents.Features.Host.Models;
+using AgentUp.TestAgents.Features.Host.Providers;
 using AgentUp.TestAgents.Features.Host.Services;
 using AgentUp.TestAgents.Features.IdentityProvider.Controllers;
 using AgentUp.TestAgents.Features.IdentityProvider.Services;
@@ -30,5 +30,8 @@ public static class TestAgentHostComposition
                     new ToolCallParser(),
                     new WorktreeToolExecutor(),
                     new EnvironmentLoopInferenceSettings())),
-            new TestAgentConsole(Console.In, Console.Out, Console.Error)));
+            TestAgentStandardConsole.FromStreams(
+                Console.OpenStandardInput(),
+                Console.OpenStandardOutput(),
+                Console.OpenStandardError())));
 }
