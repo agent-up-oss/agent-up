@@ -11,6 +11,8 @@ internal sealed class StubAgentCapability : IAgentCapability
 
     public bool CanRun { get; init; } = true;
 
+    public bool SupportsPermissionRequests { get; init; } = true;
+
     public AgentLoginSpec? Login { get; init; }
 
     public AgentLaunchResult Launch() => new("codex-acp", [], null);

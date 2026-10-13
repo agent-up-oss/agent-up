@@ -40,6 +40,17 @@ public static class OperationPermissionMap
 
         [("AgentsHttp", "Get")] = OperationPermissions.AgentRead,
         [("AgentsHttp", "Schedule")] = OperationPermissions.AgentPrompt,
+        [("AgentsHttp", "Bind")] = OperationPermissions.AgentPrompt,
+        [("AgentsHttp", "Unbind")] = OperationPermissions.AgentPrompt,
+        [("AgentsHttp", "GetPolicy")] = OperationPermissions.AgentRead,
+        [("AgentsHttp", "PutPolicy")] = OperationPermissions.AgentPrompt,
+        [("AgentsHttp", "GetRole")] = OperationPermissions.AgentRead,
+        [("AgentsHttp", "PutRole")] = OperationPermissions.AgentPrompt,
+        [("AgentsHttp", "DeleteRole")] = OperationPermissions.AgentPrompt,
+        [("AgentsHttp", "PutHostConnection")] = OperationPermissions.AgentPrompt,
+        [("AgentsHttp", "PutQueueOrder")] = OperationPermissions.AgentPrompt,
+        [("AgentsHttp", "PutAutonomy")] = OperationPermissions.AgentPrompt,
+        [("AgentsHttp", "GetLoop")] = OperationPermissions.AgentRead,
         [("AgentsHttp", "Resume")] = OperationPermissions.AgentPrompt,
         [("AgentsHttp", "Prompt")] = OperationPermissions.AgentPrompt,
         [("AgentsHttp", "Authenticate")] = OperationPermissions.AgentPrompt,
@@ -49,6 +60,9 @@ public static class OperationPermissionMap
         [("AgentsHttp", "Decide")] = OperationPermissions.AgentPermissionRespond,
         [("AgentsHttp", "Stop")] = OperationPermissions.AgentPrompt,
         [("AgentsHttp", "Events")] = OperationPermissions.AgentRead,
+
+        [("AutonomyHttp", "Get")] = OperationPermissions.ServerRead,
+        [("AutonomyHttp", "Put")] = OperationPermissions.ServerRead,
 
         [("GitChanges", "GetChanges")] = OperationPermissions.GitRead,
         [("GitChanges", "GetHead")] = OperationPermissions.GitRead,

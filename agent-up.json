@@ -255,7 +255,7 @@
         ]
       },
       "server": {
-        "command": "dotnet test AgentUp.Server.Tests --filter Category!=LoopInference --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
+        "command": "dotnet test AgentUp.Server.Tests --filter Category!=LoopInference&Category!=LoopSoak --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
         "tier": "fast",
         "inputs": [
           "AgentUp.Server",
@@ -358,6 +358,26 @@
           "AgentUp.Server.Tests",
           "AgentUp.TestAgents",
           "AgentUp.TestAgents.Tests"
+        ]
+      },
+      "loop-scripted": {
+        "command": "dotnet test AgentUp.TestAgents.Tests --filter FullyQualifiedName~.Scripted. --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/loop-scripted",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.TestAgents",
+          "AgentUp.TestAgents.Tests"
+        ]
+      },
+      "loop-soak": {
+        "command": "./.github/scripts/run-loop-soak.sh",
+        "tier": "slow",
+        "platforms": [
+          "linux"
+        ],
+        "ciOnly": true,
+        "inputs": [
+          "AgentUp.Server",
+          "AgentUp.Server.Tests"
         ]
       },
       "mobile": {
@@ -785,6 +805,7 @@
           "server",
           "cross-product-e2e",
           "loop-inference",
+          "loop-soak",
           "patch-coverage"
         ]
       },
@@ -799,6 +820,7 @@
         "checks": [
           "server",
           "loop-inference",
+          "loop-soak",
           "patch-coverage"
         ]
       },
@@ -1083,6 +1105,12 @@
         ]
       },
       {
+        "match": ".github/scripts/run-loop-soak.sh",
+        "checks": [
+          "loop-soak"
+        ]
+      },
+      {
         "match": "loop-coverage/**",
         "checks": [
           "loop-inference"
@@ -1169,6 +1197,7 @@
         "checks": [
           "test-agents",
           "loop-inference",
+          "loop-scripted",
           "patch-coverage"
         ]
       },
@@ -1177,6 +1206,7 @@
         "checks": [
           "test-agents",
           "loop-inference",
+          "loop-scripted",
           "patch-coverage"
         ]
       },

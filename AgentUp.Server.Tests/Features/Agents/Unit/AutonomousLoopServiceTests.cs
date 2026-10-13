@@ -96,6 +96,58 @@ public sealed class AutonomousLoopServiceTests
     }
 
     [Test]
+    public async Task RunAsync_stopsAsBlockedAwaitingInputAfterStandingPolicyReplies()
+    {
+        var harness = await HarnessAsync();
+        harness.Process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "end_turn" });
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var result = await harness.Loop.RunAsync(
+            Request(harness.Workspace.Id, maxIterations: 4) with { StandingPolicyReplies = 1 },
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.BlockedAwaitingInput));
+            Assert.That(result.BlockReason, Does.Contain("awaiting-input"));
+            Assert.That(harness.Loop.Invariants(result), Is.Empty);
+        });
+        await harness.Scheduling.DisposeAsync();
+    }
+
+    [Test]
+    public async Task RunAsync_stopsAsBlockedRateLimited()
+    {
+        var harness = await HarnessAsync();
+        harness.Process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "rate_limited" });
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var result = await harness.Loop.RunAsync(Request(harness.Workspace.Id), CancellationToken.None);
+
+        Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.BlockedRateLimited));
+        await harness.Scheduling.DisposeAsync();
+    }
+
+    [Test]
+    public async Task RunAsync_failsWhenTheAgentHoldsThePipeOpen()
+    {
+        var harness = await HarnessAsync();
+        harness.Process.HoldPrompt = true;
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var result = await harness.Loop.RunAsync(
+            Request(harness.Workspace.Id) with { PromptTimeoutMs = 50 },
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.Failed));
+            Assert.That(result.StopReason, Is.EqualTo("unresponsive"));
+        });
+        await harness.Scheduling.DisposeAsync();
+    }
+
+    [Test]
     public async Task RunAsync_failsWhenTheWorkspaceAgentIsNotScheduled()
     {
         var harness = await HarnessAsync();

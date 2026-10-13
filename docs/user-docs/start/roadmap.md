@@ -46,6 +46,7 @@ Where the MCP interface is exposed beyond loopback, the hostname, TLS and identi
 | Stable installers | Preview |
 | Broad platform support | Preview |
 | Authenticated MCP access from another machine | Preview |
+| Workspace-bound agent and unattended loops | Experimental |
 | Workspace-id addressing for every MCP tool | Planned |
 | Verification receipt export | Planned |
 | Repository hosting capability modules | Planned |

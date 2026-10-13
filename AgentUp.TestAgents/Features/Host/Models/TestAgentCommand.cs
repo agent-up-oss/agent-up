@@ -33,7 +33,13 @@ public enum TestAgentSchema
     /// Local CPU inference over ACP, used to drive the autonomous loop against a real token
     /// stream. It does not sign in; session/new is allowed immediately.
     /// </summary>
-    LocalInference
+    LocalInference,
+
+    /// <summary>
+    /// Deterministic ACP agent driven by a declared turn script. It does not sign in;
+    /// session/new is allowed immediately.
+    /// </summary>
+    Scripted
 }
 
 /// <summary>What the process was asked to do.</summary>

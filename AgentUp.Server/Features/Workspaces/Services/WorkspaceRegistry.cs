@@ -149,6 +149,18 @@ public sealed class WorkspaceRegistry : IHostedService
         return workspace;
     }
 
+    public async Task<bool> UpdateBoundAgentAsync(string id, string? agentModuleId)
+    {
+        if (!_workspaces.TryGetValue(id, out var workspace))
+            return false;
+
+        workspace.BoundAgentModuleId = string.IsNullOrWhiteSpace(agentModuleId) ? null : agentModuleId;
+        TouchActivity(workspace);
+        await _repository.SaveAllAsync(GetAll());
+        _bus.PublishWorkspaceChange(workspace);
+        return true;
+    }
+
     public async Task<bool> UpdateGitIdentityAsync(string id, string branch, string commit)
     {
         if (!_workspaces.TryGetValue(id, out var workspace))

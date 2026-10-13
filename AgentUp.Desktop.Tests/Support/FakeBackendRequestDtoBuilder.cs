@@ -24,6 +24,14 @@ internal sealed class FakeBackendRequestDtoBuilder
         return this;
     }
 
+    public FakeBackendRequestDtoBuilder Put(string path, string? body = null)
+    {
+        _method = "PUT";
+        _path = path;
+        _body = body;
+        return this;
+    }
+
     public FakeBackendRequestDtoBuilder Delete(string path)
     {
         _method = "DELETE";

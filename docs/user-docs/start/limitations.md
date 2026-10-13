@@ -47,6 +47,7 @@ Agent-Up is an experimental development preview. It is intended for early techni
 | Validation flows and Playwright export | Preview |
 | MCP tools | Preview (contracts may change) |
 | MCP access from another machine | Preview — off by default, requires bearer authentication |
+| Workspace-bound agent and unattended loops | Experimental — off by default |
 | CLI | Preview |
 | Cross-platform packaging | Preview |
 

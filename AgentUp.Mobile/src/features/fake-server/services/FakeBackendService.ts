@@ -192,6 +192,9 @@ export class FakeBackendService {
     if (method === 'POST' && rest.startsWith('git/')) return this.gitMutation(workspaceId, rest.slice('git/'.length), request.body);
     if (method === 'GET' && rest === 'agent') return this.agentSession(workspaceId);
     if (method === 'POST' && rest === 'agent') return this.scheduleAgent(workspaceId, request.body);
+    if (method === 'PUT' && rest === 'agent/binding') return this.bindAgent(workspaceId, request.body);
+    if (method === 'PUT' && (rest === 'agent/autonomy' || rest === 'agent/host-connection' || rest === 'agent/policy' || rest === 'agent/role' || rest === 'agent/queue-order'))
+      return { status: 204, contentType: 'application/json' };
     if (method === 'POST' && rest === 'agent/messages') return this.sendAgentMessage(workspaceId, request.body);
     if (method === 'GET' && rest === 'agent/events') return this.agentEventStream(workspaceId, request.query);
     if ((method === 'POST' || method === 'DELETE') && rest.startsWith('agent/'))
@@ -350,9 +353,23 @@ export class FakeBackendService {
     const next = {
       ...(stored.session && typeof stored.session === 'object' ? stored.session as Record<string, unknown> : {}),
       agent: match.agent,
+      boundAgent: match.agent,
       state: 'ready',
       sessionId: 'demo-agent',
       error: null,
+    };
+    stored.session = next;
+    return json(this.liveAgentSession(next));
+  }
+
+  private bindAgent(workspaceId: string, body: string | null): FakeBackendResponse {
+    const stored = this.state.agents?.[workspaceId];
+    if (!stored) return notFound();
+    const requested = readJsonString(body, 'agent');
+    if (!requested) return json(this.liveAgentSession(stored.session));
+    const next = {
+      ...(stored.session && typeof stored.session === 'object' ? stored.session as Record<string, unknown> : {}),
+      boundAgent: requested,
     };
     stored.session = next;
     return json(this.liveAgentSession(next));

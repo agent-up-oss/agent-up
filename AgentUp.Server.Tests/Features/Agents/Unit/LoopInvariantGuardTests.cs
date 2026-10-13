@@ -81,7 +81,7 @@ public sealed class LoopInvariantGuardTests
         var violations = new LoopInvariantGuard().Evaluate(
             new LoopRunResultBuilder().Terminal(LoopTerminal.BlockedPolicy).WithoutBlockReason().Build());
 
-        Assert.That(violations, Has.Some.Contain("policy block"));
+        Assert.That(violations, Has.Some.Contain("blocked terminal"));
     }
 
     [Test]

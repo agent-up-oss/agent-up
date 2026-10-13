@@ -24,6 +24,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     private readonly ILogger<AgentSchedulingService> logger;
     private readonly IEnabledCapabilityPackages? packages;
     private readonly IAgentSessionRepository? sessionRepository;
+    private readonly IAgentWorkspaceSettingsRepository? settings;
     private readonly ConcurrentDictionary<string, AgentSessionState> _sessions = new();
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _lifecycleGates = new();
     private IReadOnlyList<AgentDescriptor> _descriptors = FirstPartyAgents
@@ -42,7 +43,8 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         AgentEventService events,
         ILogger<AgentSchedulingService> logger,
         IEnabledCapabilityPackages? packages = null,
-        IAgentSessionRepository? sessionRepository = null)
+        IAgentSessionRepository? sessionRepository = null,
+        IAgentWorkspaceSettingsRepository? settings = null)
     {
         this.workspaces = workspaces;
         this.processes = processes;
@@ -56,6 +58,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         this.logger = logger;
         this.packages = packages;
         this.sessionRepository = sessionRepository;
+        this.settings = settings;
         workspaces.WorkspaceRemoved += HandleWorkspaceRemoved;
     }
 
@@ -74,9 +77,50 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         var saved = sessionRepository?.List(workspaceId)
             .Select(item => new AgentSessionSummaryDto(item.SessionId, item.Agent, item.Description, item.Branch, item.LastUsedAt)).ToArray()
             ?? [];
-        return new AgentSessionDto(workspaceId, session?.Agent, session?.State ?? "idle",
-            session?.AcpSessionId, session?.Error, _descriptors, session?.AuthMethods ?? [], session?.LoginChallenge, saved);
+        var workspace = workspaces.GetById(workspaceId);
+        var current = settings?.Get(workspaceId);
+        return new AgentSessionDto(
+            workspaceId,
+            session?.Agent,
+            session?.State ?? "idle",
+            session?.AcpSessionId,
+            session?.Error,
+            _descriptors,
+            session?.AuthMethods ?? [],
+            session?.LoginChallenge,
+            saved,
+            workspace?.BoundAgentModuleId,
+            LoopDto(current),
+            RoleDto(current));
     }
+
+    private static AgentLoopStatusDto? LoopDto(AgentWorkspaceSettings? current)
+    {
+        if (current?.Loop is null && current is not { AutonomyActive: true })
+            return null;
+        var loop = current.Loop;
+        return new AgentLoopStatusDto(
+            current.AutonomyActive,
+            loop?.Phase ?? (current.AutonomyActive ? "idle" : "stopped"),
+            loop?.CurrentTask?.Id,
+            loop?.CurrentTask?.Number,
+            loop?.CurrentTask?.Title,
+            loop?.Terminal?.ToString(),
+            loop?.StopReason,
+            loop?.BlockReason,
+            loop?.PermissionRuleIds ?? []);
+    }
+
+    private static AgentRoleRequest? RoleDto(AgentWorkspaceSettings? current) =>
+        current?.Role is null
+            ? null
+            : new AgentRoleRequest
+            {
+                Prompt = current.Role.Prompt,
+                Tools = current.Role.Tools,
+                Trigger = current.Role.Trigger,
+                Termination = current.Role.Termination
+            };
 
     public async Task<AgentScheduleResult> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken)
     {
@@ -84,6 +128,44 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         try { return await ScheduleCoreAsync(workspaceId, agent, cancellationToken); }
         catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception or IOException or UnauthorizedAccessException)
         { return new AgentScheduleResult(null, true, exception.Message); }
+    }
+
+    public async Task<AgentBindingResult> BindAsync(string workspaceId, string agent, CancellationToken cancellationToken)
+    {
+        var workspace = workspaces.GetById(workspaceId);
+        if (workspace is null) return new AgentBindingResult(null, false, null);
+        if (string.IsNullOrWhiteSpace(agent))
+            return new AgentBindingResult(null, true, "The requested agent is not supported.");
+        var agentId = NormalizeAgentId(agent);
+        if (_sessions.TryGetValue(workspaceId, out var live)
+            && !string.Equals(live.Agent, agentId, StringComparison.OrdinalIgnoreCase))
+        {
+            return new AgentBindingResult(
+                await GetAsync(workspaceId, cancellationToken),
+                true,
+                $"This workspace already has a live {live.Agent} session '{live.AcpSessionId}'.",
+                409);
+        }
+
+        await workspaces.UpdateBoundAgentAsync(workspaceId, agentId);
+        return new AgentBindingResult(await GetAsync(workspaceId, cancellationToken), true, null, 200);
+    }
+
+    public async Task<AgentBindingResult> UnbindAsync(string workspaceId, CancellationToken cancellationToken)
+    {
+        var workspace = workspaces.GetById(workspaceId);
+        if (workspace is null) return new AgentBindingResult(null, false, null);
+        if (_sessions.TryGetValue(workspaceId, out var live) && live.State is not "stopped" and not "idle")
+        {
+            return new AgentBindingResult(
+                await GetAsync(workspaceId, cancellationToken),
+                true,
+                $"This workspace already has a live {live.Agent} session '{live.AcpSessionId}'.",
+                409);
+        }
+
+        await workspaces.UpdateBoundAgentAsync(workspaceId, null);
+        return new AgentBindingResult(await GetAsync(workspaceId, cancellationToken), true, null, 200);
     }
 
     private async Task<AgentScheduleResult> ScheduleCoreAsync(string workspaceId, string agent, CancellationToken cancellationToken)
@@ -96,8 +178,24 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             if (workspace is null) return new AgentScheduleResult(null, false, null);
             var agentId = NormalizeAgentId(agent);
             if (!await commands.IsAvailableAsync(agentId, cancellationToken)) throw new InvalidOperationException($"{agentId} ACP executable is not installed or is not on PATH.");
-            if (_sessions.ContainsKey(workspaceId))
-                await StopCoreAsync(workspaceId, cancellationToken);
+            if (_sessions.TryGetValue(workspaceId, out var live))
+            {
+                if (string.Equals(live.Agent, agentId, StringComparison.OrdinalIgnoreCase))
+                    return new AgentScheduleResult(await GetAsync(workspaceId, cancellationToken), true, null);
+                return new AgentScheduleResult(
+                    null,
+                    true,
+                    $"This workspace already has a live {live.Agent} session '{live.AcpSessionId}'.");
+            }
+            if (!string.IsNullOrWhiteSpace(workspace.BoundAgentModuleId)
+                && !string.Equals(workspace.BoundAgentModuleId, agentId, StringComparison.OrdinalIgnoreCase))
+            {
+                return new AgentScheduleResult(
+                    null,
+                    true,
+                    $"This workspace is bound to '{workspace.BoundAgentModuleId}'. Unbind or change the bound agent before starting '{agentId}'.");
+            }
+            await workspaces.UpdateBoundAgentAsync(workspaceId, agentId);
 
             var state = new AgentSessionState(agentId, workspace.WorktreePath, processes.Create());
             if (!_sessions.TryAdd(workspaceId, state)) throw new InvalidOperationException("This workspace already has an agent.");
@@ -156,6 +254,16 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             if (repository is null) return new AgentScheduleResult(null, false, null);
             var saved = repository.Find(workspaceId, sessionId);
             if (saved is null) return new AgentScheduleResult(null, false, null);
+            if (!string.IsNullOrWhiteSpace(workspace.BoundAgentModuleId)
+                && !string.Equals(workspace.BoundAgentModuleId, saved.Agent, StringComparison.OrdinalIgnoreCase))
+            {
+                return new AgentScheduleResult(
+                    null,
+                    true,
+                    $"This workspace is bound to '{workspace.BoundAgentModuleId}'. Session '{sessionId}' belongs to '{saved.Agent}'.");
+            }
+            if (string.IsNullOrWhiteSpace(workspace.BoundAgentModuleId))
+                await workspaces.UpdateBoundAgentAsync(workspaceId, saved.Agent);
             if (!await commands.IsAvailableAsync(saved.Agent, cancellationToken))
                 return new AgentScheduleResult(null, true, $"{saved.Agent} ACP executable is not installed or is not on PATH.");
             if (_sessions.TryGetValue(workspaceId, out var current) && current.AcpSessionId == sessionId && current.State != "stopped")
@@ -374,7 +482,15 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         if (string.IsNullOrWhiteSpace(state.AcpSessionId) || state.State is not "ready" and not "running")
             return AgentActionResult.Failed("The workspace agent is not ready for a prompt.");
         if (!await state.PromptGate.WaitAsync(TimeSpan.Zero, cancellationToken))
+        {
+            if (state.PermissionPolicy is not null)
+            {
+                state.Steering.Enqueue(message);
+                events.Publish(workspaceId, "user_message", new { text = message, steering = true });
+                return AgentActionResult.Success();
+            }
             return AgentActionResult.Failed("The workspace agent is already processing a prompt.");
+        }
         state.State = "running";
         state.Error = null;
         events.Publish(workspaceId, "user_message", new { text = message });
@@ -415,7 +531,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     public LoopInspection InspectLoop(string workspaceId)
     {
         if (!_sessions.TryGetValue(workspaceId, out var state))
-            return new LoopInspection([], true, true, 0, false, null, "not-found");
+            return new LoopInspection([], true, true, 0, false, null, "not-found", false);
         var stop = ReadStopReason(state.LastPromptResult);
         var completed = ReadCompleted(state.LastPromptResult);
         return new LoopInspection(
@@ -425,7 +541,8 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             state.TranscriptEvents,
             completed,
             stop,
-            state.LoopBlock);
+            state.LoopBlock,
+            state.SawToolCall);
     }
 
     private async Task RunPromptAsync(
@@ -436,9 +553,11 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         var succeeded = false;
         try
         {
+            state.SawToolCall = false;
+            var delivered = DrainSteering(state, message);
             result = await state.Process.CallAsync("session/prompt", new {
                 sessionId = state.AcpSessionId,
-                prompt = new[] { new { type = "text", text = message } }
+                prompt = new[] { new { type = "text", text = delivered } }
             }, state.Lifetime.Token);
             state.LastPromptResult = result;
             events.Publish(workspaceId, "prompt_result", result);
@@ -536,9 +655,26 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             && update.TryGetProperty("title", out var title) && !string.IsNullOrWhiteSpace(title.GetString())
             && workspaces.GetById(workspaceId) is { } workspace)
             SaveSession(workspaceId, state, workspace.Branch, title.GetString()!);
+        if (method == "session/update"
+            && update.TryGetProperty("sessionUpdate", out var updateKind)
+            && (updateKind.GetString()?.Contains("tool", StringComparison.OrdinalIgnoreCase) == true
+                || updateKind.GetString()?.Contains("function", StringComparison.OrdinalIgnoreCase) == true))
+            state.SawToolCall = true;
         state.TranscriptEvents++;
         events.Publish(workspaceId, method == "session/update" ? "session_update" : method, payload);
         return Task.CompletedTask;
+    }
+
+    private static string DrainSteering(AgentSessionState state, string message)
+    {
+        var extras = new List<string>();
+        while (state.Steering.TryDequeue(out var item))
+            extras.Add(item);
+        if (extras.Count == 0)
+            return message;
+        return message
+               + "\n\nSteering from the operator (advisory; do not rewrite the task):\n"
+               + string.Join("\n", extras);
     }
 
     private async Task<JsonElement> HandleRequestAsync(
@@ -619,7 +755,12 @@ public sealed class AgentSchedulingService : IAsyncDisposable
 
     private async Task StopRemovedWorkspaceAsync(string workspaceId)
     {
-        try { await StopAsync(workspaceId, CancellationToken.None); sessionRepository?.RemoveWorkspace(workspaceId); }
+        try
+        {
+            await StopAsync(workspaceId, CancellationToken.None);
+            sessionRepository?.RemoveWorkspace(workspaceId);
+            settings?.Remove(workspaceId);
+        }
         catch (Exception exception) when (exception is InvalidOperationException or IOException)
         { logger.LogWarning(exception, "Could not stop the agent for removed workspace {WorkspaceId}.", LogSafeIdentifier.Of(workspaceId)); }
     }
@@ -633,7 +774,8 @@ public sealed class AgentSchedulingService : IAsyncDisposable
                 new AgentDescriptor(
                     agent.Identity.Id,
                     agent.CanRun && await commands.IsAvailableAsync(agent.Identity.Id, cancellationToken),
-                    agent.Identity.DisplayName)));
+                    agent.Identity.DisplayName,
+                    agent.SupportsPermissionRequests)));
         }
 
         return await LoadLegacyDescriptorsAsync(cancellationToken);

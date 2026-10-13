@@ -266,6 +266,15 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_bindAgentRecordsTheWorkspaceAgent()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var bound = Json(backend, new FakeBackendRequestDtoBuilder().Put("/api/workspaces/harbor-shop/agent/binding", "{\"agent\":\"codex\"}"));
+
+        Assert.That(bound["boundAgent"]!.GetValue<string>(), Is.EqualTo("codex"));
+    }
+
+    [Test]
     public void Handle_agentControlAndEmptyCollections()
     {
         var backend = FakeServerTestComposition.Backend();

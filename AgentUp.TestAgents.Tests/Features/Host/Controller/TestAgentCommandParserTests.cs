@@ -23,6 +23,7 @@ public sealed class TestAgentCommandParserTests
             Assert.That(TestAgentCommandParser.ReadSchema("test-agent3"), Is.EqualTo(TestAgentSchema.PastedCode));
             Assert.That(TestAgentCommandParser.ReadSchema("test-agent4"), Is.EqualTo(TestAgentSchema.SilentPoll));
             Assert.That(TestAgentCommandParser.ReadSchema("test-agent-infer"), Is.EqualTo(TestAgentSchema.LocalInference));
+            Assert.That(TestAgentCommandParser.ReadSchema("test-agent-scripted"), Is.EqualTo(TestAgentSchema.Scripted));
             Assert.That(TestAgentCommandParser.ReadSchema("/opt/agents/test-agent2.exe"), Is.EqualTo(TestAgentSchema.DeviceCode));
             Assert.That(
                 () => TestAgentCommandParser.ReadSchema("some-other-binary"),

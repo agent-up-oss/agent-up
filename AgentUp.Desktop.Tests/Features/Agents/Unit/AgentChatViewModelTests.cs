@@ -146,6 +146,29 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
+    public async Task LoadAsync_hidesThePickerWhenAWorkspaceAgentIsBound()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = new AgentSessionDto("ws-1", null, "idle", null, null, [
+                new AgentDescriptorDto("Codex", true, "Codex")
+            ], [], BoundAgent: "Codex", Loop: new AgentLoopStatusDto(false, "idle", Terminal: "Idle"))
+        };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.HasBoundAgent, Is.True);
+            Assert.That(view.CanStartBound, Is.True);
+            Assert.That(view.HasAgent, Is.False);
+            Assert.That(view.LoopLine, Does.Contain("idle"));
+            Assert.That(view.StatusLine, Is.EqualTo("Codex · Idle"));
+        });
+    }
+
+    [Test]
     public async Task EmptyFollowUpSnapshot_doesNotClearTheAgentCatalog()
     {
         var fake = new ChatApiFake
@@ -357,6 +380,9 @@ internal sealed class ChatApiFake : IAgentApiProvider
             throw failure;
         return Session ?? new AgentSessionDto(workspaceId, null, "idle", null, null, [], []);
     }
+
+    public Task<AgentSessionDto?> BindAsync(string workspaceId, string agent, CancellationToken cancellationToken)
+        => Task.FromResult(NextSession ?? Session);
 
     public Task<AgentSessionDto?> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken)
         => Task.FromResult(NextSession ?? Session);

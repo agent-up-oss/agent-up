@@ -15,7 +15,7 @@ This page is the contract for running the Server loop kernel against a real toke
 
 ## Kernel
 
-The Server loop attaches an optional permission policy, iterates `PromptWaitAsync`, and stops in one typed terminal: `Completed`, `EndTurn`, `Cancelled`, `MaxIterations`, `BlockedPolicy`, or `Failed`. A null policy is today's human path. An unmatched permission is `blocked:policy` plus a reject option so the agent does not hang. Product HTTP, forge, and role surfaces are later work; this kernel is the subject the CPU-inference gate drives.
+The Server loop attaches an optional permission policy, iterates `PromptWaitAsync`, and stops in one typed terminal: `Completed`, `EndTurn`, `Cancelled`, `MaxIterations`, `BlockedPolicy`, `BlockedAwaitingInput`, `BlockedRateLimited`, `BlockedPrecondition`, `BlockedHostUnavailable`, `Failed`, or `Idle`. A null policy is today's human path. An unmatched permission is `blocked:policy` plus a reject option so the agent does not hang. Bind, policy HTTP, roles, and assigned-issue activation live on [Autonomy](/developer-guide/agents/autonomy); this kernel is the subject the CPU-inference gate drives.
 
 ## Invariants
 
@@ -43,11 +43,13 @@ The process prints `loop-inference seed=` on stderr. Replay a failure with `AGEN
 
 Reusable prompts live in `loop-coverage/scenarios/*.json`. They do not name an agent. `scoresOutcome` scenarios contribute to the pooled rate in `loop-coverage/baselines/cpu-inference.json`. Invariant-only scenarios still fail on a broken kernel.
 
-The scripted ACP agent planned alongside this gate consumes the same files. Do not fork scenario JSON per agent.
+`test-agent-scripted` consumes the same files. Do not fork scenario JSON per agent. `loop-scripted` is the fast check over that agent's declared-turn script.
 
 ## CI
 
 `./.github/scripts/run-loop-inference.sh` publishes `AgentUp.TestAgents`, verifies the pinned GGUF, and runs `AgentUp.Server.Tests` with `Category=LoopInference`. The Loop CPU inference job always runs and gates the release. It is `slow` and `ciOnly`. It is excluded from the test-kind watchdog, `run-dotnet-tests.sh`, and the fast `server` check.
+
+`Category=LoopSoak` is a separate `slow` `ciOnly` check. `./.github/scripts/run-loop-soak.sh` runs three concurrent assigned-issue loops and proves a restart does not silently resume. It is excluded from the same fast suites and also gates the release.
 
 <DocNext href="/developer-guide/agents/sign-in" title="Sign-in">
 Poll, code, and redirect transports.

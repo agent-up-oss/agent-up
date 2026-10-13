@@ -14,6 +14,7 @@ public sealed class AgentsControllerTests
         var controller = new AgentsController(new AgentChatService(provider));
         await controller.SendAsync("ws", "hello", CancellationToken.None);
         await controller.GetAsync("ws", CancellationToken.None);
+        await controller.BindAsync("ws", "Codex", CancellationToken.None);
         await controller.ScheduleAsync("ws", "Codex", CancellationToken.None);
         await controller.AuthenticateAsync("ws", "chatgpt", CancellationToken.None);
         await controller.DecideAsync("ws", "req", "allow", CancellationToken.None);

@@ -15,6 +15,7 @@ public sealed class AutonomousLoopService(AgentSchedulingService scheduling, Loo
             return Result(request, 0, LoopTerminal.Failed, "not-found", EmptyInspection(), "workspace agent is not scheduled", 0);
 
         var context = request.Task.Length;
+        var noProgress = 0;
         try
         {
             for (var iteration = 1; iteration <= request.MaxIterations; iteration++)
@@ -22,9 +23,30 @@ public sealed class AutonomousLoopService(AgentSchedulingService scheduling, Loo
                 cancellationToken.ThrowIfCancellationRequested();
                 var message = iteration == 1
                     ? request.Task
-                    : "Continue the task. Call complete_task when it is done.";
+                    : noProgress > 0
+                        ? "Continue under the standing permission policy. Do not wait for confirmation. Call complete_task when the task is done."
+                        : "Continue the task. Call complete_task when it is done.";
                 context += message.Length;
-                var action = await scheduling.PromptWaitAsync(request.WorkspaceId, message, cancellationToken);
+                AgentActionResult action;
+                using (var promptTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+                {
+                    promptTimeout.CancelAfter(Math.Max(1, request.PromptTimeoutMs));
+                    try
+                    {
+                        action = await scheduling.PromptWaitAsync(request.WorkspaceId, message, promptTimeout.Token);
+                    }
+                    catch (OperationCanceledException) when (promptTimeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                    {
+                        action = AgentActionResult.Failed("The agent stopped writing but held the session open.");
+                    }
+
+                    if (promptTimeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                    {
+                        await scheduling.CancelAsync(request.WorkspaceId, CancellationToken.None);
+                        var hung = scheduling.InspectLoop(request.WorkspaceId);
+                        return Result(request, iteration, LoopTerminal.Failed, "unresponsive", hung, "The agent stopped writing but held the session open.", context);
+                    }
+                }
                 var snapshot = scheduling.InspectLoop(request.WorkspaceId);
                 if (context > request.ContextCharLimit)
                     return Result(request, iteration, LoopTerminal.Failed, "context_limit", snapshot, "context truncated", context);
@@ -36,6 +58,16 @@ public sealed class AutonomousLoopService(AgentSchedulingService scheduling, Loo
                     return Result(request, iteration, LoopTerminal.Completed, snapshot.StopReason ?? "end_turn", snapshot, null, context);
                 if (string.Equals(snapshot.StopReason, "cancelled", StringComparison.Ordinal))
                     return Result(request, iteration, LoopTerminal.Cancelled, "cancelled", snapshot, null, context);
+                if (string.Equals(snapshot.StopReason, "rate_limited", StringComparison.OrdinalIgnoreCase))
+                    return Result(request, iteration, LoopTerminal.BlockedRateLimited, "rate_limited", snapshot, "blocked:rate-limited", context);
+                if (!snapshot.SawToolCall && !snapshot.CompletedTask)
+                {
+                    noProgress++;
+                    if (noProgress > request.StandingPolicyReplies)
+                        return Result(request, iteration, LoopTerminal.BlockedAwaitingInput, "awaiting_input", snapshot, "blocked:awaiting-input", context);
+                }
+                else
+                    noProgress = 0;
                 if (iteration == request.MaxIterations)
                     return Result(
                         request,
@@ -64,7 +96,7 @@ public sealed class AutonomousLoopService(AgentSchedulingService scheduling, Loo
 
     public IReadOnlyList<string> Invariants(LoopRunResult result) => invariants.Evaluate(result);
 
-    private static LoopInspection EmptyInspection() => new([], true, true, 0, false, null, null);
+    private static LoopInspection EmptyInspection() => new([], true, true, 0, false, null, null, false);
 
     private static LoopRunResult Result(
         LoopRunRequest request,
