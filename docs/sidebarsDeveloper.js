@@ -63,6 +63,7 @@ const sidebars = {
       items: [
         { type: 'doc', id: 'agents/index', label: 'General' },
         'agents/sign-in',
+        'agents/loop-coverage',
       ],
     },
     {

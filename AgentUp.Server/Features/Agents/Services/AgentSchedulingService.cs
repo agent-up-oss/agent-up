@@ -379,24 +379,76 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         state.Error = null;
         events.Publish(workspaceId, "user_message", new { text = message });
         events.Publish(workspaceId, "state", Get(workspaceId)!);
-        _ = RunPromptAsync(workspaceId, state, message);
+        var completion = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
+        state.PromptCompletion = completion;
+        state.LoopBlock = null;
+        _ = RunPromptAsync(workspaceId, state, message, completion);
         return AgentActionResult.Success();
     }
 
-    private async Task RunPromptAsync(string workspaceId, AgentSessionState state, string message)
+    public async Task<AgentActionResult> PromptWaitAsync(string workspaceId, string message, CancellationToken cancellationToken)
     {
+        var queued = await PromptAsync(workspaceId, message, cancellationToken);
+        if (!queued.Found || queued.Error is not null) return queued;
+        if (!_sessions.TryGetValue(workspaceId, out var state) || state.PromptCompletion is null)
+            return queued;
         try
         {
-            var result = await state.Process.CallAsync("session/prompt", new {
-                sessionId = state.AcpSessionId,
-                prompt = new[] { new { type = "text", text = message } }
-            }, state.Lifetime.Token);
-            events.Publish(workspaceId, "prompt_result", result);
-            state.State = "ready";
-            events.Publish(workspaceId, "state", Get(workspaceId)!);
+            await state.PromptCompletion.Task.WaitAsync(cancellationToken);
+            return AgentActionResult.Success();
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or OperationCanceledException)
         {
+            return AgentActionResult.Failed(exception.Message);
+        }
+    }
+
+    public bool AttachPolicy(string workspaceId, IAgentPermissionPolicy? policy)
+    {
+        if (!_sessions.TryGetValue(workspaceId, out var state)) return false;
+        state.PermissionPolicy = policy;
+        if (policy is null)
+            state.LoopBlock = null;
+        return true;
+    }
+
+    public LoopInspection InspectLoop(string workspaceId)
+    {
+        if (!_sessions.TryGetValue(workspaceId, out var state))
+            return new LoopInspection([], true, true, 0, false, null, "not-found");
+        var stop = ReadStopReason(state.LastPromptResult);
+        var completed = ReadCompleted(state.LastPromptResult);
+        return new LoopInspection(
+            [.. state.PermissionRuleIds],
+            state.Permissions.IsEmpty,
+            state.PromptGate.CurrentCount == 1,
+            state.TranscriptEvents,
+            completed,
+            stop,
+            state.LoopBlock);
+    }
+
+    private async Task RunPromptAsync(
+        string workspaceId, AgentSessionState state, string message, TaskCompletionSource<JsonElement> completion)
+    {
+        Exception? failure = null;
+        JsonElement result = default;
+        var succeeded = false;
+        try
+        {
+            result = await state.Process.CallAsync("session/prompt", new {
+                sessionId = state.AcpSessionId,
+                prompt = new[] { new { type = "text", text = message } }
+            }, state.Lifetime.Token);
+            state.LastPromptResult = result;
+            events.Publish(workspaceId, "prompt_result", result);
+            state.State = "ready";
+            events.Publish(workspaceId, "state", Get(workspaceId)!);
+            succeeded = true;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or OperationCanceledException)
+        {
+            failure = exception;
             if (!state.Lifetime.IsCancellationRequested)
             {
                 state.State = "ready";
@@ -405,6 +457,13 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             }
         }
         finally { state.PromptGate.Release(); }
+
+        if (succeeded)
+            completion.TrySetResult(result);
+        else if (failure is not null)
+            completion.TrySetException(failure);
+        else
+            completion.TrySetCanceled();
     }
 
     public async Task<AgentActionResult> CancelAsync(string workspaceId, CancellationToken cancellationToken)
@@ -477,6 +536,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             && update.TryGetProperty("title", out var title) && !string.IsNullOrWhiteSpace(title.GetString())
             && workspaces.GetById(workspaceId) is { } workspace)
             SaveSession(workspaceId, state, workspace.Branch, title.GetString()!);
+        state.TranscriptEvents++;
         events.Publish(workspaceId, method == "session/update" ? "session_update" : method, payload);
         return Task.CompletedTask;
     }
@@ -485,10 +545,12 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         string workspaceId, AgentSessionState state, string method, JsonElement payload, CancellationToken cancellationToken)
     {
         if (method != "session/request_permission") throw new InvalidOperationException($"ACP client method '{method}' is not supported.");
-        var requestId = Guid.NewGuid().ToString("N");
-        var completion = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         var optionIds = payloads.PermissionOptionIds(payload);
         if (optionIds.Count == 0) throw new InvalidOperationException("The ACP agent requested permission without valid options.");
+        if (state.PermissionPolicy is { } policy)
+            return ResolvePolicy(workspaceId, state, payload, optionIds, policy);
+        var requestId = Guid.NewGuid().ToString("N");
+        var completion = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (!state.Permissions.TryAdd(requestId, new PendingAgentPermission(optionIds, completion))) throw new InvalidOperationException("Could not register permission request.");
         events.Publish(workspaceId, "permission_request", new { requestId, request = payload });
         try
@@ -497,6 +559,42 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             return payloads.Payload(new { outcome = new { outcome = "selected", optionId } });
         }
         finally { state.Permissions.TryRemove(requestId, out _); }
+    }
+
+    private JsonElement ResolvePolicy(
+        string workspaceId,
+        AgentSessionState state,
+        JsonElement payload,
+        IReadOnlySet<string> optionIds,
+        IAgentPermissionPolicy policy)
+    {
+        var decision = policy.Decide(payload);
+        if (decision is null)
+        {
+            state.LoopBlock = "blocked:policy";
+            events.Publish(workspaceId, "permission_decision", new { blocked = true, ruleId = (string?)null });
+            var reject = optionIds.FirstOrDefault(id => id.Contains("reject", StringComparison.Ordinal)) ?? optionIds.First();
+            return payloads.Payload(new { outcome = new { outcome = "selected", optionId = reject } });
+        }
+
+        state.PermissionRuleIds.Add(decision.RuleId);
+        events.Publish(workspaceId, "permission_decision", new { blocked = false, ruleId = decision.RuleId, optionId = decision.OptionId });
+        return payloads.Payload(new { outcome = new { outcome = "selected", optionId = decision.OptionId } });
+    }
+
+    private static string? ReadStopReason(JsonElement? result)
+    {
+        if (result is not { } payload || payload.ValueKind != JsonValueKind.Object) return null;
+        return payload.TryGetProperty("stopReason", out var stop) && stop.ValueKind == JsonValueKind.String
+            ? stop.GetString()
+            : null;
+    }
+
+    private static bool ReadCompleted(JsonElement? result)
+    {
+        if (result is not { } payload || payload.ValueKind != JsonValueKind.Object) return false;
+        return payload.TryGetProperty("completed", out var completed)
+               && completed.ValueKind == JsonValueKind.True;
     }
 
     /// <summary>Whether this session and process are still the ones serving the workspace.</summary>

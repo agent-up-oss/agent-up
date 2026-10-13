@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Interfaces;
 
@@ -30,4 +31,10 @@ public sealed class AgentSessionState
     public SemaphoreSlim PromptGate { get; } = new(1, 1);
     public ConcurrentDictionary<string, PendingAgentPermission> Permissions { get; } = new();
     public CancellationTokenSource Lifetime { get; } = new();
+    public IAgentPermissionPolicy? PermissionPolicy { get; set; }
+    public List<string> PermissionRuleIds { get; } = [];
+    public string? LoopBlock { get; set; }
+    public JsonElement? LastPromptResult { get; set; }
+    public TaskCompletionSource<JsonElement>? PromptCompletion { get; set; }
+    public int TranscriptEvents { get; set; }
 }

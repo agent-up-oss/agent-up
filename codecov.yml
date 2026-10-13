@@ -41,4 +41,5 @@ ignore:
   - "**/Resources/**"
   - "AgentUp.Tray/Features/AutoStart/WindowsAutoStartRegistrar.cs"
   - "AgentUp.Tray/Features/AutoStart/LaunchctlProcess.cs"
+  - "AgentUp.TestAgents/Features/Inference/Providers/LlamaCppTokenGenerator.cs"
   - "**/*.Tests/**"

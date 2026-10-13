@@ -2,6 +2,7 @@ using AgentUp.TestAgents.Features.Acp.Controllers;
 using AgentUp.TestAgents.Features.Authentication.Controllers;
 using AgentUp.TestAgents.Features.Host.Models;
 using AgentUp.TestAgents.Features.IdentityProvider.Controllers;
+using AgentUp.TestAgents.Features.Inference.Controllers;
 
 namespace AgentUp.TestAgents.Features.Host.Services;
 
@@ -13,10 +14,17 @@ public sealed class TestAgentHostService(
     AcpController acp,
     AuthenticationController authentication,
     IdentityProviderController identityProvider,
+    InferenceAcpController inference,
     TestAgentConsole console)
 {
     public async Task<int> RunAsync(TestAgentCommand command, CancellationToken cancellationToken)
     {
+        if (command.Schema == TestAgentSchema.LocalInference)
+        {
+            await inference.ServeAsync(console.In, console.Out, console.Error, cancellationToken);
+            return 0;
+        }
+
         if (command.Verb == TestAgentVerb.IdentityProvider)
         {
             // The port goes to stdout as the first line so a harness that asked for an ephemeral

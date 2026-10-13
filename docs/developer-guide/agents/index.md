@@ -47,6 +47,10 @@ When ACP reports that authentication is required, the session stays scheduled an
 
 Agent-Up advertises no terminal-auth capability because the authenticated HTTP client cannot safely proxy an interactive terminal.
 
-<DocNext href="/developer-guide/agents/sign-in" title="Sign-in">
-Poll, code, and redirect transports.
+## Loop coverage
+
+CI runs the Server loop kernel against a locally-inferring ACP test agent on CPU llama.cpp. Hard invariants fail the run. Pooled task-completion outcomes are compared to a versioned baseline. Scenario files under `loop-coverage/` do not name an agent, so the same prompts can drive CPU inference and a scripted ACP agent.
+
+<DocNext href="/developer-guide/agents/loop-coverage" title="Loop coverage">
+Invariants, pinned GGUF, and the LoopInference CI job.
 </DocNext>

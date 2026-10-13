@@ -41,6 +41,7 @@ Every tool on `/mcp/verification` names its target with exactly one of `workspac
 <DocFact label="CLI">agent-up verify plan · run · guard</DocFact>
 <DocFact label="Coverage">Runs as patch-coverage inside run_verification</DocFact>
 <DocFact label="Receipts">{'.git/agent-up/verification/receipts.json'}</DocFact>
+<DocFact label="Loop inference">slow ciOnly Category=LoopInference, excluded from the watchdog</DocFact>
 </DocFacts>
 
 ## Planned: receipt export
