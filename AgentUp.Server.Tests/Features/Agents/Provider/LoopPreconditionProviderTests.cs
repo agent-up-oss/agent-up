@@ -19,6 +19,31 @@ namespace AgentUp.Server.Tests.Features.Agents.Provider;
 public sealed class LoopPreconditionProviderTests
 {
     [Test]
+    public async Task UnmetAsync_namesAnUnregisteredWorkspace()
+    {
+        var host = await HostAsync();
+
+        var unmet = await host.Preconditions.UnmetAsync("missing", CancellationToken.None);
+
+        Assert.That(unmet, Does.Contain("not registered"));
+    }
+
+    [Test]
+    public async Task UnmetAsync_namesAMissingHostWhenPolicyIsPresent()
+    {
+        var host = await HostAsync();
+        await host.Workspaces.UpdateBoundAgentAsync(host.WorkspaceId, "codex");
+        host.Settings.Save(host.Settings.Get(host.WorkspaceId) with
+        {
+            PolicyRules = [new PermissionRule("all", PermissionRuleKind.WorktreeWrite, true)]
+        });
+
+        var unmet = await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None);
+
+        Assert.That(unmet, Does.Contain("host connection"));
+    }
+
+    [Test]
     public async Task UnmetAsync_namesAMissingBoundAgent()
     {
         var host = await HostAsync();

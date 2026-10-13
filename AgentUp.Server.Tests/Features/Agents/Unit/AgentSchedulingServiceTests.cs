@@ -312,6 +312,26 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
+    public async Task UnbindAsync_refusesWhileALiveSessionRuns()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        var unbound = await _service.UnbindAsync(_workspace.Id, CancellationToken.None);
+
+        Assert.That(unbound.Error, Does.Contain("live"));
+    }
+
+    [Test]
+    public async Task ScheduleAsync_refusesADifferentBoundAgent()
+    {
+        await _service.BindAsync(_workspace.Id, "claude", CancellationToken.None);
+
+        var scheduled = await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        Assert.That(scheduled.Error, Does.Contain("bound to 'claude'"));
+    }
+
+    [Test]
     public async Task PromptAsync_enqueuesSteeringWhenAPolicyIsAttachedAndAPromptIsRunning()
     {
         _process.HoldPrompt = true;

@@ -200,6 +200,64 @@ public sealed class AutonomyHttpTests
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
+    [Test]
+    public async Task DeleteBinding_clearsTheWorkspaceAgent()
+    {
+        await using var host = await HostAsync();
+        var workspace = await host.RegisterAsync();
+        await host.Client.PutAsJsonAsync(
+            $"/api/workspaces/{workspace.Id}/agent/binding",
+            new { agent = "codex" });
+
+        using var response = await host.Client.DeleteAsync($"/api/workspaces/{workspace.Id}/agent/binding");
+        var session = await response.Content.ReadFromJsonAsync<AgentSessionDto>(Json);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(session!.BoundAgent, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task PutQueueOrder_storesTheDeclaredOrder()
+    {
+        await using var host = await HostAsync();
+        var workspace = await host.RegisterAsync();
+
+        using var response = await host.Client.PutAsJsonAsync(
+            $"/api/workspaces/{workspace.Id}/agent/queue-order",
+            new { order = "UpdatedAsc" });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+    }
+
+    [Test]
+    public async Task GetLoop_returnsStoppedForAKnownWorkspace()
+    {
+        await using var host = await HostAsync();
+        var workspace = await host.RegisterAsync();
+
+        var loop = await host.Client.GetFromJsonAsync<AgentLoopStatusDto>(
+            $"/api/workspaces/{workspace.Id}/agent/loop", Json);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(loop!.Active, Is.False);
+            Assert.That(loop.Phase, Is.EqualTo("stopped"));
+        });
+    }
+
+    [Test]
+    public async Task PutAutonomy_disableReturnsNoContent()
+    {
+        await using var host = await HostAsync();
+
+        using var response = await host.Client.PutAsJsonAsync("/api/autonomy", new { enabled = false });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+    }
+
     private static async Task<Host> HostAsync()
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = ["--urls=http://127.0.0.1:0"] });

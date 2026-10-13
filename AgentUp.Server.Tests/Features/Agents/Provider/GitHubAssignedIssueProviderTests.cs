@@ -29,6 +29,28 @@ public sealed class GitHubAssignedIssueProviderTests
     }
 
     [Test]
+    public async Task ListAssignedAsync_ordersByCreatedAndUpdatedWhenAsked()
+    {
+        var http = new HttpClient(new FixedHandler("""
+            [
+              {"id": 20, "number": 2, "title": "Two", "body": "b", "created_at": "2020-01-02T00:00:00Z", "updated_at": "2020-01-02T00:00:00Z", "html_url": "https://example/2"},
+              {"id": 10, "number": 1, "title": "One", "body": "a", "created_at": "2020-01-01T00:00:00Z", "updated_at": "2020-01-03T00:00:00Z", "html_url": "https://example/1"}
+            ]
+            """));
+        var provider = new GitHubAssignedIssueProvider(http);
+
+        var created = await provider.ListAssignedAsync("ws", AssignedIssueOrder.CreatedAsc, CancellationToken.None);
+        var updated = await provider.ListAssignedAsync("ws", AssignedIssueOrder.UpdatedAsc, CancellationToken.None);
+        provider.Replace("ws", []);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(created.Select(item => item.Number), Is.EqualTo(new[] { 1, 2 }));
+            Assert.That(updated.Select(item => item.Number), Is.EqualTo(new[] { 2, 1 }));
+        });
+    }
+
+    [Test]
     public void ListAssignedAsync_throwsWhenTheHostIsUnavailable()
     {
         var http = new HttpClient(new FixedHandler("nope", HttpStatusCode.ServiceUnavailable));

@@ -68,6 +68,40 @@ public sealed class DeclaredPermissionPolicyTests
         });
     }
 
+    [Test]
+    public void Decide_returnsNullWhenOptionsAreMissing()
+    {
+        var policy = new DeclaredPermissionPolicy([
+            new PermissionRule("write", PermissionRuleKind.WorktreeWrite, true)
+        ]);
+
+        var decision = policy.Decide(JsonSerializer.Deserialize<JsonElement>("""{"toolCall":{"kind":"edit","title":"Write"}}"""));
+
+        Assert.That(decision!.OptionId, Is.Empty);
+    }
+
+    [Test]
+    public void Decide_readsAStringLocationAndANetworkScope()
+    {
+        var write = new DeclaredPermissionPolicy([
+            new PermissionRule("write-src", PermissionRuleKind.WorktreeWrite, true, "src/")
+        ]);
+        var network = new DeclaredPermissionPolicy([
+            new PermissionRule("net", PermissionRuleKind.Network, true, "https://")
+        ]);
+        var stringLocation = JsonSerializer.Deserialize<JsonElement>("""
+            {"options":[{"optionId":"allow-once"}],"toolCall":{"kind":"edit","title":"Write","locations":["src/app.ts"]}}
+            """);
+        var fetch = Request("network", "fetch https://example", "");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(write.Decide(stringLocation)!.RuleId, Is.EqualTo("write-src"));
+            Assert.That(network.Decide(fetch)!.RuleId, Is.EqualTo("net"));
+            Assert.That(DeclaredPermissionPolicy.Classify(JsonSerializer.Deserialize<JsonElement>("{}")), Is.EqualTo(PermissionRuleKind.WorktreeWrite));
+        });
+    }
+
     private static JsonElement Request(string kind, string title, string path, string? command = null)
     {
         var json = JsonSerializer.Serialize(new

@@ -142,6 +142,31 @@ public sealed class ScriptedAcpServiceTests
         Assert.That(output, Does.Contain("\"authMethods\":[]"));
     }
 
+    [Test]
+    public async Task RunAsync_skipsMalformedFramesAndHonorsCancel()
+    {
+        var service = new ScriptedAcpService(new FixedScript(Turn(ScriptedTurnKind.Complete)));
+        using var input = new StringReader(
+            "not-json\n"
+            + """{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":1}}""" + "\n"
+            + """{"jsonrpc":"2.0","id":2,"method":"session/cancel","params":{}}""" + "\n"
+            + """{"jsonrpc":"2.0","id":3,"method":"session/prompt","params":{"prompt":"hi"}}""" + "\n");
+        using var output = new StringWriter();
+
+        await service.RunAsync(input, output, CancellationToken.None);
+
+        Assert.That(output.ToString(), Does.Contain("end_turn"));
+        Assert.That(ScriptedAgentScript.Empty.Turns, Is.Empty);
+    }
+
+    [Test]
+    public async Task PlayAsync_unknownKindCompletesTheTurn()
+    {
+        var output = await PlayAsync(new ScriptedTurnBuilder((ScriptedTurnKind)999).Build());
+
+        Assert.That(output, Does.Contain("end_turn"));
+    }
+
     private static ScriptedTurn Turn(ScriptedTurnKind kind) => new ScriptedTurnBuilder(kind).Build();
 
     private static async Task<string> PlayAsync(ScriptedTurn turn, CancellationToken cancellationToken = default)

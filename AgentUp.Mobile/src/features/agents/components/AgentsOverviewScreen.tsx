@@ -97,7 +97,11 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
               accessibilityRole="button"
               accessibilityLabel={session.agent === session.boundAgent ? `Open ${session.boundAgent}` : `Start ${session.boundAgent}`}
               disabled={busy}
-              onPress={() => session.agent === session.boundAgent ? openChat() : void start(session.boundAgent)}
+              onPress={() => {
+                const bound = session.boundAgent;
+                if (!bound) return;
+                session.agent === bound ? openChat() : void start(bound);
+              }}
               style={styles.card}>
               <Text style={styles.title}>{session.boundAgent}</Text>
               <Text style={styles.detail}>{session.loop ? `${session.loop.phase}${session.loop.terminal ? ` · ${session.loop.terminal}` : ''}` : session.agent ? 'Open existing session' : 'Start the bound agent'}</Text>

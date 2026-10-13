@@ -1,8 +1,10 @@
 using System.Text.Json;
 using AgentUp.Server.Features.Agents.DTOs;
+using AgentUp.Server.Features.Agents.Interfaces;
 using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Features.Agents.Services;
+using ModelContextProtocol.Server;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Ports.Controllers;
@@ -99,6 +101,115 @@ public sealed class AutonomousWorkspaceServiceTests
     }
 
     [Test]
+    public async Task Setters_returnNotFoundForAnUnknownWorkspace()
+    {
+        var host = await HostAsync();
+        var hostConnection = await host.Autonomy.SetHostConnectionAsync("missing", true);
+        var policy = await host.Autonomy.SetPolicyAsync("missing", []);
+        var role = await host.Autonomy.SetRoleAsync("missing", null);
+        var order = await host.Autonomy.SetQueueOrderAsync("missing", AssignedIssueOrder.NumberAsc);
+        var activate = await host.Autonomy.ActivateAsync("missing", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(hostConnection.Found, Is.False);
+            Assert.That(policy.Found, Is.False);
+            Assert.That(role.Found, Is.False);
+            Assert.That(order.Found, Is.False);
+            Assert.That(activate.Found, Is.False);
+            Assert.That(host.Autonomy.Deactivate("missing").Found, Is.False);
+        });
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task SetQueueOrderAndRole_persistOnAKnownWorkspace()
+    {
+        var host = await HostAsync();
+        await host.Autonomy.SetQueueOrderAsync(host.WorkspaceId, AssignedIssueOrder.UpdatedAsc);
+        await host.Autonomy.SetRoleAsync(
+            host.WorkspaceId,
+            new AgentRoleDefinition("Ship", ["read_file"], RoleTriggerKind.IssueAssigned, RoleTerminationKind.ProposalOpened));
+        host.Autonomy.RestrictRoleTools(new McpServerOptions(), host.WorkspaceId);
+        host.Autonomy.RestrictRoleTools(new McpServerOptions(), null);
+        host.Autonomy.DisableServer();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(host.Settings.Get(host.WorkspaceId).QueueOrder, Is.EqualTo(AssignedIssueOrder.UpdatedAsc));
+            Assert.That(host.Autonomy.RoleTools(host.WorkspaceId), Is.EqualTo(new[] { "read_file" }));
+            Assert.That(host.Autonomy.ServerEnabled, Is.False);
+        });
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task RunAsync_blocksWhenTheHostQueueThrows()
+    {
+        var host = await HostAsync(new ThrowingAssignedIssueQueue());
+        await ReadyAsync(host);
+
+        await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
+        await WaitUntilAsync(() => host.Autonomy.Status(host.WorkspaceId).Terminal == LoopTerminal.BlockedHostUnavailable);
+
+        Assert.That(host.Autonomy.Status(host.WorkspaceId).StopReason, Is.EqualTo("host_unavailable"));
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task RunAsync_blocksWhenScheduleFails()
+    {
+        var host = await HostAsync();
+        await ReadyAsync(host);
+        await host.Workspaces.UpdateBoundAgentAsync(host.WorkspaceId, "cursor");
+        host.Issues.Replace(host.WorkspaceId, [
+            new AssignedIssue("1", 1, "One", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example/1")
+        ]);
+
+        await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
+        await WaitUntilAsync(() => host.Autonomy.Status(host.WorkspaceId).Terminal == LoopTerminal.Failed);
+
+        Assert.That(host.Autonomy.Status(host.WorkspaceId).StopReason, Is.EqualTo("schedule"));
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task RunAsync_blocksWhenPreconditionsFailOnTheNextTask()
+    {
+        var settings = new InMemoryAgentWorkspaceSettingsRepository();
+        var host = await HostAsync(new ClearingAssignedIssueQueue(settings), settings);
+        await ReadyAsync(host);
+        host.Issues.Replace(host.WorkspaceId, [
+            new AssignedIssue("1", 1, "One", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example/1"),
+            new AssignedIssue("2", 2, "Two", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example/2")
+        ]);
+
+        await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
+        await WaitUntilAsync(() => host.Autonomy.Status(host.WorkspaceId).Terminal == LoopTerminal.BlockedPrecondition);
+
+        Assert.That(host.Autonomy.Status(host.WorkspaceId).StopReason, Is.EqualTo("precondition"));
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task ActivateAsync_replacesAPreviousRun()
+    {
+        var host = await HostAsync();
+        await ReadyAsync(host);
+        host.Process.HoldPrompt = true;
+        host.Issues.Replace(host.WorkspaceId, [
+            new AssignedIssue("1", 1, "One", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example/1")
+        ]);
+        await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
+        await WaitUntilAsync(() => host.Autonomy.Status(host.WorkspaceId).Phase == "running");
+
+        var second = await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
+
+        Assert.That(second.Error, Is.Null);
+        await host.DisposeAsync();
+    }
+
+    [Test]
     public async Task Deactivate_stopsARunningLoop()
     {
         var host = await HostAsync();
@@ -132,7 +243,9 @@ public sealed class AutonomousWorkspaceServiceTests
         host.Process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "end_turn", completed = true });
     }
 
-    private static async Task<Host> HostAsync()
+    private static async Task<Host> HostAsync(
+        IAssignedIssueQueue? issues = null,
+        InMemoryAgentWorkspaceSettingsRepository? settings = null)
     {
         var registry = new WorkspaceRegistry(
             new InMemoryWorkspaceRepository(),
@@ -143,7 +256,7 @@ public sealed class AutonomousWorkspaceServiceTests
         var workspace = await registry.RegisterAsync(
             ServerDomain.Workspace().Named("Workspace").At("/repo").AtCommit("abc").Build());
         var workspaces = new WorkspaceQueryController(registry);
-        var settings = new InMemoryAgentWorkspaceSettingsRepository();
+        settings ??= new InMemoryAgentWorkspaceSettingsRepository();
         var process = new FakeAgentProcessProvider();
         var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
         var commands = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(
@@ -161,7 +274,7 @@ public sealed class AutonomousWorkspaceServiceTests
             events,
             NullLogger<AgentSchedulingService>.Instance,
             settings: settings);
-        var issues = new MemoryAssignedIssueQueue();
+        issues ??= new MemoryAssignedIssueQueue();
         var git = new FakeGitWorkingTreeProvider();
         var preconditions = new LoopPreconditionProvider(
             workspaces,
@@ -202,11 +315,43 @@ public sealed class AutonomousWorkspaceServiceTests
         WorkspaceQueryController Workspaces,
         InMemoryAgentWorkspaceSettingsRepository Settings,
         FakeAgentProcessProvider Process,
-        MemoryAssignedIssueQueue Issues,
+        IAssignedIssueQueue Issues,
         AutonomousWorkspaceService Autonomy,
         AgentSchedulingService Scheduling) : IAsyncDisposable
     {
         public ValueTask DisposeAsync() => Scheduling.DisposeAsync();
+    }
+
+    private sealed class ThrowingAssignedIssueQueue : IAssignedIssueQueue
+    {
+        public Task<IReadOnlyList<AssignedIssue>> ListAssignedAsync(
+            string workspaceId,
+            AssignedIssueOrder order,
+            CancellationToken cancellationToken)
+            => throw new HttpRequestException("GitHub is unavailable.");
+
+        public void Replace(string workspaceId, IReadOnlyList<AssignedIssue> issues)
+        {
+        }
+    }
+
+    private sealed class ClearingAssignedIssueQueue(InMemoryAgentWorkspaceSettingsRepository settings) : IAssignedIssueQueue
+    {
+        private IReadOnlyList<AssignedIssue> _items = [];
+
+        public Task<IReadOnlyList<AssignedIssue>> ListAssignedAsync(
+            string workspaceId,
+            AssignedIssueOrder order,
+            CancellationToken cancellationToken)
+            => Task.FromResult(_items);
+
+        public void Replace(string workspaceId, IReadOnlyList<AssignedIssue> issues)
+        {
+            var draining = _items.Count > 0 && issues.Count < _items.Count;
+            _items = issues;
+            if (draining)
+                settings.Save(settings.Get(workspaceId) with { PolicyRules = [] });
+        }
     }
 
     private sealed class AlwaysSupportedInspector : AgentUp.Server.Features.Agents.Interfaces.IEnabledAgentInspector
