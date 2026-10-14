@@ -6,6 +6,7 @@ using AgentUp.Desktop.Features.Agents.DTOs;
 using AgentUp.Desktop.Features.Agents.Interfaces;
 using AgentUp.Desktop.Features.Agents.Services;
 using AgentUp.Desktop.Features.Agents.ViewModels;
+using AgentUp.Desktop.Tests.Support;
 using Avalonia.Headless.NUnit;
 using Avalonia.Threading;
 
@@ -83,9 +84,12 @@ public sealed class AgentChatViewModelStreamTests
         var fake = new StreamApiFake
         {
             EventsHang = hang,
-            Session = new AgentSessionDto("ws-1", "Codex", "authentication_required", null, null, [
-                new AgentDescriptorDto("Codex", true, "Codex")
-            ], [new AgentAuthMethodDto("chatgpt", "ChatGPT", "Use a subscription.")])
+            Session = DesktopDomain.Session()
+                .WithAgent("Codex")
+                .InState("authentication_required")
+                .IdleWith(new AgentDescriptorDto("Codex", true, "Codex"))
+                .WithAuthMethods(new AgentAuthMethodDto("chatgpt", "ChatGPT", "Use a subscription."))
+                .Build()
         };
         var view = new AgentChatViewModel(new AgentsController(new AgentChatService(fake)));
 
@@ -129,10 +133,13 @@ public sealed class AgentChatViewModelStreamTests
         var fake = new StreamApiFake
         {
             EventsHang = hang,
-            Session = new AgentSessionDto("ws-1", "Cursor", "authenticating", null, null, [
-                new AgentDescriptorDto("Cursor", true, "Cursor")
-            ], [new AgentAuthMethodDto("cursor_login", "Cursor Login", "Sign in")],
-                new AgentLoginChallengeDto("https://cursor.com/loginDeepControl?challenge=abc", "ABCD-EFGHI", "Open this link"))
+            Session = DesktopDomain.Session()
+                .WithAgent("Cursor")
+                .InState("authenticating")
+                .IdleWith(new AgentDescriptorDto("Cursor", true, "Cursor"))
+                .WithAuthMethods(new AgentAuthMethodDto("cursor_login", "Cursor Login", "Sign in"))
+                .WithLoginChallenge(new AgentLoginChallengeDto("https://cursor.com/loginDeepControl?challenge=abc", "ABCD-EFGHI", "Open this link"))
+                .Build()
         };
         var view = new AgentChatViewModel(new AgentsController(new AgentChatService(fake)));
 
@@ -371,22 +378,27 @@ internal sealed class StreamApiFake : IAgentApiProvider
     public Task<AgentSessionDto?> GetAsync(string workspaceId, CancellationToken cancellationToken)
     {
         if (GetFailure is not null) return Task.FromException<AgentSessionDto?>(GetFailure);
-        return Task.FromResult<AgentSessionDto?>(Session ?? new AgentSessionDto(workspaceId, null, "idle", null, null, [
-            new AgentDescriptorDto("Codex", true, "Codex")
-        ], []));
+        return Task.FromResult<AgentSessionDto?>(Session ?? DesktopDomain.Session()
+            .ForWorkspace(workspaceId)
+            .IdleWith(new AgentDescriptorDto("Codex", true, "Codex"))
+            .Build());
     }
 
     public Task<AgentSessionDto?> BindAsync(string workspaceId, string agent, CancellationToken cancellationToken)
-        => Task.FromResult<AgentSessionDto?>(new AgentSessionDto(workspaceId, null, "idle", null, null, [
-            new AgentDescriptorDto(agent, true, agent)
-        ], [], BoundAgent: agent));
+        => Task.FromResult<AgentSessionDto?>(DesktopDomain.Session()
+            .ForWorkspace(workspaceId)
+            .IdleWith(new AgentDescriptorDto(agent, true, agent))
+            .BoundTo(agent)
+            .Build());
 
     public Task<AgentSessionDto?> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken)
     {
         Scheduled = (workspaceId, agent);
-        return Task.FromResult<AgentSessionDto?>(new AgentSessionDto(workspaceId, agent, "ready", "s1", null, [
-            new AgentDescriptorDto(agent, true, agent)
-        ], [], BoundAgent: agent));
+        return Task.FromResult<AgentSessionDto?>(DesktopDomain.Session()
+            .ForWorkspace(workspaceId)
+            .Ready(agent)
+            .BoundTo(agent)
+            .Build());
     }
 
     public Task<AgentSessionDto?> ResumeAsync(string workspaceId, string sessionId, CancellationToken cancellationToken) =>

@@ -527,6 +527,21 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_exposesLoopStateOnTheAgentSession()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var session = Json(backend, Get("/api/workspaces/harbor-shop/agent"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(session["loop"]!["phase"]!.GetValue<string>(), Is.EqualTo("idle"));
+            Assert.That(session["loop"]!["taskTitle"]!.GetValue<string>(), Is.EqualTo("Restock featured products"));
+            Assert.That(session["loop"]!["stopReason"]!.GetValue<string>(), Is.EqualTo("queue_empty"));
+            Assert.That(session["boundAgent"]!.GetValue<string>(), Is.EqualTo("Codex"));
+        });
+    }
+
+    [Test]
     public void Handle_cloneEmptyRepositoryAndOddQueries()
     {
         var backend = FakeServerTestComposition.Backend();
