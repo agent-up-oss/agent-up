@@ -1,5 +1,6 @@
 using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Agents.Providers;
+using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Agents.Provider;
 
@@ -10,8 +11,8 @@ public sealed class MemoryAssignedIssueQueueTests
     public async Task ListAssignedAsync_ordersByTheDeclaredKey()
     {
         var queue = new MemoryAssignedIssueQueue();
-        var older = Issue(2, created: 1, updated: 9);
-        var newer = Issue(1, created: 5, updated: 2);
+        var older = ServerDomain.Issue().Numbered(2).Created(1).Updated(9).Build();
+        var newer = ServerDomain.Issue().Numbered(1).Created(5).Updated(2).Build();
         queue.Replace("ws", [older, newer]);
 
         var byNumber = await queue.ListAssignedAsync("ws", AssignedIssueOrder.NumberAsc, CancellationToken.None);
@@ -35,13 +36,4 @@ public sealed class MemoryAssignedIssueQueueTests
 
         Assert.That(items, Is.Empty);
     }
-
-    private static AssignedIssue Issue(int number, int created, int updated) => new(
-        $"{number}",
-        number,
-        $"Issue {number}",
-        "",
-        DateTimeOffset.UnixEpoch.AddDays(created),
-        DateTimeOffset.UnixEpoch.AddDays(updated),
-        $"https://example/{number}");
 }
