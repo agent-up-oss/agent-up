@@ -1,0 +1,12 @@
+{
+  "name": "decode-uri-component",
+  "version": "0.5.0",
+  "description": "CommonJS copy of decode-uri-component@0.5.0 for query-string@7 (GHSA-vcc3-ghjq-m6fr).",
+  "license": "MIT",
+  "main": "index.cjs",
+  "type": "commonjs",
+  "exports": {
+    "types": "./index.d.ts",
+    "default": "./index.cjs"
+  }
+}

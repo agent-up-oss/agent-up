@@ -19,12 +19,36 @@ export async function resumeAgent(server: ServerSession, workspaceId: string, se
 export async function sendAgentMessage(server: ServerSession, workspaceId: string, message: string, request: typeof fetch = fetch) {
   return requestServerJson<null>(server, `${root(workspaceId)}/messages`, jsonBody({ message }), undefined, request);
 }
-export async function authenticateAgent(server: ServerSession, workspaceId: string, methodId: string, request: typeof fetch = fetch) {
+export async function authenticateAgent(
+  server: ServerSession,
+  workspaceId: string,
+  methodId: string,
+  request: typeof fetch = fetch,
+  options: { pause?: (ms: number) => Promise<void>; timeoutMs?: number } = {},
+) {
   await requestServerJson<null>(server, `${root(workspaceId)}/authenticate`, jsonBody({ methodId }), undefined, request);
-  // The POST does not return the session. Read it back so the sign-in panel can render from this
-  // call the way schedule already does, instead of waiting for an event-stream frame that may
-  // arrive after the Open button should already be on screen.
-  return getAgent(server, workspaceId, request);
+  // The POST does not return the session. Read until the login CLI has printed a sign-in URL so
+  // the Open button can render from this call the way schedule already does. A single GET raced
+  // slower transports: loopback redirect binds its listener before it prints the link, and that
+  // empty snapshot could overwrite a later event-stream frame that already had the URL.
+  return waitForSignInChallenge(server, workspaceId, request, options);
+}
+
+async function waitForSignInChallenge(
+  server: ServerSession,
+  workspaceId: string,
+  request: typeof fetch,
+  options: { pause?: (ms: number) => Promise<void>; timeoutMs?: number },
+) {
+  const pause = options.pause ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)));
+  const timeoutMs = options.timeoutMs ?? 60_000;
+  const started = Date.now();
+  while (true) {
+    const session = await getAgent(server, workspaceId, request);
+    if (session?.loginChallenge?.url || session?.state !== 'authenticating') return session;
+    if (Date.now() - started >= timeoutMs) return session;
+    await pause(50);
+  }
 }
 /** A code the user copied out of the provider page, for an agent CLI waiting on one. */
 export async function submitAgentLoginCode(server: ServerSession, workspaceId: string, code: string, request: typeof fetch = fetch) {
