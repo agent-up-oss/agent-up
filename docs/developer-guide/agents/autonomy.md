@@ -8,8 +8,8 @@ A workspace can bind one agent, attach a permission policy, and drain assigned h
 
 <DocFacts>
 <DocFact label="Server enable">AGENTUP_AUTONOMY_ENABLED or PUT /api/autonomy</DocFact>
-<DocFact label="Bind">PUT /api/workspaces/{id}/agent/binding</DocFact>
-<DocFact label="Activate">PUT /api/workspaces/{id}/agent/autonomy</DocFact>
+<DocFact label="Bind">{'PUT /api/workspaces/{id}/agent/binding'}</DocFact>
+<DocFact label="Activate">{'PUT /api/workspaces/{id}/agent/autonomy'}</DocFact>
 <DocFact label="Default">Off. No policy means the interactive permission path.</DocFact>
 </DocFacts>
 
