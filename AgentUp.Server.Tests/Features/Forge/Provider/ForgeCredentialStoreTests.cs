@@ -51,16 +51,25 @@ public sealed class ForgeCredentialStoreTests
         try
         {
             var store = new ForgeCredentialStore(root);
-            Assert.That(() => store.Write("../escape", "github", "token"), Throws.Nothing);
+            Assert.That(() => store.Write("../escape", "github", "token"), Throws.InvalidOperationException);
+            Assert.That(() => store.Write("acme/widgets", "github", "token"), Throws.InvalidOperationException);
+            Assert.That(() => store.Write("ok", "git\\hub", "token"), Throws.InvalidOperationException);
+            Assert.That(() => store.Write(".", "github", "token"), Throws.InvalidOperationException);
+            Assert.That(() => store.Write(" ", "github", "token"), Throws.InvalidOperationException);
             Assert.That(Directory.Exists(Path.Join(root, "escape")), Is.False);
-            Assert.That(
-                File.Exists(Path.Join(root, "forge-credentials", Uri.EscapeDataString("../escape"), "github")),
-                Is.True);
-            Assert.That(store.Read("../escape", "github"), Is.EqualTo("token"));
+            Assert.That(Directory.Exists(Path.Join(root, "forge-credentials")), Is.False);
         }
         finally
         {
             Directory.Delete(root, recursive: true);
         }
+    }
+
+    [Test]
+    public void IsUnderRoot_rejectsAPathOutsideTheStore()
+    {
+        var root = Path.Join(Path.GetTempPath(), "forge-root");
+        Assert.That(ForgeCredentialStore.IsUnderRoot(root, Path.Join(root, "github")), Is.True);
+        Assert.That(ForgeCredentialStore.IsUnderRoot(root, Path.GetFullPath(Path.Join(root, "..", "outside"))), Is.False);
     }
 }
