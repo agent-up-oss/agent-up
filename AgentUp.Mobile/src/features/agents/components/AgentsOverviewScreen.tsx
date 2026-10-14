@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { bindAgent, getAgent, resumeAgent, scheduleAgent, type AgentId, type AgentSession } from '@agent-up/chat';
-import { formatLoopLine } from '@/features/agents/providers/LoopLineProvider';
+import { boundAgentActionLabel, formatLoopLine } from '@/features/agents/providers/LoopLineProvider';
 import { WorkspaceTabBar } from '@/features/shell/components/WorkspaceTabBar';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useServers } from '@/features/servers/controllers/ServersContext';
@@ -96,7 +96,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
             <Pressable
               testID={`agent-bound-${session.boundAgent}`}
               accessibilityRole="button"
-              accessibilityLabel={session.agent === session.boundAgent ? `Open ${session.boundAgent}` : `Start ${session.boundAgent}`}
+              accessibilityLabel={boundAgentActionLabel(session.boundAgent, session.agent, agents) ?? `Open ${session.boundAgent}`}
               disabled={busy}
               onPress={() => {
                 const bound = session.boundAgent;
