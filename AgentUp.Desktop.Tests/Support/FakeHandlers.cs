@@ -46,6 +46,9 @@ internal sealed class FakeHttpMessageHandler(
         if (GitRoutes.IsCommitQueueRoute(path))
             return Task.FromResult(Ok(GitRoutes.EmptyQueue()));
 
+        if (GitRoutes.IsForgeRoute(path))
+            return Task.FromResult(Ok(GitRoutes.HiddenHosting()));
+
         if (OverviewRoutes.IsOverviewRoute(path))
         {
             var workspace = workspaces.FirstOrDefault(item => item.Id == GitRoutes.WorkspaceId(path));
@@ -123,6 +126,9 @@ internal sealed class MutableFakeHttpMessageHandler(List<WorkspaceDto> initial) 
 
         if (GitRoutes.IsCommitQueueRoute(path))
             return Task.FromResult(Ok(GitRoutes.EmptyQueue()));
+
+        if (GitRoutes.IsForgeRoute(path))
+            return Task.FromResult(Ok(GitRoutes.HiddenHosting()));
 
         if (OverviewRoutes.IsOverviewRoute(path))
         {
@@ -278,8 +284,15 @@ internal static class GitRoutes
         => path.StartsWith("/api/workspaces/", StringComparison.Ordinal)
            && path.EndsWith("/commit-queue", StringComparison.Ordinal);
 
+    public static bool IsForgeRoute(string path)
+        => path.StartsWith("/api/workspaces/", StringComparison.Ordinal)
+           && path.EndsWith("/forge", StringComparison.Ordinal);
+
     public static CommitQueueDto EmptyQueue()
         => new([], [], null, null, null, 0);
+
+    public static ForgeHostingDto HiddenHosting()
+        => new("none", null, null, [], [], null, null);
 
     public static string WorkspaceId(string path)
     {

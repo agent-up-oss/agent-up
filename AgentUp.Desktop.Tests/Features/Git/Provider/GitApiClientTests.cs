@@ -80,6 +80,43 @@ public sealed class GitApiClientTests
     }
 
     [Test]
+    public async Task GetHostingAsync_requestsTheWorkspaceScopedForgeRoute()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK,
+            """{"availability":"none","moduleId":null,"proposal":null,"checks":[],"threads":[],"mergeability":null,"detail":null}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var hosting = await client.GetHostingAsync("ws 1");
+
+        Assert.That(hosting!.Availability, Is.EqualTo("none"));
+        Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws%201/forge"));
+    }
+
+    [Test]
+    public async Task GetHostingAsync_returnsNullWhenTheWorkspaceIsUnknown()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.NotFound, "");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        Assert.That(await client.GetHostingAsync("ws-1"), Is.Null);
+    }
+
+    [Test]
+    public async Task GetHostingAsync_readsNoneFromTheWorkspaceFakeHandler()
+    {
+        using var handler = new FakeHttpMessageHandler([DesktopDomain.Workspace().Build()]);
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
+        var client = new GitApiClient(http);
+
+        var hosting = await client.GetHostingAsync("ws-1");
+
+        Assert.That(hosting, Is.Not.Null);
+        Assert.That(hosting!.Availability, Is.EqualTo("none"));
+    }
+
+    [Test]
     public async Task GetFileDiffAsync_escapesThePathQueryParameter()
     {
         using var handler = new RecordingGitHandler(HttpStatusCode.OK,

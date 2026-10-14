@@ -102,6 +102,54 @@ public sealed class GitPanelBehaviorTests
     }
 
     [AvaloniaTest]
+    public async Task GitPanel_hidesHostingUntilAForgeIsEnabled()
+    {
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
+        var viewModel = (MainViewModel)driver.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Git;
+        await HeadlessExtensions.FlushAsync();
+
+        var strip = driver.Window.FindControl<Border>("GitHostingStrip")!;
+        Assert.That(strip.IsVisible, Is.False);
+
+        viewModel.Git.ApplyHosting(new ForgeHostingDto(
+            "ready",
+            "github",
+            new ForgeProposalDto("1", "42", "Ready", "https://example.test/42", "topic", "main", "open"),
+            [new ForgeCheckDto("ci", "completed", "success", "https://example.test/check")],
+            [new ForgeReviewThreadDto("PRRT_1", "https://example.test/thread", "nits", false)],
+            new ForgeMergeabilityDto(true, "clean"),
+            null));
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(strip.IsVisible, Is.True);
+        Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == "Ready"), Is.True);
+        Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == "Checks passed"), Is.True);
+    }
+
+    [AvaloniaTest]
+    public async Task GitPanel_showsDistinctCopyForMissingCredentialAndUnreachable()
+    {
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
+        var viewModel = (MainViewModel)driver.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Git;
+
+        viewModel.Git.ApplyHosting(new ForgeHostingDto("needsCredential", "github", null, [], [], null, null));
+        await HeadlessExtensions.FlushAsync();
+        var strip = driver.Window.FindControl<Border>("GitHostingStrip")!;
+        Assert.That(strip.IsVisible, Is.True);
+        Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text!.Contains("Sign in")), Is.True);
+
+        viewModel.Git.ApplyHosting(new ForgeHostingDto("unreachable", "github", null, [], [], null, "Could not reach the host."));
+        await HeadlessExtensions.FlushAsync();
+        Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == "Could not reach the host."), Is.True);
+
+        viewModel.Git.ApplyHosting(new ForgeHostingDto("noProposal", "github", null, [], [], null, null));
+        await HeadlessExtensions.FlushAsync();
+        Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text!.Contains("No open proposal")), Is.True);
+    }
+
+    [AvaloniaTest]
     public async Task GitFileDiffOverlay_isHiddenUntilAFileIsOpened()
     {
         var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());

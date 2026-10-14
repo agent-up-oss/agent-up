@@ -1024,6 +1024,109 @@ public sealed class GitPanelViewModelTests
         Assert.That(panel.ErrorMessage, Is.Null);
     }
 
+    [Test]
+    public async Task LoadAsync_hidesHostingWhenAvailabilityIsNone()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            Hosting = new ForgeHostingDto("none", null, null, [], [], null, null)
+        });
+
+        await panel.LoadAsync("ws-1", connectionId: "conn-1");
+
+        Assert.That(panel.ShowHosting, Is.False);
+        Assert.That(panel.HostingTitle, Is.Empty);
+    }
+
+    [Test]
+    public async Task LoadAsync_distinguishesMissingCredentialUnreachableAndNoProposal()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
+
+        await LoadHosting(panel, "needsCredential");
+        Assert.That(panel.HostingTitle, Does.Contain("Sign in"));
+
+        await LoadHosting(panel, "unreachable", "offline");
+        Assert.That(panel.HostingTitle, Is.EqualTo("offline"));
+
+        await LoadHosting(panel, "noProposal");
+        Assert.That(panel.HostingTitle, Does.Contain("No open proposal"));
+    }
+
+    [Test]
+    public void ApplyHosting_readyShowsChecksThreadsAndMergeability()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider());
+        panel.ApplyHosting(new ForgeHostingDto(
+            "ready",
+            "github",
+            new ForgeProposalDto("1", "42", "Ready", "https://example.test/42", "topic", "main", "open"),
+            [new ForgeCheckDto("ci", "completed", "success", "https://example.test/check")],
+            [new ForgeReviewThreadDto("PRRT_1", "https://example.test/thread", "nits", false)],
+            new ForgeMergeabilityDto(true, "clean"),
+            null));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(panel.ShowHosting, Is.True);
+            Assert.That(panel.HostingTitle, Is.EqualTo("Ready"));
+            Assert.That(panel.HostingChecksLabel, Is.EqualTo("Checks passed"));
+            Assert.That(panel.HostingThreadsLabel, Is.EqualTo("1 review thread"));
+            Assert.That(panel.HostingMergeabilityLabel, Is.EqualTo("Mergeable"));
+        });
+    }
+
+    [Test]
+    public void ApplyHosting_reportsFailedChecksAndConflicts()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider());
+        panel.ApplyHosting(new ForgeHostingDto(
+            "ready",
+            "github",
+            new ForgeProposalDto("1", "42", "Broken", "https://example.test/42", "topic", "main", "open"),
+            [new ForgeCheckDto("ci", "completed", "failure", "https://example.test/check")],
+            [
+                new ForgeReviewThreadDto("1", "https://example.test/1", "a", false),
+                new ForgeReviewThreadDto("2", "https://example.test/2", "b", false)
+            ],
+            new ForgeMergeabilityDto(false, "dirty"),
+            null));
+
+        Assert.That(panel.HostingChecksLabel, Is.EqualTo("Checks failed"));
+        Assert.That(panel.HostingThreadsLabel, Is.EqualTo("2 review threads"));
+        Assert.That(panel.HostingMergeabilityLabel, Is.EqualTo("Conflicts with the base"));
+    }
+
+    [Test]
+    public async Task LoadAsync_scopesHostingToConnectionAndWorkspace()
+    {
+        var api = new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            Hosting = new ForgeHostingDto("ready", "github", null, [], [], null, null)
+        };
+        var panel = CreatePanel(api);
+        await panel.LoadAsync("ws-1", connectionId: "conn-a");
+        Assert.That(panel.ShowHosting, Is.True);
+
+        api.Hosting = new ForgeHostingDto("none", null, null, [], [], null, null);
+        await panel.LoadAsync("ws-1", connectionId: "conn-b");
+        Assert.That(panel.ShowHosting, Is.False);
+    }
+
+    private static async Task LoadHosting(GitPanelViewModel panel, string availability, string? detail = null)
+    {
+        var api = new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            Hosting = new ForgeHostingDto(availability, "github", null, [], [], null, detail)
+        };
+        var next = CreatePanel(api);
+        await next.LoadAsync("ws-1");
+        panel.ApplyHosting(next.Hosting);
+    }
+
     private static GitChangeTreeDto OtherWorkspaceTree()
         => new(
             "ws-2",
@@ -1067,6 +1170,11 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
     private TaskCompletionSource<GitFileDiffDto?>? _heldDiff;
 
     public GitChangeTreeDto? Tree { get; set; }
+
+    public ForgeHostingDto? Hosting { get; set; }
+
+    public Task<ForgeHostingDto?> GetHostingAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => Task.FromResult(Hosting);
 
     public CommitQueueDto? Queue { get; set; }
 

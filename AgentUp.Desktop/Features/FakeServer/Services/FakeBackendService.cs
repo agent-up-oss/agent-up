@@ -191,6 +191,17 @@ public sealed class FakeBackendService
             return GitNode(workspaceId, "log");
         if (method == "GET" && rest == "commit-queue")
             return GitNode(workspaceId, "queue");
+        if (method == "GET" && rest == "forge")
+            return Json(new JsonObject
+            {
+                ["availability"] = "none",
+                ["moduleId"] = null,
+                ["proposal"] = null,
+                ["checks"] = new JsonArray(),
+                ["threads"] = new JsonArray(),
+                ["mergeability"] = null,
+                ["detail"] = null
+            });
         if (method == "GET" && rest.StartsWith("git/file", StringComparison.Ordinal))
             return GitDiff(workspaceId, request.Query);
         if (method == "POST" && rest.StartsWith("git/", StringComparison.Ordinal))

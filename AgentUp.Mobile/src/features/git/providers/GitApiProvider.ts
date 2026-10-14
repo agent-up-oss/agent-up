@@ -1,6 +1,7 @@
 import { jsonBody, requestServerJson, ServerRequestError, type ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import type { GitChangeTree, GitCommitResult, GitFileDiff, GitHeadState, GitLog, GitMutationResult, GitSyncResult } from '../models/GitChanges';
 import type { CommitQueue } from '../models/CommitQueue';
+import type { ForgeHosting } from '../models/ForgeHosting';
 
 const COMMIT_TIMEOUT_MS = 60000;
 
@@ -24,6 +25,18 @@ export async function getCommitQueue(
   return readOrNull<CommitQueue>(
     server,
     `/api/workspaces/${encodeURIComponent(workspaceId)}/commit-queue`,
+    request,
+  );
+}
+
+export async function getForgeHosting(
+  server: ServerSession,
+  workspaceId: string,
+  request: typeof fetch = fetch,
+): Promise<ForgeHosting | null> {
+  return readOrNull<ForgeHosting>(
+    server,
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/forge`,
     request,
   );
 }

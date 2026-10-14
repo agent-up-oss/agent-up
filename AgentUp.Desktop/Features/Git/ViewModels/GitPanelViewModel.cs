@@ -42,6 +42,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     private int _behind;
     private GitLogRowDto? _selectedLogRow;
     private bool _isHistoryOpen;
+    private ForgeHostingDto? _hosting;
     private CancellationTokenSource? _watch;
 
     public ObservableCollection<GitChangeNodeViewModel> Nodes { get; } = [];
@@ -59,6 +60,59 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     public string? QueueWorktreePath { get; private set; }
     public long QueueGeneration { get; private set; }
     public bool HasQueuedProposals => QueueEntries.Count > 0;
+
+    public ForgeHostingDto? Hosting
+    {
+        get => _hosting;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _hosting, value);
+            this.RaisePropertyChanged(nameof(ShowHosting));
+            this.RaisePropertyChanged(nameof(HostingTitle));
+            this.RaisePropertyChanged(nameof(HostingChecksLabel));
+            this.RaisePropertyChanged(nameof(HostingThreadsLabel));
+            this.RaisePropertyChanged(nameof(HostingMergeabilityLabel));
+        }
+    }
+
+    public bool ShowHosting => Hosting is not null && Hosting.Availability != "none";
+
+    public string HostingTitle => Hosting?.Availability switch
+    {
+        "needsCredential" => "Sign in to GitHub in Server settings to see hosting state.",
+        "unreachable" => string.IsNullOrWhiteSpace(Hosting.Detail) ? "Could not reach the host." : Hosting.Detail,
+        "noProposal" => "No open proposal on this branch.",
+        "ready" => Hosting.Proposal?.Title ?? "Open proposal",
+        _ => string.Empty
+    };
+
+    public string HostingChecksLabel
+    {
+        get
+        {
+            if (Hosting?.Availability != "ready")
+                return string.Empty;
+            if (Hosting.Checks.Any(check => string.Equals(check.Conclusion, "failure", StringComparison.OrdinalIgnoreCase)))
+                return "Checks failed";
+            if (Hosting.Checks.Any(check => !string.Equals(check.Status, "completed", StringComparison.OrdinalIgnoreCase)))
+                return "Checks pending";
+            if (Hosting.Checks.Count == 0)
+                return "No checks";
+            return "Checks passed";
+        }
+    }
+
+    public string HostingThreadsLabel
+        => Hosting?.Availability == "ready"
+            ? $"{Hosting.Threads.Count} review thread{(Hosting.Threads.Count == 1 ? "" : "s")}"
+            : string.Empty;
+
+    public string HostingMergeabilityLabel
+        => Hosting?.Availability != "ready"
+            ? string.Empty
+            : Hosting.Mergeability is null
+                ? "Mergeability unknown"
+                : Hosting.Mergeability.Mergeable ? "Mergeable" : "Conflicts with the base";
 
     public GitFileDiffViewModel Diff { get; } = new();
 
@@ -332,6 +386,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         _scopeKey = scope;
         Nodes.Clear();
         ClearQueue();
+        ApplyHosting(null);
         SelectedFileCount = 0;
         ClearConfirm();
         IsHistoryOpen = false;
@@ -393,12 +448,27 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
                 queueError = ex.Message;
             }
 
+            ForgeHostingDto? hosting = null;
+            try
+            {
+                hosting = await _git.GetHostingAsync(workspaceId, cancellationToken);
+            }
+            catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or JsonException or TaskCanceledException)
+            {
+                hosting = new ForgeHostingDto("unreachable", null, null, [], [], null, ex.Message);
+            }
+
             if (request == _treeRequest)
             {
                 if (silent && queueError is null)
                     ErrorMessage = null;
                 ApplyTree(tree, preserveSelection: sameWorkspace);
                 ApplyQueue(queue);
+                ApplyHosting(hosting);
                 await ApplyLogAsync(workspaceId, cancellationToken, request);
                 if (queueError is not null)
                     ErrorMessage = $"Could not load the agent proposal queue: {queueError}";
@@ -445,12 +515,15 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         this.RaisePropertyChanged(nameof(HasQueuedProposals));
     }
 
+    internal void ApplyHosting(ForgeHostingDto? hosting) => Hosting = hosting;
+
     private void ClearQueue() => ApplyQueue(null);
 
     public void Clear()
     {
         Nodes.Clear();
         ClearQueue();
+        ApplyHosting(null);
         LocalBranches.Clear();
         BranchItems.Clear();
         LogRows.Clear();

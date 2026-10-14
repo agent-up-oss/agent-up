@@ -25,6 +25,20 @@ public sealed class GitControllerTests
     }
 
     [Test]
+    public async Task GetHostingAsync_delegatesToTheService()
+    {
+        var client = new FakeGitApiProvider
+        {
+            Hosting = new ForgeHostingDto("none", null, null, [], [], null, null)
+        };
+        var controller = CreateController(client);
+
+        var hosting = await controller.GetHostingAsync("ws-1");
+
+        Assert.That(hosting!.Availability, Is.EqualTo("none"));
+    }
+
+    [Test]
     public async Task GetFileDiffAsync_delegatesToTheService()
     {
         var client = new FakeGitApiProvider

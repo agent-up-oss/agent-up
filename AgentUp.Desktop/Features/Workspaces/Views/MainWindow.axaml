@@ -1847,6 +1847,33 @@
                                                        Text="{Binding Git.SelectionSummary}"
                                                        Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
                                                        FontSize="11"/>
+                                            <Border x:Name="GitHostingStrip"
+                                                    IsVisible="{Binding Git.ShowHosting}"
+                                                    Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
+                                                    BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="4"
+                                                    Padding="8">
+                                                <StackPanel Spacing="4">
+                                                    <TextBlock Text="{Binding Git.HostingTitle}"
+                                                               Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"
+                                                               FontSize="11"
+                                                               TextWrapping="Wrap"/>
+                                                    <StackPanel Orientation="Horizontal" Spacing="12"
+                                                                IsVisible="{Binding Git.HostingChecksLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                                        <TextBlock x:Name="GitHostingChecks"
+                                                                   Text="{Binding Git.HostingChecksLabel}"
+                                                                   Foreground="{DynamicResource AgentUpColorStatusHealthyBrush}"
+                                                                   FontSize="11"/>
+                                                        <TextBlock Text="{Binding Git.HostingThreadsLabel}"
+                                                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
+                                                                   FontSize="11"/>
+                                                        <TextBlock Text="{Binding Git.HostingMergeabilityLabel}"
+                                                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
+                                                                   FontSize="11"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Border>
                                             <Border x:Name="CommitProposalQueue"
                                                     IsVisible="{Binding Git.HasQueuedProposals}"
                                                     Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
