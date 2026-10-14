@@ -4,31 +4,34 @@ export type GitHostingCopy = {
   visible: boolean;
   title: string;
   checks: string;
+  checksTone: 'danger' | 'warning' | 'healthy' | '';
   threads: string;
   mergeability: string;
 };
 
+function hidden(): GitHostingCopy {
+  return { visible: false, title: '', checks: '', checksTone: '', threads: '', mergeability: '' };
+}
+
+function notice(title: string): GitHostingCopy {
+  return { visible: true, title, checks: '', checksTone: '', threads: '', mergeability: '' };
+}
+
 export function hostingCopy(hosting: ForgeHosting | null): GitHostingCopy {
   if (!hosting || hosting.availability === 'none') {
-    return { visible: false, title: '', checks: '', threads: '', mergeability: '' };
+    return hidden();
   }
 
   if (hosting.availability === 'needsCredential') {
-    return { visible: true, title: 'Sign in to GitHub in Server settings to see hosting state.', checks: '', threads: '', mergeability: '' };
+    return notice('Sign in to GitHub in Server settings to see hosting state.');
   }
 
   if (hosting.availability === 'unreachable') {
-    return {
-      visible: true,
-      title: hosting.detail?.trim() || 'Could not reach the host.',
-      checks: '',
-      threads: '',
-      mergeability: '',
-    };
+    return notice(hosting.detail?.trim() || 'Could not reach the host.');
   }
 
   if (hosting.availability === 'noProposal') {
-    return { visible: true, title: 'No open proposal on this branch.', checks: '', threads: '', mergeability: '' };
+    return notice('No open proposal on this branch.');
   }
 
   const failed = hosting.checks.some(check => check.conclusion.toLowerCase() === 'failure');
@@ -39,6 +42,7 @@ export function hostingCopy(hosting: ForgeHosting | null): GitHostingCopy {
     visible: true,
     title: hosting.proposal?.title ?? 'Open proposal',
     checks,
+    checksTone: failed ? 'danger' : pending ? 'warning' : 'healthy',
     threads: `${count} review thread${count === 1 ? '' : 's'}`,
     mergeability: hosting.mergeability == null
       ? 'Mergeability unknown'

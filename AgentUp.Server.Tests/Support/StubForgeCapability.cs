@@ -13,6 +13,10 @@ internal sealed class StubForgeCapability : IForgeCapability
 
     public Exception? ReadFailure { get; init; }
 
+    public Exception? ListAssignedFailure { get; init; }
+
+    public Exception? UpdateRefFailure { get; init; }
+
     public ForgeProposal? Opened { get; init; }
 
     public int UpdateRefCalls { get; private set; }
@@ -29,7 +33,9 @@ internal sealed class StubForgeCapability : IForgeCapability
     public Task<IReadOnlyList<ForgeAssignedIssue>> ListAssignedAsync(
         ForgeRequest request,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(Assigned);
+        => ListAssignedFailure is not null
+            ? Task.FromException<IReadOnlyList<ForgeAssignedIssue>>(ListAssignedFailure)
+            : Task.FromResult(Assigned);
 
     public Task<ForgeProposal> OpenProposalAsync(
         ForgeRequest request,
@@ -39,6 +45,8 @@ internal sealed class StubForgeCapability : IForgeCapability
 
     public Task UpdateRefAsync(ForgeRequest request, ForgeUpdateRefCommand command, CancellationToken cancellationToken = default)
     {
+        if (UpdateRefFailure is not null)
+            return Task.FromException(UpdateRefFailure);
         UpdateRefCalls++;
         return Task.CompletedTask;
     }

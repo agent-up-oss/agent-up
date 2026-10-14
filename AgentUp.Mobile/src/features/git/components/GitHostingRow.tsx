@@ -49,9 +49,9 @@ export function GitHostingRow({
   const copy = hostingCopy(hosting);
   if (!copy.visible) return null;
 
-  const checkColor = copy.checks === 'Checks failed'
+  const checkColor = copy.checksTone === 'danger'
     ? agentUpTheme.colors.statusDanger
-    : copy.checks === 'Checks pending'
+    : copy.checksTone === 'warning'
       ? agentUpTheme.colors.statusWarning
       : agentUpTheme.colors.statusHealthy;
 

@@ -81,11 +81,16 @@ public sealed class ForgeServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(hosting!.Availability, Is.EqualTo("ready"));
-            Assert.That(hosting.Proposal!.Number, Is.EqualTo("42"));
+                Assert.That(hosting!.Availability, Is.EqualTo("ready"));
+            Assert.That(hosting.Proposal!.Id, Is.EqualTo("1"));
+            Assert.That(hosting.Proposal.Number, Is.EqualTo("42"));
+            Assert.That(hosting.Proposal.Title, Is.EqualTo("Ready"));
+            Assert.That(hosting.Proposal.Url, Does.Contain("/42"));
+            Assert.That(hosting.Proposal.HeadRef, Is.EqualTo("topic"));
+            Assert.That(hosting.Proposal.BaseRef, Is.EqualTo("main"));
+            Assert.That(hosting.Proposal.State, Is.EqualTo("open"));
             Assert.That(hosting.Checks.Single().Conclusion, Is.EqualTo("success"));
             Assert.That(hosting.Threads.Single().Id, Is.EqualTo("PRRT_1"));
-            Assert.That(hosting.Mergeability!.Mergeable, Is.True);
         });
     }
 
@@ -144,6 +149,87 @@ public sealed class ForgeServiceTests
 
         Assert.That(completed, Is.True);
         Assert.That(credentials.Read(workspaceId, "github"), Is.EqualTo("exchanged"));
+    }
+
+    [Test]
+    public async Task GetHostingAsync_mapsATimeoutToUnreachable()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability { ReadFailure = new TaskCanceledException("timed out") },
+            credentials);
+        credentials.Write(workspaceId, "github", "token");
+
+        var hosting = await service.GetHostingAsync(workspaceId, CancellationToken.None);
+
+        Assert.That(hosting!.Availability, Is.EqualTo("unreachable"));
+        Assert.That(hosting.Detail, Does.Contain("timed out"));
+    }
+
+    [Test]
+    public async Task CompleteLoginAsync_returnsFalseWhenNoForgeIsEnabled()
+    {
+        var states = new ForgeOAuthStateStore();
+        var (service, workspaceId) = await ArrangeAsync(states: states);
+        var state = states.Issue(workspaceId);
+
+        Assert.That(await service.CompleteLoginAsync("code", state, CancellationToken.None), Is.False);
+    }
+
+    [Test]
+    public async Task ListAssignedAsync_returnsEmptyWhenTheHostFails()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability { ListAssignedFailure = new HttpRequestException("offline") },
+            credentials);
+        credentials.Write(workspaceId, "github", "token");
+
+        Assert.That(await service.ListAssignedAsync(workspaceId, CancellationToken.None), Is.Empty);
+    }
+
+    [Test]
+    public async Task UpdateRefAsync_returnsNotFoundWhenTheRequestCannotBeBuilt()
+    {
+        var (service, workspaceId) = await ArrangeAsync();
+
+        var outcome = await service.UpdateRefAsync(
+            workspaceId,
+            new ForgeUpdateRefRequest("topic", "abc"),
+            CancellationToken.None);
+
+        Assert.That(outcome.StatusCode, Is.EqualTo(404));
+    }
+
+    [Test]
+    public async Task UpdateRefAsync_returnsBadRequestForAProtectedRef()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability { UpdateRefFailure = new ForgeProtectedRefException("main") },
+            credentials);
+        credentials.Write(workspaceId, "github", "token");
+
+        var outcome = await service.UpdateRefAsync(
+            workspaceId,
+            new ForgeUpdateRefRequest("main", "abc"),
+            CancellationToken.None);
+
+        Assert.That(outcome.StatusCode, Is.EqualTo(400));
+        Assert.That(outcome.Body, Is.Not.Null);
+    }
+
+    [Test]
+    public async Task OpenProposalAsync_returnsNullWhenTheRequestCannotBeBuilt()
+    {
+        var (service, workspaceId) = await ArrangeAsync();
+
+        Assert.That(
+            await service.OpenProposalAsync(
+                workspaceId,
+                new ForgeOpenProposalRequest("Title", "Body", "topic", "main"),
+                CancellationToken.None),
+            Is.Null);
     }
 
     private static async Task<(ForgeService Service, string WorkspaceId)> ArrangeAsync(

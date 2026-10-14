@@ -48,6 +48,44 @@ public sealed class GithubApiProviderTests
     }
 
     [Test]
+    public async Task ListAssignedAsync_returnsEmptyWhenThePayloadIsNotAnArray()
+    {
+        var issues = await new GithubForgeCapability(Recorded(("GET /issues?filter=assigned&state=open&per_page=100", "{}")))
+            .ListAssignedAsync(Request());
+
+        Assert.That(issues, Is.Empty);
+    }
+
+    [Test]
+    public async Task ReadAsync_skipsChecksWhenTheHeadShaIsMissing()
+    {
+        const string pulls = """
+            [{"id":1,"number":42,"title":"Topic","html_url":"https://github.com/acme/widgets/pull/42","state":"open","mergeable":true,"mergeable_state":"clean","head":{"ref":"topic","sha":""},"base":{"ref":"main"}}]
+            """;
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", pulls),
+            ("GET /repos/acme/widgets/pulls/42/comments", "{}"));
+        var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
+
+        Assert.That(snapshot.Checks, Is.Empty);
+        Assert.That(snapshot.Threads, Is.Empty);
+        Assert.That(handler.Requests, Has.None.Contains("check-runs"));
+    }
+
+    [Test]
+    public async Task ReadAsync_returnsEmptyChecksWhenCheckRunsAreMissing()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/check-runs", "{}"),
+            ("GET /repos/acme/widgets/pulls/42/comments", "[]"));
+        var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
+
+        Assert.That(snapshot.Checks, Is.Empty);
+        Assert.That(snapshot.Threads, Is.Empty);
+    }
+
+    [Test]
     public async Task OpenProposalAsync_posts_the_recorded_pull()
     {
         var proposal = await new GithubForgeCapability(Recorded(("POST /repos/acme/widgets/pulls", Opened)))
@@ -62,8 +100,9 @@ public sealed class GithubApiProviderTests
     {
         var handler = Recorded();
 
-        Assert.ThrowsAsync<ForgeProtectedRefException>(() =>
+        var error = Assert.ThrowsAsync<ForgeProtectedRefException>(() =>
             new GithubForgeCapability(handler).UpdateRefAsync(Request(), new ForgeUpdateRefCommand("main", "abc")));
+        Assert.That(error!.Ref, Is.EqualTo("main"));
         Assert.That(handler.Requests, Is.Empty);
     }
 

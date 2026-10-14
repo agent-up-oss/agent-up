@@ -4,6 +4,7 @@ using AgentUp.Server.Features.Verification.Services;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
 using AgentUp.Server.Tests.Support;
+using AgentUp.Verification.Features.Verification.Interfaces;
 using AgentUp.Verification.Features.Verification.Models;
 using AgentUp.Verification.Features.Verification.Providers;
 using AgentUp.Verification.Features.Verification.Services;
@@ -37,10 +38,11 @@ public sealed class VerificationMcpToolsTests
         IReadOnlyDictionary<string, string> changed,
         InMemoryReceiptLedgerStore ledger,
         ScriptedCheckRunner runner,
-        WorkspaceRegistry? registry = null)
+        WorkspaceRegistry? registry = null,
+        IVerificationConfigurationLoader? loader = null)
     {
         var plans = new VerificationPlanService(
-            new StubVerificationConfigurationLoader(configuration),
+            loader ?? new StubVerificationConfigurationLoader(configuration),
             new CheckPlanProvider(new PathGlobProvider(), new FakePlatformCapabilityProvider("linux")),
             [new StaticChangedContentSource(changed)]);
 
@@ -340,5 +342,30 @@ public sealed class VerificationMcpToolsTests
             Assert.That(export.Checks.Select(check => check.Status), Does.Contain("neverRun"));
             Assert.That(runner.Executed, Is.Empty);
         });
+    }
+
+    [Test]
+    public async Task ExportVerification_reportsAConfigurationError()
+    {
+        var result = await ToolsOver(
+                Rules(),
+                Changed(ServerSource),
+                new InMemoryReceiptLedgerStore(),
+                new ScriptedCheckRunner(),
+                loader: new ThrowingVerificationConfigurationLoader("agent-up.json is not valid JSON"))
+            .ExportVerification(worktreePath: Worktree);
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Does.Contain("not valid JSON"));
+    }
+
+    [Test]
+    public async Task ExportVerification_saysNothingChangedWhenTheTreeIsClean()
+    {
+        var result = await ToolsOver(Rules(), Changed(), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner())
+            .ExportVerification(worktreePath: Worktree);
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(result.Message, Does.Contain("Nothing changed"));
     }
 }

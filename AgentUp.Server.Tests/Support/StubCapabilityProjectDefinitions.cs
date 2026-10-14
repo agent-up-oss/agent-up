@@ -1,4 +1,5 @@
 using AgentUp.Sdk.Agent;
+using AgentUp.Sdk.Forge;
 using AgentUp.Sdk.Runtime;
 
 namespace AgentUp.Server.Tests.Support;
@@ -15,4 +16,17 @@ internal sealed class StubAgentProjectDefinition : AgentCapabilityProjectDefinit
 {
     protected override void Register(AgentCapabilityRegistrationBuilder registry)
         => registry.Add<StubAgentCapability>();
+}
+
+internal sealed class StubForgeProjectDefinition : ForgeCapabilityProjectDefinition
+{
+    protected override void Register(ForgeCapabilityRegistrationBuilder registry)
+        => registry.Add<StubForgeCapability>();
+}
+
+internal sealed class EmptyForgeProjectDefinition : ForgeCapabilityProjectDefinition
+{
+    protected override void Register(ForgeCapabilityRegistrationBuilder registry)
+    {
+    }
 }

@@ -1071,6 +1071,9 @@ public sealed class GitPanelViewModelTests
         {
             Assert.That(panel.ShowHosting, Is.True);
             Assert.That(panel.HostingTitle, Is.EqualTo("Ready"));
+            Assert.That(panel.Hosting.Proposal!.Id, Is.EqualTo("1"));
+            Assert.That(panel.Hosting.Proposal.Url, Does.Contain("/42"));
+            Assert.That(panel.Hosting.Proposal.HeadRef, Is.EqualTo("topic"));
             Assert.That(panel.HostingChecksLabel, Is.EqualTo("Checks passed"));
             Assert.That(panel.HostingThreadsLabel, Is.EqualTo("1 review thread"));
             Assert.That(panel.HostingMergeabilityLabel, Is.EqualTo("Mergeable"));
@@ -1096,6 +1099,66 @@ public sealed class GitPanelViewModelTests
         Assert.That(panel.HostingChecksLabel, Is.EqualTo("Checks failed"));
         Assert.That(panel.HostingThreadsLabel, Is.EqualTo("2 review threads"));
         Assert.That(panel.HostingMergeabilityLabel, Is.EqualTo("Conflicts with the base"));
+    }
+
+    [Test]
+    public void ApplyHosting_pendingAndEmptyChecksHaveTheirOwnLabels()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider());
+        panel.ApplyHosting(new ForgeHostingDto(
+            "ready",
+            "github",
+            new ForgeProposalDto("1", "42", "Pending", "https://example.test/42", "topic", "main", "open"),
+            [new ForgeCheckDto("ci", "in_progress", "", "https://example.test/check")],
+            [],
+            null,
+            null));
+
+        Assert.That(panel.HostingChecksLabel, Is.EqualTo("Checks pending"));
+        Assert.That(panel.HostingMergeabilityLabel, Is.EqualTo("Mergeability unknown"));
+
+        panel.ApplyHosting(new ForgeHostingDto(
+            "ready",
+            "github",
+            new ForgeProposalDto("1", "42", "Bare", "https://example.test/42", "topic", "main", "open"),
+            [],
+            [],
+            new ForgeMergeabilityDto(true, "clean"),
+            null));
+        Assert.That(panel.HostingChecksLabel, Is.EqualTo("No checks"));
+    }
+
+    [Test]
+    public async Task LoadAsync_stopsWhenHostingLoadIsCanceled()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            Queue = new CommitQueueDto([], [], null, null, null, 0),
+            HostingException = new TaskCanceledException()
+        });
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+
+        await panel.LoadAsync("ws-1", canceled.Token);
+
+        Assert.That(panel.ShowHosting, Is.False);
+        Assert.That(panel.ErrorMessage, Is.Null);
+    }
+
+    [Test]
+    public async Task LoadAsync_mapsAHostingFailureToUnreachable()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            HostingException = new HttpRequestException("offline")
+        });
+
+        await panel.LoadAsync("ws-1");
+
+        Assert.That(panel.ShowHosting, Is.True);
+        Assert.That(panel.HostingTitle, Does.Contain("offline"));
     }
 
     [Test]
@@ -1173,8 +1236,12 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
 
     public ForgeHostingDto? Hosting { get; set; }
 
+    public Exception? HostingException { get; set; }
+
     public Task<ForgeHostingDto?> GetHostingAsync(string workspaceId, CancellationToken cancellationToken = default)
-        => Task.FromResult(Hosting);
+        => HostingException is not null
+            ? Task.FromException<ForgeHostingDto?>(HostingException)
+            : Task.FromResult(Hosting);
 
     public CommitQueueDto? Queue { get; set; }
 
@@ -1184,6 +1251,8 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
 
     public Task<CommitQueueDto?> GetCommitQueueAsync(string workspaceId, CancellationToken cancellationToken = default)
     {
+        if (Queue is not null)
+            return Task.FromResult<CommitQueueDto?>(Queue);
         if (cancellationToken.IsCancellationRequested)
             return Task.FromException<CommitQueueDto?>(new TaskCanceledException());
         if (QueueException is not null)

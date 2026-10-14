@@ -39,6 +39,7 @@ public sealed class CapabilityModuleLoadProviderTests
             Assert.That(loaded!.Runtime?.Identity.Id, Is.EqualTo("dotnet"));
             Assert.That(loaded.Runtime?.SectionName, Is.EqualTo("dotnet"));
             Assert.That(loaded.Agent?.Identity.Id, Is.EqualTo("codex"));
+            Assert.That(loaded.Forge?.Identity.Id, Is.EqualTo("github"));
         });
     }
 

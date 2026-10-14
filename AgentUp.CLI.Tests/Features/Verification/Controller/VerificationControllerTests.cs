@@ -373,6 +373,45 @@ public sealed class VerificationControllerTests
     }
 
     [Test]
+    public async Task RunAsync_exportSaysNothingChangedWhenTheTreeIsClean()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var controller = ControllerOver(
+            Rules(),
+            new Dictionary<string, string>(StringComparer.Ordinal),
+            new InMemoryReceiptLedgerStore(),
+            new ScriptedCheckRunner(),
+            output,
+            error);
+
+        var code = await controller.RunAsync(["export"]);
+
+        Assert.That(code, Is.Zero);
+        Assert.That(output.ToString(), Does.Contain("Nothing changed"));
+    }
+
+    [Test]
+    public async Task RunAsync_exportReportsAConfigurationError()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var controller = ControllerOver(
+            Rules(),
+            Changed(CliSource),
+            new InMemoryReceiptLedgerStore(),
+            new ScriptedCheckRunner(),
+            output,
+            error,
+            new ThrowingVerificationConfigurationLoader("agent-up.json is not valid JSON"));
+
+        var code = await controller.RunAsync(["export"]);
+
+        Assert.That(code, Is.EqualTo(1));
+        Assert.That(error.ToString(), Does.Contain("not valid JSON"));
+    }
+
+    [Test]
     public async Task RunAsync_helpMentionsTheExportSubcommand()
     {
         using var output = new StringWriter();

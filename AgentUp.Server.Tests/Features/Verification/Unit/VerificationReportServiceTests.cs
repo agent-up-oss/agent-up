@@ -99,6 +99,57 @@ public sealed class VerificationReportServiceTests
     }
 
     [Test]
+    public void SummarizeExport_saysNothingIsRequiredWhenNothingChanged()
+    {
+        var export = new VerificationExport(
+            "abc123",
+            "sha256:none",
+            "2026-01-01T00:00:00Z",
+            0,
+            [],
+            []);
+
+        Assert.That(
+            new VerificationReportService().SummarizeExport(export),
+            Is.EqualTo("Nothing changed, so no checks are required."));
+    }
+
+    [Test]
+    public void ToExportDto_exposesReceiptFieldsWithoutACoveredMap()
+    {
+        var export = new VerificationExport(
+            "abc123",
+            "sha256:dead",
+            "2026-01-01T00:00:00Z",
+            1,
+            [],
+            [
+                new VerificationExportCheck(
+                    "server",
+                    "dotnet test Server",
+                    "satisfied",
+                    "ok",
+                    0,
+                    "2026-01-01T00:00:00Z",
+                    12,
+                    "")
+            ]);
+
+        var dto = new VerificationReportService().ToExportDto(export);
+        var check = dto.Checks.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(check.CheckId, Is.EqualTo("server"));
+            Assert.That(check.Command, Does.Contain("Server"));
+            Assert.That(check.ExitCode, Is.Zero);
+            Assert.That(check.RanAtUtc, Is.EqualTo("2026-01-01T00:00:00Z"));
+            Assert.That(check.DurationMs, Is.EqualTo(12));
+            Assert.That(check.SkipReason, Is.Empty);
+        });
+    }
+
+    [Test]
     public void ToRunDto_reportsFailureWhenAnyCheckExitedNonZero()
     {
         var outcomes = new[]

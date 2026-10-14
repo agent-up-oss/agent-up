@@ -34,6 +34,53 @@ public sealed class GitRevisionProviderTests
         }
     }
 
+    [Test]
+    public void Resolve_returnsUnknownWhenHeadIsMissing()
+    {
+        var root = CreateRepository("deadbeef0123456789abcdef0123456789abcd");
+        try
+        {
+            File.Delete(Path.Join(root, ".git", "HEAD"));
+            Assert.That(new GitRevisionProvider(new GitDirectoryProvider()).Resolve(root), Is.EqualTo("unknown"));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public void Resolve_returnsADetachedHeadSha()
+    {
+        var root = CreateRepository("deadbeef0123456789abcdef0123456789abcd");
+        try
+        {
+            File.WriteAllText(Path.Join(root, ".git", "HEAD"), "cafebabecafebabecafebabecafebabe01234567\n");
+            Assert.That(
+                new GitRevisionProvider(new GitDirectoryProvider()).Resolve(root),
+                Is.EqualTo("cafebabecafebabecafebabecafebabe01234567"));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public void Resolve_returnsUnknownWhenHeadIsBlank()
+    {
+        var root = CreateRepository("deadbeef0123456789abcdef0123456789abcd");
+        try
+        {
+            File.WriteAllText(Path.Join(root, ".git", "HEAD"), "\n");
+            Assert.That(new GitRevisionProvider(new GitDirectoryProvider()).Resolve(root), Is.EqualTo("unknown"));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static string CreateRepository(string sha)
     {
         var root = Directory.CreateDirectory(Path.Join(Path.GetTempPath(), "agent-up-export-" + Guid.NewGuid().ToString("N"))).FullName;

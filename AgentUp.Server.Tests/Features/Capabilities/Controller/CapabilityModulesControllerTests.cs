@@ -1,3 +1,4 @@
+using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.DTOs;
 using AgentUp.Server.Tests.Support;
@@ -53,5 +54,26 @@ public sealed class CapabilityModulesControllerTests
 
         Assert.That(controller.GetRuntime("dotnet"), Is.SameAs(runtime));
         Assert.That(controller.ListAgents(), Is.Empty);
+    }
+
+    [Test]
+    public void ListForges_returns_loaded_forge_modules()
+    {
+        var forge = new StubForgeCapability();
+        var controller = new CapabilityModulesController(CapabilityModuleHarness.CreateService(
+            enabled: true,
+            manifest: new CapabilityPackageManifest
+            {
+                SchemaVersion = "1",
+                Id = "github",
+                Version = "1.0.0",
+                DisplayName = "GitHub",
+                Publisher = "agent-up",
+                Kind = "forge"
+            },
+            loader: new FixedCapabilityModuleLoader(new CapabilityLoadedModule(null, null, forge))));
+
+        Assert.That(controller.ListForges(), Is.EqualTo(new[] { forge }));
+        Assert.That(controller.GetForge("github"), Is.SameAs(forge));
     }
 }

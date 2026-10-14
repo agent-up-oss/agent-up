@@ -69,6 +69,63 @@ public sealed class ForgeHttpTests
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
+    [Test]
+    public async Task OpenProposal_returnsNotFoundWhenNoForgeIsEnabled()
+    {
+        using var host = await HostAsync();
+        using var client = host.Factory.CreateClient();
+        var workspaceId = await RegisterAsync(client, host.Repository);
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/workspaces/{workspaceId}/forge/proposals",
+            new ForgeOpenProposalRequest("Title", "Body", "topic", "main"));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task UpdateRef_returnsNotFoundWhenNoForgeIsEnabled()
+    {
+        using var host = await HostAsync();
+        using var client = host.Factory.CreateClient();
+        var workspaceId = await RegisterAsync(client, host.Repository);
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/workspaces/{workspaceId}/forge/refs",
+            new ForgeUpdateRefRequest("topic", "abc"));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task CommentAndReview_returnNoContentWhenNoForgeIsEnabled()
+    {
+        using var host = await HostAsync();
+        using var client = host.Factory.CreateClient();
+        var workspaceId = await RegisterAsync(client, host.Repository);
+
+        using var comment = await client.PostAsJsonAsync(
+            $"/api/workspaces/{workspaceId}/forge/comments",
+            new ForgeCommentRequest("42", "noted"));
+        using var review = await client.PostAsJsonAsync(
+            $"/api/workspaces/{workspaceId}/forge/reviews",
+            new ForgeReviewRequest("42", "lgtm", "COMMENT"));
+
+        Assert.That(comment.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        Assert.That(review.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+    }
+
+    [Test]
+    public async Task Callback_returnsNotFoundForAnUnknownState()
+    {
+        using var host = await HostAsync();
+        using var client = host.Factory.CreateClient();
+
+        using var response = await client.GetAsync("/api/forge/callback?code=x&state=missing");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
     private static async Task<string> RegisterAsync(HttpClient client, string repository)
     {
         using var response = await client.PostAsJsonAsync(

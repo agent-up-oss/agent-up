@@ -43,6 +43,56 @@ public sealed class ForgeGitRemoteResolverTests
         }
     }
 
+    [Test]
+    public void Resolve_returnsNullWhenOriginHasNoUrl()
+    {
+        var root = WriteCheckout("https://github.com/acme/widgets.git", "main");
+        try
+        {
+            File.WriteAllText(Path.Join(root, ".git", "config"), "[remote \"origin\"]\n\tfetch = +refs/heads/*\n");
+            Assert.That(new ForgeGitRemoteResolver(new GitDirectoryProvider()).Resolve(root), Is.Null);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public void Resolve_returnsAnEmptyBranchWhenHeadIsMissing()
+    {
+        var root = WriteCheckout("https://github.com/acme/widgets.git", "main");
+        try
+        {
+            File.Delete(Path.Join(root, ".git", "HEAD"));
+            var remote = new ForgeGitRemoteResolver(new GitDirectoryProvider()).Resolve(root);
+            Assert.That(remote!.Branch, Is.Empty);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public void Resolve_returnsNullWhenConfigIsMissing()
+    {
+        var root = WriteCheckout("https://github.com/acme/widgets.git", "main");
+        try
+        {
+            File.Delete(Path.Join(root, ".git", "config"));
+            Assert.That(new ForgeGitRemoteResolver(new GitDirectoryProvider()).Resolve(root), Is.Null);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public void TryParse_rejectsAGitHubUrlWithNoRepository()
+        => Assert.That(ForgeGitRemoteResolver.TryParse("https://github.com/acme", out _, out _), Is.False);
+
     private static void AssertRemote(string url, string owner, string repository, string branch, string head = "main")
     {
         var root = WriteCheckout(url, head);

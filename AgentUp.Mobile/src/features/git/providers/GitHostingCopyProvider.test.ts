@@ -38,6 +38,7 @@ test('ready reports checks, thread count and mergeability', () => {
   assert.equal(copy.visible, true);
   assert.equal(copy.title, 'Ready');
   assert.equal(copy.checks, 'Checks passed');
+  assert.equal(copy.checksTone, 'healthy');
   assert.equal(copy.threads, '1 review thread');
   assert.equal(copy.mergeability, 'Mergeable');
 });
@@ -54,6 +55,7 @@ test('failed checks and conflicts use semantic labels', () => {
   }));
 
   assert.equal(copy.checks, 'Checks failed');
+  assert.equal(copy.checksTone, 'danger');
   assert.equal(copy.threads, '2 review threads');
   assert.equal(copy.mergeability, 'Conflicts with the base');
 });

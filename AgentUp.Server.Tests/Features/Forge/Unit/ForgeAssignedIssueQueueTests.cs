@@ -26,6 +26,42 @@ public sealed class ForgeAssignedIssueQueueTests
     }
 
     [Test]
+    public async Task ListAssignedAsync_ordersByUpdatedWhenAsked()
+    {
+        var (queue, workspaceId) = await QueueAsync(
+            new ForgeAssignedIssue("2", 2, "later-created", "", DateTimeOffset.Parse("2026-02-01Z"), DateTimeOffset.Parse("2026-02-02Z"), "u2"),
+            new ForgeAssignedIssue("1", 1, "earlier-created", "", DateTimeOffset.Parse("2026-01-01Z"), DateTimeOffset.Parse("2026-03-01Z"), "u1"));
+
+        var listed = await queue.ListAssignedAsync(workspaceId, AssignedIssueOrder.UpdatedAsc, CancellationToken.None);
+
+        Assert.That(listed.Select(issue => issue.Number), Is.EqualTo(new[] { 2, 1 }));
+    }
+
+    [Test]
+    public async Task ListAssignedAsync_ordersByNumberForAnUnknownOrder()
+    {
+        var (queue, workspaceId) = await QueueAsync(
+            new ForgeAssignedIssue("2", 2, "two", "", DateTimeOffset.Parse("2026-01-01Z"), DateTimeOffset.Parse("2026-01-01Z"), "u2"),
+            new ForgeAssignedIssue("1", 1, "one", "", DateTimeOffset.Parse("2026-02-01Z"), DateTimeOffset.Parse("2026-02-01Z"), "u1"));
+
+        var listed = await queue.ListAssignedAsync(workspaceId, (AssignedIssueOrder)99, CancellationToken.None);
+
+        Assert.That(listed.Select(issue => issue.Number), Is.EqualTo(new[] { 1, 2 }));
+    }
+
+    [Test]
+    public async Task Replace_isANoOp()
+    {
+        var (queue, workspaceId) = await QueueAsync(
+            new ForgeAssignedIssue("1", 1, "one", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "u"));
+
+        queue.Replace(workspaceId, []);
+
+        var listed = await queue.ListAssignedAsync(workspaceId, AssignedIssueOrder.CreatedAsc, CancellationToken.None);
+        Assert.That(listed.Single().Number, Is.EqualTo(1));
+    }
+
+    [Test]
     public async Task ListAssignedAsync_isEmptyWithoutACredential()
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
