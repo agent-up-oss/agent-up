@@ -34,6 +34,7 @@ public sealed class ProjectDependencies
         AssertDoesNotDependOn("AgentUp.Sdk.Common", Except("AgentUp.Sdk.Common"));
         AssertDoesNotDependOn("AgentUp.Sdk.Runtime", Except("AgentUp.Sdk.Runtime", "AgentUp.Sdk.Common"));
         AssertDoesNotDependOn("AgentUp.Sdk.Agent", Except("AgentUp.Sdk.Agent", "AgentUp.Sdk.Common"));
+        AssertDoesNotDependOn("AgentUp.Sdk.Forge", Except("AgentUp.Sdk.Forge", "AgentUp.Sdk.Common"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Abstractions", Except("AgentUp.Capabilities.Abstractions"));
         AssertDoesNotDependOn("AgentUp.CommitPolicy", Except("AgentUp.CommitPolicy"));
         AssertDoesNotDependOn("AgentUp.Verification", Except("AgentUp.Verification"));
@@ -45,7 +46,8 @@ public sealed class ProjectDependencies
         AssertDoesNotDependOn("AgentUp.Capabilities.Codex", Except("AgentUp.Capabilities.Codex", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Sdk.Common", "AgentUp.Sdk.Agent"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Cursor", Except("AgentUp.Capabilities.Cursor", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Sdk.Common", "AgentUp.Sdk.Agent"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Claude", Except("AgentUp.Capabilities.Claude", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Sdk.Common", "AgentUp.Sdk.Agent"));
-        AssertDoesNotDependOn("AgentUp.Server", Except("AgentUp.Server", "AgentUp.Browser.Streaming", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Registry", "AgentUp.InstallerConfig", "AgentUp.Sdk.Common", "AgentUp.Sdk.Runtime", "AgentUp.Sdk.Agent"));
+        AssertDoesNotDependOn("AgentUp.Capabilities.Github", Except("AgentUp.Capabilities.Github", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Sdk.Common", "AgentUp.Sdk.Forge"));
+        AssertDoesNotDependOn("AgentUp.Server", Except("AgentUp.Server", "AgentUp.Browser.Streaming", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Registry", "AgentUp.InstallerConfig", "AgentUp.Sdk.Common", "AgentUp.Sdk.Runtime", "AgentUp.Sdk.Agent", "AgentUp.Sdk.Forge"));
         AssertDoesNotDependOn("AgentUp.Desktop", Except("AgentUp.Desktop", "AgentUp.InstallerConfig"));
         AssertDoesNotDependOn("AgentUp.CLI", Except("AgentUp.CLI", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions", "AgentUp.InstallerConfig"));
         AssertDoesNotDependOn("AgentUp.AUDebug", Except("AgentUp.AUDebug", "AgentUp.InstallerConfig"));

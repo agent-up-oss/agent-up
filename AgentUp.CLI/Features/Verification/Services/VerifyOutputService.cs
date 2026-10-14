@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AgentUp.CLI.Features.Verification.DTOs;
 using AgentUp.Verification.Features.Coverage.Models;
 using AgentUp.Verification.Features.Verification.Models;
@@ -19,6 +20,9 @@ public sealed class VerifyOutputService(TextWriter output, TextWriter error)
 
     public int WriteGuard(VerifyGuardResult result, VerifyOutputFormat format)
         => result.Report is null ? WriteError(result.Error ?? "Verification failed.") : WriteGuard(result.Report, format);
+
+    public int WriteExport(VerifyExportResult result, VerifyOutputFormat format)
+        => result.Export is null ? WriteError(result.Error ?? "Verification failed.") : WriteExport(result.Export, format);
 
     private int WritePlan(VerificationPlan plan)
     {
@@ -61,6 +65,35 @@ public sealed class VerifyOutputService(TextWriter output, TextWriter error)
 
     private int WriteGuard(GuardReport report, VerifyOutputFormat format)
         => format == VerifyOutputFormat.Hook ? WriteGuardForHook(report) : WriteGuardAsText(report);
+
+    private int WriteExport(VerificationExport export, VerifyOutputFormat format)
+    {
+        if (format == VerifyOutputFormat.Json)
+        {
+            output.WriteLine(JsonSerializer.Serialize(export, new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            {
+                WriteIndented = true,
+            }));
+            return 0;
+        }
+
+        if (export.ChangedFileCount == 0)
+        {
+            output.WriteLine("Nothing changed, so no checks are required.");
+            return 0;
+        }
+
+        output.WriteLine($"Revision {export.Revision}");
+        output.WriteLine($"Covered digest {export.CoveredDigest}");
+        foreach (var check in export.Checks)
+        {
+            var skip = string.IsNullOrEmpty(check.SkipReason) ? string.Empty : $" ({check.SkipReason})";
+            output.WriteLine($"  {check.Status} {check.CheckId}{skip}: {check.Detail}");
+        }
+
+        WriteUnmatched(export.UnmatchedFiles, output);
+        return 0;
+    }
 
     public int WriteCoverage(VerifyCoverageResult result)
         => result.Coverage is null

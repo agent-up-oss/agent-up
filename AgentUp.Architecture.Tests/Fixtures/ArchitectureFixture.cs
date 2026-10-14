@@ -16,6 +16,7 @@ internal static class ArchitectureFixture
         "AgentUp.Sdk.Common",
         "AgentUp.Sdk.Runtime",
         "AgentUp.Sdk.Agent",
+        "AgentUp.Sdk.Forge",
         "AgentUp.Capabilities.Abstractions",
         "AgentUp.Capabilities.Common",
         "AgentUp.Registry",
@@ -24,6 +25,7 @@ internal static class ArchitectureFixture
         "AgentUp.Capabilities.Codex",
         "AgentUp.Capabilities.Cursor",
         "AgentUp.Capabilities.Claude",
+        "AgentUp.Capabilities.Github",
         "AgentUp.Desktop",
         "AgentUp.CLI",
         "AgentUp.AUDebug",
@@ -42,7 +44,8 @@ internal static class ArchitectureFixture
         "AgentUp.InstallerConfig",
         "AgentUp.Sdk.Common",
         "AgentUp.Sdk.Runtime",
-        "AgentUp.Sdk.Agent"
+        "AgentUp.Sdk.Agent",
+        "AgentUp.Sdk.Forge"
     ];
 
     /// <summary>
@@ -68,6 +71,7 @@ internal static class ArchitectureFixture
         "AgentUp.Sdk.Common.Tests",
         "AgentUp.Sdk.Runtime.Tests",
         "AgentUp.Sdk.Agent.Tests",
+        "AgentUp.Sdk.Forge.Tests",
         "AgentUp.Capabilities.Abstractions.Tests",
         "AgentUp.Capabilities.Common.Tests",
         "AgentUp.Registry.Tests",
@@ -76,6 +80,7 @@ internal static class ArchitectureFixture
         "AgentUp.Capabilities.Codex.Tests",
         "AgentUp.Capabilities.Cursor.Tests",
         "AgentUp.Capabilities.Claude.Tests",
+        "AgentUp.Capabilities.Github.Tests",
         "AgentUp.Desktop.Tests",
         "AgentUp.InstallerConfig.Tests",
         "AgentUp.CLI.Tests",

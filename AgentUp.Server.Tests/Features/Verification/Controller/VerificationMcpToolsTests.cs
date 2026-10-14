@@ -44,13 +44,33 @@ public sealed class VerificationMcpToolsTests
             new CheckPlanProvider(new PathGlobProvider(), new FakePlatformCapabilityProvider("linux")),
             [new StaticChangedContentSource(changed)]);
 
-        return new VerificationMcpTools(new VerificationMcpService(
+        return new VerificationMcpTools(ServiceOver(
+            plans,
+            ledger,
+            runner,
+            registry ?? ServerTestComposition.CreateRegistry()));
+    }
+
+    private static VerificationMcpService ServiceOver(
+        VerificationPlanService plans,
+        InMemoryReceiptLedgerStore ledger,
+        ScriptedCheckRunner runner,
+        WorkspaceRegistry registry)
+    {
+        var guards = new VerificationGuardService(plans, ledger);
+        return new VerificationMcpService(
             plans,
             new VerificationRunService(plans, ledger, runner, new FakeVerificationClock()),
-            new VerificationGuardService(plans, ledger),
+            guards,
+            new VerificationExportService(
+                plans,
+                guards,
+                ledger,
+                new FakeVerificationClock(),
+                new FixedGitRevisionProvider("abc123"),
+                new CoveredDigestProvider()),
             new VerificationReportService(),
-            ServerTestComposition.CreateWorkspaceTargetController(
-                registry ?? ServerTestComposition.CreateRegistry())));
+            ServerTestComposition.CreateWorkspaceTargetController(registry));
     }
 
     // Every tool here resolves its target through one shared boundary, so the refusal is
@@ -65,7 +85,8 @@ public sealed class VerificationMcpToolsTests
             await tools.PlanVerification(),
             await tools.RunVerification(),
             await tools.RunVerificationCheck("server"),
-            await tools.GuardVerification()
+            await tools.GuardVerification(),
+            await tools.ExportVerification()
         };
 
         Assert.Multiple(() =>
@@ -100,12 +121,11 @@ public sealed class VerificationMcpToolsTests
             new CheckPlanProvider(new PathGlobProvider(), new FakePlatformCapabilityProvider("linux")),
             [new StaticChangedContentSource(Changed(ServerSource))]);
         var ledger = new InMemoryReceiptLedgerStore();
-        var tools = new VerificationMcpTools(new VerificationMcpService(
+        var tools = new VerificationMcpTools(ServiceOver(
             plans,
-            new VerificationRunService(plans, ledger, new ScriptedCheckRunner(), new FakeVerificationClock()),
-            new VerificationGuardService(plans, ledger),
-            new VerificationReportService(),
-            ServerTestComposition.CreateWorkspaceTargetController(ServerTestComposition.CreateRegistry())));
+            ledger,
+            new ScriptedCheckRunner(),
+            ServerTestComposition.CreateRegistry()));
 
         var result = await tools.PlanVerification(worktreePath: Worktree);
 
@@ -302,6 +322,23 @@ public sealed class VerificationMcpToolsTests
             Assert.That(result.Succeeded, Is.False);
             Assert.That(result.Message, Does.Contain("ws-missing"));
             Assert.That(result.Message, Does.Contain("not registered"));
+        });
+    }
+
+    [Test]
+    public async Task ExportVerification_reportsNeverRunWithoutExecuting()
+    {
+        var runner = new ScriptedCheckRunner();
+        var result = await ToolsOver(Rules(), Changed(ServerSource), new InMemoryReceiptLedgerStore(), runner)
+            .ExportVerification(worktreePath: Worktree);
+
+        var export = (VerificationExportDto)result.Data!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(export.CoveredDigest, Does.StartWith("sha256:"));
+            Assert.That(export.Checks.Select(check => check.Status), Does.Contain("neverRun"));
+            Assert.That(runner.Executed, Is.Empty);
         });
     }
 }

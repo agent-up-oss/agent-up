@@ -495,10 +495,12 @@ jobs:
             AgentUp.Sdk.Common.Tests \
             AgentUp.Sdk.Runtime.Tests \
             AgentUp.Sdk.Agent.Tests \
+            AgentUp.Sdk.Forge.Tests \
             AgentUp.Capabilities.Common.Tests \
             AgentUp.Capabilities.Claude.Tests \
             AgentUp.Capabilities.Codex.Tests \
             AgentUp.Capabilities.Cursor.Tests \
+            AgentUp.Capabilities.Github.Tests \
             AgentUp.Capabilities.Docker.Tests \
             AgentUp.Capabilities.Dotnet.Tests \
             AgentUp.Registry.Tests \
@@ -579,6 +581,17 @@ jobs:
           fail_ci_if_error: true
           disable_search: true
 
+      - name: Upload AgentUp.Sdk.Forge.Tests coverage
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_sdk_forge_tests }}
+          flags: agentup-sdk-forge-tests
+          name: AgentUp.Sdk.Forge.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
       - name: Upload AgentUp.Capabilities.Common.Tests coverage
         if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
@@ -620,6 +633,17 @@ jobs:
           files: ${{ steps.coverage-reports.outputs.agentup_capabilities_cursor_tests }}
           flags: agentup-capabilities-cursor-tests
           name: AgentUp.Capabilities.Cursor.Tests
+          fail_ci_if_error: true
+          disable_search: true
+
+      - name: Upload AgentUp.Capabilities.Github.Tests coverage
+        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_github_tests }}
+          flags: agentup-capabilities-github-tests
+          name: AgentUp.Capabilities.Github.Tests
           fail_ci_if_error: true
           disable_search: true
 

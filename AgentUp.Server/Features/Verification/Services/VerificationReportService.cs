@@ -48,6 +48,34 @@ public sealed class VerificationReportService
     /// <summary>
     /// A single sentence an agent can act on without reading anything else.
     /// </summary>
+    public VerificationExportDto ToExportDto(VerificationExport export)
+        => new(
+            export.Revision,
+            export.CoveredDigest,
+            export.ExportedAtUtc,
+            export.ChangedFileCount,
+            export.UnmatchedFiles,
+            [.. export.Checks.Select(check => new VerificationExportCheckDto(
+                check.CheckId,
+                check.Command,
+                check.Status,
+                check.Detail,
+                check.ExitCode,
+                check.RanAtUtc,
+                check.DurationMs,
+                check.SkipReason))]);
+
+    public string SummarizeExport(VerificationExport export)
+    {
+        if (export.ChangedFileCount == 0)
+            return "Nothing changed, so no checks are required.";
+
+        var proven = export.Checks.Count(check => check.Status == "satisfied");
+        var skipped = export.Checks.Count(check => check.Status == "skipped");
+        return $"{proven} of {export.Checks.Count} required check(s) proven for revision {export.Revision}."
+            + (skipped > 0 ? $" {skipped} skipped here and still required in CI." : string.Empty);
+    }
+
     public string Summarize(GuardReport report)
     {
         if (report.ChangedFileCount == 0)

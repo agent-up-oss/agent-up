@@ -2,6 +2,7 @@ using System.Text.Json;
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Sdk.Agent;
 using AgentUp.Sdk.Common;
+using AgentUp.Sdk.Forge;
 using AgentUp.Sdk.Runtime;
 using AgentUp.Server.Features.Capabilities.DTOs;
 using AgentUp.Server.Features.Capabilities.Interfaces;
@@ -35,6 +36,10 @@ internal sealed class E2EEnabledCapabilityPackages : IEnabledCapabilityPackages
     public IAgentCapability? GetAgent(string id) => null;
 
     public IReadOnlyList<IAgentCapability> ListAgents() => [];
+
+    public IForgeCapability? GetForge(string id) => null;
+
+    public IReadOnlyList<IForgeCapability> ListForges() => [];
 
     private static E2ERuntimeCapability Runtime(string id, IReadOnlyList<RuntimeAttributeSpec> extras)
         => new(id, extras);

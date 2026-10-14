@@ -22,6 +22,7 @@ public sealed class VerificationMcpService(
     VerificationPlanService plans,
     VerificationRunService runs,
     VerificationGuardService guards,
+    VerificationExportService exports,
     VerificationReportService reports,
     WorkspaceTargetController workspaces)
 {
@@ -123,6 +124,29 @@ public sealed class VerificationMcpService(
         catch (UnauthorizedAccessException)
         {
             return new McpToolResult(false, "Could not record verification receipts.");
+        }
+    }
+
+    public async Task<McpToolResult> ExportVerification(
+        string? workspaceId,
+        string? worktreePath,
+        CancellationToken cancellationToken)
+    {
+        var target = workspaces.Resolve(workspaceId, worktreePath);
+        if (!target.Resolved)
+            return TargetFailure(target);
+
+        try
+        {
+            var export = await exports.ExportAsync(target.WorktreePath!, cancellationToken);
+            return new McpToolResult(
+                true,
+                reports.SummarizeExport(export),
+                reports.ToExportDto(export));
+        }
+        catch (VerificationConfigurationException exception)
+        {
+            return new McpToolResult(false, exception.Message);
         }
     }
 

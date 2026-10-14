@@ -1,6 +1,7 @@
 using System.Reflection;
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Sdk.Agent;
+using AgentUp.Sdk.Forge;
 using AgentUp.Sdk.Runtime;
 using AgentUp.Server.Features.Capabilities.DTOs;
 using AgentUp.Server.Features.Capabilities.Interfaces;
@@ -29,10 +30,14 @@ public sealed class CapabilityModuleLoadProvider : ICapabilityModuleLoader
             .Where(type => typeof(AgentCapabilityProjectDefinition).IsAssignableFrom(type))
             .Select(type => CreateAgent((AgentCapabilityProjectDefinition)Activator.CreateInstance(type)!))
             .FirstOrDefault(loaded => loaded is not null);
+        var forge = types
+            .Where(type => typeof(ForgeCapabilityProjectDefinition).IsAssignableFrom(type))
+            .Select(type => CreateForge((ForgeCapabilityProjectDefinition)Activator.CreateInstance(type)!))
+            .FirstOrDefault(loaded => loaded is not null);
 
-        if (runtime is null && agent is null)
+        if (runtime is null && agent is null && forge is null)
             return null;
-        return new CapabilityLoadedModule(runtime, agent);
+        return new CapabilityLoadedModule(runtime, agent, forge);
     }
 
     private static IRuntimeCapability? CreateRuntime(RuntimeCapabilityProjectDefinition definition)
@@ -49,6 +54,14 @@ public sealed class CapabilityModuleLoadProvider : ICapabilityModuleLoader
         return registration is null
             ? null
             : Activator.CreateInstance(registration.ImplementationType) as IAgentCapability;
+    }
+
+    private static IForgeCapability? CreateForge(ForgeCapabilityProjectDefinition definition)
+    {
+        var registration = definition.CreateProject().Registrations.FirstOrDefault();
+        return registration is null
+            ? null
+            : Activator.CreateInstance(registration.ImplementationType) as IForgeCapability;
     }
 
     private static IEnumerable<Type?> SafeTypes(Assembly assembly)

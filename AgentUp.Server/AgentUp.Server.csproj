@@ -28,6 +28,7 @@
     <ProjectReference Include="..\AgentUp.Sdk.Common\AgentUp.Sdk.Common.csproj" />
     <ProjectReference Include="..\AgentUp.Sdk.Runtime\AgentUp.Sdk.Runtime.csproj" />
     <ProjectReference Include="..\AgentUp.Sdk.Agent\AgentUp.Sdk.Agent.csproj" />
+    <ProjectReference Include="..\AgentUp.Sdk.Forge\AgentUp.Sdk.Forge.csproj" />
     <ProjectReference Include="..\AgentUp.Registry\AgentUp.Registry.csproj" />
     <ProjectReference Include="..\AgentUp.InstallerConfig\AgentUp.InstallerConfig.csproj" />
   </ItemGroup>

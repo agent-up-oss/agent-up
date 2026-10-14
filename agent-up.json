@@ -161,6 +161,15 @@
           "AgentUp.Sdk.Common"
         ]
       },
+      "sdk-forge": {
+        "command": "dotnet test AgentUp.Sdk.Forge.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/sdk-forge",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Sdk.Forge",
+          "AgentUp.Sdk.Forge.Tests",
+          "AgentUp.Sdk.Common"
+        ]
+      },
       "capabilities-common": {
         "command": "dotnet test AgentUp.Capabilities.Common.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-common",
         "tier": "fast",
@@ -254,6 +263,18 @@
           "AgentUp.Sdk.Agent"
         ]
       },
+      "capabilities-github": {
+        "command": "dotnet test AgentUp.Capabilities.Github.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-github",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Capabilities.Github",
+          "AgentUp.Capabilities.Github.Tests",
+          "AgentUp.Capabilities.Abstractions",
+          "AgentUp.Capabilities.Common",
+          "AgentUp.Sdk.Common",
+          "AgentUp.Sdk.Forge"
+        ]
+      },
       "server": {
         "command": "dotnet test AgentUp.Server.Tests --filter Category!=LoopInference&Category!=LoopSoak --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
         "tier": "fast",
@@ -269,7 +290,8 @@
           "AgentUp.Registry",
           "AgentUp.Sdk.Common",
           "AgentUp.Sdk.Runtime",
-          "AgentUp.Sdk.Agent"
+          "AgentUp.Sdk.Agent",
+          "AgentUp.Sdk.Forge"
         ]
       },
       "server-benchmarks": {
@@ -630,11 +652,13 @@
           "sdk-common",
           "sdk-runtime",
           "sdk-agent",
+          "sdk-forge",
           "capabilities-dotnet",
           "capabilities-docker",
           "capabilities-codex",
           "capabilities-cursor",
           "capabilities-claude",
+          "capabilities-github",
           "server",
           "patch-coverage"
         ]
@@ -682,6 +706,22 @@
         ]
       },
       {
+        "match": "AgentUp.Sdk.Forge/**",
+        "checks": [
+          "sdk-forge",
+          "capabilities-github",
+          "server",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Sdk.Forge.Tests/**",
+        "checks": [
+          "sdk-forge",
+          "patch-coverage"
+        ]
+      },
+      {
         "match": "AgentUp.Capabilities.Abstractions/**",
         "checks": [
           "capabilities-abstractions",
@@ -691,6 +731,7 @@
           "capabilities-codex",
           "capabilities-cursor",
           "capabilities-claude",
+          "capabilities-github",
           "registry",
           "server",
           "cli",
@@ -713,6 +754,7 @@
           "capabilities-codex",
           "capabilities-cursor",
           "capabilities-claude",
+          "capabilities-github",
           "server",
           "patch-coverage"
         ]
@@ -796,6 +838,21 @@
         "match": "AgentUp.Capabilities.Claude.Tests/**",
         "checks": [
           "capabilities-claude",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Github/**",
+        "checks": [
+          "capabilities-github",
+          "server",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Github.Tests/**",
+        "checks": [
+          "capabilities-github",
           "patch-coverage"
         ]
       },
@@ -1254,11 +1311,13 @@
       "AgentUp.Sdk.Common/**/*.cs",
       "AgentUp.Sdk.Runtime/**/*.cs",
       "AgentUp.Sdk.Agent/**/*.cs",
+      "AgentUp.Sdk.Forge/**/*.cs",
       "AgentUp.Capabilities.Dotnet/**/*.cs",
       "AgentUp.Capabilities.Docker/**/*.cs",
       "AgentUp.Capabilities.Codex/**/*.cs",
       "AgentUp.Capabilities.Cursor/**/*.cs",
       "AgentUp.Capabilities.Claude/**/*.cs",
+      "AgentUp.Capabilities.Github/**/*.cs",
       "AgentUp.Browser.Streaming/**/*.cs",
       "AgentUp.Tray/**/*.cs",
       "AgentUp.InstallerConfig/**/*.cs",

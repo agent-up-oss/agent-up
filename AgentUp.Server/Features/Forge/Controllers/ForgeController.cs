@@ -1,0 +1,40 @@
+using AgentUp.Sdk.Forge;
+using AgentUp.Server.Features.Forge.DTOs;
+using AgentUp.Server.Features.Forge.Services;
+
+namespace AgentUp.Server.Features.Forge.Controllers;
+
+public sealed class ForgeController(ForgeService service)
+{
+    public Task<ForgeHostingDto?> GetHostingAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => service.GetHostingAsync(workspaceId, cancellationToken);
+
+    public ForgeHttpOutcome StartLogin(string workspaceId)
+        => service.StartLogin(workspaceId);
+
+    public Task<bool> CompleteLoginAsync(string code, string state, CancellationToken cancellationToken = default)
+        => service.CompleteLoginAsync(code, state, cancellationToken);
+
+    public bool Logout(string workspaceId)
+        => service.Logout(workspaceId);
+
+    public Task<IReadOnlyList<ForgeAssignedIssue>> ListAssignedAsync(
+        string workspaceId,
+        CancellationToken cancellationToken = default)
+        => service.ListAssignedAsync(workspaceId, cancellationToken);
+
+    public Task<ForgeProposal?> OpenProposalAsync(
+        string workspaceId,
+        ForgeOpenProposalRequest command,
+        CancellationToken cancellationToken = default)
+        => service.OpenProposalAsync(workspaceId, command, cancellationToken);
+
+    public Task<ForgeHttpOutcome> UpdateRefAsync(string workspaceId, ForgeUpdateRefRequest command, CancellationToken cancellationToken = default)
+        => service.UpdateRefAsync(workspaceId, command, cancellationToken);
+
+    public Task CommentAsync(string workspaceId, ForgeCommentRequest command, CancellationToken cancellationToken = default)
+        => service.CommentAsync(workspaceId, command, cancellationToken);
+
+    public Task SubmitReviewAsync(string workspaceId, ForgeReviewRequest command, CancellationToken cancellationToken = default)
+        => service.SubmitReviewAsync(workspaceId, command, cancellationToken);
+}

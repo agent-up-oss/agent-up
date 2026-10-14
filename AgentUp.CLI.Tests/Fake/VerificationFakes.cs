@@ -51,6 +51,11 @@ internal sealed class FakeVerificationClock : IVerificationClock
     public DateTimeOffset UtcNow => new(2026, 9, 11, 12, 0, 0, TimeSpan.Zero);
 }
 
+internal sealed class FixedGitRevisionProvider(string revision) : IGitRevisionProvider
+{
+    public string Resolve(string repositoryRoot) => revision;
+}
+
 internal sealed class ScriptedCheckRunner(IReadOnlyDictionary<string, int>? exitCodes = null) : ICheckRunner
 {
     private readonly List<string> _executed = [];

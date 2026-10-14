@@ -1,5 +1,6 @@
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Sdk.Agent;
+using AgentUp.Sdk.Forge;
 using AgentUp.Sdk.Runtime;
 using AgentUp.Server.Features.Capabilities.DTOs;
 using AgentUp.Server.Features.Capabilities.Interfaces;
@@ -10,6 +11,7 @@ internal sealed class FakeEnabledCapabilityPackages : IEnabledCapabilityPackages
 {
     private readonly Dictionary<string, CapabilityPackageManifest> _enabled;
     private IReadOnlyList<IAgentCapability> _agents = [];
+    private IReadOnlyList<IForgeCapability> _forges = [];
     private readonly Dictionary<string, IRuntimeCapability> _runtimes = new(StringComparer.OrdinalIgnoreCase);
 
     public FakeEnabledCapabilityPackages(params CapabilityPackageManifest[] packages)
@@ -20,6 +22,12 @@ internal sealed class FakeEnabledCapabilityPackages : IEnabledCapabilityPackages
     public FakeEnabledCapabilityPackages WithAgents(params IAgentCapability[] agents)
     {
         _agents = agents;
+        return this;
+    }
+
+    public FakeEnabledCapabilityPackages WithForges(params IForgeCapability[] forges)
+    {
+        _forges = forges;
         return this;
     }
 
@@ -59,6 +67,11 @@ internal sealed class FakeEnabledCapabilityPackages : IEnabledCapabilityPackages
         => _agents.FirstOrDefault(agent => agent.Identity.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
 
     public IReadOnlyList<IAgentCapability> ListAgents() => _agents;
+
+    public IForgeCapability? GetForge(string id)
+        => _forges.FirstOrDefault(forge => forge.Identity.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+
+    public IReadOnlyList<IForgeCapability> ListForges() => _forges;
 
     public static CapabilityPackageManifest Dotnet() => new()
     {

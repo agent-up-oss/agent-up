@@ -11,3 +11,5 @@ public sealed record VerifyPlanResult(VerificationPlan? Plan, string? Error);
 public sealed record VerifyRunResult(IReadOnlyList<CheckOutcome> Outcomes, string? Error);
 
 public sealed record VerifyGuardResult(GuardReport? Report, string? Error);
+
+public sealed record VerifyExportResult(VerificationExport? Export, string? Error);

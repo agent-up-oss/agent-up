@@ -62,7 +62,14 @@ public sealed class VerificationControllerTests
             coverageLoader ?? new StubCoverageConfigurationLoader(CoverageConfiguration.Empty),
             new StaticCoverageReportReader(CoverageReport.Empty),
             globs);
-        var commands = new VerifyCommandService(plans, runs, guards, coverage, slices);
+        var exports = new VerificationExportService(
+            plans,
+            guards,
+            ledger,
+            new FakeVerificationClock(),
+            new FixedGitRevisionProvider("abc123"),
+            new CoveredDigestProvider());
+        var commands = new VerifyCommandService(plans, runs, guards, exports, coverage, slices);
 
         return new VerificationController(
             new VerifyPlanCommand(commands, outputService),
@@ -70,6 +77,7 @@ public sealed class VerificationControllerTests
             new VerifyGuardCommand(commands, outputService),
             new VerifyCoverageCommand(commands, outputService),
             new VerifySlicesCommand(commands, outputService),
+            new VerifyExportCommand(commands, outputService),
             outputService,
             Worktree);
     }
@@ -326,5 +334,53 @@ public sealed class VerificationControllerTests
         await controller.RunAsync(["wat"]);
 
         Assert.That(error.ToString(), Does.Contain("coverage"));
+    }
+
+    [Test]
+    public async Task RunAsync_exportReportsNeverRunWithoutExecuting()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var runner = new ScriptedCheckRunner();
+        var controller = ControllerOver(Rules(), Changed(CliSource), new InMemoryReceiptLedgerStore(), runner, output, error);
+
+        var code = await controller.RunAsync(["export"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(code, Is.Zero);
+            Assert.That(output.ToString(), Does.Contain("neverRun"));
+            Assert.That(output.ToString(), Does.Contain("sha256:"));
+            Assert.That(runner.Executed, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task RunAsync_exportJsonOmitsTheCoveredMap()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var controller = ControllerOver(Rules(), Changed(CliSource), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner(), output, error);
+
+        var code = await controller.RunAsync(["export", "--format", "json"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(code, Is.Zero);
+            Assert.That(output.ToString(), Does.Contain("\"coveredDigest\""));
+            Assert.That(output.ToString(), Does.Not.Contain("\"covered\""));
+        });
+    }
+
+    [Test]
+    public async Task RunAsync_helpMentionsTheExportSubcommand()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+        var controller = ControllerOver(Rules(), Changed(CliSource), new InMemoryReceiptLedgerStore(), new ScriptedCheckRunner(), output, error);
+
+        await controller.RunAsync(["wat"]);
+
+        Assert.That(error.ToString(), Does.Contain("export"));
     }
 }

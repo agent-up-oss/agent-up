@@ -1,5 +1,6 @@
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Sdk.Agent;
+using AgentUp.Sdk.Forge;
 using AgentUp.Sdk.Runtime;
 using AgentUp.Server.Features.Capabilities.DTOs;
 
@@ -22,4 +23,8 @@ public interface IEnabledCapabilityPackages
     IAgentCapability? GetAgent(string id);
 
     IReadOnlyList<IAgentCapability> ListAgents();
+
+    IForgeCapability? GetForge(string id);
+
+    IReadOnlyList<IForgeCapability> ListForges();
 }

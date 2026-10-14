@@ -30,11 +30,13 @@
     <ProjectReference Include="..\AgentUp.Sdk.Common\AgentUp.Sdk.Common.csproj" />
     <ProjectReference Include="..\AgentUp.Sdk.Runtime\AgentUp.Sdk.Runtime.csproj" />
     <ProjectReference Include="..\AgentUp.Sdk.Agent\AgentUp.Sdk.Agent.csproj" />
+    <ProjectReference Include="..\AgentUp.Sdk.Forge\AgentUp.Sdk.Forge.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Dotnet\AgentUp.Capabilities.Dotnet.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Docker\AgentUp.Capabilities.Docker.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Codex\AgentUp.Capabilities.Codex.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Cursor\AgentUp.Capabilities.Cursor.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Claude\AgentUp.Capabilities.Claude.csproj" />
+    <ProjectReference Include="..\AgentUp.Capabilities.Github\AgentUp.Capabilities.Github.csproj" />
     <ProjectReference Include="..\AgentUp.TestAgents\AgentUp.TestAgents.csproj" />
     <ProjectReference Include="..\AgentUp.Tray\AgentUp.Tray.csproj" />
   </ItemGroup>
