@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { bindAgent, getAgent, resumeAgent, scheduleAgent, type AgentId, type AgentSession } from '@agent-up/chat';
+import { formatLoopLine } from '@/features/agents/providers/LoopLineProvider';
 import { WorkspaceTabBar } from '@/features/shell/components/WorkspaceTabBar';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useServers } from '@/features/servers/controllers/ServersContext';
@@ -104,7 +105,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
               }}
               style={styles.card}>
               <Text style={styles.title}>{session.boundAgent}</Text>
-              <Text style={styles.detail}>{session.loop ? `${session.loop.phase}${session.loop.terminal ? ` · ${session.loop.terminal}` : ''}` : session.agent ? 'Open existing session' : 'Start the bound agent'}</Text>
+              <Text style={styles.detail}>{formatLoopLine(session.loop) ?? (session.agent ? 'Open existing session' : 'Start the bound agent')}</Text>
             </Pressable>
           </View>
         ) : (

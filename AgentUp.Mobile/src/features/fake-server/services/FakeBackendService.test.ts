@@ -117,6 +117,15 @@ test('agent list follows enabled agent capabilities', () => {
   assert.equal(scheduled.agent, 'claude');
 });
 
+test('agent session exposes loop phase, task and stop reason', () => {
+  const service = backend();
+  const session = json(service, 'GET', '/api/workspaces/harbor-shop/agent');
+  assert.equal(session.loop.phase, 'idle');
+  assert.equal(session.loop.taskTitle, 'Restock featured products');
+  assert.equal(session.loop.stopReason, 'queue_empty');
+  assert.equal(session.boundAgent, 'Codex');
+});
+
 test('git head commit discard and fetch mutate the demo tree', () => {
   const service = backend();
   const head = json(service, 'GET', '/api/workspaces/harbor-shop/git/head');
