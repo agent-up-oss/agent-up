@@ -290,7 +290,7 @@ public sealed class FakeBackendServiceTests
         var backend = FakeServerTestComposition.Backend();
         var session = Json(backend, new FakeBackendRequestDtoBuilder().Put("/api/workspaces/harbor-shop/agent/binding", "{\"agent\":\"\"}"));
 
-        Assert.That(session["boundAgent"], Is.Null);
+        Assert.That(session["boundAgent"]!.GetValue<string>(), Is.EqualTo("Codex"));
     }
 
     [Test]
