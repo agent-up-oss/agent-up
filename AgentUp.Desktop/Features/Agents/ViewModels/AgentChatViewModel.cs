@@ -12,7 +12,8 @@ namespace AgentUp.Desktop.Features.Agents.ViewModels;
 public sealed class AgentChatViewModel : ReactiveObject
 {
     private readonly AgentsController _controller;
-    private string? _workspaceId, _selectedAgent, _sessionId, _message, _error, _sessionTitle, _mode, _usage, _permissionTitle, _permissionDetail, _hintKind, _hintTool, _loginUrl, _loginCode, _loginInstructions;
+    private string? _workspaceId, _selectedAgent, _boundAgent, _sessionId, _message, _error, _sessionTitle, _mode, _usage, _permissionTitle, _permissionDetail, _hintKind, _hintTool, _loginUrl, _loginCode, _loginInstructions;
+    private AgentLoopStatusDto? _loop;
     private string _state = "idle";
     private string _activityLabel = "Idle";
     private bool _isVisible, _isBusy;
@@ -30,6 +31,8 @@ public sealed class AgentChatViewModel : ReactiveObject
     public ObservableCollection<AgentOptionViewModel> PermissionOptions { get; } = [];
     public ObservableCollection<AgentOptionViewModel> AuthenticationOptions { get; } = [];
     public string? SelectedAgent { get => _selectedAgent; private set => this.RaiseAndSetIfChanged(ref _selectedAgent, value); }
+    public string? BoundAgent { get => _boundAgent; private set => this.RaiseAndSetIfChanged(ref _boundAgent, value); }
+    public AgentLoopStatusDto? Loop { get => _loop; private set => this.RaiseAndSetIfChanged(ref _loop, value); }
     public string State { get => _state; private set => this.RaiseAndSetIfChanged(ref _state, value); }
     public string ActivityLabel { get => _activityLabel; private set => this.RaiseAndSetIfChanged(ref _activityLabel, value); }
     public string? SessionTitle { get => _sessionTitle; private set => this.RaiseAndSetIfChanged(ref _sessionTitle, value); }
@@ -49,6 +52,8 @@ public sealed class AgentChatViewModel : ReactiveObject
     public bool IsVisible { get => _isVisible; set => this.RaiseAndSetIfChanged(ref _isVisible, value); }
     public bool IsBusy { get => _isBusy; private set => this.RaiseAndSetIfChanged(ref _isBusy, value); }
     public bool HasAgent => SelectedAgent is not null;
+    public bool HasBoundAgent => BoundAgent is not null;
+    public bool CanStartBound => HasBoundAgent && !HasAgent;
     public bool HasSession => _sessionId is not null;
     public bool HasPermission => PermissionOptions.Count > 0;
     public bool HasContext => !string.IsNullOrWhiteSpace(ContextLine);
@@ -56,10 +61,20 @@ public sealed class AgentChatViewModel : ReactiveObject
     public string? SelectedAgentDisplayName =>
         Agents.FirstOrDefault(agent => string.Equals(agent.Agent, SelectedAgent, StringComparison.Ordinal))?.DisplayName
         ?? SelectedAgent;
+    public string? BoundAgentDisplayName =>
+        Agents.FirstOrDefault(agent => string.Equals(agent.Agent, BoundAgent, StringComparison.Ordinal))?.DisplayName
+        ?? BoundAgent;
+    public string? LoopLine => Loop is null
+        ? null
+        : string.Join(" · ", new[] { Loop.Phase, Loop.TaskTitle, Loop.Terminal, Loop.StopReason }.Where(part => !string.IsNullOrWhiteSpace(part)));
+    public bool HasLoop => !string.IsNullOrWhiteSpace(LoopLine);
     public string StatusLine => HasAgent
         ? $"{SelectedAgentDisplayName} · {ActivityLabel}"
-        : ActivityLabel;
+        : HasBoundAgent
+            ? $"{BoundAgentDisplayName} · {ActivityLabel}"
+            : ActivityLabel;
     public ReactiveCommand<string, Unit> SelectAgentCommand { get; }
+    public ReactiveCommand<Unit, Unit> StartBoundCommand { get; }
     public ReactiveCommand<string, Unit> ResumeSessionCommand { get; }
     public ReactiveCommand<Unit, Unit> SendCommand { get; }
     public ReactiveCommand<Unit, Unit> StopCommand { get; }
@@ -68,6 +83,7 @@ public sealed class AgentChatViewModel : ReactiveObject
     {
         _controller = controller;
         SelectAgentCommand = ReactiveCommand.CreateFromTask<string>(SelectAsync);
+        StartBoundCommand = ReactiveCommand.CreateFromTask(StartBoundAsync);
         ResumeSessionCommand = ReactiveCommand.CreateFromTask<string>(ResumeAsync);
         SendCommand = ReactiveCommand.CreateFromTask(SendAsync);
         StopCommand = ReactiveCommand.CreateFromTask(StopAsync);
@@ -85,7 +101,7 @@ public sealed class AgentChatViewModel : ReactiveObject
         _lastSequence = 0;
         Transcript.Clear();
         _currentRun = null;
-        PermissionOptions.Clear(); AuthenticationOptions.Clear(); SelectedAgent = null; State = "idle"; Error = null; Agents.Clear(); Sessions.Clear();
+        PermissionOptions.Clear(); AuthenticationOptions.Clear(); SelectedAgent = null; BoundAgent = null; Loop = null; State = "idle"; Error = null; Agents.Clear(); Sessions.Clear();
         SessionTitle = Mode = Usage = PermissionTitle = PermissionDetail = LoginUrl = LoginCode = LoginInstructions = _hintKind = _hintTool = null;
         NotifyComputedChatState();
         RefreshActivity();
@@ -104,7 +120,16 @@ public sealed class AgentChatViewModel : ReactiveObject
         }
     }
 
-    private async Task SelectAsync(string agent) => await RunAsync(async id => Apply(await _controller.ScheduleAsync(id, agent, CancellationToken.None)));
+    private async Task SelectAsync(string agent) => await RunAsync(async id =>
+    {
+        Apply(await _controller.BindAsync(id, agent, CancellationToken.None));
+        Apply(await _controller.ScheduleAsync(id, agent, CancellationToken.None));
+    });
+    private async Task StartBoundAsync() => await RunAsync(async id =>
+    {
+        if (BoundAgent is null) return;
+        Apply(await _controller.ScheduleAsync(id, BoundAgent, CancellationToken.None));
+    });
     private async Task ResumeAsync(string sessionId) => await RunAsync(async id => Apply(await _controller.ResumeAsync(id, sessionId, CancellationToken.None)));
     private async Task SendAsync()
     {
@@ -132,6 +157,8 @@ public sealed class AgentChatViewModel : ReactiveObject
         AuthenticationOptions.Clear();
         if (session is not null)
         {
+            BoundAgent = session.BoundAgent;
+            Loop = session.Loop;
             Sessions.Clear();
             foreach (var saved in session.Sessions ?? [])
                 Sessions.Add(saved);
@@ -152,6 +179,8 @@ public sealed class AgentChatViewModel : ReactiveObject
         if (session?.State is not "running") _hintKind = _hintTool = null;
         RefreshActivity();
         this.RaisePropertyChanged(nameof(HasAgent));
+        this.RaisePropertyChanged(nameof(HasBoundAgent));
+        this.RaisePropertyChanged(nameof(CanStartBound));
         this.RaisePropertyChanged(nameof(HasSession));
         NotifyComputedChatState();
     }
@@ -357,9 +386,14 @@ public sealed class AgentChatViewModel : ReactiveObject
     {
         this.RaisePropertyChanged(nameof(HasPermission));
         this.RaisePropertyChanged(nameof(HasAgent));
+        this.RaisePropertyChanged(nameof(HasBoundAgent));
+        this.RaisePropertyChanged(nameof(CanStartBound));
         this.RaisePropertyChanged(nameof(HasSession));
         this.RaisePropertyChanged(nameof(HasMessages));
         this.RaisePropertyChanged(nameof(SelectedAgentDisplayName));
+        this.RaisePropertyChanged(nameof(BoundAgentDisplayName));
+        this.RaisePropertyChanged(nameof(LoopLine));
+        this.RaisePropertyChanged(nameof(HasLoop));
         this.RaisePropertyChanged(nameof(StatusLine));
         this.RaisePropertyChanged(nameof(ContextLine));
         this.RaisePropertyChanged(nameof(HasContext));

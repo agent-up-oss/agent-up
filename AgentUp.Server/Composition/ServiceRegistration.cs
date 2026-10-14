@@ -62,6 +62,7 @@ using AgentUp.Server.Features.DesktopApplications.Providers;
 using AgentUp.Server.Features.DesktopApplications.Services;
 using AgentUp.Server.Features.Diagnostics.Controllers;
 using AgentUp.Server.Features.Diagnostics.Services;
+using AgentUp.Server.Features.Git.Controllers;
 using AgentUp.Server.Features.Git.Interfaces;
 using AgentUp.Server.Features.Git.Providers;
 using AgentUp.Server.Features.Git.Services;
@@ -197,6 +198,28 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IAgentSessionRepository>(_ => new AgentSessionRepository(dataDir));
         builder.Services.AddSingleton<AgentSchedulingService>();
         builder.Services.AddSingleton<AgentsController>();
+        builder.Services.AddSingleton<LoopInvariantGuard>();
+        builder.Services.AddSingleton<AutonomousLoopService>();
+        builder.Services.AddSingleton<AutonomousLoopController>();
+        builder.Services.AddSingleton<IAgentWorkspaceSettingsRepository>(_ =>
+            new JsonAgentWorkspaceSettingsRepository(dataDir));
+        builder.Services.AddSingleton<IAutonomySettings, ConfiguredAutonomySettings>();
+        builder.Services.AddSingleton<IAssignedIssueQueue, MemoryAssignedIssueQueue>();
+        builder.Services.AddSingleton<IEnabledAgentInspector, EnabledAgentInspector>();
+        builder.Services.AddSingleton<IRoleToolFilter, RoleToolFilterProvider>();
+        builder.Services.AddSingleton<LoopPreconditionProvider>();
+        builder.Services.AddSingleton(sp =>
+            new AutonomousWorkspaceService(
+                sp.GetRequiredService<IAutonomySettings>(),
+                sp.GetRequiredService<IAgentWorkspaceSettingsRepository>(),
+                sp.GetRequiredService<LoopPreconditionProvider>(),
+                sp.GetRequiredService<IAssignedIssueQueue>(),
+                sp.GetRequiredService<AgentSchedulingService>(),
+                sp.GetRequiredService<AutonomousLoopService>(),
+                sp.GetRequiredService<WorkspaceQueryController>(),
+                sp.GetRequiredService<IRoleToolFilter>()).ReconcileAfterRestart());
+        builder.Services.AddSingleton<LoopScenarioCatalog>();
+        builder.Services.AddSingleton<LoopOutcomeBaselineStore>();
         builder.Services.AddSingleton<WorkspaceEventFrameProvider>();
         builder.Services.AddSingleton<WorkspaceEventStreamService>();
         builder.Services.AddSingleton<IWorkspaceRepository>(_ =>
@@ -413,6 +436,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IGitWorkingTreeProvider, GitWorkingTreeProvider>();
         builder.Services.AddSingleton<IWorkspacePromptGuard, WorkspaceAgentPromptGuard>();
         builder.Services.AddSingleton<GitChangeTreeService>();
+        builder.Services.AddSingleton<GitQueryController>();
         builder.Services.AddSingleton<ISourceCloneRootProvider>(_ => new SourceCloneRootProvider(dataDir));
         builder.Services.AddSingleton<ISourceCloneTargetProvider, SourceCloneTargetProvider>();
         builder.Services.AddSingleton<ISourceCloneGitProvider, GitSourceCloneProvider>();

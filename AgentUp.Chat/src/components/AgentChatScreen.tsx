@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ServerSession } from '@agent-up/server-client';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import type { AgentActivityKind, AgentEvent, AgentId, AgentPermission, AgentSession, SessionContext, TranscriptItem } from '../models/AgentSession';
-import { authenticateAgent, cancelAgent, decideAgentPermission, getAgent, scheduleAgent, sendAgentMessage, stopAgent, streamAgentEvents, submitAgentLoginCallback, submitAgentLoginCode } from '../providers/AgentApiProvider';
+import { authenticateAgent, bindAgent, cancelAgent, decideAgentPermission, getAgent, scheduleAgent, sendAgentMessage, stopAgent, streamAgentEvents, submitAgentLoginCallback, submitAgentLoginCode } from '../providers/AgentApiProvider';
 import { AgentSignIn } from './AgentSignIn';
 import {
   activityHint,
@@ -129,6 +129,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
   const choose = async (agent: AgentId) => {
     if (!server) return; setBusy(true); setError(null);
     try {
+      await bindAgent(server, workspace.id, agent);
       const next = await scheduleAgent(server, workspace.id, agent);
       setSession(current => mergeAgentSession(current, next));
     }
@@ -166,7 +167,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
               <Text style={styles.chatTitle}>{workspace.displayName}</Text>
               <View style={styles.statusRow}>
                 <View style={[styles.dot, activityDot[activity.kind]]} />
-                <Text style={styles.status}>{session?.agent ? selectedAgentName : 'No agent'} · {activity.label}</Text>
+                <Text style={styles.status}>{session?.agent ? selectedAgentName : session?.boundAgent ? `${session.boundAgent} · bound` : 'No agent'} · {activity.label}</Text>
               </View>
             </View>
             <View style={styles.headingActions}>
@@ -180,7 +181,8 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
             {context.usage ? <Text style={styles.chip}>{context.usage}</Text> : null}
             {context.compacting ? <Text style={styles.chip}>Compacting context</Text> : null}
           </View>}
-          {!session?.agent && <View style={styles.picker}><Text testID="agent-picker-prompt" style={styles.prompt}>Choose an ACP agent</Text>{session?.agents?.map(agent =>
+          {session?.boundAgent && !session.agent && <Pressable testID="agent-start-bound" accessibilityRole="button" disabled={waiting} onPress={() => void choose(session.boundAgent!)} style={styles.agentButton}><Text style={styles.agentText}>Start {session.boundAgent}</Text></Pressable>}
+          {!session?.boundAgent && <View style={styles.picker}><Text testID="agent-picker-prompt" style={styles.prompt}>Choose an ACP agent</Text>{session?.agents?.map(agent =>
             <Pressable key={agent.agent} testID={`agent-picker-${agent.agent}`} disabled={!agent.available || waiting} onPress={() => void choose(agent.agent)} style={[styles.agentButton, !agent.available && auBox('choiceDisabled')]}><Text style={styles.agentText}>{agent.displayName}</Text><Text style={agent.available ? styles.available : styles.unavailable}>{agent.available ? 'Available' : 'Not installed'}</Text></Pressable>)}</View>}
           {(session?.state === 'authentication_required' || session?.state === 'authenticating') && <View style={styles.auth}>
             <Text style={styles.permissionTitle}>Sign in to {session.agent}</Text>

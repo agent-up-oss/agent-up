@@ -11,7 +11,30 @@ export type AgentDescriptor = { agent: AgentId; available: boolean; displayName:
 export type AgentAuthMethod = { id: string; name: string; description: string | null };
 export type AgentSessionSummary = { sessionId: string; agent: AgentId; description: string; branch: string; lastUsedAt: string };
 export type { AgentLoginChallenge, AgentLoginTransport };
-export type AgentSession = { workspaceId: string; agent: AgentId | null; state: string; sessionId: string | null; error: string | null; agents: AgentDescriptor[]; authMethods?: AgentAuthMethod[]; loginChallenge?: AgentLoginChallenge | null; sessions?: AgentSessionSummary[] };
+export type AgentLoopStatus = {
+  active: boolean;
+  phase: string;
+  taskId?: string | null;
+  taskNumber?: number | null;
+  taskTitle?: string | null;
+  terminal?: string | null;
+  stopReason?: string | null;
+  blockReason?: string | null;
+  permissionRuleIds?: string[];
+};
+export type AgentSession = {
+  workspaceId: string;
+  agent: AgentId | null;
+  state: string;
+  sessionId: string | null;
+  error: string | null;
+  agents: AgentDescriptor[];
+  authMethods?: AgentAuthMethod[];
+  loginChallenge?: AgentLoginChallenge | null;
+  sessions?: AgentSessionSummary[];
+  boundAgent?: AgentId | null;
+  loop?: AgentLoopStatus | null;
+};
 export type AgentEvent = { sequence: number; type: string; payload: unknown; timestamp: string };
 export type AgentPermissionOption = { optionId: string; name: string; kind?: string };
 export type AgentPermission = {

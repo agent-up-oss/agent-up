@@ -62,7 +62,9 @@ const sidebars = {
       collapsed: true,
       items: [
         { type: 'doc', id: 'agents/index', label: 'General' },
+        'agents/autonomy',
         'agents/sign-in',
+        'agents/loop-coverage',
       ],
     },
     {

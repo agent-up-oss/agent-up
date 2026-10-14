@@ -114,6 +114,14 @@ state makes a test inapplicable: that reports success without having run. Cover 
 through an injected capability provider instead; pre-existing runtime skips are held in a ratchet
 baseline that rejects additions and stale entries.
 
+`Category=LoopInference` is the Server loop kernel driven by the locally-inferring
+`test-agent-infer` ACP agent. It is `slow` and `ciOnly`. Keep it out of
+`run-dotnet-tests.sh`, the fast `server` check, and the test-kind watchdog.
+
+`Category=LoopSoak` is three concurrent assigned-issue loops plus a restart
+non-resume check. It is `slow` and `ciOnly`. Keep it out of those same suites.
+`loop-scripted` is the fast `AgentUp.TestAgents.Tests` Scripted slice.
+
 ## Rules assert properties, not membership
 
 An architecture rule that pins an exact set fails on any legitimate addition while verifying

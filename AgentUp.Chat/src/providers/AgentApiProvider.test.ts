@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { authenticateAgent, parseSseFrames, resumeAgent, scheduleAgent, streamAgentEvents } from './AgentApiProvider';
+import { authenticateAgent, bindAgent, parseSseFrames, resumeAgent, scheduleAgent, streamAgentEvents } from './AgentApiProvider';
 
 test('parses fragmented and multiline SSE events without losing the tail', () => {
   const first = parseSseFrames('id: 1\nevent: state\ndata: {"sequence":1,\n');
@@ -52,6 +52,20 @@ test('stream rejects a remote HTTP URL before attaching the bearer token', async
     /HTTPS is required/,
   );
   assert.equal(called, false);
+});
+
+test('bind puts the workspace binding route', async () => {
+  const calls: { url: string; init?: RequestInit }[] = [];
+  const request = async (input: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(input), init });
+    return new Response(JSON.stringify({ workspaceId: 'ws', agent: null, state: 'idle', sessionId: null, error: null, agents: [], authMethods: [], boundAgent: 'Codex' }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  const server = { url: 'https://server.example', accessToken: 'token' };
+  const session = await bindAgent(server, 'ws /1', 'Codex', request as typeof fetch);
+  assert.equal(calls[0]?.url, 'https://server.example/api/workspaces/ws%20%2F1/agent/binding');
+  assert.equal(calls[0]?.init?.method, 'PUT');
+  assert.equal(session?.boundAgent, 'Codex');
 });
 
 test('schedule uses a workspace-scoped authenticated JSON request', async () => {

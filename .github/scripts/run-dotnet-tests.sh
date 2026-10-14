@@ -24,6 +24,7 @@ while IFS= read -r -d "" test_project; do
   test_command=(
     dotnet test "$test_project"
     --configuration Release
+    --filter "Category!=LoopInference&Category!=LoopSoak"
     --results-directory "artifacts/test-results/$test_project_name"
     --logger "trx;LogFileName=test-results.trx"
   )

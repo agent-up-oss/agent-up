@@ -13,16 +13,16 @@ Desktop chrome for the live session is the **Agent** tab. Mobile chrome for the 
 </DocWhat>
 
 <DocSpine>
-<DocBeat>Pick an available agent</DocBeat>
+<DocBeat>Pick an available agent to bind it to the workspace</DocBeat>
 <DocBeat>Complete subscription sign-in if the agent asks</DocBeat>
-<DocBeat>Prompt in the live session</DocBeat>
+<DocBeat>Prompt in the live session, or watch an unattended loop</DocBeat>
 </DocSpine>
 
 <DocContract label="Chrome">Desktop Agent · Mobile Agents</DocContract>
 
 <DocSurfaces>
-<DocSurface desktop>The Agent tab lists saved sessions and streams the selected workspace session.</DocSurface>
-<DocSurface mobile>Agents lists saved sessions and Server-discovered ACP agents, then opens the selected chat as an inner page.</DocSurface>
+<DocSurface desktop>The Agent tab lists saved sessions and streams the selected workspace session. Once an agent is bound, the picker hides and the tab shows that agent. An unattended loop's phase and stop reason appear under the status line; a prompt sent while it runs steers the next turn instead of stopping it.</DocSurface>
+<DocSurface mobile>Agents lists saved sessions and Server-discovered ACP agents, then opens the selected chat as an inner page. A bound workspace hides the picker and shows that agent.</DocSurface>
 </DocSurfaces>
 
 <p><img src="/desktop-agents.png" alt="Desktop Agent tab showing Codex and Harbor Shop" /></p>
@@ -35,6 +35,14 @@ Saved sessions from every enabled ACP agent appear together within the current w
 Workspace agent chat uses ACP packages enabled on the Server. The picker lists those modules by id. The Server wraps those launches in Nix. Enable the package from Desktop capability-module chrome or Mobile Settings. Clients never call the remote registry.
 
 Sign in with the corresponding CLI's subscription login from Desktop or Mobile when the agent asks. Agent-Up runs that vendor's no-browser or device-code flow on the Server, shows the sign-in link (and Codex device code) in the client, and then starts ACP. An unavailable executable is disabled in the Desktop and Mobile agent picker.
+
+## Workspace-bound agent
+
+Choosing an agent on Desktop or Mobile binds that module to the workspace, then starts the session. The picker stays hidden while the bind is set. A workspace with no bound agent is normal interactive chat, not an error.
+
+## Unattended loop
+
+Autonomy is experimental and off by default. When it is enabled on the Server and activated for a workspace, that bound agent works through assigned host issues under a permission policy without waiting on each prompt. Desktop shows the current task and how the loop stopped. A message typed while a turn is running is steering for the next turn; it does not cancel the loop.
 
 <DocNext href="/docs/configuration" title="Configuration">
 How to declare `dotnet[]` and `docker[]` shims.

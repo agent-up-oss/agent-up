@@ -146,6 +146,64 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
+    public async Task LoadAsync_hidesThePickerWhenAWorkspaceAgentIsBound()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = new AgentSessionDto("ws-1", null, "idle", null, null, [
+                new AgentDescriptorDto("Codex", true, "Codex")
+            ], [], BoundAgent: "Codex", Loop: new AgentLoopStatusDto(false, "idle", Terminal: "Idle"))
+        };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.HasBoundAgent, Is.True);
+            Assert.That(view.CanStartBound, Is.True);
+            Assert.That(view.HasAgent, Is.False);
+            Assert.That(view.LoopLine, Does.Contain("idle"));
+            Assert.That(view.StatusLine, Is.EqualTo("Codex · Idle"));
+        });
+    }
+
+    [Test]
+    public async Task StartBoundCommand_schedulesTheBoundAgent()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = new AgentSessionDto("ws-1", null, "idle", null, null, [
+                new AgentDescriptorDto("Codex", true, "Codex")
+            ], [], BoundAgent: "Codex"),
+            NextSession = new AgentSessionDto("ws-1", "Codex", "ready", "s1", null, [
+                new AgentDescriptorDto("Codex", true, "Codex")
+            ], [], BoundAgent: "Codex")
+        };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        await view.StartBoundCommand.Execute().FirstAsync();
+
+        Assert.That(fake.ScheduledAgent, Is.EqualTo("Codex"));
+        Assert.That(view.HasAgent, Is.True);
+    }
+
+    [Test]
+    public void AgentLoopStatusDto_carriesTaskAndTerminalFields()
+    {
+        var loop = new AgentLoopStatusDto(true, "running", "1", 2, "Ship", "Completed", "end_turn", null, ["write"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(loop.TaskId, Is.EqualTo("1"));
+            Assert.That(loop.TaskNumber, Is.EqualTo(2));
+            Assert.That(loop.TaskTitle, Is.EqualTo("Ship"));
+            Assert.That(loop.Terminal, Is.EqualTo("Completed"));
+        });
+    }
+
+    [Test]
     public async Task EmptyFollowUpSnapshot_doesNotClearTheAgentCatalog()
     {
         var fake = new ChatApiFake
@@ -343,6 +401,7 @@ internal sealed class ChatApiFake : IAgentApiProvider
     public Dictionary<string, Exception> GetFailures { get; } = new(StringComparer.Ordinal);
     public string? LastWorkspace { get; private set; }
     public string? ResumedSessionId { get; private set; }
+    public string? ScheduledAgent { get; private set; }
     private int _gets;
 
     public AgentSessionDto? Session { get; set; }
@@ -358,8 +417,14 @@ internal sealed class ChatApiFake : IAgentApiProvider
         return Session ?? new AgentSessionDto(workspaceId, null, "idle", null, null, [], []);
     }
 
-    public Task<AgentSessionDto?> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken)
+    public Task<AgentSessionDto?> BindAsync(string workspaceId, string agent, CancellationToken cancellationToken)
         => Task.FromResult(NextSession ?? Session);
+
+    public Task<AgentSessionDto?> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken)
+    {
+        ScheduledAgent = agent;
+        return Task.FromResult(NextSession ?? Session);
+    }
 
     public Task<AgentSessionDto?> ResumeAsync(string workspaceId, string sessionId, CancellationToken cancellationToken)
     {

@@ -199,6 +199,10 @@ public sealed class FakeBackendService
             return AgentSession(workspaceId);
         if (method == "POST" && rest == "agent")
             return ScheduleAgent(workspaceId, request.Body);
+        if (method == "PUT" && rest == "agent/binding")
+            return BindAgent(workspaceId, request.Body);
+        if (method is "PUT" && rest is "agent/autonomy" or "agent/host-connection" or "agent/policy" or "agent/role" or "agent/queue-order")
+            return new FakeBackendResponseDto(204, "application/json");
         if (method == "POST" && rest == "agent/messages")
             return SendAgentMessage(workspaceId, request.Body);
         if (method == "GET" && rest == "agent/events")
@@ -438,9 +442,29 @@ public sealed class FakeBackendService
                 ? existing.DeepClone().AsObject()
                 : new JsonObject();
             next["agent"] = match["agent"]?.DeepClone();
+            next["boundAgent"] = match["agent"]?.DeepClone();
             next["state"] = "ready";
             next["sessionId"] = "demo-agent";
             next["error"] = null;
+            stored["session"] = next;
+            return Json(LiveAgentSession(next));
+        }
+    }
+
+    private FakeBackendResponseDto BindAgent(string workspaceId, string? body)
+    {
+        lock (_gate)
+        {
+            var stored = _state.Agents?[workspaceId] as JsonObject;
+            if (stored is null)
+                return NotFound();
+            var requested = ReadJsonString(body, "agent");
+            if (string.IsNullOrWhiteSpace(requested))
+                return Json(LiveAgentSession(stored["session"]));
+            var next = stored["session"] is JsonObject existing
+                ? existing.DeepClone().AsObject()
+                : new JsonObject();
+            next["boundAgent"] = requested;
             stored["session"] = next;
             return Json(LiveAgentSession(next));
         }

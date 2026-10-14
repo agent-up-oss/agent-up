@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { getAgent, resumeAgent, scheduleAgent, type AgentId, type AgentSession } from '@agent-up/chat';
+import { bindAgent, getAgent, resumeAgent, scheduleAgent, type AgentId, type AgentSession } from '@agent-up/chat';
 import { WorkspaceTabBar } from '@/features/shell/components/WorkspaceTabBar';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useServers } from '@/features/servers/controllers/ServersContext';
@@ -47,6 +47,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
     setBusy(true);
     setError(null);
     try {
+      await bindAgent(server, workspaceId, agent);
       const next = await scheduleAgent(server, workspaceId, agent);
       setSession(next);
       openChat();
@@ -88,6 +89,25 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
           })}
         </View>
 
+        {session?.boundAgent ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Bound agent</Text>
+            <Pressable
+              testID={`agent-bound-${session.boundAgent}`}
+              accessibilityRole="button"
+              accessibilityLabel={session.agent === session.boundAgent ? `Open ${session.boundAgent}` : `Start ${session.boundAgent}`}
+              disabled={busy}
+              onPress={() => {
+                const bound = session.boundAgent;
+                if (!bound) return;
+                session.agent === bound ? openChat() : void start(bound);
+              }}
+              style={styles.card}>
+              <Text style={styles.title}>{session.boundAgent}</Text>
+              <Text style={styles.detail}>{session.loop ? `${session.loop.phase}${session.loop.terminal ? ` · ${session.loop.terminal}` : ''}` : session.agent ? 'Open existing session' : 'Start the bound agent'}</Text>
+            </Pressable>
+          </View>
+        ) : (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{session?.agent ? 'Start another session' : 'Start a session'}</Text>
           {agents.length === 0 && !error && <Text style={styles.detail}>Loading available agents…</Text>}
@@ -110,6 +130,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
             );
           })}
         </View>
+        )}
       </ScrollView>
       <WorkspaceTabBar workspaceId={workspaceId} active="agents" />
     </View>

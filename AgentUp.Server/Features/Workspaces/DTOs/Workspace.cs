@@ -11,6 +11,8 @@ public class Workspace
     public required string Branch { get; set; }
     public required string Commit { get; set; }
     public WorkspaceState State { get; set; } = WorkspaceState.Stopped;
+    /// <summary>Enabled agent module id bound to this workspace. Null means none is chosen yet.</summary>
+    public string? BoundAgentModuleId { get; set; }
     public string? LastError { get; set; }
     public DateTimeOffset LastActivityAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public IReadOnlyList<ApplicationInstance> Applications { get; init; } = [];

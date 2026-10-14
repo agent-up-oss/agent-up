@@ -7,6 +7,9 @@ const root = (workspaceId: string) => `/api/workspaces/${encodeURIComponent(work
 export async function getAgent(server: ServerSession, workspaceId: string, request: typeof fetch = fetch) {
   return requestServerJson<AgentSession>(server, root(workspaceId), {}, undefined, request);
 }
+export async function bindAgent(server: ServerSession, workspaceId: string, agent: AgentId, request: typeof fetch = fetch) {
+  return requestServerJson<AgentSession>(server, `${root(workspaceId)}/binding`, { ...jsonBody({ agent }), method: 'PUT' }, 120_000, request);
+}
 export async function scheduleAgent(server: ServerSession, workspaceId: string, agent: AgentId, request: typeof fetch = fetch) {
   return requestServerJson<AgentSession>(server, root(workspaceId), jsonBody({ agent }), 120_000, request);
 }

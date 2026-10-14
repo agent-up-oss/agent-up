@@ -22,4 +22,10 @@ public sealed class CodexAgentCapabilityTests
         Assert.That(login!.FileName, Is.EqualTo("codex"));
         Assert.That(login.Transport, Is.EqualTo("code"));
     }
+
+    [Test]
+    public void SupportsPermissionRequests_isTrue()
+    {
+        Assert.That(new CodexAgentCapability().SupportsPermissionRequests, Is.True);
+    }
 }

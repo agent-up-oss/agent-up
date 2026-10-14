@@ -1,0 +1,7 @@
+{
+  "id": "complete-now",
+  "prompt": "The task is already done. Call complete_task with summary 'done'.",
+  "scoresOutcome": true,
+  "expectTool": "complete_task",
+  "expectCompleted": true
+}

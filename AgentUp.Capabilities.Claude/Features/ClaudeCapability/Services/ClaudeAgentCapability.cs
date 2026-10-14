@@ -14,6 +14,8 @@ public sealed class ClaudeAgentCapability : IAgentCapability
 
     public bool CanRun => true;
 
+    public bool SupportsPermissionRequests => true;
+
     public AgentLoginSpec? Login { get; } = new("claude", ["setup-token"], "code");
 
     public AgentLaunchResult Launch() => new("claude-agent-acp", [], "nodejs_22");

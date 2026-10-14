@@ -33,4 +33,7 @@ public sealed class WorkspaceQueryController
 
     public Task<bool> UpdateGitIdentityAsync(string workspaceId, string branch, string commit)
         => _registry.UpdateGitIdentityAsync(workspaceId, branch, commit);
+
+    public Task<bool> UpdateBoundAgentAsync(string workspaceId, string? agentModuleId)
+        => _registry.UpdateBoundAgentAsync(workspaceId, agentModuleId);
 }

@@ -376,12 +376,17 @@ internal sealed class StreamApiFake : IAgentApiProvider
         ], []));
     }
 
+    public Task<AgentSessionDto?> BindAsync(string workspaceId, string agent, CancellationToken cancellationToken)
+        => Task.FromResult<AgentSessionDto?>(new AgentSessionDto(workspaceId, null, "idle", null, null, [
+            new AgentDescriptorDto(agent, true, agent)
+        ], [], BoundAgent: agent));
+
     public Task<AgentSessionDto?> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken)
     {
         Scheduled = (workspaceId, agent);
         return Task.FromResult<AgentSessionDto?>(new AgentSessionDto(workspaceId, agent, "ready", "s1", null, [
             new AgentDescriptorDto(agent, true, agent)
-        ], []));
+        ], [], BoundAgent: agent));
     }
 
     public Task<AgentSessionDto?> ResumeAsync(string workspaceId, string sessionId, CancellationToken cancellationToken) =>

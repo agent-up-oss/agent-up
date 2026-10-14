@@ -255,7 +255,7 @@
         ]
       },
       "server": {
-        "command": "dotnet test AgentUp.Server.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
+        "command": "dotnet test AgentUp.Server.Tests --filter Category!=LoopInference&Category!=LoopSoak --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
         "tier": "fast",
         "inputs": [
           "AgentUp.Server",
@@ -343,6 +343,41 @@
           "AgentUp.Server",
           "AgentUp.Capabilities.Dotnet",
           "AgentUp.Capabilities.Docker"
+        ]
+      },
+      "loop-inference": {
+        "command": "./.github/scripts/run-loop-inference.sh",
+        "tier": "slow",
+        "platforms": [
+          "linux"
+        ],
+        "ciOnly": true,
+        "inputs": [
+          "loop-coverage",
+          "AgentUp.Server",
+          "AgentUp.Server.Tests",
+          "AgentUp.TestAgents",
+          "AgentUp.TestAgents.Tests"
+        ]
+      },
+      "loop-scripted": {
+        "command": "dotnet test AgentUp.TestAgents.Tests --filter FullyQualifiedName~.Scripted. --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/loop-scripted",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.TestAgents",
+          "AgentUp.TestAgents.Tests"
+        ]
+      },
+      "loop-soak": {
+        "command": "./.github/scripts/run-loop-soak.sh",
+        "tier": "slow",
+        "platforms": [
+          "linux"
+        ],
+        "ciOnly": true,
+        "inputs": [
+          "AgentUp.Server",
+          "AgentUp.Server.Tests"
         ]
       },
       "mobile": {
@@ -769,6 +804,8 @@
         "checks": [
           "server",
           "cross-product-e2e",
+          "loop-inference",
+          "loop-soak",
           "patch-coverage"
         ]
       },
@@ -782,6 +819,8 @@
         "match": "AgentUp.Server.Tests/**",
         "checks": [
           "server",
+          "loop-inference",
+          "loop-soak",
           "patch-coverage"
         ]
       },
@@ -1060,6 +1099,24 @@
         ]
       },
       {
+        "match": ".github/scripts/run-loop-inference.sh",
+        "checks": [
+          "loop-inference"
+        ]
+      },
+      {
+        "match": ".github/scripts/run-loop-soak.sh",
+        "checks": [
+          "loop-soak"
+        ]
+      },
+      {
+        "match": "loop-coverage/**",
+        "checks": [
+          "loop-inference"
+        ]
+      },
+      {
         "match": ".github/**",
         "checks": []
       },
@@ -1139,6 +1196,8 @@
         "match": "AgentUp.TestAgents/**",
         "checks": [
           "test-agents",
+          "loop-inference",
+          "loop-scripted",
           "patch-coverage"
         ]
       },
@@ -1146,6 +1205,8 @@
         "match": "AgentUp.TestAgents.Tests/**",
         "checks": [
           "test-agents",
+          "loop-inference",
+          "loop-scripted",
           "patch-coverage"
         ]
       },
@@ -1211,7 +1272,8 @@
       "**/Properties/**",
       "**/Resources/**",
       "AgentUp.Tray/Features/AutoStart/WindowsAutoStartRegistrar.cs",
-      "AgentUp.Tray/Features/AutoStart/LaunchctlProcess.cs"
+      "AgentUp.Tray/Features/AutoStart/LaunchctlProcess.cs",
+      "AgentUp.TestAgents/Features/Inference/Providers/LlamaCppTokenGenerator.cs"
     ],
     "sliceExemptions": [
       "AgentUp.Server/Features/Database",

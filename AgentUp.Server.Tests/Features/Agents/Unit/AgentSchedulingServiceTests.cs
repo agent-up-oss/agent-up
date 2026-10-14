@@ -127,7 +127,7 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
-    public async Task Schedule_initializesAcpInWorktreeAndReplacesTheActiveSession()
+    public async Task Schedule_initializesAcpInWorktreeAndKeepsTheLiveSession()
     {
         var first = await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         var second = await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
@@ -136,9 +136,24 @@ public sealed class AgentSchedulingServiceTests
             Assert.That(first.Session!.SessionId, Is.EqualTo("session-1"));
             Assert.That(_process.WorkingDirectory, Is.EqualTo("/repo"));
             Assert.That(_process.Environment!["HOME"], Is.EqualTo("/data/agent-cli-home"));
-            Assert.That(_process.Methods, Is.EqualTo(new[] { "initialize", "session/new", "initialize", "session/new" }));
-            Assert.That(_process.StopCalls, Is.EqualTo(1));
-            Assert.That(second.Error, Is.Null);
+            Assert.That(_process.Methods, Is.EqualTo(new[] { "initialize", "session/new" }));
+            Assert.That(_process.StopCalls, Is.EqualTo(0));
+            Assert.That(second.Session!.SessionId, Is.EqualTo("session-1"));
+        });
+    }
+
+    [Test]
+    public async Task Schedule_refusesADifferentLiveAgentAndNamesTheSession()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        var second = await _service.ScheduleAsync(_workspace.Id, "claude", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(second.Error, Does.Contain("live"));
+            Assert.That(second.Error, Does.Contain("session-1"));
+            Assert.That(_process.StopCalls, Is.EqualTo(0));
         });
     }
 
@@ -244,6 +259,7 @@ public sealed class AgentSchedulingServiceTests
     {
         await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         var replaced = _process;
+        await _service.StopAsync(_workspace.Id, CancellationToken.None);
         _process = new FakeAgentProcessProvider { SessionNewResult = JsonSerializer.SerializeToElement(new { sessionId = "session-2" }) };
         _factory.Next = _process;
         await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
@@ -260,6 +276,91 @@ public sealed class AgentSchedulingServiceTests
             Assert.That(saved.Select(item => item.Description), Does.Not.Contain("Title from the old process"));
             Assert.That(_sessions.Find(_workspace.Id, "session-2")!.Description, Is.EqualTo("New Codex session"));
         });
+    }
+
+    [Test]
+    public async Task BindAsync_recordsTheWorkspaceAgent()
+    {
+        var bound = await _service.BindAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(bound.Error, Is.Null);
+            Assert.That(bound.Session!.BoundAgent, Is.EqualTo("codex"));
+            Assert.That(_registry.GetById(_workspace.Id)!.BoundAgentModuleId, Is.EqualTo("codex"));
+        });
+    }
+
+    [Test]
+    public async Task BindAsync_refusesADifferentLiveAgent()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        var bound = await _service.BindAsync(_workspace.Id, "claude", CancellationToken.None);
+
+        Assert.That(bound.Error, Does.Contain("live"));
+    }
+
+    [Test]
+    public async Task UnbindAsync_clearsTheBoundAgentWhenNoLiveSessionRuns()
+    {
+        await _service.BindAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        var unbound = await _service.UnbindAsync(_workspace.Id, CancellationToken.None);
+
+        Assert.That(unbound.Session!.BoundAgent, Is.Null);
+    }
+
+    [Test]
+    public async Task UnbindAsync_refusesWhileALiveSessionRuns()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        var unbound = await _service.UnbindAsync(_workspace.Id, CancellationToken.None);
+
+        Assert.That(unbound.Error, Does.Contain("live"));
+    }
+
+    [Test]
+    public async Task ScheduleAsync_refusesADifferentBoundAgent()
+    {
+        await _service.BindAsync(_workspace.Id, "claude", CancellationToken.None);
+
+        var scheduled = await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        Assert.That(scheduled.Error, Does.Contain("bound to 'claude'"));
+    }
+
+    [Test]
+    public async Task PromptAsync_enqueuesSteeringWhenAPolicyIsAttachedAndAPromptIsRunning()
+    {
+        _process.HoldPrompt = true;
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        _service.AttachPolicy(_workspace.Id, new AllowListedPermissionPolicy("allow-once", "allow-all"));
+        var first = _service.PromptAsync(_workspace.Id, "original", CancellationToken.None);
+        await WaitUntilAsync(() => _process.Methods.Contains("session/prompt"));
+
+        var steered = await _service.PromptAsync(_workspace.Id, "steer left", CancellationToken.None);
+        _process.CompletePrompt();
+        await first;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(steered.Error, Is.Null);
+            Assert.That(_service.Get(_workspace.Id)!.State, Is.EqualTo("ready"));
+        });
+    }
+
+    [Test]
+    public async Task ResumeAsync_refusesASessionFromADifferentBoundAgent()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        _process.Exit(null);
+        await _registry.UpdateBoundAgentAsync(_workspace.Id, "claude");
+
+        var resumed = await _service.ResumeAsync(_workspace.Id, "session-1", CancellationToken.None);
+
+        Assert.That(resumed.Error, Does.Contain("bound to 'claude'"));
     }
 
     [Test]
@@ -398,6 +499,68 @@ public sealed class AgentSchedulingServiceTests
             Assert.That(_login.MethodId, Is.EqualTo("chatgpt"));
             Assert.That(_process.Methods, Does.Not.Contain("authenticate"));
             Assert.That(_service.Get(_workspace.Id)!.SessionId, Is.EqualTo("session-1"));
+        });
+    }
+
+    [Test]
+    public async Task PromptWaitAsync_returnsAfterThePromptGateIsReleased()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        _process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "end_turn", completed = true });
+
+        var queued = await _service.PromptWaitAsync(_workspace.Id, "hello", CancellationToken.None);
+        var snapshot = _service.InspectLoop(_workspace.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(queued.Error, Is.Null);
+            Assert.That(snapshot.PromptGateReleased, Is.True);
+            Assert.That(snapshot.CompletedTask, Is.True);
+            Assert.That(snapshot.StopReason, Is.EqualTo("end_turn"));
+        });
+    }
+
+    [Test]
+    public async Task PromptWaitAsync_returnsThePromptFailure()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        _process.PromptFailure = new InvalidOperationException("agent crashed");
+
+        var queued = await _service.PromptWaitAsync(_workspace.Id, "hello", CancellationToken.None);
+
+        Assert.That(queued.Error, Does.Contain("agent crashed"));
+    }
+
+    [Test]
+    public void InspectLoop_reportsNotFoundWhenTheWorkspaceHasNoSession()
+    {
+        var snapshot = _service.InspectLoop("missing-workspace");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.StopReason, Is.Null);
+            Assert.That(snapshot.BlockReason, Is.EqualTo("not-found"));
+            Assert.That(snapshot.PermissionsDrained, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task AttachPolicy_recordsTheRuleIdWhenTheAgentAsksForPermission()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        Assert.That(_service.AttachPolicy(_workspace.Id, new AllowListedPermissionPolicy("allow-once", "allow-all")), Is.True);
+        _process.BeforePromptCompletes = _ => _process.RequestPermissionAsync(
+            JsonSerializer.SerializeToElement(new { options = new[] { new { optionId = "allow-once" } } }));
+        _process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "end_turn" });
+
+        await _service.PromptWaitAsync(_workspace.Id, "hello", CancellationToken.None);
+        var snapshot = _service.InspectLoop(_workspace.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.PermissionRuleIds, Is.EqualTo(new[] { "allow-all" }));
+            Assert.That(snapshot.PermissionsDrained, Is.True);
+            Assert.That(snapshot.BlockReason, Is.Null);
         });
     }
 
@@ -789,6 +952,7 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     public event Func<string, JsonElement, Task<JsonElement>>? Request;
     public event Action<string?>? Exited;
     public List<string> Methods { get; } = [];
+    public List<string> Prompts { get; } = [];
     public List<string> Notifications { get; } = [];
     public string? WorkingDirectory { get; private set; }
     public IReadOnlyDictionary<string, string>? Environment { get; private set; }
@@ -808,6 +972,8 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     public int ProtocolVersion { get; set; } = 1;
     public Exception? AuthenticateFailure { get; set; }
     public Exception? PromptFailure { get; set; }
+    public JsonElement? PromptResult { get; set; }
+    public Func<CancellationToken, Task>? BeforePromptCompletes { get; set; }
     public Exception? NotifyFailure { get; set; }
     public Exception? StopFailure { get; set; }
     public Exception? SessionLoadFailure { get; set; }
@@ -835,12 +1001,17 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
         if (method == "session/new" && RequireAuthentication && !Authenticated && StartCalls < 2) throw new InvalidOperationException("Authentication required.");
         if (method == "session/prompt")
         {
+            Prompts.Add(JsonSerializer.Serialize(parameters));
             if (PromptFailure is not null) throw PromptFailure;
+            if (BeforePromptCompletes is not null)
+                await BeforePromptCompletes(cancellationToken);
             if (HoldPrompt)
             {
                 _prompt = new(TaskCreationOptions.RunContinuationsAsynchronously);
                 return await _prompt.Task.WaitAsync(cancellationToken);
             }
+            if (PromptResult is not null)
+                return PromptResult.Value;
         }
         if (method == "session/new")
             return SessionNewResult ?? JsonSerializer.SerializeToElement(new { sessionId = "session-1" });

@@ -1,0 +1,7 @@
+{
+  "id": "complete-ack",
+  "prompt": "Acknowledge completion. Call complete_task with summary 'acknowledged'.",
+  "scoresOutcome": true,
+  "expectTool": "complete_task",
+  "expectCompleted": true
+}

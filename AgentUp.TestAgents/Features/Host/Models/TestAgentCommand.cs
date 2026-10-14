@@ -27,7 +27,19 @@ public enum TestAgentSchema
     /// Print an opaque deep link tied to a login id and poll silently until it is approved.
     /// No user code is ever shown. Matches <c>cursor-agent login</c>.
     /// </summary>
-    SilentPoll
+    SilentPoll,
+
+    /// <summary>
+    /// Local CPU inference over ACP, used to drive the autonomous loop against a real token
+    /// stream. It does not sign in; session/new is allowed immediately.
+    /// </summary>
+    LocalInference,
+
+    /// <summary>
+    /// Deterministic ACP agent driven by a declared turn script. It does not sign in;
+    /// session/new is allowed immediately.
+    /// </summary>
+    Scripted
 }
 
 /// <summary>What the process was asked to do.</summary>

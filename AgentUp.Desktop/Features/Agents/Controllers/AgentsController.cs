@@ -6,6 +6,7 @@ namespace AgentUp.Desktop.Features.Agents.Controllers;
 public sealed class AgentsController(AgentChatService service)
 {
     public Task<AgentSessionDto?> GetAsync(string id, CancellationToken cancellationToken) => service.GetAsync(id, cancellationToken);
+    public Task<AgentSessionDto?> BindAsync(string id, string agent, CancellationToken cancellationToken) => service.BindAsync(id, agent, cancellationToken);
     public Task<AgentSessionDto?> ScheduleAsync(string id, string agent, CancellationToken cancellationToken) => service.ScheduleAsync(id, agent, cancellationToken);
     public Task<AgentSessionDto?> ResumeAsync(string id, string sessionId, CancellationToken cancellationToken) => service.ResumeAsync(id, sessionId, cancellationToken);
     public Task SendAsync(string id, string message, CancellationToken cancellationToken) => service.SendAsync(id, message, cancellationToken);

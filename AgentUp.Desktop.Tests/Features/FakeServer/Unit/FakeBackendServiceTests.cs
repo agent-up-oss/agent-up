@@ -266,6 +266,44 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_bindAgentRecordsTheWorkspaceAgent()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var bound = Json(backend, new FakeBackendRequestDtoBuilder().Put("/api/workspaces/harbor-shop/agent/binding", "{\"agent\":\"codex\"}"));
+
+        Assert.That(bound["boundAgent"]!.GetValue<string>(), Is.EqualTo("codex"));
+    }
+
+    [Test]
+    public void Handle_bindAgentUnknownWorkspaceReturnsNotFound()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Assert.That(
+            Run(backend, new FakeBackendRequestDtoBuilder().Put("/api/workspaces/missing/agent/binding", "{\"agent\":\"codex\"}")).Status,
+            Is.EqualTo(404));
+    }
+
+    [Test]
+    public void Handle_bindAgentEmptyKeepsTheSession()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var session = Json(backend, new FakeBackendRequestDtoBuilder().Put("/api/workspaces/harbor-shop/agent/binding", "{\"agent\":\"\"}"));
+
+        Assert.That(session["boundAgent"], Is.Null);
+    }
+
+    [Test]
+    public void Handle_autonomyRoutesReturnNoContent()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Assert.That(
+            Run(backend, new FakeBackendRequestDtoBuilder().Put("/api/workspaces/harbor-shop/agent/queue-order", "{\"order\":\"NumberAsc\"}")).Status,
+            Is.EqualTo(204));
+    }
+
+    [Test]
     public void Handle_agentControlAndEmptyCollections()
     {
         var backend = FakeServerTestComposition.Backend();

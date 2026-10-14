@@ -45,6 +45,12 @@ test('lists the bundled Harbor Shop workspace', () => {
   assert.equal(workspaces[0].state, 'Running');
 });
 
+test('binding records the workspace agent', () => {
+  const service = backend();
+  const bound = json(service, 'PUT', '/api/workspaces/harbor-shop/agent/binding', JSON.stringify({ agent: 'codex' }));
+  assert.equal(bound.boundAgent, 'codex');
+});
+
 test('agent prompts add a working-tree file and say so', () => {
   const service = backend();
   const types: string[] = [];

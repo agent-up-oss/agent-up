@@ -1,11 +1,15 @@
 using AgentUp.Server.Features.Agents.DTOs;
+using AgentUp.Server.Features.Agents.Models;
+using AgentUp.Server.Features.Agents.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgentUp.Server.Features.Agents.Controllers;
 
 [ApiController]
 [Route("api/workspaces/{workspaceId}/agent")]
-public sealed class AgentsHttpController(AgentsController agents) : ControllerBase
+public sealed class AgentsHttpController(
+    AgentsController agents,
+    AutonomousWorkspaceService? autonomy = null) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<AgentSessionDto>> Get(string workspaceId, CancellationToken cancellationToken) =>
@@ -17,6 +21,61 @@ public sealed class AgentsHttpController(AgentsController agents) : ControllerBa
         var result = await agents.ScheduleAsync(workspaceId, request.Agent, HttpContext.RequestAborted);
         return ScheduleResult(this, result);
     }
+
+    [HttpPut("binding")]
+    public async Task<IActionResult> Bind(string workspaceId, BindAgentRequest request)
+    {
+        var result = await agents.BindAsync(workspaceId, request.Agent, HttpContext.RequestAborted);
+        return BindingResult(this, result);
+    }
+
+    [HttpDelete("binding")]
+    public async Task<IActionResult> Unbind(string workspaceId)
+    {
+        var result = await agents.UnbindAsync(workspaceId, HttpContext.RequestAborted);
+        return BindingResult(this, result);
+    }
+
+    [HttpGet("policy")]
+    public IActionResult GetPolicy(string workspaceId) =>
+        agents.Get(workspaceId) is null ? NotFound() : Ok(PolicyPayload(workspaceId));
+
+    [HttpPut("policy")]
+    public async Task<IActionResult> PutPolicy(string workspaceId, PermissionPolicyRequest request)
+    {
+        var rules = (request.Rules ?? []).Select(ToRule).ToArray();
+        return await AutonomyActionAsync(workspaceId, current => current.SetPolicyAsync(workspaceId, rules));
+    }
+
+    [HttpGet("role")]
+    public IActionResult GetRole(string workspaceId) =>
+        agents.Get(workspaceId) is null ? NotFound() : RoleResult(workspaceId);
+
+    [HttpPut("role")]
+    public async Task<IActionResult> PutRole(string workspaceId, AgentRoleRequest request) =>
+        await AutonomyActionAsync(workspaceId, current => current.SetRoleAsync(workspaceId, ToRole(request)));
+
+    [HttpDelete("role")]
+    public async Task<IActionResult> DeleteRole(string workspaceId) =>
+        await AutonomyActionAsync(workspaceId, current => current.SetRoleAsync(workspaceId, null));
+
+    [HttpPut("host-connection")]
+    public async Task<IActionResult> PutHostConnection(string workspaceId, HostConnectionRequest request) =>
+        await AutonomyActionAsync(workspaceId, current => current.SetHostConnectionAsync(workspaceId, request.Authorized));
+
+    [HttpPut("queue-order")]
+    public async Task<IActionResult> PutQueueOrder(string workspaceId, QueueOrderRequest request) =>
+        await AutonomyActionAsync(workspaceId, current => current.SetQueueOrderAsync(workspaceId, request.Order));
+
+    [HttpPut("autonomy")]
+    public Task<IActionResult> PutAutonomy(string workspaceId, AutonomyActivationRequest request) =>
+        AutonomyActionAsync(workspaceId, current => request.Active
+            ? current.ActivateAsync(workspaceId, HttpContext.RequestAborted)
+            : Task.FromResult(current.Deactivate(workspaceId)));
+
+    [HttpGet("loop")]
+    public IActionResult GetLoop(string workspaceId) =>
+        agents.Get(workspaceId) is null ? NotFound() : Ok(LoopPayload(workspaceId));
 
     [HttpPost("sessions/{sessionId}/resume")]
     public async Task<IActionResult> Resume(string workspaceId, string sessionId)
@@ -74,6 +133,62 @@ public sealed class AgentsHttpController(AgentsController agents) : ControllerBa
     [HttpGet("events")]
     public Task Events(string workspaceId, [FromQuery] long after = 0) =>
         agents.WriteEventsAsync(workspaceId, after, Response, HttpContext.RequestAborted);
+
+    private IActionResult RoleResult(string workspaceId)
+    {
+        var role = autonomy?.Role(workspaceId);
+        return role is null ? NoContent() : Ok(ToDto(role));
+    }
+
+    private PermissionPolicyRequest PolicyPayload(string workspaceId) =>
+        new() { Rules = (autonomy?.PolicyRules(workspaceId) ?? []).Select(ToDto).ToArray() };
+
+    private AgentLoopStatusDto? LoopPayload(string workspaceId) =>
+        agents.Get(workspaceId)?.Loop ?? ToDto(autonomy?.Status(workspaceId));
+
+    private async Task<IActionResult> AutonomyActionAsync(string workspaceId, Func<AutonomousWorkspaceService, Task<AgentActionResult>> action)
+    {
+        if (autonomy is null)
+            return Problem(statusCode: 409, title: "Agent operation failed", detail: "Autonomy is not configured.");
+        return ActionResult(this, await action(autonomy));
+    }
+
+    private static PermissionRule ToRule(PermissionRuleDto dto) => new(dto.Id, dto.Kind, dto.Allow, dto.Scope);
+
+    private static PermissionRuleDto ToDto(PermissionRule rule) => new(rule.Id, rule.Kind, rule.Allow, rule.Scope);
+
+    private static AgentRoleDefinition ToRole(AgentRoleRequest request) =>
+        new(request.Prompt, request.Tools, request.Trigger, request.Termination);
+
+    private static AgentRoleRequest ToDto(AgentRoleDefinition role) => new()
+    {
+        Prompt = role.Prompt,
+        Tools = role.Tools,
+        Trigger = role.Trigger,
+        Termination = role.Termination
+    };
+
+    private static AgentLoopStatusDto? ToDto(LoopStatusSnapshot? loop) =>
+        loop is null
+            ? null
+            : new AgentLoopStatusDto(
+                loop.Active,
+                loop.Phase,
+                loop.CurrentTask?.Id,
+                loop.CurrentTask?.Number,
+                loop.CurrentTask?.Title,
+                loop.Terminal?.ToString(),
+                loop.StopReason,
+                loop.BlockReason,
+                loop.PermissionRuleIds);
+
+    private static IActionResult BindingResult(ControllerBase controller, AgentBindingResult result)
+    {
+        if (!result.Found) return controller.NotFound();
+        return result.Error is null
+            ? controller.Ok(result.Session)
+            : controller.Problem(statusCode: result.Status, title: "Agent could not be bound", detail: result.Error);
+    }
 
     private static IActionResult ScheduleResult(ControllerBase controller, AgentScheduleResult result)
     {

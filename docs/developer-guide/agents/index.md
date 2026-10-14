@@ -14,8 +14,8 @@ Starting or resuming a session replaces the active process without mixing histor
 
 <DocMeta
   owner="AgentUp.Server Agents surface"
-  tests="Server Agents HTTP smoke and capability Provider smoke"
-  rest={'/api/workspaces/{workspaceId}/agent'}
+  tests="Server Agents HTTP smoke, loop soak, capability Provider smoke"
+  rest={'/api/workspaces/{workspaceId}/agent · /api/autonomy'}
 />
 
 <DocSpine>
@@ -27,8 +27,8 @@ Starting or resuming a session replaces the active process without mixing histor
 <DocContract label="Route">POST .../authenticate</DocContract>
 
 <DocSurfaces>
-<DocSurface desktop>The Agent tab lists the workspace's saved sessions across Codex, Cursor, and Claude with agent, generated description, and last branch, then streams the selected session over SSE. User prompts are right-aligned catalog bubbles. The live agent run stays fully open; the next question collapses tools, searches, and thoughts to a Worked disclosure.</DocSurface>
-<DocSurface mobile>The Agents overview tab lists the workspace's saved sessions across all agent types with agent, generated description, and last branch. Selecting one resumes it and opens chat as an inner page. `session/request_permission` is a blocking decision card. The client shows the sign-in URL and Codex device code from the Server and must not launch `xdg-open` itself.</DocSurface>
+<DocSurface desktop>The Agent tab lists the workspace's saved sessions across Codex, Cursor, and Claude with agent, generated description, and last branch, then streams the selected session over SSE. A bound workspace hides the picker and shows that agent. User prompts are right-aligned catalog bubbles. The live agent run stays fully open; the next question collapses tools, searches, and thoughts to a Worked disclosure. Loop phase, task, and stop reason render under the status line.</DocSurface>
+<DocSurface mobile>The Agents overview tab lists the workspace's saved sessions across all agent types with agent, generated description, and last branch. A bound workspace hides the picker and shows that agent. Selecting a session resumes it and opens chat as an inner page. `session/request_permission` is a blocking decision card. The client shows the sign-in URL and Codex device code from the Server and must not launch `xdg-open` itself.</DocSurface>
 </DocSurfaces>
 
 ## Session runtime
@@ -47,6 +47,14 @@ When ACP reports that authentication is required, the session stays scheduled an
 
 Agent-Up advertises no terminal-auth capability because the authenticated HTTP client cannot safely proxy an interactive terminal.
 
-<DocNext href="/developer-guide/agents/sign-in" title="Sign-in">
-Poll, code, and redirect transports.
+## Workspace bind and unattended loop
+
+A workspace may record one bound agent module id. Unbound is the interactive picker. Autonomy stays off until the Server is enabled and the workspace is activated against a policy, a host connection, and assigned issues. Roles prefix the prompt and may filter advertised MCP tools. The full contract is on Autonomy.
+
+## Loop coverage
+
+CI runs the Server loop kernel against a locally-inferring ACP test agent on CPU llama.cpp. Hard invariants fail the run. Pooled task-completion outcomes are compared to a versioned baseline. Scenario files under `loop-coverage/` do not name an agent, so the same prompts can drive CPU inference and `test-agent-scripted`. A separate soak check runs three concurrent assigned-issue loops.
+
+<DocNext href="/developer-guide/agents/autonomy" title="Autonomy">
+Bind, policy, unattended loop, roles, scripted ACP, and soak.
 </DocNext>
