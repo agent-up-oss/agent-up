@@ -64,10 +64,12 @@ nothing comes back, and a browser cannot read a cross-origin popup's location. T
 `canInterceptRedirect` and the web adapter says `false` rather than hanging a sign-in it cannot
 finish.
 
-A client must not open a sign-in link the user did not ask it to open. Choosing a method applies
-the session read back after `POST .../authenticate`, the same way scheduling applies the session
-from `POST .../agent`. Waiting only on the event stream left the Open button unrendered when that
-stream lagged.
+A client must not open a sign-in link the user did not ask it to open. Choosing a method reads the
+session after `POST .../authenticate` until the challenge carries a sign-in URL, or the Server
+leaves `authenticating`. A single GET raced slower login CLIs — loopback redirect binds a listener
+before it prints the link — and that empty snapshot could overwrite a later event-stream frame that
+already had the URL. Waiting only on the stream left the Open button unrendered when that stream
+lagged.
 
 ## Testing
 
