@@ -131,6 +131,43 @@ test('strips markdown markers from thought display text', () => {
   assert.equal(visibleText('**Planning test suite selection prompt**'), 'Planning test suite selection prompt');
 });
 
+test('keeps an authenticating sign-in URL when a later snapshot omits it', () => {
+  const withUrl = mergeAgentSession(null, {
+    workspaceId: 'ws-1',
+    agent: 'codex',
+    state: 'authenticating',
+    sessionId: 's',
+    error: null,
+    agents: [],
+    loginChallenge: {
+      transport: 'redirect',
+      url: 'https://idp.example/authorize',
+      code: null,
+      instructions: 'Open this link and sign in.',
+    },
+  });
+  const stale = mergeAgentSession(withUrl, {
+    workspaceId: 'ws-1',
+    agent: 'codex',
+    state: 'authenticating',
+    sessionId: 's',
+    error: null,
+    agents: [],
+  });
+  const failed = mergeAgentSession(withUrl, {
+    workspaceId: 'ws-1',
+    agent: 'codex',
+    state: 'authentication_required',
+    sessionId: 's',
+    error: 'sign-in failed',
+    agents: [],
+  });
+
+  assert.equal(stale?.loginChallenge?.url, 'https://idp.example/authorize');
+  assert.equal(failed?.loginChallenge?.url, undefined);
+  assert.equal(failed?.state, 'authentication_required');
+});
+
 test('keeps the agent catalog when a later snapshot omits it', () => {
   const catalog: AgentSession['agents'] = [
     { agent: 'Codex', available: true, displayName: 'Codex' },

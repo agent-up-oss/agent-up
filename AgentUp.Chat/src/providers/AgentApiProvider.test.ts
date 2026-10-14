@@ -110,6 +110,80 @@ test('authenticate posts the method and returns the session that call created', 
   assert.equal(returned?.loginChallenge?.url, 'https://idp.example/login');
 });
 
+test('authenticate rereads until the login CLI prints a sign-in URL', async () => {
+  const calls: string[] = [];
+  const pending = {
+    workspaceId: 'ws',
+    agent: 'Codex',
+    state: 'authenticating',
+    sessionId: 's',
+    error: null,
+    agents: [],
+    authMethods: [],
+    loginChallenge: { url: null, code: null, instructions: 'Waiting for the agent CLI to print a sign-in link.', transport: 'redirect' },
+  };
+  const ready = {
+    ...pending,
+    loginChallenge: {
+      url: 'https://idp.example/authorize',
+      code: null,
+      instructions: 'Open this link and sign in.',
+      transport: 'redirect',
+      redirectUri: 'http://127.0.0.1:9/callback',
+    },
+  };
+  let reads = 0;
+  const pauses: number[] = [];
+  const request = async (input: string | URL | Request, init?: RequestInit) => {
+    calls.push(`${init?.method ?? 'GET'} ${String(input)}`);
+    if (init?.method === 'POST') return new Response(null, { status: 202 });
+    reads += 1;
+    return new Response(JSON.stringify(reads === 1 ? pending : ready), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+  const returned = await authenticateAgent(
+    { url: 'https://server.example' },
+    'ws',
+    'chatgpt',
+    request as typeof fetch,
+    { pause: async ms => { pauses.push(ms); } },
+  );
+  assert.equal(reads, 2);
+  assert.deepEqual(pauses, [50]);
+  assert.equal(returned?.loginChallenge?.url, 'https://idp.example/authorize');
+  assert.equal(calls[0], 'POST https://server.example/api/workspaces/ws/agent/authenticate');
+});
+
+test('authenticate returns the last snapshot when the challenge URL never arrives', async () => {
+  const pending = {
+    workspaceId: 'ws',
+    agent: 'Codex',
+    state: 'authenticating',
+    sessionId: 's',
+    error: null,
+    agents: [],
+    authMethods: [],
+  };
+  let reads = 0;
+  const request = async (_input: string | URL | Request, init?: RequestInit) => {
+    if (init?.method === 'POST') return new Response(null, { status: 202 });
+    reads += 1;
+    return new Response(JSON.stringify(pending), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  const returned = await authenticateAgent(
+    { url: 'https://server.example' },
+    'ws',
+    'chatgpt',
+    request as typeof fetch,
+    { timeoutMs: 0, pause: async () => { throw new Error('authenticate must not wait after the deadline'); } },
+  );
+  assert.equal(reads, 1);
+  assert.equal(returned?.state, 'authenticating');
+  assert.equal(returned?.loginChallenge?.url, undefined);
+});
+
 test('authenticate does not read the session when the method post fails', async () => {
   let reads = 0;
   const request = async (input: string | URL | Request, init?: RequestInit) => {

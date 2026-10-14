@@ -25,10 +25,23 @@ export function mergeAgentSession(previous: AgentSession | null, next: AgentSess
     return { ...previous, agent: null, sessionId: null, state: 'idle', error: null };
   }
 
-  if (next.agents.length > 0) return { ...next, boundAgent: next.boundAgent ?? previous?.boundAgent };
-  if (previous?.agents.length)
-    return { ...next, agents: previous.agents, boundAgent: next.boundAgent ?? previous.boundAgent };
-  return { ...next, boundAgent: next.boundAgent ?? previous?.boundAgent };
+  const boundAgent = next.boundAgent ?? previous?.boundAgent;
+  const merged = next.agents.length > 0
+    ? { ...next, boundAgent }
+    : previous?.agents.length
+      ? { ...next, agents: previous.agents, boundAgent }
+      : { ...next, boundAgent };
+  return keepAuthenticatingChallenge(previous, merged);
+}
+
+/**
+ * A GET started before the login CLI printed its link must not wipe a challenge the event
+ * stream already delivered. Keep the URL only while both snapshots are still `authenticating`.
+ */
+function keepAuthenticatingChallenge(previous: AgentSession | null, next: AgentSession): AgentSession {
+  if (next.state !== 'authenticating' || next.loginChallenge?.url || !previous?.loginChallenge?.url) return next;
+  if (previous.state !== 'authenticating') return next;
+  return { ...next, loginChallenge: previous.loginChallenge };
 }
 
 export function sessionUpdateKind(update: unknown): string {

@@ -30,6 +30,7 @@ on:
       - ".github/scripts/install-mobile-deps.sh"
       - ".github/scripts/install-android-ndk.sh"
       - ".github/scripts/install-android-emulator.sh"
+      - ".github/scripts/install-android-emulator.test.mjs"
       - ".github/scripts/wake-android-emulator.sh"
       - ".github/scripts/android-emulator-focus.mjs"
       - ".github/scripts/android-emulator-focus.test.mjs"
@@ -139,7 +140,7 @@ jobs:
             AgentUp.WebAudit/package-lock.json
 
       - name: Check emulator wake helpers
-        run: node --test .github/scripts/android-emulator-focus.test.mjs
+        run: node --test .github/scripts/android-emulator-focus.test.mjs .github/scripts/install-android-emulator.test.mjs
 
       - uses: actions/setup-java@v6
         with:
@@ -244,9 +245,9 @@ jobs:
             echo "usable=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # Same truncated-zip failure as the NDK: android-emulator-runner installs "latest emulator"
-      # once and fails the job when Google's archive is not an archive. Retry here first so the
-      # action's own install is a no-op.
+      # Same truncated-zip failure as the NDK: android-emulator-runner installs the emulator and
+      # the system image once each and fails the job when Google's archive is not an archive.
+      # Retry here first so the action's own install is a no-op.
       - name: Install the Android emulator
         run: ./.github/scripts/install-android-emulator.sh
 
