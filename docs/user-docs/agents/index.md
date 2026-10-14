@@ -21,8 +21,8 @@ Desktop chrome for the live session is the **Agent** tab. Mobile chrome for the 
 <DocContract label="Chrome">Desktop Agent · Mobile Agents</DocContract>
 
 <DocSurfaces>
-<DocSurface desktop>The Agent tab lists saved sessions and streams the selected workspace session. Once an agent is bound, the picker hides and the tab shows that agent. An unattended loop's phase and stop reason appear under the status line; a prompt sent while it runs steers the next turn instead of stopping it.</DocSurface>
-<DocSurface mobile>Agents lists saved sessions and Server-discovered ACP agents, then opens the selected chat as an inner page. A bound workspace hides the picker and shows that agent.</DocSurface>
+<DocSurface desktop>The Agent tab lists saved sessions and streams the selected workspace session. Once an agent is bound, the picker hides and the tab shows that agent. An unattended loop's phase, current task, and stop reason appear under the status line; a prompt sent while it runs steers the next turn instead of stopping it.</DocSurface>
+<DocSurface mobile>Agents lists saved sessions and Server-discovered ACP agents, then opens the selected chat as an inner page. A bound workspace hides the picker and shows that agent. An unattended loop's phase, current task, and stop reason appear on the bound-agent card.</DocSurface>
 </DocSurfaces>
 
 <p><img src="/desktop-agents.png" alt="Desktop Agent tab showing Codex and Harbor Shop" /></p>

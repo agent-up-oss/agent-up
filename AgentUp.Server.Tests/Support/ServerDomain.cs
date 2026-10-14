@@ -76,4 +76,7 @@ internal static class ServerDomain
 
     /// <summary>The empty queue every commits test starts from.</summary>
     public static CommitsQueue EmptyQueue() => new CommitsQueueBuilder().Build();
+
+    /// <summary>The canonical assigned host issue the autonomous loop drains.</summary>
+    public static AssignedIssueBuilder Issue() => new();
 }

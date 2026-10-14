@@ -38,17 +38,26 @@ Autonomy is a Server-level switch, off by default, and it needs a host connectio
 - no commit-queue edit session
 - no unassigned working-tree changes
 
-The queue is the host issues assigned to that agent, in a declared order (`created` by default). Memory is the in-process default; `GitHubAssignedIssueProvider` is the HTTP adapter. After a task completes as `Completed`, that issue is removed and the next runs. An empty queue stops as `Idle`. A Server restart does not silently resume: `ReconcileAfterRestart` marks a persisted active loop `Failed` / `restarted`.
+The queue is the host issues assigned to that agent, in a declared order (`created` by default). Memory is the in-process default; `GitHubAssignedIssueProvider` is the HTTP adapter. After a task completes as `Completed`, that issue id is skipped for the rest of the run even when the host adapter cannot delete it, then the next item runs. An empty queue stops as `Idle`. A rate-limit signal backs off and retries before becoming `BlockedRateLimited`. A Server restart cancels in-process runs and marks a persisted active loop `Failed` / `restarted`.
 
 Every run ends in one typed terminal: `Completed`, `EndTurn`, `Cancelled`, `MaxIterations`, `BlockedPolicy`, `BlockedAwaitingInput`, `BlockedRateLimited`, `BlockedPrecondition`, `BlockedHostUnavailable`, `Failed`, or `Idle`. Desktop and Mobile render `session.loop` and accept a prompt while a turn is running as steering. Steering is advisory: it is queued and delivered at the next turn boundary; it does not stop the loop.
 
 ## Roles
 
-A role is a prompt prefix plus an MCP tool allowlist, a trigger (`IssueAssigned` or `ProposalAwaitingReview`), and a termination (`ProposalOpened` or `ReviewSubmitted`). The allowlist filters advertised MCP tools through the same session configuration path that permission claims already use. An empty allowlist keeps the default per-endpoint toolset.
+A role is a prompt prefix plus an MCP tool allowlist, a trigger (`IssueAssigned` or `ProposalAwaitingReview`), and a termination (`ProposalOpened` or `ReviewSubmitted`). The allowlist filters advertised MCP tools through the same session configuration path that permission claims already use. An empty allowlist keeps the default per-endpoint toolset. `IssueAssigned` drains host issues; `ProposalAwaitingReview` drains the proposal queue. After `Completed`, an unmet termination stops the loop as `blocked:awaiting-input` with stop reason `termination`.
+
+```json
+{
+  "prompt": "Review the proposed change. Do not edit the worktree.",
+  "tools": ["get_commits_status", "plan_verification"],
+  "trigger": "ProposalAwaitingReview",
+  "termination": "ReviewSubmitted"
+}
+```
 
 ## Tests
 
-`test-agent-scripted` is a declared-turn ACP agent. `loop-scripted` is a fast check over `AgentUp.TestAgents.Tests` `Features/Scripted`. `Category=LoopInference` still drives the kernel against CPU llama.cpp. `Category=LoopSoak` (`slow`, `ciOnly`) runs three concurrent loops through hundreds of assigned issues and proves restart does not resume; CI runs it with `./.github/scripts/run-loop-soak.sh`.
+`test-agent-scripted` is a declared-turn ACP agent. `loop-scripted` is a fast check over that agent plus Server `ScriptedLoop` Provider tests for every loop branch. `Category=LoopInference` still drives the kernel against CPU llama.cpp. Concurrency and restart live in the normal E2E tier (`AutonomousLoopIsolationTests`). `Category=LoopSoak` (`slow`, `ciOnly`) drains hundreds of scripted tasks and asserts bounded memory, handles, threads, and transcript size; CI runs it with `./.github/scripts/run-loop-soak.sh`.
 
 <DocNext href="/developer-guide/agents/loop-coverage" title="Loop coverage">
 CPU-inference invariants, the pinned GGUF, and the LoopInference job.

@@ -290,7 +290,7 @@ public sealed class FakeBackendServiceTests
         var backend = FakeServerTestComposition.Backend();
         var session = Json(backend, new FakeBackendRequestDtoBuilder().Put("/api/workspaces/harbor-shop/agent/binding", "{\"agent\":\"\"}"));
 
-        Assert.That(session["boundAgent"], Is.Null);
+        Assert.That(session["boundAgent"]!.GetValue<string>(), Is.EqualTo("Codex"));
     }
 
     [Test]
@@ -524,6 +524,21 @@ public sealed class FakeBackendServiceTests
 
         Assert.That(session["agents"]!.AsArray(), Is.Empty);
         Assert.That(session["agent"], Is.Null);
+    }
+
+    [Test]
+    public void Handle_exposesLoopStateOnTheAgentSession()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var session = Json(backend, Get("/api/workspaces/harbor-shop/agent"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(session["loop"]!["phase"]!.GetValue<string>(), Is.EqualTo("idle"));
+            Assert.That(session["loop"]!["taskTitle"]!.GetValue<string>(), Is.EqualTo("Restock featured products"));
+            Assert.That(session["loop"]!["stopReason"]!.GetValue<string>(), Is.EqualTo("queue_empty"));
+            Assert.That(session["boundAgent"]!.GetValue<string>(), Is.EqualTo("Codex"));
+        });
     }
 
     [Test]

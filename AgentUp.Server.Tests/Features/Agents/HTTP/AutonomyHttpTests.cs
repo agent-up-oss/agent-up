@@ -168,6 +168,26 @@ public sealed class AutonomyHttpTests
     }
 
     [Test]
+    public async Task RoleRoundTrip_storesAProposalAwaitingReviewTrigger()
+    {
+        await using var host = await HostAsync();
+        var workspace = await host.RegisterAsync();
+
+        using var put = await host.Client.PutAsJsonAsync(
+            $"/api/workspaces/{workspace.Id}/agent/role",
+            new { prompt = "Review it", tools = Array.Empty<string>(), trigger = "ProposalAwaitingReview", termination = "ReviewSubmitted" });
+        var role = await host.Client.GetFromJsonAsync<AgentRoleRequest>(
+            $"/api/workspaces/{workspace.Id}/agent/role", Json);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(put.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(role!.Trigger, Is.EqualTo(RoleTriggerKind.ProposalAwaitingReview));
+            Assert.That(role.Termination, Is.EqualTo(RoleTerminationKind.ReviewSubmitted));
+        });
+    }
+
+    [Test]
     public async Task PutAutonomyActivation_failsWhenTheServerIsDisabled()
     {
         await using var host = await HostAsync();
@@ -291,6 +311,9 @@ public sealed class AutonomyHttpTests
         builder.Services.AddSingleton<IAgentWorkspaceSettingsRepository, InMemoryAgentWorkspaceSettingsRepository>();
         builder.Services.AddSingleton<IAutonomySettings, ConfiguredAutonomySettings>();
         builder.Services.AddSingleton<IAssignedIssueQueue, MemoryAssignedIssueQueue>();
+        builder.Services.AddSingleton<IAssignedProposalQueue, MemoryAssignedProposalQueue>();
+        builder.Services.AddSingleton<IRoleProgress, MemoryRoleProgress>();
+        builder.Services.AddSingleton<ILoopBackoff, ImmediateLoopBackoff>();
         builder.Services.AddSingleton<IEnabledAgentInspector, EnabledAgentInspector>();
         builder.Services.AddSingleton<IRoleToolFilter, RoleToolFilterProvider>();
         builder.Services.AddSingleton<LoopInvariantGuard>();

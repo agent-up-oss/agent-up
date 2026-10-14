@@ -205,6 +205,9 @@ public static class ServiceRegistration
             new JsonAgentWorkspaceSettingsRepository(dataDir));
         builder.Services.AddSingleton<IAutonomySettings, ConfiguredAutonomySettings>();
         builder.Services.AddSingleton<IAssignedIssueQueue, MemoryAssignedIssueQueue>();
+        builder.Services.AddSingleton<IAssignedProposalQueue, MemoryAssignedProposalQueue>();
+        builder.Services.AddSingleton<IRoleProgress, MemoryRoleProgress>();
+        builder.Services.AddSingleton<ILoopBackoff, LoopBackoffProvider>();
         builder.Services.AddSingleton<IEnabledAgentInspector, EnabledAgentInspector>();
         builder.Services.AddSingleton<IRoleToolFilter, RoleToolFilterProvider>();
         builder.Services.AddSingleton<LoopPreconditionProvider>();
@@ -214,6 +217,8 @@ public static class ServiceRegistration
                 sp.GetRequiredService<IAgentWorkspaceSettingsRepository>(),
                 sp.GetRequiredService<LoopPreconditionProvider>(),
                 sp.GetRequiredService<IAssignedIssueQueue>(),
+                sp.GetRequiredService<IAssignedProposalQueue>(),
+                sp.GetRequiredService<IRoleProgress>(),
                 sp.GetRequiredService<AgentSchedulingService>(),
                 sp.GetRequiredService<AutonomousLoopService>(),
                 sp.GetRequiredService<WorkspaceQueryController>(),

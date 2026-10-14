@@ -118,9 +118,11 @@ baseline that rejects additions and stale entries.
 `test-agent-infer` ACP agent. It is `slow` and `ciOnly`. Keep it out of
 `run-dotnet-tests.sh`, the fast `server` check, and the test-kind watchdog.
 
-`Category=LoopSoak` is three concurrent assigned-issue loops plus a restart
-non-resume check. It is `slow` and `ciOnly`. Keep it out of those same suites.
-`loop-scripted` is the fast `AgentUp.TestAgents.Tests` Scripted slice.
+Concurrency and restart for autonomous workspaces run in the normal E2E
+tier. `Category=LoopSoak` is hundreds of scripted tasks plus bounded-growth
+asserts. It is `slow` and `ciOnly`. Keep it out of those same suites.
+`loop-scripted` is the fast `AgentUp.TestAgents.Tests` Scripted slice plus
+Server `ScriptedLoop` Provider tests.
 
 ## Rules assert properties, not membership
 
