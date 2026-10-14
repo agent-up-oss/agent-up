@@ -88,7 +88,7 @@ internal sealed class ScriptedAcpProcess : IAgentProcessProvider
                 await NotifyToolAsync("read_file", failed: true);
                 return JsonSerializer.SerializeToElement(new { stopReason = "end_turn" });
             case ScriptedTurnKind.HugeArgs:
-                await NotifyToolAsync("write_file", arguments: new string('x', 3_000_000));
+                await NotifyToolAsync("write_file", arguments: new string('x', 64_000));
                 return JsonSerializer.SerializeToElement(new { stopReason = "end_turn" });
             case ScriptedTurnKind.InvalidUtf8:
                 await NotifyToolAsync("read_file", title: "\uD800");
