@@ -115,6 +115,8 @@ public sealed class McpEndpointSessionProvider
         ConfigureEndpoint(context, options, instructions);
         context.RequestServices.GetService<McpToolPermissionController>()?.Restrict(context, options);
         binding?.Pin(context, options);
+        context.RequestServices.GetService<AgentUp.Server.Features.Agents.Services.AutonomousWorkspaceService>()
+            ?.RestrictRoleTools(options, binding?.BoundWorkspace(context));
         return Task.CompletedTask;
     }
 

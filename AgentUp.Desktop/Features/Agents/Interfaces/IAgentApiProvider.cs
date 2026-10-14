@@ -5,6 +5,7 @@ namespace AgentUp.Desktop.Features.Agents.Interfaces;
 public interface IAgentApiProvider
 {
     Task<AgentSessionDto?> GetAsync(string workspaceId, CancellationToken cancellationToken);
+    Task<AgentSessionDto?> BindAsync(string workspaceId, string agent, CancellationToken cancellationToken);
     Task<AgentSessionDto?> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken);
     Task<AgentSessionDto?> ResumeAsync(string workspaceId, string sessionId, CancellationToken cancellationToken);
     Task SendAsync(string workspaceId, string message, CancellationToken cancellationToken);

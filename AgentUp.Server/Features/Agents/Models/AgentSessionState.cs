@@ -37,4 +37,7 @@ public sealed class AgentSessionState
     public JsonElement? LastPromptResult { get; set; }
     public TaskCompletionSource<JsonElement>? PromptCompletion { get; set; }
     public int TranscriptEvents { get; set; }
+    public ConcurrentQueue<string> Steering { get; } = new();
+    public int ConsecutiveNoProgress { get; set; }
+    public bool SawToolCall { get; set; }
 }

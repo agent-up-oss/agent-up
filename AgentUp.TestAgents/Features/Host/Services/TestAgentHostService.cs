@@ -3,6 +3,7 @@ using AgentUp.TestAgents.Features.Authentication.Controllers;
 using AgentUp.TestAgents.Features.Host.Models;
 using AgentUp.TestAgents.Features.IdentityProvider.Controllers;
 using AgentUp.TestAgents.Features.Inference.Controllers;
+using AgentUp.TestAgents.Features.Scripted.Controllers;
 
 namespace AgentUp.TestAgents.Features.Host.Services;
 
@@ -15,6 +16,7 @@ public sealed class TestAgentHostService(
     AuthenticationController authentication,
     IdentityProviderController identityProvider,
     InferenceAcpController inference,
+    ScriptedAcpController scripted,
     TestAgentConsole console)
 {
     public async Task<int> RunAsync(TestAgentCommand command, CancellationToken cancellationToken)
@@ -22,6 +24,12 @@ public sealed class TestAgentHostService(
         if (command.Schema == TestAgentSchema.LocalInference)
         {
             await inference.ServeAsync(console.In, console.Out, console.Error, cancellationToken);
+            return 0;
+        }
+
+        if (command.Schema == TestAgentSchema.Scripted)
+        {
+            await scripted.ServeAsync(console.In, console.Out, cancellationToken);
             return 0;
         }
 

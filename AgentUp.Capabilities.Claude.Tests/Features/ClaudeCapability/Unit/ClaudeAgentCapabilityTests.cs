@@ -19,4 +19,10 @@ public sealed class ClaudeAgentCapabilityTests
     {
         Assert.That(new ClaudeAgentCapability().Login!.Transport, Is.EqualTo("code"));
     }
+
+    [Test]
+    public void SupportsPermissionRequests_isTrue()
+    {
+        Assert.That(new ClaudeAgentCapability().SupportsPermissionRequests, Is.True);
+    }
 }

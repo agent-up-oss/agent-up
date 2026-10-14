@@ -15,6 +15,7 @@ public sealed class AgentChatServiceTests
         var service = new AgentChatService(provider);
         await service.SendAsync("ws-1", "fix it", CancellationToken.None);
         await service.GetAsync("ws-1", CancellationToken.None);
+        await service.BindAsync("ws-1", "Codex", CancellationToken.None);
         await service.ScheduleAsync("ws-1", "Codex", CancellationToken.None);
         await service.ResumeAsync("ws-1", "saved-1", CancellationToken.None);
         await service.AuthenticateAsync("ws-1", "chatgpt", CancellationToken.None);
@@ -42,6 +43,7 @@ internal sealed class FakeAgentApiProvider : IAgentApiProvider
     public (string, string, string)? Decided { get; private set; }
     public string? Stopped { get; private set; }
     public Task<AgentSessionDto?> GetAsync(string workspaceId, CancellationToken cancellationToken) => Task.FromResult<AgentSessionDto?>(null);
+    public Task<AgentSessionDto?> BindAsync(string workspaceId, string agent, CancellationToken cancellationToken) => Task.FromResult<AgentSessionDto?>(null);
     public Task<AgentSessionDto?> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken) => Task.FromResult<AgentSessionDto?>(null);
     public Task<AgentSessionDto?> ResumeAsync(string workspaceId, string sessionId, CancellationToken cancellationToken) => Task.FromResult<AgentSessionDto?>(null);
     public Task SendAsync(string workspaceId, string message, CancellationToken cancellationToken) { Sent = (workspaceId, message); return Task.CompletedTask; }

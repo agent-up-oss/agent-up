@@ -14,6 +14,8 @@ public sealed class CursorAgentCapability : IAgentCapability
 
     public bool CanRun => true;
 
+    public bool SupportsPermissionRequests => true;
+
     public AgentLoginSpec? Login { get; } = new("agent", ["login"], "poll");
 
     public AgentLaunchResult Launch() => new("agent", ["acp"], "nodejs_22");

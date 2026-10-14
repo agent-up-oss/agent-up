@@ -14,6 +14,8 @@ public sealed class CodexAgentCapability : IAgentCapability
 
     public bool CanRun => true;
 
+    public bool SupportsPermissionRequests => true;
+
     public AgentLoginSpec? Login { get; } = new("codex", ["login", "--device-auth"], "code");
 
     public AgentLaunchResult Launch() => new("codex-acp", [], "nodejs_22");

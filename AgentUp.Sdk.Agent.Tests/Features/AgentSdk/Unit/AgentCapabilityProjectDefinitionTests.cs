@@ -34,6 +34,7 @@ public sealed class AgentCapabilityProjectDefinitionTests
         public CapabilityIdentity Identity { get; } = new("sample", "1.0.0", "Sample", "agent-up");
         public IReadOnlyList<NixPackageDeclaration> NixPackages { get; } = [new("nodejs_22")];
         public bool CanRun => true;
+        public bool SupportsPermissionRequests => true;
         public AgentLoginSpec? Login => new("sample", ["login"], "poll");
 
         public AgentLaunchResult Launch() => new("sample-acp", []);

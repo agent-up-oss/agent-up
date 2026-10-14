@@ -14,7 +14,7 @@ public sealed class LoopInvariantGuard
         var violations = new List<string>();
         if (!Enum.IsDefined(result.Terminal))
             violations.Add("The run ended in an untyped terminal state.");
-        if (string.IsNullOrWhiteSpace(result.StopReason) && result.Terminal is not LoopTerminal.BlockedPolicy)
+        if (string.IsNullOrWhiteSpace(result.StopReason) && result.Terminal is not LoopTerminal.BlockedPolicy and not LoopTerminal.Idle)
             violations.Add("The run ended without a typed stop reason.");
         if (!result.PermissionsDrained)
             violations.Add("A permission request was left on the human-facing queue.");
@@ -26,10 +26,17 @@ public sealed class LoopInvariantGuard
             violations.Add("Context accounting went negative.");
         if (result.Terminal == LoopTerminal.Completed && !result.CompletedTask)
             violations.Add("A completed terminal did not record a completed task.");
-        if (result.Terminal == LoopTerminal.BlockedPolicy && string.IsNullOrWhiteSpace(result.BlockReason))
-            violations.Add("A policy block was not typed.");
+        if (IsBlocked(result.Terminal) && string.IsNullOrWhiteSpace(result.BlockReason))
+            violations.Add("A blocked terminal was not typed.");
         if (result.PermissionRuleIds.Any(string.IsNullOrWhiteSpace))
             violations.Add("A permission was resolved without a recorded rule id.");
         return violations;
     }
+
+    private static bool IsBlocked(LoopTerminal terminal) =>
+        terminal is LoopTerminal.BlockedPolicy
+            or LoopTerminal.BlockedAwaitingInput
+            or LoopTerminal.BlockedRateLimited
+            or LoopTerminal.BlockedPrecondition
+            or LoopTerminal.BlockedHostUnavailable;
 }

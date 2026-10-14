@@ -22,4 +22,10 @@ public sealed class AgentsController(AgentSchedulingService scheduling, AgentEve
     public bool Decide(string workspaceId, AgentPermissionResponse response) => scheduling.Decide(workspaceId, response);
     public IAsyncEnumerable<AgentEventDto> Events(string workspaceId, long after, CancellationToken cancellationToken) => events.SubscribeAsync(workspaceId, after, cancellationToken);
     public Task WriteEventsAsync(string workspaceId, long after, Microsoft.AspNetCore.Http.HttpResponse response, CancellationToken cancellationToken) => events.WriteAsync(workspaceId, after, response, cancellationToken);
+
+    public Task<AgentBindingResult> BindAsync(string workspaceId, string agent, CancellationToken cancellationToken) =>
+        scheduling.BindAsync(workspaceId, agent, cancellationToken);
+
+    public Task<AgentBindingResult> UnbindAsync(string workspaceId, CancellationToken cancellationToken) =>
+        scheduling.UnbindAsync(workspaceId, cancellationToken);
 }

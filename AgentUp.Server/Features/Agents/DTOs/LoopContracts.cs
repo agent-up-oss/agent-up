@@ -10,7 +10,12 @@ public enum LoopTerminal
     Cancelled,
     MaxIterations,
     BlockedPolicy,
-    Failed
+    BlockedAwaitingInput,
+    BlockedRateLimited,
+    BlockedPrecondition,
+    BlockedHostUnavailable,
+    Failed,
+    Idle
 }
 
 public sealed record LoopRunRequest(
@@ -19,7 +24,9 @@ public sealed record LoopRunRequest(
     int MaxIterations,
     IAgentPermissionPolicy Policy,
     int ContextCharLimit,
-    uint Seed = 42);
+    uint Seed = 42,
+    int StandingPolicyReplies = 2,
+    int PromptTimeoutMs = 30_000);
 
 public sealed record LoopRunResult(
     LoopTerminal Terminal,

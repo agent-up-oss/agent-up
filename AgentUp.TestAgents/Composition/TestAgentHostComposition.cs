@@ -10,6 +10,9 @@ using AgentUp.TestAgents.Features.IdentityProvider.Services;
 using AgentUp.TestAgents.Features.Inference.Controllers;
 using AgentUp.TestAgents.Features.Inference.Providers;
 using AgentUp.TestAgents.Features.Inference.Services;
+using AgentUp.TestAgents.Features.Scripted.Controllers;
+using AgentUp.TestAgents.Features.Scripted.Providers;
+using AgentUp.TestAgents.Features.Scripted.Services;
 
 namespace AgentUp.TestAgents.Composition;
 
@@ -30,6 +33,7 @@ public static class TestAgentHostComposition
                     new ToolCallParser(),
                     new WorktreeToolExecutor(),
                     new EnvironmentLoopInferenceSettings())),
+            new ScriptedAcpController(new ScriptedAcpService(new EnvironmentScriptedTurnScript())),
             TestAgentStandardConsole.FromStreams(
                 Console.OpenStandardInput(),
                 Console.OpenStandardOutput(),

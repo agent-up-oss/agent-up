@@ -19,4 +19,10 @@ public sealed class CursorAgentCapabilityTests
     {
         Assert.That(new CursorAgentCapability().Login!.Transport, Is.EqualTo("poll"));
     }
+
+    [Test]
+    public void SupportsPermissionRequests_isTrue()
+    {
+        Assert.That(new CursorAgentCapability().SupportsPermissionRequests, Is.True);
+    }
 }

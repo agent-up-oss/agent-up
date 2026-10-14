@@ -8,4 +8,5 @@ public sealed record LoopInspection(
     int TranscriptEvents,
     bool CompletedTask,
     string? StopReason,
-    string? BlockReason);
+    string? BlockReason,
+    bool SawToolCall = false);

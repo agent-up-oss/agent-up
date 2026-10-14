@@ -1205,6 +1205,10 @@
                                             <TextBlock Classes="au-page-title" Text="Workspace agent"/>
                                             <TextBlock Classes="au-muted" Text="{Binding Agent.StatusLine}"/>
                                             <TextBlock Classes="au-muted"
+                                                       Text="{Binding Agent.LoopLine}"
+                                                       IsVisible="{Binding Agent.HasLoop}"
+                                                       Margin="0,4,0,0"/>
+                                            <TextBlock Classes="au-muted"
                                                        Text="{Binding Agent.ContextLine}"
                                                        IsVisible="{Binding Agent.HasContext}"
                                                        Margin="0,4,0,0"/>
@@ -1235,7 +1239,12 @@
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                         </ScrollViewer>
-                                        <StackPanel Spacing="8" HorizontalAlignment="Stretch" IsVisible="{Binding !Agent.HasAgent}">
+                                        <Button Classes="au-button au-button--compact"
+                                                HorizontalAlignment="Stretch"
+                                                IsVisible="{Binding Agent.CanStartBound}"
+                                                Command="{Binding Agent.StartBoundCommand}"
+                                                Content="Start bound agent"/>
+                                        <StackPanel Spacing="8" HorizontalAlignment="Stretch" IsVisible="{Binding !Agent.HasBoundAgent}">
                                         <TextBlock Classes="au-field-label" Text="Choose an ACP agent"/>
                                         <ItemsControl x:Name="AgentPicker" ItemsSource="{Binding Agent.Agents}" HorizontalAlignment="Stretch">
                                             <ItemsControl.Styles>
