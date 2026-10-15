@@ -14,6 +14,7 @@ public sealed class VerifyCommandService(
     VerificationPlanService plans,
     VerificationRunService runs,
     VerificationGuardService guards,
+    VerificationExportService exports,
     PatchCoverageService coverage,
     SliceCoverageService slices)
 {
@@ -93,6 +94,23 @@ public sealed class VerifyCommandService(
     /// every turn end: executing suites there would make each turn end slow and turn a hook
     /// timeout into a false failure.
     /// </remarks>
+    /// <summary>
+    /// Builds a report of what the current working tree has proven. This runs nothing.
+    /// </summary>
+    public async Task<VerifyExportResult> ExportAsync(
+        string worktreePath,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return new VerifyExportResult(await exports.ExportAsync(worktreePath, cancellationToken), null);
+        }
+        catch (VerificationConfigurationException exception)
+        {
+            return new VerifyExportResult(null, exception.Message);
+        }
+    }
+
     public async Task<VerifyGuardResult> GuardAsync(
         string worktreePath,
         bool runMissing,

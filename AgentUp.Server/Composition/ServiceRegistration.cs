@@ -62,6 +62,10 @@ using AgentUp.Server.Features.DesktopApplications.Providers;
 using AgentUp.Server.Features.DesktopApplications.Services;
 using AgentUp.Server.Features.Diagnostics.Controllers;
 using AgentUp.Server.Features.Diagnostics.Services;
+using AgentUp.Server.Features.Forge.Controllers;
+using AgentUp.Server.Features.Forge.Interfaces;
+using AgentUp.Server.Features.Forge.Providers;
+using AgentUp.Server.Features.Forge.Services;
 using AgentUp.Server.Features.Git.Controllers;
 using AgentUp.Server.Features.Git.Interfaces;
 using AgentUp.Server.Features.Git.Providers;
@@ -204,7 +208,14 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IAgentWorkspaceSettingsRepository>(_ =>
             new JsonAgentWorkspaceSettingsRepository(dataDir));
         builder.Services.AddSingleton<IAutonomySettings, ConfiguredAutonomySettings>();
-        builder.Services.AddSingleton<IAssignedIssueQueue, MemoryAssignedIssueQueue>();
+        builder.Services.AddSingleton<IForgeCredentialStore>(_ => new ForgeCredentialStore(dataDir));
+        builder.Services.AddSingleton<IForgeGitRemoteResolver, ForgeGitRemoteResolver>();
+        builder.Services.AddSingleton<IForgeOAuthSettings, ForgeOAuthSettingsProvider>();
+        builder.Services.AddSingleton<IForgeOAuthStateStore, ForgeOAuthStateStore>();
+        builder.Services.AddSingleton<IForgeOAuthExchange, ForgeOAuthExchangeProvider>();
+        builder.Services.AddSingleton<ForgeService>();
+        builder.Services.AddSingleton<ForgeController>();
+        builder.Services.AddSingleton<IAssignedIssueQueue, ForgeAssignedIssueQueue>();
         builder.Services.AddSingleton<IAssignedProposalQueue, MemoryAssignedProposalQueue>();
         builder.Services.AddSingleton<IRoleProgress, MemoryRoleProgress>();
         builder.Services.AddSingleton<ILoopBackoff, LoopBackoffProvider>();
@@ -380,6 +391,9 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<VerificationPlanService>();
         builder.Services.AddSingleton<VerificationRunService>();
         builder.Services.AddSingleton<VerificationGuardService>();
+        builder.Services.AddSingleton<IGitRevisionProvider, GitRevisionProvider>();
+        builder.Services.AddSingleton<CoveredDigestProvider>();
+        builder.Services.AddSingleton<VerificationExportService>();
         builder.Services.AddSingleton<VerificationReportService>();
         builder.Services.AddSingleton<VerificationQueueGateService>();
         builder.Services.AddSingleton<VerificationController>();

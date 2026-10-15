@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { checkoutRemote, commitFiles, discardFiles, fetchRemote, getChanges, getCommitQueue, getFileDiff, getHeadState, getLog, pullRemote, pushRemote, switchBranch } from './GitApiProvider';
+import { checkoutRemote, commitFiles, discardFiles, fetchRemote, getChanges, getCommitQueue, getFileDiff, getForgeHosting, getHeadState, getLog, pullRemote, pushRemote, switchBranch } from './GitApiProvider';
 
 type Recorded = { url: string; init: RequestInit };
 
@@ -44,6 +44,30 @@ test('getCommitQueue exposes dependent proposals from the server', async () => {
   assert.equal(queue?.entries[0].state, 'ready');
   assert.equal(queue?.generation, 2);
   assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws%201/commit-queue');
+});
+
+test('getForgeHosting requests the workspace scoped forge route', async () => {
+  const recorded: Recorded[] = [];
+  const body = JSON.stringify({
+    availability: 'ready',
+    moduleId: 'github',
+    proposal: { id: '1', number: '42', title: 'Ready', url: 'https://example.test/42', headRef: 'topic', baseRef: 'main', state: 'open' },
+    checks: [],
+    threads: [],
+    mergeability: { mergeable: true, state: 'clean' },
+    detail: null,
+  });
+
+  const hosting = await getForgeHosting({ url: 'http://localhost:5000' }, 'ws 1', fakeFetch(200, body, recorded));
+
+  assert.equal(hosting?.availability, 'ready');
+  assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws%201/forge');
+});
+
+test('getForgeHosting returns null for an unknown workspace', async () => {
+  const hosting = await getForgeHosting({ url: 'http://localhost:5000' }, 'missing', fakeFetch(404, '', []));
+
+  assert.equal(hosting, null);
 });
 
 test('getHeadState requests the workspace scoped head route', async () => {

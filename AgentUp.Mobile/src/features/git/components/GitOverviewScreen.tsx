@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { WorkspaceBranchPicker } from './WorkspaceBranchPicker';
 import { GitChangesPanel } from './GitChangesPanel';
+import { GitHostingRow } from './GitHostingRow';
 import { WorkspaceTabBar } from '@/features/shell/components/WorkspaceTabBar';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { agentUpTheme, auText } from '@agent-up/design-system/native';
@@ -30,6 +31,7 @@ export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
           reloadNonce={reloadNonce}
           selectedFiles={selectedFiles}
         />
+        <GitHostingRow workspaceId={workspaceId} reloadNonce={reloadNonce} />
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Changes</Text>
           <GitChangesPanel

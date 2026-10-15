@@ -12,11 +12,12 @@ public sealed class VerificationController(
     VerifyGuardCommand guard,
     VerifyCoverageCommand coverage,
     VerifySlicesCommand slices,
+    VerifyExportCommand export,
     VerifyOutputService output,
     string worktreePath)
 {
     public Task<int> RunAsync(string[] args, CancellationToken cancellationToken = default)
-        => Resolve(args, plan, run, guard, coverage, slices, output, worktreePath)(cancellationToken);
+        => Resolve(args, plan, run, guard, coverage, slices, export, output, worktreePath)(cancellationToken);
 
     private static Func<CancellationToken, Task<int>> Resolve(
         string[] args,
@@ -25,12 +26,15 @@ public sealed class VerificationController(
         VerifyGuardCommand guard,
         VerifyCoverageCommand coverage,
         VerifySlicesCommand slices,
+        VerifyExportCommand export,
         VerifyOutputService output,
         string worktreePath)
     {
         var subcommand = args.FirstOrDefault(arg => !arg.StartsWith("--", StringComparison.Ordinal)) ?? "";
         var remaining = args.SkipWhile(arg => arg != subcommand).Skip(1).ToArray();
-        var format = HasHookFormat(args) ? VerifyOutputFormat.Hook : VerifyOutputFormat.Text;
+        var format = HasJsonFormat(args)
+            ? VerifyOutputFormat.Json
+            : HasHookFormat(args) ? VerifyOutputFormat.Hook : VerifyOutputFormat.Text;
         var runMissing = args.Contains("--run", StringComparer.Ordinal);
 
         return subcommand switch
@@ -40,17 +44,24 @@ public sealed class VerificationController(
             "guard" => ct => guard.RunAsync(worktreePath, format, runMissing, ct),
             "coverage" => ct => coverage.RunAsync(worktreePath, ReadMinimum(args), ct),
             "slices" => ct => slices.RunAsync(worktreePath, ReadMinimum(args), ct),
+            "export" => ct => export.RunAsync(worktreePath, format, ct),
             _ => _ => Task.FromResult(WriteHelp(output))
         };
     }
 
     private static bool HasHookFormat(string[] args)
+        => HasFormat(args, "hook");
+
+    private static bool HasJsonFormat(string[] args)
+        => HasFormat(args, "json");
+
+    private static bool HasFormat(string[] args, string name)
     {
-        if (args.Contains("--format=hook", StringComparer.Ordinal))
+        if (args.Contains($"--format={name}", StringComparer.Ordinal))
             return true;
 
         var index = Array.IndexOf(args, "--format");
-        return index >= 0 && index + 1 < args.Length && args[index + 1] == "hook";
+        return index >= 0 && index + 1 < args.Length && args[index + 1] == name;
     }
 
     /// <summary>Reads --min &lt;percentage&gt;, overriding the configured minimum.</summary>
@@ -84,6 +95,8 @@ public sealed class VerificationController(
                     [--format hook]    Terse output for a Stop hook: silent when satisfied
               coverage [--min N]       Measure coverage of the changed lines against the minimum
               slices [--min N]         Report total coverage per feature slice against the slice floor
+              export [--format json]   Report what the current working tree has proven
+                                       Digest only — never a substitute for the local ledger
 
             Check selection comes from the 'verification' section of agent-up.json.
             """);

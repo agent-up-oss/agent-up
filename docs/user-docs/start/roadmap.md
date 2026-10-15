@@ -19,7 +19,7 @@ Developers and AI agents collaborate inside the same live workspace.
 
 Future work should deepen the Server-owned runtime model, improve workflow inference from recorded events, enrich diagnostics, and keep MCP as the primary path for AI automation. Desktop WebViews, Mobile WebViews, and the Server headless profile stay isolated; they share a workspace, not a browser session.
 
-One direction follows from that. The evidence a workspace produces should be shareable: a verification receipt proves which checks ran against which exact file contents, and today that proof cannot leave the machine that produced it.
+One direction follows from that. The evidence a workspace produces should be shareable: a verification export names the checks, their states, the revision, and a digest over the covered file hashes — never the per-file hash map — so the proof can leave the machine that produced it without becoming an input to another machine's guard.
 
 The automation interface is now reachable by a client that is not on the Server host, under authentication, without changing the loopback-only default — a Server on a workstation or home-lab box is as automatable as it is browsable.
 
@@ -47,9 +47,9 @@ Where the MCP interface is exposed beyond loopback, the hostname, TLS and identi
 | Broad platform support | Preview |
 | Authenticated MCP access from another machine | Preview |
 | Workspace-bound agent and unattended loops | Experimental |
-| Workspace-id addressing for every MCP tool | Planned |
-| Verification receipt export | Planned |
-| Repository hosting capability modules | Planned |
+| Workspace-id addressing for every MCP tool | Implemented |
+| Verification receipt export | Preview |
+| Repository hosting capability modules | Preview |
 | Workspaces started at a specific revision | Planned |
 | Workflow inference from events | Planned |
 | Service-aware updates | Planned |

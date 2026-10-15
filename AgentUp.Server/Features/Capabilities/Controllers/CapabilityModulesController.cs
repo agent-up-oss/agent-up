@@ -1,5 +1,6 @@
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Sdk.Agent;
+using AgentUp.Sdk.Forge;
 using AgentUp.Sdk.Runtime;
 using AgentUp.Server.Features.Capabilities.DTOs;
 using AgentUp.Server.Features.Capabilities.Services;
@@ -27,6 +28,10 @@ public sealed class CapabilityModulesController(CapabilityModuleService modules)
     public IReadOnlyList<IRuntimeCapability> ListRuntimes() => modules.ListRuntimes();
 
     public IReadOnlyList<IAgentCapability> ListAgents() => modules.ListAgents();
+
+    public IReadOnlyList<IForgeCapability> ListForges() => modules.ListForges();
+
+    public IForgeCapability? GetForge(string id) => modules.GetForge(id);
 
     public IReadOnlyList<string> RuntimePathPrefixes() => modules.RuntimePathPrefixes();
 

@@ -32,6 +32,24 @@ public sealed record VerificationRunDto(
     IReadOnlyList<VerificationOutcomeDto> Outcomes);
 
 /// <summary>One executed check.</summary>
+public sealed record VerificationExportDto(
+    string Revision,
+    string CoveredDigest,
+    string ExportedAtUtc,
+    int ChangedFileCount,
+    IReadOnlyList<string> UnmatchedFiles,
+    IReadOnlyList<VerificationExportCheckDto> Checks);
+
+public sealed record VerificationExportCheckDto(
+    string CheckId,
+    string Command,
+    string Status,
+    string Detail,
+    int? ExitCode,
+    string? RanAtUtc,
+    long? DurationMs,
+    string SkipReason);
+
 public sealed record VerificationOutcomeDto(
     string CheckId,
     string Command,

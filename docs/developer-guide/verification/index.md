@@ -35,21 +35,20 @@ Every tool on `/mcp/verification` names its target with exactly one of `workspac
 <DocStep title="run_verification">Run every required check and record a receipt per check.</DocStep>
 <DocStep title="run_verification_check">Re-run one check by id after a targeted fix.</DocStep>
 <DocStep title="guard_verification">Report whether every required check has a passing receipt matching the current file contents.</DocStep>
+<DocStep title="export_verification">Read a report of what was proven about this revision. Evidence to show, never an input to the guard.</DocStep>
 </DocSteps>
 
 <DocFacts label="Also">
-<DocFact label="CLI">agent-up verify plan · run · guard</DocFact>
+<DocFact label="CLI">agent-up verify plan · run · guard · export</DocFact>
 <DocFact label="Coverage">Runs as patch-coverage inside run_verification</DocFact>
 <DocFact label="Receipts">{'.git/agent-up/verification/receipts.json'}</DocFact>
 <DocFact label="Loop inference">slow ciOnly Category=LoopInference, excluded from the watchdog</DocFact>
 <DocFact label="Loop soak">slow ciOnly Category=LoopSoak, excluded from the watchdog</DocFact>
 </DocFacts>
 
-## Planned: receipt export
+## Export
 
-Receipts live outside the working tree so one cannot travel in a change proposal and satisfy another machine's guard against bytes it never tested. The side effect is that the evidence cannot be shown to anyone — there is no way to answer "what was proven about this revision?" from off the machine that ran it.
-
-A planned export closes that without weakening the ledger.
+Receipts live outside the working tree so one cannot travel in a change proposal and satisfy another machine's guard against bytes it never tested. Export closes that without weakening the ledger: `export_verification`, `GET /api/workspaces/{workspaceId}/verification/export`, and `agent-up verify export` emit the same report.
 
 <DocFacts label="Export rules">
 <DocFact label="Contains">Check ids, commands, exit codes, revision, digest</DocFact>

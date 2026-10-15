@@ -5,6 +5,7 @@ using AgentUp.Registry.Features.LocalStore.Controllers;
 using AgentUp.Registry.Features.LocalStore.DTOs;
 using AgentUp.Registry.Shared.Interfaces;
 using AgentUp.Sdk.Agent;
+using AgentUp.Sdk.Forge;
 using AgentUp.Sdk.Runtime;
 using AgentUp.Server.Features.Capabilities.DTOs;
 using AgentUp.Server.Features.Capabilities.Interfaces;
@@ -106,6 +107,17 @@ public sealed class CapabilityModuleService(
             .Select(package => Load(package.Manifest.Id)?.Agent)
             .Where(agent => agent is not null)
             .Cast<IAgentCapability>()
+            .ToArray();
+
+    public IForgeCapability? GetForge(string id)
+        => Load(id)?.Forge;
+
+    public IReadOnlyList<IForgeCapability> ListForges()
+        => EnabledPackages()
+            .Where(package => package.Manifest.Kind.Equals("forge", StringComparison.Ordinal))
+            .Select(package => Load(package.Manifest.Id)?.Forge)
+            .Where(forge => forge is not null)
+            .Cast<IForgeCapability>()
             .ToArray();
 
     public CapabilityLaunchPlan? AgentLaunch(string id)

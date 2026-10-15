@@ -41,6 +41,14 @@ public sealed class VerificationMcpTools(VerificationMcpService service)
         CancellationToken cancellationToken = default)
         => service.RunVerificationCheck(checkId, workspaceId, worktreePath, cancellationToken);
 
+    [McpServerTool(Name = "export_verification", Title = "Export Verification")]
+    [Description("Returns a report of what the current working tree has proven: check ids, commands, states, the revision, and a digest over the covered file hashes. This is evidence to read, never a substitute for the local receipt ledger. Exporting runs nothing.")]
+    public Task<McpToolResult> ExportVerification(
+        [Description(WorkspaceIdDescription)] string? workspaceId = null,
+        [Description(WorktreePathDescription)] string? worktreePath = null,
+        CancellationToken cancellationToken = default)
+        => service.ExportVerification(workspaceId, worktreePath, cancellationToken);
+
     [McpServerTool(Name = "guard_verification", Title = "Guard Verification")]
     [Description("Checks whether every check the current changes require has a passing receipt that matches the current file contents. Fails when a check has never run, failed, or ran against different bytes than are there now. This runs nothing itself, so it is cheap; when it reports unproven checks, call run_verification.")]
     public Task<McpToolResult> GuardVerification(

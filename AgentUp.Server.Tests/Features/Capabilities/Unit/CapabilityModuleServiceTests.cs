@@ -110,6 +110,19 @@ public sealed class CapabilityModuleServiceTests
         Assert.That(service.ListRuntimes(), Is.EqualTo(new[] { runtime }));
     }
 
+    [Test]
+    public void ListForges_returns_loaded_forge_modules()
+    {
+        var forge = new StubForgeCapability();
+        var service = CapabilityModuleHarness.CreateService(
+            enabled: true,
+            manifest: GithubManifest(),
+            loader: new FixedCapabilityModuleLoader(new CapabilityLoadedModule(null, null, forge)));
+
+        Assert.That(service.ListForges(), Is.EqualTo(new[] { forge }));
+        Assert.That(service.GetForge("github"), Is.SameAs(forge));
+    }
+
     private static CapabilityPackageManifest CodexManifest()
         => new()
         {
@@ -120,6 +133,17 @@ public sealed class CapabilityModuleServiceTests
             Publisher = "agent-up",
             Kind = "agent",
             Launch = new CapabilityLaunchTemplate { Command = "codex-acp", Arguments = [] }
+        };
+
+    private static CapabilityPackageManifest GithubManifest()
+        => new()
+        {
+            SchemaVersion = "1",
+            Id = "github",
+            Version = "1.0.0",
+            DisplayName = "GitHub",
+            Publisher = "agent-up",
+            Kind = "forge"
         };
 
     // Enablement is Server-owned state, and the catalog Desktop and Mobile render is this list.

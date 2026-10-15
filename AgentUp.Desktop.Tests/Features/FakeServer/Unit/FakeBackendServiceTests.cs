@@ -84,6 +84,15 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_forgeReturnsNoneUntilAHostIsEnabled()
+    {
+        var hosting = Json(FakeServerTestComposition.Backend(), Get("/api/workspaces/harbor-shop/forge"));
+
+        Assert.That(hosting["availability"]!.GetValue<string>(), Is.EqualTo("none"));
+        Assert.That(hosting["proposal"], Is.Null);
+    }
+
+    [Test]
     public void Handle_agentPromptPublishesScriptedEvents()
     {
         var backend = FakeServerTestComposition.Backend();

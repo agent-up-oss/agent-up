@@ -34,7 +34,8 @@ public sealed class McpEndpointSessionProvider
         "plan_verification",
         "run_verification",
         "run_verification_check",
-        "guard_verification"
+        "guard_verification",
+        "export_verification"
     };
 
     private static readonly HashSet<string> OrchestrationTools = new(StringComparer.Ordinal)
@@ -91,7 +92,7 @@ public sealed class McpEndpointSessionProvider
         "Agent-Up commit queue MCP server. Use these tools only for commit queue guard, inspection, enqueue, metadata edits, edit sessions, archive, restore, and clear operations.";
 
     private const string VerificationInstructions =
-        "Agent-Up verification MCP server. Test selection is owned by the static path rules in agent-up.json, not by you: plan_verification shows what the current changes require and you cannot narrow it. Run run_verification at the end of a task, before enqueueing commits, so receipts cover the code while it is still in the working tree. guard_verification reports whether every required check has a passing receipt matching the current file contents.";
+        "Agent-Up verification MCP server. Test selection is owned by the static path rules in agent-up.json, not by you: plan_verification shows what the current changes require and you cannot narrow it. Run run_verification at the end of a task, before enqueueing commits, so receipts cover the code while it is still in the working tree. guard_verification reports whether every required check has a passing receipt matching the current file contents. export_verification is a report of what was proven about this revision: evidence to show, never an input to the guard.";
 
     private const string BrowserInstructions =
         "Agent-Up browser MCP server. Use these tools to navigate, inspect, and interact with the workspace browser the user watches in Desktop. When recording validation flows, start from the user's goal: infer routes, tabs, and labels from application source or router files when that is faster than live inspection, then perform the journey once and call save_validation_flow. Do not inspect every route before recording. Saved flows replay with staged mouse movement, half-second attention pings, navigation waits, and visible expectations.";

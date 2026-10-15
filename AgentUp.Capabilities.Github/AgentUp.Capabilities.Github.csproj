@@ -1,0 +1,14 @@
+<Project>
+  <Import Project="..\AgentUp.Sdk.Forge\Sdk\Sdk.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\AgentUp.Capabilities.Abstractions\AgentUp.Capabilities.Abstractions.csproj" />
+    <ProjectReference Include="..\AgentUp.Capabilities.Common\AgentUp.Capabilities.Common.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <Import Project="..\AgentUp.Sdk.Forge\Sdk\Sdk.targets" />
+</Project>

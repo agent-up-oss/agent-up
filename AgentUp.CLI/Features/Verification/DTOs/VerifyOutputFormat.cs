@@ -12,5 +12,8 @@ public enum VerifyOutputFormat
     /// Terse output for a Stop hook: silent on success, blockers on stderr otherwise, so
     /// a passing turn prints nothing and a failing one is fed back to the agent.
     /// </summary>
-    Hook
+    Hook,
+
+    /// <summary>Machine-readable export document. Never a ledger input.</summary>
+    Json
 }

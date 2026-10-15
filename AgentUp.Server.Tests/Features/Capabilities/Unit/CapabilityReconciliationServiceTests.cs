@@ -270,5 +270,9 @@ public sealed class CapabilityReconciliationServiceTests
         public IAgentCapability? GetAgent(string id) => null;
 
         public IReadOnlyList<IAgentCapability> ListAgents() => [];
+
+        public AgentUp.Sdk.Forge.IForgeCapability? GetForge(string id) => null;
+
+        public IReadOnlyList<AgentUp.Sdk.Forge.IForgeCapability> ListForges() => [];
     }
 }

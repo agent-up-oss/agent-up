@@ -32,6 +32,17 @@ public sealed class GitApiClient(HttpClient http) : IGitApiProvider
         return await response.Content.ReadFromJsonAsync<CommitQueueDto>(Options, ct);
     }
 
+    public async Task<ForgeHostingDto?> GetHostingAsync(string workspaceId, CancellationToken ct = default)
+    {
+        using var response = await http.GetAsync(
+            $"/api/workspaces/{Uri.EscapeDataString(workspaceId)}/forge", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<ForgeHostingDto>(Options, ct);
+    }
+
     public async Task<GitFileDiffDto?> GetFileDiffAsync(string workspaceId, string path, CancellationToken ct = default)
     {
         using var response = await http.GetAsync(

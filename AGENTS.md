@@ -113,6 +113,9 @@ AgentUp.Sdk.Runtime/
 AgentUp.Sdk.Agent/
   AgentUp.Sdk.Agent.csproj
 
+AgentUp.Sdk.Forge/
+  AgentUp.Sdk.Forge.csproj
+
 AgentUp.Capabilities.Abstractions/
   AgentUp.Capabilities.Abstractions.csproj
 
@@ -133,6 +136,9 @@ AgentUp.Capabilities.Cursor/
 
 AgentUp.Capabilities.Claude/
   AgentUp.Capabilities.Claude.csproj
+
+AgentUp.Capabilities.Github/
+  AgentUp.Capabilities.Github.csproj
 
 AgentUp.Registry/
   AgentUp.Registry.csproj
@@ -218,6 +224,9 @@ AgentUp.Sdk.Runtime.Tests/
 AgentUp.Sdk.Agent.Tests/
   AgentUp.Sdk.Agent.Tests.csproj
 
+AgentUp.Sdk.Forge.Tests/
+  AgentUp.Sdk.Forge.Tests.csproj
+
 AgentUp.Capabilities.Abstractions.Tests/
   AgentUp.Capabilities.Abstractions.Tests.csproj
 
@@ -238,6 +247,9 @@ AgentUp.Capabilities.Cursor.Tests/
 
 AgentUp.Capabilities.Claude.Tests/
   AgentUp.Capabilities.Claude.Tests.csproj
+
+AgentUp.Capabilities.Github.Tests/
+  AgentUp.Capabilities.Github.Tests.csproj
 
 AgentUp.Registry.Tests/
   AgentUp.Registry.Tests.csproj
@@ -276,13 +288,14 @@ The exact project list may evolve, but ownership must not drift:
 
 | Area | Owns |
 |---|---|
-| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, the optional Git-backed dependent proposal queue and its managed worktree, process lifecycle, ports, authenticated HTTPS forwarding of allocated HTTP application ports, Docker, browser lifecycle, hosted Linux desktop application sessions, one active authenticated ACP agent session plus workspace-scoped saved session history, diagnostics, event recording, MCP, REST API |
+| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, the optional Git-backed dependent proposal queue and its managed worktree, forge hosting state and per-workspace forge credentials, process lifecycle, ports, authenticated HTTPS forwarding of allocated HTTP application ports, Docker, browser lifecycle, hosted Linux desktop application sessions, one active authenticated ACP agent session plus workspace-scoped saved session history, diagnostics, event recording, MCP, REST API |
 | `AgentUp.Browser.Streaming` | Reusable remote-display viewer and bounded multi-subscriber frame/input transport for Server-owned graphical sessions |
 | `AgentUp.Browser.Streaming.Benchmarks` | BenchmarkDotNet measurements for designated performance-sensitive browser streaming paths; runs as a receipt-backed slow verification check |
 | `AgentUp.Server.Benchmarks` | BenchmarkDotNet measurements and stored regression baseline for live agent event framing |
 | `AgentUp.Sdk.Common` | Shared kind, identity, Nix declaration, and registration types for capability SDKs |
 | `AgentUp.Sdk.Runtime` | MSBuild SDK and `IRuntimeCapability` contract for runtime-kind modules |
 | `AgentUp.Sdk.Agent` | MSBuild SDK and `IAgentCapability` contract for agent-kind modules |
+| `AgentUp.Sdk.Forge` | MSBuild SDK and `IForgeCapability` contract for forge-kind modules |
 | `AgentUp.Capabilities.Abstractions` | Generic `capability.json` schema, launch plans, validation records, and (legacy, unused) adapter interfaces |
 | `AgentUp.Capabilities.Common` | Generic Nix invocation, index merge, and CLI executable discovery used by the Server runtime |
 | `AgentUp.Capabilities.Dotnet` | First-party Runtime SDK consumer that packs the `dotnet` registry package |
@@ -290,6 +303,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Capabilities.Codex` | First-party Agent SDK consumer that packs the `codex` registry package |
 | `AgentUp.Capabilities.Cursor` | First-party Agent SDK consumer that packs the `cursor` registry package |
 | `AgentUp.Capabilities.Claude` | First-party Agent SDK consumer that packs the `claude` registry package |
+| `AgentUp.Capabilities.Github` | First-party Forge SDK consumer that packs the `github` registry package |
 | `AgentUp.Registry` | Local-directory store and remote HTTP catalog for versioned capability packages. Packages and push staging live under the configured registry root, resolved when the store is first used so nothing is written beside the running project. Not workspace orchestration; Server remains source of truth for enablement and launches |
 | `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded WebView browser views |
 | `AgentUp.Mobile/` | Expo and React Native client for Android, iOS, and the installable web PWA; displays Server-owned state and submits user requests |
@@ -349,6 +363,13 @@ AgentUp.Server/
       Interfaces/
       Providers/
       Services/
+    Forge/            (hosting-provider proposal, checks, threads, mergeability; Server-owned credentials)
+      Controllers/
+      DTOs/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
     Browser/
       Services/
       Profiles/
@@ -387,7 +408,7 @@ AgentUp.Desktop/
     Console/          (console output/logs for the selected application)
       Providers/
       ViewModels/
-    Git/              (Git tab Git changes surface: change tree, file diff modal, commit box, inner history, proposal-queue display)
+    Git/              (Git tab Git changes surface: change tree, file diff modal, commit box, inner history, proposal-queue display, hosting strip)
       Controllers/
       DTOs/
       Interfaces/
@@ -721,8 +742,9 @@ particular identity provider.
 That remote mode reuses `ExternalBearerCredentialValidator` and the named
 operation permissions rather than adding a second token model. Two preconditions
 belonged to it, and both are in place. The `workspace` claim is
-enforced on MCP tool **arguments**, because `WorkspaceBindingMiddleware` reads
-route values while MCP carries the target in the JSON-RPC body. And the
+enforced on MCP tool **arguments** by `McpWorkspaceArgumentBinder` (REST
+workspace lists use `BoundWorkspaceFilter`), because `WorkspaceBindingMiddleware`
+reads route values while MCP carries the target in the JSON-RPC body. And the
 advertised toolset is filtered by the caller's `permissions`:
 `McpToolPermissionMap` declares the operation permission every MCP tool needs,
 and `McpEndpointSessionProvider.ConfigureAsync` removes the tools a session's
@@ -754,7 +776,7 @@ The Desktop is an Avalonia client for humans. It displays workspaces, browser ta
 
 Applications declared in `desktopApplications` are displayed in session-ticketed streamed application tabs. Desktop must not launch their virtual displays, capture frames, or own input/session state. HTTP application tabs connect directly to allocated ports for loopback Servers and use the session-ticketed application proxy for non-loopback Servers; they do not use the graphical application streaming path.
 
-It connects to one Server at a time and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. It must not own runtime state; its Git tab Git changes surface displays the Server-owned proposal queue, including entry order, messages, and verification state. Every launch is the connect picker: Desktop does not probe a packaged or repository Server URL until the user chooses a saved server or enters a URL, and the list always includes a built-in **Demo** entry. When `AGENTUP_RECOMMENDED_SERVER_URL` is set, that connection is listed after Demo and cannot be removed, matching Mobile. Sign-in UI is chosen from `GET /api/connection` `authentication.mode`. Only while Demo is connected does Desktop intercept `HttpClient` with the in-process fake backend from `AgentUp.FakeServer/definition.json`. While Demo is active, Desktop hides Database, Diagnostics, and Metrics. The Validation sidebar appears only when an application is selected and starts collapsed. Disconnecting and connecting to a real Server works without restart. Full guide: `docs/developer-guide/workspaces/index.md` and `docs/developer-guide/applications/index.md`.
+It connects to one Server at a time and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. It must not own runtime state; its Git tab Git changes surface displays the Server-owned proposal queue, including entry order, messages, and verification state, and a hosting strip for Server-owned forge state when a forge module is enabled. Every launch is the connect picker: Desktop does not probe a packaged or repository Server URL until the user chooses a saved server or enters a URL, and the list always includes a built-in **Demo** entry. When `AGENTUP_RECOMMENDED_SERVER_URL` is set, that connection is listed after Demo and cannot be removed, matching Mobile. Sign-in UI is chosen from `GET /api/connection` `authentication.mode`. Only while Demo is connected does Desktop intercept `HttpClient` with the in-process fake backend from `AgentUp.FakeServer/definition.json`. While Demo is active, Desktop hides Database, Diagnostics, and Metrics. The Validation sidebar appears only when an application is selected and starts collapsed. Disconnecting and connecting to a real Server works without restart. Full guide: `docs/developer-guide/workspaces/index.md` and `docs/developer-guide/applications/index.md`.
 
 Installed Desktop packages must install or depend on a local Server service rather than embedding orchestration in the Desktop process.
 
@@ -780,7 +802,7 @@ Mobile application spaces load each application's HTTP interface in a native Web
 
 Mobile renders `desktopApplications` through the same session-ticketed Server viewer as Desktop: `react-native-webview` on Android/iOS and an iframe in the PWA. It must not proxy or own the display stream.
 
-Each workspace has a local bottom bar with Apps, Git, Agents, and Settings overview tabs. Settings hosts Server-owned capability modules. The Git tab overview lists uncommitted changes and hosts Reload, Fetch, Pull, Push, and a History action. Force push is offered only after a rejected non-fast-forward push. Inner Git Review, History, application, and agent-chat pages return through the nav-bar back button. Mobile's Git Review page reads and displays the Server-owned proposal queue. It must not reconstruct queue ancestry or infer verification state locally.
+Each workspace has a local bottom bar with Apps, Git, Agents, and Settings overview tabs. Settings hosts Server-owned capability modules. The Git tab overview lists uncommitted changes and hosts Reload, Fetch, Pull, Push, and a History action. Force push is offered only after a rejected non-fast-forward push. Inner Git Review, History, application, and agent-chat pages return through the nav-bar back button. Mobile's Git Review page reads and displays the Server-owned proposal queue. The Git overview and Review page also display Server-owned forge hosting state. They must not reconstruct queue ancestry, infer verification state, or reconstruct hosting state locally.
 
 Agent sign-in on every client goes through `AgentUp.AgentAuth` (`@agent-up/agent-auth`). It branches on the transport the Server reports - `poll`, `code`, or `redirect` - and never on which agent is signing in, so the real Claude, Codex, and Cursor CLIs and the test agents drive one code path rather than parallel ones. Platform behavior lives in an adapter behind a port; the state machine stays free of React and React Native imports so it is tested under plain Node.
 
@@ -904,6 +926,7 @@ This applies to every production/test project pair once created:
 | `AgentUp.Sdk.Common` | `AgentUp.Sdk.Common.Tests` |
 | `AgentUp.Sdk.Runtime` | `AgentUp.Sdk.Runtime.Tests` |
 | `AgentUp.Sdk.Agent` | `AgentUp.Sdk.Agent.Tests` |
+| `AgentUp.Sdk.Forge` | `AgentUp.Sdk.Forge.Tests` |
 | `AgentUp.Capabilities.Abstractions` | `AgentUp.Capabilities.Abstractions.Tests` |
 | `AgentUp.Capabilities.Common` | `AgentUp.Capabilities.Common.Tests` |
 | `AgentUp.Capabilities.Dotnet` | `AgentUp.Capabilities.Dotnet.Tests` |
@@ -911,6 +934,7 @@ This applies to every production/test project pair once created:
 | `AgentUp.Capabilities.Codex` | `AgentUp.Capabilities.Codex.Tests` |
 | `AgentUp.Capabilities.Cursor` | `AgentUp.Capabilities.Cursor.Tests` |
 | `AgentUp.Capabilities.Claude` | `AgentUp.Capabilities.Claude.Tests` |
+| `AgentUp.Capabilities.Github` | `AgentUp.Capabilities.Github.Tests` |
 | `AgentUp.Registry` | `AgentUp.Registry.Tests` |
 | `AgentUp.Desktop` | `AgentUp.Desktop.Tests` |
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
@@ -1117,12 +1141,13 @@ Use the MCP verification tools on the `/mcp/verification` server:
 | `run_verification` | At the end of a task, before enqueueing commits. Runs every required check and records a receipt per check |
 | `run_verification_check` | Re-run one check by id after a targeted fix |
 | `guard_verification` | Report whether every required check has a passing receipt matching the current file contents |
+| `export_verification` | Read a report of what was proven about this revision. Evidence to show, never an input to the guard |
 
 `agent-up verify coverage` has no MCP tool of its own: it runs as the `patch-coverage`
 check inside `run_verification`, so an agent gets it automatically rather than choosing it.
 
 Developers use the CLI equivalents: `agent-up verify plan`, `agent-up verify run [<check-id>]`,
-and `agent-up verify guard [--run] [--format hook]`.
+`agent-up verify guard [--run] [--format hook]`, and `agent-up verify export`.
 
 ## Receipts
 
@@ -1133,14 +1158,13 @@ satisfying. Receipts live in `.git/agent-up/verification/receipts.json` - outsid
 working tree, because a committed receipt would travel in a pull request and satisfy
 another machine's guard against bytes it never tested.
 
-That placement is deliberate and stays. It also means the evidence cannot be shown to
-anyone, so a separate **export** is planned: a report naming the checks, their states, the
-revision, and a digest over the covered file hashes - never the per-file hash map. The
-export is evidence to read, not an input to a gate, and the two types stay distinct so the
-confusion is not expressible: `verify guard` must never be satisfiable by an exported
-document, and that needs a test saying so. Skipped checks (`ciOnly`, wrong platform) are
-reported as skipped with a reason and never counted as proven; overstating there removes
-the only reason the document is worth anything.
+That placement is deliberate and stays. The separate **export** is a report naming the
+checks, their states, the revision, and a digest over the covered file hashes - never the
+per-file hash map. The export is evidence to read, not an input to a gate, and the two
+types stay distinct so the confusion is not expressible: `verify guard` must never be
+satisfiable by an exported document, and that needs a test saying so. Skipped checks
+(`ciOnly`, wrong platform) are reported as skipped with a reason and never counted as
+proven; overstating there removes the only reason the document is worth anything.
 
 Order matters: **run verification before enqueueing commits.** `enqueue_commit` restores
 tracked files to their pre-change state, so a receipt produced afterwards would cover a
@@ -1305,6 +1329,8 @@ Read: `docs/user-docs/applications/index.md` and `docs/developer-guide/applicati
 
 The Server's `Git` slice exposes the selected workspace's uncommitted changes as a directory tree, per-file diffs, a commit that stages only the requested paths, remote-tracking branches, fetch/pull/push, and a bounded commit log. It is the human review-and-commit surface rendered by the Desktop Git tab and the Mobile Git tab, and it is deliberately separate from the `Commits` slice, which owns the agent-facing commit queue described under Commit Workflow.
 
+When a forge module is enabled, Desktop Git shows a hosting strip above the change tree and Mobile shows a row on Git overview plus thread detail on Review. Display only — those surfaces do not open proposals, comment, or merge.
+
 Coding agents must still use the commit queue tools. The `Git` slice is a product surface for humans, not an escape hatch around `enqueue_commit`.
 
 Read: `docs/user-docs/git/index.md` and `docs/developer-guide/git/index.md`.
@@ -1341,7 +1367,7 @@ Read: `docs/user-docs/diagnostics/index.md` and `docs/developer-guide/diagnostic
 
 ## Verification
 
-Path-rule checks, receipts, and coverage stay in Verification. Verification never reads the commit queue.
+Path-rule checks, receipts, coverage, and export stay in Verification. Verification never reads the commit queue. `export_verification` and `agent-up verify export` emit a report (check ids, commands, exit codes, revision, digest) that never includes the per-file hash map. The guard cannot be satisfied by an exported document.
 
 Read: `docs/user-docs/verification/index.md` and `docs/developer-guide/verification/index.md`.
 
@@ -1349,9 +1375,9 @@ Read: `docs/user-docs/verification/index.md` and `docs/developer-guide/verificat
 
 Agent-Up uses declarative repository configuration through `agent-up.json`. Applications declare launch commands, port environment variables, browser paths, and Docker setup without source-code integration.
 
-Capability sections whose names match enabled runtime-kind modules are the preferred shape for ecosystem-aware requirements. First-party `dotnet` and `docker` use that same generic path. The registry `enabled.json` stores package id plus **package** version; `sdk` on a runtime entry is a **technology** version the module delivers. The Server loads enabled capability DLLs and calls `IRuntimeCapability` / `IAgentCapability`. The legacy `applications` list remains supported for executable-plus-arguments commands, and legacy Docker `services` remain supported for compatibility. ACP agents are listed from enabled agent-kind modules by module id, not a first-party enum.
+Capability sections whose names match enabled runtime-kind modules are the preferred shape for ecosystem-aware requirements. First-party `dotnet` and `docker` use that same generic path. The registry `enabled.json` stores package id plus **package** version; `sdk` on a runtime entry is a **technology** version the module delivers. The Server loads enabled capability DLLs and calls `IRuntimeCapability` / `IAgentCapability` / `IForgeCapability`. The legacy `applications` list remains supported for executable-plus-arguments commands, and legacy Docker `services` remain supported for compatibility. ACP agents are listed from enabled agent-kind modules by module id, not a first-party enum.
 
-`CapabilityKind.Allowed` is `runtime` and `agent` today. A third kind, `forge`, is planned for repository hosting providers: a forge has no Nix closure to deliver and no ACP session to run, so it belongs beside the other two rather than inside either. It follows the pattern `AgentUp.Sdk.Agent` set — its own SDK project and an `IForgeCapability` contract — and is read-only to begin with, exposing the change proposal open against the current branch, its check results, its review threads with stable ids, and mergeability against the base branch. Those thread ids are what `enqueue_review_fix_commit` already requires as `reviewIssueId`. Forge credentials are Server-owned and per workspace, stored the way agent credentials are; they never reach `agent-up.json` and never reach a managed process environment. A workspace with no forge enabled must behave exactly as it does today, and the clients display that state without mutating it.
+`CapabilityKind.Allowed` is `runtime`, `agent`, and `forge`. A forge has no Nix closure to deliver and no ACP session to run; it belongs beside the other two rather than inside either. `AgentUp.Sdk.Forge` owns the `IForgeCapability` contract. The first-party `github` module packs that SDK. A forge exposes the change proposal open against the current branch, its check results, its review threads with stable ids, and mergeability against the base branch. Those thread ids are what `enqueue_review_fix_commit` already requires as `reviewIssueId`. Writes the Server will issue through a forge are opening a proposal, updating a ref the module does not protect, commenting, and submitting a review. Merge and protected-ref writes stay with the host. Forge credentials are Server-owned and per workspace, stored the way agent credentials are; they never reach `agent-up.json` and never reach a managed process environment. A workspace with no forge enabled must behave exactly as it does today, and the clients display that state without mutating it.
 
 Read: `docs/user-docs/configuration/index.md` and `docs/developer-guide/configuration/index.md`.
 

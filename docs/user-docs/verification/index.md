@@ -31,6 +31,7 @@ Run verification before enqueueing commits. Verification never reads the commit 
 <DocStep title="run">Run every required check and record a receipt.</DocStep>
 <DocStep title="run architecture">Re-run one named check after a targeted fix.</DocStep>
 <DocStep title="guard">Prove receipts still match the current files.</DocStep>
+<DocStep title="export">Write a report of what was proven about this revision. It is evidence to read, not an input to the guard.</DocStep>
 <DocStep title="coverage / slices">Read Cobertura reports written by prior test checks. They do not run the suites themselves.</DocStep>
 </DocSteps>
 

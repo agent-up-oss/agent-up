@@ -36,6 +36,7 @@ public static class McpToolPermissionMap
         // executes a repository command and writes a receipt.
         ["plan_verification"] = OperationPermissions.GitRead,
         ["guard_verification"] = OperationPermissions.GitRead,
+        ["export_verification"] = OperationPermissions.GitRead,
         ["run_verification"] = OperationPermissions.GitWrite,
         ["run_verification_check"] = OperationPermissions.GitWrite,
 

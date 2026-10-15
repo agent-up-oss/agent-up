@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="10.1.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
+    <PackageReference Include="NUnit" Version="4.3.2" />
+    <PackageReference Include="NUnit.Analyzers" Version="4.15.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="6.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="NUnit.Framework" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AgentUp.Capabilities.Abstractions\AgentUp.Capabilities.Abstractions.csproj" />
+    <ProjectReference Include="..\AgentUp.Capabilities.Github\AgentUp.Capabilities.Github.csproj" />
+    <ProjectReference Include="..\AgentUp.Capabilities.Common\AgentUp.Capabilities.Common.csproj" />
+    <ProjectReference Include="..\AgentUp.Sdk.Forge\AgentUp.Sdk.Forge.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -28,10 +28,12 @@ all_projects=(
   agentup_sdk_common_tests:AgentUp.Sdk.Common.Tests
   agentup_sdk_runtime_tests:AgentUp.Sdk.Runtime.Tests
   agentup_sdk_agent_tests:AgentUp.Sdk.Agent.Tests
+  agentup_sdk_forge_tests:AgentUp.Sdk.Forge.Tests
   agentup_capabilities_common_tests:AgentUp.Capabilities.Common.Tests
   agentup_capabilities_claude_tests:AgentUp.Capabilities.Claude.Tests
   agentup_capabilities_codex_tests:AgentUp.Capabilities.Codex.Tests
   agentup_capabilities_cursor_tests:AgentUp.Capabilities.Cursor.Tests
+  agentup_capabilities_github_tests:AgentUp.Capabilities.Github.Tests
   agentup_capabilities_docker_tests:AgentUp.Capabilities.Docker.Tests
   agentup_capabilities_dotnet_tests:AgentUp.Capabilities.Dotnet.Tests
   agentup_registry_tests:AgentUp.Registry.Tests
