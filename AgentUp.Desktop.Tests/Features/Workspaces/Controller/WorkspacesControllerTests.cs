@@ -46,8 +46,9 @@ public sealed class WorkspacesControllerTests
         await controller.StartAsync("one");
         await controller.StopAsync("two");
         await controller.DeleteAsync("three");
+        await controller.RefreshCloneAsync("four");
 
-        Assert.That(provider.Actions, Is.EqualTo(new[] { "start:one", "stop:two", "delete:three" }));
+        Assert.That(provider.Actions, Is.EqualTo(new[] { "start:one", "stop:two", "delete:three", "refresh:four" }));
     }
 
     private sealed class RecordingWorkspaceProvider : IWorkspaceApiProvider

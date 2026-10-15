@@ -134,6 +134,17 @@ public sealed class SourceCloneTargetProviderTests
     }
 
     [Test]
+    public void Resolve_rejectsADerivedRevisionThatSanitizesToAnEmptyDirectoryName()
+    {
+        var provider = CreateProvider();
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => provider.Resolve(new CloneSourceRequest("https://example.test/acme/widgets.git", ".") { Derived = true }));
+
+        Assert.That(exception!.Message, Is.EqualTo("Revision must end with a usable directory name."));
+    }
+
+    [Test]
     public void DestinationExists_isFalseUntilTheDirectoryIsCreated()
     {
         var provider = CreateProvider();

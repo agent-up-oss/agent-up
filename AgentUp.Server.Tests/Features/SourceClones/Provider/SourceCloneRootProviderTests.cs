@@ -65,6 +65,14 @@ public sealed class SourceCloneRootProviderTests
     }
 
     [Test]
+    public void IsUnderRoot_rejectsABlankPath()
+    {
+        var provider = new SourceCloneRootProvider(Path.Join(Path.GetTempPath(), "agent-up-data"));
+
+        Assert.That(provider.IsUnderRoot("   "), Is.False);
+    }
+
+    [Test]
     public void DeleteIfUnderRoot_removesADirectoryInsideTheRootAndLeavesOthers()
     {
         var root = Path.Join(Path.GetTempPath(), $"agent-up-clone-root-{Guid.NewGuid():N}");

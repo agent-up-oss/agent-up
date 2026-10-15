@@ -7,11 +7,13 @@ namespace AgentUp.Server.Tests.Fake;
 
 internal sealed class FakeSourceCloneRootProvider(string root) : ISourceCloneRootProvider
 {
+    public bool? UnderRoot { get; set; }
+
     public string GetRoot() => root;
 
     public bool IsUnderRoot(string path)
-        => Path.GetFullPath(path).StartsWith(Path.GetFullPath(root) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-           || string.Equals(Path.GetFullPath(path), Path.GetFullPath(root), StringComparison.OrdinalIgnoreCase);
+        => UnderRoot ?? (Path.GetFullPath(path).StartsWith(Path.GetFullPath(root) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+           || string.Equals(Path.GetFullPath(path), Path.GetFullPath(root), StringComparison.OrdinalIgnoreCase));
 
     public List<string> DeletedPaths { get; } = [];
 

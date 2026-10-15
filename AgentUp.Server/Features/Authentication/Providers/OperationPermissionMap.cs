@@ -114,6 +114,7 @@ public static class OperationPermissionMap
 
         [("SourceClones", "GetRoot")] = OperationPermissions.WorkspaceRead,
         [("SourceClones", "Clone")] = OperationPermissions.WorkspaceCreate,
+        [("SourceClones", "Refresh")] = OperationPermissions.WorkspaceCreate,
         [("ValidationFlows", "List")] = OperationPermissions.ApplicationRead,
         [("ValidationFlows", "Get")] = OperationPermissions.ApplicationRead,
         [("ValidationFlows", "Export")] = OperationPermissions.ApplicationRead,

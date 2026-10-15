@@ -146,6 +146,21 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_refreshUpdatesADerivedCloneAndRejectsOthers()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var cloned = Json(backend, Post("/api/source-clones", """{"repository":"https://git.example/widgets.git","revision":"topic","derived":true}"""));
+        var workspaceId = cloned["id"]!.GetValue<string>();
+
+        var refreshed = Json(backend, Post($"/api/source-clones/{workspaceId}/refresh"));
+        var rejected = Run(backend, Post("/api/source-clones/harbor-shop/refresh"));
+
+        Assert.That(cloned["derived"]!.GetValue<bool>(), Is.True);
+        Assert.That(refreshed["commit"]!.GetValue<string>(), Is.EqualTo("refreshed"));
+        Assert.That(rejected.Status, Is.EqualTo(400));
+    }
+
+    [Test]
     public void Handle_unknownPathsReturnNotFound()
     {
         var backend = FakeServerTestComposition.Backend();
