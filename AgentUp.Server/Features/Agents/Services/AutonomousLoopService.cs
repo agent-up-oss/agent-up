@@ -1,21 +1,27 @@
 using AgentUp.Server.Features.Agents.DTOs;
+using AgentUp.Server.Features.Agents.Interfaces;
 
 namespace AgentUp.Server.Features.Agents.Services;
 
 /// <summary>
 /// Thin Server loop kernel: iterate prompts against the scheduled ACP session, resolve every
-/// permission through an attached policy, and stop in one typed terminal. Product HTTP and
-/// forge/role surfaces stay on later issues; this is the subject the CPU-inference gate drives.
+/// permission through an attached policy, and stop in one typed terminal. Rate-limit signals
+/// back off and retry before becoming a blocked state.
 /// </summary>
-public sealed class AutonomousLoopService(AgentSchedulingService scheduling, LoopInvariantGuard invariants)
+public sealed class AutonomousLoopService(
+    AgentSchedulingService scheduling,
+    LoopInvariantGuard invariants,
+    ILoopBackoff backoff)
 {
     public async Task<LoopRunResult> RunAsync(LoopRunRequest request, CancellationToken cancellationToken)
     {
         if (!scheduling.AttachPolicy(request.WorkspaceId, request.Policy))
             return Result(request, 0, LoopTerminal.Failed, "not-found", EmptyInspection(), "workspace agent is not scheduled", 0);
 
+        scheduling.BeginLoopTask(request.WorkspaceId);
         var context = request.Task.Length;
         var noProgress = 0;
+        var rateLimitedAttempts = 0;
         try
         {
             for (var iteration = 1; iteration <= request.MaxIterations; iteration++)
@@ -53,13 +59,26 @@ public sealed class AutonomousLoopService(AgentSchedulingService scheduling, Loo
                 if (!string.IsNullOrWhiteSpace(snapshot.BlockReason))
                     return Result(request, iteration, LoopTerminal.BlockedPolicy, snapshot.StopReason ?? "end_turn", snapshot, snapshot.BlockReason, context);
                 if (action.Error is not null)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                        return Result(request, iteration, LoopTerminal.Cancelled, "cancelled", snapshot, null, context);
                     return Result(request, iteration, LoopTerminal.Failed, snapshot.StopReason ?? "error", snapshot, action.Error, context);
+                }
                 if (snapshot.CompletedTask)
                     return Result(request, iteration, LoopTerminal.Completed, snapshot.StopReason ?? "end_turn", snapshot, null, context);
                 if (string.Equals(snapshot.StopReason, "cancelled", StringComparison.Ordinal))
                     return Result(request, iteration, LoopTerminal.Cancelled, "cancelled", snapshot, null, context);
                 if (string.Equals(snapshot.StopReason, "rate_limited", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (rateLimitedAttempts < request.RateLimitRetries)
+                    {
+                        rateLimitedAttempts++;
+                        await backoff.DelayAsync(rateLimitedAttempts, cancellationToken);
+                        continue;
+                    }
+
                     return Result(request, iteration, LoopTerminal.BlockedRateLimited, "rate_limited", snapshot, "blocked:rate-limited", context);
+                }
                 if (!snapshot.SawToolCall && !snapshot.CompletedTask)
                 {
                     noProgress++;

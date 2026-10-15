@@ -101,6 +101,9 @@ internal static class DesktopDomain
     /// <summary>The canonical allocated port: an HTTP port mapped to itself.</summary>
     public static PortMappingDtoBuilder Port() => new();
 
+    /// <summary>The canonical idle agent session for the primary workspace.</summary>
+    public static AgentSessionDtoBuilder Session() => new();
+
     /// <summary>
     /// The canonical workspace running one application on an allocated HTTP port - the
     /// shape the browser, console and application panels are all tested against.

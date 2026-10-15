@@ -53,7 +53,7 @@ A workspace may record one bound agent module id. Unbound is the interactive pic
 
 ## Loop coverage
 
-CI runs the Server loop kernel against a locally-inferring ACP test agent on CPU llama.cpp. Hard invariants fail the run. Pooled task-completion outcomes are compared to a versioned baseline. Scenario files under `loop-coverage/` do not name an agent, so the same prompts can drive CPU inference and `test-agent-scripted`. A separate soak check runs three concurrent assigned-issue loops.
+CI runs the Server loop kernel against a locally-inferring ACP test agent on CPU llama.cpp. Hard invariants fail the run. Pooled task-completion outcomes are compared to a versioned baseline. Scenario files under `loop-coverage/` do not name an agent, so the same prompts can drive CPU inference and `test-agent-scripted`. Concurrency and restart for at least three autonomous workspaces stay in the normal E2E tier. A separate soak check drains hundreds of scripted tasks.
 
 <DocNext href="/developer-guide/agents/autonomy" title="Autonomy">
 Bind, policy, unattended loop, roles, scripted ACP, and soak.

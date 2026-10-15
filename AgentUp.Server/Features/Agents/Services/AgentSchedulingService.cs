@@ -528,6 +528,18 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         return true;
     }
 
+    public void BeginLoopTask(string workspaceId)
+    {
+        if (!_sessions.TryGetValue(workspaceId, out var state))
+            return;
+        state.TranscriptEvents = 0;
+        state.PermissionRuleIds.Clear();
+        state.LoopBlock = null;
+        state.ConsecutiveNoProgress = 0;
+        state.LastPromptResult = null;
+        state.SawToolCall = false;
+    }
+
     public LoopInspection InspectLoop(string workspaceId)
     {
         if (!_sessions.TryGetValue(workspaceId, out var state))
@@ -559,6 +571,8 @@ public sealed class AgentSchedulingService : IAsyncDisposable
                 sessionId = state.AcpSessionId,
                 prompt = new[] { new { type = "text", text = delivered } }
             }, state.Lifetime.Token);
+            if (result.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
+                result = JsonSerializer.SerializeToElement(new { });
             state.LastPromptResult = result;
             events.Publish(workspaceId, "prompt_result", result);
             state.State = "ready";

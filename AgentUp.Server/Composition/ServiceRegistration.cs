@@ -216,6 +216,9 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<ForgeService>();
         builder.Services.AddSingleton<ForgeController>();
         builder.Services.AddSingleton<IAssignedIssueQueue, ForgeAssignedIssueQueue>();
+        builder.Services.AddSingleton<IAssignedProposalQueue, MemoryAssignedProposalQueue>();
+        builder.Services.AddSingleton<IRoleProgress, MemoryRoleProgress>();
+        builder.Services.AddSingleton<ILoopBackoff, LoopBackoffProvider>();
         builder.Services.AddSingleton<IEnabledAgentInspector, EnabledAgentInspector>();
         builder.Services.AddSingleton<IRoleToolFilter, RoleToolFilterProvider>();
         builder.Services.AddSingleton<LoopPreconditionProvider>();
@@ -225,6 +228,8 @@ public static class ServiceRegistration
                 sp.GetRequiredService<IAgentWorkspaceSettingsRepository>(),
                 sp.GetRequiredService<LoopPreconditionProvider>(),
                 sp.GetRequiredService<IAssignedIssueQueue>(),
+                sp.GetRequiredService<IAssignedProposalQueue>(),
+                sp.GetRequiredService<IRoleProgress>(),
                 sp.GetRequiredService<AgentSchedulingService>(),
                 sp.GetRequiredService<AutonomousLoopService>(),
                 sp.GetRequiredService<WorkspaceQueryController>(),

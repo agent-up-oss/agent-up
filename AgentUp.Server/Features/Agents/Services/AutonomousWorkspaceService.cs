@@ -13,6 +13,8 @@ public sealed class AutonomousWorkspaceService(
     IAgentWorkspaceSettingsRepository settings,
     LoopPreconditionProvider preconditions,
     IAssignedIssueQueue issues,
+    IAssignedProposalQueue proposals,
+    IRoleProgress progress,
     AgentSchedulingService scheduling,
     AutonomousLoopService loop,
     WorkspaceQueryController workspaces,
@@ -22,8 +24,14 @@ public sealed class AutonomousWorkspaceService(
 
     public AutonomousWorkspaceService ReconcileAfterRestart()
     {
-        foreach (var item in settings.List().Where(item => item.AutonomyActive))
+        var running = _runs.Keys.ToArray();
+        foreach (var run in _runs.Values)
+            run.Cancel();
+        _runs.Clear();
+        var persisted = settings.List().Where(item => item.AutonomyActive).Select(item => item.WorkspaceId);
+        foreach (var workspaceId in running.Concat(persisted).Distinct(StringComparer.Ordinal))
         {
+            var item = settings.Get(workspaceId);
             settings.Save(item with
             {
                 AutonomyActive = false,
@@ -148,6 +156,7 @@ public sealed class AutonomousWorkspaceService(
 
     private async Task RunAsync(string workspaceId, CancellationToken cancellationToken)
     {
+        var completed = new HashSet<string>(StringComparer.Ordinal);
         try
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -160,10 +169,17 @@ public sealed class AutonomousWorkspaceService(
                 }
 
                 var current = settings.Get(workspaceId);
-                IReadOnlyList<AssignedIssue> queue;
+                AssignedIssue task;
                 try
                 {
-                    queue = await issues.ListAssignedAsync(workspaceId, current.QueueOrder, cancellationToken);
+                    var next = await NextTaskAsync(workspaceId, current, completed, cancellationToken);
+                    if (next is null)
+                    {
+                        Record(workspaceId, "idle", null, LoopTerminal.Idle, "queue_empty", null, []);
+                        return;
+                    }
+
+                    task = next;
                 }
                 catch (HttpRequestException exception)
                 {
@@ -171,13 +187,6 @@ public sealed class AutonomousWorkspaceService(
                     return;
                 }
 
-                if (queue.Count == 0)
-                {
-                    Record(workspaceId, "idle", null, LoopTerminal.Idle, "queue_empty", null, []);
-                    return;
-                }
-
-                var task = queue[0];
                 var bound = workspaces.GetById(workspaceId)?.BoundAgentModuleId;
                 if (string.IsNullOrWhiteSpace(bound))
                 {
@@ -202,15 +211,25 @@ public sealed class AutonomousWorkspaceService(
                     cancellationToken);
                 if (result.Terminal is not LoopTerminal.Completed)
                 {
+                    if (cancellationToken.IsCancellationRequested && settings.Get(workspaceId).Loop?.StopReason is "restarted")
+                        return;
                     Record(workspaceId, "blocked", task, result.Terminal, result.StopReason, result.BlockReason, result.PermissionRuleIds);
                     return;
                 }
 
-                issues.Replace(workspaceId, [.. queue.Skip(1)]);
+                completed.Add(TaskKey(current.Role?.Trigger, task.Id));
+                await DrainCompletedAsync(workspaceId, current, completed, cancellationToken);
+                if (current.Role is not null && !progress.Satisfied(workspaceId, current.Role.Termination))
+                {
+                    Record(workspaceId, "blocked", task, LoopTerminal.BlockedAwaitingInput, "termination", "blocked:termination", result.PermissionRuleIds);
+                    return;
+                }
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            if (settings.Get(workspaceId).Loop?.StopReason is "restarted")
+                return;
             Record(workspaceId, "stopped", settings.Get(workspaceId).Loop?.CurrentTask, LoopTerminal.Cancelled, "cancelled", null, []);
         }
         finally
@@ -218,6 +237,46 @@ public sealed class AutonomousWorkspaceService(
             _runs.TryRemove(workspaceId, out _);
         }
     }
+
+    private async Task<AssignedIssue?> NextTaskAsync(
+        string workspaceId,
+        AgentWorkspaceSettings current,
+        HashSet<string> completed,
+        CancellationToken cancellationToken)
+    {
+        if (current.Role?.Trigger == RoleTriggerKind.ProposalAwaitingReview)
+        {
+            var queue = await proposals.ListAwaitingAsync(workspaceId, cancellationToken);
+            var proposal = queue.FirstOrDefault(item => !completed.Contains(TaskKey(RoleTriggerKind.ProposalAwaitingReview, item.Id)));
+            return proposal is null ? null : ToIssue(proposal);
+        }
+
+        var assigned = await issues.ListAssignedAsync(workspaceId, current.QueueOrder, cancellationToken);
+        return assigned.FirstOrDefault(item => !completed.Contains(TaskKey(RoleTriggerKind.IssueAssigned, item.Id)));
+    }
+
+    private async Task DrainCompletedAsync(
+        string workspaceId,
+        AgentWorkspaceSettings current,
+        HashSet<string> completed,
+        CancellationToken cancellationToken)
+    {
+        if (current.Role?.Trigger == RoleTriggerKind.ProposalAwaitingReview)
+        {
+            var queue = await proposals.ListAwaitingAsync(workspaceId, cancellationToken);
+            proposals.Replace(workspaceId, [.. queue.Where(item => !completed.Contains(TaskKey(RoleTriggerKind.ProposalAwaitingReview, item.Id)))]);
+            return;
+        }
+
+        var assigned = await issues.ListAssignedAsync(workspaceId, current.QueueOrder, cancellationToken);
+        issues.Replace(workspaceId, [.. assigned.Where(item => !completed.Contains(TaskKey(RoleTriggerKind.IssueAssigned, item.Id)))]);
+    }
+
+    private static string TaskKey(RoleTriggerKind? trigger, string id) =>
+        trigger == RoleTriggerKind.ProposalAwaitingReview ? $"proposal:{id}" : $"issue:{id}";
+
+    private static AssignedIssue ToIssue(AssignedProposal proposal) =>
+        new(proposal.Id, 0, proposal.Title, proposal.Body, proposal.CreatedAt, proposal.CreatedAt, proposal.Url);
 
     private void Record(
         string workspaceId,
@@ -229,6 +288,8 @@ public sealed class AutonomousWorkspaceService(
         IReadOnlyList<string> rules)
     {
         var current = settings.Get(workspaceId);
+        if (current.Loop?.StopReason is "restarted")
+            return;
         var active = phase is "running" or "idle";
         settings.Save(current with
         {

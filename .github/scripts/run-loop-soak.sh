@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Drives three concurrent Server autonomous loops against the in-process fake ACP
-# agent until each assigned-issue queue drains. Restart must not silently resume.
-# This is the slow ciOnly loop-soak check. It is not part of the test-kind
-# watchdog or the fast Server suite, and it does not load a GGUF.
+# Drains hundreds of scripted assigned issues on one Server loop and asserts
+# bounded memory, handles, threads, and transcript size. Concurrency and restart
+# live in AutonomousLoopIsolationTests (normal Server tier). This is the slow
+# ciOnly loop-soak check. It is not part of the test-kind watchdog or the fast
+# Server suite, and it does not load a GGUF.
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$root"

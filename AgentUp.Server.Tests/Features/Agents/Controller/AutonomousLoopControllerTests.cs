@@ -88,7 +88,7 @@ public sealed class AutonomousLoopControllerTests
             events,
             NullLogger<AgentSchedulingService>.Instance);
         await scheduling.ScheduleAsync(workspace.Id, "codex", CancellationToken.None);
-        var loop = new AutonomousLoopService(scheduling, new LoopInvariantGuard());
+        var loop = new AutonomousLoopService(scheduling, new LoopInvariantGuard(), new ImmediateLoopBackoff());
         return (new AutonomousLoopController(loop), scheduling, workspace.Id);
     }
 }

@@ -252,6 +252,18 @@
         "state": "ready",
         "sessionId": "demo-agent",
         "error": null,
+        "boundAgent": "Codex",
+        "loop": {
+          "active": false,
+          "phase": "idle",
+          "taskId": "12",
+          "taskNumber": 12,
+          "taskTitle": "Restock featured products",
+          "terminal": "Idle",
+          "stopReason": "queue_empty",
+          "blockReason": null,
+          "permissionRuleIds": []
+        },
         "agents": [
           {
             "agent": "Codex",

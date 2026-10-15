@@ -64,10 +64,12 @@ nothing comes back, and a browser cannot read a cross-origin popup's location. T
 `canInterceptRedirect` and the web adapter says `false` rather than hanging a sign-in it cannot
 finish.
 
-A client must not open a sign-in link the user did not ask it to open. Choosing a method applies
-the session read back after `POST .../authenticate`, the same way scheduling applies the session
-from `POST .../agent`. Waiting only on the event stream left the Open button unrendered when that
-stream lagged.
+A client must not open a sign-in link the user did not ask it to open. Choosing a method reads the
+session after `POST .../authenticate` until the challenge carries a sign-in URL, or the Server
+leaves `authenticating`. A single GET raced slower login CLIs — loopback redirect binds a listener
+before it prints the link — and that empty snapshot could overwrite a later event-stream frame that
+already had the URL. Waiting only on the stream left the Open button unrendered when that stream
+lagged.
 
 ## Testing
 
@@ -131,9 +133,10 @@ to the client relinks rather than recompiling every dependency. Both are saved i
 the build rather than at the end of the job, because a run whose tests fail would otherwise throw
 the build away - which is exactly when the next push is about to need it.
 
-Android installs the emulator package with retries before `android-emulator-runner` asks for it.
-Google's emulator zip is occasionally not an archive, and that action treats a single failed
-download as a failed job. The NDK step already retries the same class of truncated download.
+Android installs the emulator package and the API 35 Google APIs system image with retries before
+`android-emulator-runner` asks for them. Google's zips are occasionally not archives, and that
+action treats a single failed download as a failed job. The NDK step already retries the same
+class of truncated download.
 Before Detox starts, the workflow also configures the emulator to stay awake while powered and
 disables its screen timeout. Merely finding a focused window at boot is insufficient because the
 screen can otherwise lock while the harness starts its Server and test-agent processes, leaving

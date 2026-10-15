@@ -116,7 +116,7 @@ public sealed class AutonomousLoopServiceTests
     }
 
     [Test]
-    public async Task RunAsync_stopsAsBlockedRateLimited()
+    public async Task RunAsync_stopsAsBlockedRateLimitedAfterBackoffRetries()
     {
         var harness = await HarnessAsync();
         harness.Process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "rate_limited" });
@@ -124,7 +124,34 @@ public sealed class AutonomousLoopServiceTests
 
         var result = await harness.Loop.RunAsync(Request(harness.Workspace.Id), CancellationToken.None);
 
-        Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.BlockedRateLimited));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.BlockedRateLimited));
+            Assert.That(harness.Backoff.Attempts, Is.EqualTo(new[] { 1 }));
+        });
+        await harness.Scheduling.DisposeAsync();
+    }
+
+    [Test]
+    public async Task RunAsync_completesAfterARateLimitBackoff()
+    {
+        var harness = await HarnessAsync();
+        harness.Process.BeforePromptCompletes = _ =>
+        {
+            harness.Process.PromptResult = harness.Process.Prompts.Count == 1
+                ? JsonSerializer.SerializeToElement(new { stopReason = "rate_limited" })
+                : JsonSerializer.SerializeToElement(new { stopReason = "end_turn", completed = true });
+            return Task.CompletedTask;
+        };
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var result = await harness.Loop.RunAsync(Request(harness.Workspace.Id), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.Completed));
+            Assert.That(harness.Backoff.Attempts, Is.EqualTo(new[] { 1 }));
+        });
         await harness.Scheduling.DisposeAsync();
     }
 
@@ -269,12 +296,14 @@ public sealed class AutonomousLoopServiceTests
             new AgentEventFrameProvider(),
             events,
             NullLogger<AgentSchedulingService>.Instance);
-        return new Harness(workspace, process, scheduling, new AutonomousLoopService(scheduling, new LoopInvariantGuard()));
+        var backoff = new ImmediateLoopBackoff();
+        return new Harness(workspace, process, scheduling, new AutonomousLoopService(scheduling, new LoopInvariantGuard(), backoff), backoff);
     }
 
     private sealed record Harness(
         Workspace Workspace,
         FakeAgentProcessProvider Process,
         AgentSchedulingService Scheduling,
-        AutonomousLoopService Loop);
+        AutonomousLoopService Loop,
+        ImmediateLoopBackoff Backoff);
 }

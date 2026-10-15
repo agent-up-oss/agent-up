@@ -6,6 +6,7 @@ using AgentUp.Desktop.Features.Agents.DTOs;
 using AgentUp.Desktop.Features.Agents.Interfaces;
 using AgentUp.Desktop.Features.Agents.Services;
 using AgentUp.Desktop.Features.Agents.ViewModels;
+using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Agents.Unit;
 
@@ -16,7 +17,7 @@ public sealed class AgentChatViewModelTests
     public async Task LoadAndResumeExposeWorkspaceSessionHistory()
     {
         var saved = new AgentSessionSummaryDto("saved-1", "Claude", "Generated description", "feature/agents", DateTimeOffset.UtcNow);
-        var initial = new AgentSessionDto("ws-1", null, "idle", null, null, [], [], Sessions: [saved]);
+        var initial = DesktopDomain.Session().WithSessions(saved).Build();
         var resumed = initial with { Agent = "Claude", State = "ready", SessionId = "saved-1" };
         var fake = new ChatApiFake { Session = initial, NextSession = resumed };
         var view = CreateView(fake);
@@ -103,10 +104,9 @@ public sealed class AgentChatViewModelTests
     {
         var fake = new ChatApiFake
         {
-            Session = new AgentSessionDto("ws-1", null, "idle", null, null, [
+            Session = DesktopDomain.Session().IdleWith(
                 new AgentDescriptorDto("Codex", true, "Codex"),
-                new AgentDescriptorDto("Cursor", false, "Cursor")
-            ], [])
+                new AgentDescriptorDto("Cursor", false, "Cursor")).Build()
         };
         var view = CreateView(fake);
 
@@ -126,9 +126,7 @@ public sealed class AgentChatViewModelTests
     {
         var fake = new ChatApiFake
         {
-            Session = new AgentSessionDto("ws-1", "Codex", "ready", "s1", null, [
-                new AgentDescriptorDto("Codex", true, "Codex")
-            ], [])
+            Session = DesktopDomain.Session().Ready().Build()
         };
         var view = CreateView(fake);
         await view.LoadAsync("ws-1");
@@ -150,9 +148,11 @@ public sealed class AgentChatViewModelTests
     {
         var fake = new ChatApiFake
         {
-            Session = new AgentSessionDto("ws-1", null, "idle", null, null, [
-                new AgentDescriptorDto("Codex", true, "Codex")
-            ], [], BoundAgent: "Codex", Loop: new AgentLoopStatusDto(false, "idle", Terminal: "Idle"))
+            Session = DesktopDomain.Session()
+                .IdleWith(new AgentDescriptorDto("Codex", true, "Codex"))
+                .BoundTo("Codex")
+                .WithLoop(new AgentLoopStatusDto(false, "idle", Terminal: "Idle"))
+                .Build()
         };
         var view = CreateView(fake);
 
@@ -169,16 +169,45 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
+    public async Task LoopLine_includesTheCurrentTaskAndStopReason()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session()
+                .Ready()
+                .BoundTo("Codex")
+                .WithLoop(new AgentLoopStatusDto(
+                    true,
+                    "blocked",
+                    TaskId: "4",
+                    TaskNumber: 4,
+                    TaskTitle: "Keep this task",
+                    Terminal: "BlockedAwaitingInput",
+                    StopReason: "termination"))
+                .Build()
+        };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.LoopLine, Does.Contain("Keep this task"));
+            Assert.That(view.LoopLine, Does.Contain("termination"));
+            Assert.That(view.HasLoop, Is.True);
+        });
+    }
+
+    [Test]
     public async Task StartBoundCommand_schedulesTheBoundAgent()
     {
         var fake = new ChatApiFake
         {
-            Session = new AgentSessionDto("ws-1", null, "idle", null, null, [
-                new AgentDescriptorDto("Codex", true, "Codex")
-            ], [], BoundAgent: "Codex"),
-            NextSession = new AgentSessionDto("ws-1", "Codex", "ready", "s1", null, [
-                new AgentDescriptorDto("Codex", true, "Codex")
-            ], [], BoundAgent: "Codex")
+            Session = DesktopDomain.Session()
+                .IdleWith(new AgentDescriptorDto("Codex", true, "Codex"))
+                .BoundTo("Codex")
+                .Build(),
+            NextSession = DesktopDomain.Session().Ready().BoundTo("Codex").Build()
         };
         var view = CreateView(fake);
         await view.LoadAsync("ws-1");
@@ -208,10 +237,10 @@ public sealed class AgentChatViewModelTests
     {
         var fake = new ChatApiFake
         {
-            Session = new AgentSessionDto("ws-1", null, "idle", null, null, [
-                new AgentDescriptorDto("Codex", true, "Codex")
-            ], []),
-            NextSession = new AgentSessionDto("ws-1", "Codex", "ready", "s1", null, [], [])
+            Session = DesktopDomain.Session()
+                .IdleWith(new AgentDescriptorDto("Codex", true, "Codex"))
+                .Build(),
+            NextSession = DesktopDomain.Session().Ready().WithAgents().Build()
         };
         var view = CreateView(fake);
         await view.LoadAsync("ws-1");
@@ -371,15 +400,13 @@ public sealed class AgentChatViewModelTests
     [Test]
     public void AgentSessionDto_preservesASubscriptionLoginChallenge()
     {
-        var session = new AgentSessionDto(
-            "ws-1",
-            "Cursor",
-            "authenticating",
-            null,
-            null,
-            [new AgentDescriptorDto("Cursor", true, "Cursor")],
-            [new AgentAuthMethodDto("cursor_login", "Cursor Login", "Sign in")],
-            new AgentLoginChallengeDto("https://cursor.com/loginDeepControl?challenge=abc", "ABCD-EFGHI", "Open this link"));
+        var session = DesktopDomain.Session()
+            .WithAgent("Cursor")
+            .InState("authenticating")
+            .IdleWith(new AgentDescriptorDto("Cursor", true, "Cursor"))
+            .WithAuthMethods(new AgentAuthMethodDto("cursor_login", "Cursor Login", "Sign in"))
+            .WithLoginChallenge(new AgentLoginChallengeDto("https://cursor.com/loginDeepControl?challenge=abc", "ABCD-EFGHI", "Open this link"))
+            .Build();
 
         Assert.Multiple(() =>
         {
@@ -414,7 +441,7 @@ internal sealed class ChatApiFake : IAgentApiProvider
         LastWorkspace = workspaceId;
         if (GetFailures.TryGetValue(workspaceId, out var failure))
             throw failure;
-        return Session ?? new AgentSessionDto(workspaceId, null, "idle", null, null, [], []);
+        return Session ?? DesktopDomain.Session().ForWorkspace(workspaceId).Build();
     }
 
     public Task<AgentSessionDto?> BindAsync(string workspaceId, string agent, CancellationToken cancellationToken)

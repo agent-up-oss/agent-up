@@ -113,7 +113,7 @@ public sealed class LoopInferenceCoverageTests
             var scheduled = await scheduling.ScheduleAsync(workspace.Id, "codex", CancellationToken.None);
             if (scheduled.Error is not null)
                 throw new InvalidOperationException(scheduled.Error);
-            var loop = new AutonomousLoopService(scheduling, new LoopInvariantGuard());
+            var loop = new AutonomousLoopService(scheduling, new LoopInvariantGuard(), new ImmediateLoopBackoff());
             return await loop.RunAsync(
                 new LoopRunRequest(
                     workspace.Id,

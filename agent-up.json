@@ -383,11 +383,13 @@
         ]
       },
       "loop-scripted": {
-        "command": "dotnet test AgentUp.TestAgents.Tests --filter FullyQualifiedName~.Scripted. --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/loop-scripted",
+        "command": "dotnet test AgentUp.TestAgents.Tests --filter FullyQualifiedName~.Scripted. --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/loop-scripted && dotnet test AgentUp.Server.Tests --filter FullyQualifiedName~.ScriptedLoop. --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/loop-scripted",
         "tier": "fast",
         "inputs": [
           "AgentUp.TestAgents",
-          "AgentUp.TestAgents.Tests"
+          "AgentUp.TestAgents.Tests",
+          "AgentUp.Server",
+          "AgentUp.Server.Tests"
         ]
       },
       "loop-soak": {
@@ -862,6 +864,7 @@
           "server",
           "cross-product-e2e",
           "loop-inference",
+          "loop-scripted",
           "loop-soak",
           "patch-coverage"
         ]
@@ -877,6 +880,7 @@
         "checks": [
           "server",
           "loop-inference",
+          "loop-scripted",
           "loop-soak",
           "patch-coverage"
         ]

@@ -67,8 +67,8 @@ public sealed class AutonomousWorkspaceServiceTests
         var host = await HostAsync();
         await ReadyAsync(host);
         host.Issues.Replace(host.WorkspaceId, [
-            new AssignedIssue("2", 2, "Second", "b", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example/2"),
-            new AssignedIssue("1", 1, "First", "a", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example/1")
+            ServerDomain.Issue().Numbered(2).Titled("Second").WithBody("b").Build(),
+            ServerDomain.Issue().Numbered(1).Titled("First").WithBody("a").Build()
         ]);
 
         await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
@@ -162,9 +162,7 @@ public sealed class AutonomousWorkspaceServiceTests
         var host = await HostAsync();
         await ReadyAsync(host);
         await host.Workspaces.UpdateBoundAgentAsync(host.WorkspaceId, "cursor");
-        host.Issues.Replace(host.WorkspaceId, [
-            new AssignedIssue("1", 1, "One", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example/1")
-        ]);
+        host.Issues.Replace(host.WorkspaceId, [ServerDomain.Issue().Build()]);
 
         await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
         await WaitUntilAsync(() => host.Autonomy.Status(host.WorkspaceId).Terminal == LoopTerminal.Failed);
@@ -180,8 +178,8 @@ public sealed class AutonomousWorkspaceServiceTests
         var host = await HostAsync(new ClearingAssignedIssueQueue(settings), settings);
         await ReadyAsync(host);
         host.Issues.Replace(host.WorkspaceId, [
-            new AssignedIssue("1", 1, "One", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example/1"),
-            new AssignedIssue("2", 2, "Two", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example/2")
+            ServerDomain.Issue().Numbered(1).Build(),
+            ServerDomain.Issue().Numbered(2).Titled("Two").Build()
         ]);
 
         await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
@@ -197,9 +195,7 @@ public sealed class AutonomousWorkspaceServiceTests
         var host = await HostAsync();
         await ReadyAsync(host);
         host.Process.HoldPrompt = true;
-        host.Issues.Replace(host.WorkspaceId, [
-            new AssignedIssue("1", 1, "One", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example/1")
-        ]);
+        host.Issues.Replace(host.WorkspaceId, [ServerDomain.Issue().Build()]);
         await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
         await WaitUntilAsync(() => host.Autonomy.Status(host.WorkspaceId).Phase == "running");
 
@@ -215,9 +211,7 @@ public sealed class AutonomousWorkspaceServiceTests
         var host = await HostAsync();
         await ReadyAsync(host);
         host.Process.HoldPrompt = true;
-        host.Issues.Replace(host.WorkspaceId, [
-            new AssignedIssue("1", 1, "One", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example/1")
-        ]);
+        host.Issues.Replace(host.WorkspaceId, [ServerDomain.Issue().Build()]);
         await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
         await WaitUntilAsync(() => host.Autonomy.Status(host.WorkspaceId).Phase == "running");
 
@@ -227,6 +221,100 @@ public sealed class AutonomousWorkspaceServiceTests
         {
             Assert.That(stopped.Error, Is.Null);
             Assert.That(host.Autonomy.Status(host.WorkspaceId).Terminal, Is.EqualTo(LoopTerminal.Cancelled));
+        });
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task ActivateAsync_drainsProposalsWhenTheRoleTriggerIsProposalAwaitingReview()
+    {
+        var host = await HostAsync();
+        await ReadyAsync(host);
+        await host.Autonomy.SetRoleAsync(
+            host.WorkspaceId,
+            new AgentRoleDefinition("Review", [], RoleTriggerKind.ProposalAwaitingReview, RoleTerminationKind.ReviewSubmitted));
+        host.Progress.Record(host.WorkspaceId, RoleTerminationKind.ReviewSubmitted);
+        host.Proposals.Replace(host.WorkspaceId, [
+            new AssignedProposal("p1", "Open the review", "body", DateTimeOffset.UnixEpoch, "https://example/p1")
+        ]);
+
+        await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
+        await WaitUntilAsync(() => host.Autonomy.Status(host.WorkspaceId).Terminal == LoopTerminal.Idle);
+
+        Assert.That(host.Process.Prompts.First(), Does.Contain("Open the review"));
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task ActivateAsync_blocksWhenRoleTerminationIsUnmetAfterCompleted()
+    {
+        var host = await HostAsync();
+        await ReadyAsync(host);
+        await host.Autonomy.SetRoleAsync(
+            host.WorkspaceId,
+            new AgentRoleDefinition("Ship", [], RoleTriggerKind.IssueAssigned, RoleTerminationKind.ProposalOpened));
+        host.Issues.Replace(host.WorkspaceId, [ServerDomain.Issue().Build()]);
+
+        await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
+        await WaitUntilAsync(() => host.Autonomy.Status(host.WorkspaceId).Terminal == LoopTerminal.BlockedAwaitingInput);
+
+        Assert.That(host.Autonomy.Status(host.WorkspaceId).StopReason, Is.EqualTo("termination"));
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task ActivateAsync_skipsAnIssueTheHostQueueKeepsReturning()
+    {
+        var host = await HostAsync(new StickyAssignedIssueQueue());
+        await ReadyAsync(host);
+        host.Issues.Replace(host.WorkspaceId, [ServerDomain.Issue().Build()]);
+
+        await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
+        await WaitUntilAsync(() => host.Autonomy.Status(host.WorkspaceId).Terminal == LoopTerminal.Idle);
+
+        Assert.That(host.Process.Prompts, Has.Count.EqualTo(1));
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task ActivateAsync_keepsTheOriginalTaskWhenSteeringArrives()
+    {
+        var host = await HostAsync();
+        await ReadyAsync(host);
+        host.Process.HoldPrompt = true;
+        host.Issues.Replace(host.WorkspaceId, [ServerDomain.Issue().Titled("Keep this task").Build()]);
+        await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
+        await WaitUntilAsync(() => host.Process.Prompts.Count > 0);
+
+        await host.Scheduling.PromptAsync(host.WorkspaceId, "Rewrite this as a different task", CancellationToken.None);
+        host.Process.HoldPrompt = false;
+        host.Process.CompletePrompt();
+        await WaitUntilAsync(() => host.Autonomy.Status(host.WorkspaceId).Terminal is not null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(host.Process.Prompts.First(), Does.Contain("Keep this task"));
+            Assert.That(host.Process.Prompts.Any(prompt => prompt.Contains("do not rewrite the task", StringComparison.Ordinal)), Is.True);
+        });
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task ReconcileAfterRestart_cancelsALiveRun()
+    {
+        var host = await HostAsync();
+        await ReadyAsync(host);
+        host.Process.HoldPrompt = true;
+        host.Issues.Replace(host.WorkspaceId, [ServerDomain.Issue().Build()]);
+        await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
+        await WaitUntilAsync(() => host.Autonomy.Status(host.WorkspaceId).Phase == "running");
+
+        host.Autonomy.ReconcileAfterRestart();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(host.Autonomy.Status(host.WorkspaceId).Active, Is.False);
+            Assert.That(host.Autonomy.Status(host.WorkspaceId).StopReason, Is.EqualTo("restarted"));
         });
         await host.DisposeAsync();
     }
@@ -275,6 +363,8 @@ public sealed class AutonomousWorkspaceServiceTests
             NullLogger<AgentSchedulingService>.Instance,
             settings: settings);
         issues ??= new MemoryAssignedIssueQueue();
+        var proposals = new MemoryAssignedProposalQueue();
+        var progress = new MemoryRoleProgress();
         var git = new FakeGitWorkingTreeProvider();
         var preconditions = new LoopPreconditionProvider(
             workspaces,
@@ -289,11 +379,13 @@ public sealed class AutonomousWorkspaceServiceTests
             settings,
             preconditions,
             issues,
+            proposals,
+            progress,
             scheduling,
-            new AutonomousLoopService(scheduling, new LoopInvariantGuard()),
+            new AutonomousLoopService(scheduling, new LoopInvariantGuard(), new ImmediateLoopBackoff()),
             workspaces,
             new RoleToolFilterProvider());
-        return new Host(workspace.Id, workspaces, settings, process, issues, autonomy, scheduling);
+        return new Host(workspace.Id, workspaces, settings, process, issues, proposals, progress, autonomy, scheduling);
     }
 
     private static AgentUp.Server.Features.Commits.Controllers.CommitsController Commits(FakeGitWorkingTreeProvider git)
@@ -316,10 +408,29 @@ public sealed class AutonomousWorkspaceServiceTests
         InMemoryAgentWorkspaceSettingsRepository Settings,
         FakeAgentProcessProvider Process,
         IAssignedIssueQueue Issues,
+        MemoryAssignedProposalQueue Proposals,
+        MemoryRoleProgress Progress,
         AutonomousWorkspaceService Autonomy,
         AgentSchedulingService Scheduling) : IAsyncDisposable
     {
         public ValueTask DisposeAsync() => Scheduling.DisposeAsync();
+    }
+
+    private sealed class StickyAssignedIssueQueue : IAssignedIssueQueue
+    {
+        private IReadOnlyList<AssignedIssue> _items = [];
+
+        public Task<IReadOnlyList<AssignedIssue>> ListAssignedAsync(
+            string workspaceId,
+            AssignedIssueOrder order,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(_items);
+
+        public void Replace(string workspaceId, IReadOnlyList<AssignedIssue> issues)
+        {
+            if (_items.Count == 0)
+                _items = issues;
+        }
     }
 
     private sealed class ThrowingAssignedIssueQueue : IAssignedIssueQueue

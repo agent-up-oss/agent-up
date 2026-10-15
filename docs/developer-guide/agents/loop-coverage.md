@@ -49,7 +49,7 @@ Reusable prompts live in `loop-coverage/scenarios/*.json`. They do not name an a
 
 `./.github/scripts/run-loop-inference.sh` publishes `AgentUp.TestAgents`, verifies the pinned GGUF, and runs `AgentUp.Server.Tests` with `Category=LoopInference`. The Loop CPU inference job always runs and gates the release. It is `slow` and `ciOnly`. It is excluded from the test-kind watchdog, `run-dotnet-tests.sh`, and the fast `server` check.
 
-`Category=LoopSoak` is a separate `slow` `ciOnly` check. `./.github/scripts/run-loop-soak.sh` runs three concurrent assigned-issue loops and proves a restart does not silently resume. It is excluded from the same fast suites and also gates the release.
+Concurrency and restart run in the normal E2E tier against at least three autonomous workspaces on one Server. `Category=LoopSoak` is a separate `slow` `ciOnly` check. `./.github/scripts/run-loop-soak.sh` drains hundreds of scripted tasks and asserts bounded memory, handles, threads, and transcript size. Failures attach the per-workspace transcript. It is excluded from the same fast suites and also gates the release.
 
 <DocNext href="/developer-guide/agents/sign-in" title="Sign-in">
 Poll, code, and redirect transports.

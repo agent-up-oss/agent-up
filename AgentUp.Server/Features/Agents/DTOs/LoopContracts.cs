@@ -26,7 +26,8 @@ public sealed record LoopRunRequest(
     int ContextCharLimit,
     uint Seed = 42,
     int StandingPolicyReplies = 2,
-    int PromptTimeoutMs = 30_000);
+    int PromptTimeoutMs = 30_000,
+    int RateLimitRetries = 1);
 
 public sealed record LoopRunResult(
     LoopTerminal Terminal,
