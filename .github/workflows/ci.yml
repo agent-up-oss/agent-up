@@ -1197,8 +1197,14 @@ jobs:
           npx tsc --noEmit -p ../AgentUp.ServerClient/tsconfig.json
           npx tsx --test ../AgentUp.ServerClient/src/*.test.ts
           npx tsx --test ../AgentUp.Chat/src/providers/*.test.ts
-          npx tsx --test src/features/**/providers/*.test.ts
+          npx tsx --test src/features/**/*.test.ts
           node --test scripts/*.test.mjs
+
+      - name: WebAudit unit tests
+        working-directory: AgentUp.WebAudit
+        run: |
+          npm ci
+          npm test
 
       - name: Typecheck the chat module and the app that harnesses it
         run: |

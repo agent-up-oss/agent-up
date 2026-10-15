@@ -72,6 +72,19 @@ public sealed class VerificationConfigurationLoaderTests
     }
 
     [Test]
+    public void ThisRepository_usesBlockEnforcement()
+    {
+        var directory = new DirectoryInfo(TestContext.CurrentContext.TestDirectory);
+        while (directory is not null && !File.Exists(Path.Join(directory.FullName, "agent-up.json")))
+            directory = directory.Parent;
+
+        Assert.That(directory, Is.Not.Null, "agent-up.json should be reachable from the test directory.");
+        Assert.That(
+            new VerificationConfigurationLoader().Load(directory!.FullName).Enforcement,
+            Is.EqualTo(VerificationEnforcement.Block));
+    }
+
+    [Test]
     public void Load_defaultsEnforcementToWarnSoAnIncompleteMapDoesNotBlockWork()
     {
         var root = WriteRepository("""

@@ -1,6 +1,7 @@
 import { useRouter, type Href } from 'expo-router';
 import { useMemo } from 'react';
 import type { AppShellConfig } from '../controllers/AppShellContext';
+import { resolveInnerBack } from '../providers/InnerShellBackProvider';
 
 export function useInnerShell(title: string, fallbackHref: Href): AppShellConfig {
   const router = useRouter();
@@ -12,7 +13,7 @@ export function useInnerShell(title: string, fallbackHref: Href): AppShellConfig
       label: 'Back',
       accessibilityLabel: 'Go back',
       onPress: () => {
-        if (router.canGoBack()) router.back();
+        if (resolveInnerBack(router.canGoBack()) === 'back') router.back();
         else router.replace(fallbackHref);
       },
     },

@@ -50,7 +50,7 @@ Where the MCP interface is exposed beyond loopback, the hostname, TLS and identi
 | Workspace-id addressing for every MCP tool | Implemented |
 | Verification receipt export | Preview |
 | Repository hosting capability modules | Preview |
-| Workspaces started at a specific revision | Planned |
+| Workspaces started at a specific revision | Implemented |
 | Workflow inference from events | Planned |
 | Service-aware updates | Planned |
 

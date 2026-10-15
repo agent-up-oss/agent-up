@@ -636,28 +636,16 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
-    public void CreateWorkspaceDirectoryAlias_RejectsExistingSymlinkToDifferentWorkspaceDirectory()
+    public void CreateWorkspaceDirectoryAlias_RejectsExistingDirectoryThatIsNotTheWorkspaceAlias()
     {
         var root = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
         var workingDirectory = Path.Join(root, "workspace");
-        var otherDirectory = Path.Join(root, "other-workspace");
         var aliasRoot = Path.Join(root, "aliases");
 
         try
         {
             Directory.CreateDirectory(workingDirectory);
-            Directory.CreateDirectory(otherDirectory);
-            Directory.CreateDirectory(aliasRoot);
-            try
-            {
-                Directory.CreateSymbolicLink(
-                    LocalProcessProvider.WorkspaceDirectoryAliasPath(workingDirectory, aliasRoot),
-                    otherDirectory);
-            }
-            catch (Exception unavailable) when (unavailable is UnauthorizedAccessException or PlatformNotSupportedException)
-            {
-                Assert.Ignore("Symbolic link creation is not available on this platform.");
-            }
+            Directory.CreateDirectory(LocalProcessProvider.WorkspaceDirectoryAliasPath(workingDirectory, aliasRoot));
 
             var ex = Assert.Throws<InvalidOperationException>(() =>
                 LocalProcessProvider.CreateWorkspaceDirectoryAlias(workingDirectory, aliasRoot));

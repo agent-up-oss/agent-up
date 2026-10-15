@@ -16,6 +16,8 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     public string Id { get; }
     public string DisplayName { get; }
     public string Branch { get; }
+    public bool Derived { get; }
+    public string Subtitle { get; }
     public string RepositoryPath { get; }
     public string RepositoryName { get; }
     public string RepositoryToolTip { get; }
@@ -43,6 +45,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
 
     public bool ShowStartButton => State is "Stopped" or "Failed" or "Stopping";
     public bool ShowStopButton => State is "Running" or "Starting";
+    public bool ShowRefreshButton => Derived;
     public bool IsLifecycleBusy => State is "Starting" or "Stopping";
 
     public ObservableCollection<WorkspaceApplicationViewModel> Applications { get; } = [];
@@ -50,16 +53,21 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
 
     public ReactiveCommand<Unit, Unit> StartCommand { get; }
     public ReactiveCommand<Unit, Unit> StopCommand { get; }
+    public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
     public ReactiveCommand<Unit, Unit> RequestDeleteCommand { get; }
 
     public WorkspaceItemViewModel(
         string id, string displayName, string branch,
         string repositoryPath, string worktreePath, string state,
-        IReadOnlyList<ApplicationDto>? applications = null)
+        IReadOnlyList<ApplicationDto>? applications = null,
+        bool derived = false,
+        string? sourceRevision = null)
     {
         Id = id;
         DisplayName = displayName;
         Branch = branch;
+        Derived = derived;
+        Subtitle = derived ? sourceRevision ?? branch : branch;
         RepositoryPath = repositoryPath;
         RepositoryName = LastPathSegment(repositoryPath);
         if (string.IsNullOrWhiteSpace(RepositoryName))
@@ -76,6 +84,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         var canStop = this.WhenAnyValue(x => x.ShowStopButton, x => x.IsLifecycleBusy, (show, busy) => show && !busy);
         StartCommand = ReactiveCommand.CreateFromTask(StartAsync, canStart);
         StopCommand = ReactiveCommand.CreateFromTask(StopAsync, canStop);
+        RefreshCommand = ReactiveCommand.CreateFromTask(RefreshAsync, Observable.Return(derived));
         RequestDeleteCommand = ReactiveCommand.Create(RequestDelete);
     }
 
@@ -149,6 +158,9 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
 
     private Task StopAsync()
         => _host?.StopWorkspaceAsync(Id) ?? Task.CompletedTask;
+
+    private Task RefreshAsync()
+        => _host?.RefreshDerivedWorkspaceAsync(Id) ?? Task.CompletedTask;
 
     private void RequestDelete()
         => _host?.RequestDeleteWorkspace(Id, DisplayName);

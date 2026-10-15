@@ -55,23 +55,17 @@ public sealed class CapabilitySearchPathProviderTests
     [Test]
     public void Directories_skipCursorAgentVersionsWhenTheRootIsUnreadable()
     {
-        if (OperatingSystem.IsWindows())
-            Assert.Ignore("Unix directory modes are not used on Windows.");
-
         var home = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         var versionsRoot = Path.Join(home, ".local", "share", "cursor-agent", "versions");
-        Directory.CreateDirectory(versionsRoot);
-        File.SetUnixFileMode(versionsRoot, 0);
-        try
-        {
-            var directories = new CapabilitySearchPathProvider(home, "ubuntu", []).Directories();
-            Assert.That(directories, Does.Not.Contain(versionsRoot));
-        }
-        finally
-        {
-            File.SetUnixFileMode(versionsRoot, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-            Directory.Delete(home, recursive: true);
-        }
+        var version = Path.Join(versionsRoot, "2026.09.02-c22c1a3");
+        var directories = new CapabilitySearchPathProvider(
+            home,
+            "ubuntu",
+            [],
+            _ => throw new UnauthorizedAccessException()).Directories();
+
+        Assert.That(directories, Does.Not.Contain(versionsRoot));
+        Assert.That(directories, Does.Not.Contain(version));
     }
 
     [Test]

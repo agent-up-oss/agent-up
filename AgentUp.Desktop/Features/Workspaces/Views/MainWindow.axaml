@@ -482,12 +482,15 @@
             <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
             <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
         </Style>
-        <Style Selector="Button.wsDeleteButton TextBlock">
+        <Style Selector="Button.wsDeleteButton TextBlock, Button.wsRefreshButton TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
             <Setter Property="FontSize" Value="11"/>
         </Style>
         <Style Selector="Button.wsDeleteButton:pointerover TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
+        </Style>
+        <Style Selector="Button.wsRefreshButton:pointerover TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
         </Style>
     </Window.Styles>
 
@@ -817,10 +820,21 @@
                                                                    Margin="0,0,8,0"/>
                                                     </DockPanel>
                                                     <TextBlock Classes="wsBranch"
-                                                               Text="{Binding Branch}"
+                                                               Text="{Binding Subtitle}"
                                                                TextTrimming="CharacterEllipsis"
                                                                Margin="13,0,0,0"/>
                                                 </StackPanel>
+                                                <Button Classes="wsRefreshButton"
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Top"
+                                                        Margin="28,-2,-2,0"
+                                                        IsVisible="{Binding ShowRefreshButton}"
+                                                        Command="{Binding RefreshCommand}"
+                                                        ToolTip.Tip="Refresh review workspace">
+                                                    <TextBlock Text="↻"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"/>
+                                                </Button>
                                                 <Button Classes="wsDeleteButton"
                                                         HorizontalAlignment="Right"
                                                         VerticalAlignment="Top"
@@ -2310,7 +2324,7 @@
                         </StackPanel>
 
                         <StackPanel Spacing="6">
-                            <TextBlock Text="Branch"
+                            <TextBlock Text="{Binding Sidebar.AddWorkspace.RevisionLabel}"
                                        Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
                                        FontSize="11"
                                        FontWeight="Bold"/>
@@ -2324,6 +2338,12 @@
                                      BorderThickness="1"
                                      FontSize="13"/>
                         </StackPanel>
+
+                        <CheckBox x:Name="AddWorkspaceDerived"
+                                  Content="Start a review workspace at this revision"
+                                  IsChecked="{Binding Sidebar.AddWorkspace.Derived}"
+                                  IsEnabled="{Binding !Sidebar.AddWorkspace.IsBusy}"
+                                  Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
 
                         <TextBlock x:Name="AddWorkspaceError"
                                    Text="{Binding Sidebar.AddWorkspace.ErrorMessage}"

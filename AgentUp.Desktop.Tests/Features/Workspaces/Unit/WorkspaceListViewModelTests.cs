@@ -86,6 +86,97 @@ public sealed class WorkspaceListViewModelTests
         Assert.That(sidebar.CanCreateWorkspace, Is.True);
     }
 
+    [Test]
+    public async Task RefreshDerivedWorkspaceAsync_reloadsTheWorkspaceAfterASuccessfulRefresh()
+    {
+        var workspace = DesktopDomain.Workspace()
+            .WithId("review")
+            .Named("Review · topic")
+            .Stopped()
+            .AsDerived("https://example.test/acme/widgets.git", "topic")
+            .Build();
+        var api = new RefreshingWorkspaceApi(workspace);
+        var sidebar = new WorkspaceListViewModel(new WorkspacesController(new WorkspaceListService(api)));
+        sidebar.Workspaces.Add(new WorkspaceItemViewModel(
+            workspace.Id,
+            workspace.DisplayName,
+            workspace.Branch,
+            workspace.RepositoryPath,
+            workspace.WorktreePath,
+            workspace.State,
+            derived: true,
+            sourceRevision: "topic"));
+
+        await ((IWorkspaceItemHost)sidebar).RefreshDerivedWorkspaceAsync(workspace.Id);
+
+        Assert.That(api.RefreshedId, Is.EqualTo(workspace.Id));
+        Assert.That(sidebar.ErrorMessage, Is.Null);
+    }
+
+    [Test]
+    public async Task RefreshDerivedWorkspaceAsync_swallowsCallerCancellation()
+    {
+        var api = new RefreshingWorkspaceApi(DesktopDomain.Workspace().Build()) { CancelRefresh = true };
+        var sidebar = new WorkspaceListViewModel(new WorkspacesController(new WorkspaceListService(api)));
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        await sidebar.RefreshDerivedWorkspaceAsync("review", cancellation.Token);
+
+        Assert.That(sidebar.ErrorMessage, Is.Null);
+    }
+
+    [Test]
+    public async Task RefreshDerivedWorkspaceAsync_reportsStructuredFailures()
+    {
+        var api = new RefreshingWorkspaceApi(DesktopDomain.Workspace().Build())
+        {
+            RefreshError = new InvalidOperationException("only derived")
+        };
+        var sidebar = new WorkspaceListViewModel(new WorkspacesController(new WorkspaceListService(api)));
+
+        await sidebar.RefreshDerivedWorkspaceAsync("review");
+
+        Assert.That(sidebar.ErrorMessage, Is.EqualTo("Could not refresh review workspace: only derived"));
+    }
+
+    private sealed class RefreshingWorkspaceApi(WorkspaceDto workspace) : IWorkspaceApiProvider
+    {
+        public string? RefreshedId { get; private set; }
+
+        public bool CancelRefresh { get; init; }
+
+        public Exception? RefreshError { get; init; }
+
+        public Task<List<WorkspaceDto>> ListAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(new List<WorkspaceDto> { workspace });
+
+        public Task<WorkspaceDto?> GetByIdAsync(string workspaceId, CancellationToken cancellationToken = default)
+            => Task.FromResult<WorkspaceDto?>(workspace.Id == workspaceId ? workspace : null);
+
+        public Task<WorkspaceDto> CloneAsync(CloneSourceRequestDto request, CancellationToken cancellationToken = default)
+            => Task.FromResult(workspace);
+
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default)
+        {
+            if (CancelRefresh)
+                return Task.FromCanceled<WorkspaceDto>(cancellationToken);
+            if (RefreshError is not null)
+                return Task.FromException<WorkspaceDto>(RefreshError);
+            RefreshedId = workspaceId;
+            return Task.FromResult(workspace);
+        }
+
+        public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task StopAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task DeleteAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task<WorkspaceOverviewDto?> GetOverviewAsync(string workspaceId, CancellationToken cancellationToken = default)
+            => Task.FromResult<WorkspaceOverviewDto?>(null);
+    }
+
     private sealed class EmptyWorkspaceApi : IWorkspaceApiProvider
     {
         public Task<List<WorkspaceDto>> ListAsync(CancellationToken cancellationToken = default)
@@ -103,6 +194,9 @@ public sealed class WorkspaceListViewModelTests
                 .OnBranch("main")
                 .Stopped()
                 .Build());
+
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default)
+            => GetByIdAsync(workspaceId, cancellationToken).ContinueWith(task => task.Result ?? throw new InvalidOperationException("missing"), cancellationToken);
 
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
@@ -132,6 +226,9 @@ public sealed class WorkspaceListViewModelTests
                 
                 .Stopped()
                 .Build());
+
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default)
+            => GetByIdAsync(workspaceId, cancellationToken).ContinueWith(task => task.Result ?? throw new InvalidOperationException("missing"), cancellationToken);
 
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.CompletedTask;
 

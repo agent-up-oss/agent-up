@@ -11,4 +11,6 @@ public static class WorkspaceListOrdering
         "Starting" => 1,
         _ => 0
     };
+
+    public static int OwnWorkspacePriority(bool derived) => derived ? 0 : 1;
 }

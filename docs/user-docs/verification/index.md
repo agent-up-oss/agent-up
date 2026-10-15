@@ -9,11 +9,11 @@ title: Verification
 <DocWhat>
 `agent-up.json`'s `verification` section maps changed paths to named checks. Running those checks records receipts outside the working tree.
 
-The guard hashes current files against those receipts, so editing after a run leaves the receipt stale.
+The guard hashes current files against those receipts, so editing after a run leaves the receipt stale. This repository sets `enforcement` to `block`, so `guard` fails until every required check has a matching receipt.
 </DocWhat>
 
 <DocCallout>
-Run verification before enqueueing commits. Verification never reads the commit queue.
+Run verification before enqueueing commits. Verification never reads the commit queue. If the guard fails, run `agent-up verify run` again; do not edit `enforcement` to get unblocked.
 </DocCallout>
 
 <DocSpine>

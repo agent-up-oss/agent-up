@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { cloneSourceRepository, listWorkspaces, startWorkspace, stopWorkspace } from './WorkspacesApiProvider';
+import { cloneSourceRepository, listWorkspaces, refreshClone, startWorkspace, stopWorkspace } from './WorkspacesApiProvider';
 
 type Recorded = { url: string; init: RequestInit };
 
@@ -70,6 +70,60 @@ test('cloneSourceRepository surfaces the server problem detail', async () => {
     ),
     /Branch must be a valid Git branch name\./,
   );
+});
+
+test('cloneSourceRepository posts a derived review workspace at a revision', async () => {
+  const recorded: Recorded[] = [];
+  const body = JSON.stringify({
+    id: 'ws-review',
+    displayName: 'Review · topic',
+    repositoryPath: '/clones/widgets-review-topic',
+    worktreePath: '/clones/widgets-review-topic',
+    branch: 'topic',
+    commit: 'abc123',
+    state: 'Stopped',
+    derived: true,
+    sourceRepository: 'https://example.test/acme/widgets.git',
+    sourceRevision: 'topic',
+  });
+
+  const workspace = await cloneSourceRepository(
+    { url: 'http://localhost:5000' },
+    {
+      repository: 'https://example.test/acme/widgets.git',
+      branch: 'topic',
+      revision: 'topic',
+      derived: true,
+    },
+    fakeFetch(201, body, recorded),
+  );
+
+  assert.equal(workspace.derived, true);
+  assert.deepEqual(JSON.parse(String(recorded[0].init.body)), {
+    repository: 'https://example.test/acme/widgets.git',
+    branch: 'topic',
+    revision: 'topic',
+    derived: true,
+  });
+});
+
+test('refreshClone posts to the source clone refresh route', async () => {
+  const recorded: Recorded[] = [];
+  const body = JSON.stringify({
+    id: 'ws 1',
+    displayName: 'Review · topic',
+    repositoryPath: '/clones/widgets-review-topic',
+    worktreePath: '/clones/widgets-review-topic',
+    branch: 'topic',
+    commit: 'refreshed',
+    state: 'Stopped',
+    derived: true,
+  });
+
+  const workspace = await refreshClone({ url: 'http://localhost:5000' }, 'ws 1', fakeFetch(200, body, recorded));
+
+  assert.equal(workspace.commit, 'refreshed');
+  assert.equal(recorded[0].url, 'http://localhost:5000/api/source-clones/ws%201/refresh');
 });
 
 test('startWorkspace and stopWorkspace escape the workspace id', async () => {

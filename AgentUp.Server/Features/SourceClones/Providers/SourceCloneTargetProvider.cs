@@ -16,11 +16,14 @@ public sealed partial class SourceCloneTargetProvider : ISourceCloneTargetProvid
     public SourceCloneTarget Resolve(CloneSourceRequest request)
     {
         var repository = NormalizeRepository(request.Repository);
-        var branch = NormalizeBranch(request.Branch);
-        var directoryName = DeriveDirectoryName(repository);
+        var revision = NormalizeRevision(request.Revision, request.Branch, request.Derived);
+        var directoryName = DeriveDirectoryName(repository, revision, request.Derived);
         var destinationPath = ResolveDestinationPath(directoryName);
 
-        return new SourceCloneTarget(repository, branch, directoryName, destinationPath);
+        return new SourceCloneTarget(repository, revision, directoryName, destinationPath)
+        {
+            Derived = request.Derived
+        };
     }
 
     public bool DestinationExists(SourceCloneTarget target)
@@ -63,11 +66,12 @@ public sealed partial class SourceCloneTargetProvider : ISourceCloneTargetProvid
            || repository.StartsWith("ssh://", StringComparison.OrdinalIgnoreCase)
            || repository.StartsWith("git://", StringComparison.OrdinalIgnoreCase);
 
-    private static string NormalizeBranch(string? branch)
+    private static string NormalizeRevision(string? revision, string? branch, bool derived)
     {
-        var trimmed = (branch ?? string.Empty).Trim();
+        var trimmed = FirstNonEmpty(revision, branch);
+        var label = derived ? "Revision" : "Branch";
         if (trimmed.Length == 0)
-            throw new InvalidOperationException("Branch is required.");
+            throw new InvalidOperationException($"{label} is required.");
 
         if (trimmed.Length > 255
             || trimmed.StartsWith('-')
@@ -76,29 +80,51 @@ public sealed partial class SourceCloneTargetProvider : ISourceCloneTargetProvid
             || trimmed.EndsWith(".lock", StringComparison.Ordinal)
             || trimmed.Contains("..", StringComparison.Ordinal)
             || trimmed.Contains("@{", StringComparison.Ordinal)
-            || !BranchName().IsMatch(trimmed))
+            || !RevisionName().IsMatch(trimmed))
         {
-            throw new InvalidOperationException("Branch must be a valid Git branch name.");
+            throw new InvalidOperationException(derived
+                ? "Revision must be a valid Git branch, tag, or commit."
+                : "Branch must be a valid Git branch name.");
         }
 
         return trimmed;
     }
 
-    private static string DeriveDirectoryName(string repository)
+    private static string FirstNonEmpty(string? first, string? second)
+    {
+        var left = (first ?? string.Empty).Trim();
+        return left.Length > 0 ? left : (second ?? string.Empty).Trim();
+    }
+
+    private static string DeriveDirectoryName(string repository, string revision, bool derived)
+    {
+        var sanitizedRepository = SanitizeSegment(RepositoryName(repository), "Repository must end with a usable repository name.");
+        if (!derived)
+            return sanitizedRepository;
+
+        var sanitizedRevision = SanitizeSegment(revision, "Revision must end with a usable directory name.");
+        return $"{sanitizedRepository}-review-{sanitizedRevision}";
+    }
+
+    private static string RepositoryName(string repository)
     {
         var withoutTrailingSlash = repository.TrimEnd('/');
         var lastSeparator = withoutTrailingSlash.LastIndexOfAny(['/', ':']);
         var candidate = lastSeparator >= 0 ? withoutTrailingSlash[(lastSeparator + 1)..] : withoutTrailingSlash;
         if (candidate.EndsWith(".git", StringComparison.OrdinalIgnoreCase))
             candidate = candidate[..^4];
+        return candidate;
+    }
 
+    private static string SanitizeSegment(string candidate, string emptyMessage)
+    {
         var sanitized = new string(candidate
             .Select(character => char.IsAsciiLetterOrDigit(character) || character is '.' or '_' or '-' ? character : '-')
             .ToArray())
             .Trim('-', '.');
 
         if (sanitized.Length == 0)
-            throw new InvalidOperationException("Repository must end with a usable repository name.");
+            throw new InvalidOperationException(emptyMessage);
 
         return sanitized;
     }
@@ -110,5 +136,5 @@ public sealed partial class SourceCloneTargetProvider : ISourceCloneTargetProvid
     private static partial Regex ScpLikeRemote();
 
     [GeneratedRegex(@"^[A-Za-z0-9._/-]+$", RegexOptions.CultureInvariant)]
-    private static partial Regex BranchName();
+    private static partial Regex RevisionName();
 }

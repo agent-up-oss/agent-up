@@ -7,6 +7,7 @@ public sealed class CapabilitySearchPathProvider : ICapabilitySearchPathProvider
     private readonly string _home;
     private readonly string _platform;
     private readonly IReadOnlyList<string> _extraDirectories;
+    private readonly Func<string, string[]>? _enumerateDirectories;
 
     public CapabilitySearchPathProvider()
         : this(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), CurrentPlatform(), [])
@@ -14,10 +15,20 @@ public sealed class CapabilitySearchPathProvider : ICapabilitySearchPathProvider
     }
 
     public CapabilitySearchPathProvider(string home, string platform, IReadOnlyList<string> extraDirectories)
+        : this(home, platform, extraDirectories, enumerateDirectories: null)
+    {
+    }
+
+    public CapabilitySearchPathProvider(
+        string home,
+        string platform,
+        IReadOnlyList<string> extraDirectories,
+        Func<string, string[]>? enumerateDirectories)
     {
         _home = home;
         _platform = platform;
         _extraDirectories = extraDirectories;
+        _enumerateDirectories = enumerateDirectories;
     }
 
     public IReadOnlyList<string> Directories()
@@ -66,10 +77,16 @@ public sealed class CapabilitySearchPathProvider : ICapabilitySearchPathProvider
         }
     }
 
-    private static bool TryGetDirectories(string path, out string[] directories)
+    private bool TryGetDirectories(string path, out string[] directories)
     {
         try
         {
+            if (_enumerateDirectories is not null)
+            {
+                directories = _enumerateDirectories(path);
+                return true;
+            }
+
             if (!Directory.Exists(path))
             {
                 directories = [];

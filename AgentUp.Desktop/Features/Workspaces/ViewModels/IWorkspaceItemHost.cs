@@ -7,4 +7,6 @@ internal interface IWorkspaceItemHost
     Task StopWorkspaceAsync(string workspaceId);
 
     void RequestDeleteWorkspace(string workspaceId, string displayName);
+
+    Task RefreshDerivedWorkspaceAsync(string workspaceId);
 }

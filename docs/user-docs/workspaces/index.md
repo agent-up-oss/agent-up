@@ -53,21 +53,21 @@ Agent-Up can manage the clone itself instead of only registering a checkout you 
 
 <DocSteps>
 <DocStep title="Ask for a repository and branch">
-Both the Desktop workspace list and the Mobile sidebar have a `+` button.
+Both the Desktop workspace list and the Mobile sidebar have a `+` button. Tick **Start a review workspace at this revision** to clone a disposable copy at a branch, tag, or commit without touching your own checkout.
 </DocStep>
 <DocStep title="Clone into the source clones directory">
-The result is registered so it appears in the workspace list on every connected client.
+The result is registered so it appears in the workspace list on every connected client. Review workspaces are labelled separately from your own workspaces and can be refreshed in place.
 </DocStep>
 <DocStep title="Keep isolation">
 Clones created this way behave like any other workspace: they get their own port range, processes, browser profile, and diagnostics.
 </DocStep>
 </DocSteps>
 
-The repository must be an `http`, `https`, `ssh`, or `git` remote URL, or the `user@host:path` form. The branch must already exist on the remote. Agent-Up refuses a clone when a directory with the repository's name already exists under the source clones directory.
+The repository must be an `http`, `https`, `ssh`, or `git` remote URL, or the `user@host:path` form. The branch or revision must already exist on the remote. Agent-Up refuses a clone when a directory with the repository's name already exists under the source clones directory. A review workspace uses its own directory, so it never overwrites an existing checkout.
 
 The source clones directory defaults to a `sources` folder inside the Server data directory. Set `AGENTUP_SOURCE_CLONES_ROOT` in the Server environment to keep managed clones somewhere else, such as a larger disk.
 
-Removing such a workspace unregisters it from Agent-Up. It does not delete the clone from disk.
+Removing an ordinary managed clone unregisters it from Agent-Up and leaves the clone on disk. Removing a review workspace also deletes its clone directory, allocated ports, and browser profile.
 
 ## Runtime isolation
 

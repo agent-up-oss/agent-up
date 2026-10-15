@@ -18,8 +18,21 @@ public sealed class WorkspacesController
     public async Task<WorkspaceDto?> GetByIdAsync(string workspaceId, CancellationToken cancellationToken = default)
         => await _service.GetByIdAsync(workspaceId, cancellationToken);
 
-    public async Task<WorkspaceDto> CloneAsync(string repository, string branch, CancellationToken cancellationToken = default)
-        => await _service.CloneAsync(new CloneSourceRequestDto(repository, branch), cancellationToken);
+    public async Task<WorkspaceDto> CloneAsync(
+        string repository,
+        string revision,
+        bool derived = false,
+        CancellationToken cancellationToken = default)
+        => await _service.CloneAsync(
+            new CloneSourceRequestDto(repository, revision)
+            {
+                Derived = derived,
+                Revision = derived ? revision : null
+            },
+            cancellationToken);
+
+    public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => _service.RefreshCloneAsync(workspaceId, cancellationToken);
 
     public async Task StartAsync(string workspaceId, CancellationToken cancellationToken = default)
         => await _service.StartAsync(workspaceId, cancellationToken);

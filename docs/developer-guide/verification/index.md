@@ -9,7 +9,7 @@ title: Verification
 <DocWhat>
 Verification maps changed paths to named checks, runs those checks, and records receipts. It owns the `verification` and `coverage` objects in `agent-up.json` and the receipt ledger.
 
-It never reads the agent commit queue. Record receipts before enqueue. MCP is loopback-only, like the other Agent-Up servers.
+It never reads the agent commit queue. Record receipts before enqueue. This repository uses `enforcement: block`, so `guard_verification` and `agent-up verify guard` fail when receipts are missing or stale. MCP is loopback-only by default, like the other Agent-Up servers.
 </DocWhat>
 
 <DocMeta

@@ -190,6 +190,25 @@ public sealed class VerificationGuardServiceTests
     }
 
     [Test]
+    public async Task GuardAsync_doesNotBlockWhenTheOnlyRemainingChecksAreSkippedUnderBlockEnforcement()
+    {
+        var report = await GuardOver(
+            VerificationDomain.Configuration().WithoutAlways().Build(),
+            ChangeSetBuilder.Changing(VerificationDomain.PackagingSource).Build(),
+            ReceiptLedger.Empty,
+            VerificationDomain.MacOs,
+            isContinuousIntegration: false).GuardAsync(Root);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(report.Verdicts.Select(verdict => verdict.Kind), Is.All.EqualTo(CheckVerdictKind.Skipped));
+            Assert.That(report.Satisfied, Is.True);
+            Assert.That(report.ShouldBlock, Is.False,
+                "ciOnly and wrong-platform skips must not fail a local guard when enforcement is block.");
+        });
+    }
+
+    [Test]
     public async Task GuardAsync_carriesTheConfiguredEnforcementIntoTheReport()
     {
         var configuration = VerificationDomain.Configuration()

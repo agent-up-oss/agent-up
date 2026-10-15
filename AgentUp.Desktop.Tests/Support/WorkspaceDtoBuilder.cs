@@ -23,6 +23,9 @@ internal sealed class WorkspaceDtoBuilder
     private string _state = DesktopDomain.RunningState;
     private readonly List<ApplicationDto> _applications = [];
     private DateTimeOffset _lastActivityAtUtc;
+    private bool _derived;
+    private string? _sourceRepository;
+    private string? _sourceRevision;
 
     /// <summary>
     /// Names the workspace by id and derives its display name and paths from that id, the
@@ -99,10 +102,21 @@ internal sealed class WorkspaceDtoBuilder
         return this;
     }
 
+    public WorkspaceDtoBuilder AsDerived(string sourceRepository, string sourceRevision)
+    {
+        _derived = true;
+        _sourceRepository = sourceRepository;
+        _sourceRevision = sourceRevision;
+        return this;
+    }
+
     public WorkspaceDto Build()
         => new(_id, _displayName, _repositoryPath, _worktreePath, _branch, _commit, _state)
         {
             Applications = _applications,
-            LastActivityAtUtc = _lastActivityAtUtc
+            LastActivityAtUtc = _lastActivityAtUtc,
+            Derived = _derived,
+            SourceRepository = _sourceRepository,
+            SourceRevision = _sourceRevision
         };
 }

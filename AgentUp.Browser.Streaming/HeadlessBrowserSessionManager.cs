@@ -354,6 +354,27 @@ public sealed class HeadlessBrowserSessionManager(
         }
     }
 
+    public async Task DeleteWorkspaceProfileAsync(string workspaceId)
+    {
+        await DisposeSessionAsync(workspaceId);
+        if (!Guid.TryParse(workspaceId, out _))
+            return;
+
+        var root = Path.GetFullPath(profilesDir);
+        var profilePath = Path.GetFullPath(Path.Join(root, workspaceId));
+        var relative = Path.GetRelativePath(root, profilePath);
+        if (relative == "."
+            || relative == ".."
+            || relative.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+            || Path.IsPathRooted(relative))
+        {
+            return;
+        }
+
+        if (Directory.Exists(profilePath))
+            Directory.Delete(profilePath, recursive: true);
+    }
+
     private async Task<BrowserSessionState> CreateSessionAsync(string workspaceId, CancellationToken ct)
     {
         if (!Guid.TryParse(workspaceId, out _))

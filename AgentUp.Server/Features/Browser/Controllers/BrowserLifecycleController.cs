@@ -10,6 +10,9 @@ public sealed class BrowserLifecycleController(
     public Task DisposeSessionAsync(string workspaceId)
         => sessions.DisposeSessionAsync(workspaceId);
 
+    public Task DeleteWorkspaceProfileAsync(string workspaceId)
+        => sessions.DeleteWorkspaceProfileAsync(workspaceId);
+
     public Task DisconnectAllAsync(string workspaceId, CancellationToken ct)
         => display.DisconnectAllAsync(workspaceId, ct);
 }

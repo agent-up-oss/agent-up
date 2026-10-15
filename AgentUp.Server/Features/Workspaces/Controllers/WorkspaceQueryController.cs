@@ -22,6 +22,12 @@ public sealed class WorkspaceQueryController
         remove => _registry.WorkspaceRemoved -= value;
     }
 
+    public event Action<Workspace> WorkspaceDeleting
+    {
+        add => _registry.WorkspaceDeleting += value;
+        remove => _registry.WorkspaceDeleting -= value;
+    }
+
     public bool HasApplication(string id, string applicationName) =>
         _registry.GetById(id)?.Applications.Any(app => string.Equals(app.Name, applicationName, StringComparison.Ordinal)) ?? false;
 

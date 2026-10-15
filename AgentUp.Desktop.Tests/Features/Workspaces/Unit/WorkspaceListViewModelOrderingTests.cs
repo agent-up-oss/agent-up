@@ -24,10 +24,42 @@ public class WorkspaceListViewModelOrderingTests
         Assert.That(sidebar.Workspaces.Select(w => w.Id).ToList(), Is.EqualTo(["ws-2", "ws-1"]));
     }
 
+    [Test]
+    public async Task LoadAsync_keepsOwnWorkspacesAboveDerivedReviewWorkspaces()
+    {
+        var api = new FakeWorkspaceApiProvider
+        {
+            Workspaces =
+            [
+                DesktopDomain.Workspace()
+                    .WithId("review")
+                    .Named("Review · topic")
+                    .OnBranch("topic")
+                    .Stopped()
+                    .AsDerived("https://example.test/acme/widgets.git", "topic")
+                    .Build(),
+                DesktopDomain.Workspace()
+                    .WithId("own")
+                    .Named("widgets")
+                    .Stopped()
+                    .Build()
+            ]
+        };
+        var sidebar = new WorkspaceListViewModel(new WorkspacesController(new WorkspaceListService(api)));
+
+        await sidebar.LoadAsync();
+
+        Assert.That(sidebar.Workspaces.Select(w => w.Id).ToList(), Is.EqualTo(["own", "review"]));
+        Assert.That(sidebar.Workspaces[1].Derived, Is.True);
+        Assert.That(sidebar.Workspaces[1].Subtitle, Is.EqualTo("topic"));
+    }
+
     private sealed class FakeWorkspaceApiProvider : IWorkspaceApiProvider
     {
+        public List<WorkspaceDto> Workspaces { get; init; } = [];
+
         public Task<List<WorkspaceDto>> ListAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult<List<WorkspaceDto>>([]);
+            Task.FromResult(Workspaces);
 
         public Task<WorkspaceDto?> GetByIdAsync(string workspaceId, CancellationToken cancellationToken = default) =>
             Task.FromResult<WorkspaceDto?>(null);
@@ -42,6 +74,9 @@ public class WorkspaceListViewModelOrderingTests
                 
                 .Stopped()
                 .Build());
+
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(DesktopDomain.Workspace().WithId(workspaceId).Stopped().Build());
 
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;

@@ -115,7 +115,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
             () => deleteConfirmation!.Hide());
         DeleteConfirmation = deleteConfirmation;
         AddWorkspace = new WorkspaceCloneViewModel(
-            (repository, branch) => CloneWorkspaceAsync(repository, branch));
+            (repository, revision, derived) => CloneWorkspaceAsync(repository, revision, derived));
         RefreshCommand = ReactiveCommand.CreateFromTask(LoadAsync);
         ToggleCommand = ReactiveCommand.Create(() => { IsCollapsed = !IsCollapsed; });
         ShowAddWorkspaceCommand = ReactiveCommand.Create(
@@ -125,11 +125,15 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
 
     // Clones a repository into the Server-owned source clones root and selects the workspace the
     // Server registers for it. Returns false so the dialog stays open with the failure message.
-    public async Task<bool> CloneWorkspaceAsync(string repository, string branch, CancellationToken ct = default)
+    public async Task<bool> CloneWorkspaceAsync(
+        string repository,
+        string revision,
+        bool derived = false,
+        CancellationToken ct = default)
     {
         try
         {
-            var workspace = await _workspaces.CloneAsync(repository, branch, ct);
+            var workspace = await _workspaces.CloneAsync(repository, revision, derived, ct);
             ErrorMessage = null;
             await LoadAsync(ct);
             SelectWorkspace(workspace.Id);
@@ -158,6 +162,9 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
 
     Task IWorkspaceItemHost.StopWorkspaceAsync(string workspaceId)
         => StopWorkspaceAsync(workspaceId);
+
+    Task IWorkspaceItemHost.RefreshDerivedWorkspaceAsync(string workspaceId)
+        => RefreshDerivedWorkspaceAsync(workspaceId);
 
     void IWorkspaceItemHost.RequestDeleteWorkspace(string workspaceId, string displayName)
         => DeleteConfirmation.Show(workspaceId, displayName);
@@ -217,6 +224,24 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         }
     }
 
+    public async Task RefreshDerivedWorkspaceAsync(string workspaceId, CancellationToken ct = default)
+    {
+        try
+        {
+            var workspace = await _workspaces.RefreshCloneAsync(workspaceId, ct);
+            ErrorMessage = null;
+            await RefreshWorkspaceAsync(workspace.Id, ct);
+        }
+        catch (TaskCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
+        {
+            ErrorMessage = $"Could not refresh review workspace: {ex.Message}";
+        }
+    }
+
     private WorkspaceItemViewModel CreateWorkspaceItem(WorkspaceDto dto)
     {
         var item = new WorkspaceItemViewModel(
@@ -226,7 +251,9 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
             dto.RepositoryPath,
             dto.WorktreePath,
             dto.State,
-            dto.Applications);
+            dto.Applications,
+            dto.Derived,
+            dto.SourceRevision);
         item.SetHost(this);
         return item;
     }
@@ -380,7 +407,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
     {
         var itemsById = Workspaces.ToDictionary(w => w.Id);
         var orderedItems = orderedDtos
-            .OrderByDescending(dto => WorkspaceListOrdering.ActivePriority(dto.State))
+            .OrderByDescending(dto => WorkspaceListOrdering.OwnWorkspacePriority(dto.Derived))
+            .ThenByDescending(dto => WorkspaceListOrdering.ActivePriority(dto.State))
             .ThenByDescending(dto => dto.LastActivityAtUtc)
             .ThenBy(dto => dto.DisplayName, StringComparer.OrdinalIgnoreCase)
             .Select(dto => itemsById.GetValueOrDefault(dto.Id))
@@ -402,13 +430,17 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
             return;
 
         var items = Workspaces.ToList();
-        var active = items.Where(w => WorkspaceListOrdering.IsActive(w.State)).ToList();
-        var inactive = items.Where(w => !WorkspaceListOrdering.IsActive(w.State)).ToList();
+        var ownActive = items.Where(w => !w.Derived && WorkspaceListOrdering.IsActive(w.State)).ToList();
+        var derivedActive = items.Where(w => w.Derived && WorkspaceListOrdering.IsActive(w.State)).ToList();
+        var ownInactive = items.Where(w => !w.Derived && !WorkspaceListOrdering.IsActive(w.State)).ToList();
+        var derivedInactive = items.Where(w => w.Derived && !WorkspaceListOrdering.IsActive(w.State)).ToList();
 
-        PromoteWithinTier(active, preferWithinTierId);
-        PromoteWithinTier(inactive, preferWithinTierId);
+        PromoteWithinTier(ownActive, preferWithinTierId);
+        PromoteWithinTier(derivedActive, preferWithinTierId);
+        PromoteWithinTier(ownInactive, preferWithinTierId);
+        PromoteWithinTier(derivedInactive, preferWithinTierId);
 
-        var ordered = active.Concat(inactive).ToList();
+        var ordered = ownActive.Concat(derivedActive).Concat(ownInactive).Concat(derivedInactive).ToList();
         if (ordered.Select(w => w.Id).SequenceEqual(items.Select(w => w.Id)))
             return;
 

@@ -47,6 +47,52 @@ public class WorkspaceRegistryTests
     }
 
     [Test]
+    public async Task Register_copiesDerivedReviewFields()
+    {
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Review · topic")
+            .AsDerived("https://example.test/acme/widgets.git", "topic")
+            .Build());
+
+        Assert.That(workspace.Derived, Is.True);
+        Assert.That(workspace.SourceRepository, Is.EqualTo("https://example.test/acme/widgets.git"));
+        Assert.That(workspace.SourceRevision, Is.EqualTo("topic"));
+    }
+
+    [Test]
+    public async Task GetAll_listsOwnWorkspacesBeforeDerivedReviewWorkspaces()
+    {
+        await _registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Review · topic")
+            .WithWorktreePath("/clones/review")
+            .AsDerived("https://example.test/acme/widgets.git", "topic")
+            .Build());
+        await _registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("widgets")
+            .WithWorktreePath("/repos/widgets")
+            .Build());
+
+        var ids = _registry.GetAll().Select(workspace => workspace.DisplayName).ToList();
+
+        Assert.That(ids, Is.EqualTo(new[] { "widgets", "Review · topic" }));
+    }
+
+    [Test]
+    public async Task Remove_raisesWorkspaceDeletingBeforeTheWorkspaceDisappears()
+    {
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .AsDerived("https://example.test/acme/widgets.git", "topic")
+            .Build());
+        Workspace? deleting = null;
+        _registry.WorkspaceDeleting += current => deleting = current;
+
+        await _registry.RemoveAsync(workspace.Id);
+
+        Assert.That(deleting!.Id, Is.EqualTo(workspace.Id));
+        Assert.That(_registry.GetById(workspace.Id), Is.Null);
+    }
+
+    [Test]
     public async Task Register_AssignsNonEmptyId()
     {
         var workspace = await _registry.RegisterAsync(ServerDomain.Workspace().Build());

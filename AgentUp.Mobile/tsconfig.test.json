@@ -6,16 +6,7 @@
     ]
   },
   "include": [
-    "src/features/servers/**/*.ts",
-    "src/features/authentication/**/*.ts",
-    "src/features/workspaces/**/*.ts",
-    "src/features/git/**/*.ts",
-    "src/features/applications/**/*.ts",
-    "src/features/telemetry/**/*.ts",
-    "src/features/entitlements/**/*.ts",
-    "src/features/agents/benchmark/MobilePerformanceGate.ts",
-    "src/features/shell/**/*.ts",
-    "src/features/fake-server/**/*.ts",
+    "src/features/**/*.ts",
     "../AgentUp.FakeServer/definition.json"
   ],
   "exclude": []

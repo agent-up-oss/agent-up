@@ -89,17 +89,163 @@ public sealed class SourceCloneServiceTests
         Assert.That(service.GetRoot().Path, Is.EqualTo("/clones"));
     }
 
+    [Test]
+    public async Task CloneAsync_labelsADerivedWorkspaceAsAReviewCopy()
+    {
+        var git = new FakeSourceCloneGitProvider();
+        var targets = new FakeSourceCloneTargetProvider();
+        var service = CreateService(targets: targets, git: git);
+
+        var result = await service.CloneAsync(new CloneSourceRequest(
+            "https://example.test/acme/widgets.git",
+            "feature/login")
+        {
+            Derived = true
+        });
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(targets.LastRequest!.Derived, Is.True);
+        Assert.That(result.Workspace!.DisplayName, Is.EqualTo("Review · feature/login"));
+        Assert.That(result.Workspace.Derived, Is.True);
+        Assert.That(result.Workspace.SourceRevision, Is.EqualTo("feature/login"));
+        Assert.That(git.Cloned!.Derived, Is.True);
+    }
+
+    [Test]
+    public async Task CloneAsync_displaysTheRequestedRevisionWhenGitReportsDetachedHead()
+    {
+        var identity = new FakeWorkspaceIdentityProvider(new WorkspaceIdentity(Destination, "HEAD", "deadbeef"));
+        var service = CreateService(identity: identity);
+
+        var result = await service.CloneAsync(new CloneSourceRequest(
+            "https://example.test/acme/widgets.git",
+            "abc1234")
+        {
+            Derived = true
+        });
+
+        Assert.That(result.Succeeded, Is.True);
+        Assert.That(result.Workspace!.Branch, Is.EqualTo("abc1234"));
+    }
+
+    [Test]
+    public async Task RefreshAsync_fetchesTheNamedRevisionForADerivedWorkspace()
+    {
+        var git = new FakeSourceCloneGitProvider();
+        var service = CreateService(git: git);
+        var cloned = await service.CloneAsync(new CloneSourceRequest(
+            "https://example.test/acme/widgets.git",
+            "topic")
+        {
+            Derived = true
+        });
+
+        var refreshed = await service.RefreshAsync(cloned.Workspace!.Id);
+
+        Assert.That(refreshed.Succeeded, Is.True);
+        Assert.That(git.Refreshed, Is.EqualTo((Destination, "topic")));
+    }
+
+    [Test]
+    public async Task RefreshAsync_refusesAWorkspaceThatIsNotDerived()
+    {
+        var git = new FakeSourceCloneGitProvider();
+        var service = CreateService(git: git);
+        var cloned = await service.CloneAsync(new CloneSourceRequest("https://example.test/acme/widgets.git", "main"));
+
+        var refreshed = await service.RefreshAsync(cloned.Workspace!.Id);
+
+        Assert.That(refreshed.Succeeded, Is.False);
+        Assert.That(refreshed.Error, Does.Contain("derived"));
+        Assert.That(git.Refreshed, Is.Null);
+    }
+
+    [Test]
+    public async Task RefreshAsync_refusesADerivedWorkspaceOutsideTheSourceClonesRoot()
+    {
+        var git = new FakeSourceCloneGitProvider();
+        var service = CreateService(git: git, root: new FakeSourceCloneRootProvider("/clones") { UnderRoot = false });
+        var cloned = await service.CloneAsync(new CloneSourceRequest(
+            "https://example.test/acme/widgets.git",
+            "topic")
+        {
+            Derived = true
+        });
+
+        var refreshed = await service.RefreshAsync(cloned.Workspace!.Id);
+
+        Assert.That(refreshed.Succeeded, Is.False);
+        Assert.That(refreshed.Error, Does.Contain("managed source clone"));
+        Assert.That(git.Refreshed, Is.Null);
+    }
+
+    [Test]
+    public async Task RefreshAsync_reportsGitFailuresAsStructuredErrors()
+    {
+        var git = new FakeSourceCloneGitProvider { RefreshError = "couldn't find remote ref" };
+        var service = CreateService(git: git);
+        var cloned = await service.CloneAsync(new CloneSourceRequest(
+            "https://example.test/acme/widgets.git",
+            "topic")
+        {
+            Derived = true
+        });
+
+        var refreshed = await service.RefreshAsync(cloned.Workspace!.Id);
+
+        Assert.That(refreshed.Succeeded, Is.False);
+        Assert.That(refreshed.Error, Is.EqualTo("couldn't find remote ref"));
+        Assert.That(git.Refreshed, Is.EqualTo((Destination, "topic")));
+    }
+
+    [Test]
+    public async Task RemovingADerivedWorkspaceDeletesTheManagedCloneDirectory()
+    {
+        var root = new FakeSourceCloneRootProvider("/clones");
+        var registry = ServerTestComposition.CreateRegistry();
+        var service = CreateService(root: root, registry: registry);
+        var cloned = await service.CloneAsync(new CloneSourceRequest(
+            "https://example.test/acme/widgets.git",
+            "topic")
+        {
+            Derived = true
+        });
+
+        await registry.RemoveAsync(cloned.Workspace!.Id);
+
+        Assert.That(root.DeletedPaths, Is.EqualTo(new[] { Destination }));
+    }
+
+    [Test]
+    public async Task RemovingANonDerivedWorkspaceLeavesTheWorkingTree()
+    {
+        var root = new FakeSourceCloneRootProvider("/clones");
+        var registry = ServerTestComposition.CreateRegistry();
+        var service = CreateService(root: root, registry: registry);
+        var cloned = await service.CloneAsync(new CloneSourceRequest("https://example.test/acme/widgets.git", "main"));
+
+        await registry.RemoveAsync(cloned.Workspace!.Id);
+
+        Assert.That(root.DeletedPaths, Is.Empty);
+    }
+
     private static SourceCloneService CreateService(
         FakeSourceCloneTargetProvider? targets = null,
         FakeSourceCloneGitProvider? git = null,
-        AgentUpConfiguration? configuration = null)
-        => new(
+        AgentUpConfiguration? configuration = null,
+        FakeWorkspaceIdentityProvider? identity = null,
+        FakeSourceCloneRootProvider? root = null,
+        AgentUp.Server.Features.Workspaces.Services.WorkspaceRegistry? registry = null)
+    {
+        identity ??= new FakeWorkspaceIdentityProvider(new WorkspaceIdentity(Destination, "main", "abc123"));
+        return new(
             targets ?? new FakeSourceCloneTargetProvider(),
             git ?? new FakeSourceCloneGitProvider(),
-            new FakeSourceCloneRootProvider("/clones"),
-            new FakeWorkspaceIdentityProvider(new WorkspaceIdentity(Destination, "main", "abc123")),
+            root ?? new FakeSourceCloneRootProvider("/clones"),
+            identity,
             new OrchestrationRegistrationController(new OrchestrationRegistrationService(
                 new FakeAgentUpConfigurationProvider(configuration),
-                new FakeWorkspaceIdentityProvider(new WorkspaceIdentity(Destination, "main", "abc123")))),
-            new WorkspaceQueryController(ServerTestComposition.CreateRegistry()));
+                identity)),
+            new WorkspaceQueryController(registry ?? ServerTestComposition.CreateRegistry()));
+    }
 }

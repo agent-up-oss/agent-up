@@ -126,8 +126,14 @@ jobs:
         working-directory: AgentUp.Mobile
         run: |
           npx tsc --noEmit -p tsconfig.test.json
-          npx tsx --test src/features/**/providers/*.test.ts
+          npx tsx --test src/features/**/*.test.ts
           node --test scripts/*.test.mjs
+
+      - name: WebAudit unit tests
+        working-directory: AgentUp.WebAudit
+        run: |
+          npm ci
+          npm test
 
       - name: Export web application
         working-directory: AgentUp.Mobile

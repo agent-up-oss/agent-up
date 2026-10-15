@@ -96,7 +96,7 @@ Used at the root so `agent-up verify` and `/mcp/verification` can select checks 
 
 | Property | Type | Required | Default | Description |
 |---|---:|---:|---:|---|
-| `enforcement` | `warn` or `block` | No | `warn` | Whether `guard` fails a run when receipts are missing. |
+| `enforcement` | `warn` or `block` | No | `warn` | Whether `guard` fails a run when receipts are missing. This repository uses `block`. Skipped `ciOnly` or wrong-platform checks do not fail the guard. |
 | `always` | array of check ids | No | `[]` | Checks required for any change, in run order. |
 | `checks` | object of [Verification Check](#verification-check-object) | No | `{}` | Named commands keyed by check id. |
 | `paths` | array of [Verification Path](#verification-path-object) | No | `[]` | Globs evaluated in order; every match contributes its check ids. |

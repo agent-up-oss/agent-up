@@ -15,4 +15,7 @@ public record RegisterWorkspaceRequest(
     public IReadOnlyList<DotnetApplicationDefinition> Dotnet { get; init; } = [];
     public IReadOnlyList<DockerCapabilityDefinition> Docker { get; init; } = [];
     public IReadOnlyList<RuntimeSectionDefinition> RuntimeSections { get; init; } = [];
+    public bool Derived { get; init; }
+    public string? SourceRepository { get; init; }
+    public string? SourceRevision { get; init; }
 }

@@ -19,6 +19,10 @@ public sealed class OperationPermissionMapTests
         => Assert.That(OperationPermissionMap.For("Workspaces", "Register"), Is.EqualTo(OperationPermissions.WorkspaceCreate));
 
     [Test]
+    public void For_RequiresWorkspaceCreateToRefreshADerivedClone()
+        => Assert.That(OperationPermissionMap.For("SourceClones", "Refresh"), Is.EqualTo(OperationPermissions.WorkspaceCreate));
+
+    [Test]
     public void EntitlementsStayAuthenticatedWithoutAPermission()
     {
         Assert.Multiple(() =>

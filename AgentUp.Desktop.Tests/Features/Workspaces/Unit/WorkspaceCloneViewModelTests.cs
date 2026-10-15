@@ -9,7 +9,7 @@ public sealed class WorkspaceCloneViewModelTests
     [Test]
     public async Task ConfirmCommand_isDisabledUntilARepositoryAndBranchAreEntered()
     {
-        var viewModel = new WorkspaceCloneViewModel((_, _) => Task.FromResult(true));
+        var viewModel = new WorkspaceCloneViewModel((_, _, _) => Task.FromResult(true));
         viewModel.Show();
         viewModel.Repository = string.Empty;
 
@@ -27,7 +27,7 @@ public sealed class WorkspaceCloneViewModelTests
     [Test]
     public void Show_resetsTheFormToItsDefaults()
     {
-        var viewModel = new WorkspaceCloneViewModel((_, _) => Task.FromResult(true));
+        var viewModel = new WorkspaceCloneViewModel((_, _, _) => Task.FromResult(true));
         viewModel.Repository = "https://example.test/acme/old.git";
         viewModel.Branch = "release";
         viewModel.ErrorMessage = "boom";
@@ -43,10 +43,10 @@ public sealed class WorkspaceCloneViewModelTests
     [Test]
     public async Task ConfirmCommand_trimsInputAndClosesTheDialogOnSuccess()
     {
-        (string Repository, string Branch)? requested = null;
-        var viewModel = new WorkspaceCloneViewModel((repository, branch) =>
+        (string Repository, string Branch, bool Derived)? requested = null;
+        var viewModel = new WorkspaceCloneViewModel((repository, branch, derived) =>
         {
-            requested = (repository, branch);
+            requested = (repository, branch, derived);
             return Task.FromResult(true);
         });
         viewModel.Show();
@@ -55,14 +55,14 @@ public sealed class WorkspaceCloneViewModelTests
 
         await viewModel.ConfirmCommand.Execute().FirstAsync();
 
-        Assert.That(requested, Is.EqualTo(("https://example.test/acme/widgets.git", "feature/login")));
+        Assert.That(requested, Is.EqualTo(("https://example.test/acme/widgets.git", "feature/login", false)));
         Assert.That(viewModel.IsVisible, Is.False);
     }
 
     [Test]
     public async Task ConfirmCommand_keepsTheDialogOpenWhenTheCloneFails()
     {
-        var viewModel = new WorkspaceCloneViewModel((_, _) => Task.FromResult(false));
+        var viewModel = new WorkspaceCloneViewModel((_, _, _) => Task.FromResult(false));
         viewModel.Show();
         viewModel.Repository = "https://example.test/acme/widgets.git";
 
@@ -76,7 +76,7 @@ public sealed class WorkspaceCloneViewModelTests
     [Test]
     public async Task CancelCommand_hidesAndClearsTheDialog()
     {
-        var viewModel = new WorkspaceCloneViewModel((_, _) => Task.FromResult(true));
+        var viewModel = new WorkspaceCloneViewModel((_, _, _) => Task.FromResult(true));
         viewModel.Show();
         viewModel.Repository = "https://example.test/acme/widgets.git";
 
@@ -84,5 +84,25 @@ public sealed class WorkspaceCloneViewModelTests
 
         Assert.That(viewModel.IsVisible, Is.False);
         Assert.That(viewModel.Repository, Is.Empty);
+    }
+
+    [Test]
+    public async Task ConfirmCommand_passesTheDerivedFlagForAReviewWorkspace()
+    {
+        (string Repository, string Branch, bool Derived)? requested = null;
+        var viewModel = new WorkspaceCloneViewModel((repository, branch, derived) =>
+        {
+            requested = (repository, branch, derived);
+            return Task.FromResult(true);
+        });
+        viewModel.Show();
+        viewModel.Repository = "https://example.test/acme/widgets.git";
+        viewModel.Branch = "abc1234";
+        viewModel.Derived = true;
+
+        Assert.That(viewModel.RevisionLabel, Is.EqualTo("Revision"));
+        await viewModel.ConfirmCommand.Execute().FirstAsync();
+
+        Assert.That(requested, Is.EqualTo(("https://example.test/acme/widgets.git", "abc1234", true)));
     }
 }

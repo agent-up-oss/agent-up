@@ -28,6 +28,19 @@ public sealed class WorkspaceCloneApiClientTests
     }
 
     [Test]
+    public async Task RefreshCloneAsync_postsToTheSourceCloneRefreshRoute()
+    {
+        using var handler = new RecordingCloneHandler(HttpStatusCode.OK, CreatedWorkspace);
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new WorkspaceApiClient(http);
+
+        var workspace = await client.RefreshCloneAsync("ws-1");
+
+        Assert.That(workspace.Id, Is.EqualTo("ws-1"));
+        Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/source-clones/ws-1/refresh"));
+    }
+
+    [Test]
     public async Task CloneAsync_surfacesTheServerProblemDetail()
     {
         using var handler = new RecordingCloneHandler(

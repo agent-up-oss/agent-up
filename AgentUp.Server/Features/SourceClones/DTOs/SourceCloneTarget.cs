@@ -4,4 +4,7 @@ public sealed record SourceCloneTarget(
     string Repository,
     string Branch,
     string DirectoryName,
-    string DestinationPath);
+    string DestinationPath)
+{
+    public bool Derived { get; init; }
+}
