@@ -33,6 +33,7 @@ function fakeRefresher(active: { url: string | null }, refreshed: (string | null
 function api(overrides: Partial<WorkspaceActionsApi> = {}): WorkspaceActionsApi {
   return {
     clone: async () => workspace('cloned'),
+    refreshClone: async () => workspace('refreshed'),
     start: async () => {},
     stop: async () => {},
     ...overrides,
@@ -105,6 +106,20 @@ test('start and stop refresh only while their server is still active', async () 
   await actions.start(at('http://a'), 'ws-1');
   await actions.stop(at('http://a'), 'ws-1');
   assert.deepEqual(refreshed, ['http://a', 'http://a'], 'no further refresh for the server left behind');
+});
+
+test('refreshClone refreshes the list while its server is still active', async () => {
+  const active = { url: 'http://a' as string | null };
+  const refreshed: (string | null)[] = [];
+  const actions = createWorkspaceActions(fakeRefresher(active, refreshed), api(), { onSelect: () => {} });
+
+  const updated = await actions.refreshClone(at('http://a'), 'ws-1');
+  assert.equal(updated.id, 'refreshed');
+  assert.deepEqual(refreshed, ['http://a']);
+
+  active.url = 'http://b';
+  await actions.refreshClone(at('http://a'), 'ws-1');
+  assert.deepEqual(refreshed, ['http://a']);
 });
 
 test('start and stop without a server do nothing', async () => {

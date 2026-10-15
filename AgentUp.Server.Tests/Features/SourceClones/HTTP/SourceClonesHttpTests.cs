@@ -117,4 +117,46 @@ public sealed class SourceClonesHttpTests
         var workspaces = await client.GetFromJsonAsync<List<Workspace>>("/api/workspaces");
         Assert.That(workspaces, Is.Empty);
     }
+
+    [Test]
+    public async Task Post_rejectsADerivedCloneWithoutARevision()
+    {
+        using var client = _factory.CreateClient();
+
+        using var response = await client.PostAsJsonAsync(
+            "/api/source-clones",
+            new CloneSourceRequest("https://example.test/acme/widgets.git", null) { Derived = true });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("Revision is required"));
+    }
+
+    [Test]
+    public async Task Post_rejectsALocalFileRemoteForADerivedWorkspace()
+    {
+        var origin = Path.Join(_dataDirectory, "origin", "widgets");
+        await TestGitRepository.InitializeAsync(origin);
+        await File.WriteAllTextAsync(Path.Join(origin, "README.md"), "widgets\n");
+        await TestGitRepository.CommitAllAsync(origin, "initial");
+        using var client = _factory.CreateClient();
+
+        using var response = await client.PostAsJsonAsync(
+            "/api/source-clones",
+            new CloneSourceRequest($"file://{origin}", "main") { Derived = true });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("Repository"));
+        Assert.That(await client.GetFromJsonAsync<List<Workspace>>("/api/workspaces"), Is.Empty);
+    }
+
+    [Test]
+    public async Task PostRefresh_returnsBadRequestForAnUnknownWorkspace()
+    {
+        using var client = _factory.CreateClient();
+
+        using var response = await client.PostAsync("/api/source-clones/missing/refresh", null);
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("not found"));
+    }
 }

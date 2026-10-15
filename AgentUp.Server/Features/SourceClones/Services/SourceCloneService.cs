@@ -4,10 +4,11 @@ using AgentUp.Server.Features.SourceClones.DTOs;
 using AgentUp.Server.Features.SourceClones.Interfaces;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using Microsoft.Extensions.Hosting;
 
 namespace AgentUp.Server.Features.SourceClones.Services;
 
-public sealed class SourceCloneService
+public sealed class SourceCloneService : IHostedService
 {
     private readonly ISourceCloneTargetProvider _targets;
     private readonly ISourceCloneGitProvider _git;
@@ -30,6 +31,15 @@ public sealed class SourceCloneService
         _identity = identity;
         _registration = registration;
         _workspaces = workspaces;
+        _workspaces.WorkspaceDeleting += OnWorkspaceDeleting;
+    }
+
+    public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        _workspaces.WorkspaceDeleting -= OnWorkspaceDeleting;
+        return Task.CompletedTask;
     }
 
     public SourceCloneRoot GetRoot() => new(_root.GetRoot());
@@ -65,20 +75,77 @@ public sealed class SourceCloneService
         return SourceCloneResult.Success(workspace);
     }
 
+    public async Task<SourceCloneResult> RefreshAsync(
+        string workspaceId,
+        CancellationToken cancellationToken = default)
+    {
+        var workspace = _workspaces.GetById(workspaceId);
+        if (workspace is null)
+            return SourceCloneResult.Failed("Workspace was not found.");
+        if (!workspace.Derived)
+            return SourceCloneResult.Failed("Only derived review workspaces can be refreshed in place.");
+        if (!_root.IsUnderRoot(workspace.WorktreePath))
+            return SourceCloneResult.Failed("The workspace is not a managed source clone.");
+
+        var revision = workspace.SourceRevision ?? workspace.Branch;
+        try
+        {
+            await _git.RefreshAsync(workspace.WorktreePath, revision, cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return SourceCloneResult.Failed(ex.Message);
+        }
+
+        var identity = await _identity.ReadAsync(workspace.WorktreePath, cancellationToken);
+        var branch = DisplayBranch(identity.Branch, revision);
+        await _workspaces.UpdateGitIdentityAsync(workspace.Id, branch, identity.Commit);
+        return SourceCloneResult.Success(_workspaces.GetById(workspace.Id) ?? workspace);
+    }
+
     private async Task<RegisterWorkspaceRequest> BuildRegistrationAsync(
         SourceCloneTarget target,
         CancellationToken cancellationToken)
     {
         var declared = await _registration.BuildAsync(target.DestinationPath, cancellationToken);
-        if (declared is not null)
-            return declared;
-
         var identity = await _identity.ReadAsync(target.DestinationPath, cancellationToken);
+        var branch = DisplayBranch(identity.Branch, target.Branch);
+        var displayName = target.Derived
+            ? $"Review · {target.Branch}"
+            : declared?.DisplayName ?? target.DirectoryName;
+
+        if (declared is not null && !target.Derived)
+            return declared with { Branch = branch, Commit = identity.Commit };
+
         return new RegisterWorkspaceRequest(
-            DisplayName: target.DirectoryName,
+            DisplayName: displayName,
             RepositoryPath: identity.RepositoryPath,
             WorktreePath: target.DestinationPath,
-            Branch: identity.Branch,
-            Commit: identity.Commit);
+            Branch: branch,
+            Commit: identity.Commit)
+        {
+            Applications = declared?.Applications ?? [],
+            DesktopApplications = declared?.DesktopApplications ?? [],
+            Services = declared?.Services ?? [],
+            Dotnet = declared?.Dotnet ?? [],
+            Docker = declared?.Docker ?? [],
+            RuntimeSections = declared?.RuntimeSections ?? [],
+            Derived = target.Derived,
+            SourceRepository = target.Derived ? target.Repository : null,
+            SourceRevision = target.Derived ? target.Branch : null
+        };
     }
+
+    private void OnWorkspaceDeleting(Workspace workspace)
+    {
+        if (!workspace.Derived)
+            return;
+
+        _root.DeleteIfUnderRoot(workspace.WorktreePath);
+    }
+
+    private static string DisplayBranch(string identityBranch, string requestedRevision)
+        => string.Equals(identityBranch, "HEAD", StringComparison.Ordinal)
+            ? requestedRevision
+            : identityBranch;
 }

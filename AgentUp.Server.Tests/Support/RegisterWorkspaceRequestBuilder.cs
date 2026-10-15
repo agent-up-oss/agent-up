@@ -19,6 +19,9 @@ internal sealed class RegisterWorkspaceRequestBuilder
     private string _worktreePath = ServerDomain.WorktreePath;
     private string _branch = ServerDomain.Branch;
     private string _commit = ServerDomain.Commit;
+    private bool _derived;
+    private string? _sourceRepository;
+    private string? _sourceRevision;
     private readonly List<ApplicationDefinition> _applications = [];
     private readonly List<DesktopApplicationDefinition> _desktopApplications = [];
     private readonly List<DockerServiceDefinition> _services = [];
@@ -60,6 +63,14 @@ internal sealed class RegisterWorkspaceRequestBuilder
     public RegisterWorkspaceRequestBuilder AtCommit(string commit)
     {
         _commit = commit;
+        return this;
+    }
+
+    public RegisterWorkspaceRequestBuilder AsDerived(string sourceRepository, string sourceRevision)
+    {
+        _derived = true;
+        _sourceRepository = sourceRepository;
+        _sourceRevision = sourceRevision;
         return this;
     }
 
@@ -112,6 +123,9 @@ internal sealed class RegisterWorkspaceRequestBuilder
             DesktopApplications = _desktopApplications,
             Services = _services,
             Dotnet = _dotnet,
-            Docker = _docker
+            Docker = _docker,
+            Derived = _derived,
+            SourceRepository = _sourceRepository,
+            SourceRevision = _sourceRevision
         };
 }

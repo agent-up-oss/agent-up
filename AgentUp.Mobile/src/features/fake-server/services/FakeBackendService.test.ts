@@ -208,6 +208,28 @@ test('git discard branch and checkout mutate the demo tree', () => {
   assert.equal(remote.head.branch, 'release');
 });
 
+test('a derived clone is labelled as a review workspace and can be refreshed in place', () => {
+  const service = backend();
+  const cloned = json(service, 'POST', '/api/source-clones', JSON.stringify({
+    repository: 'https://git.example/widgets.git',
+    branch: 'topic',
+    revision: 'topic',
+    derived: true,
+  }));
+  assert.equal(cloned.displayName, 'Review · topic');
+  assert.equal(cloned.derived, true);
+  assert.equal(cloned.sourceRevision, 'topic');
+  const refreshed = json(service, 'POST', `/api/source-clones/${cloned.id}/refresh`);
+  assert.equal(refreshed.commit, 'refreshed');
+  const refused = service.handle({
+    method: 'POST',
+    path: '/api/source-clones/harbor-shop/refresh',
+    query: '',
+    body: null,
+  });
+  assert.equal(refused.status, 400);
+});
+
 test('git and agent routes on cloned workspaces return not found', () => {
   const service = backend();
   const cloned = json(service, 'POST', '/api/source-clones', '{}');

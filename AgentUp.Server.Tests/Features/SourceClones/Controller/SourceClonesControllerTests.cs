@@ -44,6 +44,27 @@ public sealed class SourceClonesControllerTests
         Assert.That(cloned.Branch, Is.EqualTo("main"));
     }
 
+    [Test]
+    public async Task Refresh_returnsTheUpdatedWorkspace()
+    {
+        var git = new FakeSourceCloneGitProvider();
+        var controller = CreateController(git);
+        var created = await controller.Clone(new CloneSourceRequest(
+            "https://example.test/acme/widgets.git",
+            "topic")
+        {
+            Derived = true
+        }) as CreatedResult;
+        var workspace = created!.Value as Workspace;
+
+        var result = await controller.Refresh(workspace!.Id);
+
+        var ok = result as OkObjectResult
+            ?? throw new AssertionException($"Expected a 200 OK result, got {result.GetType().Name}.");
+        Assert.That(git.Refreshed!.Value.Revision, Is.EqualTo("topic"));
+        Assert.That(ok.Value, Is.InstanceOf<Workspace>());
+    }
+
     private static SourceClonesController CreateController(FakeSourceCloneGitProvider git)
     {
         var identity = new FakeWorkspaceIdentityProvider(new WorkspaceIdentity("/clones/widgets", "main", "abc123"));

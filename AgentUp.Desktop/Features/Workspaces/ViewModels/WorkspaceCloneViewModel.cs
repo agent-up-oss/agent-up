@@ -5,14 +5,15 @@ namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
 
 public sealed class WorkspaceCloneViewModel : ReactiveObject
 {
-    private readonly Func<string, string, Task<bool>> _onConfirm;
+    private readonly Func<string, string, bool, Task<bool>> _onConfirm;
     private bool _isVisible;
     private bool _isBusy;
+    private bool _derived;
     private string _repository = string.Empty;
     private string _branch = "main";
     private string? _errorMessage;
 
-    public WorkspaceCloneViewModel(Func<string, string, Task<bool>> onConfirm)
+    public WorkspaceCloneViewModel(Func<string, string, bool, Task<bool>> onConfirm)
     {
         _onConfirm = onConfirm;
 
@@ -43,7 +44,20 @@ public sealed class WorkspaceCloneViewModel : ReactiveObject
         }
     }
 
-    public string ConfirmLabel => _isBusy ? "Cloning…" : "Clone";
+    public string ConfirmLabel => _isBusy ? "Cloning…" : Derived ? "Start review" : "Clone";
+
+    public string RevisionLabel => Derived ? "Revision" : "Branch";
+
+    public bool Derived
+    {
+        get => _derived;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _derived, value);
+            this.RaisePropertyChanged(nameof(ConfirmLabel));
+            this.RaisePropertyChanged(nameof(RevisionLabel));
+        }
+    }
 
     public string Repository
     {
@@ -70,6 +84,7 @@ public sealed class WorkspaceCloneViewModel : ReactiveObject
     {
         Repository = string.Empty;
         Branch = "main";
+        Derived = false;
         ErrorMessage = null;
         IsBusy = false;
         IsVisible = true;
@@ -81,6 +96,7 @@ public sealed class WorkspaceCloneViewModel : ReactiveObject
         IsBusy = false;
         Repository = string.Empty;
         Branch = "main";
+        Derived = false;
         ErrorMessage = null;
     }
 
@@ -90,7 +106,7 @@ public sealed class WorkspaceCloneViewModel : ReactiveObject
         ErrorMessage = null;
         try
         {
-            if (await _onConfirm(Repository.Trim(), Branch.Trim()))
+            if (await _onConfirm(Repository.Trim(), Branch.Trim(), Derived))
                 Hide();
         }
         finally

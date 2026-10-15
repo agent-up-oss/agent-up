@@ -97,6 +97,43 @@ public sealed class SourceCloneTargetProviderTests
     }
 
     [Test]
+    public void Resolve_namesADerivedDirectoryFromTheRepositoryAndRevision()
+    {
+        var provider = CreateProvider();
+
+        var target = provider.Resolve(new CloneSourceRequest("https://example.test/acme/widgets.git", "feature/login")
+        {
+            Derived = true
+        });
+
+        Assert.That(target.Derived, Is.True);
+        Assert.That(target.DirectoryName, Is.EqualTo("widgets-review-feature-login"));
+        Assert.That(target.DestinationPath, Is.EqualTo(Path.Join(Path.GetFullPath(_root), "widgets-review-feature-login")));
+    }
+
+    [Test]
+    public void Resolve_requiresARevisionForADerivedWorkspace()
+    {
+        var provider = CreateProvider();
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => provider.Resolve(new CloneSourceRequest("https://example.test/acme/widgets.git", null) { Derived = true }));
+
+        Assert.That(exception!.Message, Is.EqualTo("Revision is required."));
+    }
+
+    [Test]
+    public void Resolve_rejectsAnInvalidDerivedRevision()
+    {
+        var provider = CreateProvider();
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => provider.Resolve(new CloneSourceRequest("https://example.test/acme/widgets.git", "--upload-pack") { Derived = true }));
+
+        Assert.That(exception!.Message, Does.Contain("Revision must be a valid Git branch, tag, or commit."));
+    }
+
+    [Test]
     public void DestinationExists_isFalseUntilTheDirectoryIsCreated()
     {
         var provider = CreateProvider();

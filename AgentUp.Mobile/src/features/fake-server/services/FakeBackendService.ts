@@ -49,6 +49,9 @@ type WorkspaceRecord = {
   commit: string;
   state: string;
   healthState?: string;
+  derived?: boolean;
+  sourceRepository?: string | null;
+  sourceRevision?: string | null;
   applications?: Array<{
     name: string;
     state: string;
@@ -139,6 +142,8 @@ export class FakeBackendService {
       return { status: 200, contentType: 'text/event-stream', body: this.workspaceSnapshotSse(), keepOpen: true };
     if (method === 'POST' && path === '/api/workspaces/tutorial/cleanup') return { status: 204, contentType: 'application/json' };
     if (method === 'POST' && path === '/api/source-clones') return this.cloneWorkspace(request.body);
+    if (method === 'POST' && path.startsWith('/api/source-clones/') && path.endsWith('/refresh'))
+      return this.refreshClone(path);
     if (method === 'POST' && path === '/api/apps/tickets') return this.issueTicket(request.body);
     if (method === 'POST' && path === '/api/audit/record') return { status: 204, contentType: 'application/json' };
     if (method === 'GET' && path === '/api/capabilities') return json(this.capabilities());
@@ -443,22 +448,44 @@ export class FakeBackendService {
 
   private cloneWorkspace(body: string | null): FakeBackendResponse {
     const repository = readJsonString(body, 'repository') ?? 'https://git.example/demo.git';
+    const derived = readJsonBoolean(body, 'derived');
+    const revision = readJsonString(body, 'revision') ?? readJsonString(body, 'branch') ?? 'main';
     let name = repository.split('/').filter(Boolean).at(-1) ?? 'cloned';
     name = name.replace(/\.git$/i, '');
     const workspace: WorkspaceRecord = {
       id: `cloned-${crypto.randomUUID().replaceAll('-', '').slice(0, 10)}`,
-      displayName: name,
+      displayName: derived ? `Review · ${revision}` : name,
       repositoryPath: `/demo/${name}`,
       worktreePath: `/demo/${name}`,
-      branch: readJsonString(body, 'branch') ?? 'main',
+      branch: revision,
       commit: 'cloned01',
       state: 'Stopped',
+      derived,
+      sourceRepository: derived ? repository : null,
+      sourceRevision: derived ? revision : null,
       applications: [],
     };
     this.state.workspaces.push(workspace);
     this.appTemplates.set(workspace.id, []);
     this.publishWorkspaces();
     return { status: 201, contentType: 'application/json', body: JSON.stringify(workspace) };
+  }
+
+  private refreshClone(path: string): FakeBackendResponse {
+    const marker = '/api/source-clones/';
+    let workspaceId = path.slice(marker.length);
+    if (workspaceId.endsWith('/refresh')) workspaceId = workspaceId.slice(0, -'/refresh'.length);
+    const workspace = this.findWorkspace(decodeURIComponent(workspaceId));
+    if (!workspace?.derived) {
+      return {
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'Only derived review workspaces can be refreshed in place.' }),
+      };
+    }
+    workspace.commit = 'refreshed';
+    this.publishWorkspaces();
+    return { status: 200, contentType: 'application/json', body: JSON.stringify(this.publicWorkspace(workspace)) };
   }
 
   private issueTicket(body: string | null): FakeBackendResponse {

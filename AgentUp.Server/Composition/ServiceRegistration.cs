@@ -460,6 +460,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<ISourceCloneTargetProvider, SourceCloneTargetProvider>();
         builder.Services.AddSingleton<ISourceCloneGitProvider, GitSourceCloneProvider>();
         builder.Services.AddSingleton<SourceCloneService>();
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<SourceCloneService>());
         builder.Services.AddSingleton<TrayHeartbeatMonitor>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<TrayHeartbeatMonitor>());
     }

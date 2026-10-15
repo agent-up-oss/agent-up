@@ -78,6 +78,18 @@ public class WorkspaceItemViewModelTests
     }
 
     [Test]
+    public void Subtitle_usesTheRequestedRevisionForADerivedWorkspace()
+    {
+        var vm = new WorkspaceItemViewModel(
+            "ws-1", "Review · topic", "HEAD", "/repo", "/worktree", "Stopped",
+            derived: true, sourceRevision: "topic");
+
+        Assert.That(vm.Derived, Is.True);
+        Assert.That(vm.Subtitle, Is.EqualTo("topic"));
+        Assert.That(vm.ShowRefreshButton, Is.True);
+    }
+
+    [Test]
     [TestCase("/home/dev/project-a", "project-a")]
     [TestCase("/home/dev/project-a/", "project-a")]
     [TestCase("C:\\repos\\project-b", "project-b")]

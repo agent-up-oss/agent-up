@@ -23,6 +23,21 @@ public sealed class WorkspacesControllerTests
     }
 
     [Test]
+    public async Task CloneAsync_marksAReviewWorkspaceDerived()
+    {
+        var provider = new RecordingWorkspaceProvider();
+        var controller = new WorkspacesController(new WorkspaceListService(provider));
+
+        await controller.CloneAsync("https://example.test/repo.git", "abc1234", derived: true);
+
+        Assert.That(provider.CloneRequest, Is.EqualTo(new CloneSourceRequestDto("https://example.test/repo.git", "abc1234")
+        {
+            Derived = true,
+            Revision = "abc1234"
+        }));
+    }
+
+    [Test]
     public async Task Lifecycle_actions_forward_the_workspace_identity()
     {
         var provider = new RecordingWorkspaceProvider();
@@ -54,6 +69,11 @@ public sealed class WorkspacesControllerTests
                 .AtCommit("abc")
                 .InState("stopped")
                 .Build());
+        }
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default)
+        {
+            Actions.Add($"refresh:{workspaceId}");
+            return Task.FromResult(DesktopDomain.Workspace().WithId(workspaceId).Build());
         }
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) { Actions.Add($"start:{workspaceId}"); return Task.CompletedTask; }
         public Task StopAsync(string workspaceId, CancellationToken cancellationToken = default) { Actions.Add($"stop:{workspaceId}"); return Task.CompletedTask; }

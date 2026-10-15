@@ -37,3 +37,19 @@ export async function cloneSourceRepository(
   if (!workspace) throw new Error('The server did not return the cloned workspace.');
   return workspace;
 }
+
+export async function refreshClone(
+  server: ServerSession,
+  workspaceId: string,
+  request: typeof fetch = fetch,
+): Promise<Workspace> {
+  const workspace = await requestServerJson<Workspace>(
+    server,
+    `/api/source-clones/${encodeURIComponent(workspaceId)}/refresh`,
+    { method: 'POST' },
+    CLONE_TIMEOUT_MS,
+    request,
+  );
+  if (!workspace) throw new Error('The server did not return the refreshed workspace.');
+  return workspace;
+}

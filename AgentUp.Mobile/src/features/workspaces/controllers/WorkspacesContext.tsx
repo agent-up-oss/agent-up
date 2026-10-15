@@ -5,7 +5,7 @@ import type { CloneSourceRequest, Workspace } from '../models/Workspace';
 import { applyWorkspaceEvent } from '../providers/WorkspaceEventApplyProvider';
 import { streamWorkspaceEvents } from '../providers/WorkspaceEventsApiProvider';
 import { createWorkspaceEventSubscription, type WorkspaceEventSubscription } from '../providers/WorkspaceEventsSubscriptionProvider';
-import { cloneSourceRepository, listWorkspaces, startWorkspace, stopWorkspace } from '../providers/WorkspacesApiProvider';
+import { cloneSourceRepository, listWorkspaces, refreshClone, startWorkspace, stopWorkspace } from '../providers/WorkspacesApiProvider';
 import { createWorkspaceActions, type WorkspaceActions } from '../providers/WorkspaceActionsProvider';
 import { createWorkspaceRefresh, type WorkspaceRefresher } from '../providers/WorkspaceRefreshProvider';
 
@@ -22,6 +22,7 @@ type WorkspacesController = {
   selectWorkspace(id: string): void;
   refresh(): Promise<void>;
   clone(request: CloneSourceRequest): Promise<Workspace>;
+  refreshClone(id: string): Promise<Workspace>;
   start(id: string): Promise<void>;
   stop(id: string): Promise<void>;
 };
@@ -84,7 +85,7 @@ export function WorkspacesProvider({ children }: PropsWithChildren) {
   const actionsRef = useRef<WorkspaceActions | null>(null);
   actionsRef.current ??= createWorkspaceActions(
     refresherRef.current,
-    { clone: cloneSourceRepository, start: startWorkspace, stop: stopWorkspace },
+    { clone: cloneSourceRepository, refreshClone, start: startWorkspace, stop: stopWorkspace },
     { onSelect: setSelectedId },
   );
 
@@ -137,6 +138,7 @@ export function WorkspacesProvider({ children }: PropsWithChildren) {
     selectWorkspace: id => setSelectedId(id),
     refresh,
     clone: request => actionsRef.current!.clone(server, request),
+    refreshClone: id => actionsRef.current!.refreshClone(server, id),
     start: id => actionsRef.current!.start(server, id),
     stop: id => actionsRef.current!.stop(server, id),
   }), [server, workspaces, selectedId, loading, ready, error, refresh]);

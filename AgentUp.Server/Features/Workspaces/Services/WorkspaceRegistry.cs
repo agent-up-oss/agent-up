@@ -14,6 +14,7 @@ namespace AgentUp.Server.Features.Workspaces.Services;
 public sealed class WorkspaceRegistry : IHostedService
 {
     public event Action<string>? WorkspaceRemoved;
+    public event Action<Workspace>? WorkspaceDeleting;
     private readonly ConcurrentDictionary<string, Workspace> _workspaces = new();
     private readonly IWorkspaceRepository _repository;
     private readonly PortsController _ports;
@@ -51,7 +52,8 @@ public sealed class WorkspaceRegistry : IHostedService
 
     public IReadOnlyList<Workspace> GetAll() =>
         _workspaces.Values
-            .OrderByDescending(w => WorkspaceListOrdering.ActivePriority(w.State))
+            .OrderByDescending(w => WorkspaceListOrdering.OwnWorkspacePriority(w.Derived))
+            .ThenByDescending(w => WorkspaceListOrdering.ActivePriority(w.State))
             .ThenByDescending(w => w.LastActivityAtUtc)
             .ThenBy(w => w.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -90,6 +92,9 @@ public sealed class WorkspaceRegistry : IHostedService
             WorktreePath = request.WorktreePath,
             Branch = request.Branch,
             Commit = request.Commit,
+            Derived = request.Derived,
+            SourceRepository = request.SourceRepository,
+            SourceRevision = request.SourceRevision,
             State = WorkspaceState.Stopped,
             LastActivityAtUtc = DateTimeOffset.UtcNow,
             Applications = request.Applications
@@ -230,6 +235,11 @@ public sealed class WorkspaceRegistry : IHostedService
 
     public async Task<bool> RemoveAsync(string id)
     {
+        if (!_workspaces.TryGetValue(id, out var workspace))
+            return false;
+
+        WorkspaceDeleting?.Invoke(workspace);
+
         if (!_workspaces.TryRemove(id, out _))
             return false;
 

@@ -10,6 +10,9 @@ public class Workspace
     public required string WorktreePath { get; init; }
     public required string Branch { get; set; }
     public required string Commit { get; set; }
+    public bool Derived { get; init; }
+    public string? SourceRepository { get; init; }
+    public string? SourceRevision { get; init; }
     public WorkspaceState State { get; set; } = WorkspaceState.Stopped;
     /// <summary>Enabled agent module id bound to this workspace. Null means none is chosen yet.</summary>
     public string? BoundAgentModuleId { get; set; }

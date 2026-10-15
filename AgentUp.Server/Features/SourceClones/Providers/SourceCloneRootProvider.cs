@@ -23,4 +23,26 @@ public sealed class SourceCloneRootProvider : ISourceCloneRootProvider
 
         return Path.GetFullPath(root);
     }
+
+    public bool IsUnderRoot(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        var root = GetRoot();
+        var fullPath = Path.GetFullPath(path);
+        var relative = Path.GetRelativePath(root, fullPath);
+        return relative != "."
+               && relative != ".."
+               && !relative.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+               && !Path.IsPathRooted(relative);
+    }
+
+    public void DeleteIfUnderRoot(string path)
+    {
+        if (!IsUnderRoot(path) || !Directory.Exists(path))
+            return;
+
+        Directory.Delete(path, recursive: true);
+    }
 }

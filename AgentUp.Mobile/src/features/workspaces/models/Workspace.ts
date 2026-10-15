@@ -23,10 +23,15 @@ export type Workspace = {
   commit: string;
   state: string;
   healthState?: string;
+  derived?: boolean;
+  sourceRepository?: string | null;
+  sourceRevision?: string | null;
   applications?: WorkspaceApplication[];
 };
 
 export type CloneSourceRequest = {
   repository: string;
   branch: string;
+  revision?: string;
+  derived?: boolean;
 };

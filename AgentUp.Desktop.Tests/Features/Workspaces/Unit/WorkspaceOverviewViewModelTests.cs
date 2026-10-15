@@ -129,6 +129,9 @@ public sealed class WorkspaceOverviewViewModelTests
         public Task<WorkspaceDto> CloneAsync(CloneSourceRequestDto request, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 

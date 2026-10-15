@@ -52,4 +52,34 @@ public sealed class SourceCloneRootProviderTests
             provider.GetRoot(),
             Is.EqualTo(Path.GetFullPath(Path.Join(dataDirectory, SourceCloneRootProvider.DefaultDirectoryName))));
     }
+
+    [Test]
+    public void IsUnderRoot_rejectsPathsOutsideTheConfiguredRoot()
+    {
+        var root = Path.Join(Path.GetTempPath(), $"agent-up-clone-root-{Guid.NewGuid():N}");
+        Environment.SetEnvironmentVariable(SourceCloneRootProvider.RootEnvironmentVariable, root);
+        var provider = new SourceCloneRootProvider(Path.Join(Path.GetTempPath(), "agent-up-data"));
+
+        Assert.That(provider.IsUnderRoot(Path.Join(root, "widgets")), Is.True);
+        Assert.That(provider.IsUnderRoot(Path.Join(Path.GetTempPath(), "elsewhere")), Is.False);
+    }
+
+    [Test]
+    public void DeleteIfUnderRoot_removesADirectoryInsideTheRootAndLeavesOthers()
+    {
+        var root = Path.Join(Path.GetTempPath(), $"agent-up-clone-root-{Guid.NewGuid():N}");
+        var inside = Path.Join(root, "widgets-review-topic");
+        var outside = Path.Join(Path.GetTempPath(), $"agent-up-outside-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(inside);
+        Directory.CreateDirectory(outside);
+        Environment.SetEnvironmentVariable(SourceCloneRootProvider.RootEnvironmentVariable, root);
+        var provider = new SourceCloneRootProvider(Path.Join(Path.GetTempPath(), "agent-up-data"));
+
+        provider.DeleteIfUnderRoot(inside);
+        provider.DeleteIfUnderRoot(outside);
+
+        Assert.That(Directory.Exists(inside), Is.False);
+        Assert.That(Directory.Exists(outside), Is.True);
+        Directory.Delete(outside, recursive: true);
+    }
 }

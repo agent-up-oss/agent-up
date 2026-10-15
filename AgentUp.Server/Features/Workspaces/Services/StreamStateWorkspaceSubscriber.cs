@@ -10,7 +10,8 @@ namespace AgentUp.Server.Features.Workspaces.Services;
 // (WorkspacesController.Delete + tutorial cleanup), so we listen on the shared bus.
 public sealed class StreamStateWorkspaceSubscriber(
     WorkspaceEventBus workspaceEvents,
-    WorkspaceStreamStateController streamState) : BackgroundService
+    WorkspaceStreamStateController streamState,
+    BrowserLifecycleController browser) : BackgroundService
 {
     private const string RemovedState = "Removed";
 
@@ -25,5 +26,6 @@ public sealed class StreamStateWorkspaceSubscriber(
     {
         if (!string.Equals(evt.State, RemovedState, StringComparison.Ordinal)) return;
         streamState.OnWorkspaceRemoved(evt.WorkspaceId);
+        _ = browser.DeleteWorkspaceProfileAsync(evt.WorkspaceId);
     }
 }

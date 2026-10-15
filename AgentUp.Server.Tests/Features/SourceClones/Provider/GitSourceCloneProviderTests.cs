@@ -83,4 +83,34 @@ public sealed class GitSourceCloneProviderTests
         Assert.That(exception!.Message, Does.StartWith("git could not be started:"));
         Assert.That(exception.InnerException, Is.Not.Null);
     }
+
+    [Test]
+    public async Task CloneAsync_checksOutACommitShaDetachedForADerivedWorkspace()
+    {
+        var sha = await TestGitRepository.ReadAsync(_origin, "rev-parse", "HEAD");
+        var destination = Path.Join(_root, "clones", "widgets-review");
+        var provider = new GitSourceCloneProvider();
+
+        await provider.CloneAsync(new SourceCloneTarget(_origin, sha, "widgets-review", destination) { Derived = true });
+
+        Assert.That(await TestGitRepository.ReadAsync(destination, "rev-parse", "--abbrev-ref", "HEAD"),
+            Is.EqualTo("HEAD"));
+        Assert.That(await TestGitRepository.ReadAsync(destination, "rev-parse", "HEAD"), Is.EqualTo(sha));
+    }
+
+    [Test]
+    public async Task RefreshAsync_updatesADerivedCloneToTheLatestNamedRevision()
+    {
+        var destination = Path.Join(_root, "clones", "widgets-review");
+        var provider = new GitSourceCloneProvider();
+        await provider.CloneAsync(new SourceCloneTarget(_origin, "main", "widgets-review", destination) { Derived = true });
+        await File.WriteAllTextAsync(Path.Join(_origin, "next.md"), "next\n");
+        await TestGitRepository.CommitAllAsync(_origin, "next");
+
+        await provider.RefreshAsync(destination, "main");
+
+        Assert.That(File.Exists(Path.Join(destination, "next.md")), Is.True);
+        Assert.That(await TestGitRepository.ReadAsync(destination, "rev-parse", "--abbrev-ref", "HEAD"),
+            Is.EqualTo("HEAD"));
+    }
 }

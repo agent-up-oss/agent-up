@@ -98,6 +98,9 @@ public sealed class FakeBackendService
             return new FakeBackendResponseDto(204, "application/json");
         if (method == "POST" && path == "/api/source-clones")
             return CloneWorkspace(request.Body);
+        if (method == "POST" && path.StartsWith("/api/source-clones/", StringComparison.Ordinal)
+            && path.EndsWith("/refresh", StringComparison.Ordinal))
+            return RefreshClone(path);
         if (method == "POST" && path == "/api/apps/tickets")
             return IssueTicket(request.Body);
         if (method == "POST" && path == "/api/audit/record")
@@ -535,17 +538,22 @@ public sealed class FakeBackendService
     private FakeBackendResponseDto CloneWorkspace(string? body)
     {
         var repository = ReadJsonString(body, "repository") ?? "https://git.example/demo.git";
+        var derived = ReadJsonBoolean(body, "derived");
+        var revision = ReadJsonString(body, "revision") ?? ReadJsonString(body, "branch") ?? "main";
         var name = repository.Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? "cloned";
         name = name.Replace(".git", "", StringComparison.OrdinalIgnoreCase);
         var workspace = new JsonObject
         {
             ["id"] = $"cloned-{Guid.NewGuid():N}"[..18],
-            ["displayName"] = name,
+            ["displayName"] = derived ? $"Review · {revision}" : name,
             ["repositoryPath"] = $"/demo/{name}",
             ["worktreePath"] = $"/demo/{name}",
-            ["branch"] = ReadJsonString(body, "branch") ?? "main",
+            ["branch"] = revision,
             ["commit"] = "cloned01",
             ["state"] = "Stopped",
+            ["derived"] = derived,
+            ["sourceRepository"] = derived ? repository : null,
+            ["sourceRevision"] = derived ? revision : null,
             ["applications"] = new JsonArray()
         };
         lock (_gate)
@@ -555,6 +563,22 @@ public sealed class FakeBackendService
         }
         PublishWorkspaces();
         return new FakeBackendResponseDto(201, "application/json", workspace.ToJsonString(WebOptions()));
+    }
+
+    private FakeBackendResponseDto RefreshClone(string path)
+    {
+        var workspaceId = path["/api/source-clones/".Length..];
+        if (workspaceId.EndsWith("/refresh", StringComparison.Ordinal))
+            workspaceId = workspaceId[..^"/refresh".Length];
+        lock (_gate)
+        {
+            var workspace = FindWorkspace(workspaceId);
+            if (workspace is null || workspace["derived"]?.GetValue<bool>() != true)
+                return new FakeBackendResponseDto(400, "application/json", """{"detail":"Only derived review workspaces can be refreshed in place."}""");
+            workspace["commit"] = "refreshed";
+            PublishWorkspaces();
+            return new FakeBackendResponseDto(200, "application/json", workspace.ToJsonString(WebOptions()));
+        }
     }
 
     private FakeBackendResponseDto IssueTicket(string? body)

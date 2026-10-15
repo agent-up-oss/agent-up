@@ -104,6 +104,9 @@ public sealed class WorkspaceListViewModelTests
                 .Stopped()
                 .Build());
 
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default)
+            => GetByIdAsync(workspaceId, cancellationToken).ContinueWith(task => task.Result ?? throw new InvalidOperationException("missing"), cancellationToken);
+
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public Task StopAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.CompletedTask;
@@ -132,6 +135,9 @@ public sealed class WorkspaceListViewModelTests
                 
                 .Stopped()
                 .Build());
+
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default)
+            => GetByIdAsync(workspaceId, cancellationToken).ContinueWith(task => task.Result ?? throw new InvalidOperationException("missing"), cancellationToken);
 
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.CompletedTask;
 

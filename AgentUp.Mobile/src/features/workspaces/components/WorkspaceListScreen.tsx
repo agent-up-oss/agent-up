@@ -3,6 +3,8 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, Text
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
 import { canCloneWorkspace } from '../providers/CloneInputProvider';
+import { cloneConfirmLabel, cloneRevisionLabel, isDerivedWorkspace, workspaceSubtitle } from '../providers/WorkspaceLabelProvider';
+import { orderWorkspaces } from '../providers/WorkspaceOrderProvider';
 import { statusDotStyle, workspaceLedState } from '../providers/WorkspaceStatusProvider';
 import { PlanCard } from '@/features/entitlements/components/PlanCard';
 import { isFeatureAvailable, presentPlanCard, workspaceCreateFeature, workspaceCreateUnavailableMessage, type PlanCard as PlanCardModel } from '@/features/entitlements/models/Entitlements';
@@ -10,10 +12,11 @@ import { getEntitlements } from '@/features/entitlements/providers/EntitlementsA
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 export function WorkspaceListScreen() {
-  const { server, workspaces, selectedWorkspace, loading, error, selectWorkspace, refresh, clone } = useWorkspaces();
+  const { server, workspaces, selectedWorkspace, loading, error, selectWorkspace, refresh, clone, refreshClone } = useWorkspaces();
   const [adding, setAdding] = useState(false);
   const [repository, setRepository] = useState('');
   const [branch, setBranch] = useState('main');
+  const [derived, setDerived] = useState(false);
   const [cloning, setCloning] = useState(false);
   const [cloneError, setCloneError] = useState<string | null>(null);
   const [plan, setPlan] = useState<PlanCardModel | null>(null);
@@ -34,13 +37,24 @@ export function WorkspaceListScreen() {
     return () => { cancelled = true; };
   }, [server]);
 
-  const openDialog = () => { setRepository(''); setBranch('main'); setCloneError(null); setAdding(true); };
+  const openDialog = () => {
+    setRepository('');
+    setBranch('main');
+    setDerived(false);
+    setCloneError(null);
+    setAdding(true);
+  };
 
   const confirmClone = async () => {
     if (cloning) return;
     setCloning(true); setCloneError(null);
     try {
-      await clone({ repository: repository.trim(), branch: branch.trim() });
+      const revision = branch.trim();
+      await clone({
+        repository: repository.trim(),
+        branch: revision,
+        ...(derived ? { derived: true, revision } : {}),
+      });
       setAdding(false);
     } catch (cause) {
       setCloneError(cause instanceof Error ? cause.message : 'Could not clone the repository.');
@@ -69,8 +83,9 @@ export function WorkspaceListScreen() {
       {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
 
-      {workspaces.map(workspace => {
+      {orderWorkspaces(workspaces).map(workspace => {
         const isSelected = selectedWorkspace?.id === workspace.id;
+        const derivedWorkspace = isDerivedWorkspace(workspace);
         return <Pressable key={workspace.id} accessibilityRole="button"
           accessibilityState={{ selected: isSelected }}
           accessibilityLabel={`Select workspace ${workspace.displayName}`}
@@ -79,8 +94,18 @@ export function WorkspaceListScreen() {
           <View style={statusDotStyle(workspaceLedState(workspace.state, workspace.healthState))} />
           <View style={styles.cardHeader}>
             <Text numberOfLines={1} style={styles.cardTitle}>{workspace.displayName}</Text>
-            <Text numberOfLines={1} style={styles.cardBranch}>{workspace.branch}</Text>
+            <Text numberOfLines={1} style={styles.cardBranch}>{workspaceSubtitle(workspace)}</Text>
           </View>
+          {derivedWorkspace ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Refresh review workspace ${workspace.displayName}`}
+              onPress={() => { void refreshClone(workspace.id); }}
+              hitSlop={8}
+              style={styles.refreshButton}>
+              <Text style={styles.refreshIcon}>↻</Text>
+            </Pressable>
+          ) : null}
         </Pressable>;
       })}
 
@@ -105,10 +130,20 @@ export function WorkspaceListScreen() {
             placeholder="https://github.com/acme/widgets.git" placeholderTextColor={agentUpTheme.colors.textFaint}
             value={repository} onChangeText={setRepository} editable={!cloning} style={styles.input} />
 
-          <Text style={styles.label}>Branch</Text>
-          <TextInput accessibilityLabel="Branch" autoCapitalize="none" autoCorrect={false}
+          <Text style={styles.label}>{cloneRevisionLabel(derived)}</Text>
+          <TextInput accessibilityLabel={cloneRevisionLabel(derived)} autoCapitalize="none" autoCorrect={false}
             placeholder="main" placeholderTextColor={agentUpTheme.colors.textFaint}
             value={branch} onChangeText={setBranch} editable={!cloning} style={styles.input} />
+
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: derived }}
+            accessibilityLabel="Start a review workspace at this revision"
+            onPress={() => setDerived(value => !value)}
+            style={styles.checkboxRow}>
+            <View style={[styles.checkbox, derived && styles.checkboxChecked]} />
+            <Text style={styles.checkboxLabel}>Start a review workspace at this revision</Text>
+          </Pressable>
 
           {!!cloneError && <Text accessibilityRole="alert" style={styles.error}>{cloneError}</Text>}
 
@@ -117,9 +152,9 @@ export function WorkspaceListScreen() {
               onPress={() => setAdding(false)} style={[styles.secondaryButton, cloning && styles.disabled]}>
               <Text style={styles.secondaryButtonText}>Cancel</Text>
             </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Clone" disabled={!canConfirm}
+            <Pressable accessibilityRole="button" accessibilityLabel={cloneConfirmLabel(derived, false)} disabled={!canConfirm}
               onPress={() => void confirmClone()} style={[styles.button, !canConfirm && styles.disabled]}>
-              {cloning ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.buttonText}>Clone</Text>}
+              {cloning ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.buttonText}>{cloneConfirmLabel(derived, cloning)}</Text>}
             </Pressable>
           </View>
         </View>
@@ -155,4 +190,10 @@ const styles = StyleSheet.create({
   dialogTitle: auText('pageTitle'),
   dialogDetail: auText('muted'),
   dialogActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 6 },
+  checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: agentUpTheme.spacing[3] },
+  checkbox: { ...auBox('input'), width: 18, height: 18, padding: 0 },
+  checkboxChecked: auBox('workspaceSelected'),
+  checkboxLabel: auText('muted'),
+  refreshButton: { ...auBox('workspaceAdd'), alignItems: 'center', justifyContent: 'center', width: 32, height: 32 },
+  refreshIcon: auText('workspaceAdd'),
 });

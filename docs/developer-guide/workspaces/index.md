@@ -145,7 +145,7 @@ Packaged services bind to `http://127.0.0.1:5000` by default. Service definition
 
 ## Managed source clones
 
-The `SourceClones` slice owns repositories Agent-Up clones for itself. `POST /api/source-clones` takes a repository and a branch, validates both, clones into the source clones root, and registers the resulting workspace through the `Workspaces` controller boundary. `GET /api/source-clones/root` reports the configured root.
+The `SourceClones` slice owns repositories Agent-Up clones for itself. `POST /api/source-clones` takes a repository and a branch, validates both, clones into the source clones root, and registers the resulting workspace through the `Workspaces` controller boundary. Set `derived` and `revision` (branch, tag, or commit) to create a disposable review workspace in its own directory; `POST /api/source-clones/{workspaceId}/refresh` fetches and checks that revision out in place. Removing a derived workspace deletes the clone directory, allocated ports, and browser profile. `GET /api/source-clones/root` reports the configured root.
 
 The root comes from `AGENTUP_SOURCE_CLONES_ROOT` and otherwise defaults to a `sources` directory under the Server data directory. Remotes are restricted to `http`, `https`, `ssh`, and `git` URLs plus the `user@host:path` form. Local `file://` and transport-helper remotes are rejected.
 

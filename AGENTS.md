@@ -1005,7 +1005,7 @@ The three end-to-end jobs hold a runner for tens of minutes, one of them macOS. 
 
 Expo generates `AgentUp.Mobile/ios/` and `AgentUp.Mobile/android/` during those jobs and they stay uncommitted. `.github/scripts/install-mobile-deps.sh` installs mobile dependencies for CI without the `nix-shell` wrapper the repository npm scripts use: those runners have no Nix and do have Xcode and Android toolchains that the wrapper's replaced `PATH` would break. It runs the same underlying commands, including `AgentUp.DesignSystem/scripts/build.mjs --check` so stale committed design-system outputs fail instead of being rewritten; only the shell wrapper is skipped. This is the second documented exception alongside `build:cloudflare`.
 
-Changes under `AgentUp.Mobile/` must run `./au-debug test mobile` (typecheck, tests, web export, and the browser-SSO example HTTP tests). Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests.
+Changes under `AgentUp.Mobile/` must run `./au-debug test mobile` (typecheck, tests, web export, and the browser-SSO example HTTP tests). Add focused client tests with new behavior once the corresponding test boundary exists; a static export alone must not substitute for behavior tests. `npm test` discovers `src/features/**/*.test.ts` recursively so a new feature's tests run without editing the script. `AgentUp.Architecture.Tests` `MobileFeatureTestCoverage` fails a `src/features/<slice>` that has production TypeScript outside `components/` with no tests, and a `providers/` folder whose production files have no sibling tests. React context controllers and Expo hooks stay thin and delegate to those providers. Component rendering is not gated: do not add `react-native-testing-library` for product screens; extract decisions into providers instead. The `mobile` check's `inputs` include `AgentUp.DesignSystem` because `npm test` runs the design-system `--check` build. WebAudit `npm test` runs in the Mobile CI jobs on every pull request, not only the release publish step.
 
 Every public mobile npm script must invoke its Expo or TypeScript command through the repository `shell.nix`, except `build:cloudflare`, which runs the shared web-export entrypoint directly in Cloudflare Pages' Node.js build image. GitHub Actions jobs in `.github/workflows/mobile-ci.yaml` also invoke Expo from `AgentUp.Mobile` and Fastlane from the repository root on GitHub-hosted runners that do not enter `shell.nix`; do not add matching public npm scripts. Do not add other duplicate direct or `:nix` script variants. Expo commands must use the local `node_modules/.bin` CLI, and TypeScript commands must use `npx`; `nix-shell` replaces `PATH`, so a bare `expo` or `tsc` binary is not available. Keep Node.js, `zip`, `unzip`, `NIX_LD`, `patchelf`, the DotSlash DevTools preparation, and the React Native DevTools Electron runtime libraries in `shell.nix` so NixOS launches use the same reproducible environment.
 
@@ -1299,10 +1299,14 @@ Rules to keep:
   rule is a hard failure meaning the map is incomplete, not a pass.
 - A malformed `verification` section, an unknown tier or platform, and a dangling check id all
   throw. A gate that fails open is not a gate.
-- `enforcement` is `warn` or `block`. Keep a repository on `warn` while its path map is being
-  completed, then switch to `block`.
+- `enforcement` is `warn` or `block`. This repository uses `block`. Keep a repository on
+  `warn` only while its path map is being completed. The humane escape hatch is to run
+  `agent-up verify run` (or `run_verification`) until receipts match; do not edit
+  `agent-up.json` to weaken the gate. The commit-queue guard is a separate check and does
+  not read verification receipts.
 - Checks whose `platforms` exclude this machine, or that are `ciOnly`, are reported *skipped
   with a reason* and never counted as satisfied. They stay required where they can run.
+  Skipped checks do not make `ShouldBlock` true, including when enforcement is `block`.
 
 The commit queue owns no test metadata. Queue entries carry a slice, message, and files;
 receipts are the only record of what was proven.
@@ -1315,7 +1319,7 @@ The sections below intentionally introduce each concept briefly and point to the
 
 A workspace is the unit of isolation for an agent or developer session. It is identified by project path and may include repository/worktree metadata, branch, commit, browser profile, Docker infrastructure, running processes, allocated ports, diagnostics, and event history. Non-Git project paths are valid and should display as `not on a git branch`.
 
-Workspaces may also be created by Agent-Up itself. The Server's `SourceClones` slice clones a repository at a branch into a Server-owned source clones root (`AGENTUP_SOURCE_CLONES_ROOT`, otherwise `sources` under the data directory) and registers the result, so Desktop and Mobile both list it. Only `http`, `https`, `ssh`, and `git` remotes plus the `user@host:path` form are accepted; `file://` and transport-helper remotes are rejected so a REST caller cannot make the Server read arbitrary local repositories.
+Workspaces may also be created by Agent-Up itself. The Server's `SourceClones` slice clones a repository at a branch into a Server-owned source clones root (`AGENTUP_SOURCE_CLONES_ROOT`, otherwise `sources` under the data directory) and registers the result, so Desktop and Mobile both list it. A clone may also be **derived**: a disposable review workspace at a named revision (branch, tag, or commit) in its own directory under that root, without mutating an existing worktree. Derived workspaces refresh in place and, when removed, delete the clone directory, allocated ports, and browser profile. Only `http`, `https`, `ssh`, and `git` remotes plus the `user@host:path` form are accepted; `file://` and transport-helper remotes are rejected so a REST caller cannot make the Server read arbitrary local repositories.
 
 Read: `docs/user-docs/workspaces/index.md` and `docs/developer-guide/workspaces/index.md`.
 

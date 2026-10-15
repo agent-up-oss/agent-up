@@ -13,4 +13,7 @@ public sealed record WorkspaceDto(
 {
     public List<ApplicationDto> Applications { get; init; } = [];
     public DateTimeOffset LastActivityAtUtc { get; init; }
+    public bool Derived { get; init; }
+    public string? SourceRepository { get; init; }
+    public string? SourceRevision { get; init; }
 }
