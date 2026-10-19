@@ -107,9 +107,15 @@ public sealed class WorkspaceListViewModelTests
             derived: true,
             sourceRevision: "topic"));
 
-        await ((IWorkspaceItemHost)sidebar).RefreshDerivedWorkspaceAsync(workspace.Id);
+        ((IWorkspaceItemHost)sidebar).ShowRefreshDerivedWorkspace(workspace.Id, "topic");
+
+        Assert.That(sidebar.RefreshReview.IsVisible, Is.True);
+        Assert.That(sidebar.RefreshReview.Revision, Is.EqualTo("topic"));
+
+        await sidebar.RefreshDerivedWorkspaceAsync(workspace.Id, "release");
 
         Assert.That(api.RefreshedId, Is.EqualTo(workspace.Id));
+        Assert.That(api.RefreshedRevision, Is.EqualTo("release"));
         Assert.That(sidebar.ErrorMessage, Is.Null);
     }
 
@@ -121,7 +127,7 @@ public sealed class WorkspaceListViewModelTests
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
 
-        await sidebar.RefreshDerivedWorkspaceAsync("review", cancellation.Token);
+        await sidebar.RefreshDerivedWorkspaceAsync("review", ct: cancellation.Token);
 
         Assert.That(sidebar.ErrorMessage, Is.Null);
     }
@@ -144,6 +150,8 @@ public sealed class WorkspaceListViewModelTests
     {
         public string? RefreshedId { get; private set; }
 
+        public string? RefreshedRevision { get; private set; }
+
         public bool CancelRefresh { get; init; }
 
         public Exception? RefreshError { get; init; }
@@ -157,13 +165,14 @@ public sealed class WorkspaceListViewModelTests
         public Task<WorkspaceDto> CloneAsync(CloneSourceRequestDto request, CancellationToken cancellationToken = default)
             => Task.FromResult(workspace);
 
-        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default)
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, string? revision = null, CancellationToken cancellationToken = default)
         {
             if (CancelRefresh)
                 return Task.FromCanceled<WorkspaceDto>(cancellationToken);
             if (RefreshError is not null)
                 return Task.FromException<WorkspaceDto>(RefreshError);
             RefreshedId = workspaceId;
+            RefreshedRevision = revision;
             return Task.FromResult(workspace);
         }
 
@@ -195,7 +204,7 @@ public sealed class WorkspaceListViewModelTests
                 .Stopped()
                 .Build());
 
-        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default)
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, string? revision = null, CancellationToken cancellationToken = default)
             => GetByIdAsync(workspaceId, cancellationToken).ContinueWith(task => task.Result ?? throw new InvalidOperationException("missing"), cancellationToken);
 
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.CompletedTask;
@@ -227,7 +236,7 @@ public sealed class WorkspaceListViewModelTests
                 .Stopped()
                 .Build());
 
-        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default)
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, string? revision = null, CancellationToken cancellationToken = default)
             => GetByIdAsync(workspaceId, cancellationToken).ContinueWith(task => task.Result ?? throw new InvalidOperationException("missing"), cancellationToken);
 
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.CompletedTask;

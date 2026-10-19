@@ -230,6 +230,20 @@ test('a derived clone is labelled as a review workspace and can be refreshed in 
   assert.equal(refused.status, 400);
 });
 
+test('refreshing a review workspace can move it onto another revision', () => {
+  const service = backend();
+  const cloned = json(service, 'POST', '/api/source-clones', JSON.stringify({
+    repository: 'https://git.example/widgets.git',
+    branch: 'topic',
+    revision: 'topic',
+    derived: true,
+  }));
+  const refreshed = json(service, 'POST', `/api/source-clones/${cloned.id}/refresh`, JSON.stringify({ revision: 'release' }));
+  assert.equal(refreshed.id, cloned.id);
+  assert.equal(refreshed.displayName, 'Review · release');
+  assert.equal(refreshed.sourceRevision, 'release');
+});
+
 test('git and agent routes on cloned workspaces return not found', () => {
   const service = backend();
   const cloned = json(service, 'POST', '/api/source-clones', '{}');

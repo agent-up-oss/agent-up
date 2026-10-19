@@ -26,6 +26,9 @@ public sealed partial class SourceCloneTargetProvider : ISourceCloneTargetProvid
         };
     }
 
+    public string RequireRevision(string? revision)
+        => NormalizeRevision(revision, null, derived: true);
+
     public bool DestinationExists(SourceCloneTarget target)
         => Directory.Exists(target.DestinationPath) || File.Exists(target.DestinationPath);
 

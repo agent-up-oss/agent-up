@@ -143,7 +143,7 @@ export class FakeBackendService {
     if (method === 'POST' && path === '/api/workspaces/tutorial/cleanup') return { status: 204, contentType: 'application/json' };
     if (method === 'POST' && path === '/api/source-clones') return this.cloneWorkspace(request.body);
     if (method === 'POST' && path.startsWith('/api/source-clones/') && path.endsWith('/refresh'))
-      return this.refreshClone(path);
+      return this.refreshClone(path, request.body);
     if (method === 'POST' && path === '/api/apps/tickets') return this.issueTicket(request.body);
     if (method === 'POST' && path === '/api/audit/record') return { status: 204, contentType: 'application/json' };
     if (method === 'GET' && path === '/api/capabilities') return json(this.capabilities());
@@ -471,7 +471,7 @@ export class FakeBackendService {
     return { status: 201, contentType: 'application/json', body: JSON.stringify(workspace) };
   }
 
-  private refreshClone(path: string): FakeBackendResponse {
+  private refreshClone(path: string, body: string | null): FakeBackendResponse {
     const marker = '/api/source-clones/';
     let workspaceId = path.slice(marker.length);
     if (workspaceId.endsWith('/refresh')) workspaceId = workspaceId.slice(0, -'/refresh'.length);
@@ -482,6 +482,12 @@ export class FakeBackendService {
         contentType: 'application/json',
         body: JSON.stringify({ detail: 'Only derived review workspaces can be refreshed in place.' }),
       };
+    }
+    const revision = readJsonString(body, 'revision');
+    if (revision) {
+      workspace.sourceRevision = revision;
+      workspace.branch = revision;
+      workspace.displayName = `Review · ${revision}`;
     }
     workspace.commit = 'refreshed';
     this.publishWorkspaces();

@@ -134,6 +134,15 @@ public sealed class SourceCloneTargetProviderTests
     }
 
     [Test]
+    public void RequireRevision_acceptsABranchTagOrCommitName()
+    {
+        var provider = CreateProvider();
+
+        Assert.That(provider.RequireRevision("release"), Is.EqualTo("release"));
+        Assert.That(provider.RequireRevision(" abc1234 "), Is.EqualTo("abc1234"));
+    }
+
+    [Test]
     public void Resolve_rejectsADerivedRevisionThatSanitizesToAnEmptyDirectoryName()
     {
         var provider = CreateProvider();

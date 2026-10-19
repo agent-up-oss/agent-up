@@ -151,6 +151,28 @@ public class WorkspaceRegistryTests
     }
 
     [Test]
+    public async Task UpdateDerivedRevision_recordsTheNewReviewLabel()
+    {
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Review · topic")
+            .AsDerived("https://example.test/acme/widgets.git", "topic")
+            .Build());
+
+        var updated = await _registry.UpdateDerivedRevisionAsync(
+            workspace.Id,
+            "Review · release",
+            "release",
+            "release",
+            "cafebabe");
+
+        var stored = _registry.GetById(workspace.Id)!;
+        Assert.That(updated, Is.True);
+        Assert.That(stored.DisplayName, Is.EqualTo("Review · release"));
+        Assert.That(stored.SourceRevision, Is.EqualTo("release"));
+        Assert.That(stored.Commit, Is.EqualTo("cafebabe"));
+    }
+
+    [Test]
     public async Task UpdateGitIdentity_ReturnsFalseForAnUnknownWorkspace()
     {
         Assert.That(await _registry.UpdateGitIdentityAsync("missing", "topic", "def456"), Is.False);

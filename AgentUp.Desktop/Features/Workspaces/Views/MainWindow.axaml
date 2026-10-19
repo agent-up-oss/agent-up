@@ -830,7 +830,7 @@
                                                         Margin="28,-2,-2,0"
                                                         IsVisible="{Binding ShowRefreshButton}"
                                                         Command="{Binding RefreshCommand}"
-                                                        ToolTip.Tip="Refresh review workspace">
+                                                        ToolTip.Tip="Refresh review workspace at a revision">
                                                     <TextBlock Text="↻"
                                                                HorizontalAlignment="Center"
                                                                VerticalAlignment="Center"/>
@@ -2366,6 +2366,86 @@
                                 <Border Classes="tutorialButton">
                                     <TextBlock Classes="tutorialButtonText"
                                                Text="{Binding Sidebar.AddWorkspace.ConfirmLabel}"/>
+                                </Border>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Grid ZIndex="100"
+              x:Name="RefreshReviewOverlay"
+              IsVisible="{Binding Sidebar.RefreshReview.IsVisible}"
+              IsHitTestVisible="{Binding Sidebar.RefreshReview.IsVisible}">
+            <Border Background="{DynamicResource AgentUpColorOverlayBrush}"/>
+            <Border Background="{DynamicResource AgentUpColorOverlayBrush}">
+                <Border.Effect>
+                    <BlurEffect Radius="10"/>
+                </Border.Effect>
+            </Border>
+
+            <Grid RowDefinitions="*,8*,*"
+                  ColumnDefinitions="*,8*,*">
+                <Border Grid.Row="1"
+                        Grid.Column="1"
+                        MinWidth="460"
+                        MaxWidth="600"
+                        VerticalAlignment="Center"
+                        Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
+                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="28">
+                    <StackPanel Spacing="16">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Refresh review workspace"
+                                       Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"
+                                       FontSize="22"
+                                       FontWeight="Bold"/>
+                            <TextBlock Text="Fetches this revision into the same review workspace. Your other checkouts stay where they are."
+                                       Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"
+                                       FontSize="13"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Revision"
+                                       Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
+                                       FontSize="11"
+                                       FontWeight="Bold"/>
+                            <TextBox x:Name="RefreshReviewRevision"
+                                     Text="{Binding Sidebar.RefreshReview.Revision}"
+                                     PlaceholderText="branch, tag, or commit"
+                                     IsEnabled="{Binding !Sidebar.RefreshReview.IsBusy}"
+                                     Background="{DynamicResource AgentUpColorSurfaceBrush}"
+                                     Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"
+                                     BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                                     BorderThickness="1"
+                                     FontSize="13"/>
+                        </StackPanel>
+
+                        <TextBlock x:Name="RefreshReviewError"
+                                   Text="{Binding Sidebar.RefreshReview.ErrorMessage}"
+                                   IsVisible="{Binding Sidebar.RefreshReview.ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                   Foreground="{DynamicResource AgentUpColorStatusDangerBrush}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"/>
+
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                            <Button Grid.Column="1"
+                                    x:Name="RefreshReviewCancelButton"
+                                    Command="{Binding Sidebar.RefreshReview.CancelCommand}">
+                                <Border Classes="tutorialSecondaryButton">
+                                    <TextBlock Classes="tutorialButtonText" Text="Cancel"/>
+                                </Border>
+                            </Button>
+                            <Button Grid.Column="2"
+                                    x:Name="RefreshReviewConfirmButton"
+                                    Command="{Binding Sidebar.RefreshReview.ConfirmCommand}">
+                                <Border Classes="tutorialButton">
+                                    <TextBlock Classes="tutorialButtonText"
+                                               Text="{Binding Sidebar.RefreshReview.ConfirmLabel}"/>
                                 </Border>
                             </Button>
                         </Grid>

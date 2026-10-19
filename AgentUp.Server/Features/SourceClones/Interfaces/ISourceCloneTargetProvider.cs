@@ -6,5 +6,7 @@ public interface ISourceCloneTargetProvider
 {
     SourceCloneTarget Resolve(CloneSourceRequest request);
 
+    string RequireRevision(string? revision);
+
     bool DestinationExists(SourceCloneTarget target);
 }

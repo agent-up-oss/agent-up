@@ -77,6 +77,7 @@ public sealed class SourceCloneService : IHostedService
 
     public async Task<SourceCloneResult> RefreshAsync(
         string workspaceId,
+        string? requestedRevision = null,
         CancellationToken cancellationToken = default)
     {
         var workspace = _workspaces.GetById(workspaceId);
@@ -87,7 +88,18 @@ public sealed class SourceCloneService : IHostedService
         if (!_root.IsUnderRoot(workspace.WorktreePath))
             return SourceCloneResult.Failed("The workspace is not a managed source clone.");
 
-        var revision = workspace.SourceRevision ?? workspace.Branch;
+        string revision;
+        try
+        {
+            revision = string.IsNullOrWhiteSpace(requestedRevision)
+                ? workspace.SourceRevision ?? workspace.Branch
+                : _targets.RequireRevision(requestedRevision);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return SourceCloneResult.Failed(ex.Message);
+        }
+
         try
         {
             await _git.RefreshAsync(workspace.WorktreePath, revision, cancellationToken);
@@ -99,7 +111,12 @@ public sealed class SourceCloneService : IHostedService
 
         var identity = await _identity.ReadAsync(workspace.WorktreePath, cancellationToken);
         var branch = DisplayBranch(identity.Branch, revision);
-        await _workspaces.UpdateGitIdentityAsync(workspace.Id, branch, identity.Commit);
+        await _workspaces.UpdateDerivedRevisionAsync(
+            workspace.Id,
+            $"Review · {revision}",
+            revision,
+            branch,
+            identity.Commit);
         return SourceCloneResult.Success(_workspaces.GetById(workspace.Id) ?? workspace);
     }
 

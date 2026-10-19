@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
-import { canCloneWorkspace } from '../providers/CloneInputProvider';
+import { CloneWorkspaceDialog } from './WorkspaceDialogs';
 import { PlanCard } from '@/features/entitlements/components/PlanCard';
 import { isFeatureAvailable, presentPlanCard, workspaceCreateFeature, workspaceCreateUnavailableMessage, type PlanCard as PlanCardModel } from '@/features/entitlements/models/Entitlements';
 import { getEntitlements } from '@/features/entitlements/providers/EntitlementsApiProvider';
@@ -13,6 +13,7 @@ export function WorkspaceEmptyScreen() {
   const [adding, setAdding] = useState(false);
   const [repository, setRepository] = useState('');
   const [branch, setBranch] = useState('main');
+  const [derived, setDerived] = useState(false);
   const [cloning, setCloning] = useState(false);
   const [cloneError, setCloneError] = useState<string | null>(null);
   const [plan, setPlan] = useState<PlanCardModel | null>(null);
@@ -38,7 +39,7 @@ export function WorkspaceEmptyScreen() {
     rightAction: canCreate === true ? {
       label: 'Add',
       accessibilityLabel: 'Add workspace',
-      onPress: () => { setRepository(''); setBranch('main'); setCloneError(null); setAdding(true); },
+      onPress: () => { setRepository(''); setBranch('main'); setDerived(false); setCloneError(null); setAdding(true); },
     } : null,
     sidebarContent: null,
   }), [canCreate]);
@@ -49,7 +50,12 @@ export function WorkspaceEmptyScreen() {
     if (cloning) return;
     setCloning(true); setCloneError(null);
     try {
-      await clone({ repository: repository.trim(), branch: branch.trim() });
+      const revision = branch.trim();
+      await clone({
+        repository: repository.trim(),
+        branch: revision,
+        ...(derived ? { derived: true, revision } : {}),
+      });
       setAdding(false);
     } catch (cause) {
       setCloneError(cause instanceof Error ? cause.message : 'Could not clone the repository.');
@@ -57,8 +63,6 @@ export function WorkspaceEmptyScreen() {
       setCloning(false);
     }
   };
-
-  const canConfirm = !cloning && canCloneWorkspace(repository, branch);
 
   return (
     <>
@@ -78,35 +82,19 @@ export function WorkspaceEmptyScreen() {
         </View>
       </ScrollView>
 
-      <Modal visible={adding} transparent animationType="fade" onRequestClose={() => setAdding(false)}>
-        <View style={styles.modalScrim}>
-          <View style={styles.dialog}>
-            <Text accessibilityRole="header" style={styles.dialogTitle}>Add workspace</Text>
-            <Text style={styles.dialogDetail}>
-              Agent-Up clones the repository into its managed source clones directory and registers the workspace.
-            </Text>
-            <Text style={styles.label}>Repository</Text>
-            <TextInput accessibilityLabel="Repository" autoCapitalize="none" autoCorrect={false}
-              placeholder="https://github.com/acme/widgets.git" placeholderTextColor={agentUpTheme.colors.textFaint}
-              value={repository} onChangeText={setRepository} editable={!cloning} style={styles.input} />
-            <Text style={styles.label}>Branch</Text>
-            <TextInput accessibilityLabel="Branch" autoCapitalize="none" autoCorrect={false}
-              placeholder="main" placeholderTextColor={agentUpTheme.colors.textFaint}
-              value={branch} onChangeText={setBranch} editable={!cloning} style={styles.input} />
-            {!!cloneError && <Text accessibilityRole="alert" style={styles.error}>{cloneError}</Text>}
-            <View style={styles.dialogActions}>
-              <Pressable accessibilityRole="button" accessibilityLabel="Cancel" disabled={cloning}
-                onPress={() => setAdding(false)} style={[styles.secondaryButton, cloning && styles.disabled]}>
-                <Text style={styles.secondaryButtonText}>Cancel</Text>
-              </Pressable>
-              <Pressable accessibilityRole="button" accessibilityLabel="Clone" disabled={!canConfirm}
-                onPress={() => void confirmClone()} style={[styles.button, !canConfirm && styles.disabled]}>
-                {cloning ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.buttonText}>Clone</Text>}
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <CloneWorkspaceDialog
+        visible={adding}
+        repository={repository}
+        branch={branch}
+        derived={derived}
+        cloning={cloning}
+        error={cloneError}
+        onRepository={setRepository}
+        onBranch={setBranch}
+        onDerived={setDerived}
+        onCancel={() => setAdding(false)}
+        onConfirm={() => { void confirmClone(); }}
+      />
     </>
   );
 }

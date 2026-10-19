@@ -100,7 +100,7 @@ public sealed class FakeBackendService
             return CloneWorkspace(request.Body);
         if (method == "POST" && path.StartsWith("/api/source-clones/", StringComparison.Ordinal)
             && path.EndsWith("/refresh", StringComparison.Ordinal))
-            return RefreshClone(path);
+            return RefreshClone(path, request.Body);
         if (method == "POST" && path == "/api/apps/tickets")
             return IssueTicket(request.Body);
         if (method == "POST" && path == "/api/audit/record")
@@ -565,7 +565,7 @@ public sealed class FakeBackendService
         return new FakeBackendResponseDto(201, "application/json", workspace.ToJsonString(WebOptions()));
     }
 
-    private FakeBackendResponseDto RefreshClone(string path)
+    private FakeBackendResponseDto RefreshClone(string path, string? body)
     {
         var workspaceId = path["/api/source-clones/".Length..];
         if (workspaceId.EndsWith("/refresh", StringComparison.Ordinal))
@@ -575,6 +575,13 @@ public sealed class FakeBackendService
             var workspace = FindWorkspace(workspaceId);
             if (workspace is null || workspace["derived"]?.GetValue<bool>() != true)
                 return new FakeBackendResponseDto(400, "application/json", """{"detail":"Only derived review workspaces can be refreshed in place."}""");
+            var revision = ReadJsonString(body, "revision");
+            if (!string.IsNullOrWhiteSpace(revision))
+            {
+                workspace["sourceRevision"] = revision;
+                workspace["branch"] = revision;
+                workspace["displayName"] = $"Review · {revision}";
+            }
             workspace["commit"] = "refreshed";
             PublishWorkspaces();
             return new FakeBackendResponseDto(200, "application/json", workspace.ToJsonString(WebOptions()));

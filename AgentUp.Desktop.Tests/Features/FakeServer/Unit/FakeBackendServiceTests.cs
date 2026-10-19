@@ -161,6 +161,20 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_refreshMovesADerivedCloneOntoAnotherRevision()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var cloned = Json(backend, Post("/api/source-clones", """{"repository":"https://git.example/widgets.git","revision":"topic","derived":true}"""));
+        var workspaceId = cloned["id"]!.GetValue<string>();
+
+        var refreshed = Json(backend, Post($"/api/source-clones/{workspaceId}/refresh", """{"revision":"release"}"""));
+
+        Assert.That(refreshed["id"]!.GetValue<string>(), Is.EqualTo(workspaceId));
+        Assert.That(refreshed["displayName"]!.GetValue<string>(), Is.EqualTo("Review · release"));
+        Assert.That(refreshed["sourceRevision"]!.GetValue<string>(), Is.EqualTo("release"));
+    }
+
+    [Test]
     public void Handle_unknownPathsReturnNotFound()
     {
         var backend = FakeServerTestComposition.Backend();

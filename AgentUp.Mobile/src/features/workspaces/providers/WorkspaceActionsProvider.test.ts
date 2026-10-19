@@ -34,6 +34,7 @@ function api(overrides: Partial<WorkspaceActionsApi> = {}): WorkspaceActionsApi 
   return {
     clone: async () => workspace('cloned'),
     refreshClone: async () => workspace('refreshed'),
+    remove: async () => {},
     start: async () => {},
     stop: async () => {},
     ...overrides,
@@ -119,6 +120,26 @@ test('refreshClone refreshes the list while its server is still active', async (
 
   active.url = 'http://b';
   await actions.refreshClone(at('http://a'), 'ws-1');
+  assert.deepEqual(refreshed, ['http://a']);
+});
+
+test('remove refreshes the list while its server is still active', async () => {
+  const active = { url: 'http://a' as string | null };
+  const refreshed: (string | null)[] = [];
+  const removed: string[] = [];
+  const actions = createWorkspaceActions(
+    fakeRefresher(active, refreshed),
+    api({ remove: async (_server, id) => { removed.push(id); } }),
+    { onSelect: () => {} },
+  );
+
+  await actions.remove(at('http://a'), 'ws-1');
+  assert.deepEqual(removed, ['ws-1']);
+  assert.deepEqual(refreshed, ['http://a']);
+
+  active.url = 'http://b';
+  await actions.remove(at('http://a'), 'ws-2');
+  assert.deepEqual(removed, ['ws-1', 'ws-2']);
   assert.deepEqual(refreshed, ['http://a']);
 });
 
