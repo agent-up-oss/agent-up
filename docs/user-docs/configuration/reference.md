@@ -96,7 +96,7 @@ Used at the root so `agent-up verify` and `/mcp/verification` can select checks 
 
 | Property | Type | Required | Default | Description |
 |---|---:|---:|---:|---|
-| `enforcement` | `warn` or `block` | No | `warn` | Whether `guard` fails a run when receipts are missing. This repository uses `block`. Skipped `ciOnly` or wrong-platform checks do not fail the guard. |
+| `enforcement` | `warn` or `block` | No | `warn` | Whether `guard` fails a run when receipts are missing. This repository uses `block`. Skipped `ciOnly` or wrong-platform checks do not fail the guard. A missing required toolchain does. |
 | `always` | array of check ids | No | `[]` | Checks required for any change, in run order. |
 | `checks` | object of [Verification Check](#verification-check-object) | No | `{}` | Named commands keyed by check id. |
 | `paths` | array of [Verification Path](#verification-path-object) | No | `[]` | Globs evaluated in order; every match contributes its check ids. |
@@ -112,6 +112,7 @@ Used at the root so `agent-up verify` and `/mcp/verification` can select checks 
 | `ciOnly` | boolean | No | `false` | Required in CI, skipped locally. |
 | `order` | number | No | `0` | Sort key among selected checks; ties break by id. |
 | `inputs` | array of strings | No | `[]` | Path prefixes whose changed files belong in this check's covered map. |
+| `requires` | array of toolchain ids, or objects `{ "id", "minimum" }` | No | `[]` | Toolchains that must be present before the check can run. Ids are `dotnet`, `node`, `npm`, `docker`, `git`, and `nix`. An unknown id is a configuration error. A missing tool skips the check; it does not fail it, and the guard still treats it as unproven. |
 
 ## Verification Path Object
 
