@@ -179,6 +179,14 @@ public class WorkspaceRegistryTests
     }
 
     [Test]
+    public async Task UpdateDerivedRevision_ReturnsFalseForAnUnknownWorkspace()
+    {
+        Assert.That(
+            await _registry.UpdateDerivedRevisionAsync("missing", "Review · release", "release", "release", "cafebabe"),
+            Is.False);
+    }
+
+    [Test]
     public async Task Register_SameWorktreePath_ResetsStateTo_Stopped()
     {
         var first = await _registry.RegisterAsync(ServerDomain.Workspace().Build());

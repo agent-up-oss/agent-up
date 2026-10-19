@@ -147,6 +147,26 @@ public sealed class SourceCloneServiceTests
     }
 
     [Test]
+    public async Task RefreshAsync_usesTheCheckedOutBranchWhenTheStoredRevisionIsMissing()
+    {
+        var git = new FakeSourceCloneGitProvider();
+        var service = CreateService(git: git);
+        var cloned = await service.CloneAsync(new CloneSourceRequest(
+            "https://example.test/acme/widgets.git",
+            "topic")
+        {
+            Derived = true
+        });
+        var branch = cloned.Workspace!.Branch;
+        cloned.Workspace.SourceRevision = null;
+
+        var refreshed = await service.RefreshAsync(cloned.Workspace.Id, "   ");
+
+        Assert.That(refreshed.Succeeded, Is.True);
+        Assert.That(git.Refreshed, Is.EqualTo((Destination, branch)));
+    }
+
+    [Test]
     public async Task RefreshAsync_checksOutADifferentRevisionWithoutRecreatingTheClone()
     {
         var git = new FakeSourceCloneGitProvider();

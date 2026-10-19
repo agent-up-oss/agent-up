@@ -1,3 +1,4 @@
+using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
@@ -87,6 +88,32 @@ public class WorkspaceItemViewModelTests
         Assert.That(vm.Derived, Is.True);
         Assert.That(vm.Subtitle, Is.EqualTo("topic"));
         Assert.That(vm.ShowRefreshButton, Is.True);
+    }
+
+    [Test]
+    public async Task RefreshCommand_asksTheHostToRetargetTheReviewRevision()
+    {
+        var vm = new WorkspaceItemViewModel(
+            "ws-1", "Review · topic", "HEAD", "/repo", "/worktree", "Stopped",
+            derived: true, sourceRevision: "topic");
+        var host = new RecordingHost();
+        vm.SetHost(host);
+
+        await vm.RefreshCommand.Execute().FirstAsync();
+
+        Assert.That(host.Refresh, Is.EqualTo(("ws-1", "topic")));
+    }
+
+    [Test]
+    public async Task RefreshCommand_doesNothingWhenNoHostIsAttached()
+    {
+        var vm = new WorkspaceItemViewModel(
+            "ws-1", "Review · topic", "HEAD", "/repo", "/worktree", "Stopped",
+            derived: true, sourceRevision: "topic");
+
+        await vm.RefreshCommand.Execute().FirstAsync();
+
+        Assert.That(vm.Subtitle, Is.EqualTo("topic"));
     }
 
     [Test]
@@ -232,5 +259,20 @@ public class WorkspaceItemViewModelTests
             Assert.That(vm.Applications[0].Command, Is.Empty);
             Assert.That(vm.Applications[0].State, Is.EqualTo("Running"));
         });
+    }
+
+    private sealed class RecordingHost : IWorkspaceItemHost
+    {
+        public (string WorkspaceId, string Revision)? Refresh { get; private set; }
+
+        public Task StartWorkspaceAsync(string workspaceId) => Task.CompletedTask;
+
+        public Task StopWorkspaceAsync(string workspaceId) => Task.CompletedTask;
+
+        public void RequestDeleteWorkspace(string workspaceId, string displayName)
+            => throw new InvalidOperationException($"Refresh coverage does not delete {workspaceId} ({displayName}).");
+
+        public void ShowRefreshDerivedWorkspace(string workspaceId, string currentRevision)
+            => Refresh = (workspaceId, currentRevision);
     }
 }
