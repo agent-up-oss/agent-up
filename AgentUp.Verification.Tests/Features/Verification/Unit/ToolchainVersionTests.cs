@@ -25,6 +25,8 @@ public sealed class ToolchainVersionTests
             Assert.That(ToolchainVersion.Meets("6.0.0", "8.0.0"), Is.False);
             Assert.That(ToolchainVersion.Meets("10.0.0", "8.0.0"), Is.True);
             Assert.That(ToolchainVersion.Meets(null, "8.0.0"), Is.False);
+            Assert.That(ToolchainVersion.Meets("8.0.0", "8.0.0"), Is.True);
+            Assert.That(ToolchainVersion.Meets("99999999999.0", "1.0"), Is.False);
         });
     }
 }

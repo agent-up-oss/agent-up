@@ -270,4 +270,84 @@ public sealed class VerificationConfigurationLoaderTests
             () => new VerificationConfigurationLoader(Path.Join(root, "rules.json"), requireFile: true).Load(root),
             Throws.TypeOf<VerificationConfigurationException>());
     }
+
+    [Test]
+    public void Load_throwsWhenRequiresIsNotAnArray()
+    {
+        var root = WriteRepository("""
+        {
+          "verification": {
+            "checks": { "build": { "command": "dotnet build", "requires": "dotnet" } },
+            "paths": []
+          }
+        }
+        """);
+
+        Assert.That(() => new VerificationConfigurationLoader().Load(root),
+            Throws.TypeOf<VerificationConfigurationException>().With.Message.Contains("array"));
+    }
+
+    [Test]
+    public void Load_throwsWhenAToolchainIsListedTwice()
+    {
+        var root = WriteRepository("""
+        {
+          "verification": {
+            "checks": { "build": { "command": "dotnet build", "requires": ["git", "git"] } },
+            "paths": []
+          }
+        }
+        """);
+
+        Assert.That(() => new VerificationConfigurationLoader().Load(root),
+            Throws.TypeOf<VerificationConfigurationException>().With.Message.Contains("more than once"));
+    }
+
+    [Test]
+    public void Load_throwsWhenARequiresEntryIsNeitherAStringNorAnObject()
+    {
+        var root = WriteRepository("""
+        {
+          "verification": {
+            "checks": { "build": { "command": "dotnet build", "requires": [1] } },
+            "paths": []
+          }
+        }
+        """);
+
+        Assert.That(() => new VerificationConfigurationLoader().Load(root),
+            Throws.TypeOf<VerificationConfigurationException>().With.Message.Contains("toolchain id"));
+    }
+
+    [Test]
+    public void Load_throwsWhenARequiresObjectOmitsItsId()
+    {
+        var root = WriteRepository("""
+        {
+          "verification": {
+            "checks": { "build": { "command": "dotnet build", "requires": [ { "minimum": "2.0" } ] } },
+            "paths": []
+          }
+        }
+        """);
+
+        Assert.That(() => new VerificationConfigurationLoader().Load(root),
+            Throws.TypeOf<VerificationConfigurationException>().With.Message.Contains("without an 'id'"));
+    }
+
+    [Test]
+    public void Load_throwsWhenAToolchainMinimumCannotBeRead()
+    {
+        var root = WriteRepository("""
+        {
+          "verification": {
+            "checks": { "build": { "command": "dotnet build", "requires": [ { "id": "git", "minimum": "latest" } ] } },
+            "paths": []
+          }
+        }
+        """);
+
+        Assert.That(() => new VerificationConfigurationLoader().Load(root),
+            Throws.TypeOf<VerificationConfigurationException>().With.Message.Contains("unreadable minimum"));
+    }
 }

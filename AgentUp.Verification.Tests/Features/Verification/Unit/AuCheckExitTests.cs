@@ -33,6 +33,33 @@ public sealed class AuCheckExitTests
     }
 
     [Test]
+    public void ForPlan_usesDistinctCodesForAnIncompleteMapAndAMissingToolchain()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(AuCheckExit.ForPlan(Plan(CheckSkipReason.None, unmatched: true)).Code, Is.EqualTo(AuCheckExit.Invalid));
+            Assert.That(AuCheckExit.ForPlan(Plan(CheckSkipReason.ToolchainMissing, unmatched: false)).Code, Is.EqualTo(AuCheckExit.CannotRun));
+            Assert.That(AuCheckExit.ForPlan(Plan(CheckSkipReason.None, unmatched: false)).Code, Is.EqualTo(AuCheckExit.Passed));
+        });
+    }
+
+    [Test]
+    public void ForGuard_returnsFailedForAFailedCheckAndForACheckThatNeverRan()
+    {
+        var failed = new CheckVerdict("unit", "dotnet test", CheckVerdictKind.Failed, "exited 1");
+        var neverRun = new CheckVerdict("unit", "dotnet test", CheckVerdictKind.NeverRun, "has not run");
+        var unmatched = new GuardReport([], VerificationEnforcement.Block, ["orphan.txt"], 1);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(AuCheckExit.ForGuard(new GuardReport([failed], VerificationEnforcement.Block, [], 1)).Code, Is.EqualTo(AuCheckExit.Failed));
+            Assert.That(AuCheckExit.ForGuard(new GuardReport([neverRun], VerificationEnforcement.Block, [], 1)).Code, Is.EqualTo(AuCheckExit.Failed));
+            Assert.That(AuCheckExit.ForGuard(unmatched).Code, Is.EqualTo(AuCheckExit.Invalid));
+            Assert.That(AuCheckExit.ForGuard(unmatched).Reason, Is.EqualTo(AuCheckExit.ReasonUnmatched));
+        });
+    }
+
+    [Test]
     public void ForGuard_returnsCannotRunWhenTheOnlyBlockIsAMissingToolchain()
     {
         var skipped = new CheckVerdict("image", "docker info", CheckVerdictKind.Skipped, "docker is not installed", CheckSkipReason.ToolchainMissing);

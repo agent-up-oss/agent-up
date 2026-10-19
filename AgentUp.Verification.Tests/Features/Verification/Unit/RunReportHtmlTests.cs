@@ -43,18 +43,46 @@ public sealed class RunReportHtmlTests
         });
     }
 
-    private static RunReport Report()
+    [Test]
+    public void Summary_saysEveryCheckCouldRunAndPointsAtTheFullReportForFurtherFailures()
+    {
+        var html = RunReportHtml.Summary(Report(
+            new RunReportCheck("unit", "fast", "dotnet test", "failed", 12, null, null, "boom"),
+            new RunReportCheck("lint", "fast", "dotnet format", "failed", 4, null, null, "format-boom")));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(html, Does.Contain("Every required check could run on this machine."));
+            Assert.That(html, Does.Contain("1 more failure(s) are in report.html."));
+            Assert.That(html, Does.Contain("boom"));
+            Assert.That(html, Does.Not.Contain("format-boom"));
+        });
+    }
+
+    [Test]
+    public void Full_printsASkipReasonWhenNoToolchainTextIsAttached()
+    {
+        var html = RunReportHtml.Full(Report(
+            new RunReportCheck("hosted", "platform", "dotnet test", "skipped", null, "platformMismatch", null, null)));
+
+        Assert.That(html, Does.Contain("platformMismatch"));
+    }
+
+    private static RunReport Report(params RunReportCheck[] checks)
         => new(
             "0.0.0",
             "/repo/agent-up.json",
             "sha256:abc",
             "abc123",
             ["src/A.cs"],
-            [
-                new RunReportCheck("image", "fast", "docker info", "skipped", null, "toolchainMissing", "docker is not installed", null),
-                new RunReportCheck("unit", "fast", "dotnet test", "failed", 12, null, null, "boom"),
-                new RunReportCheck("lint", "fast", "dotnet format", "passed", 4, null, null, null)
-            ],
+            checks.Length == 0
+                ?
+                [
+                    new RunReportCheck("image", "fast", "docker info", "skipped", null, "toolchainMissing", "docker is not installed", null),
+                    new RunReportCheck("unit", "fast", "dotnet test", "failed", 12, null, null, "boom"),
+                    new RunReportCheck("lint", "fast", "dotnet format", "passed", 4, null, null, null)
+                ]
+                : checks,
             2,
             1,
             1,

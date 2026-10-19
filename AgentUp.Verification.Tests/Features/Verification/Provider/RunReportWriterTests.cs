@@ -61,6 +61,92 @@ public sealed class RunReportWriterTests
     }
 
     [Test]
+    public async Task CaptureAsync_reportsAMissingBrowserFromTheDefaultSearch()
+    {
+        var directory = Path.Join(TestContext.CurrentContext.WorkDirectory, "chrome-path-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var previous = Environment.GetEnvironmentVariable("PATH");
+        Environment.SetEnvironmentVariable("PATH", directory);
+        try
+        {
+            var exception = Assert.ThrowsAsync<ReportCaptureException>(async () =>
+                await new ChromiumReportPageCapture().CaptureAsync("/tmp/summary.html", "/tmp/report.png", 1200, 720, CancellationToken.None));
+
+            Assert.That(exception!.Message, Does.Contain("not installed"));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("PATH", previous);
+        }
+    }
+
+    [Test]
+    public void CaptureAsync_reportsAMissingBrowserWhenTheSearchPathIsBlank()
+    {
+        var capture = new ChromiumReportPageCapture(TimeSpan.FromSeconds(1), "   ");
+
+        var exception = Assert.ThrowsAsync<ReportCaptureException>(async () =>
+            await capture.CaptureAsync("/tmp/summary.html", "/tmp/report.png", 1200, 720, CancellationToken.None));
+
+        Assert.That(exception!.Message, Does.Contain("not installed"));
+    }
+
+    [Test]
+    public void CaptureAsync_reportsWhenChromiumExitsWithoutAScreenshot()
+    {
+        var directory = Browser("#!/bin/sh\nexit 1\n");
+        var capture = new ChromiumReportPageCapture(TimeSpan.FromSeconds(5), directory);
+
+        var exception = Assert.ThrowsAsync<ReportCaptureException>(async () =>
+            await capture.CaptureAsync("/tmp/summary.html", Path.Join(directory, "missing.png"), 1200, 720, CancellationToken.None));
+
+        Assert.That(exception!.Message, Does.Contain("did not write"));
+    }
+
+    [Test]
+    public void CaptureAsync_reportsWhenChromiumCannotStart()
+    {
+        var directory = Path.Join(TestContext.CurrentContext.WorkDirectory, "chrome-bad-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Join(directory, "chromium"), "not a program");
+        var capture = new ChromiumReportPageCapture(TimeSpan.FromSeconds(5), directory);
+
+        var exception = Assert.ThrowsAsync<ReportCaptureException>(async () =>
+            await capture.CaptureAsync("/tmp/summary.html", Path.Join(directory, "missing.png"), 1200, 720, CancellationToken.None));
+
+        Assert.That(exception!.Message, Does.Contain("Could not start"));
+    }
+
+    [Test]
+    public void CaptureAsync_stillReportsTheExitWhenTheProfileIsAlreadyGone()
+    {
+        var directory = Browser("""
+            #!/bin/sh
+            for arg in "$@"; do
+              case "$arg" in
+                --user-data-dir=*) rm -rf "${arg#--user-data-dir=}" ;;
+              esac
+            done
+            exit 1
+            """);
+        var capture = new ChromiumReportPageCapture(TimeSpan.FromSeconds(5), directory);
+
+        var exception = Assert.ThrowsAsync<ReportCaptureException>(async () =>
+            await capture.CaptureAsync("/tmp/summary.html", Path.Join(directory, "missing.png"), 1200, 720, CancellationToken.None));
+
+        Assert.That(exception!.Message, Does.Contain("did not write"));
+    }
+
+    [Test]
+    public async Task WriteAsync_stillWritesTheReportWhenTheSummaryFileCannotBeDeleted()
+    {
+        var directory = Path.Join(TestContext.CurrentContext.WorkDirectory, "report-locked-" + Guid.NewGuid().ToString("N"));
+        await new RunReportWriter(new DirectoryReplacingCapture()).WriteAsync(directory, SampleReport(), CancellationToken.None);
+
+        Assert.That(File.ReadAllText(Path.Join(directory, "report.json")), Does.Contain("toolchainMissing"));
+    }
+
+    [Test]
     public void ChromiumArguments_matchTheProductScreenCaptureFlags()
     {
         var arguments = ChromiumReportPageCapture.Arguments("/tmp/summary.html", "/tmp/report.png", "/tmp/profile", 1200, 720);
@@ -86,4 +172,41 @@ public sealed class RunReportWriterTests
             await File.WriteAllBytesAsync(pngPath, [0x89, 0x50, 0x4E, 0x47], cancellationToken);
         }
     }
+
+    private sealed class DirectoryReplacingCapture : IReportPageCapture
+    {
+        public Task CaptureAsync(string htmlPath, string pngPath, int width, int height, CancellationToken cancellationToken)
+        {
+            File.Delete(htmlPath);
+            Directory.CreateDirectory(htmlPath);
+            return File.WriteAllBytesAsync(pngPath, [0x89, 0x50, 0x4E, 0x47], cancellationToken);
+        }
+    }
+
+    private static string Browser(string body)
+    {
+        var directory = Path.Join(TestContext.CurrentContext.WorkDirectory, "chrome-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        var executable = Path.Join(directory, "chromium");
+        File.WriteAllText(executable, body);
+        if (!OperatingSystem.IsWindows())
+            File.SetUnixFileMode(executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+
+        return directory;
+    }
+
+    private static RunReport SampleReport()
+        => new(
+            "0.0.0",
+            "/repo/agent-up.json",
+            "sha256:abc",
+            "abc123",
+            ["src/A.cs"],
+            [new RunReportCheck("image", "fast", "docker info", "skipped", null, "toolchainMissing", "docker is not installed", null)],
+            0,
+            0,
+            0,
+            1,
+            2,
+            "toolchainMissing");
 }
