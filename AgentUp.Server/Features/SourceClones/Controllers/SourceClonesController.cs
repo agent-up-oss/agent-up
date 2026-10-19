@@ -1,6 +1,7 @@
 using AgentUp.Server.Features.SourceClones.DTOs;
 using AgentUp.Server.Features.SourceClones.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace AgentUp.Server.Features.SourceClones.Controllers;
 
@@ -19,9 +20,11 @@ public sealed class SourceClonesController(SourceCloneService clones) : Controll
     }
 
     [HttpPost("{workspaceId}/refresh")]
-    public async Task<IActionResult> Refresh(string workspaceId)
+    public async Task<IActionResult> Refresh(
+        string workspaceId,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] RefreshSourceRequest? request)
     {
-        var result = await clones.RefreshAsync(workspaceId, HttpContext.RequestAborted);
+        var result = await clones.RefreshAsync(workspaceId, request?.Revision, HttpContext.RequestAborted);
         return result is { Succeeded: true, Workspace: { } workspace }
             ? Ok(workspace)
             : Problem(detail: result.Error, statusCode: 400, title: "Source clone refresh failed");

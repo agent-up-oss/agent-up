@@ -46,9 +46,10 @@ public sealed class WorkspacesControllerTests
         await controller.StartAsync("one");
         await controller.StopAsync("two");
         await controller.DeleteAsync("three");
-        await controller.RefreshCloneAsync("four");
+        await controller.RefreshCloneAsync("four", "release");
 
         Assert.That(provider.Actions, Is.EqualTo(new[] { "start:one", "stop:two", "delete:three", "refresh:four" }));
+        Assert.That(provider.RefreshedRevision, Is.EqualTo("release"));
     }
 
     private sealed class RecordingWorkspaceProvider : IWorkspaceApiProvider
@@ -71,9 +72,12 @@ public sealed class WorkspacesControllerTests
                 .InState("stopped")
                 .Build());
         }
-        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default)
+        public string? RefreshedRevision { get; private set; }
+
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, string? revision = null, CancellationToken cancellationToken = default)
         {
             Actions.Add($"refresh:{workspaceId}");
+            RefreshedRevision = revision;
             return Task.FromResult(DesktopDomain.Workspace().WithId(workspaceId).Build());
         }
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) { Actions.Add($"start:{workspaceId}"); return Task.CompletedTask; }

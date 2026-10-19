@@ -75,7 +75,7 @@ public class WorkspaceListViewModelOrderingTests
                 .Stopped()
                 .Build());
 
-        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default) =>
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, string? revision = null, CancellationToken cancellationToken = default) =>
             Task.FromResult(DesktopDomain.Workspace().WithId(workspaceId).Stopped().Build());
 
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) =>

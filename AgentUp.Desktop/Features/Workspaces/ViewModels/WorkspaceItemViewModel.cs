@@ -160,7 +160,10 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         => _host?.StopWorkspaceAsync(Id) ?? Task.CompletedTask;
 
     private Task RefreshAsync()
-        => _host?.RefreshDerivedWorkspaceAsync(Id) ?? Task.CompletedTask;
+    {
+        _host?.ShowRefreshDerivedWorkspace(Id, Subtitle);
+        return Task.CompletedTask;
+    }
 
     private void RequestDelete()
         => _host?.RequestDeleteWorkspace(Id, DisplayName);

@@ -106,7 +106,10 @@ native pasted-code flow returns from the system browser, Detox delivers that con
 so an iOS process reclaimed in the background remounts the same workspace. After launch the
 native suite waits for the picker, the connect form, or the picker
 prompt as a condition: a 500ms peek at the form skipped Connect when the deep link missed, and
-then waited a minute for a picker the chat never mounted. A launcher Application Not Responding
+then waited a minute for a picker the chat never mounted. A blank frame stays in that wait
+until the deadline. Relaunching on the first empty snapshot interrupted a deep link that had
+already connected, and Detox then waited on the connect form while the event stream kept the
+app busy. A launcher Application Not Responding
 dialog is force-stopped without sending Home, because Home relaunches that same dialog over the
 app.
 

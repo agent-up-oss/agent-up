@@ -293,9 +293,10 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         vm.Sidebar.DeleteConfirmation.WhenAnyValue(d => d.IsVisible)
             .CombineLatest(
                 vm.Sidebar.AddWorkspace.WhenAnyValue(a => a.IsVisible),
+                vm.Sidebar.RefreshReview.WhenAnyValue(a => a.IsVisible),
                 vm.Git.Diff.WhenAnyValue(d => d.IsVisible),
-                (deleteVisible, addVisible, diffVisible) =>
-                    deleteVisible || addVisible || diffVisible)
+                (deleteVisible, addVisible, refreshVisible, diffVisible) =>
+                    deleteVisible || addVisible || refreshVisible || diffVisible)
             .DistinctUntilChanged()
             .Subscribe(modalVisible =>
                 Dispatcher.UIThread.Post(() => ApplyModalOverlayWebViewVisibility(modalVisible)))
@@ -1121,6 +1122,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private static bool IsModalOverlayVisible(MainViewModel vm)
         => vm.Sidebar.DeleteConfirmation.IsVisible
            || vm.Sidebar.AddWorkspace.IsVisible
+           || vm.Sidebar.RefreshReview.IsVisible
            || vm.Git.Diff.IsVisible;
 
     private void ApplyModalOverlayWebViewVisibility(bool modalOverlayVisible)

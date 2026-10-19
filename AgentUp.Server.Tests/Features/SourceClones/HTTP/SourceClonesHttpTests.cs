@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using AgentUp.Server.Features.SourceClones.DTOs;
 using AgentUp.Server.Features.SourceClones.Providers;
 using AgentUp.Server.Features.Workspaces.DTOs;
@@ -12,6 +14,11 @@ namespace AgentUp.Server.Tests.Features.SourceClones.HTTP;
 [TestFixture]
 public sealed class SourceClonesHttpTests
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
+
     private string _dataDirectory = null!;
     private string _clonesRoot = null!;
     private string? _previousRoot;
@@ -158,5 +165,61 @@ public sealed class SourceClonesHttpTests
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
         Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("not found"));
+    }
+
+    [Test]
+    public async Task PostRefresh_rejectsARevisionThatIsNotAGitName()
+    {
+        using var client = _factory.CreateClient();
+        var created = await client.PostAsJsonAsync(
+            "/api/workspaces",
+            ServerDomain.Workspace()
+                .Named("Review · main")
+                .At(Path.Join(_clonesRoot, "widgets-review-main"))
+                .AsDerived("https://example.test/acme/widgets.git", "main")
+                .Build());
+        var workspace = (await created.Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/source-clones/{workspace.Id}/refresh",
+            new RefreshSourceRequest("--upload-pack=whoami"));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("Revision"));
+    }
+
+    [Test]
+    public async Task PostRefresh_movesADerivedCloneOntoAnotherRevision()
+    {
+        var origin = Path.Join(_dataDirectory, "origin");
+        await TestGitRepository.InitializeAsync(origin);
+        await File.WriteAllTextAsync(Path.Join(origin, "README.md"), "one\n");
+        await TestGitRepository.CommitAllAsync(origin, "initial");
+        var clone = Path.Join(_clonesRoot, "widgets-review-main");
+        await TestGitRepository.RunAsync(_dataDirectory, "clone", origin, clone);
+        await TestGitRepository.RunAsync(origin, "checkout", "-b", "next");
+        await File.WriteAllTextAsync(Path.Join(origin, "README.md"), "two\n");
+        await TestGitRepository.CommitAllAsync(origin, "next");
+        var expected = await TestGitRepository.ReadAsync(origin, "rev-parse", "HEAD");
+        using var client = _factory.CreateClient();
+        var created = await client.PostAsJsonAsync(
+            "/api/workspaces",
+            ServerDomain.Workspace()
+                .Named("Review · main")
+                .At(clone)
+                .AsDerived("https://example.test/acme/widgets.git", "main")
+                .Build());
+        var workspace = (await created.Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/source-clones/{workspace.Id}/refresh",
+            new RefreshSourceRequest("next"));
+
+        var refreshed = await response.Content.ReadFromJsonAsync<Workspace>(JsonOptions);
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(refreshed!.SourceRevision, Is.EqualTo("next"));
+        Assert.That(refreshed.DisplayName, Is.EqualTo("Review · next"));
+        Assert.That(refreshed.WorktreePath, Is.EqualTo(Path.GetFullPath(clone)));
+        Assert.That(await TestGitRepository.ReadAsync(clone, "rev-parse", "HEAD"), Is.EqualTo(expected));
     }
 }

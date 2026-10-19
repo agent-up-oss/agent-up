@@ -129,7 +129,7 @@ public sealed class WorkspaceOverviewViewModelTests
         public Task<WorkspaceDto> CloneAsync(CloneSourceRequestDto request, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
-        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default) =>
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, string? revision = null, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) =>

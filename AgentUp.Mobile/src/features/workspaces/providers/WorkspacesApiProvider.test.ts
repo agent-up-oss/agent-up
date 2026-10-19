@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { cloneSourceRepository, listWorkspaces, refreshClone, startWorkspace, stopWorkspace } from './WorkspacesApiProvider';
+import { cloneSourceRepository, listWorkspaces, refreshClone, removeWorkspace, startWorkspace, stopWorkspace } from './WorkspacesApiProvider';
 
 type Recorded = { url: string; init: RequestInit };
 
@@ -120,10 +120,40 @@ test('refreshClone posts to the source clone refresh route', async () => {
     derived: true,
   });
 
-  const workspace = await refreshClone({ url: 'http://localhost:5000' }, 'ws 1', fakeFetch(200, body, recorded));
+  const workspace = await refreshClone({ url: 'http://localhost:5000' }, 'ws 1', undefined, fakeFetch(200, body, recorded));
 
   assert.equal(workspace.commit, 'refreshed');
   assert.equal(recorded[0].url, 'http://localhost:5000/api/source-clones/ws%201/refresh');
+  assert.equal(recorded[0].init.body, undefined);
+});
+
+test('refreshClone posts a different revision when one is named', async () => {
+  const recorded: Recorded[] = [];
+  const body = JSON.stringify({
+    id: 'ws-1',
+    displayName: 'Review · release',
+    repositoryPath: '/clones/widgets-review-topic',
+    worktreePath: '/clones/widgets-review-topic',
+    branch: 'release',
+    commit: 'refreshed',
+    state: 'Stopped',
+    derived: true,
+    sourceRevision: 'release',
+  });
+
+  const workspace = await refreshClone({ url: 'http://localhost:5000' }, 'ws-1', 'release', fakeFetch(200, body, recorded));
+
+  assert.equal(workspace.sourceRevision, 'release');
+  assert.equal(JSON.parse(String(recorded[0].init.body)).revision, 'release');
+});
+
+test('removeWorkspace deletes the workspace', async () => {
+  const recorded: Recorded[] = [];
+
+  await removeWorkspace({ url: 'http://localhost:5000' }, 'ws 1', fakeFetch(204, '', recorded));
+
+  assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws%201');
+  assert.equal(recorded[0].init.method, 'DELETE');
 });
 
 test('startWorkspace and stopWorkspace escape the workspace id', async () => {

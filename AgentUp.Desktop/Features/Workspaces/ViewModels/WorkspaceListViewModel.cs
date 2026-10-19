@@ -25,6 +25,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
 
     public WorkspaceCloneViewModel AddWorkspace { get; }
 
+    public WorkspaceRefreshViewModel RefreshReview { get; }
+
     public PlanCardViewModel Plan { get; } = new();
 
     public WorkspaceItemViewModel? SelectedWorkspace
@@ -116,6 +118,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         DeleteConfirmation = deleteConfirmation;
         AddWorkspace = new WorkspaceCloneViewModel(
             (repository, revision, derived) => CloneWorkspaceAsync(repository, revision, derived));
+        RefreshReview = new WorkspaceRefreshViewModel(
+            (workspaceId, revision) => RefreshDerivedWorkspaceAsync(workspaceId, revision));
         RefreshCommand = ReactiveCommand.CreateFromTask(LoadAsync);
         ToggleCommand = ReactiveCommand.Create(() => { IsCollapsed = !IsCollapsed; });
         ShowAddWorkspaceCommand = ReactiveCommand.Create(
@@ -163,8 +167,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
     Task IWorkspaceItemHost.StopWorkspaceAsync(string workspaceId)
         => StopWorkspaceAsync(workspaceId);
 
-    Task IWorkspaceItemHost.RefreshDerivedWorkspaceAsync(string workspaceId)
-        => RefreshDerivedWorkspaceAsync(workspaceId);
+    void IWorkspaceItemHost.ShowRefreshDerivedWorkspace(string workspaceId, string currentRevision)
+        => RefreshReview.Show(workspaceId, currentRevision);
 
     void IWorkspaceItemHost.RequestDeleteWorkspace(string workspaceId, string displayName)
         => DeleteConfirmation.Show(workspaceId, displayName);
@@ -224,21 +228,24 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         }
     }
 
-    public async Task RefreshDerivedWorkspaceAsync(string workspaceId, CancellationToken ct = default)
+    public async Task<bool> RefreshDerivedWorkspaceAsync(string workspaceId, string? revision = null, CancellationToken ct = default)
     {
         try
         {
-            var workspace = await _workspaces.RefreshCloneAsync(workspaceId, ct);
+            var workspace = await _workspaces.RefreshCloneAsync(workspaceId, revision, ct);
             ErrorMessage = null;
             await RefreshWorkspaceAsync(workspace.Id, ct);
+            return true;
         }
         catch (TaskCanceledException) when (ct.IsCancellationRequested)
         {
-            return;
+            return false;
         }
         catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
         {
             ErrorMessage = $"Could not refresh review workspace: {ex.Message}";
+            RefreshReview.ErrorMessage = ex.Message;
+            return false;
         }
     }
 

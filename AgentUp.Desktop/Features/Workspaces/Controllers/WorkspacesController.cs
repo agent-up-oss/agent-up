@@ -31,8 +31,11 @@ public sealed class WorkspacesController
             },
             cancellationToken);
 
-    public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default)
-        => _service.RefreshCloneAsync(workspaceId, cancellationToken);
+    public Task<WorkspaceDto> RefreshCloneAsync(
+        string workspaceId,
+        string? revision = null,
+        CancellationToken cancellationToken = default)
+        => _service.RefreshCloneAsync(workspaceId, revision, cancellationToken);
 
     public async Task StartAsync(string workspaceId, CancellationToken cancellationToken = default)
         => await _service.StartAsync(workspaceId, cancellationToken);

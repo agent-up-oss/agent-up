@@ -1,9 +1,14 @@
 import { useRouter } from 'expo-router';
-import { type ReactNode } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useServers } from '@/features/servers/controllers/ServersContext';
+import { CloneWorkspaceDialog, RefreshReviewDialog } from '@/features/workspaces/components/WorkspaceDialogs';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
+import { isFeatureAvailable, workspaceCreateFeature } from '@/features/entitlements/models/Entitlements';
+import { getEntitlements } from '@/features/entitlements/providers/EntitlementsApiProvider';
+import { isDerivedWorkspace, workspaceSubtitle } from '@/features/workspaces/providers/WorkspaceLabelProvider';
+import { orderWorkspaces } from '@/features/workspaces/providers/WorkspaceOrderProvider';
 import { statusDotStyle, workspaceLedState } from '@/features/workspaces/providers/WorkspaceStatusProvider';
 import { useAppShell } from '../controllers/AppShellContext';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
@@ -11,38 +16,188 @@ import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const router = useRouter();
   const { activeServer, logout } = useServers();
-  const { workspaces, selectedWorkspace, selectWorkspace } = useWorkspaces();
+  const { server, workspaces, selectedWorkspace, selectWorkspace, clone, refreshClone, remove } = useWorkspaces();
+  const [canCreate, setCanCreate] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [repository, setRepository] = useState('');
+  const [branch, setBranch] = useState('main');
+  const [derived, setDerived] = useState(false);
+  const [cloning, setCloning] = useState(false);
+  const [cloneError, setCloneError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState<{ id: string; name: string; revision: string } | null>(null);
+  const [refreshBusy, setRefreshBusy] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<{ id: string; name: string } | null>(null);
+
+  useEffect(() => {
+    if (!server) {
+      setCanCreate(true);
+      return;
+    }
+    let cancelled = false;
+    void getEntitlements(server).then(document => {
+      if (!cancelled) setCanCreate(isFeatureAvailable(document, workspaceCreateFeature));
+    });
+    return () => { cancelled = true; };
+  }, [server]);
+
+  const openAdd = () => {
+    setRepository('');
+    setBranch('main');
+    setDerived(false);
+    setCloneError(null);
+    setAdding(true);
+  };
+
+  const confirmClone = async () => {
+    if (cloning) return;
+    setCloning(true);
+    setCloneError(null);
+    try {
+      const revision = branch.trim();
+      const workspace = await clone({
+        repository: repository.trim(),
+        branch: revision,
+        ...(derived ? { derived: true, revision } : {}),
+      });
+      setAdding(false);
+      router.replace(`/(main)/workspace/${workspace.id}`);
+      onNavigate();
+    } catch (cause) {
+      setCloneError(cause instanceof Error ? cause.message : 'Could not clone the repository.');
+    } finally {
+      setCloning(false);
+    }
+  };
+
+  const confirmRefresh = async () => {
+    if (!refreshing || refreshBusy) return;
+    setRefreshBusy(true);
+    setRefreshError(null);
+    try {
+      await refreshClone(refreshing.id, refreshing.revision);
+      setRefreshing(null);
+    } catch (cause) {
+      setRefreshError(cause instanceof Error ? cause.message : 'Could not refresh the review workspace.');
+    } finally {
+      setRefreshBusy(false);
+    }
+  };
+
+  const confirmRemove = async () => {
+    if (!removing) return;
+    const target = removing;
+    setRemoving(null);
+    try {
+      await remove(target.id);
+    } catch {
+      setRemoving(target);
+    }
+  };
 
   return (
     <View style={styles.defaultContent}>
-      <Text style={styles.sectionLabel}>Workspaces</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionLabel}>Workspaces</Text>
+        {canCreate ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Add workspace" onPress={openAdd} style={styles.addButton} hitSlop={12}>
+            <Text style={styles.addIcon}>+</Text>
+          </Pressable>
+        ) : null}
+      </View>
       <ScrollView contentContainerStyle={styles.workspaceList}>
-        {workspaces.map(workspace => {
+        {orderWorkspaces(workspaces).map(workspace => {
           const isSelected = selectedWorkspace?.id === workspace.id;
+          const derivedWorkspace = isDerivedWorkspace(workspace);
           return (
-            <Pressable
-              key={workspace.id}
-              testID={`workspace-${workspace.id}`}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isSelected }}
-              accessibilityLabel={`Open workspace ${workspace.displayName}`}
-              onPress={() => {
-                selectWorkspace(workspace.id);
-                router.replace(`/(main)/workspace/${workspace.id}`);
-                onNavigate();
-              }}
-              style={[styles.workspaceRow, isSelected && styles.workspaceRowSelected]}>
-              <View style={statusDotStyle(workspaceLedState(workspace.state, workspace.healthState))} />
-              <View style={styles.workspaceText}>
-                <Text numberOfLines={1} style={styles.workspaceName}>{workspace.displayName}</Text>
-                <Text numberOfLines={1} style={styles.workspaceBranch}>{workspace.branch}</Text>
-              </View>
-            </Pressable>
+            <View key={workspace.id} style={[styles.workspaceRow, isSelected && styles.workspaceRowSelected]}>
+              <Pressable
+                testID={`workspace-${workspace.id}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+                accessibilityLabel={`Open workspace ${workspace.displayName}`}
+                onPress={() => {
+                  selectWorkspace(workspace.id);
+                  router.replace(`/(main)/workspace/${workspace.id}`);
+                  onNavigate();
+                }}
+                style={styles.workspaceOpen}>
+                <View style={statusDotStyle(workspaceLedState(workspace.state, workspace.healthState))} />
+                <View style={styles.workspaceText}>
+                  <Text numberOfLines={1} style={styles.workspaceName}>{workspace.displayName}</Text>
+                  <Text numberOfLines={1} style={styles.workspaceBranch}>{workspaceSubtitle(workspace)}</Text>
+                </View>
+              </Pressable>
+              {derivedWorkspace ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Refresh review workspace ${workspace.displayName}`}
+                  onPress={() => {
+                    setRefreshError(null);
+                    setRefreshing({
+                      id: workspace.id,
+                      name: workspace.displayName,
+                      revision: workspaceSubtitle(workspace),
+                    });
+                  }}
+                  hitSlop={8}
+                  style={styles.rowAction}>
+                  <Text style={styles.rowActionText}>↻</Text>
+                </Pressable>
+              ) : null}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Remove workspace ${workspace.displayName}`}
+                onPress={() => setRemoving({ id: workspace.id, name: workspace.displayName })}
+                hitSlop={8}
+                style={styles.rowAction}>
+                <Text style={styles.rowActionText}>✕</Text>
+              </Pressable>
+            </View>
           );
         })}
         {workspaces.length === 0 &&
           <Text style={styles.empty}>No workspaces on this server yet.</Text>}
       </ScrollView>
+      <CloneWorkspaceDialog
+        visible={adding}
+        repository={repository}
+        branch={branch}
+        derived={derived}
+        cloning={cloning}
+        error={cloneError}
+        onRepository={setRepository}
+        onBranch={setBranch}
+        onDerived={setDerived}
+        onCancel={() => setAdding(false)}
+        onConfirm={() => { void confirmClone(); }}
+      />
+      <RefreshReviewDialog
+        visible={refreshing !== null}
+        name={refreshing?.name ?? ''}
+        revision={refreshing?.revision ?? ''}
+        busy={refreshBusy}
+        error={refreshError}
+        onRevision={revision => setRefreshing(current => current ? { ...current, revision } : current)}
+        onCancel={() => setRefreshing(null)}
+        onConfirm={() => { void confirmRefresh(); }}
+      />
+      <Modal visible={removing !== null} transparent animationType="fade" onRequestClose={() => setRemoving(null)}>
+        <View style={styles.confirmScrim}>
+          <View style={styles.confirmCard}>
+            <Text accessibilityRole="header" style={styles.workspaceName}>Remove workspace</Text>
+            <Text style={styles.empty}>{`Remove ${removing?.name ?? 'this workspace'} from this server?`}</Text>
+            <View style={styles.confirmActions}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Cancel" onPress={() => setRemoving(null)} style={styles.logoutButton}>
+                <Text style={styles.logoutText}>Cancel</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel="Remove" onPress={() => { void confirmRemove(); }} style={styles.logoutButton}>
+                <Text style={styles.logoutText}>Remove</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <View style={styles.serverFooter}>
         <Text style={styles.sectionLabel}>Server</Text>
         <Text
@@ -94,7 +249,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: agentUpTheme.spacing[4],
   },
   defaultContent: { flex: 1, gap: agentUpTheme.spacing[3] },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionLabel: auText('fieldLabel'),
+  addButton: { ...auBox('workspaceAdd'), alignItems: 'center', justifyContent: 'center' },
+  addIcon: auText('workspaceAdd'),
   workspaceList: { gap: agentUpTheme.spacing[2], paddingBottom: agentUpTheme.spacing[3] },
   workspaceRow: {
     ...auBox('workspace'),
@@ -102,6 +260,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: agentUpTheme.spacing[2],
   },
+  workspaceOpen: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: agentUpTheme.spacing[2] },
+  rowAction: { ...auBox('workspaceAdd'), width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  rowActionText: auText('workspaceAdd'),
+  confirmScrim: { flex: 1, padding: agentUpTheme.spacing[5], alignItems: 'center', justifyContent: 'center', ...auBox('scrim') },
+  confirmCard: { ...auBox('card'), width: '100%', maxWidth: 360, gap: agentUpTheme.spacing[3] },
+  confirmActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: agentUpTheme.spacing[2] },
   workspaceRowSelected: auBox('workspaceSelected'),
   workspaceText: { flex: 1, gap: 2 },
   workspaceName: auText('workspaceName'),

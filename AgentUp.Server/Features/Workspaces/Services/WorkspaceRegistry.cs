@@ -179,6 +179,26 @@ public sealed class WorkspaceRegistry : IHostedService
         return true;
     }
 
+    public async Task<bool> UpdateDerivedRevisionAsync(
+        string id,
+        string displayName,
+        string sourceRevision,
+        string branch,
+        string commit)
+    {
+        if (!_workspaces.TryGetValue(id, out var workspace))
+            return false;
+
+        workspace.DisplayName = displayName;
+        workspace.SourceRevision = sourceRevision;
+        workspace.Branch = branch;
+        workspace.Commit = commit;
+        TouchActivity(workspace);
+        await _repository.SaveAllAsync(GetAll());
+        _bus.PublishWorkspaceChange(workspace);
+        return true;
+    }
+
     public async Task<bool> UpdateStateAsync(string id, WorkspaceState state)
     {
         if (!_workspaces.TryGetValue(id, out var workspace))
