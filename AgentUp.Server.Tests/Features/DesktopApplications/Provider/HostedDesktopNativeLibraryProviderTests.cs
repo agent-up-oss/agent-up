@@ -72,24 +72,17 @@ public sealed class HostedDesktopNativeLibraryProviderTests
     [Test, CancelAfter(180000)]
     public void CreateEnvironment_ResolvesSkiaSharpNativeDependenciesWhenTheServerHasNoInheritedLibraryPath()
     {
-        var repositoryRoot = FindRepositoryRoot();
-        if (repositoryRoot is null)
-            Assert.Ignore("Examples/linux-desktop was not found next to agent-up.sln.");
-
+        var repositoryRoot = RequireRepositoryRoot();
         EnsureLinuxDesktopBuilt(repositoryRoot);
         var nativeLibrary = FindLibSkiaSharp(repositoryRoot);
         Assert.That(nativeLibrary, Is.Not.Null, "dotnet build did not produce libSkiaSharp.so.");
 
         var missingWithout = TryLddMissing(nativeLibrary!, "");
-        if (missingWithout is null)
-        {
-            Assert.Ignore("ldd is not available to inspect SkiaSharp native dependencies.");
-            return;
-        }
+        Assert.That(missingWithout, Is.Not.Null, "ldd is not available to inspect SkiaSharp native dependencies.");
 
         var environment = new HostedDesktopNativeLibraryProvider(NoInheritedNativeLibraries)
             .CreateEnvironment(repositoryRoot);
-        if (missingWithout.Count == 0)
+        if (missingWithout!.Count == 0)
             return;
 
         Assert.That(environment.ContainsKey("LD_LIBRARY_PATH"), Is.True,
@@ -101,10 +94,7 @@ public sealed class HostedDesktopNativeLibraryProviderTests
     [Test, CancelAfter(180000)]
     public async Task PrepareAsync_StartsTheSampleAvaloniaAppWhenTheServerHasNoInheritedLibraryPath()
     {
-        var repositoryRoot = FindRepositoryRoot();
-        if (repositoryRoot is null)
-            Assert.Ignore("Examples/linux-desktop was not found next to agent-up.sln.");
-
+        var repositoryRoot = RequireRepositoryRoot();
         EnsureLinuxDesktopBuilt(repositoryRoot);
         PreloadHostDisplayLibraries(repositoryRoot);
 
@@ -140,16 +130,7 @@ public sealed class HostedDesktopNativeLibraryProviderTests
         };
         var application = workspace.Applications[0];
 
-        IReadOnlyDictionary<string, string> environment;
-        try
-        {
-            environment = await controller.PrepareAsync(workspace, application, CancellationToken.None);
-        }
-        catch (DllNotFoundException ex)
-        {
-            Assert.Ignore(ex.Message);
-            return;
-        }
+        var environment = await controller.PrepareAsync(workspace, application, CancellationToken.None);
 
         application.RuntimeEnvironment = environment;
         var startInfo = new LocalProcessProvider().CreateStartInfo(workspace, application);
@@ -313,6 +294,14 @@ public sealed class HostedDesktopNativeLibraryProviderTests
         {
             return null;
         }
+    }
+
+    private static string RequireRepositoryRoot()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        Assert.That(repositoryRoot, Is.Not.Null,
+            "Examples/linux-desktop was not found next to agent-up.sln.");
+        return repositoryRoot!;
     }
 
     private static string? FindRepositoryRoot()

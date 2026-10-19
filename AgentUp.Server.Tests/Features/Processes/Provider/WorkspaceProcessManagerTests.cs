@@ -661,9 +661,6 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task KillApplicationAsync_marksIntentionalLocalProcessExitAsStopped()
     {
-        if (!OperatingSystem.IsLinux())
-            Assert.Ignore("Local process stop race coverage uses Linux process tools.");
-
         var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
         Directory.CreateDirectory(worktreePath);
 
@@ -671,7 +668,7 @@ public class WorkspaceProcessManagerTests
         {
             var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
                 .At(worktreePath)
-                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "python3 -m http.server 0 --bind 127.0.0.1")
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, LongRunningStopCommand())
                         .Build())
                 .Build());
 
@@ -867,6 +864,25 @@ public class WorkspaceProcessManagerTests
         {
             Directory.Delete(worktreePath, recursive: true);
         }
+    }
+
+    private static string LongRunningStopCommand()
+    {
+        var executable = new[] { "python3", "python" }.FirstOrDefault(ExecutableOnPath);
+        Assert.That(executable, Is.Not.Null, "python3 or python is required to cover an intentional local process stop.");
+        return $"{executable} -m http.server 0 --bind 127.0.0.1";
+    }
+
+    private static bool ExecutableOnPath(string name)
+    {
+        var path = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrEmpty(path))
+            return false;
+
+        var suffix = OperatingSystem.IsWindows() ? ".exe" : "";
+        return path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Any(directory => File.Exists(Path.Join(directory, name + suffix))
+                              || File.Exists(Path.Join(directory, name)));
     }
 
     private async Task<ApplicationState> WaitForApplicationStateAsync(
