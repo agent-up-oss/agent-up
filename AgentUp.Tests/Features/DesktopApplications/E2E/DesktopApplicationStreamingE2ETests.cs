@@ -47,8 +47,7 @@ public sealed class DesktopApplicationStreamingE2ETests
     {
 
         var example = FindLinuxDesktopExample();
-        if (example is null)
-            Assert.Ignore("Examples/linux-desktop was not found next to agent-up.sln.");
+        Assert.That(example, Is.Not.Null, "Examples/linux-desktop was not found next to agent-up.sln.");
 
         Server = await DesktopStreamingServer.StartAsync();
         TestContext.Progress.WriteLine($"In-process Server listening at {Server.BaseUri}.");
@@ -57,7 +56,7 @@ public sealed class DesktopApplicationStreamingE2ETests
             "/api/workspaces",
             ProductDomain.Workspace()
                 .Named("desktop-e2e")
-                .At(example)
+                .At(example!)
                 .WithDesktopApplication(new DesktopApplicationDefinition(
                     ApplicationName,
                     "dotnet run --project LinuxDesktop.csproj --no-launch-profile",

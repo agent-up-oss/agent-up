@@ -85,7 +85,12 @@ public sealed class LinuxDesktopFixtureIsolationTests
 
     private static void AssertIsolationIsExpected()
     {
-        if (Environment.GetEnvironmentVariable("AGENTUP_E2E_USE_SESSION_DISPLAY") == "1")
-            Assert.Ignore("Session display opt-in is active.");
+        if (LinuxDesktopFixtureAdapter.RequiresIsolationAssertions())
+            return;
+
+        Assert.That(
+            Environment.GetEnvironmentVariable(LinuxDesktopFixtureAdapter.SessionDisplayFlag),
+            Is.EqualTo("1"),
+            "Isolation checks apply unless the session-display opt-in is set.");
     }
 }

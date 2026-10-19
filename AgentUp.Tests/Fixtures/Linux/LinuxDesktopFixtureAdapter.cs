@@ -7,6 +7,7 @@ namespace AgentUp.Tests.Fixtures.Linux;
 public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
 {
     internal const string IsolatedWaylandDisplayName = "agentup-e2e-no-wayland";
+    internal const string SessionDisplayFlag = "AGENTUP_E2E_USE_SESSION_DISPLAY";
     internal static string? IsolatedDisplay { get; private set; }
     private const string IsolatedFlag = "AGENTUP_E2E_DISPLAY_ISOLATED";
 
@@ -36,7 +37,7 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
                 return;
 
             ImportNixShellEnvironment();
-            if (UseSessionDisplay())
+            if (UseSessionDisplay(Environment.GetEnvironmentVariable, IsDisplayReady))
             {
                 Environment.SetEnvironmentVariable("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1");
                 PreloadNativeLibraries();
@@ -179,10 +180,19 @@ public sealed class LinuxDesktopFixtureAdapter : IDesktopFixtureAdapter
     // D-Bus). Reusing those opens real Desktop/Installer windows and xdg-desktop-portal
     // file choosers on the developer's screen. Always isolate unless a maintainer opts
     // back into the session for visual debugging.
-    private static bool UseSessionDisplay()
-        => Environment.GetEnvironmentVariable("AGENTUP_E2E_USE_SESSION_DISPLAY") == "1"
-           && Environment.GetEnvironmentVariable("DISPLAY") is not null
-           && IsDisplayReady();
+    internal static bool UseSessionDisplay(Func<string, string?> environment, Func<bool> displayReady)
+    {
+        var display = environment("DISPLAY");
+        return environment(SessionDisplayFlag) == "1"
+               && !string.IsNullOrWhiteSpace(display)
+               && displayReady();
+    }
+
+    internal static bool RequiresIsolationAssertions(Func<string, string?> environment, Func<bool> displayReady)
+        => !UseSessionDisplay(environment, displayReady);
+
+    internal static bool RequiresIsolationAssertions()
+        => RequiresIsolationAssertions(Environment.GetEnvironmentVariable, IsDisplayReady);
 
     private static void IsolateFromSessionDesktop()
     {

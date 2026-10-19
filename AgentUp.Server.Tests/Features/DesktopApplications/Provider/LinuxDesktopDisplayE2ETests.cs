@@ -23,17 +23,7 @@ public sealed class LinuxDesktopDisplayE2ETests
     public async Task Captures_and_controls_a_real_x11_application()
     {
         var provider = new LinuxX11DesktopDisplayProvider(new PngFrameProvider());
-        DesktopDisplayHandle display;
-        try
-        {
-            display = await provider.StartAsync(640, 480, CancellationToken.None);
-        }
-        catch (DllNotFoundException)
-        {
-            Assert.Ignore("libX11 is not available. On NixOS run this suite through nix-shell shell.nix.");
-            return;
-        }
-
+        var display = await provider.StartAsync(640, 480, CancellationToken.None);
         using var application = StartDisplayClient(display.DisplayName);
 
         try
@@ -46,23 +36,16 @@ public sealed class LinuxDesktopDisplayE2ETests
             Assert.That(screenshot.Take(8), Is.EqualTo(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }));
             Assert.That(screenshot.Length, Is.GreaterThan(1_000));
 
-            try
-            {
-                await provider.SendPointerAsync(display, 320, 240, 0, true, CancellationToken.None);
-                await provider.SendPointerAsync(display, 320, 240, 0, false, CancellationToken.None);
-                await provider.SendKeyAsync(display, "Escape", true, CancellationToken.None);
-                await provider.SendKeyAsync(display, "Escape", false, CancellationToken.None);
-                Assert.ThrowsAsync<InvalidOperationException>(async () =>
-                    await provider.SendPointerAsync(display, -1, 0, 0, true, CancellationToken.None));
-                Assert.ThrowsAsync<InvalidOperationException>(async () =>
-                    await provider.SendKeyAsync(display, string.Empty, true, CancellationToken.None));
-                Assert.ThrowsAsync<InvalidOperationException>(async () =>
-                    await provider.SendKeyAsync(display, "DefinitelyNotAKey", true, CancellationToken.None));
-            }
-            catch (DllNotFoundException)
-            {
-                Assert.Ignore("libXtst is not available. On NixOS run this suite through nix-shell shell.nix.");
-            }
+            await provider.SendPointerAsync(display, 320, 240, 0, true, CancellationToken.None);
+            await provider.SendPointerAsync(display, 320, 240, 0, false, CancellationToken.None);
+            await provider.SendKeyAsync(display, "Escape", true, CancellationToken.None);
+            await provider.SendKeyAsync(display, "Escape", false, CancellationToken.None);
+            Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await provider.SendPointerAsync(display, -1, 0, 0, true, CancellationToken.None));
+            Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await provider.SendKeyAsync(display, string.Empty, true, CancellationToken.None));
+            Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await provider.SendKeyAsync(display, "DefinitelyNotAKey", true, CancellationToken.None));
         }
         finally
         {
