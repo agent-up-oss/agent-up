@@ -188,6 +188,9 @@ AgentUp.CommitPolicy/
 AgentUp.Verification/
   AgentUp.Verification.csproj
 
+AgentUp.AUCheck/
+  AgentUp.AUCheck.csproj
+
 AgentUp.Tray/
   AgentUp.Tray.csproj
 
@@ -312,7 +315,8 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities; its legacy independent local commit queue remains only for repositories that have not enabled the Server-owned Git proposal queue |
 | `AgentUp.AUDebug` | Maintainer visual-debug CLI (`au-debug`) that hosts repo Desktop, Mobile, and docs together for screenshot and UI-flow inspection |
 | `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues |
-| `AgentUp.Verification` | Owns `agent-up.json`'s `verification` schema, the static path-rule check resolver, and the content-addressed receipt ledger used by the Server MCP verification tools and the `agent-up verify` CLI. Never reads the commit queue, which is what keeps the commit module optional |
+| `AgentUp.Verification` | Owns `agent-up.json`'s `verification` schema, the static path-rule check resolver, and the content-addressed receipt ledger used by the Server MCP verification tools, the `agent-up verify` CLI, and `au-check`. Never reads the commit queue, which is what keeps the commit module optional |
+| `AgentUp.AUCheck` | Composition-only `au-check` executable. References `AgentUp.Verification` and holds no check resolution |
 | `AgentUp.Tray` | Installed Server companion that keeps a login autostart entry and heartbeats `POST /api/tray/heartbeat` so the Server knows a workstation session is present |
 | `AgentUp.InstallerConfig` | Agent-Up product installer identity and repository `.env` loading used by Server, Desktop, and CLI |
 | `LocalInstaller.Core` | Product-neutral installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
@@ -1030,9 +1034,11 @@ Feature slices with `Controllers/`, `Services/` or `Models/`, and `Providers/` s
 
 Every production project owns a test project of the same name plus `.Tests`, so a change to
 it selects one suite rather than being covered incidentally by another project's tests. The
-exception is `AgentUp.InstallerApp`, `AgentUp.Packaging` and `AgentUp.PackageSmoke`: each is
-a `Program.cs` handing manifests to a LocalInstaller builder, with nothing to assert but the
-builder chain itself. `ArchitectureFixture.CompositionOnlyProjects` names them and
+exception is `AgentUp.InstallerApp`, `AgentUp.Packaging`, `AgentUp.PackageSmoke`, and
+`AgentUp.AUCheck`. The installer projects are a `Program.cs` handing manifests to a
+LocalInstaller builder, with nothing to assert but the builder chain itself. `au-check` is a
+`Program.cs` that starts the verification host; resolution stays in `AgentUp.Verification`.
+`ArchitectureFixture.CompositionOnlyProjects` names them and
 `EntryPointProjects` holds them to that shape - a file with logic in one of them fails the
 rule, so the code moves to a tested project or the project gains a test project and joins
 `ProductionProjects`.
@@ -1148,6 +1154,21 @@ check inside `run_verification`, so an agent gets it automatically rather than c
 
 Developers use the CLI equivalents: `agent-up verify plan`, `agent-up verify run [<check-id>]`,
 `agent-up verify guard [--run] [--format hook]`, and `agent-up verify export`.
+
+`au-check` is the portable host of that same resolver. `AgentUp.AUCheck` is composition-only;
+`CheckPlanProvider` is the only type that resolves checks, and both hosts print plan lines
+through one formatter. Commands are `plan`, `run`, `run <check-id>`, `guard`, `coverage`, and
+`slices`. `--repo` defaults to the working directory and `--config` defaults to `agent-up.json`.
+A check may declare `requires` over the closed set `dotnet`, `node`, `npm`, `docker`, `git`,
+and `nix`, optionally with a minimum version. A missing toolchain skips that check with a
+reason and is not recorded as a failure. `au-check` exits 0 when every required check ran and
+passed, 1 when a required check ran and failed, 2 when a required toolchain is missing, and 3
+when configuration is invalid or a changed path matches no rule. A failure takes precedence
+over a toolchain skip. `agent-up verify` keeps its existing exit codes, including exit 2 from
+the Stop hook when anything is unproven. Receipts stay in the Git-directory ledger.
+`--report <dir>` writes `report.json`, `report.html`, and `report.png` and does not change
+the exit code or the receipts. Release assets are `au-check-linux-x64`,
+`au-check-linux-arm64`, `au-check-osx-arm64`, `au-check-osx-x64`, and `au-check-win-x64.exe`.
 
 ## Receipts
 
@@ -1306,7 +1327,12 @@ Rules to keep:
   not read verification receipts.
 - Checks whose `platforms` exclude this machine, or that are `ciOnly`, are reported *skipped
   with a reason* and never counted as satisfied. They stay required where they can run.
-  Skipped checks do not make `ShouldBlock` true, including when enforcement is `block`.
+  Those skips do not make `ShouldBlock` true, including when enforcement is `block`.
+- A check `requires` a toolchain from `dotnet`, `node`, `npm`, `docker`, `git`, and `nix`.
+  An unknown id is a configuration error. A missing tool, or a version below a declared
+  minimum, skips that check with `ToolchainMissing` and is not a failed run. Unlike a
+  `ciOnly` or wrong-platform skip, it is unproven: `guard` blocks, and `au-check` exits 2
+  when no required check has already failed. `plan` lists those checks before anything runs.
 
 The commit queue owns no test metadata. Queue entries carry a slice, message, and files;
 receipts are the only record of what was proven.

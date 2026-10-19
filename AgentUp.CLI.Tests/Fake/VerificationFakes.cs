@@ -44,6 +44,8 @@ internal sealed class FakePlatformCapabilityProvider(string platformId = "linux"
     public string PlatformId => platformId;
 
     public bool IsContinuousIntegration => false;
+
+    public ToolchainObservation Toolchain(string toolchainId) => new(true, "1.0.0");
 }
 
 internal sealed class FakeVerificationClock : IVerificationClock

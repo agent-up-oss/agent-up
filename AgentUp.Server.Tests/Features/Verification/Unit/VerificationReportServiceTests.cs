@@ -160,4 +160,61 @@ public sealed class VerificationReportServiceTests
 
         Assert.That(new VerificationReportService().ToRunDto(outcomes).Succeeded, Is.False);
     }
+
+    [Test]
+    public void ToGuardDto_listsAMissingToolchainAsBlockingRatherThanASatisfiedSkip()
+    {
+        var verdict = new CheckVerdict(
+            "image",
+            "docker info",
+            CheckVerdictKind.Skipped,
+            "docker is not installed",
+            CheckSkipReason.ToolchainMissing);
+        var report = new GuardReport([verdict], VerificationEnforcement.Block, [], 1);
+
+        var dto = new VerificationReportService().ToGuardDto(report, VerificationPlan.Nothing);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(dto.Blocking.Single().CheckId, Is.EqualTo("image"));
+            Assert.That(dto.Skipped, Is.Empty);
+            Assert.That(dto.Satisfied, Is.False);
+        });
+    }
+
+    [Test]
+    public void ToPlanDto_describesAMissingToolchainFromTheGap()
+    {
+        var dto = new VerificationReportService().ToPlanDto(Plan(CheckSkipReason.ToolchainMissing, Gap("docker", null, null)));
+
+        Assert.That(dto.Checks.Single().Detail, Is.EqualTo("docker is not installed"));
+    }
+
+    [Test]
+    public void ToPlanDto_describesAToolchainSkipThatCarriesNoGap()
+    {
+        var dto = new VerificationReportService().ToPlanDto(Plan(CheckSkipReason.ToolchainMissing, null));
+
+        Assert.That(dto.Checks.Single().Detail, Is.EqualTo("A required toolchain is not available."));
+    }
+
+    [Test]
+    public void ToPlanDto_describesAPlatformSkipWithoutCallingItAToolchain()
+    {
+        var dto = new VerificationReportService().ToPlanDto(Plan(CheckSkipReason.PlatformMismatch, null));
+
+        Assert.That(dto.Checks.Single().Detail, Does.Contain("Not runnable on this platform"));
+    }
+
+    private static VerificationPlan Plan(CheckSkipReason reason, ToolchainSkip? toolchain)
+    {
+        var definition = new CheckDefinition("image", "docker info", null, CheckTier.Fast, [], false, 0, []);
+        return new VerificationPlan(
+            [new PlannedCheck(definition, new Dictionary<string, string>(StringComparer.Ordinal), reason, ["packaging/**"], toolchain)],
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["packaging/a.cs"] = "sha" },
+            []);
+    }
+
+    private static ToolchainSkip Gap(string id, string? minimum, string? found)
+        => new([new ToolchainGap(id, minimum, found)]);
 }

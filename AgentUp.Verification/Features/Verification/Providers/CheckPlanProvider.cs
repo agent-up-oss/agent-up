@@ -127,21 +127,41 @@ public sealed class CheckPlanProvider(PathGlobProvider globs, IPlatformCapabilit
             .Order(StringComparer.Ordinal)
             .ToArray();
 
-        return new PlannedCheck(definition, covered, ResolveSkipReason(definition), selectedBy);
+        var (reason, toolchain) = ResolveSkip(definition);
+        return new PlannedCheck(definition, covered, reason, selectedBy, toolchain);
     }
 
-    private CheckSkipReason ResolveSkipReason(CheckDefinition definition)
+    private (CheckSkipReason Reason, ToolchainSkip? Toolchain) ResolveSkip(CheckDefinition definition)
     {
         if (definition.CiOnly && !platform.IsContinuousIntegration)
-            return CheckSkipReason.CiOnly;
+            return (CheckSkipReason.CiOnly, null);
 
         if (definition.Platforms.Count > 0
             && !definition.Platforms.Contains(platform.PlatformId, StringComparer.Ordinal))
         {
-            return CheckSkipReason.PlatformMismatch;
+            return (CheckSkipReason.PlatformMismatch, null);
         }
 
-        return CheckSkipReason.None;
+        var gaps = new List<ToolchainGap>();
+        foreach (var requirement in definition.Requires ?? [])
+        {
+            var observation = platform.Toolchain(requirement.Id);
+            if (!observation.Present)
+            {
+                gaps.Add(new ToolchainGap(requirement.Id, requirement.MinimumVersion, null));
+                continue;
+            }
+
+            if (requirement.MinimumVersion is not null
+                && !ToolchainVersion.Meets(observation.Version, requirement.MinimumVersion))
+            {
+                gaps.Add(new ToolchainGap(requirement.Id, requirement.MinimumVersion, observation.Version));
+            }
+        }
+
+        return gaps.Count == 0
+            ? (CheckSkipReason.None, null)
+            : (CheckSkipReason.ToolchainMissing, new ToolchainSkip(gaps));
     }
 
     private static bool IsUnderAnyInput(IReadOnlyList<string> inputs, string path)

@@ -111,6 +111,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentUp.Capabilities.Github
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentUp.Capabilities.Github.Tests", "AgentUp.Capabilities.Github.Tests\AgentUp.Capabilities.Github.Tests.csproj", "{CEDB4FE1-BC57-4252-862E-BD0E088B33A0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentUp.AUCheck", "AgentUp.AUCheck\AgentUp.AUCheck.csproj", "{A6EFEE8C-BE14-48F9-8ECD-FD9989F3FFA0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -757,6 +759,18 @@ Global
 		{CEDB4FE1-BC57-4252-862E-BD0E088B33A0}.Release|x64.Build.0 = Release|Any CPU
 		{CEDB4FE1-BC57-4252-862E-BD0E088B33A0}.Release|x86.ActiveCfg = Release|Any CPU
 		{CEDB4FE1-BC57-4252-862E-BD0E088B33A0}.Release|x86.Build.0 = Release|Any CPU
+		{A6EFEE8C-BE14-48F9-8ECD-FD9989F3FFA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6EFEE8C-BE14-48F9-8ECD-FD9989F3FFA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6EFEE8C-BE14-48F9-8ECD-FD9989F3FFA0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A6EFEE8C-BE14-48F9-8ECD-FD9989F3FFA0}.Debug|x64.Build.0 = Debug|Any CPU
+		{A6EFEE8C-BE14-48F9-8ECD-FD9989F3FFA0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A6EFEE8C-BE14-48F9-8ECD-FD9989F3FFA0}.Debug|x86.Build.0 = Debug|Any CPU
+		{A6EFEE8C-BE14-48F9-8ECD-FD9989F3FFA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6EFEE8C-BE14-48F9-8ECD-FD9989F3FFA0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6EFEE8C-BE14-48F9-8ECD-FD9989F3FFA0}.Release|x64.ActiveCfg = Release|Any CPU
+		{A6EFEE8C-BE14-48F9-8ECD-FD9989F3FFA0}.Release|x64.Build.0 = Release|Any CPU
+		{A6EFEE8C-BE14-48F9-8ECD-FD9989F3FFA0}.Release|x86.ActiveCfg = Release|Any CPU
+		{A6EFEE8C-BE14-48F9-8ECD-FD9989F3FFA0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
