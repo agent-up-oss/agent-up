@@ -28,6 +28,11 @@ expected_artifacts=(
   "agent-up-windows-win-x64.exe"
   "agent-up-windows-win-x64.msi"
   "agent-up-sbom.cdx.json"
+  "au-check-linux-x64"
+  "au-check-linux-arm64"
+  "au-check-osx-arm64"
+  "au-check-osx-x64"
+  "au-check-win-x64.exe"
 )
 
 if [ "${INCLUDE_JETBRAINS_PLUGIN:-false}" = "true" ]; then
@@ -84,7 +89,12 @@ cat > "$manifest" <<JSON
     "agent-up-ubuntu-linux-x64.deb",
     "agent-up-windows-win-x64.exe",
     "agent-up-windows-win-x64.msi",
-${plugin_manifest_entry}    "agent-up-sbom.cdx.json"
+${plugin_manifest_entry}    "agent-up-sbom.cdx.json",
+    "au-check-linux-x64",
+    "au-check-linux-arm64",
+    "au-check-osx-arm64",
+    "au-check-osx-x64",
+    "au-check-win-x64.exe"
   ],
   "checksums": "checksums.sha256"
 }

@@ -26,17 +26,7 @@ public sealed class VerifyOutputService(TextWriter output, TextWriter error)
 
     private int WritePlan(VerificationPlan plan)
     {
-        if (plan.ChangedFiles.Count == 0)
-        {
-            output.WriteLine("Nothing changed, so no checks are required.");
-            return 0;
-        }
-
-        output.WriteLine($"{plan.Checks.Count} check(s) required by {plan.ChangedFiles.Count} changed file(s):");
-        foreach (var line in plan.Checks.Select(FormatPlannedCheck))
-            output.WriteLine(line);
-
-        WriteUnmatched(plan.UnmatchedFiles, output);
+        VerificationConsoleText.WritePlan(output, plan);
         return 0;
     }
 
@@ -237,14 +227,6 @@ public sealed class VerifyOutputService(TextWriter output, TextWriter error)
         writer.WriteLine($"{prefix}{unmatched.Count} changed file(s) match no path rule, so the verification map is incomplete:");
         foreach (var path in unmatched)
             writer.WriteLine($"{prefix}  {path}");
-    }
-
-    private static string FormatPlannedCheck(PlannedCheck check)
-    {
-        var selection = string.Join(", ", check.SelectedBy);
-        return check.Runnable
-            ? $"  {check.CheckId}: {check.Definition.Command}  [{selection}]"
-            : $"  {check.CheckId}: skipped here ({check.SkipReason}), still required in CI  [{selection}]";
     }
 
     private static string Mark(bool ok) => ok ? "PASS" : "FAIL";

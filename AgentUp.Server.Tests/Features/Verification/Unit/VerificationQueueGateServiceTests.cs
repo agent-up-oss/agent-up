@@ -178,6 +178,7 @@ public sealed class VerificationQueueGateServiceTests
     {
         public string PlatformId => "linux";
         public bool IsContinuousIntegration => false;
+        public ToolchainObservation Toolchain(string toolchainId) => new(true, "1.0.0");
     }
 
     private sealed class Clock : IVerificationClock

@@ -23,6 +23,10 @@ namespace AgentUp.Verification.Features.Verification.Models;
 /// the check's dependency closure. Empty means the check covers nothing by itself and
 /// relies entirely on the path rules that select it.
 /// </param>
+/// <param name="Requires">
+/// Toolchains that must be present before the check can run. Empty means the check is
+/// not gated on a toolchain. An unknown id is rejected when the configuration is loaded.
+/// </param>
 public sealed record CheckDefinition(
     string Id,
     string Command,
@@ -31,4 +35,8 @@ public sealed record CheckDefinition(
     IReadOnlyList<string> Platforms,
     bool CiOnly,
     int Order,
-    IReadOnlyList<string> Inputs);
+    IReadOnlyList<string> Inputs,
+    IReadOnlyList<ToolchainRequirement>? Requires = null)
+{
+    public IReadOnlyList<ToolchainRequirement> Requires { get; init; } = Requires ?? [];
+}

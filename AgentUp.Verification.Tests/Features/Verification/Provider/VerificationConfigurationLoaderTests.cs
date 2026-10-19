@@ -215,4 +215,59 @@ public sealed class VerificationConfigurationLoaderTests
         Assert.That(() => new VerificationConfigurationLoader().Load(root),
             Throws.TypeOf<VerificationConfigurationException>().With.Message.Contains("checks"));
     }
+
+    [Test]
+    public void Load_readsToolchainRequirementsIncludingAVersionFloor()
+    {
+        var root = WriteRepository("""
+        {
+          "verification": {
+            "checks": {
+              "build": {
+                "command": "dotnet build",
+                "requires": [ "dotnet", { "id": "git", "minimum": "2.40.0" } ]
+              }
+            },
+            "paths": [ { "match": "**", "checks": ["build"] } ]
+          }
+        }
+        """);
+
+        var requires = new VerificationConfigurationLoader().Load(root).Checks["build"].Requires;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(requires[0].Id, Is.EqualTo("dotnet"));
+            Assert.That(requires[0].MinimumVersion, Is.Null);
+            Assert.That(requires[1].Id, Is.EqualTo("git"));
+            Assert.That(requires[1].MinimumVersion, Is.EqualTo("2.40.0"));
+        });
+    }
+
+    [Test]
+    public void Load_throwsWhenAToolchainIdIsNotInTheClosedVocabulary()
+    {
+        var root = WriteRepository("""
+        {
+          "verification": {
+            "checks": { "build": { "command": "make", "requires": ["make"] } },
+            "paths": [ { "match": "**", "checks": ["build"] } ]
+          }
+        }
+        """);
+
+        Assert.That(() => new VerificationConfigurationLoader().Load(root),
+            Throws.TypeOf<VerificationConfigurationException>().With.Message.Contains("make"));
+    }
+
+    [Test]
+    public void Load_throwsWhenAnExplicitConfigFileIsMissing()
+    {
+        var root = Path.Join(TestContext.CurrentContext.WorkDirectory, "missing-config-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+
+        Assert.That(
+            () => new VerificationConfigurationLoader(Path.Join(root, "rules.json"), requireFile: true).Load(root),
+            Throws.TypeOf<VerificationConfigurationException>());
+    }
 }

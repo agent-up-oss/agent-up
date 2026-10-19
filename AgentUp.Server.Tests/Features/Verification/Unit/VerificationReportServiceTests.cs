@@ -160,4 +160,25 @@ public sealed class VerificationReportServiceTests
 
         Assert.That(new VerificationReportService().ToRunDto(outcomes).Succeeded, Is.False);
     }
+
+    [Test]
+    public void ToGuardDto_listsAMissingToolchainAsBlockingRatherThanASatisfiedSkip()
+    {
+        var verdict = new CheckVerdict(
+            "image",
+            "docker info",
+            CheckVerdictKind.Skipped,
+            "docker is not installed",
+            CheckSkipReason.ToolchainMissing);
+        var report = new GuardReport([verdict], VerificationEnforcement.Block, [], 1);
+
+        var dto = new VerificationReportService().ToGuardDto(report, VerificationPlan.Nothing);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(dto.Blocking.Single().CheckId, Is.EqualTo("image"));
+            Assert.That(dto.Skipped, Is.Empty);
+            Assert.That(dto.Satisfied, Is.False);
+        });
+    }
 }

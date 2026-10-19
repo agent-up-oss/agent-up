@@ -22,11 +22,14 @@ public sealed class VerificationGuardServiceTests
         IReadOnlyDictionary<string, string> changed,
         ReceiptLedger ledger,
         string platformId = VerificationDomain.Linux,
-        bool isContinuousIntegration = false)
+        bool isContinuousIntegration = false,
+        IReadOnlyDictionary<string, ToolchainObservation>? toolchains = null)
     {
         var plans = new VerificationPlanService(
             new StubConfigurationLoader(configuration),
-            new CheckPlanProvider(new PathGlobProvider(), new FakePlatformCapabilityProvider(platformId, isContinuousIntegration)),
+            new CheckPlanProvider(
+                new PathGlobProvider(),
+                new FakePlatformCapabilityProvider(platformId, isContinuousIntegration, toolchains)),
             [new StaticChangedContentSource("test", changed)]);
 
         return new VerificationGuardService(plans, new InMemoryReceiptLedgerStore(ledger));
@@ -236,5 +239,33 @@ public sealed class VerificationGuardServiceTests
             ReceiptLedger.Empty).GuardAsync(Root);
 
         Assert.That(report.ChangedFileCount, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task GuardAsync_treatsAMissingToolchainAsUnproven()
+    {
+        var configuration = new VerificationConfigurationBuilder()
+            .WithCheck(new CheckBuilder("image").WithCommand("docker info").WithRequires(new ToolchainRequirement("docker", null)))
+            .WithPathRule("packaging/**", "image")
+            .Build();
+
+        var report = await GuardOver(
+            configuration,
+            ChangeSetBuilder.Changing(VerificationDomain.PackagingSource).Build(),
+            ReceiptLedger.Empty,
+            toolchains: new Dictionary<string, ToolchainObservation>(StringComparer.Ordinal)
+            {
+                ["docker"] = ToolchainObservation.Missing
+            }).GuardAsync(Root);
+
+        var verdict = report.Verdicts.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(verdict.Kind, Is.EqualTo(CheckVerdictKind.Skipped));
+            Assert.That(verdict.SkipReason, Is.EqualTo(CheckSkipReason.ToolchainMissing));
+            Assert.That(verdict.Blocking, Is.True);
+            Assert.That(report.Satisfied, Is.False);
+            Assert.That(verdict.Detail, Does.Contain("docker is not installed"));
+        });
     }
 }

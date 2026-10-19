@@ -58,7 +58,8 @@ internal static class ArchitectureFixture
     [
         "AgentUp.InstallerApp",
         "AgentUp.Packaging",
-        "AgentUp.PackageSmoke"
+        "AgentUp.PackageSmoke",
+        "AgentUp.AUCheck"
     ];
 
     public static readonly string[] TestProjects =
