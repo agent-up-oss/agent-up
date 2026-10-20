@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Ports.DTOs;
@@ -88,6 +89,51 @@ public class WorkspaceItemViewModelTests
         Assert.That(vm.Derived, Is.True);
         Assert.That(vm.Subtitle, Is.EqualTo("topic"));
         Assert.That(vm.ShowRefreshButton, Is.True);
+    }
+
+    [Test]
+    public async Task RequestDeleteCommand_isDisabledWhenDeleteIsUnavailable()
+    {
+        var vm = Build("App");
+        vm.CanDelete = false;
+
+        Assert.That(vm.ShowDeleteButton, Is.False);
+        Assert.That(await vm.RequestDeleteCommand.CanExecute.FirstAsync(), Is.False);
+    }
+
+    [Test]
+    public async Task RequestDeleteCommand_asksTheHostWhenDeleteIsAvailable()
+    {
+        var vm = Build("App");
+        var host = new RecordingHost();
+        vm.SetHost(host);
+
+        await vm.RequestDeleteCommand.Execute().FirstAsync();
+
+        Assert.That(host.Delete, Is.EqualTo(("id", "App")));
+    }
+
+    [Test]
+    public async Task RequestDeleteCommand_doesNothingWhenNoHostIsAttached()
+    {
+        var vm = Build("App");
+
+        await vm.RequestDeleteCommand.Execute().FirstAsync();
+
+        Assert.That(vm.ShowDeleteButton, Is.True);
+    }
+
+    [Test]
+    public void RequestDelete_doesNotAskTheHostWhenDeleteIsUnavailable()
+    {
+        var vm = Build("App");
+        var host = new RecordingHost();
+        vm.SetHost(host);
+        vm.CanDelete = false;
+
+        InvokeRequestDelete(vm);
+
+        Assert.That(host.Delete, Is.Null);
     }
 
     [Test]
@@ -261,6 +307,15 @@ public class WorkspaceItemViewModelTests
         });
     }
 
+    private static void InvokeRequestDelete(WorkspaceItemViewModel vm)
+    {
+        var method = typeof(WorkspaceItemViewModel).GetMethod(
+            "RequestDelete",
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("RequestDelete is missing.");
+        method.Invoke(vm, null);
+    }
+
     private sealed class RecordingHost : IWorkspaceItemHost
     {
         public (string WorkspaceId, string Revision)? Refresh { get; private set; }
@@ -269,8 +324,10 @@ public class WorkspaceItemViewModelTests
 
         public Task StopWorkspaceAsync(string workspaceId) => Task.CompletedTask;
 
+        public (string WorkspaceId, string DisplayName)? Delete { get; private set; }
+
         public void RequestDeleteWorkspace(string workspaceId, string displayName)
-            => throw new InvalidOperationException($"Refresh coverage does not delete {workspaceId} ({displayName}).");
+            => Delete = (workspaceId, displayName);
 
         public void ShowRefreshDerivedWorkspace(string workspaceId, string currentRevision)
             => Refresh = (workspaceId, currentRevision);

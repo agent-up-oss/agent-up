@@ -216,6 +216,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             .Select(tab => tab as PortSubTabViewModel);
 
         SubscribeWorkspaceSelection();
+        SubscribeEntitlements();
         SubscribeApplicationSelection();
         SubscribeSubTabSelection();
         SubscribeMetricsRefresh();
@@ -226,6 +227,10 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         BrowserTabNavigation = CreateBrowserTabNavigation();
         BrowserNavigation = CreateBrowserNavigation(selectedPortTab);
     }
+
+    private void SubscribeEntitlements()
+        => Sidebar.WhenAnyValue(x => x.CanWriteGit)
+            .Subscribe(canWrite => Git.CanWriteGit = canWrite);
 
     private void SubscribeWorkspaceSelection()
         => Sidebar.WhenAnyValue(x => x.SelectedWorkspace)

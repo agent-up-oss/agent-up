@@ -6,8 +6,12 @@ namespace AgentUp.Desktop.Features.Entitlements.Providers;
 public static class PlanCardPresenter
 {
     public const string WorkspaceCreateFeature = "workspace.create";
+    public const string WorkspaceDeleteFeature = "workspace.delete";
+    public const string GitWriteFeature = "git.write";
     public const string WorkspaceCreateUnavailableMessage =
         "This Server does not allow adding workspaces from the client.";
+    public const string GitWriteUnavailableMessage =
+        "This Server does not allow Git writes from the client.";
 
     public static PlanCard Present(EntitlementsDocumentDto? document)
     {

@@ -5,7 +5,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { CloneWorkspaceDialog, RefreshReviewDialog } from '@/features/workspaces/components/WorkspaceDialogs';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
-import { isFeatureAvailable, workspaceCreateFeature } from '@/features/entitlements/models/Entitlements';
+import { PlanCard } from '@/features/entitlements/components/PlanCard';
+import {
+  isFeatureAvailable,
+  presentPlanCard,
+  workspaceCreateFeature,
+  workspaceDeleteAllowed,
+  type PlanCard as PlanCardModel,
+} from '@/features/entitlements/models/Entitlements';
 import { getEntitlements } from '@/features/entitlements/providers/EntitlementsApiProvider';
 import { isDerivedWorkspace, workspaceSubtitle } from '@/features/workspaces/providers/WorkspaceLabelProvider';
 import { orderWorkspaces } from '@/features/workspaces/providers/WorkspaceOrderProvider';
@@ -18,6 +25,8 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const { activeServer, logout } = useServers();
   const { server, workspaces, selectedWorkspace, selectWorkspace, clone, refreshClone, remove } = useWorkspaces();
   const [canCreate, setCanCreate] = useState(true);
+  const [canDelete, setCanDelete] = useState(true);
+  const [plan, setPlan] = useState<PlanCardModel | null>(null);
   const [adding, setAdding] = useState(false);
   const [repository, setRepository] = useState('');
   const [branch, setBranch] = useState('main');
@@ -32,11 +41,16 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   useEffect(() => {
     if (!server) {
       setCanCreate(true);
+      setCanDelete(true);
+      setPlan(null);
       return;
     }
     let cancelled = false;
     void getEntitlements(server).then(document => {
-      if (!cancelled) setCanCreate(isFeatureAvailable(document, workspaceCreateFeature));
+      if (cancelled) return;
+      setCanCreate(isFeatureAvailable(document, workspaceCreateFeature));
+      setCanDelete(workspaceDeleteAllowed(document));
+      setPlan(presentPlanCard(document));
     });
     return () => { cancelled = true; };
   }, [server]);
@@ -145,14 +159,16 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
                   <Text style={styles.rowActionText}>↻</Text>
                 </Pressable>
               ) : null}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Remove workspace ${workspace.displayName}`}
-                onPress={() => setRemoving({ id: workspace.id, name: workspace.displayName })}
-                hitSlop={8}
-                style={styles.rowAction}>
-                <Text style={styles.rowActionText}>✕</Text>
-              </Pressable>
+              {canDelete ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove workspace ${workspace.displayName}`}
+                  onPress={() => setRemoving({ id: workspace.id, name: workspace.displayName })}
+                  hitSlop={8}
+                  style={styles.rowAction}>
+                  <Text style={styles.rowActionText}>✕</Text>
+                </Pressable>
+              ) : null}
             </View>
           );
         })}
@@ -198,6 +214,7 @@ function DefaultSidebarContent({ onNavigate }: { onNavigate: () => void }) {
           </View>
         </View>
       </Modal>
+      {plan ? <PlanCard card={plan} /> : null}
       <View style={styles.serverFooter}>
         <Text style={styles.sectionLabel}>Server</Text>
         <Text

@@ -50,6 +50,8 @@ public sealed class PlanCardPresenterTests
         {
             Assert.That(card.DisplayName, Is.EqualTo("Team"));
             Assert.That(card.Summary, Is.EqualTo("1 of 2 operations available"));
+            Assert.That(card.HasRestrictions, Is.True);
+            Assert.That(card.RestrictedFeatures.Select(feature => feature.Id), Is.EqualTo(new[] { "workspace.create" }));
             Assert.That(card.Limits[0].Id, Is.EqualTo("workspace.count"));
             Assert.That(PlanCardPresenter.IsFeatureAvailable(
                 Document("Team", "subscription", "team",

@@ -761,6 +761,37 @@
                     </StackPanel>
                 </Border>
 
+                <Border DockPanel.Dock="Bottom"
+                        Padding="12,8,12,12"
+                        IsVisible="{Binding Sidebar.ShowSidebarPlan}">
+                    <StackPanel Spacing="4">
+                        <TextBlock Classes="au-field-label" Text="PLAN"/>
+                        <TextBlock Classes="au-workspace-name" Text="{Binding Sidebar.Plan.DisplayName}"/>
+                        <TextBlock Classes="au-muted"
+                                   Text="{Binding Sidebar.Plan.Billing}"
+                                   IsVisible="{Binding Sidebar.Plan.HasBilling}"/>
+                        <TextBlock Classes="au-muted" Text="{Binding Sidebar.Plan.Summary}"/>
+                        <TextBlock Classes="au-field-label"
+                                   Text="UNAVAILABLE"
+                                   IsVisible="{Binding Sidebar.Plan.HasRestrictions}"/>
+                        <ItemsControl ItemsSource="{Binding Sidebar.Plan.RestrictedFeatures}"
+                                      IsVisible="{Binding Sidebar.Plan.HasRestrictions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="entModels:PlanCardFeature">
+                                    <TextBlock Classes="au-muted" Text="{Binding Id}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ItemsControl ItemsSource="{Binding Sidebar.Plan.Limits}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="entModels:PlanCardLimit">
+                                    <TextBlock Classes="au-muted" Text="{Binding Label}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
                 <!-- Expanded workspace list -->
                 <ScrollViewer x:Name="WorkspaceListExpanded"
                               IsVisible="{Binding Sidebar.IsExpanded}"
@@ -839,6 +870,7 @@
                                                         HorizontalAlignment="Right"
                                                         VerticalAlignment="Top"
                                                         Margin="0,-2,-2,0"
+                                                        IsVisible="{Binding ShowDeleteButton}"
                                                         Command="{Binding RequestDeleteCommand}"
                                                         ToolTip.Tip="Remove workspace">
                                                     <TextBlock Text="✕"
@@ -935,10 +967,14 @@
                                    Text="{Binding Sidebar.Plan.Billing}"
                                    IsVisible="{Binding Sidebar.Plan.HasBilling}"/>
                         <TextBlock Classes="au-muted" Text="{Binding Sidebar.Plan.Summary}"/>
-                        <ItemsControl ItemsSource="{Binding Sidebar.Plan.Features}">
+                        <TextBlock Classes="au-field-label"
+                                   Text="UNAVAILABLE"
+                                   IsVisible="{Binding Sidebar.Plan.HasRestrictions}"/>
+                        <ItemsControl ItemsSource="{Binding Sidebar.Plan.RestrictedFeatures}"
+                                      IsVisible="{Binding Sidebar.Plan.HasRestrictions}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="entModels:PlanCardFeature">
-                                    <TextBlock Classes="au-muted" Text="{Binding Label}"/>
+                                    <TextBlock Classes="au-muted" Text="{Binding Id}"/>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -1783,7 +1819,8 @@
                                                       ItemsSource="{Binding Git.BranchItems}"
                                                       SelectedItem="{Binding Git.SelectedBranchItem}"
                                                       PlaceholderText="Branch"
-                                                      HorizontalAlignment="Stretch">
+                                                      HorizontalAlignment="Stretch"
+                                                      IsEnabled="{Binding Git.CanWriteGit}">
                                                 <ComboBox.ItemTemplate>
                                                     <DataTemplate>
                                                         <TextBlock Text="{Binding Label}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -1796,7 +1833,8 @@
                                                     Command="{Binding Git.BeginCreateBranchCommand}"
                                                     Content="+"
                                                     Width="36"
-                                                    ToolTip.Tip="Create branch"/>
+                                                    ToolTip.Tip="Create branch"
+                                                    IsVisible="{Binding Git.CanWriteGit}"/>
                                             </Grid>
                                             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6"
                                                   IsVisible="{Binding Git.IsCreatingBranch}">
@@ -1829,20 +1867,23 @@
                                                 <Button x:Name="GitFetchButton"
                                                         Classes="au-button au-button--secondary au-button--compact"
                                                         Command="{Binding Git.FetchCommand}"
-                                                        Content="Fetch"/>
+                                                        Content="Fetch"
+                                                        IsVisible="{Binding Git.CanWriteGit}"/>
                                                 <Button x:Name="GitPullButton"
                                                         Classes="au-button au-button--secondary au-button--compact"
                                                         Command="{Binding Git.PullCommand}"
-                                                        Content="Pull"/>
+                                                        Content="Pull"
+                                                        IsVisible="{Binding Git.CanWriteGit}"/>
                                                 <Button x:Name="GitPushButton"
                                                         Classes="au-button au-button--compact"
                                                         Command="{Binding Git.PushCommand}"
-                                                        Content="Push"/>
+                                                        Content="Push"
+                                                        IsVisible="{Binding Git.CanWriteGit}"/>
                                                 <Button x:Name="GitDiscardButton"
                                                         Classes="au-button au-button--danger au-button--compact"
                                                         Command="{Binding Git.DiscardCommand}"
                                                         Content="Discard"
-                                                        IsVisible="{Binding Git.HasSelectedFiles}"/>
+                                                        IsVisible="{Binding Git.ShowDiscardButton}"/>
                                             </StackPanel>
                                                 <Button Grid.Column="1"
                                                         x:Name="GitHistoryButton"
@@ -2016,6 +2057,10 @@
                                     </Panel>
 
                                     <StackPanel Grid.Row="2" Margin="14,8,14,14" Spacing="8">
+                                        <TextBlock Classes="au-muted"
+                                                   Text="{Binding Git.WriteUnavailableMessage}"
+                                                   TextWrapping="Wrap"
+                                                   IsVisible="{Binding !Git.CanWriteGit}"/>
                                         <TextBox x:Name="GitCommitMessage"
                                                  Classes="au-input"
                                                  Text="{Binding Git.CommitMessage}"
@@ -2023,12 +2068,14 @@
                                                  AcceptsReturn="True"
                                                  TextWrapping="Wrap"
                                                  MinHeight="72"
-                                                 MaxHeight="140"/>
+                                                 MaxHeight="140"
+                                                 IsVisible="{Binding Git.CanWriteGit}"/>
                                         <Button x:Name="GitCommitButton"
                                                 Classes="au-button"
                                                 HorizontalAlignment="Stretch"
                                                 Command="{Binding Git.CommitCommand}"
-                                                Content="Commit"/>
+                                                Content="Commit"
+                                                IsVisible="{Binding Git.CanWriteGit}"/>
                                     </StackPanel>
 
                                 </Grid>

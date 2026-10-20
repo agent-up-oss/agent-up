@@ -29,8 +29,8 @@ Non-Git paths still work and display as `not on a git branch`. Agent-Up can also
 
 <DocSurfaces>
 <DocSurface cli>From the directory that contains `agent-up.json`.</DocSurface>
-<DocSurface desktop>The workspace list `+` control clones a repository at a branch and registers it.</DocSurface>
-<DocSurface mobile>The same `+` control lives on the sidebar workspace list. There is no Workspaces tab.</DocSurface>
+<DocSurface desktop>The workspace list `+` control clones a repository at a branch and registers it. The plan card at the bottom of that list names unavailable operations when the Server withholds them, and the `+` and remove controls follow `workspace.create` and `workspace.delete`.</DocSurface>
+<DocSurface mobile>The same `+` control lives on the sidebar workspace list. There is no Workspaces tab. Remove follows `workspace.delete` the same way.</DocSurface>
 </DocSurfaces>
 
 <p><img src="/desktop-workspaces.png" alt="Desktop workspaces showing Harbor Shop on main" /></p>
