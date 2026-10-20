@@ -30,6 +30,7 @@ public sealed class AgentChatViewModelTests
             Assert.That(view.Sessions.Single().SessionId, Is.EqualTo("saved-1"));
             Assert.That(view.Sessions.Single().ActionLabel, Is.EqualTo("Current · ready"));
             Assert.That(view.HasSession, Is.True);
+            Assert.That(view.SessionId, Is.EqualTo("saved-1"));
             Assert.That(fake.ResumedSessionId, Is.EqualTo("saved-1"));
         });
     }
@@ -108,6 +109,142 @@ public sealed class AgentChatViewModelTests
             Assert.That(view.CanSubmitLoginCode, Is.True);
             Assert.That(fake.SubmittedCode, Is.EqualTo("code-from-the-page"));
         });
+    }
+
+    [Test]
+    public async Task SubmitLoginCodeCommand_ignoresABlankPaste()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session()
+                .WithAgent("Claude")
+                .InState("authenticating")
+                .WithLoginChallenge(new AgentLoginChallengeDto(
+                    "https://claude.ai/oauth/authorize",
+                    null,
+                    "Paste the code",
+                    AgentLoginTransport.Code,
+                    true))
+                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .Build()
+        };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+        await view.SubmitLoginCodeCommand.Execute().FirstAsync();
+
+        Assert.That(fake.SubmittedCode, Is.Null);
+        Assert.That(view.CanCollectLoginCode, Is.True);
+    }
+
+    [Test]
+    public async Task LoadAsync_doesNotCollectADeviceCodeChallenge()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session()
+                .WithAgent("Codex")
+                .InState("authenticating")
+                .WithLoginChallenge(new AgentLoginChallengeDto(
+                    "https://auth.openai.com/device",
+                    "ABCD-EFGHI",
+                    "Enter this code",
+                    AgentLoginTransport.Code))
+                .IdleWith(new AgentDescriptorDto("Codex", true, "Codex"))
+                .Build()
+        };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+        view.LoginCodeInput = "not-used";
+        await view.SubmitLoginCodeCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.CanCollectLoginCode, Is.False);
+            Assert.That(view.CanSubmitLoginCode, Is.False);
+            Assert.That(fake.SubmittedCode, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task LoadAsync_hidesABareMinus32000Notice()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session()
+                .WithAgent("Claude")
+                .InState("authentication_required")
+                .WithError("JSON-RPC -32000")
+                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .Build()
+        };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+
+        Assert.That(view.Error, Is.Null);
+        Assert.That(view.ActivityLabel, Is.EqualTo("Waiting for sign-in"));
+    }
+
+    [Test]
+    public async Task LoadAsync_hidesABlankAuthenticationNotice()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session()
+                .WithAgent("Claude")
+                .InState("authentication_required")
+                .WithError("   ")
+                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .Build()
+        };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+
+        Assert.That(view.Error, Is.Null);
+        Assert.That(view.ActivityLabel, Is.EqualTo("Waiting for sign-in"));
+    }
+
+    [Test]
+    public async Task LoadAsync_keepsAnUnexpectedAuthenticationError()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session()
+                .WithAgent("Claude")
+                .InState("authentication_required")
+                .WithError("spawn failed")
+                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .Build()
+        };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+
+        Assert.That(view.Error, Is.EqualTo("spawn failed"));
+    }
+
+    [Test]
+    public async Task LoadAsync_labelsAStoppedLiveSessionAsResume()
+    {
+        var saved = new AgentSessionSummaryDto("s1", "Codex", "Restock featured products", "main", DateTimeOffset.UtcNow);
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session()
+                .WithAgent("Codex")
+                .WithSessionId("s1")
+                .InState("stopped")
+                .WithSessions(saved)
+                .Build()
+        };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+
+        Assert.That(view.Sessions.Single().ActionLabel, Is.EqualTo("Resume session →"));
+        Assert.That(view.HasNoSavedSessions, Is.False);
     }
 
     [Test]
@@ -243,6 +380,24 @@ public sealed class AgentChatViewModelTests
             Assert.That(view.LoopLine, Does.Contain("idle"));
             Assert.That(view.StatusLine, Is.EqualTo("Codex · Idle"));
         });
+    }
+
+    [Test]
+    public async Task LoadAsync_cannotStartBoundWhileALiveAgentIsSelected()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session()
+                .Ready("Codex", "demo-agent")
+                .BoundTo("Codex")
+                .Build()
+        };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+
+        Assert.That(view.CanStartBound, Is.False);
+        Assert.That(view.HasAgent, Is.True);
     }
 
     [Test]
@@ -490,7 +645,33 @@ public sealed class AgentChatViewModelTests
             Assert.That(session.WorkspaceId, Is.EqualTo("ws-1"));
             Assert.That(session.LoginChallenge!.Url, Does.Contain("loginDeepControl"));
             Assert.That(session.LoginChallenge.Code, Is.EqualTo("ABCD-EFGHI"));
+            Assert.That(session.LoginChallenge.RedirectUri, Is.Null);
         });
+    }
+
+    [Test]
+    public void AgentLoginChallengeDto_carriesARedirectCallback()
+    {
+        var challenge = new AgentLoginChallengeDto(
+            "https://auth.openai.com/oauth/authorize",
+            null,
+            "Open this link",
+            AgentLoginTransport.Redirect,
+            RedirectUri: "http://localhost:1455/auth/callback");
+
+        Assert.That(challenge.Transport, Is.EqualTo(AgentLoginTransport.Redirect));
+        Assert.That(challenge.RedirectUri, Is.EqualTo("http://localhost:1455/auth/callback"));
+    }
+
+    [Test]
+    public void AgentLoginChallengeDto_deserializesWithoutOptionalExpiry()
+    {
+        var challenge = System.Text.Json.JsonSerializer.Deserialize<AgentLoginChallengeDto>(
+            """{"url":"https://example.test/login","instructions":"Open this link"}""",
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        Assert.That(challenge!.ExpiresAt, Is.Null);
+        Assert.That(challenge.RedirectUri, Is.Null);
     }
 
     private static AgentChatViewModel CreateView(IAgentApiProvider provider)

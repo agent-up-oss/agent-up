@@ -809,6 +809,21 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
+    public async Task Schedule_keepsANonAcpLoginErrorOnTheSession()
+    {
+        _process.RequireAuthentication = true;
+        _process.UnauthenticatedSessionError = "Please sign in to continue.";
+
+        var scheduled = await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(scheduled.Session!.State, Is.EqualTo("authentication_required"));
+            Assert.That(scheduled.Session.Error, Does.Contain("Please sign in"));
+        });
+    }
+
+    [Test]
     public async Task Schedule_offersClaudeSubscriptionLoginWhenInitializeOmitsMethods()
     {
         _process.RequireAuthentication = true;
@@ -989,6 +1004,7 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     public bool HoldSessionLoad { get; set; }
     public TaskCompletionSource SessionLoadStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public bool RequireAuthentication { get; set; }
+    public string UnauthenticatedSessionError { get; set; } = "Authentication required.";
     public bool AdvertiseAuthMethods { get; set; }
     public bool AdvertiseApiKey { get; set; }
     public bool OmitAuthMethods { get; set; }
@@ -1026,7 +1042,8 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
             Authenticated = true;
             return JsonSerializer.SerializeToElement(new { });
         }
-        if (method == "session/new" && RequireAuthentication && !Authenticated && StartCalls < 2) throw new InvalidOperationException("Authentication required.");
+        if (method == "session/new" && RequireAuthentication && !Authenticated && StartCalls < 2)
+            throw new InvalidOperationException(UnauthenticatedSessionError);
         if (method == "session/prompt")
         {
             Prompts.Add(JsonSerializer.Serialize(parameters));

@@ -148,6 +148,28 @@ test('resume makes the saved session current', () => {
   }).status, 404);
 });
 
+test('resume returns not found when the workspace or path is invalid', () => {
+  const service = backend();
+  assert.equal(service.handle({
+    method: 'POST',
+    path: '/api/workspaces/missing/agent/sessions/demo-prior/resume',
+    query: '',
+    body: '{}',
+  }).status, 404);
+  assert.equal(service.handle({
+    method: 'POST',
+    path: '/api/workspaces/harbor-shop/agent/sessions/resume',
+    query: '',
+    body: '{}',
+  }).status, 404);
+  assert.equal(service.handle({
+    method: 'POST',
+    path: '/api/workspaces/harbor-shop/agent/sessions//resume',
+    query: '',
+    body: '{}',
+  }).status, 404);
+});
+
 test('review snapshot exports the bundled workspace', () => {
   const service = backend();
   const snapshot = json(service, 'GET', '/api/workspaces/harbor-shop/review-snapshot');
