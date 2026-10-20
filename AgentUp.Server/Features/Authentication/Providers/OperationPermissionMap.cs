@@ -86,6 +86,7 @@ public static class OperationPermissionMap
         [("ForgeHttp", "SubmitReview")] = OperationPermissions.GitWrite,
 
         [("WorkspaceDiagnosticsHttp", "Get")] = OperationPermissions.DiagnosticsRead,
+        [("WorkspaceReviewSnapshotHttp", "Get")] = OperationPermissions.DiagnosticsRead,
         [("AuditHttp", "Record")] = OperationPermissions.DiagnosticsRead,
         [("AuditHttp", "QueryApplication")] = OperationPermissions.DiagnosticsRead,
         [("ApplicationAuditStreamHttp", "Stream")] = OperationPermissions.DiagnosticsRead,

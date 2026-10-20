@@ -29,4 +29,19 @@ public sealed class WorkspaceDiagnosticsOutputTests
             Assert.That(writer.ToString(), Does.Contain("[active] javascript/error app=web browser=browser-2: boom"));
         });
     }
+
+    [Test]
+    public void WriteTextResult_WritesJsonPassthrough()
+    {
+        using var writer = new StringWriter();
+        var output = new WorkspaceCommandOutputService(writer);
+
+        var exitCode = output.WriteTextResult(WorkspaceCommandResult<string>.Success("""{"ok":true}"""));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.Zero);
+            Assert.That(writer.ToString().Trim(), Is.EqualTo("""{"ok":true}"""));
+        });
+    }
 }

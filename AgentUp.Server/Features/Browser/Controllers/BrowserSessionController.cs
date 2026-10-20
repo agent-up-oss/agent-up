@@ -9,11 +9,13 @@ namespace AgentUp.Server.Features.Browser.Controllers;
 [Route("api/browser")]
 public sealed class BrowserSessionController(BrowserSessionStore store, HeadlessBrowserSessionAccessor sessions) : ControllerBase
 {
+    public string? ReadCurrentUrl(string workspaceId) => sessions.GetSession(workspaceId)?.CurrentUrl;
+
     [HttpGet("current-url/{workspaceId}")]
     public IActionResult GetCurrentUrl(string workspaceId)
     {
-        var session = sessions.GetSession(workspaceId);
-        return session is null ? NotFound() : Content(session.CurrentUrl, "text/plain");
+        var url = ReadCurrentUrl(workspaceId);
+        return url is null ? NotFound() : Content(url, "text/plain");
     }
 
     [HttpPost("navigate/{workspaceId}")]

@@ -48,6 +48,7 @@ public static class McpToolPermissionMap
         ["start_workspace"] = OperationPermissions.WorkspaceStart,
         ["stop_workspace"] = OperationPermissions.WorkspaceStop,
         ["get_workspace_diagnostics"] = OperationPermissions.DiagnosticsRead,
+        ["export_workspace_review_snapshot"] = OperationPermissions.DiagnosticsRead,
 
         ["browser_navigate"] = OperationPermissions.BrowserControl,
         ["browser_inspect"] = OperationPermissions.BrowserControl,

@@ -16,7 +16,7 @@ Product crash reporting for Agent-Up itself stays in [telemetry](/developer-guid
   owner="AgentUp.Server diagnostics and audit"
   tests="Server diagnostics/audit suites"
   mcp="/mcp/audit plus Orchestration get_workspace_console"
-  rest={'/api/diagnostics/workspaces/{workspaceId}'}
+  rest={'/api/diagnostics/workspaces/{workspaceId} · /api/workspaces/{workspaceId}/review-snapshot'}
 />
 
 <DocCallout>
@@ -37,7 +37,7 @@ The canonical workspace snapshot is `GET /api/diagnostics/workspaces/{workspaceI
 
 Each event entry has a normalized category, severity, and `active` or `resolved` state. It also carries the affected application and browser-session identifier when the source supplied that context. Application context is accepted from the established `application`, `applicationName`, and `appName` audit detail keys.
 
-Diagnostics are exposed through Desktop, CLI `diagnostics`, and Orchestration MCP `get_workspace_diagnostics`. The Desktop Diagnostics tab keeps a bounded in-memory window of application audit events centered on the current page (±5 pages). Refresh and pagination fetch only that window from the Server on demand; live Server-Sent Events prepend matching events while you stay on page 1. Category toggles, search, and pagination run against the local window without loading the full audit history. Search filters as you type across action, kind, outcome, and detail text. Refresh reloads the current window from the Server even while streaming is enabled. Changing filters, search, toggling streaming, or refreshing returns to page 1 unless refresh explicitly reloads the current page. Pagination uses numbered page buttons ±3 around the current page plus first/last page jumps on the filtered local result set.
+Diagnostics are exposed through Desktop, CLI `diagnostics`, CLI `review-snapshot`, and Orchestration MCP `get_workspace_diagnostics`. The Desktop Diagnostics tab keeps a bounded in-memory window of application audit events centered on the current page (±5 pages). Refresh and pagination fetch only that window from the Server on demand; live Server-Sent Events prepend matching events while you stay on page 1. Category toggles, search, and pagination run against the local window without loading the full audit history. Search filters as you type across action, kind, outcome, and detail text. Refresh reloads the current window from the Server even while streaming is enabled. Changing filters, search, toggling streaming, or refreshing returns to page 1 unless refresh explicitly reloads the current page. Pagination uses numbered page buttons ±3 around the current page plus first/last page jumps on the filtered local result set.
 
 Orchestration MCP exposes `get_workspace_console` for a bounded live snapshot of application console output and the recent durable console audit trail for a workspace.
 
@@ -61,6 +61,9 @@ Returns full details for one audit event.
 </DocStep>
 <DocStep title="audit_load_artifact">
 Loads a Server-managed artifact by opaque artifact id and can return inline image data when requested.
+</DocStep>
+<DocStep title="export_workspace_review_snapshot">
+Exports a shareable snapshot of one workspace after an agent task: identity and revision, allocated ports, running processes and Docker services, health and diagnostics, the open browser URL, recent logs, and recent MCP and workspace actions. Verification is included when the worktree can produce an export; missing verification does not fail the snapshot. Evidence to share, never a substitute for living on the original machine. The same payload is `GET /api/workspaces/{workspaceId}/review-snapshot` and `agent-up review-snapshot`.
 </DocStep>
 </DocSteps>
 

@@ -179,6 +179,7 @@ public static class ServiceRegistration
             .WithTools<DesktopMcpTools>()
             .WithTools<ValidationMcpTools>()
             .WithTools<AuditMcpTools>()
+            .WithTools<WorkspaceReviewSnapshotMcpTools>()
             .WithTools<DiagnosticsMcpTools>()
             .WithTools<CapabilityModulesMcpTools>()
             .WithResources<OrchestrationMcpResources>()
@@ -255,6 +256,9 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<AuditController>();
         builder.Services.AddSingleton<WorkspaceDiagnosticsService>();
         builder.Services.AddSingleton<WorkspaceDiagnosticsController>();
+        builder.Services.AddSingleton<BrowserSessionController>();
+        builder.Services.AddSingleton<WorkspaceReviewSnapshotService>();
+        builder.Services.AddSingleton<WorkspaceReviewSnapshotController>();
         builder.Services.AddHostedService<WorkspaceAuditSubscriber>();
         builder.Services.AddSingleton<IPortRangeStore>(_ =>
             new FilePortRangeStore(Path.Join(dataDir, "port-ranges.json")));
@@ -395,6 +399,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<CoveredDigestProvider>();
         builder.Services.AddSingleton<VerificationExportService>();
         builder.Services.AddSingleton<VerificationReportService>();
+        builder.Services.AddSingleton<VerificationExportController>();
         builder.Services.AddSingleton<VerificationQueueGateService>();
         builder.Services.AddSingleton<VerificationController>();
         builder.Services.AddSingleton<VerificationMcpService>();
