@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Text.Json;
@@ -193,6 +194,48 @@ public sealed class GitPanelViewModelTests
         panel.CanWriteGit = false;
 
         Assert.That(panel.IsCreatingBranch, Is.False);
+    }
+
+    [Test]
+    public async Task Branch_doesNotSwitchWhenGitWriteIsUnavailable()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree() };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+        panel.CanWriteGit = false;
+
+        panel.Branch = "topic";
+
+        Assert.That(client.BranchRequest, Is.Null);
+        Assert.That(panel.Branch, Is.EqualTo("main"));
+    }
+
+    [Test]
+    public async Task WriteActions_doNotMutateWhenGitWriteIsUnavailable()
+    {
+        var client = new FakeGitApiProvider { Tree = SampleTree() };
+        var panel = CreatePanel(client);
+        await panel.LoadAsync("ws-1");
+        panel.Nodes[3].IsSelected = true;
+        panel.CommitMessage = "feat(App): add main";
+        panel.CanWriteGit = false;
+
+        await InvokeAsync(panel, "CommitAsync");
+        await InvokeAsync(panel, "DiscardAsync");
+        await InvokeAsync(panel, "FetchAsync");
+        await InvokeAsync(panel, "CheckoutRemoteAsync", "origin/topic");
+        Invoke(panel, "RequestDiscardConfirm");
+        Invoke(panel, "RequestPushConfirm");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(client.CommittedRequest, Is.Null);
+            Assert.That(client.DiscardedRequest, Is.Null);
+            Assert.That(client.FetchRequest, Is.Null);
+            Assert.That(client.CheckoutRequest, Is.Null);
+            Assert.That(panel.IsConfirmingDiscard, Is.False);
+            Assert.That(panel.IsConfirmingPush, Is.False);
+        });
     }
 
     [Test]
@@ -1233,6 +1276,22 @@ public sealed class GitPanelViewModelTests
 
     private static GitPanelViewModel CreatePanel(IGitApiProvider client)
         => new(new GitController(new GitChangeListService(client)));
+
+    private static MethodInfo Method(string name)
+        => typeof(GitPanelViewModel).GetMethod(
+            name,
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException($"{name} is missing.");
+
+    private static void Invoke(GitPanelViewModel panel, string name, params object?[] args)
+        => Method(name).Invoke(panel, args);
+
+    private static async Task InvokeAsync(GitPanelViewModel panel, string name, params object?[] args)
+    {
+        var result = Method(name).Invoke(panel, args);
+        if (result is Task task)
+            await task;
+    }
 
     private static GitChangeTreeDto SampleTree()
         => new(
