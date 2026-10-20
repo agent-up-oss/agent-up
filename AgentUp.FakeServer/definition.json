@@ -253,6 +253,22 @@
         "sessionId": "demo-agent",
         "error": null,
         "boundAgent": "Codex",
+        "sessions": [
+          {
+            "sessionId": "demo-agent",
+            "agent": "Codex",
+            "description": "Restock featured products",
+            "branch": "main",
+            "lastUsedAt": "2026-04-11T15:30:00Z"
+          },
+          {
+            "sessionId": "demo-prior",
+            "agent": "Claude",
+            "description": "Tighten checkout copy",
+            "branch": "main",
+            "lastUsedAt": "2026-04-10T09:12:00Z"
+          }
+        ],
         "loop": {
           "active": false,
           "phase": "idle",

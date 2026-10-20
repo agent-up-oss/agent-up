@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using AgentUp.Desktop.Features.Agents.DTOs;
 using AgentUp.Desktop.Features.Agents.Interfaces;
 
@@ -9,7 +10,11 @@ namespace AgentUp.Desktop.Features.Agents.Providers;
 
 public sealed class AgentApiClient : IAgentApiProvider
 {
-    private static readonly JsonSerializerOptions Options = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions Options = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
     private readonly HttpClient _http;
     private readonly HttpClient _events;
 
@@ -31,6 +36,7 @@ public sealed class AgentApiClient : IAgentApiProvider
     public async Task<AgentSessionDto?> ResumeAsync(string workspaceId, string sessionId, CancellationToken cancellationToken) { using var response = await _http.PostAsJsonAsync(Root(workspaceId) + $"/sessions/{Uri.EscapeDataString(sessionId)}/resume", new { }, cancellationToken); await EnsureSuccessAsync(response, cancellationToken); return await response.Content.ReadFromJsonAsync<AgentSessionDto>(Options, cancellationToken); }
     public async Task SendAsync(string workspaceId, string message, CancellationToken cancellationToken) { using var response = await _http.PostAsJsonAsync(Root(workspaceId) + "/messages", new { message }, cancellationToken); await EnsureSuccessAsync(response, cancellationToken); }
     public async Task AuthenticateAsync(string workspaceId, string methodId, CancellationToken cancellationToken) { using var response = await _http.PostAsJsonAsync(Root(workspaceId) + "/authenticate", new { methodId }, cancellationToken); await EnsureSuccessAsync(response, cancellationToken); }
+    public async Task SubmitLoginCodeAsync(string workspaceId, string code, CancellationToken cancellationToken) { using var response = await _http.PostAsJsonAsync(Root(workspaceId) + "/login/code", new { code }, cancellationToken); await EnsureSuccessAsync(response, cancellationToken); }
     public async Task DecideAsync(string workspaceId, string requestId, string optionId, CancellationToken cancellationToken) { using var response = await _http.PostAsJsonAsync(Root(workspaceId) + "/permissions", new { requestId, optionId }, cancellationToken); await EnsureSuccessAsync(response, cancellationToken); }
     public async Task StopAsync(string workspaceId, CancellationToken cancellationToken) { using var response = await _http.DeleteAsync(Root(workspaceId), cancellationToken); await EnsureSuccessAsync(response, cancellationToken); }
 

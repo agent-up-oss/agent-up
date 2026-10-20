@@ -1246,13 +1246,16 @@
                                                             <Border Classes="au-badge"><TextBlock Classes="au-accent" Text="{Binding Agent}"/></Border>
                                                             <TextBlock Grid.Column="1" Classes="wsName" Text="{Binding Description}" TextTrimming="CharacterEllipsis"/>
                                                             <TextBlock Grid.Column="2" Classes="au-muted" Text="{Binding Branch}"/>
-                                                            <TextBlock Grid.Row="1" Grid.Column="1" Classes="au-muted" Text="Resume session →"/>
+                                                            <TextBlock Grid.Row="1" Grid.Column="1" Classes="au-muted" Text="{Binding ActionLabel}"/>
                                                         </Grid>
                                                     </Button>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                         </ScrollViewer>
+                                        <TextBlock Classes="au-muted"
+                                                   Text="No saved sessions yet."
+                                                   IsVisible="{Binding Agent.HasNoSavedSessions}"/>
                                         <Button Classes="au-button au-button--compact"
                                                 HorizontalAlignment="Stretch"
                                                 IsVisible="{Binding Agent.CanStartBound}"
@@ -1324,6 +1327,16 @@
                                                        FontSize="{DynamicResource AgentUpFontSizeUiXl}"
                                                        FontWeight="{DynamicResource AgentUpWeightUiStrong}"
                                                        Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+                                            <StackPanel IsVisible="{Binding Agent.CanCollectLoginCode}" Spacing="6">
+                                                <TextBox Classes="au-input"
+                                                         Text="{Binding Agent.LoginCodeInput}"
+                                                         PlaceholderText="Paste the code from the page"
+                                                         IsEnabled="{Binding Agent.CanSubmitLoginCode}"/>
+                                                <Button Classes="au-button au-button--compact"
+                                                        Content="Submit code"
+                                                        Command="{Binding Agent.SubmitLoginCodeCommand}"
+                                                        IsEnabled="{Binding Agent.CanSubmitLoginCode}"/>
+                                            </StackPanel>
                                         </StackPanel>
                                     </StackPanel>
                                     <ScrollViewer Grid.Row="3"

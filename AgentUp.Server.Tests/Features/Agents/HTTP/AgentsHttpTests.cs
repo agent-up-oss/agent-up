@@ -7,6 +7,7 @@ using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Features.Agents.Services;
 using AgentUp.Server.Features.Agents.Interfaces;
+using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Ports.Controllers;
@@ -61,7 +62,8 @@ public sealed class AgentsHttpTests
         builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
         builder.Services.AddSingleton<AgentEventFrameProvider>();
         builder.Services.AddSingleton<AgentEventService>();
-        builder.Services.AddSingleton(_ => new AgentSessionRepository(Path.Join(Path.GetTempPath(), $"agent-up-http-agent-sessions-{Guid.NewGuid():N}")));
+        builder.Services.AddSingleton<IAgentSessionRepository>(_ =>
+            new AgentSessionRepository(Path.Join(Path.GetTempPath(), $"agent-up-http-agent-sessions-{Guid.NewGuid():N}")));
         builder.Services.AddSingleton<AgentSchedulingService>();
         builder.Services.AddSingleton<AgentsController>();
         _app = builder.Build();
@@ -83,6 +85,26 @@ public sealed class AgentsHttpTests
     {
         using var response = await _client.GetAsync("/api/workspaces/missing/agent");
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task Get_listsOnlySessionsForTheCallingWorkspace()
+    {
+        var first = await RegisterAsync();
+        var second = await _app.Services.GetRequiredService<WorkspaceQueryController>().RegisterAsync(
+            ServerDomain.Workspace().Named("Other").At("/other").AtCommit("def").Build());
+        var repo = _app.Services.GetRequiredService<IAgentSessionRepository>();
+        repo.Upsert(new PersistedAgentSession(first.Id, "sess-a", "claude", "First workspace", "main", DateTimeOffset.UtcNow));
+        repo.Upsert(new PersistedAgentSession(second.Id, "sess-b", "codex", "Second workspace", "main", DateTimeOffset.UtcNow));
+
+        var firstSession = await _client.GetFromJsonAsync<AgentSessionDto>($"/api/workspaces/{first.Id}/agent", JsonOptions);
+        var secondSession = await _client.GetFromJsonAsync<AgentSessionDto>($"/api/workspaces/{second.Id}/agent", JsonOptions);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(firstSession!.Sessions!.Select(item => item.SessionId), Is.EqualTo(new[] { "sess-a" }));
+            Assert.That(secondSession!.Sessions!.Select(item => item.SessionId), Is.EqualTo(new[] { "sess-b" }));
+        });
     }
 
     [Test]

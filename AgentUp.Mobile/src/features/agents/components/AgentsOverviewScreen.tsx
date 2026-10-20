@@ -85,7 +85,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
               onPress={() => active ? openChat() : void resume(item.sessionId)} style={styles.current}>
               <View style={styles.sessionHeading}><Text style={styles.tag}>{item.agent}</Text><Text style={styles.branch}>{item.branch}</Text></View>
               <Text style={styles.currentTitle}>{item.description}</Text>
-              <Text style={styles.action}>{active ? `Current · ${session?.state}` : 'Resume session'} →</Text>
+              <Text style={styles.action}>{active ? `Current · ${session?.state}` : 'Resume session →'}</Text>
             </Pressable>;
           })}
         </View>

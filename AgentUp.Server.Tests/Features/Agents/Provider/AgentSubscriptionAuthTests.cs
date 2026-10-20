@@ -38,4 +38,21 @@ public sealed class AgentSubscriptionAuthTests
             Assert.That(auth.LooksLikeAuthenticationFailure("spawn failed"), Is.False);
         });
     }
+
+    [Test]
+    public void ExpectedAuthenticationRequired_isTheAcpNoticeNotAFailedSession()
+    {
+        var auth = new AgentSubscriptionAuth();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(auth.IsExpectedAuthenticationRequired("Authentication required."), Is.True);
+            Assert.That(auth.IsExpectedAuthenticationRequired("""{"code":-32000,"message":"Authentication required"}"""), Is.True);
+            Assert.That(auth.IsExpectedAuthenticationRequired("spawn failed"), Is.False);
+            Assert.That(auth.RequiresCapturedOauthToken(new AgentLoginChallengeDto(
+                "https://claude.ai/oauth/authorize", null, "Paste the code", AgentLoginTransport.Code, true)), Is.True);
+            Assert.That(auth.RequiresCapturedOauthToken(new AgentLoginChallengeDto(
+                "https://auth.openai.com/device", "ABCD-EFGHI", "Enter this code", AgentLoginTransport.Code)), Is.False);
+        });
+    }
 }

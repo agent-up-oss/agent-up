@@ -120,6 +120,12 @@ test('derives live activity from session state and the latest ACP update', () =>
   }).label, 'Using Read file');
   assert.equal(resolveActivity({ state: 'authentication_required', hasPermission: false }).label, 'Waiting for sign-in');
   assert.equal(resolveActivity({ state: 'authenticating', hasPermission: false }).label, 'Waiting for sign-in');
+  assert.equal(resolveActivity({
+    state: 'authentication_required',
+    error: '{"code":-32000,"message":"Authentication required"}',
+    hasPermission: false,
+  }).label, 'Waiting for sign-in');
+  assert.equal(resolveActivity({ state: 'ready', error: 'boom', hasPermission: false }).label, 'boom');
 });
 
 test('unwraps forwarded session/update envelopes', () => {

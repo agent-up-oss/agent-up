@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
 using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Agents.DTOs;
+using AgentUp.Desktop.Features.Agents.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Tests.Support;
 
@@ -40,11 +41,11 @@ public sealed class AgentPickerPanelTests
         var viewModel = (MainViewModel)app.Window.DataContext!;
         viewModel.SelectedShellTab = WorkspaceShellTab.Agent;
         var session = new AgentSessionSummaryDto("saved", "Claude", "Fix session persistence", "feature/sessions", DateTimeOffset.UtcNow);
-        viewModel.Agent.Sessions.Add(session);
+        viewModel.Agent.Sessions.Add(new AgentSessionRowViewModel(session, false, "idle"));
         await HeadlessExtensions.FlushAsync();
 
         var list = app.Window.FindControl<ItemsControl>("AgentSessionList")!;
-        var button = list.GetVisualDescendants().OfType<Button>().Single(item => item.DataContext is AgentSessionSummaryDto { SessionId: "saved" });
+        var button = list.GetVisualDescendants().OfType<Button>().Single(item => item.DataContext is AgentSessionRowViewModel { SessionId: "saved" });
         var text = button.GetVisualDescendants().OfType<TextBlock>().Select(item => item.Text).ToArray();
 
         Assert.Multiple(() =>
@@ -53,6 +54,39 @@ public sealed class AgentPickerPanelTests
             Assert.That(text, Does.Contain("Claude"));
             Assert.That(text, Does.Contain("Fix session persistence"));
             Assert.That(text, Does.Contain("feature/sessions"));
+            Assert.That(text, Does.Contain("Resume session →"));
         });
+    }
+
+    [AvaloniaTest]
+    public async Task AgentSessionList_labelsTheLiveSessionAsCurrent()
+    {
+        var app = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
+        var viewModel = (MainViewModel)app.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Agent;
+        var current = new AgentSessionSummaryDto("live", "Codex", "Restock featured products", "main", DateTimeOffset.UtcNow);
+        viewModel.Agent.Sessions.Add(new AgentSessionRowViewModel(current, true, "ready"));
+        await HeadlessExtensions.FlushAsync();
+
+        var list = app.Window.FindControl<ItemsControl>("AgentSessionList")!;
+        var button = list.GetVisualDescendants().OfType<Button>().Single(item => item.DataContext is AgentSessionRowViewModel { SessionId: "live" });
+        var text = button.GetVisualDescendants().OfType<TextBlock>().Select(item => item.Text).ToArray();
+
+        Assert.That(text, Does.Contain("Current · ready"));
+    }
+
+    [AvaloniaTest]
+    public async Task AgentSessionList_showsEmptyCopyWhenNothingIsSaved()
+    {
+        var app = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
+        var viewModel = (MainViewModel)app.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Agent;
+        viewModel.Agent.Sessions.Clear();
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(viewModel.Agent.HasNoSavedSessions, Is.True);
+        var copy = app.Window.GetVisualDescendants().OfType<TextBlock>()
+            .Single(item => item.Text == "No saved sessions yet.");
+        Assert.That(copy.IsVisible, Is.True);
     }
 }

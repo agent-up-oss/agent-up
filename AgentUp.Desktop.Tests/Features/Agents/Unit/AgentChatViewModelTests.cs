@@ -27,9 +27,86 @@ public sealed class AgentChatViewModelTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(view.Sessions, Is.EqualTo(new[] { saved }));
+            Assert.That(view.Sessions.Single().SessionId, Is.EqualTo("saved-1"));
+            Assert.That(view.Sessions.Single().ActionLabel, Is.EqualTo("Current · ready"));
             Assert.That(view.HasSession, Is.True);
             Assert.That(fake.ResumedSessionId, Is.EqualTo("saved-1"));
+        });
+    }
+
+    [Test]
+    public async Task LoadAsync_labelsTheLiveSessionCurrentAndOthersResume()
+    {
+        var current = new AgentSessionSummaryDto("demo-agent", "Codex", "Restock featured products", "main", DateTimeOffset.UtcNow);
+        var prior = new AgentSessionSummaryDto("demo-prior", "Claude", "Tighten checkout copy", "main", DateTimeOffset.UtcNow);
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session()
+                .Ready("Codex", "demo-agent")
+                .WithSessions(current, prior)
+                .Build()
+        };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.Sessions[0].ActionLabel, Is.EqualTo("Current · ready"));
+            Assert.That(view.Sessions[1].ActionLabel, Is.EqualTo("Resume session →"));
+        });
+    }
+
+    [Test]
+    public async Task LoadAsync_hidesExpectedAuthenticationRequiredFromTheErrorBanner()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session()
+                .WithAgent("Claude")
+                .InState("authentication_required")
+                .WithError("""{"code":-32000,"message":"Authentication required"}""")
+                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .Build()
+        };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.Error, Is.Null);
+            Assert.That(view.ActivityLabel, Is.EqualTo("Waiting for sign-in"));
+        });
+    }
+
+    [Test]
+    public async Task SubmitLoginCodeCommand_postsThePastedCode()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session()
+                .WithAgent("Claude")
+                .InState("authenticating")
+                .WithLoginChallenge(new AgentLoginChallengeDto(
+                    "https://claude.ai/oauth/authorize",
+                    null,
+                    "Paste the code",
+                    AgentLoginTransport.Code,
+                    true))
+                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .Build()
+        };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+        view.LoginCodeInput = " code-from-the-page ";
+        await view.SubmitLoginCodeCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.CanSubmitLoginCode, Is.True);
+            Assert.That(fake.SubmittedCode, Is.EqualTo("code-from-the-page"));
         });
     }
 
@@ -428,6 +505,7 @@ internal sealed class ChatApiFake : IAgentApiProvider
     public Dictionary<string, Exception> GetFailures { get; } = new(StringComparer.Ordinal);
     public string? LastWorkspace { get; private set; }
     public string? ResumedSessionId { get; private set; }
+    public string? SubmittedCode { get; private set; }
     public string? ScheduledAgent { get; private set; }
     private int _gets;
 
@@ -463,6 +541,11 @@ internal sealed class ChatApiFake : IAgentApiProvider
         => SendFailure is null ? Task.CompletedTask : Task.FromException(SendFailure);
 
     public Task AuthenticateAsync(string workspaceId, string methodId, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task SubmitLoginCodeAsync(string workspaceId, string code, CancellationToken cancellationToken)
+    {
+        SubmittedCode = code;
+        return Task.CompletedTask;
+    }
     public Task DecideAsync(string workspaceId, string requestId, string optionId, CancellationToken cancellationToken) => Task.CompletedTask;
     public Task StopAsync(string workspaceId, CancellationToken cancellationToken) => Task.CompletedTask;
 

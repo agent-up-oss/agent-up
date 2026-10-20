@@ -580,6 +580,55 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_agentSessionListsCurrentAndPriorSavedSessions()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var sessions = Json(backend, Get("/api/workspaces/harbor-shop/agent"))["sessions"]!.AsArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(sessions, Has.Count.EqualTo(2));
+            Assert.That(sessions[0]!["sessionId"]!.GetValue<string>(), Is.EqualTo("demo-agent"));
+            Assert.That(sessions[1]!["sessionId"]!.GetValue<string>(), Is.EqualTo("demo-prior"));
+            Assert.That(sessions[1]!["agent"]!.GetValue<string>(), Is.EqualTo("Claude"));
+        });
+    }
+
+    [Test]
+    public void Handle_resumeMakesTheSavedSessionCurrent()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var resumed = Json(backend, Post("/api/workspaces/harbor-shop/agent/sessions/demo-prior/resume"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resumed["sessionId"]!.GetValue<string>(), Is.EqualTo("demo-prior"));
+            Assert.That(resumed["agent"]!.GetValue<string>(), Is.EqualTo("claude"));
+            Assert.That(resumed["state"]!.GetValue<string>(), Is.EqualTo("ready"));
+            Assert.That(resumed["boundAgent"]!.GetValue<string>(), Is.EqualTo("Codex"));
+            Assert.That(Run(backend, Post("/api/workspaces/harbor-shop/agent/sessions/missing/resume")).Status, Is.EqualTo(404));
+        });
+    }
+
+    [Test]
+    public void Handle_reviewSnapshotExportsTheBundledWorkspace()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var snapshot = Json(backend, Get("/api/workspaces/harbor-shop/review-snapshot"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot["workspaceId"]!.GetValue<string>(), Is.EqualTo("harbor-shop"));
+            Assert.That(snapshot["displayName"]!.GetValue<string>(), Is.EqualTo("Harbor Shop"));
+            Assert.That(
+                snapshot["applications"]!.AsArray().Select(item => item!["name"]!.GetValue<string>()),
+                Is.EqualTo(new[] { "Storefront", "Orders API" }));
+            Assert.That(snapshot["verification"], Is.Null);
+            Assert.That(Run(backend, Get("/api/workspaces/missing/review-snapshot")).Status, Is.EqualTo(404));
+        });
+    }
+
+    [Test]
     public void Handle_cloneEmptyRepositoryAndOddQueries()
     {
         var backend = FakeServerTestComposition.Backend();

@@ -212,8 +212,8 @@ export function resolveActivity(input: {
   hasPermission: boolean;
   hint?: { kind: AgentActivityKind; toolTitle?: string } | null;
 }): AgentActivity {
-  if (input.error) return { kind: 'error', label: input.error };
   if (input.state === 'authentication_required' || input.state === 'authenticating') return { kind: 'auth', label: 'Waiting for sign-in' };
+  if (input.error) return { kind: 'error', label: input.error };
   if (input.hasPermission) return { kind: 'permission', label: 'Waiting for a decision' };
   if (input.state === 'stopped') return { kind: 'stopped', label: 'Stopped' };
   if (input.state === 'running') {

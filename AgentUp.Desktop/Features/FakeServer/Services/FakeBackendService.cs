@@ -186,6 +186,8 @@ public sealed class FakeBackendService
             return StopWorkspace(workspaceId);
         if (method == "GET" && rest == "overview")
             return Overview(workspaceId);
+        if (method == "GET" && rest == "review-snapshot")
+            return ReviewSnapshot(workspaceId);
         if (method == "GET" && rest == "git/changes")
             return GitNode(workspaceId, "changes");
         if (method == "GET" && rest == "git/head")
@@ -221,6 +223,8 @@ public sealed class FakeBackendService
             return SendAgentMessage(workspaceId, request.Body);
         if (method == "GET" && rest == "agent/events")
             return AgentEventStream(workspaceId, request.Query);
+        if (method == "POST" && rest.StartsWith("agent/sessions/", StringComparison.Ordinal) && rest.EndsWith("/resume", StringComparison.Ordinal))
+            return ResumeAgent(workspaceId, rest);
         if (method is "POST" or "DELETE" && rest.StartsWith("agent/", StringComparison.Ordinal))
             return new FakeBackendResponseDto(204, "application/json");
         if (method == "DELETE" && rest == "agent")
@@ -329,6 +333,60 @@ public sealed class FakeBackendService
 
         PublishWorkspaces();
         return new FakeBackendResponseDto(204, "application/json");
+    }
+
+    private FakeBackendResponseDto ReviewSnapshot(string workspaceId)
+    {
+        lock (_gate)
+        {
+            var workspace = FindWorkspace(workspaceId);
+            if (workspace is null)
+                return NotFound();
+
+            var applications = new JsonArray();
+            foreach (var app in (workspace["applications"] as JsonArray ?? []).OfType<JsonObject>())
+            {
+                var ports = new JsonArray();
+                foreach (var port in (app["allocatedPorts"] as JsonArray ?? []).OfType<JsonObject>())
+                {
+                    ports.Add(new JsonObject
+                    {
+                        ["variable"] = port["variable"]?.DeepClone(),
+                        ["allocatedPort"] = port["allocatedPort"]?.DeepClone(),
+                        ["protocol"] = port["protocol"]?.DeepClone() ?? "http"
+                    });
+                }
+
+                applications.Add(new JsonObject
+                {
+                    ["name"] = app["name"]?.DeepClone(),
+                    ["kind"] = app["kind"]?.DeepClone() ?? "Process",
+                    ["processState"] = app["state"]?.DeepClone(),
+                    ["health"] = workspace["healthState"]?.DeepClone(),
+                    ["ports"] = ports,
+                    ["logs"] = new JsonArray(),
+                    ["logsTruncated"] = false
+                });
+            }
+
+            return Json(new JsonObject
+            {
+                ["workspaceId"] = workspaceId,
+                ["displayName"] = workspace["displayName"]?.DeepClone(),
+                ["repositoryPath"] = workspace["repositoryPath"]?.DeepClone(),
+                ["worktreePath"] = workspace["worktreePath"]?.DeepClone(),
+                ["branch"] = workspace["branch"]?.DeepClone(),
+                ["commit"] = workspace["commit"]?.DeepClone(),
+                ["state"] = workspace["state"]?.DeepClone(),
+                ["health"] = workspace["healthState"]?.DeepClone(),
+                ["capturedAt"] = "2026-04-11T15:30:00Z",
+                ["browserUrl"] = null,
+                ["applications"] = applications,
+                ["entries"] = new JsonArray(),
+                ["recentActions"] = new JsonArray(),
+                ["verification"] = null
+            });
+        }
     }
 
     private FakeBackendResponseDto Overview(string workspaceId)
@@ -459,6 +517,37 @@ public sealed class FakeBackendService
             next["boundAgent"] = match["agent"]?.DeepClone();
             next["state"] = "ready";
             next["sessionId"] = "demo-agent";
+            next["error"] = null;
+            stored["session"] = next;
+            return Json(LiveAgentSession(next));
+        }
+    }
+
+    private FakeBackendResponseDto ResumeAgent(string workspaceId, string rest)
+    {
+        lock (_gate)
+        {
+            var stored = _state.Agents?[workspaceId] as JsonObject;
+            if (stored is null)
+                return NotFound();
+            const string prefix = "agent/sessions/";
+            const string suffix = "/resume";
+            if (rest.Length <= prefix.Length + suffix.Length)
+                return NotFound();
+            var sessionId = Uri.UnescapeDataString(rest[prefix.Length..^suffix.Length]);
+            var saved = (stored["session"]?["sessions"] as JsonArray)?
+                .OfType<JsonObject>()
+                .FirstOrDefault(item =>
+                    string.Equals(item["sessionId"]?.GetValue<string>(), sessionId, StringComparison.Ordinal));
+            if (saved is null)
+                return NotFound();
+
+            var next = stored["session"] is JsonObject existing
+                ? existing.DeepClone().AsObject()
+                : new JsonObject();
+            next["agent"] = saved["agent"]?.DeepClone();
+            next["sessionId"] = saved["sessionId"]?.DeepClone();
+            next["state"] = "ready";
             next["error"] = null;
             stored["session"] = next;
             return Json(LiveAgentSession(next));
