@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Ports.DTOs;
@@ -110,6 +111,29 @@ public class WorkspaceItemViewModelTests
         await vm.RequestDeleteCommand.Execute().FirstAsync();
 
         Assert.That(host.Delete, Is.EqualTo(("id", "App")));
+    }
+
+    [Test]
+    public async Task RequestDeleteCommand_doesNothingWhenNoHostIsAttached()
+    {
+        var vm = Build("App");
+
+        await vm.RequestDeleteCommand.Execute().FirstAsync();
+
+        Assert.That(vm.ShowDeleteButton, Is.True);
+    }
+
+    [Test]
+    public void RequestDelete_doesNotAskTheHostWhenDeleteIsUnavailable()
+    {
+        var vm = Build("App");
+        var host = new RecordingHost();
+        vm.SetHost(host);
+        vm.CanDelete = false;
+
+        InvokeRequestDelete(vm);
+
+        Assert.That(host.Delete, Is.Null);
     }
 
     [Test]
@@ -281,6 +305,15 @@ public class WorkspaceItemViewModelTests
             Assert.That(vm.Applications[0].Command, Is.Empty);
             Assert.That(vm.Applications[0].State, Is.EqualTo("Running"));
         });
+    }
+
+    private static void InvokeRequestDelete(WorkspaceItemViewModel vm)
+    {
+        var method = typeof(WorkspaceItemViewModel).GetMethod(
+            "RequestDelete",
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("RequestDelete is missing.");
+        method.Invoke(vm, null);
     }
 
     private sealed class RecordingHost : IWorkspaceItemHost
