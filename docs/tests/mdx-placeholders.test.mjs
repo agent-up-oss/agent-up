@@ -21,6 +21,7 @@ test('Doc components do not evaluate raw route placeholders as JS', async () => 
   const files = [
     ...await markdownFiles(path.join(docsRoot, 'developer-guide')),
     ...await markdownFiles(path.join(docsRoot, 'user-docs')),
+    ...await markdownFiles(path.join(docsRoot, 'api-reference')),
   ];
   const raw = /<(DocFact|DocContract|DocMeta)\b[^>]*>PUT \/api\/workspaces\/\{[a-zA-Z]+\}/;
   const offenders = [];

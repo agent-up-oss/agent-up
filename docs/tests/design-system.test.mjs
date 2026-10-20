@@ -18,6 +18,7 @@ test('the design-system showcase is linked from primary navigation and the foote
   assert.match(footer, /Design System.*\/design-system/s);
   assert.match(navbar, /to:\s*'\/design-system'/);
   assert.match(navbar, /label:\s*'Design System'/);
+  assert.match(navbar, /label:\s*'API'/);
 });
 
 test('the docs import canonical product and marketing styles', async () => {
