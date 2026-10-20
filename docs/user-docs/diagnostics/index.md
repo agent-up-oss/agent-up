@@ -25,8 +25,8 @@ Console output is the first diagnostic source after a failed start, health check
 <DocContract label="Command">agent-up diagnostics</DocContract>
 
 <DocSurfaces>
-<DocSurface cli>`agent-up diagnostics` shows process and health state, recent application logs, and relevant JavaScript, network, and browser errors. Entries are marked `active` or `resolved`.</DocSurface>
-<DocSurface mcp>Call Orchestration MCP `get_workspace_console` first after browser failures. If that tool is unavailable, query Audit MCP for recent `application` events from `process`.</DocSurface>
+<DocSurface cli>`agent-up diagnostics` shows process and health state, recent application logs, and relevant JavaScript, network, and browser errors. Entries are marked `active` or `resolved`. `agent-up review-snapshot` writes a JSON snapshot of the current workspace for someone reviewing an agent task.</DocSurface>
+<DocSurface mcp>Call Orchestration MCP `get_workspace_console` first after browser failures. If that tool is unavailable, query Audit MCP for recent `application` events from `process`. `export_workspace_review_snapshot` is a shareable snapshot after an agent task, not a substitute for the live workspace.</DocSurface>
 </DocSurfaces>
 
 <p><img src="/desktop-diagnostics.png" alt="Desktop diagnostics showing Storefront process events" /></p>

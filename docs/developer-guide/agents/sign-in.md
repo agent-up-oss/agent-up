@@ -36,6 +36,8 @@ It used to. That could not work for two of the three shapes:
   quiet, which is what makes an unterminated prompt observable.
 - There was no way to answer that prompt at all. The Server now keeps stdin open and
   `POST api/workspaces/{id}/agent/login/code` delivers a code to a CLI that is waiting for one.
+  A pasted-code challenge (transport `code` with no user code) that exits without leaving a
+  subscription token stays on the authentication-required session state instead of restarting ACP unsigned.
 
 Output is still parsed for the link, the user code, and the expiry, but the *shape* is declared
 rather than guessed, so a code-shaped token in a progress message is never mistaken for a code the

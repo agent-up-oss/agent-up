@@ -12,7 +12,8 @@ namespace AgentUp.Desktop.Features.Agents.ViewModels;
 public sealed class AgentChatViewModel : ReactiveObject
 {
     private readonly AgentsController _controller;
-    private string? _workspaceId, _selectedAgent, _boundAgent, _sessionId, _message, _error, _sessionTitle, _mode, _usage, _permissionTitle, _permissionDetail, _hintKind, _hintTool, _loginUrl, _loginCode, _loginInstructions;
+    private string? _workspaceId, _selectedAgent, _boundAgent, _sessionId, _message, _error, _sessionTitle, _mode, _usage, _permissionTitle, _permissionDetail, _hintKind, _hintTool, _loginUrl, _loginCode, _loginInstructions, _loginCodeInput;
+    private bool _canCollectLoginCode, _canSubmitLoginCode;
     private AgentLoopStatusDto? _loop;
     private string _state = "idle";
     private string _activityLabel = "Idle";
@@ -27,7 +28,7 @@ public sealed class AgentChatViewModel : ReactiveObject
     public IEnumerable<AgentChatItemViewModel> Messages => Transcript.OfType<AgentChatItemViewModel>()
         .Concat(Transcript.OfType<AgentRunViewModel>().SelectMany(run => run.Items));
     public ObservableCollection<AgentDescriptorDto> Agents { get; } = [];
-    public ObservableCollection<AgentSessionSummaryDto> Sessions { get; } = [];
+    public ObservableCollection<AgentSessionRowViewModel> Sessions { get; } = [];
     public ObservableCollection<AgentOptionViewModel> PermissionOptions { get; } = [];
     public ObservableCollection<AgentOptionViewModel> AuthenticationOptions { get; } = [];
     public string? SelectedAgent { get => _selectedAgent; private set => this.RaiseAndSetIfChanged(ref _selectedAgent, value); }
@@ -43,9 +44,12 @@ public sealed class AgentChatViewModel : ReactiveObject
     public string? LoginUrl { get => _loginUrl; private set => this.RaiseAndSetIfChanged(ref _loginUrl, value); }
     public string? LoginCode { get => _loginCode; private set => this.RaiseAndSetIfChanged(ref _loginCode, value); }
     public string? LoginInstructions { get => _loginInstructions; private set => this.RaiseAndSetIfChanged(ref _loginInstructions, value); }
+    public string? LoginCodeInput { get => _loginCodeInput; set => this.RaiseAndSetIfChanged(ref _loginCodeInput, value); }
     public bool HasLoginChallenge => !string.IsNullOrWhiteSpace(LoginUrl) || !string.IsNullOrWhiteSpace(LoginCode);
     public bool HasLoginUrl => !string.IsNullOrWhiteSpace(LoginUrl);
     public bool HasLoginCode => !string.IsNullOrWhiteSpace(LoginCode);
+    public bool CanCollectLoginCode { get => _canCollectLoginCode; private set => this.RaiseAndSetIfChanged(ref _canCollectLoginCode, value); }
+    public bool CanSubmitLoginCode { get => _canSubmitLoginCode; private set => this.RaiseAndSetIfChanged(ref _canSubmitLoginCode, value); }
     public string? ContextLine => string.Join("   ", new[] { SessionTitle, string.IsNullOrWhiteSpace(Mode) ? null : $"Mode · {Mode}", Usage }.Where(part => !string.IsNullOrWhiteSpace(part)));
     public string? Message { get => _message; set => this.RaiseAndSetIfChanged(ref _message, value); }
     public string? Error { get => _error; private set => this.RaiseAndSetIfChanged(ref _error, value); }
@@ -54,7 +58,9 @@ public sealed class AgentChatViewModel : ReactiveObject
     public bool HasAgent => SelectedAgent is not null;
     public bool HasBoundAgent => BoundAgent is not null;
     public bool CanStartBound => HasBoundAgent && !HasAgent;
+    public string? SessionId => _sessionId;
     public bool HasSession => _sessionId is not null;
+    public bool HasNoSavedSessions => Sessions.Count == 0;
     public bool HasPermission => PermissionOptions.Count > 0;
     public bool HasContext => !string.IsNullOrWhiteSpace(ContextLine);
     public bool HasMessages => Transcript.Count > 0;
@@ -78,6 +84,7 @@ public sealed class AgentChatViewModel : ReactiveObject
     public ReactiveCommand<string, Unit> ResumeSessionCommand { get; }
     public ReactiveCommand<Unit, Unit> SendCommand { get; }
     public ReactiveCommand<Unit, Unit> StopCommand { get; }
+    public ReactiveCommand<Unit, Unit> SubmitLoginCodeCommand { get; }
 
     public AgentChatViewModel(AgentsController controller)
     {
@@ -87,7 +94,9 @@ public sealed class AgentChatViewModel : ReactiveObject
         ResumeSessionCommand = ReactiveCommand.CreateFromTask<string>(ResumeAsync);
         SendCommand = ReactiveCommand.CreateFromTask(SendAsync);
         StopCommand = ReactiveCommand.CreateFromTask(StopAsync);
+        SubmitLoginCodeCommand = ReactiveCommand.CreateFromTask(SubmitLoginCodeAsync);
         Transcript.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(HasMessages));
+        Sessions.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(HasNoSavedSessions));
     }
 
     public async Task LoadAsync(string? workspaceId)
@@ -102,7 +111,8 @@ public sealed class AgentChatViewModel : ReactiveObject
         Transcript.Clear();
         _currentRun = null;
         PermissionOptions.Clear(); AuthenticationOptions.Clear(); SelectedAgent = null; BoundAgent = null; Loop = null; State = "idle"; Error = null; Agents.Clear(); Sessions.Clear();
-        SessionTitle = Mode = Usage = PermissionTitle = PermissionDetail = LoginUrl = LoginCode = LoginInstructions = _hintKind = _hintTool = null;
+        SessionTitle = Mode = Usage = PermissionTitle = PermissionDetail = LoginUrl = LoginCode = LoginInstructions = LoginCodeInput = _hintKind = _hintTool = null;
+        CanCollectLoginCode = CanSubmitLoginCode = false;
         NotifyComputedChatState();
         RefreshActivity();
         if (workspaceId is null) return;
@@ -161,7 +171,7 @@ public sealed class AgentChatViewModel : ReactiveObject
             Loop = session.Loop;
             Sessions.Clear();
             foreach (var saved in session.Sessions ?? [])
-                Sessions.Add(saved);
+                Sessions.Add(new AgentSessionRowViewModel(saved, IsCurrentSession(saved, session), session.State));
             if (session.Agents.Count > 0)
             {
                 Agents.Clear();
@@ -170,12 +180,20 @@ public sealed class AgentChatViewModel : ReactiveObject
             }
             if (session.State == "authentication_required")
                 foreach (var method in session.AuthMethods ?? []) AuthenticationOptions.Add(new(method.Id, method.Name, ReactiveCommand.CreateFromTask(() => AuthenticateAsync(method.Id))));
-            Error = session.Error;
+            Error = IsExpectedAuthenticationNotice(session.State, session.Error) ? null : session.Error;
             LoginUrl = session.LoginChallenge?.Url;
             LoginCode = session.LoginChallenge?.Code;
             LoginInstructions = session.LoginChallenge?.Instructions;
+            CanCollectLoginCode = session.State == "authenticating"
+                && session.LoginChallenge?.Transport == AgentLoginTransport.Code
+                && string.IsNullOrWhiteSpace(session.LoginChallenge.Code);
+            CanSubmitLoginCode = CanCollectLoginCode && session.LoginChallenge?.CanSubmitCode == true;
         }
-        else LoginUrl = LoginCode = LoginInstructions = null;
+        else
+        {
+            LoginUrl = LoginCode = LoginInstructions = null;
+            CanCollectLoginCode = CanSubmitLoginCode = false;
+        }
         if (session?.State is not "running") _hintKind = _hintTool = null;
         RefreshActivity();
         this.RaisePropertyChanged(nameof(HasAgent));
@@ -296,6 +314,25 @@ public sealed class AgentChatViewModel : ReactiveObject
         });
     }
     private async Task AuthenticateAsync(string methodId) { if (_workspaceId is null) return; await RunAsync(id => _controller.AuthenticateAsync(id, methodId, CancellationToken.None)); }
+    private async Task SubmitLoginCodeAsync()
+    {
+        var code = LoginCodeInput?.Trim();
+        if (string.IsNullOrEmpty(code) || !CanSubmitLoginCode) return;
+        LoginCodeInput = null;
+        await RunAsync(id => _controller.SubmitLoginCodeAsync(id, code, CancellationToken.None));
+    }
+
+    private static bool IsCurrentSession(AgentSessionSummaryDto saved, AgentSessionDto session) =>
+        string.Equals(saved.SessionId, session.SessionId, StringComparison.Ordinal)
+        && session.State is not "stopped";
+
+    private static bool IsExpectedAuthenticationNotice(string state, string? error)
+    {
+        if (state is not ("authentication_required" or "authenticating")) return false;
+        return string.IsNullOrWhiteSpace(error)
+            || error.Contains("Authentication required", StringComparison.OrdinalIgnoreCase)
+            || error.Contains("-32000", StringComparison.Ordinal);
+    }
     private void Append(string role, string text)
     {
         if (string.IsNullOrWhiteSpace(text)) return;
@@ -400,6 +437,9 @@ public sealed class AgentChatViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(HasLoginChallenge));
         this.RaisePropertyChanged(nameof(HasLoginUrl));
         this.RaisePropertyChanged(nameof(HasLoginCode));
+        this.RaisePropertyChanged(nameof(HasNoSavedSessions));
+        this.RaisePropertyChanged(nameof(CanCollectLoginCode));
+        this.RaisePropertyChanged(nameof(CanSubmitLoginCode));
     }
     private static string Text(JsonElement value)
     {

@@ -21,8 +21,8 @@ Desktop chrome for the live session is the **Agent** tab. Mobile chrome for the 
 <DocContract label="Chrome">Desktop Agent · Mobile Agents</DocContract>
 
 <DocSurfaces>
-<DocSurface desktop>The Agent tab lists saved sessions and streams the selected workspace session. Once an agent is bound, the picker hides and the tab shows that agent. An unattended loop's phase, current task, and stop reason appear under the status line; a prompt sent while it runs steers the next turn instead of stopping it.</DocSurface>
-<DocSurface mobile>Agents lists saved sessions and Server-discovered ACP agents, then opens the selected chat as an inner page. A bound workspace hides the picker and shows that agent. An unattended loop's phase, current task, and stop reason appear on the bound-agent card.</DocSurface>
+<DocSurface desktop>The Agent tab lists saved sessions and streams the selected workspace session. The live session is labeled Current; every other row is Resume. Once an agent is bound, the picker hides and the tab shows that agent. When a pasted-code sign-in is waiting, the tab collects the code and sends it to the Server. An unattended loop's phase, current task, and stop reason appear under the status line; a prompt sent while it runs steers the next turn instead of stopping it.</DocSurface>
+<DocSurface mobile>Agents lists saved sessions and Server-discovered ACP agents, then opens the selected chat as an inner page. The live session is labeled Current; every other row is Resume. A bound workspace hides the picker and shows that agent. An unattended loop's phase, current task, and stop reason appear on the bound-agent card.</DocSurface>
 </DocSurfaces>
 
 <p><img src="/desktop-agents.png" alt="Desktop Agent tab showing Codex and Harbor Shop" /></p>
@@ -30,7 +30,7 @@ Desktop chrome for the live session is the **Agent** tab. Mobile chrome for the 
 
 ## Workspace agent CLIs
 
-Saved sessions from every enabled ACP agent appear together within the current workspace. Each row shows the agent, the agent-generated short description, and the branch last associated with the session. Select a row to resume it; sessions from another workspace never appear in this list.
+Saved sessions from every enabled ACP agent appear together within the current workspace. Each row shows the agent, the agent-generated short description, and the branch last associated with the session. The live session is labeled Current. Select any other row to resume it. Sessions from another workspace never appear in this list.
 
 Workspace agent chat uses ACP packages enabled on the Server. The picker lists those modules by id. The Server wraps those launches in Nix. Enable the package from Desktop capability-module chrome or Mobile Settings. Clients never call the remote registry.
 

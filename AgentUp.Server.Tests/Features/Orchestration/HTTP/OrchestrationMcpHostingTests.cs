@@ -201,7 +201,8 @@ public sealed class OrchestrationMcpHostingTests
             "audit_query",
             "audit_timeline",
             "audit_get_event",
-            "audit_load_artifact"
+            "audit_load_artifact",
+            "export_workspace_review_snapshot"
         }));
         Assert.That(options.ResourceCollection?.PrimitiveNames ?? [], Is.Empty);
     }
@@ -228,6 +229,7 @@ public sealed class OrchestrationMcpHostingTests
             .WithTools<OrchestrationMcpTools>()
             .WithTools<BrowserMcpTools>()
             .WithTools<AuditMcpTools>()
+            .WithTools<WorkspaceReviewSnapshotMcpTools>()
             .WithTools<DiagnosticsMcpTools>()
             .WithResources<OrchestrationMcpResources>();
         builder.Services.AddSingleton<IWorkspaceRepository, InMemoryWorkspaceRepository>();
@@ -292,6 +294,15 @@ public sealed class OrchestrationMcpHostingTests
         builder.Services.AddSingleton<AuditController>(sp => ServerTestComposition.CreateAuditController());
         builder.Services.AddSingleton<WorkspaceDiagnosticsService>();
         builder.Services.AddSingleton<WorkspaceDiagnosticsController>();
+        builder.Services.AddSingleton(sp => new HeadlessBrowserSessionAccessor(
+            sp.GetRequiredService<HeadlessBrowserSessionManager>()));
+        builder.Services.AddSingleton<BrowserSessionController>();
+        builder.Services.AddSingleton(sp => new WorkspaceReviewSnapshotService(
+            sp.GetRequiredService<WorkspaceQueryController>(),
+            sp.GetRequiredService<WorkspaceDiagnosticsController>(),
+            sp.GetRequiredService<BrowserSessionController>(),
+            sp.GetRequiredService<AuditController>()));
+        builder.Services.AddSingleton<WorkspaceReviewSnapshotController>();
         builder.Services.AddSingleton<McpEndpointSessionProvider>();
 
         return builder.Build();

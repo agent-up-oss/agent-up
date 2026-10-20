@@ -4,7 +4,22 @@ namespace AgentUp.Desktop.Features.Agents.DTOs;
 
 public sealed record AgentDescriptorDto(string Agent, bool Available, string DisplayName);
 public sealed record AgentAuthMethodDto(string Id, string Name, string? Description);
-public sealed record AgentLoginChallengeDto(string? Url, string? Code, string? Instructions);
+public enum AgentLoginTransport
+{
+    Unknown,
+    Poll,
+    Code,
+    Redirect
+}
+
+public sealed record AgentLoginChallengeDto(
+    string? Url,
+    string? Code,
+    string? Instructions,
+    AgentLoginTransport Transport = AgentLoginTransport.Unknown,
+    bool CanSubmitCode = false,
+    DateTimeOffset? ExpiresAt = null,
+    string? RedirectUri = null);
 public sealed record AgentSessionSummaryDto(string SessionId, string Agent, string Description, string Branch, DateTimeOffset LastUsedAt);
 public sealed record AgentLoopStatusDto(
     bool Active,

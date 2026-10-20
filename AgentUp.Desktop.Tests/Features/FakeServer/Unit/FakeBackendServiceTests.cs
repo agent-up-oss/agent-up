@@ -580,6 +580,85 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_agentSessionListsCurrentAndPriorSavedSessions()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var sessions = Json(backend, Get("/api/workspaces/harbor-shop/agent"))["sessions"]!.AsArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(sessions, Has.Count.EqualTo(2));
+            Assert.That(sessions[0]!["sessionId"]!.GetValue<string>(), Is.EqualTo("demo-agent"));
+            Assert.That(sessions[1]!["sessionId"]!.GetValue<string>(), Is.EqualTo("demo-prior"));
+            Assert.That(sessions[1]!["agent"]!.GetValue<string>(), Is.EqualTo("Claude"));
+        });
+    }
+
+    [Test]
+    public void Handle_resumeMakesTheSavedSessionCurrent()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var resumed = Json(backend, Post("/api/workspaces/harbor-shop/agent/sessions/demo-prior/resume"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resumed["sessionId"]!.GetValue<string>(), Is.EqualTo("demo-prior"));
+            Assert.That(resumed["agent"]!.GetValue<string>(), Is.EqualTo("claude"));
+            Assert.That(resumed["state"]!.GetValue<string>(), Is.EqualTo("ready"));
+            Assert.That(resumed["boundAgent"]!.GetValue<string>(), Is.EqualTo("Codex"));
+            Assert.That(Run(backend, Post("/api/workspaces/harbor-shop/agent/sessions/missing/resume")).Status, Is.EqualTo(404));
+        });
+    }
+
+    [Test]
+    public void Handle_resumeReturnsNotFoundWhenTheWorkspaceOrPathIsInvalid()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Assert.That(Run(backend, Post("/api/workspaces/missing/agent/sessions/demo-prior/resume")).Status, Is.EqualTo(404));
+        Assert.That(Run(backend, Post("/api/workspaces/harbor-shop/agent/sessions/resume")).Status, Is.EqualTo(404));
+        Assert.That(Run(backend, Post("/api/workspaces/harbor-shop/agent/sessions//resume")).Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public void Handle_reviewSnapshotExportsTheBundledWorkspace()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var snapshot = Json(backend, Get("/api/workspaces/harbor-shop/review-snapshot"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot["workspaceId"]!.GetValue<string>(), Is.EqualTo("harbor-shop"));
+            Assert.That(snapshot["displayName"]!.GetValue<string>(), Is.EqualTo("Harbor Shop"));
+            Assert.That(
+                snapshot["applications"]!.AsArray().Select(item => item!["name"]!.GetValue<string>()),
+                Is.EqualTo(new[] { "Storefront", "Orders API" }));
+            Assert.That(snapshot["verification"], Is.Null);
+            Assert.That(Run(backend, Get("/api/workspaces/missing/review-snapshot")).Status, Is.EqualTo(404));
+        });
+    }
+
+    [Test]
+    public void Handle_reviewSnapshotDefaultsKindAndProtocolWhenTheyAreOmitted()
+    {
+        const string json = """
+            {"id":"fake","url":"http://127.0.0.1:9","displayName":"Demo","connection":{},"authentication":{},"entitlements":{},"workspaces":[{"id":"harbor-shop","displayName":"Harbor Shop","state":"Running","applications":["skip",{"name":"Storefront","state":"Running","allocatedPorts":["skip",{"variable":"WEB_PORT","allocatedPort":9100}]}]}]}
+            """;
+        var backend = new AgentUp.Desktop.Features.FakeServer.Services.FakeBackendService(
+            new AgentUp.Desktop.Features.FakeServer.Providers.FakeServerDefinitionProvider().LoadJson(json));
+        var snapshot = Json(backend, Get("/api/workspaces/harbor-shop/review-snapshot"));
+        var app = snapshot["applications"]!.AsArray().Single()!.AsObject();
+        var port = app["ports"]!.AsArray().Single()!.AsObject();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(app["kind"]!.GetValue<string>(), Is.EqualTo("Process"));
+            Assert.That(port["protocol"]!.GetValue<string>(), Is.EqualTo("http"));
+            Assert.That(port["allocatedPort"]!.GetValue<int>(), Is.EqualTo(9100));
+        });
+    }
+
+    [Test]
     public void Handle_cloneEmptyRepositoryAndOddQueries()
     {
         var backend = FakeServerTestComposition.Backend();

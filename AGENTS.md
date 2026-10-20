@@ -1380,7 +1380,7 @@ Read: `docs/user-docs/commits/index.md` and `docs/developer-guide/commits/index.
 
 ## Agents
 
-Each workspace has one active ACP agent session and a separate saved session history. Desktop chrome for the live session is the **Agent** tab; Mobile chrome for the picker is the **Agents** tab. Subscription sign-in is Server-owned. Public agent identity is the enabled module id; Server ACP session code stays generic.
+Each workspace has one active ACP agent session and a separate saved session history. Desktop chrome for the live session is the **Agent** tab; Mobile chrome for the picker is the **Agents** tab. The live row is labeled Current; every other saved session is Resume. Subscription sign-in is Server-owned and branches on transport (`poll`, `code`, `redirect`), not vendor. A pasted-code sign-in that finishes without a subscription token stays on authentication rather than starting an unauthenticated session. ACP's `Authentication required` / `-32000` notice is a sign-in prompt, not a failed session. Public agent identity is the enabled module id; Server ACP session code stays generic.
 
 A workspace may bind one agent module id. Unbound is interactive chat, not an error. Desktop and Mobile hide the picker while a bind is set. Live bind of a different module is refused with a typed error that names the session.
 
@@ -1398,7 +1398,7 @@ Read: `docs/user-docs/browser/index.md` and `docs/developer-guide/browser/index.
 
 ## Diagnostics
 
-Diagnostics make AI validation practical by exposing process, browser, network, console, health, and performance information from the live workspace.
+Diagnostics make AI validation practical by exposing process, browser, network, console, health, and performance information from the live workspace. After an agent task, `export_workspace_review_snapshot` on `/mcp/audit`, `GET /api/workspaces/{workspaceId}/review-snapshot`, and `agent-up review-snapshot` emit a shareable snapshot of identity, ports, processes, diagnostics, the open browser URL, recent actions, and verification when that export can run. Missing verification does not fail the snapshot.
 
 Read: `docs/user-docs/diagnostics/index.md` and `docs/developer-guide/diagnostics/index.md`.
 

@@ -126,6 +126,60 @@ test('agent session exposes loop phase, task and stop reason', () => {
   assert.equal(session.boundAgent, 'Codex');
 });
 
+test('agent session lists current and prior saved sessions', () => {
+  const session = json(backend(), 'GET', '/api/workspaces/harbor-shop/agent');
+  assert.equal(session.sessions[0].sessionId, 'demo-agent');
+  assert.equal(session.sessions[1].sessionId, 'demo-prior');
+  assert.equal(session.sessions[1].agent, 'Claude');
+});
+
+test('resume makes the saved session current', () => {
+  const service = backend();
+  const resumed = json(service, 'POST', '/api/workspaces/harbor-shop/agent/sessions/demo-prior/resume', '{}');
+  assert.equal(resumed.sessionId, 'demo-prior');
+  assert.equal(resumed.agent, 'claude');
+  assert.equal(resumed.state, 'ready');
+  assert.equal(resumed.boundAgent, 'Codex');
+  assert.equal(service.handle({
+    method: 'POST',
+    path: '/api/workspaces/harbor-shop/agent/sessions/missing/resume',
+    query: '',
+    body: '{}',
+  }).status, 404);
+});
+
+test('resume returns not found when the workspace or path is invalid', () => {
+  const service = backend();
+  assert.equal(service.handle({
+    method: 'POST',
+    path: '/api/workspaces/missing/agent/sessions/demo-prior/resume',
+    query: '',
+    body: '{}',
+  }).status, 404);
+  assert.equal(service.handle({
+    method: 'POST',
+    path: '/api/workspaces/harbor-shop/agent/sessions/resume',
+    query: '',
+    body: '{}',
+  }).status, 404);
+  assert.equal(service.handle({
+    method: 'POST',
+    path: '/api/workspaces/harbor-shop/agent/sessions//resume',
+    query: '',
+    body: '{}',
+  }).status, 404);
+});
+
+test('review snapshot exports the bundled workspace', () => {
+  const service = backend();
+  const snapshot = json(service, 'GET', '/api/workspaces/harbor-shop/review-snapshot');
+  assert.equal(snapshot.workspaceId, 'harbor-shop');
+  assert.equal(snapshot.displayName, 'Harbor Shop');
+  assert.deepEqual(snapshot.applications.map((item: { name: string }) => item.name), ['Storefront', 'Orders API']);
+  assert.equal(snapshot.verification, null);
+  assert.equal(service.handle({ method: 'GET', path: '/api/workspaces/missing/review-snapshot', query: '', body: null }).status, 404);
+});
+
 test('git head commit discard and fetch mutate the demo tree', () => {
   const service = backend();
   const head = json(service, 'GET', '/api/workspaces/harbor-shop/git/head');

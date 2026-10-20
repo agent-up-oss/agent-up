@@ -99,6 +99,18 @@ public sealed class AgentApiClientTests
     }
 
     [Test]
+    public async Task SubmitLoginCodeAsync_postsTheWorkspaceLoginCodeRoute()
+    {
+        using var handler = new AgentHandler(HttpStatusCode.Accepted, "{}");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new AgentApiClient(http);
+
+        await client.SubmitLoginCodeAsync("ws 1", "code-from-the-page", CancellationToken.None);
+
+        Assert.That(handler.Uri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws%201/agent/login/code"));
+    }
+
+    [Test]
     public async Task BindAsync_putsTheWorkspaceBindingRoute()
     {
         const string body = "{\"workspaceId\":\"ws\",\"agent\":null,\"state\":\"idle\",\"sessionId\":null,\"error\":null,\"agents\":[],\"authMethods\":[],\"boundAgent\":\"Codex\"}";

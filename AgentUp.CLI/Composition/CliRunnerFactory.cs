@@ -130,6 +130,7 @@ public static class CliRunnerFactory
             new ListCommand(workspaceService, workspaceOutput),
             new StatusCommand(workspaceService, workspaceOutput),
             new DiagnosticsCommand(workspaceService, workspaceOutput),
+            new ReviewSnapshotCommand(workspaceService, workspaceOutput),
             authentication,
             commits,
             verification);

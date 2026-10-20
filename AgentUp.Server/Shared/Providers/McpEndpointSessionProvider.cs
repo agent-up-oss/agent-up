@@ -78,7 +78,8 @@ public sealed class McpEndpointSessionProvider
         "audit_query",
         "audit_timeline",
         "audit_get_event",
-        "audit_load_artifact"
+        "audit_load_artifact",
+        "export_workspace_review_snapshot"
     };
 
     private static readonly HashSet<string> CapabilityTools = new(StringComparer.Ordinal)
@@ -98,7 +99,7 @@ public sealed class McpEndpointSessionProvider
         "Agent-Up browser MCP server. Use these tools to navigate, inspect, and interact with the workspace browser the user watches in Desktop. When recording validation flows, start from the user's goal: infer routes, tabs, and labels from application source or router files when that is faster than live inspection, then perform the journey once and call save_validation_flow. Do not inspect every route before recording. Saved flows replay with staged mouse movement, half-second attention pings, navigation waits, and visible expectations.";
 
     private const string AuditInstructions =
-        "Agent-Up audit MCP server. Use these tools to query durable workspace, browser, MCP, process, source revision, health, and artifact history.";
+        "Agent-Up audit MCP server. Use these tools to query durable workspace, browser, MCP, process, source revision, health, and artifact history. export_workspace_review_snapshot is a shareable snapshot of one workspace after an agent task: identity, ports, processes, diagnostics, the open browser URL, and recent actions. Evidence to show, never a substitute for the live workspace.";
 
     private const string CapabilitiesInstructions =
         "Agent-Up capability modules MCP server. List, enable, and disable registry packages on this Server. Enabling wraps later application and agent launches through nix. Desktop and Mobile never call the remote registry.";

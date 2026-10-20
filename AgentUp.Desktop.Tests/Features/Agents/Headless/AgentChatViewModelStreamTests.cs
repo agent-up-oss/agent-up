@@ -416,6 +416,8 @@ internal sealed class StreamApiFake : IAgentApiProvider
         return Task.CompletedTask;
     }
 
+    public Task SubmitLoginCodeAsync(string workspaceId, string code, CancellationToken cancellationToken) => Task.CompletedTask;
+
     public Task DecideAsync(string workspaceId, string requestId, string optionId, CancellationToken cancellationToken)
     {
         Decided = (workspaceId, requestId, optionId);

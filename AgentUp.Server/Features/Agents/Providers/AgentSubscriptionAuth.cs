@@ -48,4 +48,19 @@ public sealed class AgentSubscriptionAuth
         message.Contains("auth", StringComparison.OrdinalIgnoreCase)
         || message.Contains("sign in", StringComparison.OrdinalIgnoreCase)
         || message.Contains("login", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// ACP's "not signed in yet" notice. Clients should offer subscription login rather than
+    /// render the raw JSON-RPC payload as a failed session.
+    /// </summary>
+    public bool IsExpectedAuthenticationRequired(string message) =>
+        message.Contains("Authentication required", StringComparison.OrdinalIgnoreCase)
+        || message.Contains("-32000", StringComparison.Ordinal);
+
+    /// <summary>
+    /// A pasted-code sign-in (no user code on the challenge) has to leave a subscription token
+    /// behind. Device-code and poll flows persist credentials in the CLI home instead.
+    /// </summary>
+    public bool RequiresCapturedOauthToken(AgentLoginChallengeDto challenge) =>
+        challenge.Transport == AgentLoginTransport.Code && string.IsNullOrWhiteSpace(challenge.Code);
 }

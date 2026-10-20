@@ -91,6 +91,17 @@ public sealed class AgentEventPresentationProviderTests
             Is.EqualTo("boom"));
 
     [Test]
+    public void ActivityLabel_keepsWaitingForSignIn_aheadOfAnAuthenticationRequiredPayload()
+        => Assert.That(
+            AgentEventPresentationProvider.ActivityLabel(
+                "authentication_required",
+                false,
+                """{"code":-32000,"message":"Authentication required"}""",
+                null,
+                null),
+            Is.EqualTo("Waiting for sign-in"));
+
+    [Test]
     public void OptionLabel_fallsBackToKindThenOptionId()
     {
         Assert.That(AgentEventPresentationProvider.OptionLabel("", "allow_always", "x"), Is.EqualTo("Always allow"));
