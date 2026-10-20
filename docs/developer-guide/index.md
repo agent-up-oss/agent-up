@@ -25,6 +25,7 @@ Those endpoints accept loopback connections anonymously, because on loopback the
 
 ## Start here
 
+- The [API Reference](/api-reference/) is its own versioned docs space. Current is Next; previous release snapshots stay on the site.
 - [Repo](/developer-guide/repo/architecture) covers architecture rules, packaging, CI, `au-debug`, design-system consumption, and telemetry.
 - [Testing](/developer-guide/repo/testing) sets out how tests are written: builders, shared domain data, and setup that stays in the test.
 - [Mobile store release](/developer-guide/repo/mobile-store-release) documents Mobile CI smoke builds and the dispatched Android and iOS store pipeline.

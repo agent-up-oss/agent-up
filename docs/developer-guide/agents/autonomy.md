@@ -4,7 +4,9 @@ title: Autonomy
 
 # Autonomy
 
+<DocWhat>
 A workspace can bind one agent, attach a permission policy, and drain assigned host issues without a developer in the prompt loop. Interactive chat is unchanged until those pieces are present. This page is the contract for that unattended path.
+</DocWhat>
 
 <DocFacts>
 <DocFact label="Server enable">AGENTUP_AUTONOMY_ENABLED or PUT /api/autonomy</DocFact>

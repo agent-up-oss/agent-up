@@ -4,7 +4,9 @@ title: Reference
 
 # agent-up.json Reference
 
-This page documents the JSON contract for `agent-up.json`.
+<DocWhat>
+Reference is the JSON field contract for `agent-up.json`. Property names match the form Agent-Up examples use.
+</DocWhat>
 
 Property names are shown in the JSON form Agent-Up examples use. Existing configurations that omit newly added optional properties remain valid.
 

@@ -1,8 +1,8 @@
 # Agent sign-in
 
-Agent-Up signs agents in with a ChatGPT, Cursor, or Claude subscription, never an API key. The
-three vendor CLIs implement three different sign-in shapes, and this page describes how the Server
-and the clients handle all of them without special-casing any one agent.
+<DocWhat>
+Agent-Up signs agents in with a ChatGPT, Cursor, or Claude subscription, never an API key. This page is how the Server and the clients handle those transports without special-casing any one agent.
+</DocWhat>
 
 ## Transports
 

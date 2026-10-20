@@ -4,6 +4,10 @@ title: Packaging And Installers
 
 # Packaging And Installers
 
+<DocWhat>
+Packaging installs Agent-Up as Server, CLI, and Desktop, all backed by one Server-owned runtime. This page is the installer and native-package contract.
+</DocWhat>
+
 Packaged installations install Agent-Up as three user-visible components backed by one Server-owned runtime:
 
 - `AgentUp.Server` runs as the local `agent-up-server` service.

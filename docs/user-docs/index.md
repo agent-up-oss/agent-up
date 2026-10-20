@@ -96,4 +96,4 @@ Docs are grouped by product slice, not by client.
 - [Verification](/docs/verification) is path-rule checks and receipts.
 - [Configuration](/docs/configuration) is `agent-up.json`.
 
-Implementation details live in the [Developer Guide](/developer-guide/).
+Implementation details live in the [Developer Guide](/developer-guide/). The Server HTTP contract lives in the [API Reference](/api-reference/).

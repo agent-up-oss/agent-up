@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Agent-Up social card</title>
+  <style>
+    @font-face {
+      font-family: Inter;
+      src: local("Inter");
+    }
+    html, body {
+      margin: 0;
+      width: 1200px;
+      height: 630px;
+      overflow: hidden;
+      background: #0a0b0c;
+      color: #f4f6f5;
+      font-family: Inter, "Noto Sans", sans-serif;
+    }
+    .card {
+      box-sizing: border-box;
+      width: 1200px;
+      height: 630px;
+      padding: 72px 80px;
+      display: grid;
+      align-content: space-between;
+      background: #0a0b0c;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .brand img { width: 64px; height: 64px; }
+    .brand span {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    h1 {
+      margin: 0;
+      max-width: 18ch;
+      font-size: 64px;
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+    h1 em {
+      color: #00b850;
+      font-style: normal;
+    }
+    p {
+      margin: 0;
+      max-width: 36ch;
+      color: #b7beb9;
+      font-size: 24px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <img src="../static/img/logo.svg" alt="" />
+      <span>Agent-Up</span>
+    </div>
+    <h1>Review <em>all</em> your projects</h1>
+    <p>Run, inspect, and review parallel development workspaces without process, port, or browser-state collisions.</p>
+  </div>
+</body>
+</html>

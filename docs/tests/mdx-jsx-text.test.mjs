@@ -33,7 +33,7 @@ function hasUnquotedIdent(inner) {
 
 test('JSX children quote {id} templates so MDX does not evaluate them', async () => {
   const failures = [];
-  for (const tree of ['user-docs', 'developer-guide']) {
+  for (const tree of ['user-docs', 'developer-guide', 'api-reference']) {
     for await (const path of markdownFiles(join(docsRoot, tree))) {
       const source = await readFile(path, 'utf8');
       for (const match of source.matchAll(jsxComponent)) {

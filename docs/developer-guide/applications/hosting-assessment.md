@@ -4,7 +4,9 @@ title: Desktop Application Hosting Assessment
 
 # Desktop Application Hosting Assessment
 
-> **Assessment, not current contract.** This page records a design investigation. Hosted Linux `desktopApplications` and ticketed Desktop/Mobile viewers are shipped. Remaining items below are reliability and platform backlog. For current behavior see [Applications](/developer-guide/applications), [Workspaces](/developer-guide/workspaces), and `AGENTS.md`.
+<DocWhat>
+This page is a design investigation, not the current contract. Hosted Linux `desktopApplications` and ticketed viewers are shipped; remaining items below are backlog.
+</DocWhat>
 
 ## Decision
 

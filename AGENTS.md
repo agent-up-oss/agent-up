@@ -62,6 +62,10 @@ One non-slice category is allowed:
 - User Docs: **Start** — Downloads, Setup, Releases, Limitations, Roadmap
 - Developer Guide: **Repo** — architecture rules, testing, packaging, CI, mobile store shipping, `au-debug`, design-system consumption, telemetry
 
+A third docs space is generated and versioned on its own:
+
+- API Reference (`docs/api-reference/`) — Server HTTP routes, one page per feature. `docs/scripts/generate-api-reference.mjs` bakes the contract from `AgentUp.Server` controllers. Each release snapshot stays under `docs/apiReference_versioned_docs/` (plugin id, not path).
+
 Definition sources for a slice are that pair of General pages, not a client-named page. MCP is a protocol: each developer General lists that slice's tools and routes. A one-line attach note lives on the Developer Guide index.
 
 ## Page standard
@@ -81,7 +85,7 @@ Every General uses this reading order, encoded as design-system docs components:
 
 Subpages in a slice dropdown may assume the slice name from General, not the whole General. They still open with what *this* page is.
 
-Give each structural block enough space and a distinct treatment so it reads as one unit. Do not box every component the same way. Do not open with a project list. User Generals never explain Avalonia, Expo, or solution layout.
+Give each structural block enough space and a distinct treatment so it reads as one unit. Do not box every component the same way. `DocContract` is the only featured boxed lead block. `DocFacts` and `DocSurfaces` are definition lists. `DocSpine` and `DocSteps` stay open numbered maps. Subpages that are not Generals still open with `DocWhat`. Do not open with a project list. User Generals never explain Avalonia, Expo, or solution layout.
 
 # Architecture
 

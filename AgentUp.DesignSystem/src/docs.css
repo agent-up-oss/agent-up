@@ -113,19 +113,15 @@ h1 + .au-doc-what {
 
 .au-doc-facts,
 .au-doc-surfaces-wrap,
-.au-doc-fork,
-.au-doc-steps {
-  padding: var(--au-space-8);
-  background: var(--au-color-surface);
-  border: 1px solid var(--au-color-border-subtle);
-  border-radius: var(--au-radius-lg);
-}
-
-.au-doc-facts,
-.au-doc-surfaces-wrap,
 .au-doc-fork {
   display: grid;
   gap: var(--au-space-6);
+  padding-block: var(--au-space-6);
+  border-block: 1px solid var(--au-color-border-subtle);
+}
+
+.au-doc-steps {
+  padding: 0;
 }
 
 .au-doc-facts__list,

@@ -1,0 +1,33 @@
+{
+  "apiReferenceSidebar": [
+    "index",
+    {
+      "type": "category",
+      "label": "HTTP",
+      "collapsed": false,
+      "items": [
+        "agents",
+        "application-proxy",
+        "applications",
+        "audit",
+        "authentication",
+        "browser",
+        "capabilities",
+        "commits",
+        "connection",
+        "database",
+        "desktop-applications",
+        "diagnostics",
+        "entitlements",
+        "forge",
+        "git",
+        "service-control",
+        "source-clones",
+        "tray-session",
+        "validation",
+        "verification",
+        "workspaces"
+      ]
+    }
+  ]
+}
