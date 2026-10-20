@@ -166,6 +166,36 @@ public sealed class GitPanelViewModelTests
     }
 
     [Test]
+    public async Task WriteCommands_areDisabledWhenGitWriteIsUnavailable()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
+        await panel.LoadAsync("ws-1");
+        panel.Nodes[3].IsSelected = true;
+        panel.CommitMessage = "feat(App): add main";
+        panel.CanWriteGit = false;
+
+        Assert.That(await panel.CommitCommand.CanExecute.FirstAsync(), Is.False);
+        Assert.That(await panel.DiscardCommand.CanExecute.FirstAsync(), Is.False);
+        Assert.That(await panel.FetchCommand.CanExecute.FirstAsync(), Is.False);
+        Assert.That(await panel.BeginCreateBranchCommand.CanExecute.FirstAsync(), Is.False);
+        Assert.That(panel.ShowDiscardButton, Is.False);
+        Assert.That(panel.WriteUnavailableMessage, Does.Contain("does not allow Git writes"));
+    }
+
+    [Test]
+    public async Task CanWriteGit_cancelsBranchCreationWhenWriteIsUnavailable()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
+
+        await panel.BeginCreateBranchCommand.Execute().FirstAsync();
+        Assert.That(panel.IsCreatingBranch, Is.True);
+
+        panel.CanWriteGit = false;
+
+        Assert.That(panel.IsCreatingBranch, Is.False);
+    }
+
+    [Test]
     public async Task CommitCommand_isDisabledUntilFilesAndAMessageAreProvided()
     {
         var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });

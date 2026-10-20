@@ -685,11 +685,14 @@ shared `ConnectionSource` from it and choose sign-in UI from
 `authentication.mode` is a hard error. A Server that does not answer
 `GET /api/connection` is treated as legacy self-hosted only after
 `GET /api/auth/status` succeeds. `GET /api/entitlements`
-is the authenticated permission document clients render as one plan card of
+is the authenticated permission document clients render as one compact plan card of
 `features` and `limits`: feature keys are operation permissions such as
-`agent.prompt` and `git.write`, not product editions. A self-hosted Server
-always returns the community document with every operation available. Clients
-must not branch on edition names.
+`agent.prompt` and `git.write`, not product editions. The card lists unavailable
+operations, not every permission line. A self-hosted Server always returns the
+community document with every operation available. Desktop and Mobile hide Add
+workspace, Remove workspace, and Git writes when `workspace.create`,
+`workspace.delete`, or `git.write` is unavailable. Clients must not branch on
+edition names.
 
 Cache keys, SSE cursors, and in-flight request gates on Desktop and Mobile are
 compound `(saved connection id, workspace id)` so two Servers that both expose

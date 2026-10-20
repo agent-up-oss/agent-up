@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isFeatureAvailable, presentPlanCard, workspaceCreateFeature } from '../models/Entitlements';
+import {
+  gitWriteAllowed,
+  isFeatureAvailable,
+  presentPlanCard,
+  restrictedPlanFeatures,
+  workspaceCreateFeature,
+  workspaceDeleteAllowed,
+} from '../models/Entitlements';
 import { getEntitlements } from './EntitlementsApiProvider';
 
 const community = {
@@ -55,6 +62,46 @@ test('presentPlanCard does not unlock when the document is missing', () => {
 test('isFeatureAvailable follows the permission document', () => {
   assert.equal(isFeatureAvailable(restricted, workspaceCreateFeature), false);
   assert.equal(isFeatureAvailable(null, workspaceCreateFeature), false);
+});
+
+test('restrictedPlanFeatures lists only unavailable operations', () => {
+  const card = presentPlanCard({
+    ...restricted,
+    features: {
+      'workspace.create': { available: false },
+      'workspace.delete': { available: false },
+      'git.write': { available: false },
+      'agent.prompt': { available: true },
+    },
+  });
+  assert.deepEqual(restrictedPlanFeatures(card).map(feature => feature.id), [
+    'workspace.create',
+    'workspace.delete',
+    'git.write',
+  ]);
+});
+
+test('workspaceDeleteAllowed and gitWriteAllowed follow the permission document', () => {
+  const allowed = {
+    ...community,
+    features: {
+      'workspace.delete': { available: true },
+      'git.write': { available: true },
+    },
+  };
+  const blocked = {
+    ...restricted,
+    features: {
+      'workspace.delete': { available: false },
+      'git.write': { available: false },
+    },
+  };
+  assert.equal(workspaceDeleteAllowed(allowed), true);
+  assert.equal(gitWriteAllowed(allowed), true);
+  assert.equal(workspaceDeleteAllowed(blocked), false);
+  assert.equal(gitWriteAllowed(blocked), false);
+  assert.equal(workspaceDeleteAllowed(null), false);
+  assert.equal(gitWriteAllowed(null), false);
 });
 
 test('getEntitlements returns null when unauthorized', async () => {

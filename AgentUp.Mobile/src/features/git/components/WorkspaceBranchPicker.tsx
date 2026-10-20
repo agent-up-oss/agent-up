@@ -17,6 +17,8 @@ import {
 import { gitDiscardConfirmCopy } from '../providers/GitChangeTreeProvider';
 import { checkoutRemote, discardFiles, fetchRemote, getHeadState, pullRemote, pushRemote, switchBranch } from '../providers/GitApiProvider';
 import { GitConfirmDialog } from './GitConfirmDialog';
+import { gitWriteAllowed, gitWriteUnavailableMessage } from '@/features/entitlements/models/Entitlements';
+import { getEntitlements } from '@/features/entitlements/providers/EntitlementsApiProvider';
 
 type MenuLayout = { top: number; left: number; width: number };
 
@@ -45,6 +47,19 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload, reload
   const request = useRef(0);
   const wrapRef = useRef<View>(null);
   const seenReloadNonce = useRef(reloadNonce);
+  const [writeAllowed, setWriteAllowed] = useState(true);
+
+  useEffect(() => {
+    if (!server) {
+      setWriteAllowed(true);
+      return;
+    }
+    let cancelled = false;
+    void getEntitlements(server).then(document => {
+      if (!cancelled) setWriteAllowed(gitWriteAllowed(document));
+    });
+    return () => { cancelled = true; };
+  }, [server]);
 
   const closeMenu = useCallback(() => {
     setOpen(false);
@@ -101,7 +116,7 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload, reload
   };
 
   const toggleMenu = () => {
-    if (busy || !hasBranches) return;
+    if (busy || !hasBranches || !writeAllowed) return;
     if (open) {
       closeMenu();
       return;
@@ -119,7 +134,7 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload, reload
   };
 
   const runSwitch = async (next: string, create: boolean) => {
-    if (!server || busy || next.length === 0 || next === head?.branch) return;
+    if (!server || busy || !writeAllowed || next.length === 0 || next === head?.branch) return;
     setBusy(true);
     setError(null);
     try {
@@ -137,7 +152,7 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload, reload
   };
 
   const runCheckout = async (next: string) => {
-    if (!server || busy || next.length === 0) return;
+    if (!server || busy || !writeAllowed || next.length === 0) return;
     setBusy(true);
     setError(null);
     try {
@@ -159,7 +174,7 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload, reload
     action: () => Promise<GitSyncResult>,
     options: { offerForceOnFailure?: boolean } = {},
   ) => {
-    if (!server || busy) return;
+    if (!server || busy || !writeAllowed) return;
     setBusy(true);
     setError(null);
     try {
@@ -185,7 +200,7 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload, reload
   };
 
   const runDiscard = async (files: string[]) => {
-    if (!server || busy || files.length === 0) return;
+    if (!server || busy || !writeAllowed || files.length === 0) return;
     setBusy(true);
     setError(null);
     try {
@@ -292,20 +307,22 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload, reload
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Current branch ${branch}`}
-          disabled={busy || !hasBranches}
+          disabled={busy || !hasBranches || !writeAllowed}
           onPress={toggleMenu}
           style={styles.dropdown}>
           <Text numberOfLines={1} style={styles.branch}>{branch}</Text>
           <Text style={styles.chevron}>{open ? '▴' : '▾'}</Text>
         </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Create branch"
-          disabled={busy}
-          onPress={() => { closeMenu(); setCreating(true); }}
-          style={styles.plus}>
-          <Text style={styles.plusText}>+</Text>
-        </Pressable>
+        {writeAllowed ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Create branch"
+            disabled={busy}
+            onPress={() => { closeMenu(); setCreating(true); }}
+            style={styles.plus}>
+            <Text style={styles.plusText}>+</Text>
+          </Pressable>
+        ) : null}
       </View>
       {!!sync && <Text style={styles.sync}>{sync}</Text>}
       <View style={styles.actions}>
@@ -318,39 +335,45 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload, reload
             style={styles.refresh}>
             <Text style={styles.refreshIcon}>↻</Text>
           </Pressable>}
-        <Pressable
-          disabled={busy}
-          onPress={() => confirmAction(gitBranchMutationConfirm('fetch', head), () => void runSync('fetch', () => fetchRemote(server!, workspaceId, null)))}
-          style={styles.action}>
-          <Text style={styles.actionText}>Fetch</Text>
-        </Pressable>
-        <Pressable
-          disabled={busy}
-          onPress={() => confirmAction(gitBranchMutationConfirm('pull', head), () => void runSync('pull', () => pullRemote(server!, workspaceId, false)))}
-          style={styles.action}>
-          <Text style={styles.actionText}>Pull</Text>
-        </Pressable>
-        <Pressable
-          disabled={busy}
-          onPress={() => confirmAction(
-            gitBranchMutationConfirm('push', head),
-            () => void runSync('push', () => pushRemote(server!, workspaceId, false, false), { offerForceOnFailure: true }),
-          )}
-          style={styles.actionPrimary}>
-          <Text style={styles.actionPrimaryText}>Push</Text>
-        </Pressable>
-        {selectedFiles.length > 0 &&
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Discard"
-            disabled={busy}
-            onPress={() => confirmAction(
-              gitDiscardConfirmCopy(selectedFiles),
-              () => void runDiscard(selectedFiles),
-            )}
-            style={[styles.discard, busy && styles.disabled]}>
-            <Text style={styles.discardText}>Discard</Text>
-          </Pressable>}
+        {writeAllowed ? (
+          <>
+            <Pressable
+              disabled={busy}
+              onPress={() => confirmAction(gitBranchMutationConfirm('fetch', head), () => void runSync('fetch', () => fetchRemote(server!, workspaceId, null)))}
+              style={styles.action}>
+              <Text style={styles.actionText}>Fetch</Text>
+            </Pressable>
+            <Pressable
+              disabled={busy}
+              onPress={() => confirmAction(gitBranchMutationConfirm('pull', head), () => void runSync('pull', () => pullRemote(server!, workspaceId, false)))}
+              style={styles.action}>
+              <Text style={styles.actionText}>Pull</Text>
+            </Pressable>
+            <Pressable
+              disabled={busy}
+              onPress={() => confirmAction(
+                gitBranchMutationConfirm('push', head),
+                () => void runSync('push', () => pushRemote(server!, workspaceId, false, false), { offerForceOnFailure: true }),
+              )}
+              style={styles.actionPrimary}>
+              <Text style={styles.actionPrimaryText}>Push</Text>
+            </Pressable>
+            {selectedFiles.length > 0 &&
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Discard"
+                disabled={busy}
+                onPress={() => confirmAction(
+                  gitDiscardConfirmCopy(selectedFiles),
+                  () => void runDiscard(selectedFiles),
+                )}
+                style={[styles.discard, busy && styles.disabled]}>
+                <Text style={styles.discardText}>Discard</Text>
+              </Pressable>}
+          </>
+        ) : (
+          <Text style={styles.sync}>{gitWriteUnavailableMessage}</Text>
+        )}
         {onHistory &&
           <Pressable
             testID="open-git-history"
@@ -361,7 +384,7 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload, reload
             <Text style={styles.actionText}>History</Text>
           </Pressable>}
       </View>
-      {creating && (
+      {creating && writeAllowed && (
         <View style={styles.create}>
           <TextInput
             accessibilityLabel="New branch name"

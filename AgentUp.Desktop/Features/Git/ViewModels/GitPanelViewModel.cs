@@ -42,6 +42,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     private int _behind;
     private GitLogRowDto? _selectedLogRow;
     private bool _isHistoryOpen;
+    private bool _canWriteGit = true;
     private ForgeHostingDto? _hosting;
     private CancellationTokenSource? _watch;
 
@@ -124,15 +125,18 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         DiscardCommand = ReactiveCommand.Create(
             RequestDiscardConfirm,
             this.WhenAnyValue(
+                x => x.CanWriteGit,
                 x => x.SelectedFileCount,
                 x => x.IsBusy,
                 x => x.IsConfirmingDiscard,
-                (selected, busy, confirming) => selected > 0 && !busy && !confirming));
+                (canWrite, selected, busy, confirming) => canWrite && selected > 0 && !busy && !confirming));
         ConfirmDiscardCommand = ReactiveCommand.CreateFromTask(
             ConfirmDiscardAsync,
             this.WhenAnyValue(x => x.IsConfirmingDiscard, x => x.IsBusy, (confirming, busy) => confirming && !busy));
         CancelDiscardCommand = ReactiveCommand.Create(ClearConfirm);
-        BeginCreateBranchCommand = ReactiveCommand.Create(() => { IsCreatingBranch = true; });
+        BeginCreateBranchCommand = ReactiveCommand.Create(
+            () => { IsCreatingBranch = true; },
+            this.WhenAnyValue(x => x.CanWriteGit));
         CancelCreateBranchCommand = ReactiveCommand.Create(() =>
         {
             IsCreatingBranch = false;
@@ -140,19 +144,27 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         });
         CreateBranchCommand = ReactiveCommand.CreateFromTask(
             CreateBranchAsync,
-            this.WhenAnyValue(x => x.NewBranchName, x => x.IsBusy, (name, busy) => !string.IsNullOrWhiteSpace(name) && !busy));
+            this.WhenAnyValue(
+                x => x.CanWriteGit,
+                x => x.NewBranchName,
+                x => x.IsBusy,
+                (canWrite, name, busy) => canWrite && !string.IsNullOrWhiteSpace(name) && !busy));
         SwitchBranchCommand = ReactiveCommand.CreateFromTask<string>(
             SwitchToBranchAsync,
-            this.WhenAnyValue(x => x.IsBusy, busy => !busy));
+            this.WhenAnyValue(x => x.CanWriteGit, x => x.IsBusy, (canWrite, busy) => canWrite && !busy));
         FetchCommand = ReactiveCommand.CreateFromTask(
             FetchAsync,
-            this.WhenAnyValue(x => x.IsBusy, busy => !busy));
+            this.WhenAnyValue(x => x.CanWriteGit, x => x.IsBusy, (canWrite, busy) => canWrite && !busy));
         PullCommand = ReactiveCommand.CreateFromTask(
             PullAsync,
-            this.WhenAnyValue(x => x.IsBusy, busy => !busy));
+            this.WhenAnyValue(x => x.CanWriteGit, x => x.IsBusy, (canWrite, busy) => canWrite && !busy));
         PushCommand = ReactiveCommand.Create(
             RequestPushConfirm,
-            this.WhenAnyValue(x => x.IsBusy, x => x.HasConfirm, (busy, confirming) => !busy && !confirming));
+            this.WhenAnyValue(
+                x => x.CanWriteGit,
+                x => x.IsBusy,
+                x => x.HasConfirm,
+                (canWrite, busy, confirming) => canWrite && !busy && !confirming));
         ConfirmCommand = ReactiveCommand.CreateFromTask(
             ConfirmPendingAsync,
             this.WhenAnyValue(x => x.HasConfirm, x => x.IsBusy, (confirming, busy) => confirming && !busy));
@@ -163,16 +175,18 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         CancelForcePushCommand = ReactiveCommand.Create(ClearConfirm);
         CheckoutLogRefCommand = ReactiveCommand.CreateFromTask<string>(
             CheckoutFromLogAsync,
-            this.WhenAnyValue(x => x.IsBusy, busy => !busy));
+            this.WhenAnyValue(x => x.CanWriteGit, x => x.IsBusy, (canWrite, busy) => canWrite && !busy));
         OpenHistoryCommand = ReactiveCommand.Create(() => { IsHistoryOpen = true; });
         CloseHistoryCommand = ReactiveCommand.Create(() => { IsHistoryOpen = false; });
         CommitCommand = ReactiveCommand.CreateFromTask(
             CommitAsync,
             this.WhenAnyValue(
+                x => x.CanWriteGit,
                 x => x.SelectedFileCount,
                 x => x.CommitMessage,
                 x => x.IsBusy,
-                (selected, message, busy) => selected > 0 && !string.IsNullOrWhiteSpace(message) && !busy));
+                (canWrite, selected, message, busy) =>
+                    canWrite && selected > 0 && !string.IsNullOrWhiteSpace(message) && !busy));
         Diff.WhenAnyValue(diff => diff.IsVisible, diff => diff.Path)
             .Subscribe(_ => MarkOpenFile(Diff.IsVisible ? Diff.Path : null));
     }
@@ -207,6 +221,21 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         get => _isBusy;
         private set => this.RaiseAndSetIfChanged(ref _isBusy, value);
     }
+
+    public bool CanWriteGit
+    {
+        get => _canWriteGit;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _canWriteGit, value);
+            this.RaisePropertyChanged(nameof(ShowDiscardButton));
+            if (!value)
+                IsCreatingBranch = false;
+        }
+    }
+
+    public string WriteUnavailableMessage =>
+        "This Server does not allow Git writes from the client.";
 
     public string Branch
     {
@@ -264,6 +293,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
             this.RaiseAndSetIfChanged(ref _selectedFileCount, value);
             this.RaisePropertyChanged(nameof(SelectionSummary));
             this.RaisePropertyChanged(nameof(HasSelectedFiles));
+            this.RaisePropertyChanged(nameof(ShowDiscardButton));
         }
     }
 
@@ -272,6 +302,8 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     public string SelectionSummary => $"{SelectedFileCount} of {FileCount} file(s) selected";
 
     public bool HasSelectedFiles => SelectedFileCount > 0;
+
+    public bool ShowDiscardButton => CanWriteGit && HasSelectedFiles;
 
     public string SyncSummary => Ahead == 0 && Behind == 0
         ? string.Empty
@@ -620,7 +652,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 
     private async Task CommitAsync()
     {
-        if (_workspaceId is null)
+        if (_workspaceId is null || !CanWriteGit)
             return;
 
         var files = SelectedFiles();
@@ -652,6 +684,9 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 
     private void RequestDiscardConfirm()
     {
+        if (!CanWriteGit)
+            return;
+
         var files = SelectedFiles();
         if (files.Count == 0)
             return;
@@ -667,7 +702,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 
     private async Task DiscardAsync()
     {
-        if (_workspaceId is null)
+        if (_workspaceId is null || !CanWriteGit)
             return;
 
         var files = SelectedFiles();
@@ -702,7 +737,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 
     private async Task SwitchToBranchAsync(string name, bool create)
     {
-        if (_workspaceId is null || string.IsNullOrWhiteSpace(name) || name == Branch)
+        if (!CanWriteGit || _workspaceId is null || string.IsNullOrWhiteSpace(name) || name == Branch)
             return;
 
         IsBusy = true;
@@ -737,7 +772,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
 
     private async Task CheckoutRemoteAsync(string name)
     {
-        if (_workspaceId is null || string.IsNullOrWhiteSpace(name) || IsBusy)
+        if (!CanWriteGit || _workspaceId is null || string.IsNullOrWhiteSpace(name) || IsBusy)
             return;
 
         IsBusy = true;
@@ -780,8 +815,13 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
             (workspaceId, ct) => _git.PushAsync(workspaceId, forceWithLease, setUpstream: false, ct),
             offerForceOnFailure: !forceWithLease);
 
-    private void RequestPushConfirm() =>
+    private void RequestPushConfirm()
+    {
+        if (!CanWriteGit)
+            return;
+
         ShowConfirm(GitConfirmCopyProvider.Push(Branch, _upstream), GitConfirmKind.Push);
+    }
 
     private Task ConfirmPushAsync()
     {
@@ -836,7 +876,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         Func<string, CancellationToken, Task<GitSyncResultDto>> action,
         bool offerForceOnFailure = false)
     {
-        if (_workspaceId is null)
+        if (_workspaceId is null || !CanWriteGit)
             return;
 
         IsBusy = true;

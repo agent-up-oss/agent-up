@@ -48,6 +48,8 @@ public sealed class EntitlementsControllerTests
         {
             Assert.That(plan.Card!.DisplayName, Is.EqualTo("Team"));
             Assert.That(plan.CanCreateWorkspace, Is.False);
+            Assert.That(plan.CanDeleteWorkspace, Is.False);
+            Assert.That(plan.CanWriteGit, Is.False);
         });
     }
 }

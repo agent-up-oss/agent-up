@@ -6,4 +6,10 @@ public sealed record PlanCard(
     string Summary,
     bool Available,
     IReadOnlyList<PlanCardFeature> Features,
-    IReadOnlyList<PlanCardLimit> Limits);
+    IReadOnlyList<PlanCardLimit> Limits)
+{
+    public IReadOnlyList<PlanCardFeature> RestrictedFeatures
+        => Features.Where(feature => !feature.Available).ToArray();
+
+    public bool HasRestrictions => RestrictedFeatures.Count > 0;
+}

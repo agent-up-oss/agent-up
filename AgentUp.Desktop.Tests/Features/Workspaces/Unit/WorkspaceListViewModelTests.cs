@@ -47,6 +47,9 @@ public sealed class WorkspaceListViewModelTests
             Assert.That(sidebar.ErrorMessage, Is.Null);
             Assert.That(sidebar.RequiresSignIn, Is.False);
             Assert.That(sidebar.IsLoading, Is.False);
+            Assert.That(sidebar.CanDeleteWorkspace, Is.True);
+            Assert.That(sidebar.CanWriteGit, Is.True);
+            Assert.That(sidebar.ShowSidebarPlan, Is.False);
         });
     }
 
@@ -83,7 +86,44 @@ public sealed class WorkspaceListViewModelTests
 
         await sidebar.LoadAsync();
 
-        Assert.That(sidebar.CanCreateWorkspace, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(sidebar.CanCreateWorkspace, Is.True);
+            Assert.That(sidebar.CanDeleteWorkspace, Is.True);
+            Assert.That(sidebar.CanWriteGit, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task LoadAsync_hidesDeleteAndGitWriteWhenThoseFeaturesAreUnavailable()
+    {
+        var workspace = DesktopDomain.Workspace().Build();
+        using var http = new DisposableTestHttpClient(_ => HttpTestResponses.Json(new
+        {
+            displayName = "Team",
+            features = new Dictionary<string, object>
+            {
+                ["workspace.create"] = new { available = true },
+                ["workspace.delete"] = new { available = false },
+                ["git.write"] = new { available = false }
+            },
+            limits = new Dictionary<string, object>()
+        }));
+        var sidebar = new WorkspaceListViewModel(
+            new WorkspacesController(new WorkspaceListService(new RefreshingWorkspaceApi(workspace))),
+            new EntitlementsController(new EntitlementsService(new EntitlementsApiClient(http.Client))));
+
+        await sidebar.LoadAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(sidebar.CanDeleteWorkspace, Is.False);
+            Assert.That(sidebar.CanWriteGit, Is.False);
+            Assert.That(sidebar.Workspaces[0].CanDelete, Is.False);
+            Assert.That(sidebar.Workspaces[0].ShowDeleteButton, Is.False);
+            Assert.That(sidebar.ShowSidebarPlan, Is.True);
+            Assert.That(sidebar.Plan.HasRestrictions, Is.True);
+        });
     }
 
     [Test]
