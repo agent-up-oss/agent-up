@@ -44,4 +44,19 @@ public sealed class WorkspaceDiagnosticsOutputTests
             Assert.That(writer.ToString().Trim(), Is.EqualTo("""{"ok":true}"""));
         });
     }
+
+    [Test]
+    public void WriteTextResult_WritesTheFailure()
+    {
+        using var writer = new StringWriter();
+        var output = new WorkspaceCommandOutputService(writer);
+
+        var exitCode = output.WriteTextResult(WorkspaceCommandResult<string>.Failed("snapshot failed"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(1));
+            Assert.That(writer.ToString(), Does.Contain("snapshot failed"));
+        });
+    }
 }

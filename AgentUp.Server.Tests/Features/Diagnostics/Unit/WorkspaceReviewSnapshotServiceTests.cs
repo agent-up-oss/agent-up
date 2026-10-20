@@ -51,6 +51,25 @@ public sealed class WorkspaceReviewSnapshotServiceTests
         Assert.That(await Snapshot(registry, audit).GetAsync("missing", CancellationToken.None), Is.Null);
     }
 
+    [Test]
+    public async Task GetAsync_LabelsADockerApplicationAsDocker()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        await registry.StartAsync(CancellationToken.None);
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Shop")
+            .At("/repo")
+            .AtCommit("abc")
+            .WithService(new DockerServiceDefinition("Database", "postgres:16"))
+            .Build());
+        var audit = ServerTestComposition.CreateAuditController(registry);
+
+        var snapshot = await Snapshot(registry, audit).GetAsync(workspace.Id, CancellationToken.None);
+
+        Assert.That(snapshot!.Applications.Single().Name, Is.EqualTo("Database"));
+        Assert.That(snapshot.Applications.Single().Kind, Is.EqualTo("Docker"));
+    }
+
     private static async Task<(WorkspaceRegistry Registry, AgentUp.Server.Features.Audit.Controllers.AuditController Audit, Workspace Workspace)> CreateAsync()
     {
         var registry = ServerTestComposition.CreateRegistry();
