@@ -5,10 +5,9 @@ sidebar_position: 12
 
 # Design system
 
-`AgentUp.DesignSystem/` is the single source of truth for Agent-Up product UI,
-documentation, and marketing presentation. Its canonical format is HTML and CSS
-so another repository can consume the same contract through an npm dependency or
-an Agent-Up Git submodule.
+<DocWhat>
+`AgentUp.DesignSystem/` is the single source of truth for Agent-Up product UI, documentation, and marketing. Canonical HTML and CSS compile to the bindings Desktop and Mobile consume.
+</DocWhat>
 
 The public showcase is available at [/design-system](/design-system). It is linked
 from the site navbar and footer. The page opens with the contract intro beside a

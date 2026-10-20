@@ -4,7 +4,9 @@ title: Current Limitations
 
 # Current Limitations
 
-Agent-Up is an experimental development preview. It is intended for early technical feedback, not production use.
+<DocWhat>
+Limitations is the current release status. Agent-Up is an experimental development preview for early technical feedback, not production use.
+</DocWhat>
 
 ## Release Status
 

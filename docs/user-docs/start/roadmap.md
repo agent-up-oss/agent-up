@@ -4,7 +4,9 @@ title: Roadmap
 
 # Roadmap
 
-Agent-Up should evolve beyond being a process launcher.
+<DocWhat>
+Roadmap is the long-term direction, not a ship list. Agent-Up should become the runtime operating system for AI-assisted development while Git, Docker, and the IDE keep their jobs.
+</DocWhat>
 
 The long-term goal is for Agent-Up to become the runtime operating system for AI-assisted development:
 

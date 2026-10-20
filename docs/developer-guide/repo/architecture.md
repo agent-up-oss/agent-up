@@ -4,6 +4,10 @@ title: Architecture
 
 # Architecture
 
+<DocWhat>
+This page is the implementation map. The Server owns orchestration. Desktop, CLI, MCP clients, and future integrations display state and request actions.
+</DocWhat>
+
 Agent-Up has core runtime component areas plus product-specific installer entrypoints:
 
 - `AgentUp.Server`

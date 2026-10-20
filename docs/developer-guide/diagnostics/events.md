@@ -4,7 +4,9 @@ title: Event Recording
 
 # Event Recording
 
-Shipped today: Browser MCP actions, screenshots, workspace and application state changes, captured application console lines, source revision context, and action-relevant health/probe state are written to the Server audit store. Agents query that history through Audit MCP.
+<DocWhat>
+This page is the Server audit history. Browser MCP actions, screenshots, workspace and application state, console lines, and probe state are written there. Agents query it through Audit MCP.
+</DocWhat>
 
 ## Direction
 

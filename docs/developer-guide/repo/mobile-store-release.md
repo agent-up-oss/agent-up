@@ -4,9 +4,9 @@ title: Mobile store release
 
 # Mobile store release
 
-Store binaries for `AgentUp.Mobile` ship from
-[Mobile CI](https://github.com/themassiveone/agent-up/actions/workflows/mobile-ci.yaml),
-not from `ci.yml`.
+<DocWhat>
+Mobile store binaries ship from Mobile CI, not from `ci.yml`. This page is the Android and iOS smoke-build and store-submit contract.
+</DocWhat>
 
 A path-filtered `push` smoke-builds and signs Android and iOS, except Dependabot
 pushes, which skip those jobs because GitHub withholds Actions secrets from

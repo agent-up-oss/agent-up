@@ -4,7 +4,9 @@ title: Workflows
 
 # Workflows
 
-Agent-Up is designed to support a complete AI validation workflow.
+<DocWhat>
+Workflows is the intended AI validation loop: change code, restart the workspace, inspect, interact, and commit. It is the target path, not a hidden orchestration owner.
+</DocWhat>
 
 ```text
 Modify Code

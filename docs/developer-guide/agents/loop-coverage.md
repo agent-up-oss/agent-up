@@ -4,7 +4,9 @@ title: Loop coverage
 
 # Loop coverage
 
-This page is the contract for running the Server loop kernel against a real token stream. Hard invariants fail the run. Outcome scores are pooled against a versioned baseline. The same scenario files drive CPU inference on every change and a scripted ACP agent on demand.
+<DocWhat>
+This page is the contract for running the Server loop kernel against a real token stream. Hard invariants fail the run. Outcome scores are pooled against a versioned baseline.
+</DocWhat>
 
 <DocFacts>
 <DocFact label="Check">loop-inference</DocFact>

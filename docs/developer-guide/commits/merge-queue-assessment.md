@@ -4,7 +4,9 @@ title: Commit Merge Queue Assessment
 
 # Commit Merge Queue Assessment
 
-> **Assessment, not current contract.** This page records a design investigation. The first-phase Server-owned proposal queue behind `commits.enabled` is shipped; later phases below (rebase/repair, review apply, tree-bound receipts) are still backlog. For current behavior see [Commits](/developer-guide/commits), [Git](/docs/git), and `AGENTS.md`.
+<DocWhat>
+This page is a design investigation, not the current contract. The Server-owned proposal queue behind `commits.enabled` is shipped; later phases below are backlog.
+</DocWhat>
 
 ## Decision
 

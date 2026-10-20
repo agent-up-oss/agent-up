@@ -4,7 +4,9 @@ title: Design Principles
 
 # Design Principles
 
-Agent-Up is built around a small set of constraints that keep it framework agnostic, predictable, and suitable for multiple concurrent AI workspaces.
+<DocWhat>
+Design principles are the constraints that keep Agent-Up framework agnostic and suitable for concurrent AI workspaces. Product UI, docs, and marketing share one design system.
+</DocWhat>
 
 Product UI, documentation, and marketing use the repository-owned
 [`@agent-up/design-system`](./design-system.md). Canonical HTML and CSS compile to

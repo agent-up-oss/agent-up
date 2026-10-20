@@ -4,7 +4,9 @@ title: Playwright Generation
 
 # Playwright Generation
 
-Shipped today: Desktop Validation sidebar replay and `export_validation_flow` on Browser MCP emit a Playwright test from a saved validation flow. See [Behavioral validation flows](#behavioral-validation-flows).
+<DocWhat>
+This page is the Playwright export from a saved validation flow. Desktop Validation sidebar replay and `export_validation_flow` emit that test today.
+</DocWhat>
 
 ## Direction
 
