@@ -153,6 +153,18 @@ The root comes from `AGENTUP_SOURCE_CLONES_ROOT` and otherwise defaults to a `so
 
 `POST /api/workspaces/tutorial/cleanup` stops and removes every registered workspace. Desktop and Mobile onboarding is the built-in Demo server, not this endpoint. The Desktop FirstRun tutorial overlay is gone; every launch is the server picker.
 
+## Start outcomes
+
+`WorkspaceLifecycleService` attempts every declared application. A per-application failure stays on that application.
+
+<DocFacts>
+<DocFact label="Running">Every application started. `POST /start` returns 200.</DocFact>
+<DocFact label="Degraded">At least one application is running and at least one failed. `POST /start` returns 200 with `failedApplications`.</DocFact>
+<DocFact label="Failed">Nothing started. `POST /start` returns 500 and `KillAsync` stops any process that did launch.</DocFact>
+</DocFacts>
+
+Desktop and Mobile treat `Degraded` as an active workspace: the stop control stays available and the LED uses the warning role.
+
 ## Desktop and Mobile clients
 
 Desktop displays workspaces, connects to one Server at a time, and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. The workspace list `+` button posts to the Server's source-clones endpoint. Desktop does not clone, validate remotes, or choose a destination directory.

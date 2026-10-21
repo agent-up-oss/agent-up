@@ -2,6 +2,8 @@ using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Models;
+using AgentUp.Server.Features.Workspaces.Providers;
+using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
 using AgentUp.Server.Tests.Support;
 
@@ -46,5 +48,39 @@ public sealed class WorkspaceControllersTests
         Assert.That(applicationUpdated, Is.True);
         Assert.That(registry.GetById(workspace.Id)!.State, Is.EqualTo(WorkspaceState.Running));
         Assert.That(registry.GetById(workspace.Id)!.Applications.Single().State, Is.EqualTo(ApplicationState.Running));
+    }
+
+    [Test]
+    public async Task Start_returnsOkWithFailedApplications_whenTheWorkspaceIsDegraded()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var created = await registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand).Build())
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.ApiName, ServerDomain.ApiCommand).Build())
+            .Build());
+        var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(
+            registry, new PartialFailWorkspaceProcessManager());
+        var controller = new WorkspacesController(
+            registry,
+            lifecycle,
+            new WorkspaceEventStreamService(
+                new WorkspaceEventBus(),
+                new AgentUp.Server.Features.Workspaces.Providers.WorkspaceEventFrameProvider()),
+            new WorkspaceOverviewService(
+                new WorkspaceQueryController(registry),
+                ServerTestComposition.CreateProcessesController(new PartialFailWorkspaceProcessManager()),
+                new AgentUp.Server.Features.Workspaces.Providers.WorkspaceDiskUsageProvider()));
+
+        var result = await controller.Start(created.Id);
+
+        var ok = result as Microsoft.AspNetCore.Mvc.OkObjectResult;
+        var outcome = ok?.Value as WorkspaceStartOutcome;
+        Assert.Multiple(() =>
+        {
+            Assert.That(ok, Is.Not.Null);
+            Assert.That(outcome!.State, Is.EqualTo(WorkspaceState.Degraded));
+            Assert.That(outcome.FailedApplications.Single().Name, Is.EqualTo(ServerDomain.ApiName));
+            Assert.That(registry.GetById(created.Id)!.State, Is.EqualTo(WorkspaceState.Degraded));
+        });
     }
 }

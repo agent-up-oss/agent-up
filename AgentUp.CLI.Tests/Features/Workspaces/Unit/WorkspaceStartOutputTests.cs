@@ -98,6 +98,33 @@ public sealed class WorkspaceStartOutputTests
         Assert.That(output.ToString(), Does.Contain("Desktop applications (1):").And.Contain("- Sample Desktop: dotnet run"));
     }
 
+    [Test]
+    public void Start_lists_failed_applications_and_the_degraded_state()
+    {
+        using var output = new StringWriter();
+        var service = new WorkspaceCommandOutputService(output);
+        var started = new StartedWorkspace(
+            CliDomain.Workspace().Build(),
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            "Degraded",
+            [new WorkspaceApplicationFailureDto("Example API", "Capability 'dotnet' is not enabled.")]);
+
+        var exitCode = service.WriteStartResult(WorkspaceCommandResult<StartedWorkspace>.Success(started));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(0));
+            Assert.That(output.ToString(), Does.Contain("State:   Degraded"));
+            Assert.That(output.ToString(), Does.Contain("Failed applications (1):"));
+            Assert.That(output.ToString(), Does.Contain("Example API: Capability 'dotnet' is not enabled."));
+        });
+    }
+
     private static void WriteStart(
         TextWriter output,
         IReadOnlyList<RuntimeSectionDefinition> runtimeSections,

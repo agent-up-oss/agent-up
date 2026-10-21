@@ -7,6 +7,7 @@ public class WorkspaceListOrderingTests
 {
     [Test]
     [TestCase("Running", 2, true)]
+    [TestCase("Degraded", 2, true)]
     [TestCase("Starting", 1, true)]
     [TestCase("Stopping", 0, false)]
     [TestCase("Failed", 0, false)]

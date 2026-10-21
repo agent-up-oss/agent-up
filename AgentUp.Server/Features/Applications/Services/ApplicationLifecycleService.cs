@@ -41,6 +41,8 @@ public sealed class ApplicationLifecycleService
             if (application.Kind == ApplicationKind.Desktop)
                 application.RuntimeEnvironment = await _desktopApplications.PrepareAsync(workspace, application, CancellationToken.None);
             await _processes.LaunchApplicationAsync(workspace, applicationName);
+            if (IsFailed(workspaceId, applicationName))
+                return ApplicationLifecycleResult.Failed("Application could not be started.");
             await _states.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Running);
             return ApplicationLifecycleResult.Success();
         }
@@ -88,6 +90,8 @@ public sealed class ApplicationLifecycleService
             if (application.Kind == ApplicationKind.Desktop)
                 application.RuntimeEnvironment = await _desktopApplications.PrepareAsync(workspace, application, CancellationToken.None);
             await _processes.LaunchApplicationAsync(workspace, applicationName);
+            if (IsFailed(workspaceId, applicationName))
+                return ApplicationLifecycleResult.Failed("Application could not be restarted.");
             await _states.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Running);
             return ApplicationLifecycleResult.Success();
         }
@@ -114,6 +118,10 @@ public sealed class ApplicationLifecycleService
             ? null
             : workspace;
     }
+
+    private bool IsFailed(string workspaceId, string applicationName)
+        => _workspaces.GetById(workspaceId)?.Applications
+            .FirstOrDefault(app => app.Name == applicationName)?.State == ApplicationState.Failed;
 }
 
 public sealed record ApplicationLifecycleResult(bool Found, bool Succeeded, string? Error)

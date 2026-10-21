@@ -21,6 +21,7 @@ export function statusLedRole(state: string | null | undefined): StatusLedRole {
     case 'Checking':
     case 'Starting':
     case 'Stopping':
+    case 'Degraded':
       return 'warning';
     case 'Unhealthy':
     case 'Failed':
@@ -47,7 +48,7 @@ export function workspaceShowsApplications(_state: string): boolean {
 
 export function workspaceLifecycleControls(state: string): WorkspaceLifecycleControls {
   const busy = state === 'Starting' || state === 'Stopping';
-  if (state === 'Running' || state === 'Starting') {
+  if (state === 'Running' || state === 'Degraded' || state === 'Starting') {
     return { action: 'stop', glyph: '■', accessibilityLabel: 'Stop workspace', busy };
   }
 

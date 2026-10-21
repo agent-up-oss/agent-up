@@ -46,9 +46,9 @@ public class WorkspaceProcessManagerTests
             .WithService(new DockerServiceDefinition("Db", "agent-up-nonexistent-image-xyz:latest"))
             .Build());
 
-        Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _manager.LaunchApplicationAsync(workspace, "Db"));
+        await _manager.LaunchApplicationAsync(workspace, "Db");
 
+        Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
         var lines = await _output.GetAsync(workspace.Id, "Db");
         Assert.That(lines, Is.Not.Empty);
         Assert.That(lines, Has.Some.StartsWith("[err]"));
@@ -506,7 +506,7 @@ public class WorkspaceProcessManagerTests
                         .Build())
                 .Build());
 
-            Assert.ThrowsAsync<InvalidOperationException>(() => _manager.LaunchApplicationAsync(workspace, "Web"));
+            await _manager.LaunchApplicationAsync(workspace, "Web");
 
             var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Failed);
             Assert.That(state, Is.EqualTo(ApplicationState.Failed));
@@ -532,7 +532,7 @@ public class WorkspaceProcessManagerTests
                     .Build())
             .Build());
 
-        Assert.ThrowsAsync<InvalidOperationException>(() => _manager.LaunchApplicationAsync(workspace, "Web"));
+        await _manager.LaunchApplicationAsync(workspace, "Web");
 
         var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Failed);
         Assert.That(state, Is.EqualTo(ApplicationState.Failed));
@@ -818,6 +818,122 @@ public class WorkspaceProcessManagerTests
         {
             Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
             Assert.That(lines, Has.Some.Contains("Linux"));
+        });
+    }
+
+    [Test]
+    public async Task LaunchApplicationAsync_marksFailedAndReturns_whenCapabilityCannotRun()
+    {
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithDotnet(new DotnetApplicationDefinition(
+                "Example API",
+                "10.0.x",
+                new DotnetRunDefinition("ExampleApi.csproj")))
+            .Build());
+
+        await _manager.LaunchApplicationAsync(workspace, "Example API");
+
+        var app = workspace.Applications.Single();
+        var lines = await _output.GetAsync(workspace.Id, "Example API");
+        Assert.Multiple(() =>
+        {
+            Assert.That(app.State, Is.EqualTo(ApplicationState.Failed));
+            Assert.That(app.CapabilityStatus!.CanRun, Is.False);
+            Assert.That(lines, Has.Some.Contains("not enabled"));
+            Assert.That(_manager.GetRuntime(workspace.Id).ProcessCount, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public async Task LaunchAsync_launchesRemainingApplications_whenOneCannotRun()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, LongRunningStopCommand()).Build())
+                .WithDotnet(new DotnetApplicationDefinition(
+                    "Example API",
+                    "10.0.x",
+                    new DotnetRunDefinition("ExampleApi.csproj")))
+                .Build());
+
+            await _manager.LaunchAsync(workspace);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(workspace.Applications.Single(app => app.Name == ServerDomain.WebName).State,
+                    Is.Not.EqualTo(ApplicationState.Failed));
+                Assert.That(workspace.Applications.Single(app => app.Name == "Example API").State,
+                    Is.EqualTo(ApplicationState.Failed));
+                Assert.That(_manager.GetRuntime(workspace.Id).ProcessCount, Is.EqualTo(1));
+            });
+        }
+        finally
+        {
+            await _manager.KillAsync(_registry.GetAll().Single().Id);
+            Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task LaunchAsync_marksFailedAndContinues_whenOneCommandIsRejected()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "npm run dev; rm -rf /").Build())
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.ApiName, LongRunningStopCommand()).Build())
+                .Build());
+
+            await _manager.LaunchAsync(workspace);
+            var lines = await _output.GetAsync(workspace.Id, ServerDomain.WebName);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(workspace.Applications.Single(app => app.Name == ServerDomain.WebName).State,
+                    Is.EqualTo(ApplicationState.Failed));
+                Assert.That(workspace.Applications.Single(app => app.Name == ServerDomain.ApiName).State,
+                    Is.Not.EqualTo(ApplicationState.Failed));
+                Assert.That(lines, Has.Some.Contains("not a shell expression"));
+                Assert.That(_manager.GetRuntime(workspace.Id).ProcessCount, Is.EqualTo(1));
+            });
+        }
+        finally
+        {
+            await _manager.KillAsync(_registry.GetAll().Single().Id);
+            Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task LaunchAsync_leavesNoTrackedProcess_whenEveryApplicationFails()
+    {
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithDotnet(new DotnetApplicationDefinition(
+                "Example API",
+                "10.0.x",
+                new DotnetRunDefinition("ExampleApi.csproj")))
+            .WithDotnet(new DotnetApplicationDefinition(
+                "Worker",
+                "10.0.x",
+                new DotnetRunDefinition("Worker.csproj")))
+            .Build());
+
+        await _manager.LaunchAsync(workspace);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(workspace.Applications.Select(app => app.State),
+                Is.All.EqualTo(ApplicationState.Failed));
+            Assert.That(_manager.GetRuntime(workspace.Id).ProcessCount, Is.EqualTo(0));
         });
     }
 

@@ -432,7 +432,10 @@ public class WorkspacesHttpTests
 
         var startResponse = await _client.PostAsync($"/api/workspaces/{created.Id}/start", null);
 
-        Assert.That(startResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        Assert.That(startResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var outcome = await startResponse.Content.ReadFromJsonAsync<WorkspaceStartOutcome>(JsonOptions);
+        Assert.That(outcome!.State, Is.EqualTo(WorkspaceState.Running));
+        Assert.That(outcome.FailedApplications, Is.Empty);
 
         var workspace = await _client.GetFromJsonAsync<Workspace>($"/api/workspaces/{created.Id}", JsonOptions);
         Assert.That(workspace!.State, Is.EqualTo(WorkspaceState.Running));

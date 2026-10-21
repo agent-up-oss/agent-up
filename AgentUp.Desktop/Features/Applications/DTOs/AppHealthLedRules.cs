@@ -6,7 +6,7 @@ public static class AppHealthLedRules
     public static string StateColor(string? state) => state switch
     {
         "Healthy" or "Running" => AgentUpThemeColors.StatusHealthy,
-        "Checking"              => AgentUpThemeColors.StatusWarning,
+        "Checking" or "Degraded" => AgentUpThemeColors.StatusWarning,
         "Unhealthy" or "Failed" => AgentUpThemeColors.StatusDanger,
         _                         => AgentUpThemeColors.TextMuted
     };
