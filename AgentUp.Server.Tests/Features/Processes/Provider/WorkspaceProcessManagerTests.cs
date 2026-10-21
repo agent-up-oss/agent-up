@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Applications.DTOs;
@@ -6,6 +7,7 @@ using AgentUp.Server.Features.DesktopApplications.Controllers;
 using AgentUp.Server.Features.DesktopApplications.Providers;
 using AgentUp.Server.Features.DesktopApplications.Services;
 using AgentUp.Server.Features.Ports.DTOs;
+using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Providers;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
@@ -42,9 +44,7 @@ public class WorkspaceProcessManagerTests
     [Test]
     public async Task LaunchDockerService_WritesStderr_ToOutputRepository_OnStartupFailure()
     {
-        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
-            .WithService(new DockerServiceDefinition("Db", "agent-up-nonexistent-image-xyz:latest"))
-            .Build());
+        var workspace = await RegisterDockerWorkspace("agent-up-nonexistent-image-xyz:latest");
 
         await _manager.LaunchApplicationAsync(workspace, "Db");
 
@@ -938,6 +938,146 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
+    public async Task LaunchApplicationAsync_throwsWhenTheApplicationIsMissing()
+    {
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand).Build())
+            .Build());
+
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(
+            () => _manager.LaunchApplicationAsync(workspace, "missing"));
+
+        Assert.That(ex!.Message, Does.Contain("not found"));
+    }
+
+    [Test]
+    public async Task LaunchApplicationAsync_marksFailedAndReturns_whenTheExecutableCannotStart()
+    {
+        var manager = CreateManager(local: new MissingExecutableLocalProcessProvider());
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand).Build())
+            .Build());
+
+        await manager.LaunchApplicationAsync(workspace, ServerDomain.WebName);
+        var lines = await _output.GetAsync(workspace.Id, ServerDomain.WebName);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
+            Assert.That(lines, Has.Some.StartsWith("[err]"));
+            Assert.That(manager.GetRuntime(workspace.Id).ProcessCount, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public async Task LaunchApplicationAsync_failsWithoutLaunchingCommand_whenInstallCannotStart()
+    {
+        var manager = CreateManager(local: new MissingInstallExecutableLocalProcessProvider());
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "printenv")
+                .WithInstall("npm install")
+                .Build())
+            .Build());
+
+        await manager.LaunchApplicationAsync(workspace, ServerDomain.WebName);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
+            Assert.That(manager.GetRuntime(workspace.Id).ProcessCount, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public async Task LaunchAsync_recordsANonMissingInvalidOperationAsFailedAndContinues()
+    {
+        var manager = CreateManager(local: new ThrowingThenRealLocalProcessProvider(
+            ServerDomain.WebName,
+            new InvalidOperationException("spawn failed")));
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand).Build())
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.ApiName, LongRunningStopCommand()).Build())
+                .Build());
+
+            await manager.LaunchAsync(workspace);
+            var lines = await _output.GetAsync(workspace.Id, ServerDomain.WebName);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(workspace.Applications.Single(app => app.Name == ServerDomain.WebName).State,
+                    Is.EqualTo(ApplicationState.Failed));
+                Assert.That(workspace.Applications.Single(app => app.Name == ServerDomain.ApiName).State,
+                    Is.Not.EqualTo(ApplicationState.Failed));
+                Assert.That(lines, Has.Some.Contains("spawn failed"));
+                Assert.That(manager.GetRuntime(workspace.Id).ProcessCount, Is.EqualTo(1));
+            });
+        }
+        finally
+        {
+            await manager.KillAsync(_registry.GetAll().Single().Id);
+            Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task LaunchAsync_rethrowsWhenLaunchReportsTheApplicationMissing()
+    {
+        var manager = CreateManager(local: new ThrowingThenRealLocalProcessProvider(
+            ServerDomain.WebName,
+            new InvalidOperationException($"Application '{ServerDomain.WebName}' not found in workspace.")));
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand).Build())
+            .Build());
+
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(() => manager.LaunchAsync(workspace));
+
+        Assert.That(ex!.Message, Does.Contain("not found"));
+    }
+
+    [Test]
+    public async Task LaunchDockerService_marksFailedAndReturns_whenDockerThrowsWin32()
+    {
+        await AssertDockerLaunchFails(new Win32Exception("docker missing"));
+    }
+
+    [Test]
+    public async Task LaunchDockerService_marksFailedAndReturns_whenDockerWrapsWin32()
+    {
+        await AssertDockerLaunchFails(new InvalidOperationException(
+            "docker could not be started: docker missing",
+            new Win32Exception("docker missing")));
+    }
+
+    [Test]
+    public async Task LaunchDockerService_marksFailedAndReturns_whenDockerCannotRun()
+    {
+        await AssertDockerLaunchFails(new IOException("docker socket"));
+    }
+
+    [Test]
+    public async Task LaunchDockerService_marksFailedAndReturns_whenRunExitsNonZero()
+    {
+        var manager = CreateManager(docker: new FailingRunDockerProcessProvider());
+        var workspace = await RegisterDockerWorkspace();
+
+        await manager.LaunchApplicationAsync(workspace, "Db");
+        var lines = await _output.GetAsync(workspace.Id, "Db");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
+            Assert.That(lines, Has.Some.Contains("image not found"));
+            Assert.That(manager.GetRuntime(workspace.Id).ProcessCount, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
     public async Task LaunchApplication_stopsTheDesktopSessionWhenTheProcessExits()
     {
         var displays = new FakeDesktopDisplayProvider();
@@ -1037,5 +1177,138 @@ public class WorkspaceProcessManagerTests
     {
         if (Directory.Exists(directory))
             Directory.Delete(directory, recursive: true);
+    }
+
+    private async Task<Workspace> RegisterDockerWorkspace(string image = "postgres:16")
+        => await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithService(new DockerServiceDefinition("Db", image))
+            .Build());
+
+    private WorkspaceProcessManager CreateManager(
+        ILocalProcessProvider? local = null,
+        IDockerProcessProvider? docker = null)
+        => new(
+            ServerTestComposition.CreateWorkspaceStateController(_registry),
+            new ProcessOutputService(_output),
+            local ?? new LocalProcessProvider(),
+            docker ?? new DockerProcessProvider(),
+            NullLogger<WorkspaceProcessManager>.Instance);
+
+    private async Task AssertDockerLaunchFails(Exception error)
+    {
+        var manager = CreateManager(docker: new ThrowingDockerProcessProvider(error));
+        var workspace = await RegisterDockerWorkspace();
+
+        await manager.LaunchApplicationAsync(workspace, "Db");
+        var lines = await _output.GetAsync(workspace.Id, "Db");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
+            Assert.That(lines, Has.Some.StartsWith("[err]"));
+            Assert.That(manager.GetRuntime(workspace.Id).ProcessCount, Is.EqualTo(0));
+        });
+    }
+
+    private static Process MissingExecutableProcess()
+        => new()
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = Path.Join(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "agent-up-missing"),
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            }
+        };
+
+    private sealed class MissingExecutableLocalProcessProvider : ILocalProcessProvider
+    {
+        public Process CreateApplicationProcess(Workspace workspace, ApplicationInstance app)
+            => MissingExecutableProcess();
+
+        public Process? CreateInstallProcess(Workspace workspace, ApplicationInstance app) => null;
+
+        public void Kill(Process process) => process.Kill(entireProcessTree: true);
+    }
+
+    private sealed class MissingInstallExecutableLocalProcessProvider : ILocalProcessProvider
+    {
+        public Process CreateApplicationProcess(Workspace workspace, ApplicationInstance app)
+            => throw new InvalidOperationException("application command must not launch after a failed install");
+
+        public Process? CreateInstallProcess(Workspace workspace, ApplicationInstance app)
+            => MissingExecutableProcess();
+
+        public void Kill(Process process) => process.Kill(entireProcessTree: true);
+    }
+
+    private sealed class ThrowingThenRealLocalProcessProvider : ILocalProcessProvider
+    {
+        private readonly LocalProcessProvider _inner = new();
+        private readonly string _failingName;
+        private readonly Exception _error;
+
+        public ThrowingThenRealLocalProcessProvider(string failingName, Exception error)
+        {
+            _failingName = failingName;
+            _error = error;
+        }
+
+        public Process CreateApplicationProcess(Workspace workspace, ApplicationInstance app)
+        {
+            if (app.Name == _failingName)
+                throw _error;
+            return _inner.CreateApplicationProcess(workspace, app);
+        }
+
+        public Process? CreateInstallProcess(Workspace workspace, ApplicationInstance app)
+            => _inner.CreateInstallProcess(workspace, app);
+
+        public void Kill(Process process) => _inner.Kill(process);
+    }
+
+    private sealed class ThrowingDockerProcessProvider : IDockerProcessProvider
+    {
+        private readonly Exception _error;
+
+        public ThrowingDockerProcessProvider(Exception error) => _error = error;
+
+        public string GetContainerName(string workspaceId, string appName) => "agentup-test-db";
+
+        public IReadOnlyList<string> CreateRunArguments(
+            string containerName,
+            Workspace workspace,
+            ApplicationInstance app)
+            => [];
+
+        public Process CreateLogProcess(string containerName)
+            => throw new NotSupportedException();
+
+        public Task<DockerCommandResult> RunAsync(params string[] args) => throw _error;
+
+        public Task<int> GetExitCodeAsync(string containerName) => throw _error;
+    }
+
+    private sealed class FailingRunDockerProcessProvider : IDockerProcessProvider
+    {
+        public string GetContainerName(string workspaceId, string appName) => "agentup-test-db";
+
+        public IReadOnlyList<string> CreateRunArguments(
+            string containerName,
+            Workspace workspace,
+            ApplicationInstance app)
+            => ["run", "--name", containerName, "missing:latest"];
+
+        public Process CreateLogProcess(string containerName)
+            => throw new NotSupportedException();
+
+        public Task<DockerCommandResult> RunAsync(params string[] args)
+            => Task.FromResult(args is ["rm", ..]
+                ? new DockerCommandResult(0, "", "")
+                : new DockerCommandResult(1, "", "image not found\n"));
+
+        public Task<int> GetExitCodeAsync(string containerName) => Task.FromResult(1);
     }
 }

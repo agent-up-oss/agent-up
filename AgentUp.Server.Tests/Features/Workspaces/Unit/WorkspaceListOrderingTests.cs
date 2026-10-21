@@ -21,4 +21,14 @@ public sealed class WorkspaceListOrderingTests
             Assert.That(WorkspaceListOrdering.ActivePriority(state), Is.EqualTo(priority));
         });
     }
+
+    [Test]
+    public void IsActive_countsDegradedWithRunning()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(WorkspaceListOrdering.IsActive(WorkspaceState.Degraded), Is.True);
+            Assert.That(WorkspaceListOrdering.ActivePriority(WorkspaceState.Degraded), Is.EqualTo(2));
+        });
+    }
 }

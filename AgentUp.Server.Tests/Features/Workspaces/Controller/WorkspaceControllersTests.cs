@@ -83,4 +83,36 @@ public sealed class WorkspaceControllersTests
             Assert.That(registry.GetById(created.Id)!.State, Is.EqualTo(WorkspaceState.Degraded));
         });
     }
+
+    [Test]
+    public async Task Start_returnsProblem_whenNothingStarts()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var created = await registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand).Build())
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.ApiName, ServerDomain.ApiCommand).Build())
+            .Build());
+        var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(
+            registry, new AllFailWorkspaceProcessManager());
+        var controller = new WorkspacesController(
+            registry,
+            lifecycle,
+            new WorkspaceEventStreamService(
+                new WorkspaceEventBus(),
+                new AgentUp.Server.Features.Workspaces.Providers.WorkspaceEventFrameProvider()),
+            new WorkspaceOverviewService(
+                new WorkspaceQueryController(registry),
+                ServerTestComposition.CreateProcessesController(new AllFailWorkspaceProcessManager()),
+                new AgentUp.Server.Features.Workspaces.Providers.WorkspaceDiskUsageProvider()));
+
+        var result = await controller.Start(created.Id);
+
+        var problem = result as Microsoft.AspNetCore.Mvc.ObjectResult;
+        Assert.Multiple(() =>
+        {
+            Assert.That(problem, Is.Not.Null);
+            Assert.That(problem!.StatusCode, Is.EqualTo(500));
+            Assert.That(registry.GetById(created.Id)!.State, Is.EqualTo(WorkspaceState.Failed));
+        });
+    }
 }

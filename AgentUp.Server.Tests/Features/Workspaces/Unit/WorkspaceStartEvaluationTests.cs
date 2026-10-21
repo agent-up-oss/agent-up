@@ -39,6 +39,44 @@ public sealed class WorkspaceStartEvaluationTests
     }
 
     [Test]
+    public void StateFrom_isRunning_whenApplicationsAreStoppedRatherThanFailed()
+    {
+        Assert.That(
+            WorkspaceStartEvaluation.StateFrom(
+            [
+                new ApplicationInstance { Name = "Web", State = ApplicationState.Stopped }
+            ]),
+            Is.EqualTo(WorkspaceState.Running));
+    }
+
+    [Test]
+    public void Failures_useTheDefaultReason_whenCapabilityMessagesAreEmpty()
+    {
+        var workspace = new Workspace
+        {
+            Id = "ws",
+            DisplayName = "Shop",
+            RepositoryPath = "/repo",
+            WorktreePath = "/repo",
+            Branch = "main",
+            Commit = "abc",
+            Applications =
+            [
+                Failed("Api", capability: new CapabilityStatusDto("dotnet", "10.0.x", false, [])),
+                Failed("Web", capability: new CapabilityStatusDto("dotnet", "10.0.x", true, ["ignored"]))
+            ]
+        };
+
+        var failures = WorkspaceStartEvaluation.Failures(workspace);
+
+        Assert.That(failures.Select(failure => failure.Reason), Is.EqualTo(new[]
+        {
+            "Application 'Api' failed to start.",
+            "Application 'Web' failed to start."
+        }));
+    }
+
+    [Test]
     public void Failures_useCapabilityMessagesDesktopHostAndDefaultReasons()
     {
         var workspace = new Workspace
