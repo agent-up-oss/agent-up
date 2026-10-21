@@ -12,6 +12,9 @@ public sealed class DocumentationConsistency
         "update_commit_tests",
         "opaque shell commands",
         "shared browser session",
+        "which no MCP endpoint does today",
+        "MCP has no login because it is intended for local tools",
+        "Several MCP tools identify their target by an absolute path",
     ];
 
     private static readonly string[] FrozenSlices =
