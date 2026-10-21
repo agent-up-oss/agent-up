@@ -1,8 +1,9 @@
+using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Models;
 
 namespace AgentUp.Server.Features.Processes.Providers;
 
-public sealed class ProcessOutputPump
+public sealed class ProcessOutputPump : IProcessOutputPump
 {
     public const int DefaultReadBufferChars = 4096;
 

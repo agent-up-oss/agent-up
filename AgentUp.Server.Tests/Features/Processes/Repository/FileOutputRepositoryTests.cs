@@ -107,6 +107,92 @@ public class FileOutputRepositoryTests
     }
 
     [Test]
+    public void Decode_readsJsonTextAndStreamBranches()
+    {
+        var missingText = FileOutputRepository.Decode("""{"stream":"stderr"}""");
+        var nullText = FileOutputRepository.Decode("""{"text":null,"stream":"STDOUT"}""");
+        var stderr = FileOutputRepository.Decode("""{"text":"boom","stream":"STDERR"}""");
+
+        Assert.That(missingText.Text, Is.Empty);
+        Assert.That(missingText.Stream, Is.EqualTo(ProcessOutputStream.Stderr));
+        Assert.That(nullText.Text, Is.Empty);
+        Assert.That(nullText.Stream, Is.EqualTo(ProcessOutputStream.Stdout));
+        Assert.That(stderr.Text, Is.EqualTo("boom"));
+        Assert.That(stderr.Stream, Is.EqualTo(ProcessOutputStream.Stderr));
+    }
+
+    [Test]
+    public void PathStringComparison_isCaseInsensitiveOnlyOnWindows()
+    {
+        Assert.That(FileOutputRepository.PathStringComparison(windows: true), Is.EqualTo(StringComparison.OrdinalIgnoreCase));
+        Assert.That(FileOutputRepository.PathStringComparison(windows: false), Is.EqualTo(StringComparison.Ordinal));
+    }
+
+    [Test]
+    public void IsUnderOutputRoot_rejectsAPathOutsideTheRoot()
+    {
+        Assert.That(
+            FileOutputRepository.IsUnderOutputRoot("/tmp/escape.log", "/tmp/output", windows: false),
+            Is.False);
+        Assert.That(
+            FileOutputRepository.IsUnderOutputRoot("/tmp/output/keep.log", "/tmp/output", windows: false),
+            Is.True);
+        Assert.That(
+            FileOutputRepository.IsUnderOutputRoot("/tmp/Output/keep.log", "/tmp/output", windows: true),
+            Is.True);
+    }
+
+    [Test]
+    public async Task GetAsync_returnsEmptyWhenNoLogExists()
+    {
+        var repository = new FileOutputRepository(_tempRoot);
+
+        Assert.That(await repository.GetAsync("ws", "Web"), Is.Empty);
+    }
+
+    [Test]
+    public async Task ClearAsync_isANoOpWhenTheLogWasNeverWritten()
+    {
+        var repository = new FileOutputRepository(_tempRoot);
+
+        await repository.ClearAsync("ws", "Web");
+
+        Assert.That(await repository.GetAsync("ws", "Web"), Is.Empty);
+    }
+
+    [Test]
+    public void AppendAsync_rejectsBlankWorkspaceOrApplicationNames()
+    {
+        var repository = new FileOutputRepository(_tempRoot);
+
+        Assert.That(
+            async () => await repository.AppendAsync(" ", "Web", Line("x")),
+            Throws.ArgumentException);
+        Assert.That(
+            async () => await repository.AppendAsync("ws", "", Line("x")),
+            Throws.ArgumentException);
+    }
+
+    [Test]
+    public async Task GetAsync_reloadsBlankLegacyAndJsonStorageLines()
+    {
+        var first = new FileOutputRepository(_tempRoot);
+        await first.AppendAsync("ws", "Web", Line("keep"));
+        var log = Directory.GetFiles(Path.Join(_tempRoot, "output"), "*.log").Single();
+        await File.AppendAllTextAsync(log, """
+
+            leftover
+            {"text":null,"stream":"stderr"}
+            {not-json
+            """);
+
+        var lines = await new FileOutputRepository(_tempRoot).GetAsync("ws", "Web");
+
+        Assert.That(lines.Select(line => line.Text), Is.EqualTo(new[] { "keep", "", "leftover", "", "{not-json" }));
+        Assert.That(lines[3].Stream, Is.EqualTo(ProcessOutputStream.Stderr));
+    }
+
+    [Test]
     public async Task AppendAsync_serialisesConcurrentWritesWithoutSplicing()
     {
         var repository = new FileOutputRepository(_tempRoot);

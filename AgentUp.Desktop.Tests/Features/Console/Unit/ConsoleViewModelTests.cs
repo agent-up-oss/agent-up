@@ -38,6 +38,20 @@ public sealed class ConsoleViewModelTests
         Assert.That(vm.Lines[0], Does.StartWith("[truncated]"));
     }
 
+    [Test]
+    public async Task LoadAsync_marksTruncationWhenTheClientCapsMaxLines()
+    {
+        using var handler = new OverflowHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var vm = new ConsoleViewModel(new ConsoleController(new ConsoleOutputService(new ConsoleApiClient(http))));
+
+        await vm.LoadAsync("ws-1", "Docs");
+
+        Assert.That(vm.WasTruncated, Is.True);
+        Assert.That(vm.Lines, Has.Count.EqualTo(ConsoleViewModel.MaxLines));
+        Assert.That(vm.Lines[0], Does.Not.StartWith("[truncated]"));
+    }
+
     private sealed class MarkerHandler : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(
@@ -51,6 +65,21 @@ public sealed class ConsoleViewModelTests
                     new { text = "[truncated] 3 earlier lines were dropped.", stream = "stdout" },
                     new { text = "kept", stream = "stdout" }
                 })
+            });
+        }
+    }
+
+    private sealed class OverflowHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            var lines = Enumerable.Range(0, ConsoleViewModel.MaxLines + 1)
+                .Select(index => $"line {index}");
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(lines)
             });
         }
     }

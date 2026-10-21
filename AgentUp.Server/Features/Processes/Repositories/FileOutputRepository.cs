@@ -130,18 +130,22 @@ public sealed class FileOutputRepository : IOutputRepository
     {
         var fileName = GetLogFileName(workspaceId, appName);
         var path = Path.GetFullPath(Path.Join(_outputRoot, fileName));
-        var root = _outputRoot.EndsWith(Path.DirectorySeparatorChar)
-            ? _outputRoot
-            : _outputRoot + Path.DirectorySeparatorChar;
-        var comparison = OperatingSystem.IsWindows()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
-
-        if (!path.StartsWith(root, comparison))
+        if (!IsUnderOutputRoot(path, _outputRoot, OperatingSystem.IsWindows()))
             throw new InvalidOperationException("Output log path escaped the output root.");
 
         return path;
     }
+
+    internal static bool IsUnderOutputRoot(string path, string outputRoot, bool windows)
+    {
+        var root = outputRoot.EndsWith(Path.DirectorySeparatorChar)
+            ? outputRoot
+            : outputRoot + Path.DirectorySeparatorChar;
+        return path.StartsWith(root, PathStringComparison(windows));
+    }
+
+    internal static StringComparison PathStringComparison(bool windows)
+        => windows ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
     private static string GetLogFileName(string workspaceId, string appName)
     {

@@ -23,7 +23,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     private readonly ProcessOutputService _output;
     private readonly ILocalProcessProvider _localProcesses;
     private readonly IDockerProcessProvider _docker;
-    private readonly ProcessOutputPump _outputPump;
+    private readonly IProcessOutputPump _outputPump;
     private readonly ILogger<WorkspaceProcessManager> _logger;
     private readonly DesktopApplicationsController? _desktopApplications;
     private readonly Func<bool> _isLinux;
@@ -33,7 +33,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         ProcessOutputService output,
         ILocalProcessProvider localProcesses,
         IDockerProcessProvider docker,
-        ProcessOutputPump outputPump,
+        IProcessOutputPump outputPump,
         ILogger<WorkspaceProcessManager> logger,
         DesktopApplicationsController? desktopApplications = null,
         Func<bool>? isLinux = null)

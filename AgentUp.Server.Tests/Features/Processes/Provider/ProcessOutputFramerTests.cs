@@ -53,4 +53,14 @@ public sealed class ProcessOutputFramerTests
 
         Assert.That(framer.Push("one\r\n\r\ntwo\n"), Is.EqualTo(new[] { "one", "", "two" }));
     }
+
+    [Test]
+    public void Push_emitsAnEmptyLineForABareNewline()
+    {
+        var framer = new ProcessOutputFramer();
+
+        Assert.That(framer.Push("\n"), Is.EqualTo(new[] { "" }));
+        Assert.That(framer.Push("no-cr\n"), Is.EqualTo(new[] { "no-cr" }));
+        Assert.That(framer.Flush(), Is.Null);
+    }
 }

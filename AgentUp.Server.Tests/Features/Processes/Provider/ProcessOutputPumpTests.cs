@@ -47,4 +47,60 @@ public sealed class ProcessOutputPumpTests
 
         Assert.That(lines, Is.EqualTo(new[] { body }));
     }
+
+    [Test]
+    public async Task DrainAsync_defaultBufferFlushesAFinalLine()
+    {
+        using var reader = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes("only-tail")), Encoding.UTF8);
+        var lines = new List<string>();
+
+        await new ProcessOutputPump().DrainAsync(
+            reader,
+            ProcessOutputStream.Stderr,
+            (line, stream, _) =>
+            {
+                Assert.That(stream, Is.EqualTo(ProcessOutputStream.Stderr));
+                lines.Add(line);
+                return Task.CompletedTask;
+            });
+
+        Assert.That(lines, Is.EqualTo(new[] { "only-tail" }));
+    }
+
+    [Test]
+    public async Task DrainAsync_treatsAZeroBufferAsOneCharacter()
+    {
+        using var reader = new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes("ab\n")), Encoding.UTF8);
+        var lines = new List<string>();
+
+        await new ProcessOutputPump().DrainAsync(
+            reader,
+            ProcessOutputStream.Stdout,
+            (line, _, _) =>
+            {
+                lines.Add(line);
+                return Task.CompletedTask;
+            },
+            bufferChars: 0);
+
+        Assert.That(lines, Is.EqualTo(new[] { "ab" }));
+    }
+
+    [Test]
+    public async Task DrainAsync_emitsNothingForAnEmptyStream()
+    {
+        using var reader = new StreamReader(new MemoryStream(), Encoding.UTF8);
+        var calls = 0;
+
+        await new ProcessOutputPump().DrainAsync(
+            reader,
+            ProcessOutputStream.Stdout,
+            (_, _, _) =>
+            {
+                calls++;
+                return Task.CompletedTask;
+            });
+
+        Assert.That(calls, Is.EqualTo(0));
+    }
 }
