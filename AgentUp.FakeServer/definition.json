@@ -236,12 +236,14 @@
   },
   "console": {
     "harbor-shop/Storefront": [
-      "[install] npm install",
-      "Storefront listening on WEB_PORT"
+      { "text": "[install] npm install", "stream": "stdout" },
+      { "text": "added 1278 packages in 17s", "stream": "stdout" },
+      { "text": "[err] 4 vulnerabilities", "stream": "stderr" },
+      { "text": "Storefront listening on WEB_PORT", "stream": "stdout" }
     ],
     "harbor-shop/Orders API": [
-      "[install] npm install",
-      "Orders API listening on API_PORT"
+      { "text": "[install] npm install", "stream": "stdout" },
+      { "text": "Orders API listening on API_PORT", "stream": "stdout" }
     ]
   },
   "agents": {

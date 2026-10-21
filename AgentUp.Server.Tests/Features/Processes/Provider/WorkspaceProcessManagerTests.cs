@@ -36,6 +36,7 @@ public class WorkspaceProcessManagerTests
             new ProcessOutputService(_output),
             new LocalProcessProvider(),
             new DockerProcessProvider(),
+            new ProcessOutputPump(),
             NullLogger<WorkspaceProcessManager>.Instance);
     }
 
@@ -49,7 +50,7 @@ public class WorkspaceProcessManagerTests
         Assert.ThrowsAsync<InvalidOperationException>(() =>
             _manager.LaunchApplicationAsync(workspace, "Db"));
 
-        var lines = await _output.GetAsync(workspace.Id, "Db");
+        var lines = (await _output.GetAsync(workspace.Id, "Db")).Texts();
         Assert.That(lines, Is.Not.Empty);
         Assert.That(lines, Has.Some.StartsWith("[err]"));
     }
@@ -513,7 +514,7 @@ public class WorkspaceProcessManagerTests
 
             // Only install-prefixed output should exist; the application's own printenv must
             // never have run.
-            var lines = await _output.GetAsync(workspace.Id, "Web");
+            var lines = (await _output.GetAsync(workspace.Id, "Web")).Texts();
             Assert.That(lines, Has.All.Matches<string>(line => line.StartsWith("[install]", StringComparison.Ordinal)));
         }
         finally
@@ -537,7 +538,7 @@ public class WorkspaceProcessManagerTests
         var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Failed);
         Assert.That(state, Is.EqualTo(ApplicationState.Failed));
 
-        var lines = await _output.GetAsync(workspace.Id, "Web");
+        var lines = (await _output.GetAsync(workspace.Id, "Web")).Texts();
         Assert.That(lines, Has.Some.Contains("not a shell expression"));
     }
 
@@ -571,7 +572,7 @@ public class WorkspaceProcessManagerTests
 
             // Only install-prefixed output (if any) should exist; the application's own
             // printenv must never have run.
-            var lines = await _output.GetAsync(workspace.Id, "Web");
+            var lines = (await _output.GetAsync(workspace.Id, "Web")).Texts();
             Assert.That(lines, Has.All.Matches<string>(line => line.StartsWith("[install]", StringComparison.Ordinal)));
         }
         finally
@@ -805,6 +806,7 @@ public class WorkspaceProcessManagerTests
             new ProcessOutputService(_output),
             new LocalProcessProvider(),
             new DockerProcessProvider(),
+            new ProcessOutputPump(),
             NullLogger<WorkspaceProcessManager>.Instance,
             isLinux: () => false);
         var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
@@ -813,7 +815,7 @@ public class WorkspaceProcessManagerTests
 
         await manager.LaunchApplicationAsync(workspace, "Editor");
 
-        var lines = await _output.GetAsync(workspace.Id, "Editor");
+        var lines = (await _output.GetAsync(workspace.Id, "Editor")).Texts();
         Assert.Multiple(() =>
         {
             Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
@@ -837,6 +839,7 @@ public class WorkspaceProcessManagerTests
             new ProcessOutputService(_output),
             new LocalProcessProvider(),
             new DockerProcessProvider(),
+            new ProcessOutputPump(),
             NullLogger<WorkspaceProcessManager>.Instance,
             desktop);
         var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
@@ -863,6 +866,58 @@ public class WorkspaceProcessManagerTests
         finally
         {
             Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
+    [CancelAfter(60_000)]
+    public async Task LaunchApplicationAsync_CapturesHighRateStdoutAndStderrWithoutSplicing()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+        var script = Path.Join(worktreePath, "generator.py");
+        await File.WriteAllTextAsync(script, """
+            import sys
+            for i in range(10000):
+                if i % 2 == 0:
+                    sys.stdout.write(f"out-{i:05d}\n")
+                    sys.stdout.flush()
+                else:
+                    sys.stderr.write(f"err-{i:05d}\n")
+                    sys.stderr.flush()
+            sys.stdout.write("L" * 8192 + "\n")
+            sys.stdout.write("final-no-nl")
+            sys.stdout.flush()
+            """);
+
+        try
+        {
+            var executable = new[] { "python3", "python" }.FirstOrDefault(ExecutableOnPath);
+            Assert.That(executable, Is.Not.Null, "python3 or python is required for the high-rate console generator.");
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, $"{executable} {script}").Build())
+                .Build());
+
+            await _manager.LaunchApplicationAsync(workspace, "Web");
+            var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(20);
+            var lines = (await _output.GetAsync(workspace.Id, "Web")).Texts().ToList();
+            while (!lines.Contains("final-no-nl") && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+                lines = (await _output.GetAsync(workspace.Id, "Web")).Texts().ToList();
+            }
+            var stdout = lines.Where(line => line.StartsWith("out-", StringComparison.Ordinal)).ToList();
+            var stderr = lines.Where(line => line.StartsWith("[err] err-", StringComparison.Ordinal)).ToList();
+            Assert.That(stdout, Is.EqualTo(Enumerable.Range(0, 5000).Select(index => $"out-{index * 2:00000}")));
+            Assert.That(stderr, Is.EqualTo(Enumerable.Range(0, 5000).Select(index => $"[err] err-{index * 2 + 1:00000}")));
+            Assert.That(lines, Has.Some.EqualTo(new string('L', 8192)));
+            Assert.That(lines, Has.Some.EqualTo("final-no-nl"));
+            Assert.That(lines, Has.None.Contains('\n'));
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(worktreePath);
         }
     }
 
@@ -907,11 +962,11 @@ public class WorkspaceProcessManagerTests
         Func<List<string>, bool> condition)
     {
         var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
-        var lines = (await _output.GetAsync(workspaceId, appName)).ToList();
+        var lines = (await _output.GetAsync(workspaceId, appName)).Texts().ToList();
         while (!condition(lines) && DateTimeOffset.UtcNow < deadline)
         {
             await Task.Delay(100);
-            lines = (await _output.GetAsync(workspaceId, appName)).ToList();
+            lines = (await _output.GetAsync(workspaceId, appName)).Texts().ToList();
         }
 
         return lines;

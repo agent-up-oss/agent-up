@@ -28,6 +28,17 @@ public sealed class ConsoleApiClientTests
         Assert.That(await client.GetOutputAsync("one", "api"), Is.Empty);
     }
 
+    [Test]
+    public async Task GetOutputAsync_readsTextFromStreamIdentityObjects()
+    {
+        var handler = new RecordingHandler("""[{"text":"first","stream":"stdout"},{"text":"[err] boom","stream":"stderr"}]""");
+        var client = new ConsoleApiClient(new HttpClient(handler) { BaseAddress = new Uri("https://server.test") });
+
+        var result = await client.GetOutputAsync("workspace-1", "web-app");
+
+        Assert.That(result, Is.EqualTo(new[] { "first", "[err] boom" }));
+    }
+
     private sealed class RecordingHandler(string response) : HttpMessageHandler
     {
         public string? Path { get; private set; }

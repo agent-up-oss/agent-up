@@ -4,6 +4,7 @@ using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Features.Processes.Models;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Tests.Fake;
+using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AgentUp.Server.Tests.Features.Processes.Unit;
@@ -25,7 +26,8 @@ public sealed class ProcessOutputServiceTests
         await service.AppendAsync("workspace", "Web", "[err] failed", ProcessOutputStream.Stderr);
 
         var lines = await output.GetAsync("workspace", "Web");
-        Assert.That(lines, Is.EqualTo(new[] { "[err] failed" }));
+        Assert.That(lines.Texts(), Is.EqualTo(new[] { "[err] failed" }));
+        Assert.That(lines.Single().Stream, Is.EqualTo(ProcessOutputStream.Stderr));
         var evt = events.Events.Single();
         Assert.That(evt.Kind, Is.EqualTo("application"));
         Assert.That(evt.Source, Is.EqualTo("process"));
@@ -50,7 +52,8 @@ public sealed class ProcessOutputServiceTests
         await service.AppendAsync("workspace", "Web", "[err] this is stdout");
 
         var lines = await output.GetAsync("workspace", "Web");
-        Assert.That(lines, Is.EqualTo(new[] { "[err] this is stdout" }));
+        Assert.That(lines.Texts(), Is.EqualTo(new[] { "[err] this is stdout" }));
+        Assert.That(lines.Single().Stream, Is.EqualTo(ProcessOutputStream.Stdout));
         var evt = events.Events.Single();
         Assert.That(evt.Details["stream"], Is.EqualTo("stdout"));
         Assert.That(evt.Details["message"], Is.EqualTo("[err] this is stdout"));
@@ -86,7 +89,26 @@ public sealed class ProcessOutputServiceTests
         await service.AppendAsync("workspace", "Web", "ready");
 
         var lines = await output.GetAsync("workspace", "Web");
-        Assert.That(lines, Is.EqualTo(new[] { "ready" }));
+        Assert.That(lines.Texts(), Is.EqualTo(new[] { "ready" }));
+    }
+
+    [Test]
+    public async Task AppendAsync_serialisesConcurrentStdoutAndStderrWithoutSplicing()
+    {
+        var output = new InMemoryOutputRepository();
+        var service = new ProcessOutputService(output);
+        var tasks = Enumerable.Range(0, 100).SelectMany(index => new[]
+        {
+            service.AppendAsync("workspace", "Web", $"out-{index:000}"),
+            service.AppendAsync("workspace", "Web", $"[err] err-{index:000}", ProcessOutputStream.Stderr)
+        });
+
+        await Task.WhenAll(tasks);
+
+        var lines = await output.GetAsync("workspace", "Web");
+        Assert.That(lines, Has.Count.EqualTo(200));
+        Assert.That(lines.Count(line => line.Stream == ProcessOutputStream.Stdout), Is.EqualTo(100));
+        Assert.That(lines.Select(line => line.Text), Has.All.Match(@"^(out-\d{3}|\[err\] err-\d{3})$"));
     }
 
     private sealed class FailingAuditEventRepository : IAuditEventRepository

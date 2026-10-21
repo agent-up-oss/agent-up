@@ -46,7 +46,7 @@ public sealed class WorkspaceDiagnosticsService(
                 app.Name,
                 app.State.ToString(),
                 AggregateHealth(health.GetPortHealth(workspace.Id, app.Name)),
-                lines.Skip(Math.Max(0, lines.Count - normalizedLogLimit)).Select(redactor.Redact).ToList(),
+                lines.Skip(Math.Max(0, lines.Count - normalizedLogLimit)).Select(line => redactor.Redact(line.Text)).ToList(),
                 lines.Count > normalizedLogLimit));
         }
 

@@ -25,6 +25,36 @@ public sealed class ConsoleViewModelTests
         Assert.That(vm.Lines, Is.EqualTo(new[] { "mobile output" }));
     }
 
+    [Test]
+    public async Task LoadAsync_marksTruncationWhenServerSendsAMarker()
+    {
+        using var handler = new MarkerHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var vm = new ConsoleViewModel(new ConsoleController(new ConsoleOutputService(new ConsoleApiClient(http))));
+
+        await vm.LoadAsync("ws-1", "Docs");
+
+        Assert.That(vm.WasTruncated, Is.True);
+        Assert.That(vm.Lines[0], Does.StartWith("[truncated]"));
+    }
+
+    private sealed class MarkerHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(new[]
+                {
+                    new { text = "[truncated] 3 earlier lines were dropped.", stream = "stdout" },
+                    new { text = "kept", stream = "stdout" }
+                })
+            });
+        }
+    }
+
     private sealed class DelayedConsoleHandler : HttpMessageHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(

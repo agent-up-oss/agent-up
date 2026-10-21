@@ -130,6 +130,53 @@ public class ConsolePanelBehaviorTests
     }
 
     [AvaloniaTest]
+    public async Task Panel_keepsEachSourceLineAsItsOwnEntry()
+    {
+        var workspace = DesktopDomain.WorkspaceWithApplications().Build();
+        var outputLines = new List<string>
+        {
+            "[install] 4 vulnerabilities",
+            "[install]   npm audit fix",
+            "To address all issues, run:",
+            "> docusaurus start --host 0.0.0.0",
+            "[err] warning from stderr"
+        };
+        var output = DesktopDomain.OutputFor(workspace.Id, workspace.Applications[0].Name, outputLines);
+
+        var app = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output);
+
+        Assert.That(app.Content.ConsoleLines, Is.EqualTo(outputLines));
+        Assert.That(app.Content.ConsoleLines, Has.None.Contains("[install] 4[install]"));
+    }
+
+    [AvaloniaTest]
+    public async Task Panel_showsTruncationNotice_whenServerMarksTruncation()
+    {
+        var workspace = DesktopDomain.WorkspaceWithApplications().Build();
+        var outputLines = new List<string>
+        {
+            "[truncated] 3 earlier lines were dropped.",
+            "kept-one",
+            "kept-two"
+        };
+        var output = DesktopDomain.OutputFor(workspace.Id, workspace.Applications[0].Name, outputLines);
+
+        var app = await AppDriver.LaunchWithWorkspacesAndOutputAsync([workspace], output);
+
+        Assert.That(app.Content.ConsoleWasTruncated, Is.True);
+        Assert.That(app.Content.ConsoleLines[0], Does.StartWith("[truncated]"));
+    }
+
+    [Test]
+    public void Html_keepsSourceLinesOnSeparateRows()
+    {
+        var html = MainWindow.BuildConsoleHtml(["first line", "second line"]);
+
+        Assert.That(html, Does.Contain("first line\nsecond line"));
+        Assert.That(html, Does.Not.Contain("first linesecond line"));
+    }
+
+    [AvaloniaTest]
     public async Task Panel_doesNotShowHasHiddenLines_whenOutputFitsWithinDefaultDisplayLines()
     {
         var workspace = DesktopDomain.WorkspaceWithApplications().Build();
