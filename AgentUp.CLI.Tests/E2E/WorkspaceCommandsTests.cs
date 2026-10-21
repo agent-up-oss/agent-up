@@ -454,6 +454,7 @@ public class WorkspaceCommandsTests
         Assert.That(text, Does.Contain("list"));
         Assert.That(text, Does.Contain("clear"));
         Assert.That(text, Does.Contain("status"));
+        Assert.That(text, Does.Contain("capabilities"));
         Assert.That(text, Does.Contain($"http://localhost:{_port}"));
         Assert.That(text, Does.Not.Contain("http://localhost:5000"));
         Assert.That(text, Does.Not.Contain("register"));

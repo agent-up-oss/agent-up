@@ -20,7 +20,7 @@ Limitations is the current release status. Agent-Up is an experimental developme
 
 - The current development setup has been verified on NixOS first.
 - Agent-Up may work on additional platforms, but they should be treated as unverified until tested.
-- Native Windows Server is not a first-class Nix host. Run Server on WSL2 or Linux. There is no second non-Nix capability install path.
+- Nix is required on the Server host: it is the capability delivery mechanism, not an optional extra. Native Windows Server is not a first-class Nix host — run Server on WSL2 or Linux. That is policy; there is no second non-Nix capability install path.
 
 ## Automation Access
 

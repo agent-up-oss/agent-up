@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using AgentUp.Server.Features.Applications.DTOs;
+using AgentUp.Server.Features.Capabilities.Models;
 using AgentUp.Server.Features.Processes.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Models;
@@ -65,7 +66,10 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
                 await _output.AppendAsync(workspace.Id, appName, "[err] " + message, ProcessOutputStream.Stderr);
 
             await _registry.UpdateApplicationStateAsync(workspace.Id, appName, ApplicationState.Failed);
-            throw new InvalidOperationException($"Capability '{app.CapabilityStatus.CapabilityId}' cannot run '{appName}'.");
+            var messages = app.CapabilityStatus.Messages.Count > 0
+                ? app.CapabilityStatus.Messages
+                : CapabilityPrerequisiteMessages.NotEnabled(app.CapabilityStatus.CapabilityId, appName);
+            throw new InvalidOperationException(CapabilityPrerequisiteMessages.LaunchFailure(messages));
         }
 
         if (app.ServiceType == ServiceType.Docker)

@@ -1,5 +1,6 @@
 using System.Reflection;
 using AgentUp.CLI.Features.Authentication.Controllers;
+using AgentUp.CLI.Features.Capabilities.Controllers;
 using AgentUp.CLI.Features.Commits.Controllers;
 using AgentUp.CLI.Features.Verification.Controllers;
 
@@ -17,6 +18,7 @@ public sealed class WorkspacesController
     private readonly DiagnosticsCommand _diagnostics;
     private readonly ReviewSnapshotCommand _reviewSnapshot;
     private readonly AuthenticationController _authentication;
+    private readonly CapabilitiesController _capabilities;
     private readonly CommitsController _commits;
     private readonly VerificationController _verification;
 
@@ -31,6 +33,7 @@ public sealed class WorkspacesController
         DiagnosticsCommand diagnostics,
         ReviewSnapshotCommand reviewSnapshot,
         AuthenticationController authentication,
+        CapabilitiesController capabilities,
         CommitsController commits,
         VerificationController verification)
     {
@@ -44,6 +47,7 @@ public sealed class WorkspacesController
         _diagnostics = diagnostics;
         _reviewSnapshot = reviewSnapshot;
         _authentication = authentication;
+        _capabilities = capabilities;
         _commits = commits;
         _verification = verification;
     }
@@ -51,7 +55,7 @@ public sealed class WorkspacesController
     public async Task<int> RunAsync(string[] args)
         => args.Any(arg => arg == "--version")
             ? PrintVersion(_output)
-            : await ResolveCommand(args, _serverUrl, _start, _stop, _clear, _list, _status, _diagnostics, _reviewSnapshot, _authentication, _commits, _verification, _output)();
+            : await ResolveCommand(args, _serverUrl, _start, _stop, _clear, _list, _status, _diagnostics, _reviewSnapshot, _authentication, _capabilities, _commits, _verification, _output)();
 
     private static Func<Task<int>> ResolveCommand(
         string[] args,
@@ -64,6 +68,7 @@ public sealed class WorkspacesController
         DiagnosticsCommand diagnostics,
         ReviewSnapshotCommand reviewSnapshot,
         AuthenticationController authentication,
+        CapabilitiesController capabilities,
         CommitsController commits,
         VerificationController verification,
         TextWriter output)
@@ -78,6 +83,7 @@ public sealed class WorkspacesController
             "diagnostics" => diagnostics.RunAsync,
             "review-snapshot" => reviewSnapshot.RunAsync,
             "auth" => () => authentication.RunAsync(args.SkipWhile(a => a != "auth").Skip(1).ToArray()),
+            "capabilities" => () => capabilities.RunAsync(args.SkipWhile(a => a != "capabilities").Skip(1).ToArray()),
             "commits" => () => commits.RunAsync(args.SkipWhile(a => a != "commits").Skip(1).ToArray()),
             "verify" => () => verification.RunAsync(args.SkipWhile(a => a != "verify").Skip(1).ToArray()),
             _ => () => Task.FromResult(PrintHelp(output, serverUrl))
@@ -95,6 +101,7 @@ public sealed class WorkspacesController
         output.WriteLine("  diagnostics  Show workspace process, log, health, and browser diagnostics");
         output.WriteLine("  review-snapshot  Export a workspace review snapshot as JSON");
         output.WriteLine("  auth     Authenticate with the server (login, logout, status)");
+        output.WriteLine("  capabilities  List, enable, disable, or bootstrap capability modules");
         output.WriteLine("  commits  Manage the vertical-slice commit queue");
         output.WriteLine("  verify   Plan, run, and guard the checks the current changes require");
         output.WriteLine("  version  Print the CLI version");

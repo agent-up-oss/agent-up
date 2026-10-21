@@ -54,7 +54,8 @@ public sealed class CapabilityReconciliationServiceTests
             Assert.That(result.Args, Is.EqualTo(new[] { "postgres", "-c", "log_statement=all" }));
             Assert.That(result.Database, Is.True);
             Assert.That(result.CapabilityStatus!.CanRun, Is.False);
-            Assert.That(result.CapabilityStatus.Messages.Single(), Does.Contain("not enabled"));
+            Assert.That(result.CapabilityStatus.Messages, Has.Some.Contains("not enabled"));
+            Assert.That(result.CapabilityStatus.Messages, Has.Some.Contains("capabilities bootstrap"));
         });
     }
 
@@ -235,6 +236,42 @@ public sealed class CapabilityReconciliationServiceTests
             Assert.That(result.ServiceType, Is.EqualTo(ServiceType.Docker));
             Assert.That(result.CapabilityStatus!.CanRun, Is.False);
             Assert.That(result.CapabilityStatus.Messages, Is.Not.Empty);
+        });
+    }
+
+    [Test]
+    public async Task Missing_nix_fails_with_a_named_nix_message_instead_of_not_enabled()
+    {
+        var result = await new CapabilityReconciliationService(nix: new CapabilityModuleHarness.FixedNixPresence(false))
+            .ReconcileDotnetAsync(
+                new DotnetApplicationDefinition("Example API", "10.0", new DotnetRunDefinition("Api.csproj")), [], []);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.CapabilityStatus!.CanRun, Is.False);
+            var text = string.Join(" ", result.CapabilityStatus.Messages);
+            Assert.That(text, Does.Contain("Nix"));
+            Assert.That(text, Does.Contain("https://nixos.org/download"));
+            Assert.That(text, Does.Not.Contain("is not enabled"));
+        });
+    }
+
+    [Test]
+    public async Task Enabled_runtime_without_nix_cannot_host()
+    {
+        var runtime = new StubRuntimeCapability();
+        var packages = new EnabledPackages(CapabilityModuleHarness.DotnetManifest(), runtime);
+        var result = await new CapabilityReconciliationService(
+            packages,
+            nix: new CapabilityModuleHarness.FixedNixPresence(false))
+            .ReconcileDotnetAsync(
+                new DotnetApplicationDefinition("api", "10.0.x", new DotnetRunDefinition("Api.csproj")), [], []);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.CapabilityStatus!.CanRun, Is.False);
+            Assert.That(result.CapabilityStatus.Messages, Has.Some.Contains("Nix"));
+            Assert.That(result.LaunchFileName, Is.Null.Or.Empty);
         });
     }
 

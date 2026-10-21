@@ -28,6 +28,11 @@ internal static class CliDomain
     public const string CommitFile = "AgentUp.CLI/Features/Workspaces/Services/WorkspaceService.cs";
     public const string SecondCommitFile = "AgentUp.CLI/Features/Commits/Services/CommitsService.cs";
 
+    public const string CapabilityId = "dotnet";
+    public const string CapabilityVersion = "1.0.0";
+    public const string CapabilityDisplayName = ".NET";
+    public const string UnknownCapabilityId = "python";
+
     /// <summary>The canonical workspace as the CLI sees it.</summary>
     public static WorkspaceDtoBuilder Workspace() => new();
 
@@ -46,4 +51,7 @@ internal static class CliDomain
 
     /// <summary>The empty queue every commits test starts from.</summary>
     public static CommitsQueue EmptyQueue() => new CommitsQueueBuilder().Build();
+
+    /// <summary>The canonical first-party capability module as the CLI lists it.</summary>
+    public static CapabilityModuleDtoBuilder Capability() => new();
 }

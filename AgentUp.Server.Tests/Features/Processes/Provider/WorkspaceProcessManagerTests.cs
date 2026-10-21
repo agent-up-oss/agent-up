@@ -1,7 +1,8 @@
 using System.Diagnostics;
 using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Applications.DTOs;
-using AgentUp.Server.Features.Capabilities.Services;
+using AgentUp.Server.Features.Capabilities.DTOs;
+using AgentUp.Server.Features.Capabilities.Models;
 using AgentUp.Server.Features.DesktopApplications.Controllers;
 using AgentUp.Server.Features.DesktopApplications.Providers;
 using AgentUp.Server.Features.DesktopApplications.Services;
@@ -52,6 +53,46 @@ public class WorkspaceProcessManagerTests
         var lines = await _output.GetAsync(workspace.Id, "Db");
         Assert.That(lines, Is.Not.Empty);
         Assert.That(lines, Has.Some.StartsWith("[err]"));
+    }
+
+    [Test]
+    public async Task LaunchApplication_WhenCapabilityCannotRun_ThrowsTheCapabilityMessages()
+    {
+        var registered = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder("Example API", "true").Build())
+            .Build());
+        var messages = CapabilityPrerequisiteMessages.NotEnabled("dotnet", "Example API");
+        var workspace = new Workspace
+        {
+            Id = registered.Id,
+            DisplayName = registered.DisplayName,
+            RepositoryPath = registered.RepositoryPath,
+            WorktreePath = registered.WorktreePath,
+            Branch = registered.Branch,
+            Commit = registered.Commit,
+            Applications =
+            [
+                new ApplicationInstance
+                {
+                    Name = "Example API",
+                    CapabilityId = "dotnet",
+                    CapabilityStatus = new CapabilityStatusDto("dotnet", null, false, messages)
+                }
+            ]
+        };
+
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _manager.LaunchApplicationAsync(workspace, "Example API"));
+
+        var lines = await _output.GetAsync(workspace.Id, "Example API");
+        Assert.Multiple(() =>
+        {
+            Assert.That(ex!.Message, Does.Contain("Example API"));
+            Assert.That(ex.Message, Does.Contain("agent-up capabilities bootstrap"));
+            Assert.That(ex.Message, Does.Not.Contain("cannot run"));
+            Assert.That(lines, Has.Some.Contains("not enabled"));
+            Assert.That(lines, Has.Some.StartsWith("[err]"));
+        });
     }
 
     [Test]

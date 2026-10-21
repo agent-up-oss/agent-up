@@ -25,7 +25,13 @@ If the service starts and stops repeatedly or consumes CPU while failing to beco
 - Git.
 - Docker and Docker Compose when managed repositories declare Docker services.
 - Node.js and npm for the documentation site.
-- Nix on NixOS or Linux systems that need the provided native desktop dependency shell.
+- Nix on the host that runs the Server. Capability packages deliver toolchains through Nix. On Linux or macOS:
+
+```bash
+sh <(curl -L https://nixos.org/nix/install) --daemon
+```
+
+See [the Nix download page](https://nixos.org/download). On Windows, run the Server under WSL2 and install Nix there. Nix is also used on NixOS or Linux when you need the native desktop dependency shell.
 
 ## Clone and Build
 

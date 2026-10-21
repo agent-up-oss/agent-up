@@ -3,6 +3,9 @@ using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.CLI.Features.Authentication.Controllers;
 using AgentUp.CLI.Features.Authentication.Providers;
 using AgentUp.CLI.Features.Authentication.Services;
+using AgentUp.CLI.Features.Capabilities.Controllers;
+using AgentUp.CLI.Features.Capabilities.Providers;
+using AgentUp.CLI.Features.Capabilities.Services;
 using AgentUp.CLI.Features.Commits.Controllers;
 using AgentUp.CLI.Features.Commits.Providers;
 using AgentUp.CLI.Features.Commits.Services;
@@ -29,7 +32,7 @@ public static class CliRunnerFactory
 
         var credentialsStore = new AuthenticationCredentialsStore();
         var serverUri = SecureServerUrlProvider.ResolveServerUri(normalizedServerUrl);
-        var http = new HttpClient { BaseAddress = serverUri };
+        var http = new HttpClient { BaseAddress = serverUri, Timeout = CliHttpTimeout.Server };
         var token = credentialsStore.GetToken(normalizedServerUrl);
         if (token is not null)
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -111,6 +114,19 @@ public static class CliRunnerFactory
             verificationExports,
             verificationCoverage,
             verificationSlices);
+        var capabilitiesApi = new CapabilityModulesApiClient(http);
+        var capabilitiesService = new CapabilitiesService(
+            capabilitiesApi,
+            new FirstPartyCapabilityPacker(new CapabilityPackProcessRunner()),
+            new CapabilitiesArgParser());
+        var capabilitiesOutput = new CapabilitiesOutputService(writer);
+        var capabilities = new CapabilitiesController(
+            new CapabilitiesListCommand(capabilitiesService, capabilitiesOutput, workingDirectory),
+            new CapabilitiesEnableCommand(capabilitiesService, capabilitiesOutput, workingDirectory),
+            new CapabilitiesDisableCommand(capabilitiesService, capabilitiesOutput, workingDirectory),
+            new CapabilitiesBootstrapCommand(capabilitiesService, capabilitiesOutput, workingDirectory),
+            capabilitiesOutput);
+
         var verification = new VerificationController(
             new VerifyPlanCommand(verifyCommands, verifyOutput),
             new VerifyRunCommand(verifyCommands, verifyOutput),
@@ -132,6 +148,7 @@ public static class CliRunnerFactory
             new DiagnosticsCommand(workspaceService, workspaceOutput),
             new ReviewSnapshotCommand(workspaceService, workspaceOutput),
             authentication,
+            capabilities,
             commits,
             verification);
     }

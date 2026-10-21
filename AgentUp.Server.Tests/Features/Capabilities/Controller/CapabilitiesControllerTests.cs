@@ -16,7 +16,8 @@ public sealed class CapabilitiesControllerTests
             new DotnetApplicationDefinition("web", null, new DotnetRunDefinition("Web.csproj")), [], []);
 
         Assert.That(result.CapabilityId, Is.EqualTo("dotnet"));
-        Assert.That(result.CapabilityStatus!.Messages.Single(), Does.Contain("not enabled"));
+        Assert.That(result.CapabilityStatus!.Messages, Has.Some.Contains("not enabled"));
+        Assert.That(result.CapabilityStatus.Messages, Has.Some.Contains("capabilities bootstrap"));
     }
 
     [Test]

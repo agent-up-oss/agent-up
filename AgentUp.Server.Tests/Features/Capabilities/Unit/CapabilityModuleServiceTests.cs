@@ -224,7 +224,40 @@ public sealed class CapabilityModuleServiceTests
             Assert.That(listed.Enabled, Is.True);
             Assert.That(listed.CanRun, Is.False);
             Assert.That(listed.State, Is.EqualTo("error"));
-            Assert.That(listed.Messages, Is.Not.Empty);
+            Assert.That(listed.Messages, Has.Some.Contains("Nix"));
+            Assert.That(listed.Messages, Has.Some.Contains("https://nixos.org/download"));
+            Assert.That(listed.Messages, Has.None.Contains("is not enabled"));
+        });
+    }
+
+    [Test]
+    public void List_explains_a_disabled_module_with_the_bootstrap_remedy()
+    {
+        var listed = CapabilityModuleHarness.CreateService(nixAvailable: true, enabled: false).List().Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(listed.Enabled, Is.False);
+            Assert.That(listed.CanRun, Is.False);
+            Assert.That(listed.Messages, Has.Some.Contains("is not enabled"));
+            Assert.That(listed.Messages, Has.Some.Contains("agent-up capabilities bootstrap"));
+        });
+    }
+
+    [Test]
+    public void List_lets_an_enabled_forge_run_without_nix()
+    {
+        var listed = CapabilityModuleHarness.CreateService(
+            nixAvailable: false,
+            enabled: true,
+            manifest: GithubManifest()).List().Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(listed.Enabled, Is.True);
+            Assert.That(listed.CanRun, Is.True);
+            Assert.That(listed.Messages, Is.Empty);
+            Assert.That(listed.State, Is.EqualTo("ready"));
         });
     }
 }

@@ -9,6 +9,7 @@ using AgentUp.Sdk.Forge;
 using AgentUp.Sdk.Runtime;
 using AgentUp.Server.Features.Capabilities.DTOs;
 using AgentUp.Server.Features.Capabilities.Interfaces;
+using AgentUp.Server.Features.Capabilities.Models;
 using AgentUp.Server.Features.Capabilities.Providers;
 
 namespace AgentUp.Server.Features.Capabilities.Services;
@@ -204,17 +205,17 @@ public sealed class CapabilityModuleService(
         var isEnabled = set.Modules.Any(module =>
             module.Id.Equals(package.Manifest.Id, StringComparison.OrdinalIgnoreCase)
             && module.Version.Equals(package.Manifest.Version, StringComparison.Ordinal));
-        var windows = OperatingSystem.IsWindows();
-        var messages = new List<string>();
-        if (windows)
-            messages.Add("Windows Server hosts capabilities through WSL2 or Linux; native Windows Nix is not supported.");
-        else if (!nix.IsAvailable)
-            messages.Add("Nix is not installed on this Server host.");
+        var needsNix = NeedsNix(package.Manifest.Kind);
+        var nixMissing = needsNix && !nix.IsAvailable;
+        IReadOnlyList<string> messages = nixMissing
+            ? CapabilityPrerequisiteMessages.NixMissing(package.Manifest.Id)
+            : !isEnabled
+                ? CapabilityPrerequisiteMessages.NotEnabled(package.Manifest.Id)
+                : [];
 
         var state = !isEnabled ? "disabled"
-            : windows ? "error"
-            : nix.IsAvailable ? "ready"
-            : "error";
+            : nixMissing ? "error"
+            : "ready";
         return new CapabilityModuleDto(
             package.Manifest.Id,
             package.Manifest.Version,
@@ -223,9 +224,13 @@ public sealed class CapabilityModuleService(
             package.Manifest.Kind,
             isEnabled,
             state,
-            isEnabled && !windows && nix.IsAvailable,
+            isEnabled && !nixMissing,
             messages);
     }
+
+    private static bool NeedsNix(string kind)
+        => kind.Equals("runtime", StringComparison.OrdinalIgnoreCase)
+           || kind.Equals("agent", StringComparison.OrdinalIgnoreCase);
 
     private static NixEnvironmentSpec ToEnvironment(LocalRegistryPackageDto package)
         => new(
