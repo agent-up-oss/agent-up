@@ -4,7 +4,8 @@ import type { WorkspaceRefresher } from './WorkspaceRefreshProvider';
 
 export type WorkspaceActionsApi = {
   clone(server: ServerSession, request: CloneSourceRequest): Promise<Workspace>;
-  refreshClone(server: ServerSession, workspaceId: string): Promise<Workspace>;
+  refreshClone(server: ServerSession, workspaceId: string, revision?: string): Promise<Workspace>;
+  remove(server: ServerSession, workspaceId: string): Promise<void>;
   start(server: ServerSession, workspaceId: string): Promise<void>;
   stop(server: ServerSession, workspaceId: string): Promise<void>;
 };
@@ -15,7 +16,8 @@ export type WorkspaceActionsSink = {
 
 export type WorkspaceActions = {
   clone(server: ServerSession | null, request: CloneSourceRequest): Promise<Workspace>;
-  refreshClone(server: ServerSession | null, workspaceId: string): Promise<Workspace>;
+  refreshClone(server: ServerSession | null, workspaceId: string, revision?: string): Promise<Workspace>;
+  remove(server: ServerSession | null, workspaceId: string): Promise<void>;
   start(server: ServerSession | null, workspaceId: string): Promise<void>;
   stop(server: ServerSession | null, workspaceId: string): Promise<void>;
 };
@@ -41,12 +43,19 @@ export function createWorkspaceActions(
       return workspace;
     },
 
-    async refreshClone(server, workspaceId) {
+    async refreshClone(server, workspaceId, revision) {
       if (!server) throw new Error('Connect this client to an Agent-Up Server first.');
 
-      const workspace = await api.refreshClone(server, workspaceId);
+      const workspace = await api.refreshClone(server, workspaceId, revision);
       if (refresher.isActive(server)) await refresher.refresh(server);
       return workspace;
+    },
+
+    async remove(server, workspaceId) {
+      if (!server) throw new Error('Connect this client to an Agent-Up Server first.');
+
+      await api.remove(server, workspaceId);
+      if (refresher.isActive(server)) await refresher.refresh(server);
     },
 
     async start(server, workspaceId) {

@@ -4,7 +4,9 @@ title: Downloads
 
 # Downloads
 
-The latest Agent-Up release is available directly from GitHub Releases.
+<DocWhat>
+Downloads is the current GitHub Releases page for Agent-Up. Each platform section names the artifact and what the installer or package registers.
+</DocWhat>
 
 ## Windows
 

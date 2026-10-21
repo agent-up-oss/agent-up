@@ -10,7 +10,7 @@ public interface IWorkspaceApiProvider
 
     Task<WorkspaceDto> CloneAsync(CloneSourceRequestDto request, CancellationToken cancellationToken = default);
 
-    Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default);
+    Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, string? revision = null, CancellationToken cancellationToken = default);
 
     Task StartAsync(string workspaceId, CancellationToken cancellationToken = default);
 

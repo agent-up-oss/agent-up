@@ -219,7 +219,9 @@ public sealed class AgentSchedulingService : IAsyncDisposable
                 if (state.AuthMethods.Count == 0)
                     state.AuthMethods = auth.Defaults(agentId);
                 state.State = "authentication_required";
-                state.Error = exception.Message;
+                state.Error = auth.IsExpectedAuthenticationRequired(exception.Message)
+                    ? null
+                    : exception.Message;
                 var pendingAuth = await GetAsync(workspaceId, cancellationToken);
                 events.Publish(workspaceId, "state", pendingAuth!);
                 return new AgentScheduleResult(pendingAuth, true, null);
@@ -375,6 +377,15 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             }
             if (!string.IsNullOrWhiteSpace(result.ClaudeOAuthToken))
                 credentials.Write(result.ClaudeOAuthToken);
+            else if (auth.RequiresCapturedOauthToken(result.Challenge)
+                     && string.IsNullOrWhiteSpace(credentials.Read()))
+            {
+                ReturnToAuthentication(
+                    state,
+                    "Sign-in finished without a subscription token. Paste the code from the page, then try again.",
+                    result.Challenge);
+                return;
+            }
             await RestartProcessAsync(workspaceId, state);
             await InitializeAsync(workspaceId, state, state.Lifetime.Token);
             await CreateSessionAsync(state, state.Lifetime.Token);

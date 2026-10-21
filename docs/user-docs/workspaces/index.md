@@ -29,8 +29,8 @@ Non-Git paths still work and display as `not on a git branch`. Agent-Up can also
 
 <DocSurfaces>
 <DocSurface cli>From the directory that contains `agent-up.json`.</DocSurface>
-<DocSurface desktop>The workspace list `+` control clones a repository at a branch and registers it.</DocSurface>
-<DocSurface mobile>The same `+` control lives on the sidebar workspace list. There is no Workspaces tab.</DocSurface>
+<DocSurface desktop>The workspace list `+` control clones a repository at a branch and registers it. The plan card at the bottom of that list names unavailable operations when the Server withholds them, and the `+` and remove controls follow `workspace.create` and `workspace.delete`.</DocSurface>
+<DocSurface mobile>The same `+` control lives on the sidebar workspace list. There is no Workspaces tab. Remove follows `workspace.delete` the same way.</DocSurface>
 </DocSurfaces>
 
 <p><img src="/desktop-workspaces.png" alt="Desktop workspaces showing Harbor Shop on main" /></p>
@@ -53,10 +53,10 @@ Agent-Up can manage the clone itself instead of only registering a checkout you 
 
 <DocSteps>
 <DocStep title="Ask for a repository and branch">
-Both the Desktop workspace list and the Mobile sidebar have a `+` button. Tick **Start a review workspace at this revision** to clone a disposable copy at a branch, tag, or commit without touching your own checkout.
+Both the Desktop workspace list and the Mobile sidebar have a `+` button, and it stays available after the first workspace exists. Tick **Start a review workspace at this revision** to clone a disposable copy at a branch, tag, or commit without touching your own checkout. Each row can be removed.
 </DocStep>
 <DocStep title="Clone into the source clones directory">
-The result is registered so it appears in the workspace list on every connected client. Review workspaces are labelled separately from your own workspaces and can be refreshed in place.
+The result is registered so it appears in the workspace list on every connected client. Review workspaces are labelled separately from your own workspaces. Refresh keeps the same workspace and can move it onto a different branch, tag, or commit.
 </DocStep>
 <DocStep title="Keep isolation">
 Clones created this way behave like any other workspace: they get their own port range, processes, browser profile, and diagnostics.

@@ -20,6 +20,11 @@
           { "path": "release-artifacts/agent-up-windows-win-x64.msi",    "label": "Windows (x64) MSI sidecar" },
           { "path": "release-artifacts/agent-up-nixos-pkgs.tar.gz",      "label": "NixOS packages" },
           { "path": "release-artifacts/agent-up-jetbrains-plugin.zip",   "label": "JetBrains IDE plugin" },
+          { "path": "release-artifacts/au-check-linux-x64",          "label": "au-check (linux-x64)" },
+          { "path": "release-artifacts/au-check-linux-arm64",        "label": "au-check (linux-arm64)" },
+          { "path": "release-artifacts/au-check-osx-arm64",          "label": "au-check (osx-arm64)" },
+          { "path": "release-artifacts/au-check-osx-x64",            "label": "au-check (osx-x64)" },
+          { "path": "release-artifacts/au-check-win-x64.exe",        "label": "au-check (win-x64)" },
           { "path": "release-artifacts/agent-up-sbom.cdx.json",          "label": "Software Bill of Materials (CycloneDX)" },
           { "path": "release-artifacts/checksums.sha256",                 "label": "SHA-256 checksums" },
           { "path": "release-artifacts/manifest.json",                    "label": "Release manifest" }

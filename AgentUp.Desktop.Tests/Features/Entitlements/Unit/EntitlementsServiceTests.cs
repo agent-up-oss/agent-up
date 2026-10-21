@@ -19,6 +19,8 @@ public sealed class EntitlementsServiceTests
         {
             Assert.That(plan.Card, Is.Null);
             Assert.That(plan.CanCreateWorkspace, Is.True);
+            Assert.That(plan.CanDeleteWorkspace, Is.True);
+            Assert.That(plan.CanWriteGit, Is.True);
         });
     }
 
@@ -29,7 +31,13 @@ public sealed class EntitlementsServiceTests
         {
             displayName = "Team",
             billing = "subscription",
-            features = new Dictionary<string, object> { ["workspace.create"] = new { available = false } },
+            features = new Dictionary<string, object>
+            {
+                ["workspace.create"] = new { available = false },
+                ["workspace.delete"] = new { available = false },
+                ["git.write"] = new { available = false },
+                ["agent.prompt"] = new { available = true }
+            },
             limits = new Dictionary<string, object>()
         }));
         var service = new EntitlementsService(new EntitlementsApiClient(http.Client));
@@ -40,6 +48,10 @@ public sealed class EntitlementsServiceTests
         {
             Assert.That(plan.Card!.DisplayName, Is.EqualTo("Team"));
             Assert.That(plan.CanCreateWorkspace, Is.False);
+            Assert.That(plan.CanDeleteWorkspace, Is.False);
+            Assert.That(plan.CanWriteGit, Is.False);
+            Assert.That(plan.Card.RestrictedFeatures.Select(feature => feature.Id),
+                Is.EquivalentTo(new[] { "workspace.create", "workspace.delete", "git.write" }));
         });
     }
 }

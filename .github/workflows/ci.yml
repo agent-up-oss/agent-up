@@ -803,6 +803,58 @@ jobs:
           # slice whose own suite was not selected would read as uncovered.
           dotnet run --project AgentUp.CLI --configuration Release --no-build --no-launch-profile -- verify slices
 
+  au-check:
+    name: au-check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Publish au-check
+        run: ./.github/scripts/publish-au-check.sh artifacts/au-check
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: au-check
+          path: |
+            artifacts/au-check/au-check-linux-x64
+            artifacts/au-check/au-check-linux-arm64
+            artifacts/au-check/au-check-osx-arm64
+            artifacts/au-check/au-check-osx-x64
+            artifacts/au-check/au-check-win-x64.exe
+          if-no-files-found: error
+          retention-days: 1
+
+  au-check-smoke:
+    name: au-check smoke
+    runs-on: ubuntu-latest
+    needs: au-check
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: au-check
+          path: artifacts/au-check
+
+      - name: Compare the published plan with agent-up verify plan
+        run: ./.github/scripts/smoke-au-check.sh artifacts/au-check/au-check-linux-x64
+
   jetbrains-plugin:
     name: JetBrains plugin
     runs-on: ubuntu-latest
@@ -1252,7 +1304,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [platform, runtime-capability-e2e, loop-inference, loop-soak, performance-gates, test-kind-watchdog, docs, jetbrains-plugin, version, helm-chart]
+    needs: [platform, runtime-capability-e2e, loop-inference, loop-soak, performance-gates, test-kind-watchdog, docs, jetbrains-plugin, au-check, version, helm-chart]
     if: ${{ github.ref == 'refs/heads/main' && needs.version.outputs.publish == 'true' }}
     permissions:
       actions: write
@@ -1295,11 +1347,16 @@ jobs:
           name: jetbrains-plugin
           path: release-artifacts
 
+      - uses: actions/download-artifact@v8
+        with:
+          name: au-check
+          path: release-artifacts
+
       - name: Delete consumed package and SBOM artifacts
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate --jq '.artifacts[] | select((.name | startswith("package-")) or .name == "sbom" or .name == "jetbrains-plugin") | .id' |
+          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --paginate --jq '.artifacts[] | select((.name | startswith("package-")) or .name == "sbom" or .name == "jetbrains-plugin" or .name == "au-check") | .id' |
             while IFS= read -r artifact_id; do
               if [ -n "$artifact_id" ]; then
                 gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artifact_id" >/dev/null 2>&1 || true

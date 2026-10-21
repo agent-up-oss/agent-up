@@ -11,5 +11,11 @@ public enum CheckSkipReason
     PlatformMismatch,
 
     /// <summary>The check is marked ciOnly and this is not a CI runner.</summary>
-    CiOnly
+    CiOnly,
+
+    /// <summary>
+    /// A toolchain named in <c>requires</c> is missing, or older than the declared floor.
+    /// This is not a failed run: the check did not execute.
+    /// </summary>
+    ToolchainMissing
 }

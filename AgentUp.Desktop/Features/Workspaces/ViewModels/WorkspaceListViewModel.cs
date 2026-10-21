@@ -17,6 +17,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
     private bool _isCollapsed;
     private bool _isLoading;
     private bool _canCreateWorkspace = true;
+    private bool _canDeleteWorkspace = true;
+    private bool _canWriteGit = true;
     private string? _errorMessage;
 
     public ObservableCollection<WorkspaceItemViewModel> Workspaces { get; } = [];
@@ -24,6 +26,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
     public WorkspaceDeleteConfirmationViewModel DeleteConfirmation { get; }
 
     public WorkspaceCloneViewModel AddWorkspace { get; }
+
+    public WorkspaceRefreshViewModel RefreshReview { get; }
 
     public PlanCardViewModel Plan { get; } = new();
 
@@ -34,6 +38,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         {
             this.RaiseAndSetIfChanged(ref _selectedWorkspace, value);
             this.RaisePropertyChanged(nameof(ShowEmptyState));
+            this.RaisePropertyChanged(nameof(ShowSidebarPlan));
         }
     }
 
@@ -48,6 +53,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
             this.RaisePropertyChanged(nameof(IsExpanded));
             this.RaisePropertyChanged(nameof(Width));
             this.RaisePropertyChanged(nameof(ToggleIcon));
+            this.RaisePropertyChanged(nameof(ShowSidebarPlan));
         }
     }
 
@@ -62,6 +68,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         {
             this.RaiseAndSetIfChanged(ref _isLoading, value);
             this.RaisePropertyChanged(nameof(ShowEmptyState));
+            this.RaisePropertyChanged(nameof(ShowSidebarPlan));
             this.RaisePropertyChanged(nameof(ServerStatusText));
             this.RaisePropertyChanged(nameof(ServerStatusColor));
         }
@@ -74,6 +81,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         {
             this.RaiseAndSetIfChanged(ref _errorMessage, value);
             this.RaisePropertyChanged(nameof(ShowEmptyState));
+            this.RaisePropertyChanged(nameof(ShowSidebarPlan));
             this.RaisePropertyChanged(nameof(ServerStatusText));
             this.RaisePropertyChanged(nameof(ServerStatusColor));
         }
@@ -91,11 +99,29 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         }
     }
 
+    public bool CanDeleteWorkspace
+    {
+        get => _canDeleteWorkspace;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _canDeleteWorkspace, value);
+            ApplyDeleteAvailability();
+        }
+    }
+
+    public bool CanWriteGit
+    {
+        get => _canWriteGit;
+        private set => this.RaiseAndSetIfChanged(ref _canWriteGit, value);
+    }
+
     public string EmptyStateHint => CanCreateWorkspace
         ? "Clone a repository with + or run agent-up start in a project that has agent-up.json."
         : "This Server does not allow adding workspaces from the client.";
 
     public bool ShowEmptyState => _selectedWorkspace is null && _errorMessage is null && !_isLoading;
+
+    public bool ShowSidebarPlan => Plan.IsVisible && IsExpanded && !ShowEmptyState;
     public string ServerStatusText => _errorMessage is not null
         ? "SERVER OFFLINE"
         : _isLoading ? "CONNECTING" : "SERVER ONLINE";
@@ -116,6 +142,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         DeleteConfirmation = deleteConfirmation;
         AddWorkspace = new WorkspaceCloneViewModel(
             (repository, revision, derived) => CloneWorkspaceAsync(repository, revision, derived));
+        RefreshReview = new WorkspaceRefreshViewModel(
+            (workspaceId, revision) => RefreshDerivedWorkspaceAsync(workspaceId, revision));
         RefreshCommand = ReactiveCommand.CreateFromTask(LoadAsync);
         ToggleCommand = ReactiveCommand.Create(() => { IsCollapsed = !IsCollapsed; });
         ShowAddWorkspaceCommand = ReactiveCommand.Create(
@@ -163,8 +191,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
     Task IWorkspaceItemHost.StopWorkspaceAsync(string workspaceId)
         => StopWorkspaceAsync(workspaceId);
 
-    Task IWorkspaceItemHost.RefreshDerivedWorkspaceAsync(string workspaceId)
-        => RefreshDerivedWorkspaceAsync(workspaceId);
+    void IWorkspaceItemHost.ShowRefreshDerivedWorkspace(string workspaceId, string currentRevision)
+        => RefreshReview.Show(workspaceId, currentRevision);
 
     void IWorkspaceItemHost.RequestDeleteWorkspace(string workspaceId, string displayName)
         => DeleteConfirmation.Show(workspaceId, displayName);
@@ -224,21 +252,24 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         }
     }
 
-    public async Task RefreshDerivedWorkspaceAsync(string workspaceId, CancellationToken ct = default)
+    public async Task<bool> RefreshDerivedWorkspaceAsync(string workspaceId, string? revision = null, CancellationToken ct = default)
     {
         try
         {
-            var workspace = await _workspaces.RefreshCloneAsync(workspaceId, ct);
+            var workspace = await _workspaces.RefreshCloneAsync(workspaceId, revision, ct);
             ErrorMessage = null;
             await RefreshWorkspaceAsync(workspace.Id, ct);
+            return true;
         }
         catch (TaskCanceledException) when (ct.IsCancellationRequested)
         {
-            return;
+            return false;
         }
         catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
         {
             ErrorMessage = $"Could not refresh review workspace: {ex.Message}";
+            RefreshReview.ErrorMessage = ex.Message;
+            return false;
         }
     }
 
@@ -255,6 +286,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
             dto.Derived,
             dto.SourceRevision);
         item.SetHost(this);
+        item.CanDelete = CanDeleteWorkspace;
         return item;
     }
 
@@ -386,6 +418,8 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         RequiresSignIn = false;
         IsLoading = false;
         CanCreateWorkspace = true;
+        CanDeleteWorkspace = true;
+        CanWriteGit = true;
         Plan.Clear();
     }
 
@@ -394,13 +428,25 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         if (_entitlements is null)
         {
             CanCreateWorkspace = true;
+            CanDeleteWorkspace = true;
+            CanWriteGit = true;
             Plan.Clear();
+            this.RaisePropertyChanged(nameof(ShowSidebarPlan));
             return;
         }
 
         var plan = await _entitlements.GetPlanAsync(ct);
         CanCreateWorkspace = plan.CanCreateWorkspace;
+        CanDeleteWorkspace = plan.CanDeleteWorkspace;
+        CanWriteGit = plan.CanWriteGit;
         Plan.Apply(plan.Card);
+        this.RaisePropertyChanged(nameof(ShowSidebarPlan));
+    }
+
+    private void ApplyDeleteAvailability()
+    {
+        foreach (var workspace in Workspaces)
+            workspace.CanDelete = CanDeleteWorkspace;
     }
 
     private void ApplyWorkspaceOrder(IReadOnlyList<WorkspaceDto> orderedDtos)

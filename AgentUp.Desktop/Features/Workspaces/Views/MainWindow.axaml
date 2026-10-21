@@ -761,6 +761,37 @@
                     </StackPanel>
                 </Border>
 
+                <Border DockPanel.Dock="Bottom"
+                        Padding="12,8,12,12"
+                        IsVisible="{Binding Sidebar.ShowSidebarPlan}">
+                    <StackPanel Spacing="4">
+                        <TextBlock Classes="au-field-label" Text="PLAN"/>
+                        <TextBlock Classes="au-workspace-name" Text="{Binding Sidebar.Plan.DisplayName}"/>
+                        <TextBlock Classes="au-muted"
+                                   Text="{Binding Sidebar.Plan.Billing}"
+                                   IsVisible="{Binding Sidebar.Plan.HasBilling}"/>
+                        <TextBlock Classes="au-muted" Text="{Binding Sidebar.Plan.Summary}"/>
+                        <TextBlock Classes="au-field-label"
+                                   Text="UNAVAILABLE"
+                                   IsVisible="{Binding Sidebar.Plan.HasRestrictions}"/>
+                        <ItemsControl ItemsSource="{Binding Sidebar.Plan.RestrictedFeatures}"
+                                      IsVisible="{Binding Sidebar.Plan.HasRestrictions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="entModels:PlanCardFeature">
+                                    <TextBlock Classes="au-muted" Text="{Binding Id}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ItemsControl ItemsSource="{Binding Sidebar.Plan.Limits}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="entModels:PlanCardLimit">
+                                    <TextBlock Classes="au-muted" Text="{Binding Label}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
                 <!-- Expanded workspace list -->
                 <ScrollViewer x:Name="WorkspaceListExpanded"
                               IsVisible="{Binding Sidebar.IsExpanded}"
@@ -830,7 +861,7 @@
                                                         Margin="28,-2,-2,0"
                                                         IsVisible="{Binding ShowRefreshButton}"
                                                         Command="{Binding RefreshCommand}"
-                                                        ToolTip.Tip="Refresh review workspace">
+                                                        ToolTip.Tip="Refresh review workspace at a revision">
                                                     <TextBlock Text="↻"
                                                                HorizontalAlignment="Center"
                                                                VerticalAlignment="Center"/>
@@ -839,6 +870,7 @@
                                                         HorizontalAlignment="Right"
                                                         VerticalAlignment="Top"
                                                         Margin="0,-2,-2,0"
+                                                        IsVisible="{Binding ShowDeleteButton}"
                                                         Command="{Binding RequestDeleteCommand}"
                                                         ToolTip.Tip="Remove workspace">
                                                     <TextBlock Text="✕"
@@ -935,10 +967,14 @@
                                    Text="{Binding Sidebar.Plan.Billing}"
                                    IsVisible="{Binding Sidebar.Plan.HasBilling}"/>
                         <TextBlock Classes="au-muted" Text="{Binding Sidebar.Plan.Summary}"/>
-                        <ItemsControl ItemsSource="{Binding Sidebar.Plan.Features}">
+                        <TextBlock Classes="au-field-label"
+                                   Text="UNAVAILABLE"
+                                   IsVisible="{Binding Sidebar.Plan.HasRestrictions}"/>
+                        <ItemsControl ItemsSource="{Binding Sidebar.Plan.RestrictedFeatures}"
+                                      IsVisible="{Binding Sidebar.Plan.HasRestrictions}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="entModels:PlanCardFeature">
-                                    <TextBlock Classes="au-muted" Text="{Binding Label}"/>
+                                    <TextBlock Classes="au-muted" Text="{Binding Id}"/>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -1246,13 +1282,16 @@
                                                             <Border Classes="au-badge"><TextBlock Classes="au-accent" Text="{Binding Agent}"/></Border>
                                                             <TextBlock Grid.Column="1" Classes="wsName" Text="{Binding Description}" TextTrimming="CharacterEllipsis"/>
                                                             <TextBlock Grid.Column="2" Classes="au-muted" Text="{Binding Branch}"/>
-                                                            <TextBlock Grid.Row="1" Grid.Column="1" Classes="au-muted" Text="Resume session →"/>
+                                                            <TextBlock Grid.Row="1" Grid.Column="1" Classes="au-muted" Text="{Binding ActionLabel}"/>
                                                         </Grid>
                                                     </Button>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                         </ScrollViewer>
+                                        <TextBlock Classes="au-muted"
+                                                   Text="No saved sessions yet."
+                                                   IsVisible="{Binding Agent.HasNoSavedSessions}"/>
                                         <Button Classes="au-button au-button--compact"
                                                 HorizontalAlignment="Stretch"
                                                 IsVisible="{Binding Agent.CanStartBound}"
@@ -1324,6 +1363,16 @@
                                                        FontSize="{DynamicResource AgentUpFontSizeUiXl}"
                                                        FontWeight="{DynamicResource AgentUpWeightUiStrong}"
                                                        Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+                                            <StackPanel IsVisible="{Binding Agent.CanCollectLoginCode}" Spacing="6">
+                                                <TextBox Classes="au-input"
+                                                         Text="{Binding Agent.LoginCodeInput}"
+                                                         PlaceholderText="Paste the code from the page"
+                                                         IsEnabled="{Binding Agent.CanSubmitLoginCode}"/>
+                                                <Button Classes="au-button au-button--compact"
+                                                        Content="Submit code"
+                                                        Command="{Binding Agent.SubmitLoginCodeCommand}"
+                                                        IsEnabled="{Binding Agent.CanSubmitLoginCode}"/>
+                                            </StackPanel>
                                         </StackPanel>
                                     </StackPanel>
                                     <ScrollViewer Grid.Row="3"
@@ -1783,7 +1832,8 @@
                                                       ItemsSource="{Binding Git.BranchItems}"
                                                       SelectedItem="{Binding Git.SelectedBranchItem}"
                                                       PlaceholderText="Branch"
-                                                      HorizontalAlignment="Stretch">
+                                                      HorizontalAlignment="Stretch"
+                                                      IsEnabled="{Binding Git.CanWriteGit}">
                                                 <ComboBox.ItemTemplate>
                                                     <DataTemplate>
                                                         <TextBlock Text="{Binding Label}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -1796,7 +1846,8 @@
                                                     Command="{Binding Git.BeginCreateBranchCommand}"
                                                     Content="+"
                                                     Width="36"
-                                                    ToolTip.Tip="Create branch"/>
+                                                    ToolTip.Tip="Create branch"
+                                                    IsVisible="{Binding Git.CanWriteGit}"/>
                                             </Grid>
                                             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6"
                                                   IsVisible="{Binding Git.IsCreatingBranch}">
@@ -1829,20 +1880,23 @@
                                                 <Button x:Name="GitFetchButton"
                                                         Classes="au-button au-button--secondary au-button--compact"
                                                         Command="{Binding Git.FetchCommand}"
-                                                        Content="Fetch"/>
+                                                        Content="Fetch"
+                                                        IsVisible="{Binding Git.CanWriteGit}"/>
                                                 <Button x:Name="GitPullButton"
                                                         Classes="au-button au-button--secondary au-button--compact"
                                                         Command="{Binding Git.PullCommand}"
-                                                        Content="Pull"/>
+                                                        Content="Pull"
+                                                        IsVisible="{Binding Git.CanWriteGit}"/>
                                                 <Button x:Name="GitPushButton"
                                                         Classes="au-button au-button--compact"
                                                         Command="{Binding Git.PushCommand}"
-                                                        Content="Push"/>
+                                                        Content="Push"
+                                                        IsVisible="{Binding Git.CanWriteGit}"/>
                                                 <Button x:Name="GitDiscardButton"
                                                         Classes="au-button au-button--danger au-button--compact"
                                                         Command="{Binding Git.DiscardCommand}"
                                                         Content="Discard"
-                                                        IsVisible="{Binding Git.HasSelectedFiles}"/>
+                                                        IsVisible="{Binding Git.ShowDiscardButton}"/>
                                             </StackPanel>
                                                 <Button Grid.Column="1"
                                                         x:Name="GitHistoryButton"
@@ -2016,6 +2070,10 @@
                                     </Panel>
 
                                     <StackPanel Grid.Row="2" Margin="14,8,14,14" Spacing="8">
+                                        <TextBlock Classes="au-muted"
+                                                   Text="{Binding Git.WriteUnavailableMessage}"
+                                                   TextWrapping="Wrap"
+                                                   IsVisible="{Binding !Git.CanWriteGit}"/>
                                         <TextBox x:Name="GitCommitMessage"
                                                  Classes="au-input"
                                                  Text="{Binding Git.CommitMessage}"
@@ -2023,12 +2081,14 @@
                                                  AcceptsReturn="True"
                                                  TextWrapping="Wrap"
                                                  MinHeight="72"
-                                                 MaxHeight="140"/>
+                                                 MaxHeight="140"
+                                                 IsVisible="{Binding Git.CanWriteGit}"/>
                                         <Button x:Name="GitCommitButton"
                                                 Classes="au-button"
                                                 HorizontalAlignment="Stretch"
                                                 Command="{Binding Git.CommitCommand}"
-                                                Content="Commit"/>
+                                                Content="Commit"
+                                                IsVisible="{Binding Git.CanWriteGit}"/>
                                     </StackPanel>
 
                                 </Grid>
@@ -2366,6 +2426,86 @@
                                 <Border Classes="tutorialButton">
                                     <TextBlock Classes="tutorialButtonText"
                                                Text="{Binding Sidebar.AddWorkspace.ConfirmLabel}"/>
+                                </Border>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Grid ZIndex="100"
+              x:Name="RefreshReviewOverlay"
+              IsVisible="{Binding Sidebar.RefreshReview.IsVisible}"
+              IsHitTestVisible="{Binding Sidebar.RefreshReview.IsVisible}">
+            <Border Background="{DynamicResource AgentUpColorOverlayBrush}"/>
+            <Border Background="{DynamicResource AgentUpColorOverlayBrush}">
+                <Border.Effect>
+                    <BlurEffect Radius="10"/>
+                </Border.Effect>
+            </Border>
+
+            <Grid RowDefinitions="*,8*,*"
+                  ColumnDefinitions="*,8*,*">
+                <Border Grid.Row="1"
+                        Grid.Column="1"
+                        MinWidth="460"
+                        MaxWidth="600"
+                        VerticalAlignment="Center"
+                        Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
+                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="28">
+                    <StackPanel Spacing="16">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Refresh review workspace"
+                                       Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"
+                                       FontSize="22"
+                                       FontWeight="Bold"/>
+                            <TextBlock Text="Fetches this revision into the same review workspace. Your other checkouts stay where they are."
+                                       Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"
+                                       FontSize="13"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Revision"
+                                       Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
+                                       FontSize="11"
+                                       FontWeight="Bold"/>
+                            <TextBox x:Name="RefreshReviewRevision"
+                                     Text="{Binding Sidebar.RefreshReview.Revision}"
+                                     PlaceholderText="branch, tag, or commit"
+                                     IsEnabled="{Binding !Sidebar.RefreshReview.IsBusy}"
+                                     Background="{DynamicResource AgentUpColorSurfaceBrush}"
+                                     Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"
+                                     BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                                     BorderThickness="1"
+                                     FontSize="13"/>
+                        </StackPanel>
+
+                        <TextBlock x:Name="RefreshReviewError"
+                                   Text="{Binding Sidebar.RefreshReview.ErrorMessage}"
+                                   IsVisible="{Binding Sidebar.RefreshReview.ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                   Foreground="{DynamicResource AgentUpColorStatusDangerBrush}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"/>
+
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                            <Button Grid.Column="1"
+                                    x:Name="RefreshReviewCancelButton"
+                                    Command="{Binding Sidebar.RefreshReview.CancelCommand}">
+                                <Border Classes="tutorialSecondaryButton">
+                                    <TextBlock Classes="tutorialButtonText" Text="Cancel"/>
+                                </Border>
+                            </Button>
+                            <Button Grid.Column="2"
+                                    x:Name="RefreshReviewConfirmButton"
+                                    Command="{Binding Sidebar.RefreshReview.ConfirmCommand}">
+                                <Border Classes="tutorialButton">
+                                    <TextBlock Classes="tutorialButtonText"
+                                               Text="{Binding Sidebar.RefreshReview.ConfirmLabel}"/>
                                 </Border>
                             </Button>
                         </Grid>

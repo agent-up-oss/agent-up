@@ -21,8 +21,11 @@ public sealed class WorkspaceListService
     public async Task<WorkspaceDto> CloneAsync(CloneSourceRequestDto request, CancellationToken cancellationToken = default)
         => await _client.CloneAsync(request, cancellationToken);
 
-    public async Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default)
-        => await _client.RefreshCloneAsync(workspaceId, cancellationToken);
+    public async Task<WorkspaceDto> RefreshCloneAsync(
+        string workspaceId,
+        string? revision = null,
+        CancellationToken cancellationToken = default)
+        => await _client.RefreshCloneAsync(workspaceId, revision, cancellationToken);
 
     public async Task StartAsync(string workspaceId, CancellationToken cancellationToken = default)
         => await _client.StartAsync(workspaceId, cancellationToken);

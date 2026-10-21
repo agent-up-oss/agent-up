@@ -5,7 +5,8 @@
   "license": "Apache-2.0",
   "scripts": {
     "start": "docusaurus start --host 0.0.0.0",
-    "build": "node ../AgentUp.DesignSystem/scripts/build.mjs --check && docusaurus build",
+    "generate:api": "node scripts/generate-api-reference.mjs",
+    "build": "node scripts/generate-api-reference.mjs --check && node --test tests/page-structure.test.mjs tests/api-reference.test.mjs tests/social-card.test.mjs && node ../AgentUp.DesignSystem/scripts/build.mjs --check && docusaurus build",
     "serve": "docusaurus serve --host 0.0.0.0",
     "clear": "docusaurus clear",
     "test": "node --test tests/*.test.mjs"
@@ -18,8 +19,8 @@
     "@mdx-js/react": "^3.0.0",
     "clsx": "^2.1.1",
     "prism-react-renderer": "^2.4.1",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.6.3"

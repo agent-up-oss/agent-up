@@ -4,9 +4,9 @@ title: Product telemetry
 
 # Product telemetry
 
-Agent-Up reports **its own** crashes and errors to the self-hosted Sentry at
-`https://sentry.massivecreationlab.com`. Workspace and application diagnostics
-stay in Server audit. See [Diagnostics](/developer-guide/diagnostics).
+<DocWhat>
+Product telemetry is Agent-Up reporting its own crashes. Workspace and application diagnostics stay in Server audit.
+</DocWhat>
 
 The cluster Sentry chart uses the errors-only profile. SDKs send exceptions,
 `ILogger` Error events, and Warning breadcrumbs. Traces, spans, session replay,

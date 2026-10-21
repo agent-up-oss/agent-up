@@ -8,11 +8,14 @@ public sealed record CheckVerdict(
     string CheckId,
     string Command,
     CheckVerdictKind Kind,
-    string Detail)
+    string Detail,
+    CheckSkipReason SkipReason = CheckSkipReason.None)
 {
     /// <summary>
-    /// Whether this verdict stands in the way. Skipped checks do not: they are reported
-    /// with their reason and remain required wherever they can actually run.
+    /// Whether this verdict stands in the way. Platform and ciOnly skips do not: they are
+    /// reported with their reason and remain required wherever they can actually run.
+    /// A missing toolchain does, because the check was required here and did not run.
     /// </summary>
-    public bool Blocking => Kind is CheckVerdictKind.NeverRun or CheckVerdictKind.Failed or CheckVerdictKind.Stale;
+    public bool Blocking => Kind is CheckVerdictKind.NeverRun or CheckVerdictKind.Failed or CheckVerdictKind.Stale
+        || SkipReason == CheckSkipReason.ToolchainMissing;
 }

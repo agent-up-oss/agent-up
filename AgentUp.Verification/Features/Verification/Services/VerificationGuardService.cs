@@ -47,7 +47,8 @@ public sealed class VerificationGuardService(
                 check.CheckId,
                 check.Definition.Command,
                 CheckVerdictKind.Skipped,
-                SkipDetail(check));
+                SkipDetail(check),
+                check.SkipReason);
         }
 
         if (receipt is null)
@@ -137,6 +138,8 @@ public sealed class VerificationGuardService(
                 $"Requires {string.Join(" or ", check.Definition.Platforms)}; not runnable here. Still required in CI.",
             CheckSkipReason.CiOnly =>
                 "Marked ciOnly; runs in CI only.",
+            CheckSkipReason.ToolchainMissing =>
+                check.Toolchain?.Describe() ?? "A required toolchain is not available on this machine.",
             _ => "Skipped."
         };
 

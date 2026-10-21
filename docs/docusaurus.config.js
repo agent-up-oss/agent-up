@@ -74,8 +74,8 @@ const config = {
   tagline: voice.category,
   favicon: 'img/favicon.ico',
 
-  url: 'https://agent-up.local',
-  baseUrl: '/',
+  url: process.env.DOCS_SITE_URL || process.env.CF_PAGES_URL || 'https://agent-up-oss.github.io',
+  baseUrl: process.env.DOCS_BASE_URL || '/',
   organizationName: 'agent-up',
   projectName: 'agent-up',
 
@@ -121,6 +121,24 @@ const config = {
         routeBasePath: '/developer-guide',
         sidebarPath: require.resolve('./sidebarsDeveloper.js'),
         editUrl: undefined,
+      },
+    ],
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'apiReference',
+        path: 'api-reference',
+        routeBasePath: '/api-reference',
+        sidebarPath: require.resolve('./sidebarsApi.json'),
+        editUrl: undefined,
+        lastVersion: 'current',
+        versions: {
+          current: {
+            label: 'Next',
+            path: '',
+            banner: 'unreleased',
+          },
+        },
       },
     ],
     [
@@ -175,6 +193,11 @@ const config = {
         respectPrefersColorScheme: false,
       },
       image: 'img/social-card.png',
+      metadata: [
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { property: 'og:image:width', content: '1200' },
+        { property: 'og:image:height', content: '630' },
+      ],
       navbar: {
         title: 'Agent-Up',
         logo: {
@@ -194,6 +217,18 @@ const config = {
             sidebarId: 'developerGuideSidebar',
             position: 'left',
             label: 'Developer Guide',
+          },
+          {
+            type: 'docSidebar',
+            docsPluginId: 'apiReference',
+            sidebarId: 'apiReferenceSidebar',
+            position: 'left',
+            label: 'API',
+          },
+          {
+            type: 'docsVersionDropdown',
+            docsPluginId: 'apiReference',
+            position: 'right',
           },
           {
             to: '/design-system',
@@ -252,6 +287,14 @@ const config = {
               { label: 'Diagnostics', to: '/developer-guide/diagnostics' },
               { label: 'Verification', to: '/developer-guide/verification' },
               { label: 'Configuration', to: '/developer-guide/configuration' },
+            ],
+          },
+          {
+            title: 'API',
+            items: [
+              { label: 'Current', to: '/api-reference/' },
+              { label: '3.61.0', to: '/api-reference/3.61.0/' },
+              { label: 'OpenAPI', href: 'pathname:///api/openapi.json' },
             ],
           },
           {

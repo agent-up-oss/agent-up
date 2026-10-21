@@ -18,6 +18,16 @@ export async function startWorkspace(server: ServerSession, workspaceId: string,
   );
 }
 
+export async function removeWorkspace(server: ServerSession, workspaceId: string, request: typeof fetch = fetch): Promise<void> {
+  await requestServerJson(
+    server,
+    `/api/workspaces/${encodeURIComponent(workspaceId)}`,
+    { method: 'DELETE' },
+    undefined,
+    request,
+  );
+}
+
 export async function stopWorkspace(server: ServerSession, workspaceId: string, request: typeof fetch = fetch): Promise<void> {
   await requestServerJson(
     server,
@@ -41,12 +51,14 @@ export async function cloneSourceRepository(
 export async function refreshClone(
   server: ServerSession,
   workspaceId: string,
+  revision?: string,
   request: typeof fetch = fetch,
 ): Promise<Workspace> {
+  const named = revision?.trim();
   const workspace = await requestServerJson<Workspace>(
     server,
     `/api/source-clones/${encodeURIComponent(workspaceId)}/refresh`,
-    { method: 'POST' },
+    named ? jsonBody({ revision: named }) : { method: 'POST' },
     CLONE_TIMEOUT_MS,
     request,
   );

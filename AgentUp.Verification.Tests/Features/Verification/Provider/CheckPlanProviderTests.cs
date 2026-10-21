@@ -285,4 +285,69 @@ public sealed class CheckPlanProviderTests
         Assert.That(plan.Checks.Select(check => check.CheckId).Take(2),
             Is.EqualTo(new[] { "zz-build", "aa-lint" }));
     }
+
+    [Test]
+    public void CreatePlan_skipsAMissingToolchainAndNamesIt()
+    {
+        var plan = new CheckPlanProvider(
+            new PathGlobProvider(),
+            new FakePlatformCapabilityProvider(
+                VerificationDomain.Linux,
+                toolchains: new Dictionary<string, ToolchainObservation>(StringComparer.Ordinal)
+                {
+                    ["docker"] = ToolchainObservation.Missing
+                })).CreatePlan(DockerConfiguration(), ChangeSetBuilder.Changing(VerificationDomain.PackagingSource).Build());
+
+        var check = plan.Checks.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(check.SkipReason, Is.EqualTo(CheckSkipReason.ToolchainMissing));
+            Assert.That(check.Runnable, Is.False);
+            Assert.That(check.Toolchain!.Describe(), Does.Contain("docker is not installed"));
+        });
+    }
+
+    [Test]
+    public void CreatePlan_skipsAToolchainOlderThanTheDeclaredFloor()
+    {
+        var plan = new CheckPlanProvider(
+            new PathGlobProvider(),
+            new FakePlatformCapabilityProvider(
+                VerificationDomain.Linux,
+                toolchains: new Dictionary<string, ToolchainObservation>(StringComparer.Ordinal)
+                {
+                    ["dotnet"] = new ToolchainObservation(true, "6.0.100")
+                })).CreatePlan(
+            new VerificationConfigurationBuilder()
+                .WithCheck(new CheckBuilder("build").WithRequires(new ToolchainRequirement("dotnet", "8.0.0")))
+                .WithPathRule("packaging/**", "build")
+                .Build(),
+            ChangeSetBuilder.Changing(VerificationDomain.PackagingSource).Build());
+
+        var check = plan.Checks.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(check.SkipReason, Is.EqualTo(CheckSkipReason.ToolchainMissing));
+            Assert.That(check.Toolchain!.Describe(), Does.Contain("6.0.100"));
+            Assert.That(check.Toolchain.Describe(), Does.Contain("8.0.0"));
+        });
+    }
+
+    [Test]
+    public void CreatePlan_runsACheckWhenTheToolchainMeetsTheFloor()
+    {
+        var plan = new CheckPlanProvider(
+            new PathGlobProvider(),
+            new FakePlatformCapabilityProvider(VerificationDomain.Linux)).CreatePlan(
+            DockerConfiguration(),
+            ChangeSetBuilder.Changing(VerificationDomain.PackagingSource).Build());
+
+        Assert.That(plan.Checks.Single().Runnable, Is.True);
+    }
+
+    private static VerificationConfiguration DockerConfiguration()
+        => new VerificationConfigurationBuilder()
+            .WithCheck(new CheckBuilder("image").WithCommand("docker info").WithRequires(new ToolchainRequirement("docker", null)))
+            .WithPathRule("packaging/**", "image")
+            .Build();
 }

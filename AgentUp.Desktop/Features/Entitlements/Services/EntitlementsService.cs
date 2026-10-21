@@ -12,10 +12,12 @@ public sealed class EntitlementsService(EntitlementsApiClient client)
     {
         var document = await client.GetAsync(cancellationToken);
         if (document is null)
-            return new PlanLoadResult(null, true);
+            return new PlanLoadResult(null, true, true, true);
 
         return new PlanLoadResult(
             PlanCardPresenter.Present(document),
-            PlanCardPresenter.IsFeatureAvailable(document, PlanCardPresenter.WorkspaceCreateFeature));
+            PlanCardPresenter.IsFeatureAvailable(document, PlanCardPresenter.WorkspaceCreateFeature),
+            PlanCardPresenter.IsFeatureAvailable(document, PlanCardPresenter.WorkspaceDeleteFeature),
+            PlanCardPresenter.IsFeatureAvailable(document, PlanCardPresenter.GitWriteFeature));
     }
 }

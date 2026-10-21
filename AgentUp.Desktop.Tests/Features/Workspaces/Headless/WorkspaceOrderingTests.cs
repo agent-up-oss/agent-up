@@ -46,4 +46,33 @@ public class WorkspaceOrderingTests
 
         Assert.That(app.Sidebar.WorkspaceIds[0], Is.EqualTo("ws-2"));
     }
+
+    [AvaloniaTest]
+    public async Task Sidebar_labelsADerivedReviewWorkspaceAfterTheUsersOwnWorkspace()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var workspaces = new List<WorkspaceDto>
+        {
+            DesktopDomain.Workspace()
+                .Identified("review")
+                .Named("Review · topic")
+                .OnBranch("topic")
+                .Stopped()
+                .AsDerived("https://example.test/acme/widgets.git", "topic")
+                .ActiveAt(now)
+                .Build(),
+            DesktopDomain.Workspace()
+                .Identified("own")
+                .Named("widgets")
+                .Stopped()
+                .ActiveAt(now.AddMinutes(-1))
+                .Build(),
+        };
+
+        var app = await AppDriver.LaunchWithWorkspacesAsync(workspaces);
+
+        Assert.That(app.Sidebar.WorkspaceIds, Is.EqualTo(["own", "review"]));
+        Assert.That(app.Sidebar.ExpandedWorkspaceTexts, Does.Contain("Review · topic"));
+        Assert.That(app.Sidebar.ExpandedWorkspaceTexts, Does.Contain("topic"));
+    }
 }

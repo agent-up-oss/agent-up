@@ -113,6 +113,18 @@ public sealed class WorkspaceCommandOutputService
         return 0;
     }
 
+    public int WriteTextResult(WorkspaceCommandResult<string> result)
+    {
+        if (!result.Succeeded)
+        {
+            _output.WriteLine(result.Error);
+            return 1;
+        }
+
+        _output.WriteLine(result.Value);
+        return 0;
+    }
+
     private static string FormatRuntimeItem(RuntimeSectionItem item)
     {
         if (item.Parameters?.TryGetValue("image", out var image) == true && !string.IsNullOrWhiteSpace(image))

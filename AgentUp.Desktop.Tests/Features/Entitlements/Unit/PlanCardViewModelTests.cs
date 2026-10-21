@@ -26,7 +26,29 @@ public sealed class PlanCardViewModelTests
             Assert.That(vm.Summary, Is.EqualTo("2 of 2 operations available"));
             Assert.That(vm.IsVisible, Is.True);
             Assert.That(vm.Features, Has.Count.EqualTo(1));
+            Assert.That(vm.RestrictedFeatures, Is.Empty);
+            Assert.That(vm.HasRestrictions, Is.False);
             Assert.That(vm.Limits, Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void Apply_listsUnavailableOperationsOnTheCompactCard()
+    {
+        var vm = new PlanCardViewModel();
+        vm.Apply(new PlanCard(
+            "Team",
+            "subscription",
+            "1 of 2 operations available",
+            true,
+            [new PlanCardFeature("agent.prompt", true), new PlanCardFeature("workspace.create", false)],
+            []));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.HasRestrictions, Is.True);
+            Assert.That(vm.RestrictedFeatures, Has.Count.EqualTo(1));
+            Assert.That(vm.RestrictedFeatures[0].Id, Is.EqualTo("workspace.create"));
         });
     }
 
@@ -46,6 +68,8 @@ public sealed class PlanCardViewModelTests
             Assert.That(vm.Summary, Is.Empty);
             Assert.That(vm.IsVisible, Is.False);
             Assert.That(vm.Features, Is.Empty);
+            Assert.That(vm.RestrictedFeatures, Is.Empty);
+            Assert.That(vm.HasRestrictions, Is.False);
             Assert.That(vm.Limits, Is.Empty);
         });
     }

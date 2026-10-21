@@ -47,6 +47,9 @@ public sealed class WorkspaceListViewModelTests
             Assert.That(sidebar.ErrorMessage, Is.Null);
             Assert.That(sidebar.RequiresSignIn, Is.False);
             Assert.That(sidebar.IsLoading, Is.False);
+            Assert.That(sidebar.CanDeleteWorkspace, Is.True);
+            Assert.That(sidebar.CanWriteGit, Is.True);
+            Assert.That(sidebar.ShowSidebarPlan, Is.False);
         });
     }
 
@@ -83,7 +86,44 @@ public sealed class WorkspaceListViewModelTests
 
         await sidebar.LoadAsync();
 
-        Assert.That(sidebar.CanCreateWorkspace, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(sidebar.CanCreateWorkspace, Is.True);
+            Assert.That(sidebar.CanDeleteWorkspace, Is.True);
+            Assert.That(sidebar.CanWriteGit, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task LoadAsync_hidesDeleteAndGitWriteWhenThoseFeaturesAreUnavailable()
+    {
+        var workspace = DesktopDomain.Workspace().Build();
+        using var http = new DisposableTestHttpClient(_ => HttpTestResponses.Json(new
+        {
+            displayName = "Team",
+            features = new Dictionary<string, object>
+            {
+                ["workspace.create"] = new { available = true },
+                ["workspace.delete"] = new { available = false },
+                ["git.write"] = new { available = false }
+            },
+            limits = new Dictionary<string, object>()
+        }));
+        var sidebar = new WorkspaceListViewModel(
+            new WorkspacesController(new WorkspaceListService(new RefreshingWorkspaceApi(workspace))),
+            new EntitlementsController(new EntitlementsService(new EntitlementsApiClient(http.Client))));
+
+        await sidebar.LoadAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(sidebar.CanDeleteWorkspace, Is.False);
+            Assert.That(sidebar.CanWriteGit, Is.False);
+            Assert.That(sidebar.Workspaces[0].CanDelete, Is.False);
+            Assert.That(sidebar.Workspaces[0].ShowDeleteButton, Is.False);
+            Assert.That(sidebar.ShowSidebarPlan, Is.True);
+            Assert.That(sidebar.Plan.HasRestrictions, Is.True);
+        });
     }
 
     [Test]
@@ -107,9 +147,15 @@ public sealed class WorkspaceListViewModelTests
             derived: true,
             sourceRevision: "topic"));
 
-        await ((IWorkspaceItemHost)sidebar).RefreshDerivedWorkspaceAsync(workspace.Id);
+        ((IWorkspaceItemHost)sidebar).ShowRefreshDerivedWorkspace(workspace.Id, "topic");
+
+        Assert.That(sidebar.RefreshReview.IsVisible, Is.True);
+        Assert.That(sidebar.RefreshReview.Revision, Is.EqualTo("topic"));
+
+        await sidebar.RefreshDerivedWorkspaceAsync(workspace.Id, "release");
 
         Assert.That(api.RefreshedId, Is.EqualTo(workspace.Id));
+        Assert.That(api.RefreshedRevision, Is.EqualTo("release"));
         Assert.That(sidebar.ErrorMessage, Is.Null);
     }
 
@@ -121,7 +167,7 @@ public sealed class WorkspaceListViewModelTests
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
 
-        await sidebar.RefreshDerivedWorkspaceAsync("review", cancellation.Token);
+        await sidebar.RefreshDerivedWorkspaceAsync("review", ct: cancellation.Token);
 
         Assert.That(sidebar.ErrorMessage, Is.Null);
     }
@@ -144,6 +190,8 @@ public sealed class WorkspaceListViewModelTests
     {
         public string? RefreshedId { get; private set; }
 
+        public string? RefreshedRevision { get; private set; }
+
         public bool CancelRefresh { get; init; }
 
         public Exception? RefreshError { get; init; }
@@ -157,13 +205,14 @@ public sealed class WorkspaceListViewModelTests
         public Task<WorkspaceDto> CloneAsync(CloneSourceRequestDto request, CancellationToken cancellationToken = default)
             => Task.FromResult(workspace);
 
-        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default)
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, string? revision = null, CancellationToken cancellationToken = default)
         {
             if (CancelRefresh)
                 return Task.FromCanceled<WorkspaceDto>(cancellationToken);
             if (RefreshError is not null)
                 return Task.FromException<WorkspaceDto>(RefreshError);
             RefreshedId = workspaceId;
+            RefreshedRevision = revision;
             return Task.FromResult(workspace);
         }
 
@@ -195,7 +244,7 @@ public sealed class WorkspaceListViewModelTests
                 .Stopped()
                 .Build());
 
-        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default)
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, string? revision = null, CancellationToken cancellationToken = default)
             => GetByIdAsync(workspaceId, cancellationToken).ContinueWith(task => task.Result ?? throw new InvalidOperationException("missing"), cancellationToken);
 
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.CompletedTask;
@@ -227,7 +276,7 @@ public sealed class WorkspaceListViewModelTests
                 .Stopped()
                 .Build());
 
-        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken cancellationToken = default)
+        public Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, string? revision = null, CancellationToken cancellationToken = default)
             => GetByIdAsync(workspaceId, cancellationToken).ContinueWith(task => task.Result ?? throw new InvalidOperationException("missing"), cancellationToken);
 
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.CompletedTask;

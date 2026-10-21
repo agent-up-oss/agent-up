@@ -163,7 +163,7 @@ async function ensureConnected(serverUrl, workspaceId, agentId, ready) {
   // connectStep is passed in: these helpers sit outside describe, so they cannot close over
   // the describe-scoped harness (that is a ReferenceError, and every native scenario died on it).
   const picker = pickerFor(agentId, 'ensureConnected');
-  const step = await waitForConnectStep(picker, 20_000, ready.connectStep);
+  const step = await waitForConnectStep(picker, 20_000, ready.connectStep, ready.connectStepPending);
   if (step === 'connected') return;
   if (step === 'fill-form') {
     await connectTo(serverUrl, workspaceId);
@@ -179,7 +179,7 @@ async function ensureConnected(serverUrl, workspaceId, agentId, ready) {
   await waitFor(element(by.id(picker))).toBeVisible().withTimeout(60_000);
 }
 
-async function waitForConnectStep(picker, timeoutMs, decide) {
+async function waitForConnectStep(picker, timeoutMs, decide, pending) {
   const deadline = Date.now() + timeoutMs;
   let last = 'relaunch';
   while (Date.now() < deadline) {
@@ -193,7 +193,7 @@ async function waitForConnectStep(picker, timeoutMs, decide) {
       snapshot.promptVisible = await appears('agent-picker-prompt', 400);
     }
     last = decide(snapshot);
-    if (last !== 'wait-agents') return last;
+    if (!pending(last)) return last;
   }
   return last;
 }

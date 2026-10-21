@@ -55,6 +55,17 @@ internal sealed class FakeSourceCloneTargetProvider : ISourceCloneTargetProvider
         return left.Length > 0 ? left : (second ?? string.Empty).Trim();
     }
 
+    public string RequireRevision(string? revision)
+    {
+        var trimmed = (revision ?? string.Empty).Trim();
+        if (trimmed.Length == 0)
+            throw new InvalidOperationException("Revision is required.");
+        if (trimmed.StartsWith('-'))
+            throw new InvalidOperationException("Revision must be a valid Git branch, tag, or commit.");
+
+        return trimmed;
+    }
+
     public bool DestinationExists(SourceCloneTarget target) => Exists;
 }
 

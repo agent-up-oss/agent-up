@@ -104,7 +104,7 @@ public sealed class VerificationReportService
             check.CheckId,
             check.Definition.Command,
             check.Runnable ? "required" : "skipped",
-            check.Runnable ? $"Required by {string.Join(", ", check.SelectedBy)}" : DescribeSkip(check.SkipReason),
+            check.Runnable ? $"Required by {string.Join(", ", check.SelectedBy)}" : DescribePlanSkip(check),
             check.SelectedBy,
             check.Covered.Count);
 
@@ -127,8 +127,14 @@ public sealed class VerificationReportService
         {
             CheckSkipReason.PlatformMismatch => "Not runnable on this platform; still required in CI.",
             CheckSkipReason.CiOnly => "Runs in CI only.",
+            CheckSkipReason.ToolchainMissing => "A required toolchain is not available.",
             _ => "Skipped."
         };
+
+    private static string DescribePlanSkip(PlannedCheck check)
+        => check.SkipReason == CheckSkipReason.ToolchainMissing
+            ? check.Toolchain?.Describe() ?? DescribeSkip(check.SkipReason)
+            : DescribeSkip(check.SkipReason);
 
     private static string Describe(CheckVerdictKind kind)
         => kind switch

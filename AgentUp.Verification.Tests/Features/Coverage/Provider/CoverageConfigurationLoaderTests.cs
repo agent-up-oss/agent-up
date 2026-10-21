@@ -269,4 +269,15 @@ public sealed class CoverageConfigurationLoaderTests
             Throws.InstanceOf<CoverageConfigurationException>()
                 .With.Message.Contains($"coverage.{name}"));
     }
+
+    [Test]
+    public void Load_throwsWhenAnExplicitConfigFileIsMissing()
+    {
+        var root = Path.Join(TestContext.CurrentContext.WorkDirectory, "missing-coverage-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+
+        Assert.That(
+            () => new CoverageConfigurationLoader(Path.Join(root, "rules.json"), requireFile: true).Load(root),
+            Throws.TypeOf<CoverageConfigurationException>().With.Message.Contains("rules.json"));
+    }
 }

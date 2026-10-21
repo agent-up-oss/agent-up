@@ -15,6 +15,7 @@ public sealed class WorkspacesController
     private readonly ListCommand _list;
     private readonly StatusCommand _status;
     private readonly DiagnosticsCommand _diagnostics;
+    private readonly ReviewSnapshotCommand _reviewSnapshot;
     private readonly AuthenticationController _authentication;
     private readonly CommitsController _commits;
     private readonly VerificationController _verification;
@@ -28,6 +29,7 @@ public sealed class WorkspacesController
         ListCommand list,
         StatusCommand status,
         DiagnosticsCommand diagnostics,
+        ReviewSnapshotCommand reviewSnapshot,
         AuthenticationController authentication,
         CommitsController commits,
         VerificationController verification)
@@ -40,6 +42,7 @@ public sealed class WorkspacesController
         _list = list;
         _status = status;
         _diagnostics = diagnostics;
+        _reviewSnapshot = reviewSnapshot;
         _authentication = authentication;
         _commits = commits;
         _verification = verification;
@@ -48,7 +51,7 @@ public sealed class WorkspacesController
     public async Task<int> RunAsync(string[] args)
         => args.Any(arg => arg == "--version")
             ? PrintVersion(_output)
-            : await ResolveCommand(args, _serverUrl, _start, _stop, _clear, _list, _status, _diagnostics, _authentication, _commits, _verification, _output)();
+            : await ResolveCommand(args, _serverUrl, _start, _stop, _clear, _list, _status, _diagnostics, _reviewSnapshot, _authentication, _commits, _verification, _output)();
 
     private static Func<Task<int>> ResolveCommand(
         string[] args,
@@ -59,6 +62,7 @@ public sealed class WorkspacesController
         ListCommand list,
         StatusCommand status,
         DiagnosticsCommand diagnostics,
+        ReviewSnapshotCommand reviewSnapshot,
         AuthenticationController authentication,
         CommitsController commits,
         VerificationController verification,
@@ -72,6 +76,7 @@ public sealed class WorkspacesController
             "list" => list.RunAsync,
             "status" => status.RunAsync,
             "diagnostics" => diagnostics.RunAsync,
+            "review-snapshot" => reviewSnapshot.RunAsync,
             "auth" => () => authentication.RunAsync(args.SkipWhile(a => a != "auth").Skip(1).ToArray()),
             "commits" => () => commits.RunAsync(args.SkipWhile(a => a != "commits").Skip(1).ToArray()),
             "verify" => () => verification.RunAsync(args.SkipWhile(a => a != "verify").Skip(1).ToArray()),
@@ -88,6 +93,7 @@ public sealed class WorkspacesController
         output.WriteLine("  list     List all workspaces on the server");
         output.WriteLine("  status   Show status of the current workspace");
         output.WriteLine("  diagnostics  Show workspace process, log, health, and browser diagnostics");
+        output.WriteLine("  review-snapshot  Export a workspace review snapshot as JSON");
         output.WriteLine("  auth     Authenticate with the server (login, logout, status)");
         output.WriteLine("  commits  Manage the vertical-slice commit queue");
         output.WriteLine("  verify   Plan, run, and guard the checks the current changes require");

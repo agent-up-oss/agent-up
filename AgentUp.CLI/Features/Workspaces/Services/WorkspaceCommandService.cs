@@ -203,6 +203,31 @@ public sealed class WorkspaceCommandService
             return WorkspaceCommandResult<WorkspaceDiagnosticsDto>.Failed($"Error: Failed to load diagnostics: {ex.Message}");
         }
     }
+
+    public async Task<WorkspaceCommandResult<string>> GetCurrentReviewSnapshotAsync()
+    {
+        var resolution = await _resolver.ResolveAsync(
+            "Error: Failed to query workspaces",
+            "Error: No workspace found for the current directory. Run 'agent-up start' first.");
+        if (!resolution.Succeeded)
+            return WorkspaceCommandResult<string>.Failed(resolution.Error);
+
+        try
+        {
+            var snapshot = await _client.GetReviewSnapshotAsync(resolution.Workspace!.Id);
+            return snapshot is null
+                ? WorkspaceCommandResult<string>.Failed("Error: Workspace review snapshot was not found.")
+                : WorkspaceCommandResult<string>.Success(snapshot);
+        }
+        catch (AuthenticationRequiredException ex)
+        {
+            return WorkspaceCommandResult<string>.Failed(ex.Message);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+        {
+            return WorkspaceCommandResult<string>.Failed($"Error: Failed to load review snapshot: {ex.Message}");
+        }
+    }
 }
 
 public sealed record WorkspaceCommandResult<T>(bool Succeeded, T? Value, string? Error)

@@ -343,6 +343,7 @@ public sealed class AgentSchedulingServiceTests
         var steered = await _service.PromptAsync(_workspace.Id, "steer left", CancellationToken.None);
         _process.CompletePrompt();
         await first;
+        await WaitForStateAsync("ready");
 
         Assert.Multiple(() =>
         {
@@ -733,6 +734,7 @@ public sealed class AgentSchedulingServiceTests
     {
         _process.RequireAuthentication = true;
         _login.Hold = true;
+        _login.ClaudeToken = "sk-ant-oat-test-token";
         _login.Challenge = new AgentLoginChallengeDto(
             "https://claude.ai/oauth/authorize?code=true",
             null,
@@ -807,6 +809,21 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
+    public async Task Schedule_keepsANonAcpLoginErrorOnTheSession()
+    {
+        _process.RequireAuthentication = true;
+        _process.UnauthenticatedSessionError = "Please sign in to continue.";
+
+        var scheduled = await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(scheduled.Session!.State, Is.EqualTo("authentication_required"));
+            Assert.That(scheduled.Session.Error, Does.Contain("Please sign in"));
+        });
+    }
+
+    [Test]
     public async Task Schedule_offersClaudeSubscriptionLoginWhenInitializeOmitsMethods()
     {
         _process.RequireAuthentication = true;
@@ -816,8 +833,34 @@ public sealed class AgentSchedulingServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(scheduled.Session!.State, Is.EqualTo("authentication_required"));
+            Assert.That(scheduled.Session.Error, Is.Null);
             Assert.That(scheduled.Session.AuthMethods.Single().Id, Is.EqualTo("claude-login"));
             Assert.That(scheduled.Session.AuthMethods.Single().Name, Is.EqualTo("Claude Pro"));
+        });
+    }
+
+    [Test]
+    public async Task Authenticate_failsClosedWhenPastedCodeSignInLeavesNoToken()
+    {
+        _process.RequireAuthentication = true;
+        _process.OmitAuthMethods = true;
+        _login.Challenge = new AgentLoginChallengeDto(
+            "https://claude.ai/oauth/authorize",
+            null,
+            "Open this link, sign in, then paste the code it gives you back here.",
+            AgentLoginTransport.Code,
+            true);
+        await _service.ScheduleAsync(_workspace.Id, "claude", CancellationToken.None);
+
+        Assert.That(_service.Authenticate(_workspace.Id, "claude-login").Error, Is.Null);
+        await WaitUntilAsync(() => _service.Get(_workspace.Id)!.Error is not null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(_service.Get(_workspace.Id)!.State, Is.EqualTo("authentication_required"));
+            Assert.That(_service.Get(_workspace.Id)!.Error, Does.Contain("subscription token"));
+            Assert.That(_process.StartCalls, Is.EqualTo(1));
+            Assert.That(_credentials.Token, Is.Null);
         });
     }
 
@@ -961,6 +1004,7 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     public bool HoldSessionLoad { get; set; }
     public TaskCompletionSource SessionLoadStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public bool RequireAuthentication { get; set; }
+    public string UnauthenticatedSessionError { get; set; } = "Authentication required.";
     public bool AdvertiseAuthMethods { get; set; }
     public bool AdvertiseApiKey { get; set; }
     public bool OmitAuthMethods { get; set; }
@@ -998,7 +1042,8 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
             Authenticated = true;
             return JsonSerializer.SerializeToElement(new { });
         }
-        if (method == "session/new" && RequireAuthentication && !Authenticated && StartCalls < 2) throw new InvalidOperationException("Authentication required.");
+        if (method == "session/new" && RequireAuthentication && !Authenticated && StartCalls < 2)
+            throw new InvalidOperationException(UnauthenticatedSessionError);
         if (method == "session/prompt")
         {
             Prompts.Add(JsonSerializer.Serialize(parameters));

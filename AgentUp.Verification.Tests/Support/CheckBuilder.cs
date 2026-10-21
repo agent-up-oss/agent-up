@@ -19,6 +19,7 @@ internal sealed class CheckBuilder(string id)
     private bool _ciOnly;
     private int _order;
     private IReadOnlyList<string> _inputs = [];
+    private IReadOnlyList<ToolchainRequirement> _requires = [];
 
     public string Id => id;
 
@@ -64,6 +65,12 @@ internal sealed class CheckBuilder(string id)
         return this;
     }
 
+    public CheckBuilder WithRequires(params ToolchainRequirement[] requires)
+    {
+        _requires = requires;
+        return this;
+    }
+
     public CheckDefinition Build()
-        => new(id, _command, _workingDirectory, _tier, _platforms, _ciOnly, _order, _inputs);
+        => new(id, _command, _workingDirectory, _tier, _platforms, _ciOnly, _order, _inputs, _requires);
 }

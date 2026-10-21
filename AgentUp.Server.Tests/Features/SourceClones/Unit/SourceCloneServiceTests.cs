@@ -147,6 +147,70 @@ public sealed class SourceCloneServiceTests
     }
 
     [Test]
+    public async Task RefreshAsync_usesTheCheckedOutBranchWhenTheStoredRevisionIsMissing()
+    {
+        var git = new FakeSourceCloneGitProvider();
+        var service = CreateService(git: git);
+        var cloned = await service.CloneAsync(new CloneSourceRequest(
+            "https://example.test/acme/widgets.git",
+            "topic")
+        {
+            Derived = true
+        });
+        var branch = cloned.Workspace!.Branch;
+        cloned.Workspace.SourceRevision = null;
+
+        var refreshed = await service.RefreshAsync(cloned.Workspace.Id, "   ");
+
+        Assert.That(refreshed.Succeeded, Is.True);
+        Assert.That(git.Refreshed, Is.EqualTo((Destination, branch)));
+    }
+
+    [Test]
+    public async Task RefreshAsync_checksOutADifferentRevisionWithoutRecreatingTheClone()
+    {
+        var git = new FakeSourceCloneGitProvider();
+        var identity = new FakeWorkspaceIdentityProvider(new WorkspaceIdentity(Destination, "HEAD", "abc123"));
+        var service = CreateService(git: git, identity: identity);
+        var cloned = await service.CloneAsync(new CloneSourceRequest(
+            "https://example.test/acme/widgets.git",
+            "topic")
+        {
+            Derived = true
+        });
+        identity.Identity = new WorkspaceIdentity(Destination, "HEAD", "cafebabe");
+
+        var refreshed = await service.RefreshAsync(cloned.Workspace!.Id, "release");
+
+        Assert.That(refreshed.Succeeded, Is.True);
+        Assert.That(git.Refreshed, Is.EqualTo((Destination, "release")));
+        Assert.That(refreshed.Workspace!.WorktreePath, Is.EqualTo(cloned.Workspace.WorktreePath));
+        Assert.That(refreshed.Workspace.SourceRevision, Is.EqualTo("release"));
+        Assert.That(refreshed.Workspace.DisplayName, Is.EqualTo("Review · release"));
+        Assert.That(refreshed.Workspace.Branch, Is.EqualTo("release"));
+        Assert.That(refreshed.Workspace.Commit, Is.EqualTo("cafebabe"));
+    }
+
+    [Test]
+    public async Task RefreshAsync_rejectsARevisionThatIsNotAGitName()
+    {
+        var git = new FakeSourceCloneGitProvider();
+        var service = CreateService(git: git);
+        var cloned = await service.CloneAsync(new CloneSourceRequest(
+            "https://example.test/acme/widgets.git",
+            "topic")
+        {
+            Derived = true
+        });
+
+        var refreshed = await service.RefreshAsync(cloned.Workspace!.Id, "--upload-pack=whoami");
+
+        Assert.That(refreshed.Succeeded, Is.False);
+        Assert.That(refreshed.Error, Does.Contain("Revision"));
+        Assert.That(git.Refreshed, Is.Null);
+    }
+
+    [Test]
     public async Task RefreshAsync_refusesAWorkspaceThatIsNotDerived()
     {
         var git = new FakeSourceCloneGitProvider();

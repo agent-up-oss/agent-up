@@ -12,12 +12,31 @@ namespace AgentUp.Verification.Features.Coverage.Providers;
 public sealed class CoverageConfigurationLoader : ICoverageConfigurationLoader
 {
     private const string SectionName = "coverage";
+    private const string DefaultFileName = "agent-up.json";
+
+    private readonly string? _configPath;
+    private readonly bool _requireFile;
+
+    public CoverageConfigurationLoader(string? configPath = null, bool requireFile = false)
+    {
+        _configPath = configPath;
+        _requireFile = requireFile;
+    }
 
     public CoverageConfiguration Load(string repositoryRoot)
     {
-        var path = Path.Join(repositoryRoot, "agent-up.json");
+        var path = string.IsNullOrWhiteSpace(_configPath)
+            ? Path.Join(repositoryRoot, DefaultFileName)
+            : Path.IsPathRooted(_configPath)
+                ? _configPath
+                : Path.Join(repositoryRoot, _configPath);
         if (!File.Exists(path))
+        {
+            if (_requireFile)
+                throw new CoverageConfigurationException($"Could not read '{path}'. Coverage cannot run without its rules.");
+
             return CoverageConfiguration.Empty;
+        }
 
         using var document = ParseOrThrow(path);
         if (!document.RootElement.TryGetProperty(SectionName, out var section))

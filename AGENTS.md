@@ -62,6 +62,10 @@ One non-slice category is allowed:
 - User Docs: **Start** — Downloads, Setup, Releases, Limitations, Roadmap
 - Developer Guide: **Repo** — architecture rules, testing, packaging, CI, mobile store shipping, `au-debug`, design-system consumption, telemetry
 
+A third docs space is generated and versioned on its own:
+
+- API Reference (`docs/api-reference/`) — Server HTTP routes, one page per feature. `docs/scripts/generate-api-reference.mjs` bakes the contract from `AgentUp.Server` controllers. Each release snapshot stays under `docs/apiReference_versioned_docs/` (plugin id, not path).
+
 Definition sources for a slice are that pair of General pages, not a client-named page. MCP is a protocol: each developer General lists that slice's tools and routes. A one-line attach note lives on the Developer Guide index.
 
 ## Page standard
@@ -81,7 +85,7 @@ Every General uses this reading order, encoded as design-system docs components:
 
 Subpages in a slice dropdown may assume the slice name from General, not the whole General. They still open with what *this* page is.
 
-Give each structural block enough space and a distinct treatment so it reads as one unit. Do not box every component the same way. Do not open with a project list. User Generals never explain Avalonia, Expo, or solution layout.
+Give each structural block enough space and a distinct treatment so it reads as one unit. Do not box every component the same way. `DocContract` is the only featured boxed lead block. `DocFacts` and `DocSurfaces` are definition lists. `DocSpine` and `DocSteps` stay open numbered maps. Subpages that are not Generals still open with `DocWhat`. Do not open with a project list. User Generals never explain Avalonia, Expo, or solution layout.
 
 # Architecture
 
@@ -187,6 +191,9 @@ AgentUp.CommitPolicy/
 
 AgentUp.Verification/
   AgentUp.Verification.csproj
+
+AgentUp.AUCheck/
+  AgentUp.AUCheck.csproj
 
 AgentUp.Tray/
   AgentUp.Tray.csproj
@@ -312,7 +319,8 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.CLI` | Thin human-friendly command wrapper over Server capabilities; its legacy independent local commit queue remains only for repositories that have not enabled the Server-owned Git proposal queue |
 | `AgentUp.AUDebug` | Maintainer visual-debug CLI (`au-debug`) that hosts repo Desktop, Mobile, and docs together for screenshot and UI-flow inspection |
 | `AgentUp.CommitPolicy` | Shared commit-message prefix, scope, and file-classification policy used by Server MCP and CLI local commit queues |
-| `AgentUp.Verification` | Owns `agent-up.json`'s `verification` schema, the static path-rule check resolver, and the content-addressed receipt ledger used by the Server MCP verification tools and the `agent-up verify` CLI. Never reads the commit queue, which is what keeps the commit module optional |
+| `AgentUp.Verification` | Owns `agent-up.json`'s `verification` schema, the static path-rule check resolver, and the content-addressed receipt ledger used by the Server MCP verification tools, the `agent-up verify` CLI, and `au-check`. Never reads the commit queue, which is what keeps the commit module optional |
+| `AgentUp.AUCheck` | Composition-only `au-check` executable. References `AgentUp.Verification` and holds no check resolution |
 | `AgentUp.Tray` | Installed Server companion that keeps a login autostart entry and heartbeats `POST /api/tray/heartbeat` so the Server knows a workstation session is present |
 | `AgentUp.InstallerConfig` | Agent-Up product installer identity and repository `.env` loading used by Server, Desktop, and CLI |
 | `LocalInstaller.Core` | Product-neutral installer prerequisite, component selection, PATH, validation, and uninstall planning contracts |
@@ -681,11 +689,14 @@ shared `ConnectionSource` from it and choose sign-in UI from
 `authentication.mode` is a hard error. A Server that does not answer
 `GET /api/connection` is treated as legacy self-hosted only after
 `GET /api/auth/status` succeeds. `GET /api/entitlements`
-is the authenticated permission document clients render as one plan card of
+is the authenticated permission document clients render as one compact plan card of
 `features` and `limits`: feature keys are operation permissions such as
-`agent.prompt` and `git.write`, not product editions. A self-hosted Server
-always returns the community document with every operation available. Clients
-must not branch on edition names.
+`agent.prompt` and `git.write`, not product editions. The card lists unavailable
+operations, not every permission line. A self-hosted Server always returns the
+community document with every operation available. Desktop and Mobile hide Add
+workspace, Remove workspace, and Git writes when `workspace.create`,
+`workspace.delete`, or `git.write` is unavailable. Clients must not branch on
+edition names.
 
 Cache keys, SSE cursors, and in-flight request gates on Desktop and Mobile are
 compound `(saved connection id, workspace id)` so two Servers that both expose
@@ -983,7 +994,7 @@ Both modules are consumed as `file:` dependencies and ship TypeScript sources, s
 
 Its androidTest manifest comes from `AgentUp.Mobile.E2E.App/plugins/withDetoxAndroidTestManifest.js`. androidx.test's `InstrumentationActivityInvoker` declares three activities with intent filters and no `android:exported`, which anything targeting Android 12 or higher must state explicitly, so the merge fails and the test APK is never assembled. The androidTest source set's manifest is the highest-priority one for that APK, so stating it there settles the merge whatever version of androidx.test is resolved - and the version arrives transitively through Detox, so it is not ours to pin.
 
-Native Detox launches the harness with `agent-up-chat://connect` so the Server origin and workspace arrive without typing into the connect form. Android Fabric's `replaceText` does not fire `onChangeText`, which left Connect as a no-op and the suite waiting for a picker the chat never mounted. The installable-web suite still fills the form because Playwright's fill does. After launch the native suite waits for the picker button, the connect form, or the picker prompt as a condition; a 500ms peek at the form after the picker timed out skipped Connect when the deep link missed. Choosing a sign-in method reads the session after authenticate until the challenge carries a sign-in URL, so the Open button does not depend on an event-stream frame Detox may not deliver. The method-button tap uses the same 60s visibility budget as the picker and Open: iOS Detox can still be laying out after the Server already reports that sign-in is required.
+Native Detox launches the harness with `agent-up-chat://connect` so the Server origin and workspace arrive without typing into the connect form. Android Fabric's `replaceText` does not fire `onChangeText`, which left Connect as a no-op and the suite waiting for a picker the chat never mounted. The installable-web suite still fills the form because Playwright's fill does. After launch the native suite waits for the picker button, the connect form, or the picker prompt as a condition; a 500ms peek at the form after the picker timed out skipped Connect when the deep link missed. A blank frame stays in that wait until the deadline. Relaunching on the first empty snapshot interrupted a deep link that had already connected, and Detox then waited on the connect form while the event stream kept the app busy. Choosing a sign-in method reads the session after authenticate until the challenge carries a sign-in URL, so the Open button does not depend on an event-stream frame Detox may not deliver. The method-button tap uses the same 60s visibility budget as the picker and Open: iOS Detox can still be laying out after the Server already reports that sign-in is required.
 
 Detox synchronises on the app being idle, and the chat holds an event stream open for its whole life, so `detox/signIn.test.js` excludes that stream from synchronisation with `detoxURLBlacklistRegex` on the same `launchApp` that mounts the chat. `setURLBlacklist` after launch is too late once the stream is already open: Detox waits for an idle that cannot come. Nothing else relies on that heuristic here - every wait in these suites is a condition on Server state or on an element being visible.
 
@@ -1030,9 +1041,11 @@ Feature slices with `Controllers/`, `Services/` or `Models/`, and `Providers/` s
 
 Every production project owns a test project of the same name plus `.Tests`, so a change to
 it selects one suite rather than being covered incidentally by another project's tests. The
-exception is `AgentUp.InstallerApp`, `AgentUp.Packaging` and `AgentUp.PackageSmoke`: each is
-a `Program.cs` handing manifests to a LocalInstaller builder, with nothing to assert but the
-builder chain itself. `ArchitectureFixture.CompositionOnlyProjects` names them and
+exception is `AgentUp.InstallerApp`, `AgentUp.Packaging`, `AgentUp.PackageSmoke`, and
+`AgentUp.AUCheck`. The installer projects are a `Program.cs` handing manifests to a
+LocalInstaller builder, with nothing to assert but the builder chain itself. `au-check` is a
+`Program.cs` that starts the verification host; resolution stays in `AgentUp.Verification`.
+`ArchitectureFixture.CompositionOnlyProjects` names them and
 `EntryPointProjects` holds them to that shape - a file with logic in one of them fails the
 rule, so the code moves to a tested project or the project gains a test project and joins
 `ProductionProjects`.
@@ -1148,6 +1161,21 @@ check inside `run_verification`, so an agent gets it automatically rather than c
 
 Developers use the CLI equivalents: `agent-up verify plan`, `agent-up verify run [<check-id>]`,
 `agent-up verify guard [--run] [--format hook]`, and `agent-up verify export`.
+
+`au-check` is the portable host of that same resolver. `AgentUp.AUCheck` is composition-only;
+`CheckPlanProvider` is the only type that resolves checks, and both hosts print plan lines
+through one formatter. Commands are `plan`, `run`, `run <check-id>`, `guard`, `coverage`, and
+`slices`. `--repo` defaults to the working directory and `--config` defaults to `agent-up.json`.
+A check may declare `requires` over the closed set `dotnet`, `node`, `npm`, `docker`, `git`,
+and `nix`, optionally with a minimum version. A missing toolchain skips that check with a
+reason and is not recorded as a failure. `au-check` exits 0 when every required check ran and
+passed, 1 when a required check ran and failed, 2 when a required toolchain is missing, and 3
+when configuration is invalid or a changed path matches no rule. A failure takes precedence
+over a toolchain skip. `agent-up verify` keeps its existing exit codes, including exit 2 from
+the Stop hook when anything is unproven. Receipts stay in the Git-directory ledger.
+`--report <dir>` writes `report.json`, `report.html`, and `report.png` and does not change
+the exit code or the receipts. Release assets are `au-check-linux-x64`,
+`au-check-linux-arm64`, `au-check-osx-arm64`, `au-check-osx-x64`, and `au-check-win-x64.exe`.
 
 ## Receipts
 
@@ -1306,7 +1334,12 @@ Rules to keep:
   not read verification receipts.
 - Checks whose `platforms` exclude this machine, or that are `ciOnly`, are reported *skipped
   with a reason* and never counted as satisfied. They stay required where they can run.
-  Skipped checks do not make `ShouldBlock` true, including when enforcement is `block`.
+  Those skips do not make `ShouldBlock` true, including when enforcement is `block`.
+- A check `requires` a toolchain from `dotnet`, `node`, `npm`, `docker`, `git`, and `nix`.
+  An unknown id is a configuration error. A missing tool, or a version below a declared
+  minimum, skips that check with `ToolchainMissing` and is not a failed run. Unlike a
+  `ciOnly` or wrong-platform skip, it is unproven: `guard` blocks, and `au-check` exits 2
+  when no required check has already failed. `plan` lists those checks before anything runs.
 
 The commit queue owns no test metadata. Queue entries carry a slice, message, and files;
 receipts are the only record of what was proven.
@@ -1319,7 +1352,7 @@ The sections below intentionally introduce each concept briefly and point to the
 
 A workspace is the unit of isolation for an agent or developer session. It is identified by project path and may include repository/worktree metadata, branch, commit, browser profile, Docker infrastructure, running processes, allocated ports, diagnostics, and event history. Non-Git project paths are valid and should display as `not on a git branch`.
 
-Workspaces may also be created by Agent-Up itself. The Server's `SourceClones` slice clones a repository at a branch into a Server-owned source clones root (`AGENTUP_SOURCE_CLONES_ROOT`, otherwise `sources` under the data directory) and registers the result, so Desktop and Mobile both list it. A clone may also be **derived**: a disposable review workspace at a named revision (branch, tag, or commit) in its own directory under that root, without mutating an existing worktree. Derived workspaces refresh in place and, when removed, delete the clone directory, allocated ports, and browser profile. Only `http`, `https`, `ssh`, and `git` remotes plus the `user@host:path` form are accepted; `file://` and transport-helper remotes are rejected so a REST caller cannot make the Server read arbitrary local repositories.
+Workspaces may also be created by Agent-Up itself. The Server's `SourceClones` slice clones a repository at a branch into a Server-owned source clones root (`AGENTUP_SOURCE_CLONES_ROOT`, otherwise `sources` under the data directory) and registers the result, so Desktop and Mobile both list it. A clone may also be **derived**: a disposable review workspace at a named revision (branch, tag, or commit) in its own directory under that root, without mutating an existing worktree. Derived workspaces refresh in place, including onto a different branch, tag, or commit, and when removed delete the clone directory, allocated ports, and browser profile. Desktop and Mobile keep Add workspace available after the first workspace exists. Only `http`, `https`, `ssh`, and `git` remotes plus the `user@host:path` form are accepted; `file://` and transport-helper remotes are rejected so a REST caller cannot make the Server read arbitrary local repositories.
 
 Read: `docs/user-docs/workspaces/index.md` and `docs/developer-guide/workspaces/index.md`.
 
@@ -1347,7 +1380,7 @@ Read: `docs/user-docs/commits/index.md` and `docs/developer-guide/commits/index.
 
 ## Agents
 
-Each workspace has one active ACP agent session and a separate saved session history. Desktop chrome for the live session is the **Agent** tab; Mobile chrome for the picker is the **Agents** tab. Subscription sign-in is Server-owned. Public agent identity is the enabled module id; Server ACP session code stays generic.
+Each workspace has one active ACP agent session and a separate saved session history. Desktop chrome for the live session is the **Agent** tab; Mobile chrome for the picker is the **Agents** tab. The live row is labeled Current; every other saved session is Resume. Subscription sign-in is Server-owned and branches on transport (`poll`, `code`, `redirect`), not vendor. A pasted-code sign-in that finishes without a subscription token stays on authentication rather than starting an unauthenticated session. ACP's `Authentication required` / `-32000` notice is a sign-in prompt, not a failed session. Public agent identity is the enabled module id; Server ACP session code stays generic.
 
 A workspace may bind one agent module id. Unbound is interactive chat, not an error. Desktop and Mobile hide the picker while a bind is set. Live bind of a different module is refused with a typed error that names the session.
 
@@ -1365,7 +1398,7 @@ Read: `docs/user-docs/browser/index.md` and `docs/developer-guide/browser/index.
 
 ## Diagnostics
 
-Diagnostics make AI validation practical by exposing process, browser, network, console, health, and performance information from the live workspace.
+Diagnostics make AI validation practical by exposing process, browser, network, console, health, and performance information from the live workspace. After an agent task, `export_workspace_review_snapshot` on `/mcp/audit`, `GET /api/workspaces/{workspaceId}/review-snapshot`, and `agent-up review-snapshot` emit a shareable snapshot of identity, ports, processes, diagnostics, the open browser URL, recent actions, and verification when that export can run. Missing verification does not fail the snapshot.
 
 Read: `docs/user-docs/diagnostics/index.md` and `docs/developer-guide/diagnostics/index.md`.
 

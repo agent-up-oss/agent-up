@@ -17,14 +17,32 @@ namespace AgentUp.Verification.Features.Verification.Providers;
 public sealed class VerificationConfigurationLoader : IVerificationConfigurationLoader
 {
     private const string SectionName = "verification";
+    private const string DefaultFileName = "agent-up.json";
 
     private static readonly string[] KnownPlatforms = ["linux", "macos", "windows"];
 
+    private readonly string? _configPath;
+    private readonly bool _requireFile;
+
+    public VerificationConfigurationLoader(string? configPath = null, bool requireFile = false)
+    {
+        _configPath = configPath;
+        _requireFile = requireFile;
+    }
+
     public VerificationConfiguration Load(string repositoryRoot)
     {
-        var path = Path.Join(repositoryRoot, "agent-up.json");
+        var path = ResolvePath(repositoryRoot);
         if (!File.Exists(path))
+        {
+            if (_requireFile)
+            {
+                throw new VerificationConfigurationException(
+                    $"Could not read '{path}'. Verification cannot run without its rules.");
+            }
+
             return VerificationConfiguration.Empty;
+        }
 
         var text = ReadOrThrow(path);
         using var document = ParseOrThrow(path, text);
@@ -105,6 +123,7 @@ public sealed class VerificationConfigurationLoader : IVerificationConfiguration
         var inputs = ReadStringArray(element, "inputs")
             .Select(PathGlobProvider.Normalize)
             .ToArray();
+        var requires = ReadRequires(id, element);
 
         var unknownPlatform = platforms.FirstOrDefault(platform => !KnownPlatforms.Contains(platform, StringComparer.Ordinal));
         if (unknownPlatform is not null)
@@ -114,8 +133,67 @@ public sealed class VerificationConfigurationLoader : IVerificationConfiguration
                 $"Expected one of: {string.Join(", ", KnownPlatforms)}.");
         }
 
-        return new CheckDefinition(id, command, workingDirectory, tier, platforms, ciOnly, order, inputs);
+        return new CheckDefinition(id, command, workingDirectory, tier, platforms, ciOnly, order, inputs, requires);
     }
+
+    private static IReadOnlyList<ToolchainRequirement> ReadRequires(string id, JsonElement element)
+    {
+        if (!element.TryGetProperty("requires", out var requires))
+            return [];
+
+        if (requires.ValueKind != JsonValueKind.Array)
+            throw Invalid($"Check '{id}' property 'requires' must be an array.");
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var requirements = new List<ToolchainRequirement>();
+        foreach (var item in requires.EnumerateArray())
+        {
+            var requirement = ReadRequirement(id, item);
+            if (!seen.Add(requirement.Id))
+                throw Invalid($"Check '{id}' lists toolchain '{requirement.Id}' more than once.");
+
+            requirements.Add(requirement);
+        }
+
+        return requirements;
+    }
+
+    private static ToolchainRequirement ReadRequirement(string id, JsonElement item)
+    {
+        if (item.ValueKind == JsonValueKind.String)
+            return Known(id, item.GetString() ?? string.Empty, null);
+
+        if (item.ValueKind != JsonValueKind.Object)
+            throw Invalid($"Check '{id}' has a 'requires' entry that must be a toolchain id or an object.");
+
+        var toolchainId = ReadOptionalString(item, "id");
+        if (string.IsNullOrWhiteSpace(toolchainId))
+            throw Invalid($"Check '{id}' has a 'requires' object without an 'id'.");
+
+        return Known(id, toolchainId, ReadOptionalString(item, "minimum"));
+    }
+
+    private static ToolchainRequirement Known(string checkId, string toolchainId, string? minimum)
+    {
+        if (!ToolchainCatalog.IsKnown(toolchainId))
+        {
+            throw Invalid(
+                $"Check '{checkId}' requires unknown toolchain '{toolchainId}'. " +
+                $"Expected one of: {ToolchainCatalog.Describe()}.");
+        }
+
+        if (minimum is not null && ToolchainVersion.Read(minimum) is null)
+            throw Invalid($"Check '{checkId}' toolchain '{toolchainId}' has an unreadable minimum '{minimum}'.");
+
+        return new ToolchainRequirement(toolchainId, minimum);
+    }
+
+    private string ResolvePath(string repositoryRoot)
+        => string.IsNullOrWhiteSpace(_configPath)
+            ? Path.Join(repositoryRoot, DefaultFileName)
+            : Path.IsPathRooted(_configPath)
+                ? _configPath
+                : Path.Join(repositoryRoot, _configPath);
 
     private static IReadOnlyList<VerificationPathRule> ReadPaths(JsonElement section)
     {

@@ -6,9 +6,11 @@ namespace AgentUp.Architecture.Tests.Rules;
 /// Rules over the projects that exist only to compose others into an executable.
 /// </summary>
 /// <remarks>
-/// AgentUp.InstallerApp, AgentUp.Packaging and AgentUp.PackageSmoke have no test projects,
-/// and that is a decision rather than an oversight: each is a Program.cs that hands
-/// manifests to a LocalInstaller builder, so a test could only mirror the builder chain.
+/// AgentUp.InstallerApp, AgentUp.Packaging, AgentUp.PackageSmoke, and AgentUp.AUCheck have
+/// no test projects, and that is a decision rather than an oversight. The installer
+/// entrypoints are a Program.cs that hands manifests to a LocalInstaller builder.
+/// AgentUp.AUCheck is a Program.cs that starts AuCheckHost; the resolver and the commands
+/// live in AgentUp.Verification, so a test here could only mirror that call.
 /// The decision holds only while they stay that shape, which is what this rule checks. A
 /// file that appears here carrying real logic has to move into a project that is tested, or
 /// bring a test project with it.

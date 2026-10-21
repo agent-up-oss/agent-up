@@ -12,6 +12,7 @@ public sealed class PlanCardViewModel : ReactiveObject
     private bool _isVisible;
 
     public ObservableCollection<PlanCardFeature> Features { get; } = [];
+    public ObservableCollection<PlanCardFeature> RestrictedFeatures { get; } = [];
     public ObservableCollection<PlanCardLimit> Limits { get; } = [];
 
     public string DisplayName
@@ -40,6 +41,8 @@ public sealed class PlanCardViewModel : ReactiveObject
 
     public bool HasBilling => !string.IsNullOrWhiteSpace(Billing);
 
+    public bool HasRestrictions => RestrictedFeatures.Count > 0;
+
     public void Clear()
     {
         Apply(null);
@@ -48,6 +51,7 @@ public sealed class PlanCardViewModel : ReactiveObject
     public void Apply(PlanCard? card)
     {
         Features.Clear();
+        RestrictedFeatures.Clear();
         Limits.Clear();
         if (card is null)
         {
@@ -56,6 +60,7 @@ public sealed class PlanCardViewModel : ReactiveObject
             Summary = "";
             IsVisible = false;
             this.RaisePropertyChanged(nameof(HasBilling));
+            this.RaisePropertyChanged(nameof(HasRestrictions));
             return;
         }
 
@@ -64,9 +69,12 @@ public sealed class PlanCardViewModel : ReactiveObject
         Summary = card.Summary;
         foreach (var feature in card.Features)
             Features.Add(feature);
+        foreach (var feature in card.RestrictedFeatures)
+            RestrictedFeatures.Add(feature);
         foreach (var limit in card.Limits)
             Limits.Add(limit);
         IsVisible = true;
         this.RaisePropertyChanged(nameof(HasBilling));
+        this.RaisePropertyChanged(nameof(HasRestrictions));
     }
 }

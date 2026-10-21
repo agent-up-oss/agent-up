@@ -1,8 +1,8 @@
 # Agent sign-in
 
-Agent-Up signs agents in with a ChatGPT, Cursor, or Claude subscription, never an API key. The
-three vendor CLIs implement three different sign-in shapes, and this page describes how the Server
-and the clients handle all of them without special-casing any one agent.
+<DocWhat>
+Agent-Up signs agents in with a ChatGPT, Cursor, or Claude subscription, never an API key. This page is how the Server and the clients handle those transports without special-casing any one agent.
+</DocWhat>
 
 ## Transports
 
@@ -36,6 +36,8 @@ It used to. That could not work for two of the three shapes:
   quiet, which is what makes an unterminated prompt observable.
 - There was no way to answer that prompt at all. The Server now keeps stdin open and
   `POST api/workspaces/{id}/agent/login/code` delivers a code to a CLI that is waiting for one.
+  A pasted-code challenge (transport `code` with no user code) that exits without leaving a
+  subscription token stays on the authentication-required session state instead of restarting ACP unsigned.
 
 Output is still parsed for the link, the user code, and the expiry, but the *shape* is declared
 rather than guessed, so a code-shaped token in a progress message is never mistaken for a code the
@@ -106,7 +108,10 @@ native pasted-code flow returns from the system browser, Detox delivers that con
 so an iOS process reclaimed in the background remounts the same workspace. After launch the
 native suite waits for the picker, the connect form, or the picker
 prompt as a condition: a 500ms peek at the form skipped Connect when the deep link missed, and
-then waited a minute for a picker the chat never mounted. A launcher Application Not Responding
+then waited a minute for a picker the chat never mounted. A blank frame stays in that wait
+until the deadline. Relaunching on the first empty snapshot interrupted a deep link that had
+already connected, and Detox then waited on the connect form while the event stream kept the
+app busy. A launcher Application Not Responding
 dialog is force-stopped without sending Home, because Home relaunches that same dialog over the
 app.
 

@@ -23,7 +23,7 @@ public sealed record GuardReport(
         => [.. Verdicts.Where(verdict => verdict.Blocking)];
 
     public IReadOnlyList<CheckVerdict> SkippedVerdicts
-        => [.. Verdicts.Where(verdict => verdict.Kind == CheckVerdictKind.Skipped)];
+        => [.. Verdicts.Where(verdict => verdict.Kind == CheckVerdictKind.Skipped && !verdict.Blocking)];
 
     public bool Satisfied => BlockingVerdicts.Count == 0 && UnmatchedFiles.Count == 0;
 

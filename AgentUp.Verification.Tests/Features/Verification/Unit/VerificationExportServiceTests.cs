@@ -18,11 +18,12 @@ public sealed class VerificationExportServiceTests
         IReadOnlyDictionary<string, string> changed,
         ReceiptLedger ledger,
         string platformId = VerificationDomain.Linux,
-        bool isContinuousIntegration = false)
+        bool isContinuousIntegration = false,
+        IReadOnlyDictionary<string, ToolchainObservation>? toolchains = null)
     {
         var plans = new VerificationPlanService(
             new StubConfigurationLoader(configuration),
-            new CheckPlanProvider(new PathGlobProvider(), new FakePlatformCapabilityProvider(platformId, isContinuousIntegration)),
+            new CheckPlanProvider(new PathGlobProvider(), new FakePlatformCapabilityProvider(platformId, isContinuousIntegration, toolchains)),
             [new StaticChangedContentSource("test", changed)]);
 
         return new VerificationExportService(
@@ -98,6 +99,28 @@ public sealed class VerificationExportServiceTests
             Assert.That(skipped.SkipReason, Is.EqualTo("ciOnly"));
             Assert.That(skipped.Status, Is.Not.EqualTo("satisfied"));
         });
+    }
+
+    [Test]
+    public async Task ExportAsync_namesAMissingToolchain()
+    {
+        var configuration = new VerificationConfigurationBuilder()
+            .WithCheck(new CheckBuilder("image").WithCommand("docker info").WithRequires(new ToolchainRequirement("docker", null)))
+            .WithPathRule("packaging/**", "image")
+            .Build();
+        var changed = ChangeSetBuilder.Changing(VerificationDomain.PackagingSource).Build();
+
+        var export = await ExportOver(
+                configuration,
+                changed,
+                ReceiptLedger.Empty,
+                toolchains: new Dictionary<string, ToolchainObservation>(StringComparer.Ordinal)
+                {
+                    ["docker"] = ToolchainObservation.Missing
+                })
+            .ExportAsync(Root);
+
+        Assert.That(export.Checks.Single().SkipReason, Is.EqualTo("toolchainMissing"));
     }
 
     [Test]

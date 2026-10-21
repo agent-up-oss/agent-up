@@ -61,6 +61,40 @@ The export is evidence to read, not an input to a gate. Keep the two types disti
 
 The field contract is the [agent-up.json reference](/docs/configuration/reference#verification-object). Agent operating rules stay in `AGENTS.md`.
 
+## Portable binary
+
+`au-check` is the same resolver as `agent-up verify`, packaged so another repository can run the gate without building Agent-Up. `AgentUp.AUCheck` is a composition-only `Program.cs`. `CheckPlanProvider` is the only type that decides which checks are required, and both hosts print the same plan lines.
+
+<DocContract label="Command">au-check plan</DocContract>
+
+Download one release asset and run it from the repository you want to check. `--repo` defaults to the working directory. `--config` defaults to `agent-up.json` there. Receipts are written to that checkout's Git directory, the same ledger `agent-up verify` uses.
+
+<DocFacts label="Assets">
+<DocFact label="linux-x64">au-check-linux-x64</DocFact>
+<DocFact label="linux-arm64">au-check-linux-arm64</DocFact>
+<DocFact label="osx-arm64">au-check-osx-arm64</DocFact>
+<DocFact label="osx-x64">au-check-osx-x64</DocFact>
+<DocFact label="win-x64">au-check-win-x64.exe</DocFact>
+</DocFacts>
+
+<DocSteps>
+<DocStep title="plan">Show the checks the current changes require, including any this machine cannot run.</DocStep>
+<DocStep title="run">Run the runnable checks and record receipts. `run <check-id>` runs one.</DocStep>
+<DocStep title="guard">Report whether every required check is proven. `--run` executes what is missing first.</DocStep>
+<DocStep title="coverage">Measure changed lines. `slices` reports total coverage per feature slice.</DocStep>
+</DocSteps>
+
+<DocFacts label="Exit codes">
+<DocFact label="0">Every required check ran and passed</DocFact>
+<DocFact label="1">A required check ran and failed. A failure wins over a missing toolchain</DocFact>
+<DocFact label="2">A required check could not run because a toolchain is missing</DocFact>
+<DocFact label="3">Configuration is invalid, or a changed path matches no rule</DocFact>
+</DocFacts>
+
+`requires` on a check names `dotnet`, `node`, `npm`, `docker`, `git`, or `nix`, optionally with a minimum version. A missing tool skips that check. The skip is not a failed check and is not counted as satisfied, so `guard` still blocks. `ciOnly` and wrong-platform skips stay non-blocking. `agent-up verify` keeps its own exit codes.
+
+`run --report <dir>` also writes `report.json`, `report.html`, and `report.png`. The HTML and the PNG lead with checks that could not run, then failures. Omitting `--report` leaves the run as it is today. The report does not change the exit code or the receipts.
+
 <DocNext href="/developer-guide/commits" title="Commits">
 Enqueue only after receipts pass.
 </DocNext>

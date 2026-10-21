@@ -44,11 +44,27 @@ export type PlanCard = {
 export type EntitlementCard = PlanCard;
 
 export const workspaceCreateFeature = 'workspace.create';
+export const workspaceDeleteFeature = 'workspace.delete';
+export const gitWriteFeature = 'git.write';
 export const workspaceCreateUnavailableMessage =
   'This Server does not allow adding workspaces from the client.';
+export const gitWriteUnavailableMessage =
+  'This Server does not allow Git writes from the client.';
 
 export function isFeatureAvailable(document: Entitlements | null, feature: string): boolean {
   return document?.features?.[feature]?.available === true;
+}
+
+export function restrictedPlanFeatures(card: PlanCard): PlanCardFeature[] {
+  return card.features.filter(feature => !feature.available);
+}
+
+export function workspaceDeleteAllowed(document: Entitlements | null): boolean {
+  return isFeatureAvailable(document, workspaceDeleteFeature);
+}
+
+export function gitWriteAllowed(document: Entitlements | null): boolean {
+  return isFeatureAvailable(document, gitWriteFeature);
 }
 
 export function presentPlanCard(document: Entitlements | null): PlanCard {

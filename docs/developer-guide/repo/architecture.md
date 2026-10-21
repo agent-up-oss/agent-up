@@ -4,6 +4,10 @@ title: Architecture
 
 # Architecture
 
+<DocWhat>
+This page is the implementation map. The Server owns orchestration. Desktop, CLI, MCP clients, and future integrations display state and request actions.
+</DocWhat>
+
 Agent-Up has core runtime component areas plus product-specific installer entrypoints:
 
 - `AgentUp.Server`
@@ -13,6 +17,7 @@ Agent-Up has core runtime component areas plus product-specific installer entryp
 - `AgentUp.Chat`
 - `AgentUp.AgentAuth`
 - `AgentUp.Verification`
+- `AgentUp.AUCheck`
 - `AgentUp.Tray`
 - `AgentUp.InstallerConfig`
 - `AgentUp.CommitPolicy`
@@ -25,7 +30,7 @@ Agent-Up has core runtime component areas plus product-specific installer entryp
 - `AgentUp.PackageSmoke`
 - MCP clients
 
-The Server is the single source of truth for runtime orchestration. Desktop, CLI, MCP clients, and future integrations are clients of the Server. Product-neutral installer, packaging, and package-smoke infrastructure lives in `LocalInstaller.*`; the Agent-Up installer entrypoints only register Agent-Up product configuration and delegate to that infrastructure.
+The Server is the single source of truth for runtime orchestration. Desktop, CLI, MCP clients, and future integrations are clients of the Server. `AgentUp.AUCheck` (`au-check`) is a composition-only executable over `AgentUp.Verification` and does not resolve checks itself. Product-neutral installer, packaging, and package-smoke infrastructure lives in `LocalInstaller.*`; the Agent-Up installer entrypoints only register Agent-Up product configuration and delegate to that infrastructure.
 
 ## Solution Layout
 
@@ -108,6 +113,9 @@ AgentUp.CommitPolicy/
 
 AgentUp.Verification/
   AgentUp.Verification.csproj
+
+AgentUp.AUCheck/
+  AgentUp.AUCheck.csproj
 
 AgentUp.Tray/
   AgentUp.Tray.csproj

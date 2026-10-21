@@ -35,10 +35,14 @@ public sealed class WorkspaceApiClient(HttpClient http) : IWorkspaceApiProvider
         return workspace ?? throw new InvalidOperationException("The server did not return the cloned workspace.");
     }
 
-    public async Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, CancellationToken ct = default)
+    public async Task<WorkspaceDto> RefreshCloneAsync(string workspaceId, string? revision = null, CancellationToken ct = default)
     {
-        using var response = await http.PostAsync(
-            $"/api/source-clones/{Uri.EscapeDataString(workspaceId)}/refresh", null, ct);
+        using var response = string.IsNullOrWhiteSpace(revision)
+            ? await http.PostAsync($"/api/source-clones/{Uri.EscapeDataString(workspaceId)}/refresh", null, ct)
+            : await http.PostAsJsonAsync(
+                $"/api/source-clones/{Uri.EscapeDataString(workspaceId)}/refresh",
+                new RefreshSourceRequestDto(revision.Trim()),
+                ct);
         if (!response.IsSuccessStatusCode)
             throw new InvalidOperationException(await ReadProblemDetailAsync(response));
 

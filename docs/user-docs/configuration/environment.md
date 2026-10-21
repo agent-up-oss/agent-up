@@ -4,6 +4,10 @@ title: Environment And Secrets
 
 # agent-up.json Environment And Secrets
 
+<DocWhat>
+Environment and secrets is how Agent-Up injects process values on every launchable entry. Keep safe values in `environment` and local secrets in `environmentFiles`.
+</DocWhat>
+
 Agent-Up supports environment injection on every launchable entry:
 
 - `applications[]`

@@ -10,6 +10,7 @@ public interface IAgentApiProvider
     Task<AgentSessionDto?> ResumeAsync(string workspaceId, string sessionId, CancellationToken cancellationToken);
     Task SendAsync(string workspaceId, string message, CancellationToken cancellationToken);
     Task AuthenticateAsync(string workspaceId, string methodId, CancellationToken cancellationToken);
+    Task SubmitLoginCodeAsync(string workspaceId, string code, CancellationToken cancellationToken);
     Task DecideAsync(string workspaceId, string requestId, string optionId, CancellationToken cancellationToken);
     Task StopAsync(string workspaceId, CancellationToken cancellationToken);
     IAsyncEnumerable<AgentEventDto> EventsAsync(string workspaceId, long after, CancellationToken cancellationToken);

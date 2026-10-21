@@ -4,9 +4,9 @@ title: Testing
 
 # Testing
 
-Agent-Up's suite is large and fast, and both of those are worth keeping. What follows is how
-tests are written so that stays true: a signature change edits one file rather than a hundred
-call sites, and reading a test tells you what its subject was given.
+<DocWhat>
+This page is how tests are written so a signature change edits one file rather than a hundred call sites. `AgentUp.Architecture.Tests` already enforces the rules.
+</DocWhat>
 
 `AgentUp.Verification.Tests` was written to this standard deliberately and is the worked
 example to copy. The rules below are enforced by `AgentUp.Architecture.Tests`, so this page

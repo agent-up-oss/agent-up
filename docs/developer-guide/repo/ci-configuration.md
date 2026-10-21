@@ -4,9 +4,25 @@ title: CI Configuration
 
 # CI Configuration
 
-The Agent-Up CI workflow runs on every push. This page documents the repository secrets and variables that control CI behavior. Signing and release steps degrade gracefully when their credentials are absent. Codecov uploads also skip when `CODECOV_TOKEN` is unavailable, which is how GitHub withholds repository secrets from Dependabot and fork pull requests. Patch coverage and the slice floor still run locally in the coverage job.
+<DocWhat>
+This page lists the repository secrets and variables the Agent-Up CI workflow reads. Signing and release steps stay optional when their credentials are absent.
+</DocWhat>
 
-Secrets are set under **Settings → Secrets and variables → Actions → Secrets**. Variables are set under the **Variables** tab in the same location.
+<DocFacts>
+<DocFact label="Secrets">Settings → Secrets and variables → Actions → Secrets</DocFact>
+<DocFact label="Variables">The Variables tab in the same location</DocFact>
+<DocFact label="Coverage">Uploads skip when CODECOV_TOKEN is empty</DocFact>
+</DocFacts>
+
+<DocSpine>
+<DocBeat>Coverage uploads the Cobertura reports the local gate already produced</DocBeat>
+<DocBeat>Signing stays optional until the matching secrets and variables are set</DocBeat>
+<DocBeat>Release publishes on main when Conventional Commits warrant a version</DocBeat>
+</DocSpine>
+
+<DocContract label="Location">Settings → Secrets and variables → Actions</DocContract>
+
+The Agent-Up CI workflow runs on every push. Signing and release steps degrade gracefully when their credentials are absent. Codecov uploads also skip when `CODECOV_TOKEN` is unavailable, which is how GitHub withholds repository secrets from Dependabot and fork pull requests. Patch coverage and the slice floor still run locally in the coverage job.
 
 ## Code coverage
 
@@ -189,3 +205,7 @@ Variables control which signing steps run. They are not secrets and can be read 
 | `SIGNING_SMOKE_TEST` | Runs a credential-free signing dry run on all platforms: ad-hoc `codesign` on macOS, self-signed certificate via `signtool` on Windows, throwaway GPG key on Linux. Useful for validating the signing pipeline before real credentials are available. |
 
 `SIGNING_SMOKE_TEST` and the platform-specific `*_SIGNING_ENABLED` variables are mutually exclusive in intent. Setting both at the same time would sign files twice.
+
+<DocNext href="/developer-guide/repo/telemetry" title="Product telemetry">
+How CI injects optional Sentry DSNs into packaged binaries.
+</DocNext>

@@ -8,5 +8,5 @@ internal interface IWorkspaceItemHost
 
     void RequestDeleteWorkspace(string workspaceId, string displayName);
 
-    Task RefreshDerivedWorkspaceAsync(string workspaceId);
+    void ShowRefreshDerivedWorkspace(string workspaceId, string currentRevision);
 }

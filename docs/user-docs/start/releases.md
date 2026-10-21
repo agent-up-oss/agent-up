@@ -4,6 +4,10 @@ title: Releases
 
 # Releases
 
+<DocWhat>
+Releases is how Agent-Up publishes development-preview builds. Use Downloads for the current install links; this page names the artifacts and URL shapes.
+</DocWhat>
+
 Agent-Up publishes development-preview builds for Windows, macOS, Ubuntu, and NixOS.
 
 Use [Downloads](/docs/start/downloads) for the current stable download links and platform install commands.

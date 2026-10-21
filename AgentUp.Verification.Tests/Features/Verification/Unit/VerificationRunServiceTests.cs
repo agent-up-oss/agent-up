@@ -15,10 +15,11 @@ public sealed class VerificationRunServiceTests
     private static VerificationPlanService PlansOver(
         VerificationConfiguration configuration,
         IReadOnlyDictionary<string, string> changed,
-        string platformId = VerificationDomain.Linux)
+        string platformId = VerificationDomain.Linux,
+        IReadOnlyDictionary<string, ToolchainObservation>? toolchains = null)
         => new(
             new StubConfigurationLoader(configuration),
-            new CheckPlanProvider(new PathGlobProvider(), new FakePlatformCapabilityProvider(platformId)),
+            new CheckPlanProvider(new PathGlobProvider(), new FakePlatformCapabilityProvider(platformId, toolchains: toolchains)),
             [new StaticChangedContentSource("test", changed)]);
 
     [Test]
@@ -144,5 +145,36 @@ public sealed class VerificationRunServiceTests
             FakeVerificationClock.AtNoon());
 
         Assert.That(await service.RunSingleAsync(Root, VerificationDomain.MobileCheck), Is.Null);
+    }
+
+    [Test]
+    public async Task RunAsync_doesNotExecuteACheckWhoseToolchainIsMissing()
+    {
+        var runner = new RecordingCheckRunner();
+        var configuration = new VerificationConfigurationBuilder()
+            .WithCheck(new CheckBuilder("image").WithCommand("docker info").WithRequires(new ToolchainRequirement("docker", null)))
+            .WithCheck(new CheckBuilder("unit").WithCommand("dotnet test"))
+            .WithPathRule("packaging/**", "image", "unit")
+            .Build();
+        var service = new VerificationRunService(
+            PlansOver(
+                configuration,
+                ChangeSetBuilder.Changing(VerificationDomain.PackagingSource).Build(),
+                toolchains: new Dictionary<string, ToolchainObservation>(StringComparer.Ordinal)
+                {
+                    ["docker"] = ToolchainObservation.Missing
+                }),
+            new InMemoryReceiptLedgerStore(),
+            runner,
+            FakeVerificationClock.AtNoon());
+
+        var outcomes = await service.RunAsync(Root);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(runner.Executed, Is.EqualTo(new[] { "unit" }));
+            Assert.That(outcomes.Select(outcome => outcome.CheckId), Is.EqualTo(new[] { "unit" }));
+            Assert.That(outcomes.Single().Succeeded, Is.True);
+        });
     }
 }

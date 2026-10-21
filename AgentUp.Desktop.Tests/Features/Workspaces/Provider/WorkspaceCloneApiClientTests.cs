@@ -38,6 +38,19 @@ public sealed class WorkspaceCloneApiClientTests
 
         Assert.That(workspace.Id, Is.EqualTo("ws-1"));
         Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/source-clones/ws-1/refresh"));
+        Assert.That(handler.LastRequestBody, Is.Null);
+    }
+
+    [Test]
+    public async Task RefreshCloneAsync_postsTheRequestedRevision()
+    {
+        using var handler = new RecordingCloneHandler(HttpStatusCode.OK, CreatedWorkspace);
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new WorkspaceApiClient(http);
+
+        await client.RefreshCloneAsync("ws-1", "release");
+
+        Assert.That(handler.LastRequestBody, Does.Contain("release"));
     }
 
     [Test]

@@ -4,6 +4,16 @@ title: Examples
 
 # agent-up.json Examples
 
+<DocWhat>
+Examples are complete `agent-up.json` payloads. Copy a shape, then read the reference for every field.
+</DocWhat>
+
+<DocFacts>
+<DocFact label="Capability">dotnet and docker arrays</DocFact>
+<DocFact label="Legacy">applications and services</DocFact>
+<DocFact label="GUI">desktopApplications on Linux Server hosts</DocFact>
+</DocFacts>
+
 ## Capability-Aware .NET And Docker
 
 ```json

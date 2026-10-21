@@ -22,6 +22,12 @@ test('Mobile signs in through browser SSO and hides create when the document for
 
     await expect(page.getByTestId('plan-card')).toBeVisible();
     await expect(page.getByText('Shared Server')).toBeVisible();
+    await expect(page.getByText('12 of 15 operations available')).toBeVisible();
+    await expect(page.getByText('Unavailable')).toBeVisible();
+    await expect(page.getByText('workspace.create', { exact: true })).toBeVisible();
+    await expect(page.getByText('workspace.delete', { exact: true })).toBeVisible();
+    await expect(page.getByText('git.write', { exact: true })).toBeVisible();
+    await expect(page.getByText('agent.prompt', { exact: true })).toHaveCount(0);
     await expect(page.getByText('This Server does not allow adding workspaces from the client.')).toBeVisible();
     await expect(page.getByTestId('shell-right-action')).toHaveCount(0);
     await expect(page.getByLabel('Add workspace')).toHaveCount(0);

@@ -30,6 +30,8 @@ import {
 import { GitChangeRow } from './GitChangeRow';
 import { GitConfirmDialog } from './GitConfirmDialog';
 import { GitFileViewer } from './GitFileViewer';
+import { gitWriteAllowed, gitWriteUnavailableMessage } from '@/features/entitlements/models/Entitlements';
+import { getEntitlements } from '@/features/entitlements/providers/EntitlementsApiProvider';
 
 const POLL_MS = 2500;
 
@@ -68,6 +70,7 @@ export function GitChangesPanel({
   const [stale, setStale] = useState(false);
   const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
   const [diff, setDiff] = useState<GitFileDiff | null>(null);
+  const [canWrite, setCanWrite] = useState(true);
   const [diffPath, setDiffPath] = useState<string | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
 
@@ -89,6 +92,18 @@ export function GitChangesPanel({
     mutating.current = false;
     setBusy(false);
   }, [scopeKey, mutateGate, treeGate]);
+
+  useEffect(() => {
+    if (!server) {
+      setCanWrite(true);
+      return;
+    }
+    let cancelled = false;
+    void getEntitlements(server).then(document => {
+      if (!cancelled) setCanWrite(gitWriteAllowed(document));
+    });
+    return () => { cancelled = true; };
+  }, [server]);
 
   const selectionScope = useRef<string | null>(null);
 
@@ -193,7 +208,7 @@ export function GitChangesPanel({
   };
 
   const runMutation = async (action: () => Promise<{ succeeded: boolean; error?: string | null; commit?: string | null }>, onSuccess: (result: { commit?: string | null }) => string) => {
-    if (!server || !workspaceId || busy || mutating.current || stale) return false;
+    if (!server || !workspaceId || !canWrite || busy || mutating.current || stale) return false;
     mutating.current = true;
     const ticket = mutateGate.current();
     setBusy(true); setError(null); setStatus(null);
@@ -219,8 +234,8 @@ export function GitChangesPanel({
   const fileCount = nodes.filter(node => !node.isDirectory).length;
   const files = selectedFilePaths(nodes, selected);
   const counts = selectedChangeStatusCounts(nodes, selected);
-  const canCommit = !busy && !stale && canCommitSelection(selectedCount, message);
-  const canDiscard = !stale && canDiscardSelection(selectedCount, busy);
+  const canCommit = canWrite && !busy && !stale && canCommitSelection(selectedCount, message);
+  const canDiscard = canWrite && !stale && canDiscardSelection(selectedCount, busy);
 
   useEffect(() => {
     onSelectedFilesChange?.(selectedFilePaths(nodes, selected));
@@ -310,13 +325,17 @@ export function GitChangesPanel({
         })}
       </ScrollView>
 
-      <View style={styles.footer}>
-        <Text style={styles.label}>Commit message</Text>
-        <TextInput accessibilityLabel="Commit message" multiline value={message} onChangeText={setMessage}
-          editable={!busy} placeholder="fix(App): correct the port probe" placeholderTextColor={agentUpTheme.colors.textFaint}
-          style={overview ? styles.overviewMessage : styles.messageInput} />
-        <View style={styles.actions}>{commitButton}</View>
-      </View>
+      {canWrite ? (
+        <View style={styles.footer}>
+          <Text style={styles.label}>Commit message</Text>
+          <TextInput accessibilityLabel="Commit message" multiline value={message} onChangeText={setMessage}
+            editable={!busy} placeholder="fix(App): correct the port probe" placeholderTextColor={agentUpTheme.colors.textFaint}
+            style={overview ? styles.overviewMessage : styles.messageInput} />
+          <View style={styles.actions}>{commitButton}</View>
+        </View>
+      ) : (
+        <Text style={styles.empty}>{gitWriteUnavailableMessage}</Text>
+      )}
 
       <GitConfirmDialog
         copy={confirm?.copy ?? null}

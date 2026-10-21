@@ -12,6 +12,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     private IWorkspaceItemHost? _host;
     private string _state;
     private string _stateColor;
+    private bool _canDelete = true;
 
     public string Id { get; }
     public string DisplayName { get; }
@@ -46,7 +47,18 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     public bool ShowStartButton => State is "Stopped" or "Failed" or "Stopping";
     public bool ShowStopButton => State is "Running" or "Starting";
     public bool ShowRefreshButton => Derived;
+    public bool ShowDeleteButton => CanDelete;
     public bool IsLifecycleBusy => State is "Starting" or "Stopping";
+
+    public bool CanDelete
+    {
+        get => _canDelete;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _canDelete, value);
+            this.RaisePropertyChanged(nameof(ShowDeleteButton));
+        }
+    }
 
     public ObservableCollection<WorkspaceApplicationViewModel> Applications { get; } = [];
     public event EventHandler? ApplicationsChanged;
@@ -85,7 +97,9 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         StartCommand = ReactiveCommand.CreateFromTask(StartAsync, canStart);
         StopCommand = ReactiveCommand.CreateFromTask(StopAsync, canStop);
         RefreshCommand = ReactiveCommand.CreateFromTask(RefreshAsync, Observable.Return(derived));
-        RequestDeleteCommand = ReactiveCommand.Create(RequestDelete);
+        RequestDeleteCommand = ReactiveCommand.Create(
+            RequestDelete,
+            this.WhenAnyValue(x => x.CanDelete));
     }
 
     internal void SetHost(IWorkspaceItemHost host) => _host = host;
@@ -160,10 +174,18 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
         => _host?.StopWorkspaceAsync(Id) ?? Task.CompletedTask;
 
     private Task RefreshAsync()
-        => _host?.RefreshDerivedWorkspaceAsync(Id) ?? Task.CompletedTask;
+    {
+        _host?.ShowRefreshDerivedWorkspace(Id, Subtitle);
+        return Task.CompletedTask;
+    }
 
     private void RequestDelete()
-        => _host?.RequestDeleteWorkspace(Id, DisplayName);
+    {
+        if (!CanDelete)
+            return;
+
+        _host?.RequestDeleteWorkspace(Id, DisplayName);
+    }
 
     private void RaiseLifecyclePropertiesChanged()
     {

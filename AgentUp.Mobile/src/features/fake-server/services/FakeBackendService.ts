@@ -143,7 +143,7 @@ export class FakeBackendService {
     if (method === 'POST' && path === '/api/workspaces/tutorial/cleanup') return { status: 204, contentType: 'application/json' };
     if (method === 'POST' && path === '/api/source-clones') return this.cloneWorkspace(request.body);
     if (method === 'POST' && path.startsWith('/api/source-clones/') && path.endsWith('/refresh'))
-      return this.refreshClone(path);
+      return this.refreshClone(path, request.body);
     if (method === 'POST' && path === '/api/apps/tickets') return this.issueTicket(request.body);
     if (method === 'POST' && path === '/api/audit/record') return { status: 204, contentType: 'application/json' };
     if (method === 'GET' && path === '/api/capabilities') return json(this.capabilities());
@@ -189,6 +189,7 @@ export class FakeBackendService {
     if (method === 'POST' && rest === 'start') return this.startWorkspace(workspaceId);
     if (method === 'POST' && rest === 'stop') return this.stopWorkspace(workspaceId);
     if (method === 'GET' && rest === 'overview') return this.overview(workspaceId);
+    if (method === 'GET' && rest === 'review-snapshot') return this.reviewSnapshot(workspaceId);
     if (method === 'GET' && rest === 'git/changes') return this.gitChanges(workspaceId);
     if (method === 'GET' && rest === 'git/head') return this.gitHead(workspaceId);
     if (method === 'GET' && rest === 'git/log') return this.gitLog(workspaceId);
@@ -213,6 +214,8 @@ export class FakeBackendService {
       return { status: 204, contentType: 'application/json' };
     if (method === 'POST' && rest === 'agent/messages') return this.sendAgentMessage(workspaceId, request.body);
     if (method === 'GET' && rest === 'agent/events') return this.agentEventStream(workspaceId, request.query);
+    if (method === 'POST' && rest.startsWith('agent/sessions/') && rest.endsWith('/resume'))
+      return this.resumeAgent(workspaceId, rest);
     if ((method === 'POST' || method === 'DELETE') && rest.startsWith('agent/'))
       return { status: 204, contentType: 'application/json' };
     if (method === 'DELETE' && rest === 'agent') return { status: 204, contentType: 'application/json' };
@@ -270,6 +273,39 @@ export class FakeBackendService {
     this.applyWorkspacePhase(workspace, 'Stopped', undefined, 'Stopped');
     this.publishWorkspaces();
     return { status: 204, contentType: 'application/json' };
+  }
+
+  private reviewSnapshot(workspaceId: string): FakeBackendResponse {
+    const workspace = this.findWorkspace(workspaceId);
+    if (!workspace) return notFound();
+    return json({
+      workspaceId,
+      displayName: workspace.displayName,
+      repositoryPath: workspace.repositoryPath,
+      worktreePath: workspace.worktreePath,
+      branch: workspace.branch,
+      commit: workspace.commit,
+      state: workspace.state,
+      health: workspace.healthState ?? null,
+      capturedAt: '2026-04-11T15:30:00Z',
+      browserUrl: null,
+      applications: (workspace.applications ?? []).map(app => ({
+        name: app.name,
+        kind: app.kind ?? 'Process',
+        processState: app.state,
+        health: workspace.healthState ?? null,
+        ports: (app.allocatedPorts ?? []).map(port => ({
+          variable: port.variable ?? null,
+          allocatedPort: port.allocatedPort,
+          protocol: port.protocol ?? 'http',
+        })),
+        logs: [],
+        logsTruncated: false,
+      })),
+      entries: [],
+      recentActions: [],
+      verification: null,
+    });
   }
 
   private overview(workspaceId: string): FakeBackendResponse {
@@ -378,6 +414,29 @@ export class FakeBackendService {
     return json(this.liveAgentSession(next));
   }
 
+  private resumeAgent(workspaceId: string, rest: string): FakeBackendResponse {
+    const stored = this.state.agents?.[workspaceId];
+    if (!stored) return notFound();
+    const prefix = 'agent/sessions/';
+    const suffix = '/resume';
+    if (rest.length <= prefix.length + suffix.length) return notFound();
+    const sessionId = decodeURIComponent(rest.slice(prefix.length, rest.length - suffix.length));
+    const sessions = Array.isArray((stored.session as { sessions?: unknown[] } | undefined)?.sessions)
+      ? (stored.session as { sessions: Array<Record<string, unknown>> }).sessions
+      : [];
+    const saved = sessions.find(item => item.sessionId === sessionId);
+    if (!saved) return notFound();
+    const next = {
+      ...(stored.session && typeof stored.session === 'object' ? stored.session as Record<string, unknown> : {}),
+      agent: saved.agent,
+      sessionId: saved.sessionId,
+      state: 'ready',
+      error: null,
+    };
+    stored.session = next;
+    return json(this.liveAgentSession(next));
+  }
+
   private bindAgent(workspaceId: string, body: string | null): FakeBackendResponse {
     const stored = this.state.agents?.[workspaceId];
     if (!stored) return notFound();
@@ -471,7 +530,7 @@ export class FakeBackendService {
     return { status: 201, contentType: 'application/json', body: JSON.stringify(workspace) };
   }
 
-  private refreshClone(path: string): FakeBackendResponse {
+  private refreshClone(path: string, body: string | null): FakeBackendResponse {
     const marker = '/api/source-clones/';
     let workspaceId = path.slice(marker.length);
     if (workspaceId.endsWith('/refresh')) workspaceId = workspaceId.slice(0, -'/refresh'.length);
@@ -482,6 +541,12 @@ export class FakeBackendService {
         contentType: 'application/json',
         body: JSON.stringify({ detail: 'Only derived review workspaces can be refreshed in place.' }),
       };
+    }
+    const revision = readJsonString(body, 'revision');
+    if (revision) {
+      workspace.sourceRevision = revision;
+      workspace.branch = revision;
+      workspace.displayName = `Review · ${revision}`;
     }
     workspace.commit = 'refreshed';
     this.publishWorkspaces();

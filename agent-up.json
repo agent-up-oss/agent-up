@@ -95,14 +95,17 @@
     ],
     "checks": {
       "build": {
+        "requires": ["dotnet"],
         "command": "dotnet build agent-up.sln",
         "tier": "fast"
       },
       "architecture": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Architecture.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/architecture",
         "tier": "fast"
       },
       "verification": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Verification.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/verification",
         "tier": "fast",
         "inputs": [
@@ -111,6 +114,7 @@
         ]
       },
       "registry": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Registry.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/registry",
         "tier": "fast",
         "inputs": [
@@ -120,6 +124,7 @@
         ]
       },
       "commit-policy": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.CommitPolicy.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/commit-policy",
         "tier": "fast",
         "inputs": [
@@ -128,6 +133,7 @@
         ]
       },
       "capabilities-abstractions": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Capabilities.Abstractions.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-abstractions",
         "tier": "fast",
         "inputs": [
@@ -136,6 +142,7 @@
         ]
       },
       "sdk-common": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Sdk.Common.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/sdk-common",
         "tier": "fast",
         "inputs": [
@@ -144,6 +151,7 @@
         ]
       },
       "sdk-runtime": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Sdk.Runtime.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/sdk-runtime",
         "tier": "fast",
         "inputs": [
@@ -153,6 +161,7 @@
         ]
       },
       "sdk-agent": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Sdk.Agent.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/sdk-agent",
         "tier": "fast",
         "inputs": [
@@ -162,6 +171,7 @@
         ]
       },
       "sdk-forge": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Sdk.Forge.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/sdk-forge",
         "tier": "fast",
         "inputs": [
@@ -171,6 +181,7 @@
         ]
       },
       "capabilities-common": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Capabilities.Common.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-common",
         "tier": "fast",
         "inputs": [
@@ -180,6 +191,7 @@
         ]
       },
       "capabilities-dotnet": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Capabilities.Dotnet.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-dotnet",
         "tier": "fast",
         "inputs": [
@@ -192,6 +204,7 @@
         ]
       },
       "capabilities-docker": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Capabilities.Docker.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-docker",
         "tier": "fast",
         "inputs": [
@@ -204,6 +217,7 @@
         ]
       },
       "installer-config": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.InstallerConfig.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/installer-config",
         "tier": "fast",
         "inputs": [
@@ -212,6 +226,7 @@
         ]
       },
       "browser-streaming": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Browser.Streaming.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/browser-streaming",
         "tier": "fast",
         "inputs": [
@@ -220,6 +235,7 @@
         ]
       },
       "browser-streaming-benchmarks": {
+        "requires": ["dotnet"],
         "command": "./scripts/run-benchmark-gate.sh browser",
         "tier": "slow",
         "inputs": [
@@ -228,6 +244,7 @@
         ]
       },
       "capabilities-codex": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Capabilities.Codex.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-codex",
         "tier": "fast",
         "inputs": [
@@ -240,6 +257,7 @@
         ]
       },
       "capabilities-cursor": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Capabilities.Cursor.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-cursor",
         "tier": "fast",
         "inputs": [
@@ -252,6 +270,7 @@
         ]
       },
       "capabilities-claude": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Capabilities.Claude.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-claude",
         "tier": "fast",
         "inputs": [
@@ -264,6 +283,7 @@
         ]
       },
       "capabilities-github": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Capabilities.Github.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-github",
         "tier": "fast",
         "inputs": [
@@ -276,6 +296,7 @@
         ]
       },
       "server": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Server.Tests --filter Category!=LoopInference&Category!=LoopSoak --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
         "tier": "fast",
         "inputs": [
@@ -295,6 +316,7 @@
         ]
       },
       "server-benchmarks": {
+        "requires": ["dotnet"],
         "command": "./scripts/run-benchmark-gate.sh server",
         "tier": "slow",
         "inputs": [
@@ -303,6 +325,7 @@
         ]
       },
       "tray": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Tray.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/tray",
         "tier": "fast",
         "inputs": [
@@ -311,6 +334,7 @@
         ]
       },
       "desktop": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Desktop.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/desktop",
         "tier": "fast",
         "inputs": [
@@ -320,6 +344,7 @@
         ]
       },
       "cli": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.CLI.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/cli",
         "tier": "fast",
         "inputs": [
@@ -332,6 +357,7 @@
         ]
       },
       "au-debug": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.AUDebug.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/au-debug",
         "tier": "fast",
         "inputs": [
@@ -341,6 +367,7 @@
         ]
       },
       "cross-product-e2e": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Tests --filter Category!=RuntimeCapabilityE2E --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/cross-product-e2e",
         "tier": "slow",
         "inputs": [
@@ -351,6 +378,7 @@
         ]
       },
       "runtime-capability-e2e": {
+        "requires": ["dotnet", "docker", "nix"],
         "command": "./.github/scripts/run-runtime-capability-e2e.sh",
         "tier": "slow",
         "platforms": [
@@ -368,6 +396,7 @@
         ]
       },
       "loop-inference": {
+        "requires": ["dotnet"],
         "command": "./.github/scripts/run-loop-inference.sh",
         "tier": "slow",
         "platforms": [
@@ -383,6 +412,7 @@
         ]
       },
       "loop-scripted": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.TestAgents.Tests --filter FullyQualifiedName~.Scripted. --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/loop-scripted && dotnet test AgentUp.Server.Tests --filter FullyQualifiedName~.ScriptedLoop. --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/loop-scripted",
         "tier": "fast",
         "inputs": [
@@ -393,6 +423,7 @@
         ]
       },
       "loop-soak": {
+        "requires": ["dotnet"],
         "command": "./.github/scripts/run-loop-soak.sh",
         "tier": "slow",
         "platforms": [
@@ -405,6 +436,7 @@
         ]
       },
       "mobile": {
+        "requires": ["npm"],
         "command": "npm test",
         "workingDirectory": "AgentUp.Mobile",
         "tier": "fast",
@@ -414,6 +446,7 @@
         ]
       },
       "mobile-benchmarks": {
+        "requires": ["npm"],
         "command": "npm run benchmark",
         "workingDirectory": "AgentUp.Mobile",
         "tier": "slow",
@@ -423,6 +456,7 @@
         ]
       },
       "web-audit": {
+        "requires": ["npm"],
         "command": "npm test",
         "workingDirectory": "AgentUp.WebAudit",
         "tier": "fast",
@@ -431,6 +465,7 @@
         ]
       },
       "design-system": {
+        "requires": ["npm"],
         "command": "npm test",
         "workingDirectory": "AgentUp.DesignSystem",
         "tier": "fast",
@@ -439,6 +474,7 @@
         ]
       },
       "linux-smoke": {
+        "requires": ["dotnet"],
         "command": "./scripts/verify-linux-smoke.sh",
         "tier": "platform",
         "platforms": [
@@ -455,6 +491,7 @@
         ]
       },
       "macos-smoke": {
+        "requires": ["dotnet"],
         "command": "./.github/scripts/smoke-package.sh macos osx-arm64 release-artifacts",
         "tier": "platform",
         "platforms": [
@@ -472,6 +509,7 @@
         ]
       },
       "windows-smoke": {
+        "requires": ["dotnet"],
         "command": "./.github/scripts/smoke-package.sh windows win-x64 release-artifacts",
         "tier": "platform",
         "platforms": [
@@ -489,17 +527,20 @@
         ]
       },
       "patch-coverage": {
+        "requires": ["dotnet"],
         "command": "dotnet run --project AgentUp.CLI -- verify coverage",
         "tier": "fast",
         "order": 100
       },
       "slice-coverage": {
+        "requires": ["dotnet"],
         "command": "dotnet run --project AgentUp.CLI -- verify slices",
         "tier": "fast",
         "ciOnly": true,
         "order": 101
       },
       "test-agents": {
+        "requires": ["dotnet"],
         "command": "dotnet test AgentUp.TestAgents.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/test-agents",
         "tier": "fast",
         "inputs": [
@@ -508,6 +549,7 @@
         ]
       },
       "agent-auth": {
+        "requires": ["npm"],
         "command": "npm test",
         "workingDirectory": "AgentUp.AgentAuth",
         "tier": "fast",
@@ -516,6 +558,7 @@
         ]
       },
       "mobile-e2e-harness": {
+        "requires": ["node"],
         "command": "node scripts/forbid-sleep.mjs && node --test test/*.test.mjs",
         "workingDirectory": "AgentUp.Mobile.E2E",
         "tier": "fast",
@@ -919,6 +962,13 @@
         "match": "AgentUp.CLI.Tests/**",
         "checks": [
           "cli",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.AUCheck/**",
+        "checks": [
+          "verification",
           "patch-coverage"
         ]
       },

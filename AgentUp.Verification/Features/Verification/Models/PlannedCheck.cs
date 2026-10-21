@@ -15,7 +15,8 @@ public sealed record PlannedCheck(
     CheckDefinition Definition,
     IReadOnlyDictionary<string, string> Covered,
     CheckSkipReason SkipReason,
-    IReadOnlyList<string> SelectedBy)
+    IReadOnlyList<string> SelectedBy,
+    ToolchainSkip? Toolchain = null)
 {
     public string CheckId => Definition.Id;
 

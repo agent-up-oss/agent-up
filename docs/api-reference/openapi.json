@@ -1,0 +1,1429 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Agent-Up Server HTTP API",
+    "description": "Generated from AgentUp.Server feature controllers.",
+    "version": "next"
+  },
+  "paths": {
+    "/api/apps/tickets": {
+      "post": {
+        "tags": [
+          "ApplicationProxy"
+        ],
+        "operationId": "ApplicationProxyTicketsController_Issue",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/audit/record": {
+      "post": {
+        "tags": [
+          "Audit"
+        ],
+        "operationId": "AuditHttpController_Record",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/audit/workspaces/{workspaceId}/applications/{application}": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "operationId": "AuditHttpController_QueryApplication",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/audit/workspaces/{workspaceId}/applications/{application}/stream": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "operationId": "ApplicationAuditStreamHttpController_Stream",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "AuthenticationController_Login",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/auth/status": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "AuthenticationController_Status",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/autonomy": {
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AutonomyHttpController_Get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AutonomyHttpController_Put",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/browser/chromium-status": {
+      "get": {
+        "tags": [
+          "Browser"
+        ],
+        "operationId": "BrowserRemoteDisplayController_ChromiumStatus",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/browser/current-url/{workspaceId}": {
+      "get": {
+        "tags": [
+          "Browser"
+        ],
+        "operationId": "BrowserSessionController_GetCurrentUrl",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/browser/events": {
+      "get": {
+        "tags": [
+          "Browser"
+        ],
+        "operationId": "BrowserEventStreamController_StreamAsync",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/browser/input/control-mode/{workspaceId}": {
+      "get": {
+        "tags": [
+          "Browser"
+        ],
+        "operationId": "BrowserInputController_GetControlMode",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Browser"
+        ],
+        "operationId": "BrowserInputController_SetControlModeAsync",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/browser/input/viewport/{workspaceId}": {
+      "post": {
+        "tags": [
+          "Browser"
+        ],
+        "operationId": "BrowserInputController_SetViewportAsync",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/browser/mode": {
+      "get": {
+        "tags": [
+          "Browser"
+        ],
+        "operationId": "BrowserViewerController_Mode",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/browser/navigate-back/{workspaceId}": {
+      "post": {
+        "tags": [
+          "Browser"
+        ],
+        "operationId": "BrowserSessionController_NavigateBack",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/browser/navigate-forward/{workspaceId}": {
+      "post": {
+        "tags": [
+          "Browser"
+        ],
+        "operationId": "BrowserSessionController_NavigateForward",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/browser/navigate/{workspaceId}": {
+      "post": {
+        "tags": [
+          "Browser"
+        ],
+        "operationId": "BrowserSessionController_Navigate",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/browser/rdp-viewer": {
+      "get": {
+        "tags": [
+          "Browser"
+        ],
+        "operationId": "BrowserViewerController_Viewer",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/browser/rdp/{workspaceId}": {
+      "get": {
+        "tags": [
+          "Browser"
+        ],
+        "operationId": "BrowserRemoteDisplayController_StreamAsync",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/browser/rdp/{workspaceId}/frame": {
+      "get": {
+        "tags": [
+          "Browser"
+        ],
+        "operationId": "BrowserRemoteDisplayController_LatestFrame",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/browser/reload/{workspaceId}": {
+      "post": {
+        "tags": [
+          "Browser"
+        ],
+        "operationId": "BrowserSessionController_Reload",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/browser/remote-session/{workspaceId}": {
+      "get": {
+        "tags": [
+          "Browser"
+        ],
+        "operationId": "BrowserRemoteSessionController_Get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/capabilities": {
+      "get": {
+        "tags": [
+          "Capabilities"
+        ],
+        "operationId": "CapabilityModulesHttpController_List",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/capabilities/disable/{id}": {
+      "post": {
+        "tags": [
+          "Capabilities"
+        ],
+        "operationId": "CapabilityModulesHttpController_Disable",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/capabilities/enable": {
+      "post": {
+        "tags": [
+          "Capabilities"
+        ],
+        "operationId": "CapabilityModulesHttpController_Enable",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/connection": {
+      "get": {
+        "tags": [
+          "Connection"
+        ],
+        "operationId": "ConnectionController_Get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/desktop-applications/{workspaceId}/{application}": {
+      "get": {
+        "tags": [
+          "DesktopApplications"
+        ],
+        "operationId": "DesktopApplicationsHttpController_Get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/desktop-applications/{workspaceId}/{application}/key": {
+      "post": {
+        "tags": [
+          "DesktopApplications"
+        ],
+        "operationId": "DesktopApplicationsHttpController_Key",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/desktop-applications/{workspaceId}/{application}/pointer-down": {
+      "post": {
+        "tags": [
+          "DesktopApplications"
+        ],
+        "operationId": "DesktopApplicationsHttpController_PointerDown",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/desktop-applications/{workspaceId}/{application}/pointer-up": {
+      "post": {
+        "tags": [
+          "DesktopApplications"
+        ],
+        "operationId": "DesktopApplicationsHttpController_PointerUp",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/desktop-applications/{workspaceId}/{application}/screenshot": {
+      "get": {
+        "tags": [
+          "DesktopApplications"
+        ],
+        "operationId": "DesktopApplicationsHttpController_Screenshot",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/desktop-applications/{workspaceId}/{application}/viewer-ticket": {
+      "post": {
+        "tags": [
+          "DesktopApplications"
+        ],
+        "operationId": "DesktopApplicationsHttpController_CreateViewerTicket",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/desktop-applications/session/{sessionId}/display": {
+      "get": {
+        "tags": [
+          "DesktopApplications"
+        ],
+        "operationId": "DesktopApplicationsHttpController_Stream",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/desktop-applications/session/{sessionId}/viewer": {
+      "get": {
+        "tags": [
+          "DesktopApplications"
+        ],
+        "operationId": "DesktopApplicationsHttpController_Viewer",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/diagnostics/workspaces/{workspaceId}": {
+      "get": {
+        "tags": [
+          "Diagnostics"
+        ],
+        "operationId": "WorkspaceDiagnosticsHttpController_Get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/entitlements": {
+      "get": {
+        "tags": [
+          "Entitlements"
+        ],
+        "operationId": "EntitlementsController_Get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/forge/callback": {
+      "get": {
+        "tags": [
+          "Forge"
+        ],
+        "operationId": "ForgeOAuthHttpController_Callback",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/service/restart": {
+      "post": {
+        "tags": [
+          "ServiceControl"
+        ],
+        "operationId": "ServiceControlController_Restart",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/service/shutdown": {
+      "post": {
+        "tags": [
+          "ServiceControl"
+        ],
+        "operationId": "ServiceControlController_Shutdown",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/source-clones": {
+      "post": {
+        "tags": [
+          "SourceClones"
+        ],
+        "operationId": "SourceClonesController_Clone",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/source-clones/{workspaceId}/refresh": {
+      "post": {
+        "tags": [
+          "SourceClones"
+        ],
+        "operationId": "SourceClonesController_Refresh",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/source-clones/root": {
+      "get": {
+        "tags": [
+          "SourceClones"
+        ],
+        "operationId": "SourceClonesController_GetRoot",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/tray/heartbeat": {
+      "post": {
+        "tags": [
+          "TraySession"
+        ],
+        "operationId": "TraySessionController_PostHeartbeat",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces": {
+      "get": {
+        "tags": [
+          "Workspaces"
+        ],
+        "operationId": "WorkspacesController_GetAll",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Workspaces"
+        ],
+        "operationId": "WorkspacesController_Register",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{id}": {
+      "delete": {
+        "tags": [
+          "Workspaces"
+        ],
+        "operationId": "WorkspacesController_Delete",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Workspaces"
+        ],
+        "operationId": "WorkspacesController_GetById",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{id}/applications": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "ApplicationsController_GetApplications",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{id}/applications/{name}/database/databases": {
+      "get": {
+        "tags": [
+          "Database"
+        ],
+        "operationId": "DatabaseHttpController_ListDatabases",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{id}/applications/{name}/database/query": {
+      "post": {
+        "tags": [
+          "Database"
+        ],
+        "operationId": "DatabaseHttpController_ExecuteQuery",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{id}/applications/{name}/database/tables": {
+      "get": {
+        "tags": [
+          "Database"
+        ],
+        "operationId": "DatabaseHttpController_ListTables",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{id}/applications/{name}/metrics": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "ApplicationMetricsHttpController_GetMetrics",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{id}/applications/{name}/output": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "ApplicationsController_GetOutput",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{id}/applications/{name}/restart": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "ApplicationsController_RestartApplication",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{id}/applications/{name}/start": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "ApplicationsController_StartApplication",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{id}/applications/{name}/stop": {
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "operationId": "ApplicationsController_StopApplication",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{id}/overview": {
+      "get": {
+        "tags": [
+          "Workspaces"
+        ],
+        "operationId": "WorkspacesController_GetOverview",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{id}/start": {
+      "post": {
+        "tags": [
+          "Workspaces"
+        ],
+        "operationId": "WorkspacesController_Start",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{id}/state": {
+      "patch": {
+        "tags": [
+          "Workspaces"
+        ],
+        "operationId": "WorkspacesController_UpdateState",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{id}/stop": {
+      "post": {
+        "tags": [
+          "Workspaces"
+        ],
+        "operationId": "WorkspacesController_Stop",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/agent": {
+      "delete": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_Stop",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_Get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_Schedule",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/agent/authenticate": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_Authenticate",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/agent/autonomy": {
+      "put": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_PutAutonomy",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/agent/binding": {
+      "delete": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_Unbind",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_Bind",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/agent/cancel": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_Cancel",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/agent/events": {
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_Events",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/agent/host-connection": {
+      "put": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_PutHostConnection",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/agent/login/callback": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_SubmitLoginCallback",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/agent/login/code": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_SubmitLoginCode",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/agent/loop": {
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_GetLoop",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/agent/messages": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_Prompt",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/agent/permissions": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_Decide",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/agent/policy": {
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_GetPolicy",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_PutPolicy",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/agent/queue-order": {
+      "put": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_PutQueueOrder",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/agent/role": {
+      "delete": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_DeleteRole",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_GetRole",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_PutRole",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/agent/sessions/{sessionId}/resume": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_Resume",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/commit-queue": {
+      "get": {
+        "tags": [
+          "Commits"
+        ],
+        "operationId": "WorkspaceCommitQueueController_Get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/forge": {
+      "get": {
+        "tags": [
+          "Forge"
+        ],
+        "operationId": "ForgeHttpController_Get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/forge/comments": {
+      "post": {
+        "tags": [
+          "Forge"
+        ],
+        "operationId": "ForgeHttpController_Comment",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/forge/login": {
+      "post": {
+        "tags": [
+          "Forge"
+        ],
+        "operationId": "ForgeHttpController_Login",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/forge/logout": {
+      "post": {
+        "tags": [
+          "Forge"
+        ],
+        "operationId": "ForgeHttpController_Logout",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/forge/proposals": {
+      "post": {
+        "tags": [
+          "Forge"
+        ],
+        "operationId": "ForgeHttpController_OpenProposal",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/forge/refs": {
+      "post": {
+        "tags": [
+          "Forge"
+        ],
+        "operationId": "ForgeHttpController_UpdateRef",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/forge/reviews": {
+      "post": {
+        "tags": [
+          "Forge"
+        ],
+        "operationId": "ForgeHttpController_SubmitReview",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/git/branch": {
+      "post": {
+        "tags": [
+          "Git"
+        ],
+        "operationId": "GitChangesController_SwitchBranch",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/git/changes": {
+      "get": {
+        "tags": [
+          "Git"
+        ],
+        "operationId": "GitChangesController_GetChanges",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/git/checkout": {
+      "post": {
+        "tags": [
+          "Git"
+        ],
+        "operationId": "GitChangesController_Checkout",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/git/commit": {
+      "post": {
+        "tags": [
+          "Git"
+        ],
+        "operationId": "GitChangesController_Commit",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/git/discard": {
+      "post": {
+        "tags": [
+          "Git"
+        ],
+        "operationId": "GitChangesController_Discard",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/git/fetch": {
+      "post": {
+        "tags": [
+          "Git"
+        ],
+        "operationId": "GitChangesController_Fetch",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/git/file": {
+      "get": {
+        "tags": [
+          "Git"
+        ],
+        "operationId": "GitChangesController_GetFileDiff",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/git/head": {
+      "get": {
+        "tags": [
+          "Git"
+        ],
+        "operationId": "GitChangesController_GetHead",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/git/log": {
+      "get": {
+        "tags": [
+          "Git"
+        ],
+        "operationId": "GitChangesController_GetLog",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/git/pull": {
+      "post": {
+        "tags": [
+          "Git"
+        ],
+        "operationId": "GitChangesController_Pull",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/git/push": {
+      "post": {
+        "tags": [
+          "Git"
+        ],
+        "operationId": "GitChangesController_Push",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/validation-flows": {
+      "get": {
+        "tags": [
+          "Validation"
+        ],
+        "operationId": "ValidationFlowsController_List",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Validation"
+        ],
+        "operationId": "ValidationFlowsController_Save",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/validation-flows/{id}": {
+      "delete": {
+        "tags": [
+          "Validation"
+        ],
+        "operationId": "ValidationFlowsController_Delete",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Validation"
+        ],
+        "operationId": "ValidationFlowsController_Get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/validation-flows/{id}/playwright": {
+      "get": {
+        "tags": [
+          "Validation"
+        ],
+        "operationId": "ValidationFlowsController_Export",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/validation-flows/{id}/run": {
+      "post": {
+        "tags": [
+          "Validation"
+        ],
+        "operationId": "ValidationFlowsController_Run",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/verification/export": {
+      "get": {
+        "tags": [
+          "Verification"
+        ],
+        "operationId": "VerificationHttpController_Export",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/events": {
+      "get": {
+        "tags": [
+          "Workspaces"
+        ],
+        "operationId": "WorkspacesController_SubscribeEvents",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/tutorial/cleanup": {
+      "post": {
+        "tags": [
+          "Workspaces"
+        ],
+        "operationId": "WorkspacesController_CleanupTutorialWorkspaces",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    }
+  }
+}

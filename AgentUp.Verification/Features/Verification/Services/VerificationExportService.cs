@@ -76,6 +76,7 @@ public sealed class VerificationExportService(
         {
             CheckSkipReason.PlatformMismatch => "platformMismatch",
             CheckSkipReason.CiOnly => "ciOnly",
+            CheckSkipReason.ToolchainMissing => "toolchainMissing",
             _ => ""
         };
 }
