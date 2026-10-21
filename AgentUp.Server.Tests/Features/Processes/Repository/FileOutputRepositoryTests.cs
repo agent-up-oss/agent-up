@@ -94,6 +94,19 @@ public class FileOutputRepositoryTests
     }
 
     [Test]
+    public void Decode_keepsLegacyPlainTextAndBrokenJsonAsStdout()
+    {
+        var blank = FileOutputRepository.Decode("   ");
+        var legacy = FileOutputRepository.Decode("plain leftover line");
+        var broken = FileOutputRepository.Decode("{not-json");
+
+        Assert.That(blank.Text, Is.Empty);
+        Assert.That(legacy.Text, Is.EqualTo("plain leftover line"));
+        Assert.That(broken.Text, Is.EqualTo("{not-json"));
+        Assert.That(new[] { blank.Stream, legacy.Stream, broken.Stream }, Is.All.EqualTo(ProcessOutputStream.Stdout));
+    }
+
+    [Test]
     public async Task AppendAsync_serialisesConcurrentWritesWithoutSplicing()
     {
         var repository = new FileOutputRepository(_tempRoot);

@@ -6,6 +6,12 @@ namespace AgentUp.Server.Tests.Features.Processes.Unit;
 public sealed class ProcessOutputBufferTests
 {
     [Test]
+    public void Constructor_rejectsCapacityBelowTwo()
+    {
+        Assert.That(() => new ProcessOutputBuffer(1), Throws.TypeOf<ArgumentOutOfRangeException>());
+    }
+
+    [Test]
     public void Append_keepsLinesUntilCapacity()
     {
         var buffer = new ProcessOutputBuffer(4);

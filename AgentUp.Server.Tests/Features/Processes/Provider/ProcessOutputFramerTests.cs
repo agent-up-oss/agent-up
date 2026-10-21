@@ -6,6 +6,16 @@ namespace AgentUp.Server.Tests.Features.Processes.Provider;
 public sealed class ProcessOutputFramerTests
 {
     [Test]
+    public void Push_ignoresAnEmptyChunk()
+    {
+        var framer = new ProcessOutputFramer();
+
+        Assert.That(framer.Push(""), Is.Empty);
+        Assert.That(framer.Push(string.Empty.AsSpan()), Is.Empty);
+        Assert.That(framer.Flush(), Is.Null);
+    }
+
+    [Test]
     public void Push_carriesAPartialLineAcrossChunkBoundaries()
     {
         var framer = new ProcessOutputFramer();
