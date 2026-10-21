@@ -275,6 +275,53 @@ public sealed class CapabilityReconciliationServiceTests
         });
     }
 
+    [Test]
+    public async Task Present_nix_does_not_block_a_missing_package()
+    {
+        var result = await new CapabilityReconciliationService(
+                nix: new CapabilityModuleHarness.FixedNixPresence(true))
+            .ReconcileDotnetAsync(
+                new DotnetApplicationDefinition("api", "10.0", new DotnetRunDefinition("Api.csproj")), [], []);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.CapabilityStatus!.CanRun, Is.False);
+            Assert.That(result.CapabilityStatus.Messages, Has.Some.Contains("not enabled"));
+            Assert.That(result.CapabilityStatus.Messages, Has.None.Contains("Nix"));
+        });
+    }
+
+    [Test]
+    public async Task Missing_nix_fails_docker_with_a_named_nix_message()
+    {
+        var result = await new CapabilityReconciliationService(
+                nix: new CapabilityModuleHarness.FixedNixPresence(false))
+            .ReconcileDockerAsync(new DockerCapabilityDefinition("db", "postgres:16"), [], []);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.CapabilityStatus!.CanRun, Is.False);
+            Assert.That(result.CapabilityStatus.Messages[0], Does.Contain("Docker"));
+            Assert.That(result.CapabilityStatus.Messages, Has.Some.Contains("https://nixos.org/download"));
+            Assert.That(result.CapabilityStatus.Messages, Has.None.Contains("is not enabled"));
+        });
+    }
+
+    [Test]
+    public async Task Missing_nix_fails_an_agent_module_id_with_the_agent_cli_wording()
+    {
+        var result = await new CapabilityReconciliationService(
+                nix: new CapabilityModuleHarness.FixedNixPresence(false))
+            .ReconcileRuntimeAsync("claude", new RuntimeSectionItem("chat"), [], []);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.CapabilityStatus!.CanRun, Is.False);
+            Assert.That(result.CapabilityStatus.Messages[0], Does.Contain("the agent CLI"));
+            Assert.That(result.Name, Is.EqualTo("chat"));
+        });
+    }
+
     private static CapabilityPackageManifest PythonManifest()
         => new()
         {

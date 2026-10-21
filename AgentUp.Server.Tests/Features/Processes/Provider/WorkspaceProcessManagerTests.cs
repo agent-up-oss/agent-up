@@ -96,6 +96,43 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
+    public async Task LaunchApplication_WhenCapabilityCannotRunWithoutMessages_ThrowsTheNotEnabledRemedy()
+    {
+        var registered = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder("Example API", "true").Build())
+            .Build());
+        var workspace = new Workspace
+        {
+            Id = registered.Id,
+            DisplayName = registered.DisplayName,
+            RepositoryPath = registered.RepositoryPath,
+            WorktreePath = registered.WorktreePath,
+            Branch = registered.Branch,
+            Commit = registered.Commit,
+            Applications =
+            [
+                new ApplicationInstance
+                {
+                    Name = "Example API",
+                    CapabilityId = "dotnet",
+                    CapabilityStatus = new CapabilityStatusDto("dotnet", null, false, [])
+                }
+            ]
+        };
+
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _manager.LaunchApplicationAsync(workspace, "Example API"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ex!.Message, Does.Contain("Example API"));
+            Assert.That(ex.Message, Does.Contain("not enabled"));
+            Assert.That(ex.Message, Does.Contain("agent-up capabilities bootstrap"));
+            Assert.That(ex.Message, Does.Contain("       "));
+        });
+    }
+
+    [Test]
     public async Task CreateLocalProcessStartInfo_ProvidesAllWorkspacePortVariables_ToLocalProcess()
     {
         var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
