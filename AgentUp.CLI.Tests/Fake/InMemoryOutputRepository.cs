@@ -1,28 +1,30 @@
 using System.Collections.Concurrent;
 using AgentUp.Server.Features.Processes.Interfaces;
-using AgentUp.Server.Features.Processes.Repositories;
+using AgentUp.Server.Features.Processes.Models;
 
 namespace AgentUp.CLI.Tests.Fake;
 
 internal sealed class InMemoryOutputRepository : IOutputRepository
 {
-    private readonly ConcurrentDictionary<(string, string), List<string>> _lines = new();
+    private readonly ConcurrentDictionary<(string, string), ProcessOutputBuffer> _buffers = new();
 
-    public Task AppendAsync(string workspaceId, string appName, string line, CancellationToken ct = default)
+    public Task AppendAsync(string workspaceId, string appName, ProcessOutputLine line, CancellationToken ct = default)
     {
-        _lines.GetOrAdd((workspaceId, appName), _ => []).Add(line);
+        _buffers.GetOrAdd((workspaceId, appName), _ => new ProcessOutputBuffer()).Append(line);
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyList<string>> GetAsync(string workspaceId, string appName, CancellationToken ct = default)
+    public Task<IReadOnlyList<ProcessOutputLine>> GetAsync(string workspaceId, string appName, CancellationToken ct = default)
     {
-        var lines = _lines.TryGetValue((workspaceId, appName), out var l) ? l : [];
-        return Task.FromResult<IReadOnlyList<string>>(lines);
+        var lines = _buffers.TryGetValue((workspaceId, appName), out var buffer)
+            ? buffer.Snapshot()
+            : [];
+        return Task.FromResult(lines);
     }
 
     public Task ClearAsync(string workspaceId, string appName, CancellationToken ct = default)
     {
-        _lines.TryRemove((workspaceId, appName), out _);
+        _buffers.TryRemove((workspaceId, appName), out _);
         return Task.CompletedTask;
     }
 }

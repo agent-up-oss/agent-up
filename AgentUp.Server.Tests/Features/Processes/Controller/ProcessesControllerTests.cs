@@ -34,7 +34,9 @@ public sealed class ProcessesControllerTests
         var manager = new RecordingProcessManager();
         var controller = new ProcessesController(manager, new ProcessOutputService(output));
 
-        Assert.That(await controller.GetOutputAsync("one", "web"), Is.EqualTo(new[] { "ready" }));
+        var lines = await controller.GetOutputAsync("one", "web");
+        Assert.That(lines.Select(line => line.Text), Is.EqualTo(new[] { "ready" }));
+        Assert.That(lines.Single().Stream, Is.EqualTo("stdout"));
         Assert.That(controller.GetRuntime("one"), Is.EqualTo(WorkspaceRuntimeSnapshot.Empty));
     }
 

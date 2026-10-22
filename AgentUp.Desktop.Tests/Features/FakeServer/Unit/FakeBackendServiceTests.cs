@@ -79,7 +79,8 @@ public sealed class FakeBackendServiceTests
         {
             Assert.That(changes["fileCount"]!.GetValue<int>(), Is.EqualTo(2));
             Assert.That(diff["path"]!.GetValue<string>(), Is.EqualTo("apps/storefront/ProductGrid.tsx"));
-            Assert.That(lines[1]!.GetValue<string>(), Does.Contain("Storefront listening"));
+            Assert.That(lines[3]!["text"]!.GetValue<string>(), Does.Contain("Storefront listening"));
+            Assert.That(lines[2]!["stream"]!.GetValue<string>(), Is.EqualTo("stderr"));
         });
     }
 

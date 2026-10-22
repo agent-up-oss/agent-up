@@ -751,11 +751,10 @@ deployment configuration: Agent-Up ships no default endpoint and depends on no
 particular identity provider.
 
 That remote mode reuses `ExternalBearerCredentialValidator` and the named
-operation permissions rather than adding a second token model. Two preconditions
-belonged to it, and both are in place. The `workspace` claim is
-enforced on MCP tool **arguments** by `McpWorkspaceArgumentBinder` (REST
+operation permissions rather than adding a second token model. The `workspace`
+claim is enforced on MCP tool **arguments** by `McpWorkspaceArgumentBinder` (REST
 workspace lists use `BoundWorkspaceFilter`), because `WorkspaceBindingMiddleware`
-reads route values while MCP carries the target in the JSON-RPC body. And the
+reads route values while MCP carries the target in the JSON-RPC body. The
 advertised toolset is filtered by the caller's `permissions`:
 `McpToolPermissionMap` declares the operation permission every MCP tool needs,
 and `McpEndpointSessionProvider.ConfigureAsync` removes the tools a session's
@@ -1398,7 +1397,7 @@ Read: `docs/user-docs/browser/index.md` and `docs/developer-guide/browser/index.
 
 ## Diagnostics
 
-Diagnostics make AI validation practical by exposing process, browser, network, console, health, and performance information from the live workspace. After an agent task, `export_workspace_review_snapshot` on `/mcp/audit`, `GET /api/workspaces/{workspaceId}/review-snapshot`, and `agent-up review-snapshot` emit a shareable snapshot of identity, ports, processes, diagnostics, the open browser URL, recent actions, and verification when that export can run. Missing verification does not fail the snapshot.
+Diagnostics make AI validation practical by exposing process, browser, network, console, health, and performance information from the live workspace. Process console capture frames on newlines, serialises appends per application, records stdout versus stderr on each entry, and inserts an explicit `[truncated]` marker when the bounded buffer drops older lines. After an agent task, `export_workspace_review_snapshot` on `/mcp/audit`, `GET /api/workspaces/{workspaceId}/review-snapshot`, and `agent-up review-snapshot` emit a shareable snapshot of identity, ports, processes, diagnostics, the open browser URL, recent actions, and verification when that export can run. Missing verification does not fail the snapshot.
 
 Read: `docs/user-docs/diagnostics/index.md` and `docs/developer-guide/diagnostics/index.md`.
 

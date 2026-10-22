@@ -19,7 +19,9 @@ using AgentUp.Server.Features.Ports.DTOs;
 using AgentUp.Server.Features.Ports.Interfaces;
 using AgentUp.Server.Features.Ports.Services;
 using AgentUp.Server.Features.Processes.Controllers;
+using AgentUp.Server.Features.Processes.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
+using AgentUp.Server.Features.Processes.Models;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Orchestration.Controllers;
@@ -292,8 +294,27 @@ public class ApplicationsHttpTests
         var response = await _client.GetAsync($"/api/workspaces/{created.Id}/applications/Frontend/output");
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var lines = await response.Content.ReadFromJsonAsync<List<string>>(JsonOptions);
+        var lines = await response.Content.ReadFromJsonAsync<List<ProcessOutputLineDto>>(JsonOptions);
         Assert.That(lines, Is.Empty);
+    }
+
+    [Test]
+    public async Task GetApplicationOutput_ReturnsStreamIdentityOnEachEntry()
+    {
+        var request = ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder("Frontend", ServerDomain.WebCommand).Build())
+            .Build();
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
+        var output = _app.Services.GetRequiredService<ProcessOutputService>();
+        await output.AppendAsync(created.Id, "Frontend", "ready");
+        await output.AppendAsync(created.Id, "Frontend", "[err] boom", ProcessOutputStream.Stderr);
+
+        var response = await _client.GetAsync($"/api/workspaces/{created.Id}/applications/Frontend/output");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var lines = (await response.Content.ReadFromJsonAsync<List<ProcessOutputLineDto>>(JsonOptions))!;
+        Assert.That(lines.Select(line => line.Text), Is.EqualTo(new[] { "ready", "[err] boom" }));
+        Assert.That(lines.Select(line => line.Stream), Is.EqualTo(new[] { "stdout", "stderr" }));
     }
 
     [Test]

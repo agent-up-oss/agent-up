@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Commits.Models;
 
 namespace AgentUp.Server.Tests.Support;
@@ -36,6 +37,12 @@ internal static class ServerDomain
 
     public const string PortVariable = "PORT";
     public const int DefaultPort = 3000;
+
+    public const string DatabaseName = "Db";
+    public const string PostgresImage = "postgres:16";
+
+    public static DockerServiceDefinition PostgresService(string name = DatabaseName)
+        => new(name, PostgresImage);
 
     public const string Slice = "Workspaces";
     public const string CommitMessage = "feat(workspaces): register a worktree";

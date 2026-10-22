@@ -506,12 +506,13 @@ public sealed class RuntimeCapabilityValidationE2ETests
             if (!response.IsSuccessStatusCode)
                 continue;
 
-            var lines = await response.Content.ReadFromJsonAsync<string[]>() ?? [];
-            if (lines.Length == 0)
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            using var document = await JsonDocument.ParseAsync(stream);
+            var block = WorkspaceConsoleOutput.FormatBlock(application, document.RootElement);
+            if (block.Length == 0)
                 continue;
 
-            blocks.Add($"{application} console:{Environment.NewLine}"
-                + string.Join(Environment.NewLine, lines.TakeLast(40)));
+            blocks.Add(block);
         }
 
         return blocks.Count == 0 ? "" : Environment.NewLine + string.Join(Environment.NewLine, blocks);

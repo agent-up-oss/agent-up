@@ -1,5 +1,6 @@
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Controllers;
+using AgentUp.Server.Features.Processes.DTOs;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.DesktopApplications.Controllers;
@@ -133,9 +134,9 @@ public sealed record ApplicationLifecycleResult(bool Found, bool Succeeded, stri
     public static ApplicationLifecycleResult Failed(string error) => new(true, false, error);
 }
 
-public sealed record ApplicationOutputResult(bool Found, IReadOnlyList<string> Lines)
+public sealed record ApplicationOutputResult(bool Found, IReadOnlyList<ProcessOutputLineDto> Lines)
 {
     public static ApplicationOutputResult NotFound() => new(false, []);
 
-    public static ApplicationOutputResult Success(IReadOnlyList<string> lines) => new(true, lines);
+    public static ApplicationOutputResult Success(IReadOnlyList<ProcessOutputLineDto> lines) => new(true, lines);
 }

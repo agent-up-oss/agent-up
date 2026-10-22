@@ -91,6 +91,35 @@ public sealed class WorkspaceDiagnosticsServiceTests
     }
 
     [Test]
+    public async Task GetAsync_redactsConsoleLineText()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        await registry.StartAsync(CancellationToken.None);
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder("web", "npm start").At(".").Build())
+            .Build());
+        var output = new InMemoryOutputRepository();
+        var processOutput = new ProcessOutputService(output);
+        await processOutput.AppendAsync(workspace.Id, "web", "token=abc123");
+        var audit = ServerTestComposition.CreateAuditController(registry);
+        var health = new AppHealthController(new AppHealthCheckService(
+            new WorkspaceQueryController(registry),
+            ServerTestComposition.CreateWorkspaceStateController(registry),
+            audit,
+            NullLogger<AppHealthCheckService>.Instance));
+        var service = new WorkspaceDiagnosticsService(
+            new WorkspaceQueryController(registry),
+            new ProcessesController(new NullWorkspaceProcessManager(), processOutput),
+            health,
+            audit,
+            new ConsoleSecretRedactor());
+
+        var result = await service.GetAsync(workspace.Id, null, 10, 10, CancellationToken.None);
+
+        Assert.That(result!.Applications.Single().Logs, Is.EqualTo(new[] { "token=[REDACTED]" }));
+    }
+
+    [Test]
     public async Task GetAsync_ReturnsNullForUnknownWorkspace()
     {
         var registry = ServerTestComposition.CreateRegistry();
