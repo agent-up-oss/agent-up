@@ -13,17 +13,20 @@ public sealed class ApplicationLifecycleService
     private readonly WorkspaceStateController _states;
     private readonly ProcessesController _processes;
     private readonly DesktopApplicationsController _desktopApplications;
+    private readonly WorkspaceReadinessController _readiness;
 
     public ApplicationLifecycleService(
         WorkspaceQueryController workspaces,
         WorkspaceStateController states,
         ProcessesController processes,
-        DesktopApplicationsController desktopApplications)
+        DesktopApplicationsController desktopApplications,
+        WorkspaceReadinessController readiness)
     {
         _workspaces = workspaces;
         _states = states;
         _processes = processes;
         _desktopApplications = desktopApplications;
+        _readiness = readiness;
     }
 
     public IReadOnlyList<ApplicationInstance>? GetApplications(string workspaceId)
@@ -44,7 +47,9 @@ public sealed class ApplicationLifecycleService
             await _processes.LaunchApplicationAsync(workspace, applicationName);
             if (IsFailed(workspaceId, applicationName))
                 return ApplicationLifecycleResult.Failed("Application could not be started.");
-            await _states.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Running);
+            await _readiness.WatchAsync(workspaceId);
+            if (IsFailed(workspaceId, applicationName))
+                return ApplicationLifecycleResult.Failed("Application could not be started.");
             return ApplicationLifecycleResult.Success();
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
@@ -93,7 +98,9 @@ public sealed class ApplicationLifecycleService
             await _processes.LaunchApplicationAsync(workspace, applicationName);
             if (IsFailed(workspaceId, applicationName))
                 return ApplicationLifecycleResult.Failed("Application could not be restarted.");
-            await _states.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Running);
+            await _readiness.WatchAsync(workspaceId);
+            if (IsFailed(workspaceId, applicationName))
+                return ApplicationLifecycleResult.Failed("Application could not be restarted.");
             return ApplicationLifecycleResult.Success();
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)

@@ -115,11 +115,10 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             if (!_processes.TryRemove(key, out var exited))
                 return; // KillApplicationAsync already removed this process; it manages the final state
             var exitCode = (sender as Process)?.ExitCode ?? -1;
-            var exitState = exitCode == 0 ? ApplicationState.Stopped : ApplicationState.Failed;
             // Leave the Exited thread before WaitForExit; that wait also blocks until Exited
             // handlers return, so running it here would deadlock.
             _ = Task.Run(() => FlushApplicationExitAsync(
-                workspaceId, appName, exited, pendingOutput, exitCode, exitState, app.Kind));
+                workspaceId, appName, exited, pendingOutput, exitCode, app.Kind));
         };
 
         var key = (workspaceId, appName);
@@ -153,7 +152,6 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         Process exited,
         ConcurrentBag<Task> pendingOutput,
         int exitCode,
-        ApplicationState exitState,
         ApplicationKind kind)
     {
         try
@@ -170,7 +168,11 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             _logger.LogWarning(ex, "Failed to flush workspace application process output");
         }
 
-        await _registry.UpdateApplicationStateAsync(workspaceId, appName, exitState);
+        var current = _registry.GetApplicationState(workspaceId, appName);
+        var message = current == ApplicationState.Starting
+            ? $"exited with code {exitCode} while starting"
+            : $"exited with code {exitCode}";
+        await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed, message);
         if (kind == ApplicationKind.Desktop && _desktopApplications is not null)
             await _desktopApplications.StopAsync(workspaceId, appName, CancellationToken.None);
         _logger.LogInformation("Workspace application process exited with code {Code}", exitCode);
@@ -337,8 +339,11 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
                 _containerNames.TryRemove((workspaceId, appName), out _);
                 await _docker.RunAsync("rm", "-f", containerName);
 
-                var exitState = containerExitCode == 0 ? ApplicationState.Stopped : ApplicationState.Failed;
-                await _registry.UpdateApplicationStateAsync(workspaceId, appName, exitState);
+                var current = _registry.GetApplicationState(workspaceId, appName);
+                var message = current == ApplicationState.Starting
+                    ? $"exited with code {containerExitCode} while starting"
+                    : $"exited with code {containerExitCode}";
+                await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed, message);
                 _logger.LogInformation("Docker container for workspace application exited with code {Code}", containerExitCode);
             });
         };
@@ -408,6 +413,23 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
 
     private static bool IsMissingApplication(InvalidOperationException ex, string appName)
         => string.Equals(ex.Message, $"Application '{appName}' not found in workspace.", StringComparison.Ordinal);
+
+    public bool IsApplicationAlive(string workspaceId, string appName)
+    {
+        if (_processes.TryGetValue((workspaceId, appName), out var process))
+        {
+            try
+            {
+                return !process.HasExited;
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+            {
+                return false;
+            }
+        }
+
+        return _containerNames.ContainsKey((workspaceId, appName));
+    }
 
     public WorkspaceRuntimeSnapshot GetRuntime(string workspaceId)
     {

@@ -33,7 +33,7 @@ If browser navigation or a start fails, read the workspace console before retryi
 
 ## Exposure
 
-The canonical workspace snapshot is `GET /api/diagnostics/workspaces/{workspaceId}`. It combines current workspace/application process state, configured health results, bounded recent logs, and relevant durable audit events. An optional `application` query parameter narrows both application snapshots and event entries. `logLimit` is capped at 1,000 lines per application and `entryLimit` at 500 events.
+The canonical workspace snapshot is `GET /api/diagnostics/workspaces/{workspaceId}`. It combines current workspace/application process state, the readiness signal in use, configured health results, bounded recent logs, and relevant durable audit events. An optional `application` query parameter narrows both application snapshots and event entries. `logLimit` is capped at 1,000 lines per application and `entryLimit` at 500 events.
 
 Each event entry has a normalized category, severity, and `active` or `resolved` state. It also carries the affected application and browser-session identifier when the source supplied that context. Application context is accepted from the established `application`, `applicationName`, and `appName` audit detail keys.
 

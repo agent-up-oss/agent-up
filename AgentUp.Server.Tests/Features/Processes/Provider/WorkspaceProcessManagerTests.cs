@@ -716,6 +716,74 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
+    public async Task LaunchApplicationAsync_marksZeroExitWhileStartingAsFailed()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, "printenv").Build())
+                .Build());
+            workspace.Applications.Single().State = ApplicationState.Starting;
+
+            await _manager.LaunchApplicationAsync(workspace, "Web");
+
+            var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Failed);
+            Assert.Multiple(() =>
+            {
+                Assert.That(state, Is.EqualTo(ApplicationState.Failed));
+                Assert.That(workspace.Applications.Single().LastError, Does.Contain("while starting"));
+            });
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task LaunchApplicationAsync_marksDeathAfterRunningAsFailed()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var script = Path.Join(worktreePath, "sleep.py");
+            await File.WriteAllTextAsync(script, "import time\ntime.sleep(1)\n");
+            var executable = new[] { "python3", "python" }.FirstOrDefault(ExecutableOnPath);
+            Assert.That(executable, Is.Not.Null);
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(
+                        ServerDomain.WebName,
+                        $"{executable} {script}")
+                    .Build())
+                .Build());
+
+            await _manager.LaunchApplicationAsync(workspace, "Web");
+            await _registry.UpdateApplicationStateAsync(workspace.Id, "Web", ApplicationState.Running);
+
+            var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Failed);
+            Assert.Multiple(() =>
+            {
+                Assert.That(state, Is.EqualTo(ApplicationState.Failed));
+                Assert.That(workspace.Applications.Single().LastError, Does.Contain("exited with code"));
+                Assert.That(workspace.Applications.Single().LastError, Does.Not.Contain("while starting"));
+            });
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task CreateDockerRunArguments_AddsEnvironmentFilesAndInlineEnvironment()
     {
         var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
@@ -1112,7 +1180,7 @@ public class WorkspaceProcessManagerTests
             app.RuntimeEnvironment = await desktop.PrepareAsync(workspace, app, CancellationToken.None);
 
             await manager.LaunchApplicationAsync(workspace, "Editor");
-            await WaitForApplicationStateAsync(workspace.Id, "Editor", ApplicationState.Stopped);
+            await WaitForApplicationStateAsync(workspace.Id, "Editor", ApplicationState.Failed);
 
             var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
             while (!displays.Stopped && DateTimeOffset.UtcNow < deadline)
@@ -1227,9 +1295,9 @@ public class WorkspaceProcessManagerTests
                 workspace.Id,
                 "Db",
                 current => current.Contains("docker-out") && current.Contains("[err] docker-err"));
-            var state = await WaitForApplicationStateAsync(workspace.Id, "Db", ApplicationState.Stopped, TimeSpan.FromSeconds(10));
+            var state = await WaitForApplicationStateAsync(workspace.Id, "Db", ApplicationState.Failed, TimeSpan.FromSeconds(10));
 
-            Assert.That(state, Is.EqualTo(ApplicationState.Stopped));
+            Assert.That(state, Is.EqualTo(ApplicationState.Failed));
             Assert.That(lines, Does.Contain("docker-out"));
             Assert.That(lines, Does.Contain("[err] docker-err"));
         }
@@ -1327,9 +1395,9 @@ public class WorkspaceProcessManagerTests
                 .Build());
 
             await manager.LaunchApplicationAsync(workspace, "Web");
-            var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Stopped, TimeSpan.FromSeconds(10));
+            var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Failed, TimeSpan.FromSeconds(10));
 
-            Assert.That(state, Is.EqualTo(ApplicationState.Stopped));
+            Assert.That(state, Is.EqualTo(ApplicationState.Failed));
         }
         finally
         {
@@ -1363,9 +1431,9 @@ public class WorkspaceProcessManagerTests
                 .Build());
 
             await manager.LaunchApplicationAsync(workspace, "Web");
-            var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Stopped, TimeSpan.FromSeconds(10));
+            var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Failed, TimeSpan.FromSeconds(10));
 
-            Assert.That(state, Is.EqualTo(ApplicationState.Stopped));
+            Assert.That(state, Is.EqualTo(ApplicationState.Failed));
         }
         finally
         {

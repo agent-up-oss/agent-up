@@ -120,6 +120,40 @@ public sealed class WorkspaceDiagnosticsServiceTests
     }
 
     [Test]
+    public async Task GetAsync_namesTheReadinessSignalInUse()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        await registry.StartAsync(CancellationToken.None);
+        var workspace = await registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder("Docs", "npm start")
+                .WithPort(new PortDeclarationBuilder().Named("WEB_PORT").On(10300).Build())
+                .Build())
+            .Build());
+        await registry.ReallocatePortsAsync(workspace.Id);
+        workspace.Applications.Single().State = ApplicationState.Starting;
+        var audit = ServerTestComposition.CreateAuditController(registry);
+        var health = new AppHealthController(new AppHealthCheckService(
+            new WorkspaceQueryController(registry),
+            ServerTestComposition.CreateWorkspaceStateController(registry),
+            audit,
+            NullLogger<AppHealthCheckService>.Instance));
+        var service = new WorkspaceDiagnosticsService(
+            new WorkspaceQueryController(registry),
+            ServerTestComposition.CreateProcessesController(new NullWorkspaceProcessManager()),
+            health,
+            audit,
+            new ConsoleSecretRedactor());
+
+        var result = await service.GetAsync(workspace.Id, null, 10, 10, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result!.Applications.Single().ProcessState, Is.EqualTo("Starting"));
+            Assert.That(result.Applications.Single().Readiness, Does.StartWith("port "));
+        });
+    }
+
+    [Test]
     public async Task GetAsync_ReturnsNullForUnknownWorkspace()
     {
         var registry = ServerTestComposition.CreateRegistry();

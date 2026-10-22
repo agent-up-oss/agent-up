@@ -27,6 +27,7 @@ using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.Interfaces;
+using AgentUp.Server.Features.Workspaces.Models;
 using AgentUp.Server.Features.Workspaces.Providers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
@@ -69,6 +70,11 @@ internal static class ServerTestComposition
         services.AddSingleton<DesktopApplicationsController>();
         services.AddSingleton<IWorkspaceDiskUsageProvider, WorkspaceDiskUsageProvider>();
         services.AddSingleton<WorkspaceOverviewService>();
+        services.AddSingleton(ApplicationReadinessOptions.Immediate);
+        services.AddSingleton<IApplicationReadinessClock, ApplicationReadinessClock>();
+        services.AddSingleton<IApplicationReadinessProbe, LoopbackApplicationReadinessProbe>();
+        services.AddSingleton<WorkspaceReadinessService>();
+        services.AddSingleton<WorkspaceReadinessController>();
         services.AddSingleton<WorkspaceLifecycleService>();
         services.AddSingleton<WorkspaceLifecycleController>();
         return services;
@@ -173,18 +179,36 @@ internal static class ServerTestComposition
             new FakeHostedDesktopNativeLibraryProvider(),
             NullLogger<DesktopSessionService>.Instance));
         var registration = new OrchestrationRegistrationService(configuration, identity);
+        var processController = CreateProcessesController(processes);
         return new WorkspaceLifecycleService(
             registry,
-            CreateProcessesController(processes),
+            processController,
             browser,
             desktop,
             healthChecks,
             metricsPulls,
             new WorkspaceStreamStateController(streamState),
             new OrchestrationRegistrationController(registration),
+            CreateReadiness(registry, processController, desktop),
             NullLogger<WorkspaceLifecycleService>.Instance,
             isLinux);
     }
+
+    public static WorkspaceReadinessController CreateReadiness(
+        WorkspaceRegistry registry,
+        ProcessesController processes,
+        DesktopApplicationsController desktop,
+        IApplicationReadinessProbe? probe = null,
+        IApplicationReadinessClock? clock = null,
+        ApplicationReadinessOptions? options = null)
+        => new(new WorkspaceReadinessService(
+            registry,
+            processes,
+            desktop,
+            probe ?? new LoopbackApplicationReadinessProbe(),
+            clock ?? new ApplicationReadinessClock(),
+            options ?? ApplicationReadinessOptions.Immediate,
+            NullLogger<WorkspaceReadinessService>.Instance));
 
     public static WorkspaceStateController CreateWorkspaceStateController(WorkspaceRegistry registry)
         => new(registry, new WorkspaceEventBus());

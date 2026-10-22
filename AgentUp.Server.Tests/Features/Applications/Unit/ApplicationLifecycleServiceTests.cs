@@ -185,11 +185,13 @@ public sealed class ApplicationLifecycleServiceTests
             new DesktopViewerTicketProvider(),
             new FakeHostedDesktopNativeLibraryProvider(),
             NullLogger<DesktopSessionService>.Instance));
+        var processController = ServerTestComposition.CreateProcessesController(processes);
         var service = new ApplicationLifecycleService(
             new AgentUp.Server.Features.Workspaces.Controllers.WorkspaceQueryController(registry),
             ServerTestComposition.CreateWorkspaceStateController(registry),
-            ServerTestComposition.CreateProcessesController(processes),
-            desktop);
+            processController,
+            desktop,
+            ServerTestComposition.CreateReadiness(registry, processController, desktop));
         return (service, registry, processes);
     }
 

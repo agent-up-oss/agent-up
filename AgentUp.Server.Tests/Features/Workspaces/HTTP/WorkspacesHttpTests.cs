@@ -458,6 +458,45 @@ public class WorkspacesHttpTests
     }
 
     [Test]
+    public async Task PostStart_PublishesRunningOnTheEventStream()
+    {
+        var request = ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder("Frontend", ServerDomain.WebCommand).Build())
+            .Build();
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var eventsTask = _client.GetAsync(
+            "/api/workspaces/events",
+            HttpCompletionOption.ResponseHeadersRead,
+            cts.Token);
+        await Task.Delay(50, cts.Token);
+
+        var startResponse = await _client.PostAsync($"/api/workspaces/{created.Id}/start", null);
+        using var eventsResponse = await eventsTask;
+        await using var stream = await eventsResponse.Content.ReadAsStreamAsync(cts.Token);
+        using var reader = new StreamReader(stream);
+        var lines = new List<string>();
+        while (lines.Count < 8)
+        {
+            var line = await reader.ReadLineAsync(cts.Token).AsTask().WaitAsync(TimeSpan.FromSeconds(2));
+            if (line is null)
+                break;
+            if (line.StartsWith("data: ", StringComparison.Ordinal))
+                lines.Add(line);
+            if (lines.Any(entry => entry.Contains("\"state\":\"Running\"", StringComparison.Ordinal)))
+                break;
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(startResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(lines, Has.Some.Contains("\"state\":\"Starting\""));
+            Assert.That(lines, Has.Some.Contains("\"state\":\"Running\""));
+        });
+    }
+
+    [Test]
     public async Task PostStop_SetsApplicationStatesToStopped()
     {
         var request = ServerDomain.Workspace()
