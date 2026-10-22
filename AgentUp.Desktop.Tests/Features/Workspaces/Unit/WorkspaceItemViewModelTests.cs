@@ -28,6 +28,7 @@ public class WorkspaceItemViewModelTests
 
     [Test]
     [TestCase("Running", "#22c55e")]
+    [TestCase("Degraded", "#e0a128")]
     [TestCase("Failed", "#d84f4f")]
     [TestCase("Stopped", "#8a9a92")]
     [TestCase("Starting", "#8a9a92")]
@@ -44,6 +45,7 @@ public class WorkspaceItemViewModelTests
     [TestCase("Failed", true, false, false)]
     [TestCase("Stopping", true, false, true)]
     [TestCase("Running", false, true, false)]
+    [TestCase("Degraded", false, true, false)]
     [TestCase("Starting", false, true, true)]
     public void LifecycleButtons_reflectWorkspaceState(
         string state,

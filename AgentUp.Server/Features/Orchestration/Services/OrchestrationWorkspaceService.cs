@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Shared.Interfaces;
@@ -145,7 +146,14 @@ public sealed class OrchestrationWorkspaceService
             return await CreateWorkspaceOperationFailureAsync(id, new InvalidOperationException(result.Error ?? "Workspace could not be started."));
 
         workspace = _workspaces.GetById(id);
-        return new McpToolResult(true, $"Started workspace \"{workspace!.DisplayName}\".");
+        var failures = workspace!.Applications
+            .Where(app => app.State == ApplicationState.Failed)
+            .Select(app => app.Name)
+            .ToList();
+        var message = $"Started workspace \"{workspace.DisplayName}\".";
+        if (failures.Count > 0)
+            message += " Failed: " + string.Join(", ", failures) + ".";
+        return new McpToolResult(true, message);
     }
 
     private static McpToolResult CreateConfigurationReadFailure(Exception ex) =>

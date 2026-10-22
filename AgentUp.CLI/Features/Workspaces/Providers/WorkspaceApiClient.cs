@@ -41,10 +41,17 @@ public sealed class WorkspaceApiClient
         return await response.Content.ReadFromJsonAsync<WorkspaceDto>(Options);
     }
 
-    public async Task StartWorkspaceAsync(string id)
+    public async Task<WorkspaceStartOutcomeDto?> StartWorkspaceAsync(string id)
     {
         using var response = await _http.PostAsync($"/api/workspaces/{id}/start", null);
         await ServerApiResponseGuard.EnsureSuccessAsync(response);
+        if (response.StatusCode == HttpStatusCode.NoContent)
+            return null;
+
+        var body = await response.Content.ReadAsStringAsync();
+        return string.IsNullOrWhiteSpace(body)
+            ? null
+            : JsonSerializer.Deserialize<WorkspaceStartOutcomeDto>(body, Options);
     }
 
     public async Task StopWorkspaceAsync(string id)

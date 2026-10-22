@@ -70,6 +70,56 @@ public sealed class WorkspaceCommandServiceStartTests
         }
     }
 
+    [Test]
+    public async Task StartAsync_printsDegradedFailuresFromTheStartBody()
+    {
+        var workspaceRoot = Directory.CreateTempSubdirectory("AgentUp-StartServiceDegraded").FullName;
+        try
+        {
+            await File.WriteAllTextAsync(Path.Join(workspaceRoot, "agent-up.json"),
+                """
+                {
+                  "name": "App",
+                  "applications": [{ "name": "web", "command": "npm start" }]
+                }
+                """);
+
+            var workspace = CliDomain.Workspace().WithId("w1").Named("App").At(workspaceRoot).Build();
+            var client = new WorkspaceApiClient(new HttpClient(new StubHandler(request =>
+            {
+                if (request.Method == HttpMethod.Post && request.RequestUri!.AbsolutePath == "/api/workspaces")
+                    return Task.FromResult(JsonResponse(workspace));
+
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(
+                        """{"state":"Degraded","failedApplications":[{"name":"web","reason":"not enabled"}]}""")
+                });
+            }))
+            {
+                BaseAddress = new Uri("http://localhost")
+            });
+
+            var result = await new WorkspaceCommandService(
+                client,
+                new WorkspaceConfigurationProvider(),
+                new StubIdentity(),
+                new CurrentWorkspaceResolver(client, workspaceRoot),
+                workspaceRoot).StartAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Succeeded, Is.True);
+                Assert.That(result.Value!.State, Is.EqualTo("Degraded"));
+                Assert.That(result.Value.FailedApplications!.Single().Name, Is.EqualTo("web"));
+            });
+        }
+        finally
+        {
+            Directory.Delete(workspaceRoot, recursive: true);
+        }
+    }
+
     private static HttpResponseMessage JsonResponse(object payload)
         => new(HttpStatusCode.Created)
         {

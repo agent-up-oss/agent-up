@@ -9,6 +9,7 @@ public sealed class AppHealthLedRulesTests
     [TestCase("Healthy", AgentUpThemeColors.StatusHealthy)]
     [TestCase("Running", AgentUpThemeColors.StatusHealthy)]
     [TestCase("Checking", AgentUpThemeColors.StatusWarning)]
+    [TestCase("Degraded", AgentUpThemeColors.StatusWarning)]
     [TestCase("Unhealthy", AgentUpThemeColors.StatusDanger)]
     [TestCase("Failed", AgentUpThemeColors.StatusDanger)]
     [TestCase("Stopped", AgentUpThemeColors.TextMuted)]

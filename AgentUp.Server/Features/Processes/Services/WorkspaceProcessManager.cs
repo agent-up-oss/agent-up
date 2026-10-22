@@ -52,7 +52,16 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     {
         await KillAsync(workspace.Id);
         foreach (var app in workspace.Applications)
-            await LaunchApplicationAsync(workspace, app.Name);
+        {
+            try
+            {
+                await LaunchApplicationAsync(workspace, app.Name);
+            }
+            catch (InvalidOperationException ex) when (!IsMissingApplication(ex, app.Name))
+            {
+                await FailApplicationAsync(workspace.Id, app.Name, ex.Message);
+            }
+        }
     }
 
     public async Task LaunchApplicationAsync(Workspace workspace, string appName)
@@ -69,7 +78,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
                 await _output.AppendAsync(workspace.Id, appName, "[err] " + message, ProcessOutputStream.Stderr);
 
             await _registry.UpdateApplicationStateAsync(workspace.Id, appName, ApplicationState.Failed);
-            throw new InvalidOperationException($"Capability '{app.CapabilityStatus.CapabilityId}' cannot run '{appName}'.");
+            return;
         }
 
         if (app.ServiceType == ServiceType.Docker)
@@ -89,7 +98,8 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             return;
         }
 
-        await RunInstallStepAsync(workspace, app);
+        if (!await RunInstallStepAsync(workspace, app))
+            return;
 
         var process = _localProcesses.CreateApplicationProcess(workspace, app);
         var workspaceId = workspace.Id;
@@ -130,8 +140,8 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         {
             _processes.TryRemove(key, out _);
             process.Dispose();
-            await _output.AppendAsync(workspaceId, appName, "[err] " + ex.Message, ProcessOutputStream.Stderr);
-            throw new InvalidOperationException($"Failed to start '{appName}': {ex.Message}", ex);
+            await FailApplicationAsync(workspaceId, appName, ex.Message);
+            return;
         }
 
         _logger.LogInformation("Started workspace application process with pid {Pid}", process.Id);
@@ -170,7 +180,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     // Install commands (npm install, dotnet restore, etc.) are idempotent by design, so
     // running them unconditionally before every launch keeps dependencies current without
     // needing a completion marker to decide whether a run is "needed".
-    private async Task RunInstallStepAsync(Workspace workspace, ApplicationInstance app)
+    private async Task<bool> RunInstallStepAsync(Workspace workspace, ApplicationInstance app)
     {
         var workspaceId = workspace.Id;
         var appName = app.Name;
@@ -188,11 +198,11 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         {
             await _output.AppendAsync(workspaceId, appName, "[install] [err] " + ex.Message, ProcessOutputStream.Stderr);
             await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed);
-            throw;
+            return false;
         }
 
         if (created is null)
-            return;
+            return true;
 
         using var install = created;
 
@@ -221,7 +231,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             _processes.TryRemove(key, out _);
             await _output.AppendAsync(workspaceId, appName, "[install] [err] " + ex.Message, ProcessOutputStream.Stderr);
             await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed);
-            throw new InvalidOperationException($"Install step failed for '{appName}': {ex.Message}", ex);
+            return false;
         }
 
         await Task.WhenAll(pendingOutput);
@@ -235,10 +245,11 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         if (exitCode != 0)
         {
             await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed);
-            throw new InvalidOperationException($"Install step for '{appName}' exited with code {exitCode}.");
+            return false;
         }
 
         _logger.LogInformation("Install step for workspace application completed");
+        return true;
     }
 
     private async Task LaunchDockerServiceAsync(Workspace workspace, ApplicationInstance app)
@@ -269,7 +280,8 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             if (run.ExitCode != 0)
             {
                 await AppendDockerErrorAsync(workspaceId, app.Name, run.Stderr);
-                throw new InvalidOperationException($"docker run failed for '{app.Name}': {run.Stderr.Trim()}");
+                await _registry.UpdateApplicationStateAsync(workspaceId, app.Name, ApplicationState.Failed);
+                return;
             }
 
             _logger.LogInformation("Started Docker container for workspace application");
@@ -277,19 +289,20 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         catch (System.ComponentModel.Win32Exception ex)
         {
             _containerNames.TryRemove((workspaceId, app.Name), out _);
-            await _output.AppendAsync(workspaceId, app.Name, "[err] " + ex.Message, ProcessOutputStream.Stderr);
-            throw new InvalidOperationException($"docker failed for '{app.Name}': {ex.Message}", ex);
+            await FailApplicationAsync(workspaceId, app.Name, ex.Message);
+            return;
         }
         catch (InvalidOperationException ex) when (ex.InnerException is System.ComponentModel.Win32Exception)
         {
             _containerNames.TryRemove((workspaceId, app.Name), out _);
-            await _output.AppendAsync(workspaceId, app.Name, "[err] " + ex.Message, ProcessOutputStream.Stderr);
-            throw;
+            await FailApplicationAsync(workspaceId, app.Name, ex.Message);
+            return;
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
             _containerNames.TryRemove((workspaceId, app.Name), out _);
-            throw;
+            await FailApplicationAsync(workspaceId, app.Name, ex.Message);
+            return;
         }
 
         // Tail logs for output capture
@@ -386,6 +399,15 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         foreach (var line in stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             await _output.AppendAsync(workspaceId, appName, "[err] " + line.TrimEnd('\r'), ProcessOutputStream.Stderr);
     }
+
+    private async Task FailApplicationAsync(string workspaceId, string appName, string reason)
+    {
+        await _output.AppendAsync(workspaceId, appName, "[err] " + reason, ProcessOutputStream.Stderr);
+        await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed);
+    }
+
+    private static bool IsMissingApplication(InvalidOperationException ex, string appName)
+        => string.Equals(ex.Message, $"Application '{appName}' not found in workspace.", StringComparison.Ordinal);
 
     public WorkspaceRuntimeSnapshot GetRuntime(string workspaceId)
     {

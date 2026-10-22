@@ -1,4 +1,5 @@
 using Avalonia.Headless.NUnit;
+using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Tests.Support;
 
@@ -34,6 +35,59 @@ public class WorkspaceLifecycleTests
             Assert.That(handler.RequestPaths, Does.Contain("/api/workspaces/ws-2/start"));
             Assert.That(app.Sidebar.WorkspaceStateById("ws-2"), Is.EqualTo("Running"));
         });
+    }
+
+    [AvaloniaTest]
+    public async Task DegradedWorkspace_showsStopAndKeepsTheWarningLed()
+    {
+        var workspaces = new List<WorkspaceDto>
+        {
+            DesktopDomain.Workspace()
+                .InState("Degraded")
+                .WithApplication(DesktopDomain.Application().InState("Running").Build())
+                .WithApplication(DesktopDomain.DocsApplication().InState("Failed").Build())
+                .Build(),
+            DesktopDomain.SecondWorkspace().InState("Failed").Build()
+        };
+        var (app, _) = await AppDriver.LaunchWithMutableWorkspacesAsync(workspaces);
+        var degraded = app.Sidebar.WorkspaceIds
+            .Select(id => ((MainViewModel)app.Window.DataContext!).Sidebar.Workspaces.First(item => item.Id == id))
+            .Single(item => item.State == "Degraded");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(app.Sidebar.WorkspaceStateById(degraded.Id), Is.EqualTo("Degraded"));
+            Assert.That(degraded.ShowStopButton, Is.True);
+            Assert.That(degraded.ShowStartButton, Is.False);
+            Assert.That(degraded.StateColor, Is.EqualTo("#e0a128"));
+        });
+
+        await app.Sidebar.ClickStopOnWorkspaceAtIndexAsync(app.Sidebar.WorkspaceIds.ToList().IndexOf(degraded.Id));
+        Assert.That(app.Sidebar.WorkspaceStateById(degraded.Id), Is.EqualTo("Stopped"));
+    }
+
+    [AvaloniaTest]
+    public async Task FailedWorkspace_showsStartAndKeepsTheDangerLed()
+    {
+        var workspaces = new List<WorkspaceDto>
+        {
+            DesktopDomain.Workspace().InState("Failed").Build(),
+            DesktopDomain.SecondWorkspace().InState("Stopped").Build()
+        };
+        var (app, _) = await AppDriver.LaunchWithMutableWorkspacesAsync(workspaces);
+        var failed = ((MainViewModel)app.Window.DataContext!).Sidebar.Workspaces
+            .Single(item => item.State == "Failed");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(app.Sidebar.WorkspaceStateById(failed.Id), Is.EqualTo("Failed"));
+            Assert.That(failed.ShowStartButton, Is.True);
+            Assert.That(failed.ShowStopButton, Is.False);
+            Assert.That(failed.StateColor, Is.EqualTo("#d84f4f"));
+        });
+
+        await app.Sidebar.ClickStartOnWorkspaceAtIndexAsync(app.Sidebar.WorkspaceIds.ToList().IndexOf(failed.Id));
+        Assert.That(app.Sidebar.WorkspaceStateById(failed.Id), Is.EqualTo("Running"));
     }
 
     [AvaloniaTest]
