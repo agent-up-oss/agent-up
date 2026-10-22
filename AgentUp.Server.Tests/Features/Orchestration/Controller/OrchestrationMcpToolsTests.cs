@@ -72,10 +72,15 @@ public sealed class OrchestrationMcpToolsTests
 
         Assert.That(result.Succeeded, Is.True);
         var workspace = _registry.GetAll().Single();
-        Assert.That(workspace.DisplayName, Is.EqualTo("Inventory"));
-        Assert.That(workspace.WorktreePath, Is.EqualTo("/repos/inventory"));
-        Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Running));
-        Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Running));
+        var application = workspace.Applications.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(workspace.DisplayName, Is.EqualTo("Inventory"));
+            Assert.That(workspace.WorktreePath, Is.EqualTo("/repos/inventory"));
+            Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Starting));
+            Assert.That(application.State, Is.EqualTo(ApplicationState.Starting));
+            Assert.That(application.AllocatedPorts.Single().Variable, Is.EqualTo("WEB_PORT"));
+        });
     }
 
     [Test]
