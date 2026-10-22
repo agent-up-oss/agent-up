@@ -21,6 +21,7 @@ public sealed class MobileScreenSurface : IProductScreenSurface
     private readonly IDebugEnvironment _environment;
     private readonly IDebugPathValidator _paths;
     private readonly int _debuggingPort;
+    private readonly TimeSpan _locateTimeout;
     private System.Diagnostics.Process? _browser;
     private ChromiumCdpSession? _session;
 
@@ -28,12 +29,14 @@ public sealed class MobileScreenSurface : IProductScreenSurface
         IAllowlistedProcessRunner processes,
         IDebugEnvironment environment,
         IDebugPathValidator paths,
-        int debuggingPort = DebugLayout.ProductScreensDebuggingPort)
+        int debuggingPort = DebugLayout.ProductScreensDebuggingPort,
+        TimeSpan? locateTimeout = null)
     {
         _processes = processes;
         _environment = environment;
         _paths = paths;
         _debuggingPort = debuggingPort;
+        _locateTimeout = locateTimeout ?? TimeSpan.FromSeconds(DebugLayout.ProductScreensLocateTimeoutSeconds);
     }
 
     /// <summary>
@@ -53,7 +56,7 @@ public sealed class MobileScreenSurface : IProductScreenSurface
         _session = await ChromiumCdpSession.ConnectAsync(await WaitForDebuggerAsync(cancellationToken), cancellationToken);
         await SendAsync(id => ChromiumCdpMessageProvider.MobileDeviceMetrics(DebugLayout.MobileScreenWidth, DebugLayout.MobileScreenHeight, id), cancellationToken);
         await SendAsync(id => ChromiumCdpMessageProvider.Navigate(MobileConnectUrl, id), cancellationToken);
-        await Task.Delay(4000, cancellationToken);
+        await WaitForPointAsync(MobileScreenScriptProvider.FocusField("Server URL"), "Server URL", cancellationToken);
     }
 
     public async Task RunAsync(IReadOnlyList<ScreenStepDto> steps, CancellationToken cancellationToken)
@@ -118,7 +121,7 @@ public sealed class MobileScreenSurface : IProductScreenSurface
     /// <summary>Polls rather than sleeping: a route must not pass because a fixed wait was generous.</summary>
     private async Task<(int X, int Y)> WaitForPointAsync(string script, string label, CancellationToken cancellationToken)
     {
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(20);
+        var deadline = DateTimeOffset.UtcNow + _locateTimeout;
         while (DateTimeOffset.UtcNow < deadline)
         {
             var reply = await EvaluateAsync(script, $"locate '{label}'", cancellationToken);
@@ -127,7 +130,24 @@ public sealed class MobileScreenSurface : IProductScreenSurface
             await Task.Delay(250, cancellationToken);
         }
 
-        throw new InvalidOperationException($"Mobile screens timed out waiting for '{label}'.");
+        var shown = await TryReadTextAsync(cancellationToken);
+        throw new InvalidOperationException(
+            string.IsNullOrWhiteSpace(shown)
+                ? $"Mobile screens timed out waiting for '{label}'."
+                : $"Mobile screens timed out waiting for '{label}'. The page showed: {shown}");
+    }
+
+    private async Task<string?> TryReadTextAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await ReadTextAsync(cancellationToken);
+        }
+        catch (InvalidOperationException exception)
+        {
+            System.Diagnostics.Trace.WriteLine(exception.Message);
+            return null;
+        }
     }
 
     private Task<string> EvaluateAsync(string expression, string action, CancellationToken cancellationToken)
@@ -149,11 +169,12 @@ public sealed class MobileScreenSurface : IProductScreenSurface
             "--headless=new",
             "--disable-gpu",
             "--no-sandbox",
+            "--disable-dev-shm-usage",
             "--hide-scrollbars",
             $"--remote-debugging-port={_debuggingPort}",
             $"--user-data-dir={profile}",
             $"--window-size={DebugLayout.MobileScreenWidth},{DebugLayout.MobileScreenHeight}",
-            MobileConnectUrl
+            "about:blank"
         };
         var chromium = _environment.FindChromium();
         if (chromium is not null)
