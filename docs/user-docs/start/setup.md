@@ -79,9 +79,10 @@ To expose REST to the LAN, set `AGENTUP_ADMIN_PASSWORD` or
 protect it with HTTPS or a TLS-terminating reverse proxy. TLS encrypts the
 connection; it does not stop a LAN client from calling REST. Leave authentication
 off only if anonymous LAN access is intentional. Plain HTTP exposes the
-administrator password during login and bearer tokens on the wire. MCP has no
-login because it is intended for local tools, and the Server rejects MCP requests
-whose remote address is not loopback.
+administrator password during login and bearer tokens on the wire. MCP stays
+loopback-only until `AGENTUP_MCP_REMOTE_ENABLED=true` with `externalBearer`; a
+request from another address without a valid token still looks like nothing is
+there.
 
 Remote Desktop and Mobile clients must use HTTPS when the Server URL is not
 loopback. Loopback HTTP remains supported for local development on
