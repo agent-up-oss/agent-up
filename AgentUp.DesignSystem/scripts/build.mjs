@@ -12,6 +12,7 @@ import {
   parseIcons,
 } from './lib/icons.mjs';
 import { emitNative } from './lib/native.mjs';
+import { newUiManifest, parseNewUi, wrapNewUiScene } from './lib/new-ui.mjs';
 import { emitSequencePlayer, emitSequencePlayerTypes } from './lib/sequences.mjs';
 import { assembleScreens, framedSceneHtml, sceneCopy, wrapSceneDocument } from './lib/screens.mjs';
 import { applyDefaultParts, buildPropsExamples, hasContentSlots } from './lib/slots.mjs';
@@ -30,6 +31,15 @@ const catalogHtml = expandIcons(await readCatalogHtml(src), icons);
 const screensHtml = expandIcons(await readFile(resolve(src, 'screens.html'), 'utf8'), icons);
 const css = `${primitives.trim()}\n\n${product.trim()}\n`;
 const screenshotCss = `${css}\n${marketing}\n${screenshotShell}\n`;
+/*
+ * The New UI space. Read from a directory rather than from `src/` directly, because
+ * `readProductCss` globs `src/*.css` and `readCatalogHtml` globs `src/catalog-*.html`: a file
+ * placed beside them would join the compiled product stylesheet and the catalog, and from there
+ * reach the Avalonia and React Native bindings. Kept here, this space can only ever add outputs.
+ */
+const newUiSource = expandIcons(await readFile(resolve(src, 'new-ui', 'screens.html'), 'utf8'), icons);
+const newUiCss = await readFile(resolve(src, 'new-ui', 'new-ui.css'), 'utf8');
+const newUiScenes = parseNewUi(newUiSource);
 const tokens = parseCustomProperties(primitives);
 const required = [
   'color-canvas', 'color-surface', 'color-border-subtle', 'color-text-primary',
@@ -93,6 +103,15 @@ const outputs = new Map([
 
 for (const scene of assembled.scenes) {
   outputs.set(`dist/web/screenshots/${scene.htmlFile}`, wrapSceneDocument(scene));
+}
+
+// Standalone scene documents carry the foundations with them; a page that already loads the
+// design system embeds the second file so the shared primitives are not applied twice.
+outputs.set('dist/web/new-ui.css', `${primitives.trim()}\n\n${newUiCss.trim()}\n`);
+outputs.set('dist/web/new-ui-embed.css', `${newUiCss.trim()}\n`);
+outputs.set('dist/web/new-ui.json', `${JSON.stringify(newUiManifest(newUiScenes), null, 2)}\n`);
+for (const scene of newUiScenes) {
+  outputs.set(`dist/web/new-ui/${scene.id}.html`, wrapNewUiScene(scene));
 }
 
 for (const [relative, content] of outputs) {

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mobile · Settings — Agent-Up new UI</title>
+  <link rel="stylesheet" href="../new-ui.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
+    .aun-frame { width: 390px; height: 844px; overflow: hidden; display: flex; }
+    .aun-frame > * { flex: 1 1 auto; min-width: 0; }
+  </style>
+</head>
+<body>
+<div class="aun-frame">
+<div class="aun-phone">
+    <header class="aun-phone__head">
+      <span class="aun-title" style="display: block; font-size: var(--au-font-size-ui-lg)">Settings</span>
+      <span class="aun-rail__url">dev-box &middot; localhost:5000</span>
+    </header>
+    <div class="aun-phone__body">
+      <section>
+        <h2 class="aun-section__head">INTERFACE</h2>
+        <div class="aun-setting aun-setting--feature" style="padding: 14px">
+          <div class="aun-setting__body">
+            <p class="aun-setting__name">Command center</p>
+            <p class="aun-setting__note">You are using the new interface. Switching back restores the classic shell on the next launch.</p>
+          </div>
+          <span class="aun-switch" role="switch" aria-checked="true" aria-label="Command center interface" tabindex="0"><span class="aun-switch__knob"></span></span>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="aun-section__head">SERVER</h2>
+        <div class="aun-stack">
+          <div class="aun-setting" style="padding: 14px">
+            <div class="aun-setting__body">
+              <p class="aun-setting__name">Autonomy</p>
+              <p class="aun-setting__note">Agents may pick up assigned tasks on their own.</p>
+            </div>
+            <span class="aun-switch" role="switch" aria-checked="true" aria-label="Autonomy" tabindex="0"><span class="aun-switch__knob"></span></span>
+          </div>
+          <div class="aun-setting" style="padding: 14px">
+            <div class="aun-setting__body">
+              <p class="aun-setting__name">Repository host</p>
+              <p class="aun-setting__note"><span class="aun-mono">github.com/agent-up-oss</span></p>
+            </div>
+            <button type="button" class="aun-btn aun-btn--touch">Manage</button>
+          </div>
+          <div class="aun-setting" style="padding: 14px">
+            <div class="aun-setting__body">
+              <p class="aun-setting__name">Sign out</p>
+              <p class="aun-setting__note">Agents keep running on the Server.</p>
+            </div>
+            <button type="button" class="aun-btn aun-btn--danger aun-btn--touch">Sign out</button>
+          </div>
+        </div>
+      </section>
+    </div>
+    <nav class="aun-tabbar" aria-label="Sections">
+      <a class="aun-tabbar__item" href="#bridge"><span style="font-size: 15px">&#9632;</span>Bridge</a>
+      <a class="aun-tabbar__item" href="#tasks"><span style="font-size: 15px">&#9644;</span>Tasks</a>
+      <a class="aun-tabbar__item" href="#team"><span style="font-size: 15px">&#9679;</span>Team</a>
+    </nav>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Agent-Up new UI scenes</title>
+</head>
+<body>
+
+<!--
+  Scenes for the New UI space. Each <section data-aun-scene> becomes one standalone document
+  under dist/web/new-ui/ and one entry in dist/web/new-ui.json.
+
+  A partial is inserted with <div data-aun-include="rail" data-aun-current="<nav id>"></div>.
+  The builder marks the element whose data-aun-nav matches as aria-current="page".
+-->
+
+<template data-aun-partial="rail">
+  <nav class="aun-rail" aria-label="Command center">
+    <div class="aun-rail__server">
+      <span class="aun-dot aun-dot--live"></span>
+      <span>
+        <span class="aun-rail__name">dev-box</span>
+        <span class="aun-rail__url">localhost:5000</span>
+      </span>
+    </div>
+    <a class="aun-rail__link" data-aun-nav="bridge" href="#bridge">Bridge</a>
+    <a class="aun-rail__link" data-aun-nav="tasks" href="#tasks">Tasks</a>
+    <p class="aun-rail__section">TEAM</p>
+    <a class="aun-rail__link" data-aun-nav="team" href="#team">All agents</a>
+    <a class="aun-rail__agent" data-aun-nav="lucy" href="#lucy">
+      <span class="aun-avatar aun-avatar--sm">L</span>Lucy
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span>
+    </a>
+    <a class="aun-rail__agent" data-aun-nav="bob" href="#bob">
+      <span class="aun-avatar aun-avatar--sm">B</span>Bob
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span>
+    </a>
+    <a class="aun-rail__agent" data-aun-nav="hector" href="#hector">
+      <span class="aun-avatar aun-avatar--sm">H</span>Hector
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--halted">&#9650;</span>
+    </a>
+    <span class="aun-rail__spacer"></span>
+    <a class="aun-rail__link" data-aun-nav="settings" href="#settings">Settings</a>
+    <a class="aun-rail__link" data-aun-nav="signout" href="#signout">Sign out of server</a>
+  </nav>
+</template>
+
+<template data-aun-partial="agent-head">
+  <header class="aun-head" style="align-items: center">
+    <span class="aun-avatar aun-avatar--lg">L</span>
+    <span style="flex: 1 1 18rem; min-width: 0">
+      <span class="aun-title" style="display: block">Lucy</span>
+      <span class="aun-subtitle">Reviewer &middot; interface &nbsp;&middot;&nbsp; <span class="aun-mono">@lucy-aup[bot]</span> &nbsp;&middot;&nbsp; <span class="aun-mono">agent-up-qa</span></span>
+    </span>
+    <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live</span>
+  </header>
+</template>
+
+<!-- ============================================================= DESKTOP === -->
+
+<section data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop"
+         data-aun-intro="Triage before anything else: what is waiting on you, what halted, and one line for everything healthy.">
+  <div class="aun">
+    <div data-aun-include="rail" data-aun-current="bridge"></div>
+    <main class="aun-main">
+      <header class="aun-head">
+        <div>
+          <h1 class="aun-title">Bridge</h1>
+          <p class="aun-subtitle">3 agents &middot; 2 waiting on you &middot; 1 halted</p>
+        </div>
+        <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live<span class="aun-muted"> &middot; 2s ago</span></span>
+      </header>
+
+      <section>
+        <h2 class="aun-section__head aun-section__head--gate"><span>&#9670;</span>WAITING ON YOU &middot; 2</h2>
+        <div class="aun-stack">
+          <div class="aun-row aun-row--gate">
+            <span class="aun-avatar">L</span>
+            <div class="aun-row__body">
+              <p class="aun-row__title">Lucy wants to submit her review on #412</p>
+              <p class="aun-row__meta">14 findings &middot; 3 blocking &middot; posts to the forge as <span class="aun-mono">@lucy-aup[bot]</span></p>
+              <p class="aun-row__time">waiting 8m</p>
+            </div>
+            <div class="aun-row__actions">
+              <button type="button" class="aun-btn aun-btn--primary">Approve</button>
+              <button type="button" class="aun-btn">Reject</button>
+              <a class="aun-btn" href="#open">Open</a>
+            </div>
+          </div>
+          <div class="aun-row aun-row--gate">
+            <span class="aun-avatar">B</span>
+            <div class="aun-row__body">
+              <p class="aun-row__title">Bob wants to open a pull request for #398</p>
+              <p class="aun-row__meta">11 files &middot; 240 insertions &middot; pushes <span class="aun-mono">feat/398-capabilities-cli</span></p>
+              <p class="aun-row__time">waiting 41m</p>
+            </div>
+            <div class="aun-row__actions">
+              <button type="button" class="aun-btn aun-btn--primary">Approve</button>
+              <button type="button" class="aun-btn">Reject</button>
+              <a class="aun-btn" href="#open">Open</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="aun-section__head aun-section__head--halted"><span>&#9650;</span>HALTED &middot; 1</h2>
+        <div class="aun-row aun-row--halted">
+          <span class="aun-avatar">H</span>
+          <div class="aun-row__body">
+            <p class="aun-row__title">Hector stopped on #405</p>
+            <div class="aun-diag" style="margin-top: 8px">
+              <span class="aun-diag__code">forge.unreachable</span>
+              <span> &mdash; the forge returned 502 on read. The run halted before its first write.</span>
+              <p class="aun-diag__remedy"><strong>Remedy:</strong> check the host connection, then resume.</p>
+            </div>
+            <p class="aun-row__time">stopped 52m ago &middot; attempt 2 of 3</p>
+          </div>
+          <div class="aun-row__actions">
+            <button type="button" class="aun-btn aun-btn--primary">Resume</button>
+            <a class="aun-btn" href="#open">Open</a>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="aun-section__head">TEAM</h2>
+        <div class="aun-wrap">
+          <a class="aun-row aun-row--gate" style="flex: 1 1 16rem; align-items: center" href="#lucy">
+            <span class="aun-avatar aun-avatar--md">L</span>
+            <div class="aun-row__body"><p class="aun-row__title">Lucy</p><p class="aun-row__meta">Reviewer &middot; interface</p></div>
+            <div style="text-align: right"><p class="aun-glyph--gate" style="font-weight: 600">&#9670; gate open</p><p class="aun-row__time">#412</p></div>
+          </a>
+          <a class="aun-row aun-row--gate" style="flex: 1 1 16rem; align-items: center" href="#bob">
+            <span class="aun-avatar aun-avatar--md">B</span>
+            <div class="aun-row__body"><p class="aun-row__title">Bob</p><p class="aun-row__meta">Developer</p></div>
+            <div style="text-align: right"><p class="aun-glyph--gate" style="font-weight: 600">&#9670; gate open</p><p class="aun-row__time">#398</p></div>
+          </a>
+          <a class="aun-row aun-row--halted" style="flex: 1 1 16rem; align-items: center" href="#hector">
+            <span class="aun-avatar aun-avatar--md">H</span>
+            <div class="aun-row__body"><p class="aun-row__title">Hector</p><p class="aun-row__meta">Reviewer &middot; code</p></div>
+            <div style="text-align: right"><p class="aun-glyph--halted" style="font-weight: 600">&#9650; halted</p><p class="aun-row__time">#405</p></div>
+          </a>
+        </div>
+      </section>
+    </main>
+  </div>
+</section>
+
+<section data-aun-scene="tasks" data-aun-title="Tasks" data-aun-surface="desktop"
+         data-aun-intro="The forge queue mirrored in. Issues are the task source of truth; run state is owned here and pushed back.">
+  <div class="aun">
+    <div data-aun-include="rail" data-aun-current="tasks"></div>
+    <main class="aun-main">
+      <header class="aun-head">
+        <div>
+          <h1 class="aun-title">Tasks</h1>
+          <p class="aun-subtitle">Mirrored from <span class="aun-mono">github.com/agent-up-oss</span> &middot; 7 open</p>
+        </div>
+        <span class="aun-conn"><span class="aun-dot aun-dot--info"></span>Polling<span class="aun-muted"> &middot; 60s &middot; last 12s ago</span></span>
+      </header>
+
+      <div class="aun-table__scroll">
+        <table class="aun-table">
+          <thead><tr><th>TASK</th><th>STATE</th><th>ASSIGNED TO</th><th>AGE</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><p style="font-weight: 600">#412 &middot; Agent tab dead end on both clients</p><p class="aun-row__meta">bug &middot; severity: priority</p></td>
+              <td><span class="aun-state aun-state--gate">&#9670; in review</span></td>
+              <td><span style="display: inline-flex; align-items: center; gap: 8px"><span class="aun-avatar aun-avatar--sm">L</span>Lucy</span></td>
+              <td class="aun-muted">2d</td>
+              <td><a href="#open" style="color: var(--au-color-text-info)">Open &rarr;</a></td>
+            </tr>
+            <tr>
+              <td><p style="font-weight: 600">#398 &middot; Promote capability bootstrap to a CLI verb</p><p class="aun-row__meta">first-run &middot; packaging</p></td>
+              <td><span class="aun-state aun-state--gate">&#9670; gate open</span></td>
+              <td><span style="display: inline-flex; align-items: center; gap: 8px"><span class="aun-avatar aun-avatar--sm">B</span>Bob</span></td>
+              <td class="aun-muted">4d</td>
+              <td><a href="#open" style="color: var(--au-color-text-info)">Open &rarr;</a></td>
+            </tr>
+            <tr>
+              <td><p style="font-weight: 600">#405 &middot; Forge surface renders nothing</p><p class="aun-row__meta">bug &middot; agents</p></td>
+              <td><span class="aun-state aun-state--halted">&#9650; halted</span></td>
+              <td><span style="display: inline-flex; align-items: center; gap: 8px"><span class="aun-avatar aun-avatar--sm">H</span>Hector</span></td>
+              <td class="aun-muted">1d</td>
+              <td><a href="#open" style="color: var(--au-color-text-info)">Open &rarr;</a></td>
+            </tr>
+            <tr>
+              <td><p style="font-weight: 600">#420 &middot; Console output is spliced and truncated</p><p class="aun-row__meta">bug &middot; diagnostics</p></td>
+              <td><span class="aun-state aun-state--running">&#9679; building</span></td>
+              <td><span style="display: inline-flex; align-items: center; gap: 8px"><span class="aun-avatar aun-avatar--sm">B</span>Bob</span></td>
+              <td class="aun-muted">6h</td>
+              <td><a href="#open" style="color: var(--au-color-text-info)">Open &rarr;</a></td>
+            </tr>
+            <tr>
+              <td><p style="font-weight: 600">#421 &middot; Application state never reaches Running</p><p class="aun-row__meta">bug &middot; workspaces</p></td>
+              <td><span class="aun-state">&#9675; unassigned</span></td>
+              <td class="aun-faint">&mdash;</td>
+              <td class="aun-muted">3h</td>
+              <td><button type="button" class="aun-btn aun-btn--primary">Assign</button></td>
+            </tr>
+            <tr>
+              <td><p style="font-weight: 600">#422 &middot; Start aborts and orphans processes</p><p class="aun-row__meta">bug &middot; workspaces</p></td>
+              <td><span class="aun-state">&#9675; unassigned</span></td>
+              <td class="aun-faint">&mdash;</td>
+              <td class="aun-muted">3h</td>
+              <td><button type="button" class="aun-btn aun-btn--primary">Assign</button></td>
+            </tr>
+            <tr>
+              <td><p style="font-weight: 600">#396 &middot; Mobile flow surface</p><p class="aun-row__meta">tests &middot; visual-review</p></td>
+              <td><span class="aun-state aun-state--done">&#10003; reviewed</span></td>
+              <td><span style="display: inline-flex; align-items: center; gap: 8px"><span class="aun-avatar aun-avatar--sm">L</span>Lucy</span></td>
+              <td class="aun-muted">1d</td>
+              <td><a href="#open" style="color: var(--au-color-text-info)">Open &rarr;</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</section>
+
+<section data-aun-scene="team" data-aun-title="Team" data-aun-surface="desktop"
+         data-aun-intro="One agent, one workspace, one forge account, bound for life. Permissions are an identity fact, not a setting to pick per task.">
+  <div class="aun">
+    <div data-aun-include="rail" data-aun-current="team"></div>
+    <main class="aun-main">
+      <header class="aun-head">
+        <div>
+          <h1 class="aun-title">Team</h1>
+          <p class="aun-subtitle">Three agents &middot; one workspace and one account each</p>
+        </div>
+        <button type="button" class="aun-btn aun-btn--primary">+ Add agent</button>
+      </header>
+
+      <div class="aun-grid aun-grid--cards">
+        <article class="aun-card" style="border-color: var(--au-color-status-warning)">
+          <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px">
+            <span class="aun-avatar aun-avatar--md">L</span>
+            <span style="flex-grow: 1"><span style="font-size: var(--au-font-size-ui-lg); font-weight: 700; display: block">Lucy</span><span class="aun-subtitle">Reviewer &middot; interface</span></span>
+            <span class="aun-perm">claude</span>
+          </div>
+          <div class="aun-stack" style="margin-bottom: 14px">
+            <p class="aun-kv"><span class="aun-kv__k">Account</span><span class="aun-mono">@lucy-aup[bot]</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Workspace</span><span class="aun-mono">agent-up-qa</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Wakes on</span><span class="aun-mono" style="color: var(--au-color-text-info)">ProposalAwaitingReview</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Done at</span><span class="aun-mono" style="color: var(--au-color-accent-soft)">ReviewSubmitted</span></p>
+          </div>
+          <p class="aun-rail__section" style="padding: 0 0 7px">MAY</p>
+          <div class="aun-wrap" style="gap: 6px; margin-bottom: 14px">
+            <span class="aun-perm">submit_review</span><span class="aun-perm">comment</span><span class="aun-perm">read_files</span><span class="aun-perm">run_validation</span>
+          </div>
+          <div class="aun-card aun-card--gate" style="padding: 10px 12px; margin-bottom: 14px">
+            <p class="aun-glyph--gate" style="font-weight: 600">&#9670; Waiting on you</p>
+            <p class="aun-row__meta">Review of #412 &middot; 8m</p>
+          </div>
+          <div class="aun-stats">
+            <div><p class="aun-stat">128</p><p class="aun-stat__label">reviews</p></div>
+            <div><p class="aun-stat" style="color: var(--au-color-text-warning)">31</p><p class="aun-stat__label">blocking found</p></div>
+            <div><p class="aun-stat">6m</p><p class="aun-stat__label">median</p></div>
+          </div>
+        </article>
+
+        <article class="aun-card" style="border-color: var(--au-color-status-warning)">
+          <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px">
+            <span class="aun-avatar aun-avatar--md">B</span>
+            <span style="flex-grow: 1"><span style="font-size: var(--au-font-size-ui-lg); font-weight: 700; display: block">Bob</span><span class="aun-subtitle">Developer</span></span>
+            <span class="aun-perm">codex</span>
+          </div>
+          <div class="aun-stack" style="margin-bottom: 14px">
+            <p class="aun-kv"><span class="aun-kv__k">Account</span><span class="aun-mono">@bob-aup[bot]</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Workspace</span><span class="aun-mono">localinstaller</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Wakes on</span><span class="aun-mono" style="color: var(--au-color-text-info)">IssueAssigned</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Done at</span><span class="aun-mono" style="color: var(--au-color-accent-soft)">ProposalOpened</span></p>
+          </div>
+          <p class="aun-rail__section" style="padding: 0 0 7px">MAY</p>
+          <div class="aun-wrap" style="gap: 6px; margin-bottom: 14px">
+            <span class="aun-perm">write_files</span><span class="aun-perm">commit</span><span class="aun-perm">push_branch</span><span class="aun-perm">open_proposal</span><span class="aun-perm">run_tests</span>
+          </div>
+          <div class="aun-card aun-card--gate" style="padding: 10px 12px; margin-bottom: 14px">
+            <p class="aun-glyph--gate" style="font-weight: 600">&#9670; Waiting on you</p>
+            <p class="aun-row__meta">Open pull request for #398 &middot; 41m</p>
+          </div>
+          <div class="aun-stats">
+            <div><p class="aun-stat">94</p><p class="aun-stat__label">proposals</p></div>
+            <div><p class="aun-stat" style="color: var(--au-color-accent-soft)">71%</p><p class="aun-stat__label">first pass</p></div>
+            <div><p class="aun-stat">22m</p><p class="aun-stat__label">median</p></div>
+          </div>
+        </article>
+
+        <article class="aun-card" style="border-color: var(--au-color-border-danger)">
+          <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px">
+            <span class="aun-avatar aun-avatar--md">H</span>
+            <span style="flex-grow: 1"><span style="font-size: var(--au-font-size-ui-lg); font-weight: 700; display: block">Hector</span><span class="aun-subtitle">Reviewer &middot; code</span></span>
+            <span class="aun-perm">claude</span>
+          </div>
+          <div class="aun-stack" style="margin-bottom: 14px">
+            <p class="aun-kv"><span class="aun-kv__k">Account</span><span class="aun-mono">@hector-aup[bot]</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Workspace</span><span class="aun-mono">agent-up-docs</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Wakes on</span><span class="aun-mono" style="color: var(--au-color-text-info)">ProposalAwaitingReview</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Done at</span><span class="aun-mono" style="color: var(--au-color-accent-soft)">ReviewSubmitted</span></p>
+          </div>
+          <p class="aun-rail__section" style="padding: 0 0 7px">MAY</p>
+          <div class="aun-wrap" style="gap: 6px; margin-bottom: 14px">
+            <span class="aun-perm">submit_review</span><span class="aun-perm">comment</span><span class="aun-perm">read_files</span><span class="aun-perm">run_tests</span>
+          </div>
+          <div class="aun-card aun-card--halted" style="padding: 10px 12px; margin-bottom: 14px">
+            <p class="aun-glyph--halted" style="font-weight: 600">&#9650; Halted</p>
+            <p class="aun-row__meta"><span class="aun-mono">forge.unreachable</span> &middot; #405 &middot; 52m</p>
+          </div>
+          <div class="aun-stats">
+            <div><p class="aun-stat">203</p><p class="aun-stat__label">reviews</p></div>
+            <div><p class="aun-stat" style="color: var(--au-color-text-warning)">47</p><p class="aun-stat__label">this month</p></div>
+            <div><p class="aun-stat">11m</p><p class="aun-stat__label">median</p></div>
+          </div>
+        </article>
+      </div>
+    </main>
+  </div>
+</section>
+
+<section data-aun-scene="agent-overview" data-aun-title="Agent &middot; Overview" data-aun-surface="desktop"
+         data-aun-intro="An agent's own page is the workspace surface. The applications grid is here, and the branch was prepared by the workspace rather than by the agent.">
+  <div class="aun">
+    <div data-aun-include="rail" data-aun-current="lucy"></div>
+    <main class="aun-main">
+      <div data-aun-include="agent-head"></div>
+      <nav class="aun-tabs" aria-label="Agent sections">
+        <a class="aun-tab" href="#overview" aria-current="page">Overview</a>
+        <a class="aun-tab" href="#chat">Chat</a>
+        <a class="aun-tab" href="#git">Git</a>
+      </nav>
+
+      <div class="aun-grid aun-grid--cards">
+        <article class="aun-card aun-card--gate">
+          <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 12px">
+            <span class="aun-glyph--gate">&#9670;</span>
+            <h2 class="aun-card__title" style="margin: 0; color: var(--au-color-text-warning)">Waiting on you</h2>
+            <span class="aun-rail__spacer"></span><span class="aun-row__time" style="margin: 0">8m</span>
+          </div>
+          <p class="aun-row__title">Submit review on #412</p>
+          <p class="aun-row__meta" style="margin-bottom: 14px">14 findings &middot; 3 blocking &middot; posts as <span class="aun-mono">@lucy-aup[bot]</span></p>
+          <div class="aun-wrap" style="gap: 8px">
+            <button type="button" class="aun-btn aun-btn--primary">Approve &amp; submit</button>
+            <a class="aun-btn" href="#chat">Open chat</a>
+            <button type="button" class="aun-btn aun-btn--danger">Reject</button>
+          </div>
+        </article>
+
+        <article class="aun-card">
+          <h2 class="aun-card__title">Current task</h2>
+          <div class="aun-stack">
+            <p class="aun-kv"><span class="aun-kv__k">Task</span><a href="#412" style="color: var(--au-color-text-info)">#412 Agent tab dead end on both clients</a></p>
+            <p class="aun-kv"><span class="aun-kv__k">Proposal</span><span class="aun-mono">PR #431 &middot; bob-aup[bot]</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Branch</span><span class="aun-mono">feat/412-agent-remedy</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Head</span><span class="aun-mono">a71f093</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Prepared</span><span style="color: var(--au-color-accent-soft)">checked out and cleaned 11m ago</span></p>
+          </div>
+        </article>
+      </div>
+
+      <section>
+        <h2 class="aun-section__head">APPLICATIONS</h2>
+        <div class="aun-grid aun-grid--apps">
+          <a class="aun-card" href="#docs" style="text-decoration: none; color: inherit">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-bottom: 10px">
+              <span style="font-weight: 600">Docs</span><span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9679; Running</span>
+            </div>
+            <p class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm)">:10300 &middot; http</p>
+            <p class="aun-faint" style="font-size: var(--au-font-size-ui-sm); margin-top: 5px">up 24m</p>
+          </a>
+          <a class="aun-card" href="#web" style="text-decoration: none; color: inherit">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-bottom: 10px">
+              <span style="font-weight: 600">Example Web</span><span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9679; Running</span>
+            </div>
+            <p class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm)">:10301 &middot; http</p>
+            <p class="aun-faint" style="font-size: var(--au-font-size-ui-sm); margin-top: 5px">up 24m</p>
+          </a>
+          <a class="aun-card" href="#api" style="text-decoration: none; color: inherit">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-bottom: 10px">
+              <span style="font-weight: 600">Example API</span><span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9679; Running</span>
+            </div>
+            <p class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm)">:10302 &middot; /health</p>
+            <p class="aun-faint" style="font-size: var(--au-font-size-ui-sm); margin-top: 5px">up 23m</p>
+          </a>
+          <a class="aun-card" href="#db" style="text-decoration: none; color: inherit">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-bottom: 10px">
+              <span style="font-weight: 600">Database</span><span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9679; Running</span>
+            </div>
+            <p class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm)">:10303 &middot; postgres:16</p>
+            <p class="aun-faint" style="font-size: var(--au-font-size-ui-sm); margin-top: 5px">up 24m</p>
+          </a>
+          <a class="aun-card" href="#desktop" style="text-decoration: none; color: inherit">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-bottom: 10px">
+              <span style="font-weight: 600">Sample Desktop</span><span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9679; Running</span>
+            </div>
+            <p class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm)">X11 &middot; no port</p>
+            <p class="aun-faint" style="font-size: var(--au-font-size-ui-sm); margin-top: 5px">up 24m</p>
+          </a>
+        </div>
+      </section>
+
+      <div class="aun-grid aun-grid--cards">
+        <article class="aun-card">
+          <h2 class="aun-card__title">Memory</h2>
+          <div class="aun-stack">
+            <p class="aun-note">The validation panel only renders once an application is selected.</p>
+            <p class="aun-note">Mobile Git has no Review page despite the docs naming one. Reported twice.</p>
+            <p class="aun-note">Sidebar collapses below 1100px; overlap there duplicates #377.</p>
+          </div>
+        </article>
+        <article class="aun-card">
+          <h2 class="aun-card__title">Recent</h2>
+          <div class="aun-stack">
+            <p class="aun-kv"><span class="aun-glyph--gate">&#9670;</span><span style="flex-grow: 1">#412 &middot; 14 findings, 3 blocking</span><span class="aun-muted">now</span></p>
+            <p class="aun-kv"><span class="aun-glyph--done">&#10003;</span><span style="flex-grow: 1">#409 &middot; approved, no findings</span><span class="aun-muted">2h</span></p>
+            <p class="aun-kv"><span class="aun-glyph--done">&#10003;</span><span style="flex-grow: 1">#401 &middot; 6 findings, 1 blocking</span><span class="aun-muted">5h</span></p>
+            <p class="aun-kv"><span class="aun-glyph--done">&#10003;</span><span style="flex-grow: 1">#396 &middot; 2 findings</span><span class="aun-muted">yesterday</span></p>
+            <p class="aun-kv"><span class="aun-glyph--halted">&#9650;</span><span style="flex-grow: 1">#391 &middot; halted, build unreachable</span><span class="aun-muted">yesterday</span></p>
+          </div>
+        </article>
+      </div>
+    </main>
+  </div>
+</section>
+
+<section data-aun-scene="agent-chat" data-aun-title="Agent &middot; Chat" data-aun-surface="desktop"
+         data-aun-intro="Structured events carry the signal; the token stream is a drawer. The approval gate names what it writes and who it writes as.">
+  <div class="aun">
+    <div data-aun-include="rail" data-aun-current="lucy"></div>
+    <main class="aun-main">
+      <div data-aun-include="agent-head"></div>
+      <nav class="aun-tabs" aria-label="Agent sections">
+        <a class="aun-tab" href="#overview">Overview</a>
+        <a class="aun-tab" href="#chat" aria-current="page">Chat</a>
+        <a class="aun-tab" href="#git">Git</a>
+      </nav>
+
+      <div class="aun-grid aun-grid--cards">
+        <article class="aun-card">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px">
+            <h2 class="aun-card__title" style="margin: 0">Review of #412</h2>
+            <span class="aun-faint" style="font-size: var(--au-font-size-ui-sm)">resumed &middot; attempt 2</span>
+          </div>
+          <div>
+            <div class="aun-event">
+              <span class="aun-event__dot aun-muted">&#9644;</span>
+              <span class="aun-event__body"><strong style="color: var(--au-color-text-primary)">Workspace prepared the branch</strong><br><span class="aun-muted">cleaned, fetched, checked out <span class="aun-mono">feat/412-agent-remedy</span> at <span class="aun-mono">a71f093</span></span></span>
+              <span class="aun-event__time">11m</span>
+            </div>
+            <div class="aun-event">
+              <span class="aun-event__dot aun-glyph--running">&#9679;</span>
+              <span class="aun-event__body"><strong style="color: var(--au-color-text-primary)">Lucy started</strong><br><span class="aun-muted">given the proposal, the issue it closes, and her persona</span></span>
+              <span class="aun-event__time">11m</span>
+            </div>
+            <div class="aun-event">
+              <span class="aun-event__dot aun-muted">&#9656;</span>
+              <span class="aun-event__body">Read #412 and the 4 changed files</span>
+              <span class="aun-event__time">9m</span>
+            </div>
+            <div class="aun-event">
+              <span class="aun-event__dot aun-muted">&#9656;</span>
+              <span class="aun-event__body">Replayed <span class="aun-mono">agents-dead-end</span> at 390, 834 and 1440px</span>
+              <span class="aun-event__time">6m</span>
+            </div>
+            <div class="aun-event">
+              <span class="aun-event__dot aun-glyph--gate">&#9650;</span>
+              <span class="aun-event__body"><strong style="color: var(--au-color-text-primary)">14 findings &middot; 3 blocking</strong><br><span class="aun-muted">&ldquo;Agent rows are unreachable by keyboard at every width; the row is a div with a click handler.&rdquo;</span></span>
+              <span class="aun-event__time">3m</span>
+            </div>
+            <div class="aun-event">
+              <span class="aun-event__dot aun-glyph--gate">&#9670;</span>
+              <span class="aun-event__body"><strong style="color: var(--au-color-text-primary)">Asked to submit the review</strong></span>
+              <span class="aun-event__time">now</span>
+            </div>
+          </div>
+          <details style="margin-top: 12px; border-top: 1px solid var(--au-color-border-subtle); padding-top: 12px">
+            <summary class="aun-muted" style="font-size: var(--au-font-size-ui-sm); cursor: pointer">Token stream</summary>
+            <p class="aun-console" style="margin-top: 9px">&hellip;checking focus order on the agent list. The third row has no tabindex and no role, so Tab skips it entirely. Same defect at all three widths, so I will report it once rather than three times&hellip;</p>
+          </details>
+        </article>
+
+        <div class="aun-stack" style="gap: 14px">
+          <article class="aun-card aun-card--gate">
+            <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 11px">
+              <span class="aun-glyph--gate">&#9670;</span>
+              <h2 class="aun-card__title" style="margin: 0; color: var(--au-color-text-warning)">Approval needed</h2>
+            </div>
+            <p class="aun-row__meta" style="margin-bottom: 11px">Submit a review on <strong>#412</strong> as <span class="aun-mono">@lucy-aup[bot]</span>.</p>
+            <div class="aun-stack" style="margin-bottom: 14px">
+              <p class="aun-kv"><span style="color: var(--au-color-text-danger); font-weight: 600; width: 1.5rem">3</span>blocking</p>
+              <p class="aun-kv"><span style="color: var(--au-color-text-warning); font-weight: 600; width: 1.5rem">6</span>should fix</p>
+              <p class="aun-kv"><span class="aun-muted" style="font-weight: 600; width: 1.5rem">5</span>nits</p>
+            </div>
+            <div class="aun-wrap" style="gap: 8px">
+              <button type="button" class="aun-btn aun-btn--primary">Approve &amp; submit</button>
+              <button type="button" class="aun-btn">View draft</button>
+              <button type="button" class="aun-btn aun-btn--danger">Reject</button>
+            </div>
+          </article>
+
+          <article class="aun-card">
+            <h2 class="aun-card__title">Message Lucy</h2>
+            <div class="aun-wrap" style="gap: 7px; margin-bottom: 11px">
+              <button type="button" class="aun-btn" style="flex: 1 1 0">Preempt</button>
+              <button type="button" class="aun-btn" style="flex: 1 1 0">Join</button>
+              <button type="button" class="aun-btn aun-btn--primary" style="flex: 1 1 0">Queue</button>
+            </div>
+            <label class="aun-rail__section" for="aun-msg" style="padding: 0 0 6px; display: block">MESSAGE</label>
+            <textarea id="aun-msg" class="aun-input aun-textarea" placeholder="Also check the mobile Agents screen before you submit."></textarea>
+            <div class="aun-wrap" style="gap: 8px; margin-top: 11px">
+              <button type="button" class="aun-btn aun-btn--primary">Send</button>
+              <button type="button" class="aun-btn">Stop run</button>
+            </div>
+          </article>
+        </div>
+      </div>
+    </main>
+  </div>
+</section>
+
+<section data-aun-scene="agent-git" data-aun-title="Agent &middot; Git" data-aun-surface="desktop"
+         data-aun-intro="The proposal under review, its changed files, and the findings anchored to the lines that produced them.">
+  <div class="aun">
+    <div data-aun-include="rail" data-aun-current="lucy"></div>
+    <main class="aun-main">
+      <div data-aun-include="agent-head"></div>
+      <nav class="aun-tabs" aria-label="Agent sections">
+        <a class="aun-tab" href="#overview">Overview</a>
+        <a class="aun-tab" href="#chat">Chat</a>
+        <a class="aun-tab" href="#git" aria-current="page">Git</a>
+      </nav>
+
+      <div class="aun-row" style="align-items: center">
+        <div class="aun-row__body">
+          <p class="aun-row__title">PR #431 &mdash; Give the agent list a remedy</p>
+          <p class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm); margin-top: 3px">feat/412-agent-remedy &rarr; main &middot; a71f093 &middot; bob-aup[bot]</p>
+        </div>
+        <div class="aun-wrap" style="gap: 16px">
+          <span style="color: var(--au-color-accent-soft)">+240</span>
+          <span style="color: var(--au-color-text-danger)">&minus;58</span>
+          <span class="aun-muted">4 files</span>
+        </div>
+        <div class="aun-row__actions"><button type="button" class="aun-btn">Fetch</button><button type="button" class="aun-btn">History</button></div>
+      </div>
+
+      <div class="aun-wrap" style="gap: 16px; flex-grow: 1; min-height: 0">
+        <article class="aun-card" style="flex: 1 1 16rem; min-width: 0; padding: 14px">
+          <p class="aun-rail__section" style="padding: 0 11px 8px">CHANGED</p>
+          <a class="aun-file" href="#f1" aria-current="true"><span class="aun-glyph--gate">&#9670;</span><span class="aun-mono" style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis">AgentDtos.cs</span><span style="color: var(--au-color-accent-soft)">+18</span></a>
+          <a class="aun-file" href="#f2"><span class="aun-glyph--gate">&#9670;</span><span class="aun-mono" style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis">MainWindow.axaml</span><span style="color: var(--au-color-accent-soft)">+96</span></a>
+          <a class="aun-file" href="#f3"><span class="aun-glyph--idle">&#9675;</span><span class="aun-mono" style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis">AgentsScreen.tsx</span><span style="color: var(--au-color-accent-soft)">+104</span></a>
+          <a class="aun-file" href="#f4"><span class="aun-glyph--idle">&#9675;</span><span class="aun-mono" style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis">AgentsHttpController.cs</span><span style="color: var(--au-color-accent-soft)">+22</span></a>
+          <p class="aun-rail__section" style="padding: 16px 11px 8px">FINDINGS &middot; 14</p>
+          <div class="aun-stack" style="padding: 0 11px">
+            <p class="aun-kv"><span style="color: var(--au-color-text-danger); font-weight: 600; width: 1.5rem">3</span>blocking</p>
+            <p class="aun-kv"><span style="color: var(--au-color-text-warning); font-weight: 600; width: 1.5rem">6</span>should fix</p>
+            <p class="aun-kv"><span class="aun-muted" style="font-weight: 600; width: 1.5rem">5</span>nits</p>
+          </div>
+        </article>
+
+        <article class="aun-card" style="flex: 999 1 30rem; min-width: 0; padding: 0; overflow: hidden; display: flex; flex-direction: column">
+          <div style="padding: 12px 16px; border-bottom: 1px solid var(--au-color-border-subtle); display: flex; align-items: center; gap: 10px">
+            <span class="aun-mono" style="font-size: var(--au-font-size-ui-sm)">AgentUp.Desktop/Features/Agents/DTOs/AgentDtos.cs</span>
+            <span class="aun-rail__spacer"></span>
+            <span style="color: var(--au-color-accent-soft); font-size: var(--au-font-size-ui-sm)">+18</span>
+            <span style="color: var(--au-color-text-danger); font-size: var(--au-font-size-ui-sm)">&minus;2</span>
+          </div>
+          <div class="aun-diff" style="padding: 12px 0; overflow: auto; flex-grow: 1">
+            <div class="aun-diff__line"><span class="aun-diff__num">12</span><span class="aun-faint">&nbsp;public sealed record AgentDescriptorDto(</span></div>
+            <div class="aun-diff__line aun-diff__line--del"><span class="aun-diff__num">13</span><span>&minus;&nbsp;&nbsp;&nbsp;&nbsp;string Agent, bool Available, string DisplayName);</span></div>
+            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">13</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;string Agent,</span></div>
+            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">14</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;bool Available,</span></div>
+            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">15</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;string DisplayName,</span></div>
+            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">16</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;string? Unavailability,</span></div>
+            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">17</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;string? Detail,</span></div>
+            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">18</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;string? Remedy);</span></div>
+          </div>
+          <div class="aun-card aun-card--gate" style="margin: 0 16px 16px">
+            <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 7px">
+              <span class="aun-avatar aun-avatar--sm">L</span>
+              <span style="font-weight: 600; font-size: var(--au-font-size-ui-sm)">Lucy</span>
+              <span class="aun-state aun-state--halted">blocking</span>
+              <span class="aun-rail__spacer"></span>
+              <span class="aun-faint" style="font-size: var(--au-font-size-ui-xs)">line 16</span>
+            </div>
+            <p class="aun-row__meta">Three nullable strings with no enum behind <span class="aun-mono">Unavailability</span> means every client re-invents the branch. Make it a typed discriminator so the remedy can be rendered without string comparison.</p>
+          </div>
+        </article>
+      </div>
+    </main>
+  </div>
+</section>
+
+<section data-aun-scene="application" data-aun-title="Application" data-aun-surface="desktop"
+         data-aun-intro="Opening an application from an agent's overview. Validation and the console live inside the application view.">
+  <div class="aun">
+    <div data-aun-include="rail" data-aun-current="lucy"></div>
+    <main class="aun-main" style="gap: 13px">
+      <div class="aun-wrap" style="gap: 10px; align-items: center">
+        <a href="#lucy" style="color: var(--au-color-text-info); font-size: var(--au-font-size-ui-sm)">&larr; Lucy</a>
+        <span class="aun-faint">/</span>
+        <span style="font-size: var(--au-font-size-ui-sm)">Example Web</span>
+        <span class="aun-rail__spacer"></span>
+        <span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-sm)">&#9679; Running</span>
+      </div>
+
+      <nav class="aun-apptabs" aria-label="Applications">
+        <a class="aun-apptab" href="#docs">Docs</a>
+        <a class="aun-apptab" href="#web" aria-current="page">Example Web</a>
+        <a class="aun-apptab" href="#api">Example API</a>
+        <a class="aun-apptab" href="#db">Database</a>
+        <a class="aun-apptab" href="#desk">Sample Desktop</a>
+      </nav>
+
+      <div class="aun-wrap" style="gap: 14px; flex-grow: 1; min-height: 0">
+        <div class="aun-browser" style="flex: 999 1 32rem; min-width: 0">
+          <div class="aun-browser__bar">
+            <button type="button" class="aun-browser__icon" aria-label="Back">&larr;</button>
+            <button type="button" class="aun-browser__icon" aria-label="Forward">&rarr;</button>
+            <button type="button" class="aun-browser__icon" aria-label="Reload">&#8635;</button>
+            <span class="aun-browser__url">http://localhost:10301/checkout</span>
+            <button type="button" class="aun-browser__icon" aria-label="Open externally">&#8599;</button>
+          </div>
+          <div class="aun-browser__view">
+            <div style="padding: 26px 30px; font-family: var(--au-font-sans)">
+              <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e5e5e5; margin-bottom: 22px">
+                <span style="font-size: 17px; font-weight: 700">Harbor Shop</span>
+                <span style="font-size: 13px; color: #555">Basket &middot; 3</span>
+              </div>
+              <h2 style="margin: 0 0 18px; font-size: 22px; font-weight: 700">Checkout</h2>
+              <div style="display: flex; flex-wrap: wrap; gap: 22px">
+                <div style="flex: 1 1 17rem; min-width: 0">
+                  <label for="aun-em" style="display: block; font-size: 12px; font-weight: 600; color: #444; margin-bottom: 5px">Email</label>
+                  <input id="aun-em" type="email" value="ada@example.com" style="font: inherit; font-size: 13px; width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 14px" />
+                  <label for="aun-ad" style="display: block; font-size: 12px; font-weight: 600; color: #444; margin-bottom: 5px">Delivery address</label>
+                  <input id="aun-ad" type="text" value="14 Dock Road" style="font: inherit; font-size: 13px; width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 18px" />
+                  <button type="button" style="font: inherit; font-size: 13.5px; font-weight: 600; padding: 11px 20px; border-radius: 7px; border: none; background: #117a4a; color: #fff; cursor: pointer">Place order</button>
+                </div>
+                <div style="flex: 0 1 14rem; background: #f6f6f4; border-radius: 9px; padding: 16px 18px">
+                  <p style="font-size: 13px; font-weight: 700; margin: 0 0 12px">Summary</p>
+                  <p style="display: flex; justify-content: space-between; font-size: 12.5px; color: #444; margin: 0 0 7px"><span>Rope, 20m</span><span>&pound;18.00</span></p>
+                  <p style="display: flex; justify-content: space-between; font-size: 12.5px; color: #444; margin: 0 0 7px"><span>Shackle &times;2</span><span>&pound;12.40</span></p>
+                  <p style="display: flex; justify-content: space-between; font-size: 12.5px; color: #444; margin: 0 0 12px"><span>Delivery</span><span>&pound;4.95</span></p>
+                  <p style="display: flex; justify-content: space-between; font-size: 13.5px; font-weight: 700; padding-top: 11px; border-top: 1px solid #ddd; margin: 0"><span>Total</span><span>&pound;35.35</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="aun-stack" style="flex: 1 1 18rem; min-width: 16rem; gap: 13px">
+          <article class="aun-card" style="padding: 16px 18px">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px">
+              <h2 class="aun-card__title" style="margin: 0">Validation</h2>
+              <span class="aun-faint" style="font-size: var(--au-font-size-ui-sm)">5 flows</span>
+            </div>
+            <div class="aun-stack">
+              <p class="aun-kv" style="border: 1px solid var(--au-color-border-subtle); border-radius: 7px; padding: 9px 11px"><span class="aun-glyph--done">&#10003;</span><span style="flex-grow: 1">Browse the catalogue</span></p>
+              <p class="aun-kv" style="border: 1px solid var(--au-color-border-subtle); border-radius: 7px; padding: 9px 11px"><span class="aun-glyph--done">&#10003;</span><span style="flex-grow: 1">Add to basket</span></p>
+              <p class="aun-kv" style="border: 1px solid var(--au-color-border-danger); background: var(--au-color-surface-danger); border-radius: 7px; padding: 9px 11px"><span class="aun-glyph--halted">&#9650;</span><span style="flex-grow: 1">Check out as a returning customer</span></p>
+              <div class="aun-note" style="border-left-color: var(--au-color-status-danger)">
+                <strong style="color: var(--au-color-text-danger)">Step 4 &middot; Place order</strong><br>Expected text &ldquo;Order confirmed&rdquo; was not visible within 10s.
+              </div>
+              <p class="aun-kv" style="border: 1px solid var(--au-color-border-subtle); border-radius: 7px; padding: 9px 11px"><span class="aun-glyph--idle">&#9675;</span><span class="aun-muted" style="flex-grow: 1">Change delivery address</span></p>
+            </div>
+            <div class="aun-wrap" style="gap: 8px; margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--au-color-border-subtle)">
+              <button type="button" class="aun-btn aun-btn--primary">Replay all</button>
+              <button type="button" class="aun-btn">Record</button>
+            </div>
+          </article>
+
+          <article class="aun-card" style="padding: 16px 18px">
+            <h2 class="aun-card__title">Console</h2>
+            <div class="aun-console">
+              <p style="margin: 0">&gt; vite --host 0.0.0.0</p>
+              <p style="margin: 0; color: var(--au-color-accent-soft)">&#10140; Local: http://localhost:10301/</p>
+              <p style="margin: 0">12:04:11 [vite] page reload src/Checkout.tsx</p>
+              <p style="margin: 0; color: var(--au-color-text-danger)">12:04:19 POST /api/orders 500</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </main>
+  </div>
+</section>
+
+<section data-aun-scene="settings" data-aun-title="Settings" data-aun-surface="desktop"
+         data-aun-intro="The new interface carries the switch back. Turning it off restores the classic workspace shell on the next launch; nothing on the Server changes.">
+  <div class="aun">
+    <div data-aun-include="rail" data-aun-current="settings"></div>
+    <main class="aun-main">
+      <header class="aun-head">
+        <div>
+          <h1 class="aun-title">Settings</h1>
+          <p class="aun-subtitle">dev-box &middot; <span class="aun-mono">localhost:5000</span></p>
+        </div>
+      </header>
+
+      <section>
+        <h2 class="aun-section__head">INTERFACE</h2>
+        <div class="aun-setting aun-setting--feature">
+          <div class="aun-setting__body">
+            <p class="aun-setting__name">Command center</p>
+            <p class="aun-setting__note">You are using the new interface. Switching back restores the classic workspace shell on the next launch. Your agents, workspaces and accounts are untouched either way.</p>
+          </div>
+          <span class="aun-switch" role="switch" aria-checked="true" aria-label="Command center interface" tabindex="0"><span class="aun-switch__knob"></span></span>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="aun-section__head">SERVER</h2>
+        <div class="aun-stack">
+          <div class="aun-setting">
+            <div class="aun-setting__body">
+              <p class="aun-setting__name">Autonomy</p>
+              <p class="aun-setting__note">Agents may pick up assigned tasks without being started by hand.</p>
+            </div>
+            <span class="aun-switch" role="switch" aria-checked="true" aria-label="Autonomy" tabindex="0"><span class="aun-switch__knob"></span></span>
+          </div>
+          <div class="aun-setting">
+            <div class="aun-setting__body">
+              <p class="aun-setting__name">Repository host</p>
+              <p class="aun-setting__note">Connected to <span class="aun-mono">github.com/agent-up-oss</span> &middot; polling every 60s.</p>
+            </div>
+            <button type="button" class="aun-btn">Manage</button>
+          </div>
+          <div class="aun-setting">
+            <div class="aun-setting__body">
+              <p class="aun-setting__name">Sign out of this server</p>
+              <p class="aun-setting__note">Disconnects this window. Agents keep running on the Server.</p>
+            </div>
+            <button type="button" class="aun-btn aun-btn--danger">Sign out</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</section>
+
+<!-- ============================================================== MOBILE === -->
+
+<section data-aun-scene="mobile-bridge" data-aun-title="Mobile &middot; Bridge" data-aun-surface="mobile"
+         data-aun-intro="Phone triage. Approve and reject are reachable without opening anything.">
+  <div class="aun-phone">
+    <header class="aun-phone__head">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px">
+        <span>
+          <span class="aun-title" style="display: block; font-size: var(--au-font-size-ui-lg)">Bridge</span>
+          <span class="aun-rail__url">dev-box &middot; localhost:5000</span>
+        </span>
+        <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live</span>
+      </div>
+    </header>
+    <div class="aun-phone__body">
+      <section>
+        <h2 class="aun-section__head aun-section__head--gate"><span>&#9670;</span>WAITING ON YOU &middot; 2</h2>
+        <div class="aun-stack">
+          <article class="aun-card aun-card--gate" style="padding: 13px 14px">
+            <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 9px">
+              <span class="aun-avatar aun-avatar--sm" style="width: 1.75rem; height: 1.75rem">L</span>
+              <span><span class="aun-row__title" style="display: block">Lucy wants to submit her review on #412</span><span class="aun-row__time">8m</span></span>
+            </div>
+            <p class="aun-row__meta" style="margin-bottom: 11px">14 findings &middot; 3 blocking</p>
+            <div class="aun-wrap" style="gap: 8px">
+              <button type="button" class="aun-btn aun-btn--primary aun-btn--touch" style="flex: 1 1 0">Approve</button>
+              <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">Reject</button>
+            </div>
+          </article>
+          <article class="aun-card aun-card--gate" style="padding: 13px 14px">
+            <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 9px">
+              <span class="aun-avatar aun-avatar--sm" style="width: 1.75rem; height: 1.75rem">B</span>
+              <span><span class="aun-row__title" style="display: block">Bob wants to open a pull request for #398</span><span class="aun-row__time">41m</span></span>
+            </div>
+            <p class="aun-row__meta" style="margin-bottom: 11px">11 files &middot; 240 insertions</p>
+            <div class="aun-wrap" style="gap: 8px">
+              <button type="button" class="aun-btn aun-btn--primary aun-btn--touch" style="flex: 1 1 0">Approve</button>
+              <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">Reject</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="aun-section__head aun-section__head--halted"><span>&#9650;</span>HALTED &middot; 1</h2>
+        <article class="aun-card aun-card--halted" style="padding: 13px 14px">
+          <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px">
+            <span class="aun-avatar aun-avatar--sm" style="width: 1.75rem; height: 1.75rem">H</span>
+            <span><span class="aun-row__title" style="display: block">Hector stopped on #405</span><span class="aun-row__time">52m</span></span>
+          </div>
+          <div class="aun-diag">
+            <span class="aun-diag__code">forge.unreachable</span>
+            <p class="aun-diag__remedy"><strong>Remedy:</strong> check host connection, then resume</p>
+          </div>
+        </article>
+      </section>
+
+      <section>
+        <h2 class="aun-section__head">TEAM</h2>
+        <div class="aun-stack">
+          <a class="aun-row" href="#lucy" style="align-items: center; padding: 12px 13px"><span class="aun-avatar aun-avatar--sm" style="width: 2rem; height: 2rem">L</span><span class="aun-row__body"><span class="aun-row__title" style="display: block">Lucy</span><span class="aun-row__meta">Reviewer &middot; interface</span></span><span class="aun-glyph--gate" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9670; #412</span></a>
+          <a class="aun-row" href="#bob" style="align-items: center; padding: 12px 13px"><span class="aun-avatar aun-avatar--sm" style="width: 2rem; height: 2rem">B</span><span class="aun-row__body"><span class="aun-row__title" style="display: block">Bob</span><span class="aun-row__meta">Developer</span></span><span class="aun-glyph--gate" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9670; #398</span></a>
+          <a class="aun-row" href="#hector" style="align-items: center; padding: 12px 13px"><span class="aun-avatar aun-avatar--sm" style="width: 2rem; height: 2rem">H</span><span class="aun-row__body"><span class="aun-row__title" style="display: block">Hector</span><span class="aun-row__meta">Reviewer &middot; code</span></span><span class="aun-glyph--halted" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9650; #405</span></a>
+        </div>
+      </section>
+    </div>
+    <nav class="aun-tabbar" aria-label="Sections">
+      <a class="aun-tabbar__item" href="#bridge" aria-current="page"><span style="font-size: 15px">&#9632;</span>Bridge</a>
+      <a class="aun-tabbar__item" href="#tasks"><span style="font-size: 15px">&#9644;</span>Tasks</a>
+      <a class="aun-tabbar__item" href="#team"><span style="font-size: 15px">&#9679;</span>Team</a>
+    </nav>
+  </div>
+</section>
+
+<section data-aun-scene="mobile-team" data-aun-title="Mobile &middot; Team" data-aun-surface="mobile"
+         data-aun-intro="Who exists, what each one is doing, and the record that gives them a character.">
+  <div class="aun-phone">
+    <header class="aun-phone__head">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px">
+        <span>
+          <span class="aun-title" style="display: block; font-size: var(--au-font-size-ui-lg)">Team</span>
+          <span class="aun-subtitle">3 agents</span>
+        </span>
+        <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live</span>
+      </div>
+    </header>
+    <div class="aun-phone__body" style="gap: 11px">
+      <a class="aun-card aun-card--gate" href="#lucy" style="padding: 14px; text-decoration: none; color: inherit">
+        <div style="display: flex; gap: 11px; align-items: center; margin-bottom: 11px">
+          <span class="aun-avatar aun-avatar--md">L</span>
+          <span style="flex-grow: 1"><span style="font-size: var(--au-font-size-ui-lg); font-weight: 700; display: block">Lucy</span><span class="aun-subtitle">Reviewer &middot; interface</span></span>
+        </div>
+        <div class="aun-stack" style="margin-bottom: 11px">
+          <p class="aun-kv"><span class="aun-kv__k">Account</span><span class="aun-mono">@lucy-aup[bot]</span></p>
+          <p class="aun-kv"><span class="aun-kv__k">Workspace</span><span class="aun-mono">agent-up-qa</span></p>
+        </div>
+        <div class="aun-card aun-card--gate" style="padding: 8px 10px; margin-bottom: 11px">
+          <span class="aun-glyph--gate" style="font-weight: 600; font-size: var(--au-font-size-ui-sm)">&#9670; Waiting on you</span>
+          <span class="aun-row__meta"> &middot; #412 &middot; 8m</span>
+        </div>
+        <div class="aun-stats">
+          <div><p class="aun-stat">128</p><p class="aun-stat__label">reviews</p></div>
+          <div><p class="aun-stat" style="color: var(--au-color-text-warning)">31</p><p class="aun-stat__label">blocking</p></div>
+          <div><p class="aun-stat">6m</p><p class="aun-stat__label">median</p></div>
+        </div>
+      </a>
+
+      <a class="aun-card aun-card--gate" href="#bob" style="padding: 14px; text-decoration: none; color: inherit">
+        <div style="display: flex; gap: 11px; align-items: center; margin-bottom: 11px">
+          <span class="aun-avatar aun-avatar--md">B</span>
+          <span style="flex-grow: 1"><span style="font-size: var(--au-font-size-ui-lg); font-weight: 700; display: block">Bob</span><span class="aun-subtitle">Developer</span></span>
+        </div>
+        <div class="aun-stack" style="margin-bottom: 11px">
+          <p class="aun-kv"><span class="aun-kv__k">Account</span><span class="aun-mono">@bob-aup[bot]</span></p>
+          <p class="aun-kv"><span class="aun-kv__k">Workspace</span><span class="aun-mono">localinstaller</span></p>
+        </div>
+        <div class="aun-card aun-card--gate" style="padding: 8px 10px; margin-bottom: 11px">
+          <span class="aun-glyph--gate" style="font-weight: 600; font-size: var(--au-font-size-ui-sm)">&#9670; Waiting on you</span>
+          <span class="aun-row__meta"> &middot; #398 &middot; 41m</span>
+        </div>
+        <div class="aun-stats">
+          <div><p class="aun-stat">94</p><p class="aun-stat__label">proposals</p></div>
+          <div><p class="aun-stat" style="color: var(--au-color-accent-soft)">71%</p><p class="aun-stat__label">first pass</p></div>
+          <div><p class="aun-stat">22m</p><p class="aun-stat__label">median</p></div>
+        </div>
+      </a>
+
+      <a class="aun-card aun-card--halted" href="#hector" style="padding: 14px; text-decoration: none; color: inherit">
+        <div style="display: flex; gap: 11px; align-items: center; margin-bottom: 11px">
+          <span class="aun-avatar aun-avatar--md">H</span>
+          <span style="flex-grow: 1"><span style="font-size: var(--au-font-size-ui-lg); font-weight: 700; display: block">Hector</span><span class="aun-subtitle">Reviewer &middot; code</span></span>
+        </div>
+        <div class="aun-stack" style="margin-bottom: 11px">
+          <p class="aun-kv"><span class="aun-kv__k">Account</span><span class="aun-mono">@hector-aup[bot]</span></p>
+          <p class="aun-kv"><span class="aun-kv__k">Workspace</span><span class="aun-mono">agent-up-docs</span></p>
+        </div>
+        <div class="aun-card aun-card--halted" style="padding: 8px 10px; margin-bottom: 11px">
+          <span class="aun-glyph--halted" style="font-weight: 600; font-size: var(--au-font-size-ui-sm)">&#9650; Halted</span>
+          <span class="aun-row__meta"> &middot; #405 &middot; 52m</span>
+        </div>
+        <div class="aun-stats">
+          <div><p class="aun-stat">203</p><p class="aun-stat__label">reviews</p></div>
+          <div><p class="aun-stat" style="color: var(--au-color-text-warning)">47</p><p class="aun-stat__label">this month</p></div>
+          <div><p class="aun-stat">11m</p><p class="aun-stat__label">median</p></div>
+        </div>
+      </a>
+    </div>
+    <nav class="aun-tabbar" aria-label="Sections">
+      <a class="aun-tabbar__item" href="#bridge"><span style="font-size: 15px">&#9632;</span>Bridge</a>
+      <a class="aun-tabbar__item" href="#tasks"><span style="font-size: 15px">&#9644;</span>Tasks</a>
+      <a class="aun-tabbar__item" href="#team" aria-current="page"><span style="font-size: 15px">&#9679;</span>Team</a>
+    </nav>
+  </div>
+</section>
+
+<section data-aun-scene="mobile-chat" data-aun-title="Mobile &middot; Agent chat" data-aun-surface="mobile"
+         data-aun-intro="The approval comes first because that is why a phone opens this screen. Heavy views degrade with a stated reason instead of disappearing.">
+  <div class="aun-phone">
+    <header class="aun-phone__head" style="padding-bottom: 0">
+      <a href="#team" style="color: var(--au-color-text-info); font-size: var(--au-font-size-ui-sm); display: inline-block; margin-bottom: 9px">&larr; Team</a>
+      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 11px">
+        <span class="aun-avatar aun-avatar--md">L</span>
+        <span style="flex-grow: 1; min-width: 0">
+          <span style="font-size: var(--au-font-size-ui-lg); font-weight: 700; display: block">Lucy</span>
+          <span class="aun-rail__url">@lucy-aup[bot] &middot; agent-up-qa</span>
+        </span>
+        <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live</span>
+      </div>
+      <nav class="aun-tabs" aria-label="Agent sections" style="border-bottom: none">
+        <a class="aun-tab" href="#overview" style="flex: 1 1 0; text-align: center">Overview</a>
+        <a class="aun-tab" href="#chat" aria-current="page" style="flex: 1 1 0; text-align: center">Chat</a>
+        <a class="aun-tab" href="#git" style="flex: 1 1 0; text-align: center">Git</a>
+      </nav>
+    </header>
+    <div class="aun-phone__body">
+      <article class="aun-card aun-card--gate" style="padding: 14px">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 9px">
+          <span class="aun-glyph--gate">&#9670;</span>
+          <h2 class="aun-card__title" style="margin: 0; color: var(--au-color-text-warning)">Approval needed</h2>
+        </div>
+        <p class="aun-row__meta" style="margin-bottom: 11px">Submit a review on <strong>#412</strong> as <span class="aun-mono">@lucy-aup[bot]</span>.</p>
+        <div class="aun-wrap" style="gap: 14px; margin-bottom: 13px">
+          <span class="aun-row__meta"><strong style="color: var(--au-color-text-danger)">3</strong> blocking</span>
+          <span class="aun-row__meta"><strong style="color: var(--au-color-text-warning)">6</strong> should fix</span>
+          <span class="aun-row__meta"><strong class="aun-muted">5</strong> nits</span>
+        </div>
+        <div class="aun-stack">
+          <button type="button" class="aun-btn aun-btn--primary aun-btn--touch">Approve &amp; submit</button>
+          <div class="aun-wrap" style="gap: 8px">
+            <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">View draft</button>
+            <button type="button" class="aun-btn aun-btn--danger aun-btn--touch" style="flex: 1 1 0">Reject</button>
+          </div>
+        </div>
+      </article>
+
+      <section>
+        <h2 class="aun-section__head">REVIEW OF #412</h2>
+        <article class="aun-card" style="padding: 4px 13px 9px">
+          <div class="aun-event"><span class="aun-event__dot aun-muted">&#9644;</span><span class="aun-event__body">Workspace checked out <span class="aun-mono">feat/412</span></span><span class="aun-event__time">11m</span></div>
+          <div class="aun-event"><span class="aun-event__dot aun-glyph--running">&#9679;</span><span class="aun-event__body">Lucy started</span><span class="aun-event__time">11m</span></div>
+          <div class="aun-event"><span class="aun-event__dot aun-muted">&#9656;</span><span class="aun-event__body">Read 4 changed files</span><span class="aun-event__time">9m</span></div>
+          <div class="aun-event"><span class="aun-event__dot aun-muted">&#9656;</span><span class="aun-event__body">Replayed flow at 3 widths &middot; step 04 failed</span><span class="aun-event__time">6m</span></div>
+          <div class="aun-event"><span class="aun-event__dot aun-glyph--gate">&#9650;</span><span class="aun-event__body">14 findings, 3 blocking</span><span class="aun-event__time">3m</span></div>
+          <div class="aun-event"><span class="aun-event__dot aun-glyph--gate">&#9670;</span><span class="aun-event__body">Asked to submit</span><span class="aun-event__time">now</span></div>
+        </article>
+      </section>
+
+      <section>
+        <h2 class="aun-section__head">MESSAGE LUCY</h2>
+        <div class="aun-wrap" style="gap: 7px; margin-bottom: 9px">
+          <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">Preempt</button>
+          <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">Join</button>
+          <button type="button" class="aun-btn aun-btn--primary aun-btn--touch" style="flex: 1 1 0">Queue</button>
+        </div>
+        <label class="aun-rail__section" for="aun-mmsg" style="padding: 0 0 6px; display: block">MESSAGE</label>
+        <input id="aun-mmsg" class="aun-input" style="min-height: var(--au-control-height-touch)" type="text" placeholder="Also check the mobile Agents screen" />
+      </section>
+
+      <div class="aun-degrade">
+        <p style="font-weight: 600; font-size: var(--au-font-size-ui-sm); margin: 0 0 4px">Not shown on phone</p>
+        <p class="aun-row__meta" style="margin: 0">The diff, the applications and the validation artefacts need width. Open Lucy on the desktop to see them.</p>
+      </div>
+    </div>
+    <nav class="aun-tabbar" aria-label="Sections">
+      <a class="aun-tabbar__item" href="#bridge"><span style="font-size: 15px">&#9632;</span>Bridge</a>
+      <a class="aun-tabbar__item" href="#tasks"><span style="font-size: 15px">&#9644;</span>Tasks</a>
+      <a class="aun-tabbar__item" href="#team" aria-current="page"><span style="font-size: 15px">&#9679;</span>Team</a>
+    </nav>
+  </div>
+</section>
+
+<section data-aun-scene="mobile-settings" data-aun-title="Mobile &middot; Settings" data-aun-surface="mobile"
+         data-aun-intro="The same switch back, on the phone. Both clients carry it so neither can strand you in the new shell.">
+  <div class="aun-phone">
+    <header class="aun-phone__head">
+      <span class="aun-title" style="display: block; font-size: var(--au-font-size-ui-lg)">Settings</span>
+      <span class="aun-rail__url">dev-box &middot; localhost:5000</span>
+    </header>
+    <div class="aun-phone__body">
+      <section>
+        <h2 class="aun-section__head">INTERFACE</h2>
+        <div class="aun-setting aun-setting--feature" style="padding: 14px">
+          <div class="aun-setting__body">
+            <p class="aun-setting__name">Command center</p>
+            <p class="aun-setting__note">You are using the new interface. Switching back restores the classic shell on the next launch.</p>
+          </div>
+          <span class="aun-switch" role="switch" aria-checked="true" aria-label="Command center interface" tabindex="0"><span class="aun-switch__knob"></span></span>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="aun-section__head">SERVER</h2>
+        <div class="aun-stack">
+          <div class="aun-setting" style="padding: 14px">
+            <div class="aun-setting__body">
+              <p class="aun-setting__name">Autonomy</p>
+              <p class="aun-setting__note">Agents may pick up assigned tasks on their own.</p>
+            </div>
+            <span class="aun-switch" role="switch" aria-checked="true" aria-label="Autonomy" tabindex="0"><span class="aun-switch__knob"></span></span>
+          </div>
+          <div class="aun-setting" style="padding: 14px">
+            <div class="aun-setting__body">
+              <p class="aun-setting__name">Repository host</p>
+              <p class="aun-setting__note"><span class="aun-mono">github.com/agent-up-oss</span></p>
+            </div>
+            <button type="button" class="aun-btn aun-btn--touch">Manage</button>
+          </div>
+          <div class="aun-setting" style="padding: 14px">
+            <div class="aun-setting__body">
+              <p class="aun-setting__name">Sign out</p>
+              <p class="aun-setting__note">Agents keep running on the Server.</p>
+            </div>
+            <button type="button" class="aun-btn aun-btn--danger aun-btn--touch">Sign out</button>
+          </div>
+        </div>
+      </section>
+    </div>
+    <nav class="aun-tabbar" aria-label="Sections">
+      <a class="aun-tabbar__item" href="#bridge"><span style="font-size: 15px">&#9632;</span>Bridge</a>
+      <a class="aun-tabbar__item" href="#tasks"><span style="font-size: 15px">&#9644;</span>Tasks</a>
+      <a class="aun-tabbar__item" href="#team"><span style="font-size: 15px">&#9679;</span>Team</a>
+    </nav>
+  </div>
+</section>
+
+</body>
+</html>

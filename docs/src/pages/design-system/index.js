@@ -3,6 +3,8 @@ import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import catalog from '@agent-up/design-system/catalog';
 import screenshots from '@agent-up/design-system/screenshots';
+import newUi from '@agent-up/design-system/new-ui';
+import '@agent-up/design-system/new-ui-embed.css';
 import { playSequence } from '@agent-up/design-system/sequence';
 import { applyProps } from '@agent-up/design-system/slots';
 import { agentUpTheme } from '@agent-up/design-system/native';
@@ -237,6 +239,86 @@ function ScenePreview({ scene, label }) {
   </figure>;
 }
 
+/**
+ * One New UI scene, scaled into the showcase the same way an assembled screen is.
+ *
+ * The New UI space is a second arrangement of the same tokens. It is rendered from its own
+ * manifest and its own `aun-` stylesheet, so nothing here can alter how the current UI above
+ * is defined or drawn.
+ */
+function NewUiPreview({ scene }) {
+  const displayHeight = useShowcaseDisplayHeight();
+  const scale = displayHeight / scene.height;
+  return <figure className="au-screenshot-preview">
+    <div
+      className="au-product-frame au-screenshot-embed"
+      style={{
+        width: scene.width * scale,
+        height: displayHeight,
+        overflow: 'hidden',
+        position: 'relative',
+      }}
+      aria-label={scene.surface === 'mobile' ? 'Mobile' : 'Desktop'}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: scene.width,
+          height: scene.height,
+          transform: `scale(${scale})`,
+          transformOrigin: '0 0',
+        }}
+        ref={node => { if (node) node.inert = true; }}
+        dangerouslySetInnerHTML={{ __html: scene.html }}
+      />
+    </div>
+    <figcaption className="au-field-label">{scene.surface === 'mobile' ? 'Mobile' : 'Desktop'}</figcaption>
+  </figure>;
+}
+
+/** The New UI space: its own scene list, shown in place of the assembled current-UI screens. */
+function NewUiSpace({ scenes, activeId, onSelect }) {
+  const scene = scenes.find(item => item.id === activeId) ?? scenes[0];
+  return <div className={styles.screenNav}>
+    <nav aria-label="New UI screens">
+      <div className={styles.screenChipRow} role="tablist" aria-orientation="horizontal">
+        {scenes.map(item => (
+          <button
+            key={item.id}
+            id={`new-ui-tab-${item.id}`}
+            type="button"
+            className={`au-chip${item.id === scene.id ? ' au-chip--selected' : ''} ${styles.screenChip}`}
+            role="tab"
+            aria-selected={item.id === scene.id}
+            aria-controls={`new-ui-panel-${item.id}`}
+            onClick={() => onSelect(item.id)}
+            dangerouslySetInnerHTML={{ __html: item.title }}
+          />
+        ))}
+      </div>
+    </nav>
+    <section
+      id={`new-ui-panel-${scene.id}`}
+      className={styles.screenPanel}
+      role="tabpanel"
+      aria-labelledby={`new-ui-tab-${scene.id}`}
+    >
+      <div className={styles.screenCopy}>
+        <h3 className="au-page-title" dangerouslySetInnerHTML={{ __html: scene.title }} />
+        <p className="au-muted">{scene.intro}</p>
+      </div>
+      <div className="au-screenshot-stage">
+        <div className="au-screenshot-pair">
+          <NewUiPreview scene={scene} />
+        </div>
+      </div>
+    </section>
+  </div>;
+}
+
 export default function DesignSystemPage() {
   const surfaces = catalog.surfaces;
   const ids = useMemo(() => surfaces.map(surface => surface.id), [surfaces]);
@@ -248,6 +330,9 @@ export default function DesignSystemPage() {
   );
   const [active, setActive] = useState(ids[0]);
   const [activeScreen, setActiveScreen] = useState(screenIds.includes('applications') ? 'applications' : screenIds[0]);
+  const newUiScenes = newUi.scenes;
+  const [space, setSpace] = useState('current');
+  const [activeNewUi, setActiveNewUi] = useState(newUiScenes[0].id);
 
   useEffect(() => {
     const sync = () => {
@@ -305,9 +390,33 @@ export default function DesignSystemPage() {
               <p className="au-eyebrow">Assembled screens</p>
               <h2 className={`au-title ${styles.overviewTitle}`}>One central definition.</h2>
               <p className="au-lede">Each screen is defined centrally and itself assembled from central component definitions.</p>
+              <div className="au-cluster" role="tablist" aria-label="Interface space">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={space === 'current'}
+                  className={`au-chip${space === 'current' ? ' au-chip--selected' : ''}`}
+                  onClick={() => setSpace('current')}
+                >
+                  Current UI
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={space === 'new'}
+                  className={`au-chip${space === 'new' ? ' au-chip--selected' : ''}`}
+                  onClick={() => setSpace('new')}
+                >
+                  New UI
+                </button>
+              </div>
             </div>
 
-            <div className={styles.screenNav}>
+            {space === 'new' ? <NewUiSpace
+              scenes={newUiScenes}
+              activeId={activeNewUi}
+              onSelect={setActiveNewUi}
+            /> : <div className={styles.screenNav}>
               <nav aria-label="Assembled screens">
                 <div className={styles.screenChipRow} role="tablist" aria-orientation="horizontal">
                   {screens.map(item => (
@@ -344,7 +453,7 @@ export default function DesignSystemPage() {
                   </div>
                 </div>
               </section>
-            </div>
+            </div>}
           </div>
         </div>
       </section>

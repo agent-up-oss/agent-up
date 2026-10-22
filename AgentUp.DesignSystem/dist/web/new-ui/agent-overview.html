@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent · Overview — Agent-Up new UI</title>
+  <link rel="stylesheet" href="../new-ui.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
+    .aun-frame { width: 1440px; min-height: 900px; overflow: hidden; display: flex; }
+    .aun-frame > * { flex: 1 1 auto; min-width: 0; }
+  </style>
+</head>
+<body>
+<div class="aun-frame">
+<div class="aun">
+    <nav class="aun-rail" aria-label="Command center">
+    <div class="aun-rail__server">
+      <span class="aun-dot aun-dot--live"></span>
+      <span>
+        <span class="aun-rail__name">dev-box</span>
+        <span class="aun-rail__url">localhost:5000</span>
+      </span>
+    </div>
+    <a class="aun-rail__link" data-aun-nav="bridge" href="#bridge">Bridge</a>
+    <a class="aun-rail__link" data-aun-nav="tasks" href="#tasks">Tasks</a>
+    <p class="aun-rail__section">TEAM</p>
+    <a class="aun-rail__link" data-aun-nav="team" href="#team">All agents</a>
+    <a class="aun-rail__agent" data-aun-nav="lucy" aria-current="page" href="#lucy">
+      <span class="aun-avatar aun-avatar--sm">L</span>Lucy
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span>
+    </a>
+    <a class="aun-rail__agent" data-aun-nav="bob" href="#bob">
+      <span class="aun-avatar aun-avatar--sm">B</span>Bob
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span>
+    </a>
+    <a class="aun-rail__agent" data-aun-nav="hector" href="#hector">
+      <span class="aun-avatar aun-avatar--sm">H</span>Hector
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--halted">&#9650;</span>
+    </a>
+    <span class="aun-rail__spacer"></span>
+    <a class="aun-rail__link" data-aun-nav="settings" href="#settings">Settings</a>
+    <a class="aun-rail__link" data-aun-nav="signout" href="#signout">Sign out of server</a>
+  </nav>
+    <main class="aun-main">
+      <header class="aun-head" style="align-items: center">
+    <span class="aun-avatar aun-avatar--lg">L</span>
+    <span style="flex: 1 1 18rem; min-width: 0">
+      <span class="aun-title" style="display: block">Lucy</span>
+      <span class="aun-subtitle">Reviewer &middot; interface &nbsp;&middot;&nbsp; <span class="aun-mono">@lucy-aup[bot]</span> &nbsp;&middot;&nbsp; <span class="aun-mono">agent-up-qa</span></span>
+    </span>
+    <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live</span>
+  </header>
+      <nav class="aun-tabs" aria-label="Agent sections">
+        <a class="aun-tab" href="#overview" aria-current="page">Overview</a>
+        <a class="aun-tab" href="#chat">Chat</a>
+        <a class="aun-tab" href="#git">Git</a>
+      </nav>
+
+      <div class="aun-grid aun-grid--cards">
+        <article class="aun-card aun-card--gate">
+          <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 12px">
+            <span class="aun-glyph--gate">&#9670;</span>
+            <h2 class="aun-card__title" style="margin: 0; color: var(--au-color-text-warning)">Waiting on you</h2>
+            <span class="aun-rail__spacer"></span><span class="aun-row__time" style="margin: 0">8m</span>
+          </div>
+          <p class="aun-row__title">Submit review on #412</p>
+          <p class="aun-row__meta" style="margin-bottom: 14px">14 findings &middot; 3 blocking &middot; posts as <span class="aun-mono">@lucy-aup[bot]</span></p>
+          <div class="aun-wrap" style="gap: 8px">
+            <button type="button" class="aun-btn aun-btn--primary">Approve &amp; submit</button>
+            <a class="aun-btn" href="#chat">Open chat</a>
+            <button type="button" class="aun-btn aun-btn--danger">Reject</button>
+          </div>
+        </article>
+
+        <article class="aun-card">
+          <h2 class="aun-card__title">Current task</h2>
+          <div class="aun-stack">
+            <p class="aun-kv"><span class="aun-kv__k">Task</span><a href="#412" style="color: var(--au-color-text-info)">#412 Agent tab dead end on both clients</a></p>
+            <p class="aun-kv"><span class="aun-kv__k">Proposal</span><span class="aun-mono">PR #431 &middot; bob-aup[bot]</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Branch</span><span class="aun-mono">feat/412-agent-remedy</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Head</span><span class="aun-mono">a71f093</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Prepared</span><span style="color: var(--au-color-accent-soft)">checked out and cleaned 11m ago</span></p>
+          </div>
+        </article>
+      </div>
+
+      <section>
+        <h2 class="aun-section__head">APPLICATIONS</h2>
+        <div class="aun-grid aun-grid--apps">
+          <a class="aun-card" href="#docs" style="text-decoration: none; color: inherit">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-bottom: 10px">
+              <span style="font-weight: 600">Docs</span><span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9679; Running</span>
+            </div>
+            <p class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm)">:10300 &middot; http</p>
+            <p class="aun-faint" style="font-size: var(--au-font-size-ui-sm); margin-top: 5px">up 24m</p>
+          </a>
+          <a class="aun-card" href="#web" style="text-decoration: none; color: inherit">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-bottom: 10px">
+              <span style="font-weight: 600">Example Web</span><span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9679; Running</span>
+            </div>
+            <p class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm)">:10301 &middot; http</p>
+            <p class="aun-faint" style="font-size: var(--au-font-size-ui-sm); margin-top: 5px">up 24m</p>
+          </a>
+          <a class="aun-card" href="#api" style="text-decoration: none; color: inherit">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-bottom: 10px">
+              <span style="font-weight: 600">Example API</span><span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9679; Running</span>
+            </div>
+            <p class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm)">:10302 &middot; /health</p>
+            <p class="aun-faint" style="font-size: var(--au-font-size-ui-sm); margin-top: 5px">up 23m</p>
+          </a>
+          <a class="aun-card" href="#db" style="text-decoration: none; color: inherit">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-bottom: 10px">
+              <span style="font-weight: 600">Database</span><span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9679; Running</span>
+            </div>
+            <p class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm)">:10303 &middot; postgres:16</p>
+            <p class="aun-faint" style="font-size: var(--au-font-size-ui-sm); margin-top: 5px">up 24m</p>
+          </a>
+          <a class="aun-card" href="#desktop" style="text-decoration: none; color: inherit">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-bottom: 10px">
+              <span style="font-weight: 600">Sample Desktop</span><span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9679; Running</span>
+            </div>
+            <p class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm)">X11 &middot; no port</p>
+            <p class="aun-faint" style="font-size: var(--au-font-size-ui-sm); margin-top: 5px">up 24m</p>
+          </a>
+        </div>
+      </section>
+
+      <div class="aun-grid aun-grid--cards">
+        <article class="aun-card">
+          <h2 class="aun-card__title">Memory</h2>
+          <div class="aun-stack">
+            <p class="aun-note">The validation panel only renders once an application is selected.</p>
+            <p class="aun-note">Mobile Git has no Review page despite the docs naming one. Reported twice.</p>
+            <p class="aun-note">Sidebar collapses below 1100px; overlap there duplicates #377.</p>
+          </div>
+        </article>
+        <article class="aun-card">
+          <h2 class="aun-card__title">Recent</h2>
+          <div class="aun-stack">
+            <p class="aun-kv"><span class="aun-glyph--gate">&#9670;</span><span style="flex-grow: 1">#412 &middot; 14 findings, 3 blocking</span><span class="aun-muted">now</span></p>
+            <p class="aun-kv"><span class="aun-glyph--done">&#10003;</span><span style="flex-grow: 1">#409 &middot; approved, no findings</span><span class="aun-muted">2h</span></p>
+            <p class="aun-kv"><span class="aun-glyph--done">&#10003;</span><span style="flex-grow: 1">#401 &middot; 6 findings, 1 blocking</span><span class="aun-muted">5h</span></p>
+            <p class="aun-kv"><span class="aun-glyph--done">&#10003;</span><span style="flex-grow: 1">#396 &middot; 2 findings</span><span class="aun-muted">yesterday</span></p>
+            <p class="aun-kv"><span class="aun-glyph--halted">&#9650;</span><span style="flex-grow: 1">#391 &middot; halted, build unreachable</span><span class="aun-muted">yesterday</span></p>
+          </div>
+        </article>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

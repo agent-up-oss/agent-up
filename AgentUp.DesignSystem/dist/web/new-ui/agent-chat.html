@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent · Chat — Agent-Up new UI</title>
+  <link rel="stylesheet" href="../new-ui.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
+    .aun-frame { width: 1440px; min-height: 900px; overflow: hidden; display: flex; }
+    .aun-frame > * { flex: 1 1 auto; min-width: 0; }
+  </style>
+</head>
+<body>
+<div class="aun-frame">
+<div class="aun">
+    <nav class="aun-rail" aria-label="Command center">
+    <div class="aun-rail__server">
+      <span class="aun-dot aun-dot--live"></span>
+      <span>
+        <span class="aun-rail__name">dev-box</span>
+        <span class="aun-rail__url">localhost:5000</span>
+      </span>
+    </div>
+    <a class="aun-rail__link" data-aun-nav="bridge" href="#bridge">Bridge</a>
+    <a class="aun-rail__link" data-aun-nav="tasks" href="#tasks">Tasks</a>
+    <p class="aun-rail__section">TEAM</p>
+    <a class="aun-rail__link" data-aun-nav="team" href="#team">All agents</a>
+    <a class="aun-rail__agent" data-aun-nav="lucy" aria-current="page" href="#lucy">
+      <span class="aun-avatar aun-avatar--sm">L</span>Lucy
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span>
+    </a>
+    <a class="aun-rail__agent" data-aun-nav="bob" href="#bob">
+      <span class="aun-avatar aun-avatar--sm">B</span>Bob
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span>
+    </a>
+    <a class="aun-rail__agent" data-aun-nav="hector" href="#hector">
+      <span class="aun-avatar aun-avatar--sm">H</span>Hector
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--halted">&#9650;</span>
+    </a>
+    <span class="aun-rail__spacer"></span>
+    <a class="aun-rail__link" data-aun-nav="settings" href="#settings">Settings</a>
+    <a class="aun-rail__link" data-aun-nav="signout" href="#signout">Sign out of server</a>
+  </nav>
+    <main class="aun-main">
+      <header class="aun-head" style="align-items: center">
+    <span class="aun-avatar aun-avatar--lg">L</span>
+    <span style="flex: 1 1 18rem; min-width: 0">
+      <span class="aun-title" style="display: block">Lucy</span>
+      <span class="aun-subtitle">Reviewer &middot; interface &nbsp;&middot;&nbsp; <span class="aun-mono">@lucy-aup[bot]</span> &nbsp;&middot;&nbsp; <span class="aun-mono">agent-up-qa</span></span>
+    </span>
+    <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live</span>
+  </header>
+      <nav class="aun-tabs" aria-label="Agent sections">
+        <a class="aun-tab" href="#overview">Overview</a>
+        <a class="aun-tab" href="#chat" aria-current="page">Chat</a>
+        <a class="aun-tab" href="#git">Git</a>
+      </nav>
+
+      <div class="aun-grid aun-grid--cards">
+        <article class="aun-card">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px">
+            <h2 class="aun-card__title" style="margin: 0">Review of #412</h2>
+            <span class="aun-faint" style="font-size: var(--au-font-size-ui-sm)">resumed &middot; attempt 2</span>
+          </div>
+          <div>
+            <div class="aun-event">
+              <span class="aun-event__dot aun-muted">&#9644;</span>
+              <span class="aun-event__body"><strong style="color: var(--au-color-text-primary)">Workspace prepared the branch</strong><br><span class="aun-muted">cleaned, fetched, checked out <span class="aun-mono">feat/412-agent-remedy</span> at <span class="aun-mono">a71f093</span></span></span>
+              <span class="aun-event__time">11m</span>
+            </div>
+            <div class="aun-event">
+              <span class="aun-event__dot aun-glyph--running">&#9679;</span>
+              <span class="aun-event__body"><strong style="color: var(--au-color-text-primary)">Lucy started</strong><br><span class="aun-muted">given the proposal, the issue it closes, and her persona</span></span>
+              <span class="aun-event__time">11m</span>
+            </div>
+            <div class="aun-event">
+              <span class="aun-event__dot aun-muted">&#9656;</span>
+              <span class="aun-event__body">Read #412 and the 4 changed files</span>
+              <span class="aun-event__time">9m</span>
+            </div>
+            <div class="aun-event">
+              <span class="aun-event__dot aun-muted">&#9656;</span>
+              <span class="aun-event__body">Replayed <span class="aun-mono">agents-dead-end</span> at 390, 834 and 1440px</span>
+              <span class="aun-event__time">6m</span>
+            </div>
+            <div class="aun-event">
+              <span class="aun-event__dot aun-glyph--gate">&#9650;</span>
+              <span class="aun-event__body"><strong style="color: var(--au-color-text-primary)">14 findings &middot; 3 blocking</strong><br><span class="aun-muted">&ldquo;Agent rows are unreachable by keyboard at every width; the row is a div with a click handler.&rdquo;</span></span>
+              <span class="aun-event__time">3m</span>
+            </div>
+            <div class="aun-event">
+              <span class="aun-event__dot aun-glyph--gate">&#9670;</span>
+              <span class="aun-event__body"><strong style="color: var(--au-color-text-primary)">Asked to submit the review</strong></span>
+              <span class="aun-event__time">now</span>
+            </div>
+          </div>
+          <details style="margin-top: 12px; border-top: 1px solid var(--au-color-border-subtle); padding-top: 12px">
+            <summary class="aun-muted" style="font-size: var(--au-font-size-ui-sm); cursor: pointer">Token stream</summary>
+            <p class="aun-console" style="margin-top: 9px">&hellip;checking focus order on the agent list. The third row has no tabindex and no role, so Tab skips it entirely. Same defect at all three widths, so I will report it once rather than three times&hellip;</p>
+          </details>
+        </article>
+
+        <div class="aun-stack" style="gap: 14px">
+          <article class="aun-card aun-card--gate">
+            <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 11px">
+              <span class="aun-glyph--gate">&#9670;</span>
+              <h2 class="aun-card__title" style="margin: 0; color: var(--au-color-text-warning)">Approval needed</h2>
+            </div>
+            <p class="aun-row__meta" style="margin-bottom: 11px">Submit a review on <strong>#412</strong> as <span class="aun-mono">@lucy-aup[bot]</span>.</p>
+            <div class="aun-stack" style="margin-bottom: 14px">
+              <p class="aun-kv"><span style="color: var(--au-color-text-danger); font-weight: 600; width: 1.5rem">3</span>blocking</p>
+              <p class="aun-kv"><span style="color: var(--au-color-text-warning); font-weight: 600; width: 1.5rem">6</span>should fix</p>
+              <p class="aun-kv"><span class="aun-muted" style="font-weight: 600; width: 1.5rem">5</span>nits</p>
+            </div>
+            <div class="aun-wrap" style="gap: 8px">
+              <button type="button" class="aun-btn aun-btn--primary">Approve &amp; submit</button>
+              <button type="button" class="aun-btn">View draft</button>
+              <button type="button" class="aun-btn aun-btn--danger">Reject</button>
+            </div>
+          </article>
+
+          <article class="aun-card">
+            <h2 class="aun-card__title">Message Lucy</h2>
+            <div class="aun-wrap" style="gap: 7px; margin-bottom: 11px">
+              <button type="button" class="aun-btn" style="flex: 1 1 0">Preempt</button>
+              <button type="button" class="aun-btn" style="flex: 1 1 0">Join</button>
+              <button type="button" class="aun-btn aun-btn--primary" style="flex: 1 1 0">Queue</button>
+            </div>
+            <label class="aun-rail__section" for="aun-msg" style="padding: 0 0 6px; display: block">MESSAGE</label>
+            <textarea id="aun-msg" class="aun-input aun-textarea" placeholder="Also check the mobile Agents screen before you submit."></textarea>
+            <div class="aun-wrap" style="gap: 8px; margin-top: 11px">
+              <button type="button" class="aun-btn aun-btn--primary">Send</button>
+              <button type="button" class="aun-btn">Stop run</button>
+            </div>
+          </article>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
