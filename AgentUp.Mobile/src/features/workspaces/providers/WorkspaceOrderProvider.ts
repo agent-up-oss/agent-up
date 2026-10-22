@@ -2,7 +2,7 @@ import type { Workspace } from '../models/Workspace';
 import { isDerivedWorkspace } from './WorkspaceLabelProvider';
 
 export function workspaceActivePriority(state: string): number {
-  if (state === 'Running') return 2;
+  if (state === 'Running' || state === 'Degraded') return 2;
   if (state === 'Starting') return 1;
   return 0;
 }

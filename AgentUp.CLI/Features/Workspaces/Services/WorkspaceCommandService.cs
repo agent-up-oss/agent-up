@@ -75,7 +75,17 @@ public sealed class WorkspaceCommandService
 
         try
         {
-            await _client.StartWorkspaceAsync(workspace.Id);
+            var outcome = await _client.StartWorkspaceAsync(workspace.Id);
+            return WorkspaceCommandResult<StartedWorkspace>.Success(new StartedWorkspace(
+                workspace,
+                applications,
+                desktopApplications,
+                services,
+                runtimeSections,
+                dotnet,
+                docker,
+                outcome?.State,
+                outcome?.FailedApplications ?? []));
         }
         catch (AuthenticationRequiredException ex)
         {
@@ -87,15 +97,6 @@ public sealed class WorkspaceCommandService
             return WorkspaceCommandResult<StartedWorkspace>.Failed(
                 lastError is not null ? $"Error: {lastError}" : $"Error: {ex.Message}");
         }
-
-        return WorkspaceCommandResult<StartedWorkspace>.Success(new StartedWorkspace(
-            workspace,
-            applications,
-            desktopApplications,
-            services,
-            runtimeSections,
-            dotnet,
-            docker));
     }
 
     public async Task<WorkspaceCommandResult<IReadOnlyList<WorkspaceDto>>> ListAsync()
@@ -244,4 +245,6 @@ public sealed record StartedWorkspace(
     IReadOnlyList<DockerServiceDefinition> Services,
     IReadOnlyList<RuntimeSectionDefinition> RuntimeSections,
     IReadOnlyList<DotnetApplicationDefinition> Dotnet,
-    IReadOnlyList<DockerCapabilityDefinition> Docker);
+    IReadOnlyList<DockerCapabilityDefinition> Docker,
+    string? State = null,
+    IReadOnlyList<WorkspaceApplicationFailureDto>? FailedApplications = null);

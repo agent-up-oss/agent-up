@@ -17,6 +17,7 @@ test('status LEDs follow health and keep Starting yellow before probes publish',
   assert.equal(statusLedRole('Stopping'), 'warning');
   assert.equal(statusLedRole('Unhealthy'), 'danger');
   assert.equal(statusLedRole('Failed'), 'danger');
+  assert.equal(statusLedRole('Degraded'), 'warning');
   assert.equal(statusLedRole('Stopped'), 'idle');
 });
 
@@ -26,6 +27,7 @@ test('workspace LED prefers Server healthState when the stream supplies it', () 
   assert.equal(statusLedRole(workspaceLedState('Running', 'Healthy')), 'healthy');
   assert.equal(statusLedRole(workspaceLedState('Running', 'Unhealthy')), 'danger');
   assert.equal(statusLedRole(workspaceLedState('Failed')), 'danger');
+  assert.equal(statusLedRole(workspaceLedState('Degraded', 'Healthy')), 'warning');
   assert.equal(statusLedRole(workspaceLedState('Stopped', 'Healthy')), 'idle');
 });
 
@@ -35,6 +37,7 @@ test('status labels keep lifecycle text until the workspace is running', () => {
   assert.equal(workspaceStatusLabel('Running', 'Healthy'), 'Healthy');
   assert.equal(workspaceStatusLabel('Running'), 'Running');
   assert.equal(workspaceStatusLabel('Failed', 'Unhealthy'), 'Failed');
+  assert.equal(workspaceStatusLabel('Degraded', 'Healthy'), 'Degraded');
 });
 
 test('workspaces keep presenting application rows while offline', () => {
@@ -42,6 +45,7 @@ test('workspaces keep presenting application rows while offline', () => {
   assert.equal(workspaceShowsApplications('Starting'), true);
   assert.equal(workspaceShowsApplications('Stopped'), true);
   assert.equal(workspaceShowsApplications('Failed'), true);
+  assert.equal(workspaceShowsApplications('Degraded'), true);
 });
 
 test('lifecycle controls match Desktop start/stop visibility', () => {
@@ -57,6 +61,9 @@ test('lifecycle controls match Desktop start/stop visibility', () => {
   assert.deepEqual(workspaceLifecycleControls('Running'), {
     action: 'stop', glyph: '■', accessibilityLabel: 'Stop workspace', busy: false,
   });
+  assert.deepEqual(workspaceLifecycleControls('Degraded'), {
+    action: 'stop', glyph: '■', accessibilityLabel: 'Stop workspace', busy: false,
+  });
   assert.deepEqual(workspaceLifecycleControls('Starting'), {
     action: 'stop', glyph: '■', accessibilityLabel: 'Stop workspace', busy: true,
   });
@@ -66,5 +73,6 @@ test('status dots use the design-system healthy warning and danger tokens', () =
   assert.equal(statusDotStyle('Running').backgroundColor, '#22c55e');
   assert.equal(statusDotStyle('Starting').backgroundColor, '#e0a128');
   assert.equal(statusDotStyle('Failed').backgroundColor, '#d84f4f');
+  assert.equal(statusDotStyle('Degraded').backgroundColor, '#e0a128');
   assert.equal(statusDotStyle('Stopped').backgroundColor, '#8a9a92');
 });

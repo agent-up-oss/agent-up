@@ -45,7 +45,7 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     }
 
     public bool ShowStartButton => State is "Stopped" or "Failed" or "Stopping";
-    public bool ShowStopButton => State is "Running" or "Starting";
+    public bool ShowStopButton => State is "Running" or "Degraded" or "Starting";
     public bool ShowRefreshButton => Derived;
     public bool ShowDeleteButton => CanDelete;
     public bool IsLifecycleBusy => State is "Starting" or "Stopping";

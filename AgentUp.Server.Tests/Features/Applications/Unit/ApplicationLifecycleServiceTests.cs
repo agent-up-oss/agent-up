@@ -81,6 +81,22 @@ public sealed class ApplicationLifecycleServiceTests
     }
 
     [Test]
+    public async Task Start_keepsTheApplicationFailedWhenLaunchMarksFailed()
+    {
+        var (service, registry, _) = await CreateAsync(new FailedLaunchProcessManager());
+        var workspace = registry.GetAll().Single();
+
+        var result = await service.StartAsync(workspace.Id, "Editor");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Error, Is.EqualTo("Application could not be started."));
+            Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
+        });
+    }
+
+    [Test]
     public async Task Start_marksTheDesktopApplicationFailedWhenLaunchThrows()
     {
         var (service, registry, _) = await CreateAsync(new ThrowingProcessManager());
@@ -110,6 +126,24 @@ public sealed class ApplicationLifecycleServiceTests
         {
             Assert.That(result.Succeeded, Is.False);
             Assert.That(result.Error, Is.EqualTo("Application could not be stopped."));
+            Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
+        });
+    }
+
+    [Test]
+    public async Task Restart_keepsTheApplicationFailedWhenLaunchMarksFailed()
+    {
+        var (service, registry, _) = await CreateAsync();
+        var workspace = registry.GetAll().Single();
+        await service.StartAsync(workspace.Id, "Editor");
+        var (failing, _, _) = await CreateAsync(new FailedLaunchProcessManager(), registry);
+
+        var result = await failing.RestartAsync(workspace.Id, "Editor");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Error, Is.EqualTo("Application could not be restarted."));
             Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
         });
     }
@@ -177,6 +211,20 @@ public sealed class ApplicationLifecycleServiceTests
             Killed.Add(appName);
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FailedLaunchProcessManager : IWorkspaceProcessManager
+    {
+        public Task LaunchAsync(Workspace workspace) => Task.CompletedTask;
+
+        public Task LaunchApplicationAsync(Workspace workspace, string appName)
+        {
+            workspace.Applications.Single(app => app.Name == appName).State = ApplicationState.Failed;
+            return Task.CompletedTask;
+        }
+
+        public Task KillAsync(string workspaceId) => Task.CompletedTask;
+        public Task KillApplicationAsync(string workspaceId, string appName) => Task.CompletedTask;
     }
 
     private sealed class ThrowingProcessManager : IWorkspaceProcessManager

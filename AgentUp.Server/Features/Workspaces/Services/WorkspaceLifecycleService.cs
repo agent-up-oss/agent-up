@@ -8,6 +8,7 @@ using AgentUp.Server.Features.DesktopApplications.Controllers;
 using AgentUp.Server.Features.Orchestration.Controllers;
 using AgentUp.Server.Features.Processes.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Features.Workspaces.Models;
 using Microsoft.Extensions.Logging;
 
 namespace AgentUp.Server.Features.Workspaces.Services;
@@ -84,7 +85,7 @@ public sealed class WorkspaceLifecycleService
             if (workspace is null)
                 return WorkspaceLifecycleResult.NotFound();
 
-            if (workspace.State is WorkspaceState.Running or WorkspaceState.Starting)
+            if (workspace.State is WorkspaceState.Running or WorkspaceState.Degraded or WorkspaceState.Starting)
             {
                 gate.Release();
                 WorkspaceLifecycleResult stopResult;
@@ -127,9 +128,8 @@ public sealed class WorkspaceLifecycleService
                              app.Kind == ApplicationKind.Desktop && _isLinux()))
                     app.RuntimeEnvironment = await _desktopApplications.PrepareAsync(workspace, app, CancellationToken.None);
                 await _processes.LaunchWorkspaceAsync(workspace);
-                await _registry.UpdateStateAsync(id, WorkspaceState.Running);
-                await _registry.UpdateLastErrorAsync(id, null);
-                foreach (var app in workspace.Applications)
+                workspace = _registry.GetById(id)!;
+                foreach (var app in workspace.Applications.Where(app => app.State != ApplicationState.Failed))
                 {
                     if (app.Kind == ApplicationKind.Desktop && !_isLinux())
                     {
@@ -140,15 +140,32 @@ public sealed class WorkspaceLifecycleService
                     await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Running);
                 }
 
+                workspace = _registry.GetById(id)!;
+                var failures = WorkspaceStartEvaluation.Failures(workspace);
+                var state = WorkspaceStartEvaluation.StateFrom(workspace.Applications);
+                if (state == WorkspaceState.Failed)
+                {
+                    await _processes.KillWorkspaceAsync(id);
+                    await _desktopApplications.StopWorkspaceAsync(id, CancellationToken.None);
+                    var failedError = WorkspaceStartEvaluation.Summarize(failures) ?? "Workspace could not be started.";
+                    await _registry.UpdateLastErrorAsync(id, failedError);
+                    await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
+                    return WorkspaceLifecycleResult.Failed(failedError, failures);
+                }
+
+                await _registry.UpdateLastErrorAsync(id, state == WorkspaceState.Degraded
+                    ? WorkspaceStartEvaluation.Summarize(failures)
+                    : null);
+                await _registry.UpdateStateAsync(id, state);
                 _streamState.OnWorkspaceStarted(workspace);
                 _healthChecks.StartForWorkspace(workspace);
                 _metricsPulls.StartForWorkspace(workspace);
-
-                return WorkspaceLifecycleResult.Success();
+                return WorkspaceLifecycleResult.Success(state, failures);
             }
             catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
             {
                 _logger.LogError(ex, "Workspace failed to start");
+                await _processes.KillWorkspaceAsync(id);
                 await _desktopApplications.StopWorkspaceAsync(id, CancellationToken.None);
                 await _registry.UpdateLastErrorAsync(id, ex.Message);
                 await _registry.UpdateStateAsync(id, WorkspaceState.Failed);

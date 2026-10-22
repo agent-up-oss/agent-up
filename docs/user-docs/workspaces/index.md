@@ -110,6 +110,14 @@ Switching servers drops that client's local workspace state.
 
 `start` searches the current directory and its parents for `agent-up.json`, then pushes the workspace definition to the Server: identity, legacy `applications` / `desktopApplications` / `services`, and every other root array as a runtime section. The Server binds those arrays to enabled runtime-kind modules. The directory containing `agent-up.json` is the workspace root. Running `start` again from the same workspace updates the existing workspace in place.
 
+<DocFacts label="Start outcomes">
+<DocFact label="Running">Every declared application started</DocFact>
+<DocFact label="Degraded">At least one application is running and at least one failed</DocFact>
+<DocFact label="Failed">Nothing started; any process that did launch is stopped</DocFact>
+</DocFacts>
+
+`agent-up start` prints each failed application and its reason. It exits non-zero only when nothing started.
+
 ```bash
 agent-up start --server http://localhost:5001
 ```

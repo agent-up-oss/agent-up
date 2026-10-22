@@ -60,7 +60,7 @@ public sealed class WorkspaceLifecycleServiceTests
     }
 
     [Test]
-    public async Task Start_marksDesktopApplicationsFailedOffLinuxWithoutFailingTheWorkspace()
+    public async Task Start_marksADesktopOnlyWorkspaceFailedOffLinux()
     {
         var registry = ServerTestComposition.CreateRegistry();
         var created = await registry.RegisterAsync(ServerDomain.Workspace()
@@ -74,10 +74,113 @@ public sealed class WorkspaceLifecycleServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(result.Succeeded, Is.True);
-            Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Running));
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Failed));
             Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
             Assert.That(workspace.Applications.Single().RuntimeEnvironment, Is.Empty);
+            Assert.That(processes.KillCount, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task Start_marksTheWorkspaceDegraded_whenOneApplicationFails()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var created = await registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand).Build())
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.ApiName, ServerDomain.ApiCommand).Build())
+            .Build());
+        var processes = new PartialFailWorkspaceProcessManager();
+        var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(registry, processes);
+
+        var result = await lifecycle.StartAsync(created.Id);
+        var workspace = registry.GetById(created.Id)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Degraded));
+            Assert.That(workspace.Applications.Single(app => app.Name == ServerDomain.WebName).State,
+                Is.EqualTo(ApplicationState.Running));
+            Assert.That(workspace.Applications.Single(app => app.Name == ServerDomain.ApiName).State,
+                Is.EqualTo(ApplicationState.Failed));
+            Assert.That(result.Failures.Single().Name, Is.EqualTo(ServerDomain.ApiName));
+            Assert.That(processes.KillCount, Is.EqualTo(0));
+            Assert.That(workspace.LastError, Does.Contain(ServerDomain.ApiName));
+        });
+    }
+
+    [Test]
+    public async Task Start_OnDegradedWorkspace_RecreatesWorkspace()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var created = await registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand).Build())
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.ApiName, ServerDomain.ApiCommand).Build())
+            .Build());
+        var processes = new PartialFailWorkspaceProcessManager();
+        var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(registry, processes);
+
+        await lifecycle.StartAsync(created.Id);
+        var result = await lifecycle.StartAsync(created.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(result.State, Is.EqualTo(WorkspaceState.Degraded));
+            Assert.That(registry.GetById(created.Id)!.State, Is.EqualTo(WorkspaceState.Degraded));
+            Assert.That(processes.KillCount, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task Start_marksADesktopApplicationFailedOffLinux_withoutFailingARunningProcess()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var created = await registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand).Build())
+            .WithDesktopApplication(new DesktopApplicationDefinition("Editor", "dotnet run", "."))
+            .Build());
+        var processes = new CountingWorkspaceProcessManager();
+        var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(registry, processes, isLinux: () => false);
+
+        var result = await lifecycle.StartAsync(created.Id);
+        var workspace = registry.GetById(created.Id)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Degraded));
+            Assert.That(workspace.Applications.Single(app => app.Name == ServerDomain.WebName).State,
+                Is.EqualTo(ApplicationState.Running));
+            Assert.That(workspace.Applications.Single(app => app.Name == "Editor").State,
+                Is.EqualTo(ApplicationState.Failed));
+            Assert.That(processes.KillCount, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public async Task Start_marksTheWorkspaceFailed_andKillsLaunchedProcesses_whenNothingStarts()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var created = await registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand).Build())
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.ApiName, ServerDomain.ApiCommand).Build())
+            .Build());
+        var processes = new AllFailWorkspaceProcessManager();
+        var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(registry, processes);
+
+        var result = await lifecycle.StartAsync(created.Id);
+        var workspace = registry.GetById(created.Id)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Failed));
+            Assert.That(workspace.Applications.Select(app => app.State), Is.All.EqualTo(ApplicationState.Failed));
+            Assert.That(processes.KillCount, Is.EqualTo(1));
+            Assert.That(result.Failures.Select(failure => failure.Name),
+                Is.EquivalentTo(new[] { ServerDomain.WebName, ServerDomain.ApiName }));
         });
     }
 
