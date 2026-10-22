@@ -62,6 +62,53 @@ public sealed class LoopbackApplicationReadinessProbeTests
         Assert.That(await probe.HttpReadyAsync(port, "/health", CancellationToken.None), Is.False);
     }
 
+    [Test]
+    public async Task HttpReady_isFalseForAClientErrorStatus()
+    {
+        using var probe = new LoopbackApplicationReadinessProbe();
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        using var serverCts = new CancellationTokenSource();
+        var server = ServeAsync(listener, "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n", serverCts.Token);
+
+        try
+        {
+            Assert.That(await probe.HttpReadyAsync(port, "/health", CancellationToken.None), Is.False);
+        }
+        finally
+        {
+            await serverCts.CancelAsync();
+            listener.Stop();
+            try
+            {
+                await server;
+            }
+            catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException or SocketException)
+            {
+                Assert.That(ex, Is.Not.Null);
+            }
+        }
+    }
+
+    [Test]
+    public void Ready_throwsWhenTheCallerHasAlreadyCancelled()
+    {
+        using var probe = new LoopbackApplicationReadinessProbe();
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(
+                async () => await probe.TcpReadyAsync(1, cancelled.Token),
+                Throws.InstanceOf<OperationCanceledException>());
+            Assert.That(
+                async () => await probe.HttpReadyAsync(1, "/health", cancelled.Token),
+                Throws.InstanceOf<OperationCanceledException>());
+        });
+    }
+
     private static async Task ServeAsync(TcpListener listener, string response, CancellationToken cancellationToken)
     {
         using var client = await listener.AcceptTcpClientAsync(cancellationToken);

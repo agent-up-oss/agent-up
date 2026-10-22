@@ -149,9 +149,26 @@ internal static class ServerTestComposition
     public static WorkspaceLifecycleService CreateWorkspaceLifecycleService(
         WorkspaceRegistry registry,
         IWorkspaceProcessManager processes,
+        Func<bool> isLinux,
+        IApplicationReadinessProbe probe,
+        ApplicationReadinessOptions options)
+        => CreateWorkspaceLifecycleService(
+            registry,
+            processes,
+            new AgentUpConfigurationProvider(),
+            new GitWorkspaceIdentityProvider(),
+            isLinux,
+            probe,
+            options);
+
+    public static WorkspaceLifecycleService CreateWorkspaceLifecycleService(
+        WorkspaceRegistry registry,
+        IWorkspaceProcessManager processes,
         IAgentUpConfigurationProvider configuration,
         IWorkspaceIdentityProvider identity,
-        Func<bool> isLinux)
+        Func<bool> isLinux,
+        IApplicationReadinessProbe? probe = null,
+        ApplicationReadinessOptions? options = null)
     {
         var display = new BrowserRemoteDisplayService(NullLogger<BrowserRemoteDisplayService>.Instance);
         var eventBus = new BrowserEventBus();
@@ -189,7 +206,7 @@ internal static class ServerTestComposition
             metricsPulls,
             new WorkspaceStreamStateController(streamState),
             new OrchestrationRegistrationController(registration),
-            CreateReadiness(registry, processController, desktop),
+            CreateReadiness(registry, processController, desktop, probe, clock: null, options),
             NullLogger<WorkspaceLifecycleService>.Instance,
             isLinux);
     }

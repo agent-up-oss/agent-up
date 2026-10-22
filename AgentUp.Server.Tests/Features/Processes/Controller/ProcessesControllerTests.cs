@@ -40,6 +40,26 @@ public sealed class ProcessesControllerTests
         Assert.That(controller.GetRuntime("one"), Is.EqualTo(WorkspaceRuntimeSnapshot.Empty));
     }
 
+    [Test]
+    public void IsApplicationAlive_defaultsToTrueWhenTheManagerDoesNotOverrideIt()
+    {
+        var controller = new ProcessesController(
+            new NullWorkspaceProcessManager(),
+            new ProcessOutputService(new InMemoryOutputRepository()));
+
+        Assert.That(controller.IsApplicationAlive("one", "web"), Is.True);
+    }
+
+    [Test]
+    public void IsApplicationAlive_returnsTheManagerAnswer()
+    {
+        var controller = new ProcessesController(
+            new DeadProcessManager(),
+            new ProcessOutputService(new InMemoryOutputRepository()));
+
+        Assert.That(controller.IsApplicationAlive("one", "web"), Is.False);
+    }
+
     private sealed class RecordingProcessManager : IWorkspaceProcessManager
     {
         public List<string> Actions { get; } = [];
@@ -47,6 +67,15 @@ public sealed class ProcessesControllerTests
         public Task LaunchApplicationAsync(Workspace workspace, string appName) { Actions.Add($"launch:{workspace.Id}:{appName}"); return Task.CompletedTask; }
         public Task KillAsync(string workspaceId) { Actions.Add($"kill:{workspaceId}"); return Task.CompletedTask; }
         public Task KillApplicationAsync(string workspaceId, string appName) { Actions.Add($"kill:{workspaceId}:{appName}"); return Task.CompletedTask; }
+    }
+
+    private sealed class DeadProcessManager : IWorkspaceProcessManager
+    {
+        public Task LaunchAsync(Workspace workspace) => Task.CompletedTask;
+        public Task LaunchApplicationAsync(Workspace workspace, string appName) => Task.CompletedTask;
+        public Task KillAsync(string workspaceId) => Task.CompletedTask;
+        public Task KillApplicationAsync(string workspaceId, string appName) => Task.CompletedTask;
+        public bool IsApplicationAlive(string workspaceId, string appName) => false;
     }
 
     private static Workspace WorkspaceOf(string id) => new()

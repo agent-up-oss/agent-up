@@ -5,6 +5,7 @@ using AgentUp.Server.Features.Processes.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Interfaces;
 using AgentUp.Server.Features.Workspaces.Models;
+using AgentUp.Server.Shared.Providers;
 using Microsoft.Extensions.Logging;
 
 namespace AgentUp.Server.Features.Workspaces.Services;
@@ -182,7 +183,8 @@ public sealed class WorkspaceReadinessService(
             ? WorkspaceStartEvaluation.Summarize(failures)
             : null);
         await registry.UpdateStateAsync(workspaceId, next);
-        logger.LogInformation("Workspace {WorkspaceId} left Starting for {State}", workspaceId, next);
+        logger.LogInformation("Workspace {WorkspaceId} left Starting for {State}",
+            LogSafeIdentifier.Of(workspaceId), next);
     }
 
     private async Task FailApplicationAsync(string workspaceId, string appName, string message)
@@ -190,7 +192,7 @@ public sealed class WorkspaceReadinessService(
         await registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed, message);
         ForgetStart(workspaceId, appName);
         logger.LogWarning("Application {Application} in workspace {WorkspaceId} failed readiness: {Message}",
-            appName, workspaceId, message);
+            LogSafeIdentifier.Of(appName), LogSafeIdentifier.Of(workspaceId), LogSafeIdentifier.Of(message));
     }
 
     private void ForgetStart(string workspaceId, string appName)

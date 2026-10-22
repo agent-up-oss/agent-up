@@ -784,6 +784,41 @@ public class WorkspaceProcessManagerTests
     }
 
     [Test]
+    public async Task IsApplicationAlive_isTrueWhileTheProcessRunsAndFalseAfterStop()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, LongRunningStopCommand())
+                    .Build())
+                .Build());
+
+            await _manager.LaunchApplicationAsync(workspace, "Web");
+
+            Assert.That(_manager.IsApplicationAlive(workspace.Id, "Web"), Is.True);
+
+            await _manager.KillApplicationAsync(workspace.Id, "Web");
+
+            Assert.That(_manager.IsApplicationAlive(workspace.Id, "Web"), Is.False);
+        }
+        finally
+        {
+            if (Directory.Exists(worktreePath))
+                Directory.Delete(worktreePath, recursive: true);
+        }
+    }
+
+    [Test]
+    public void IsApplicationAlive_isFalseForAnApplicationTheManagerDoesNotTrack()
+    {
+        Assert.That(_manager.IsApplicationAlive("missing", "Web"), Is.False);
+    }
+
+    [Test]
     public async Task CreateDockerRunArguments_AddsEnvironmentFilesAndInlineEnvironment()
     {
         var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
