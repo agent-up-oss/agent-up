@@ -101,7 +101,7 @@ public sealed class WorkspaceCommandOutputService
         _output.WriteLine($"Health:      {diagnostics.Health ?? "not configured"}");
         foreach (var app in diagnostics.Applications)
         {
-            _output.WriteLine($"Application: {app.Name} ({app.ProcessState}, {app.Health ?? "no health check"})");
+            _output.WriteLine($"Application: {app.Name} ({app.ProcessState}, {app.Readiness ?? app.Health ?? "process"})");
             foreach (var line in app.Logs)
                 _output.WriteLine($"  log: {line}");
             if (app.LogsTruncated)

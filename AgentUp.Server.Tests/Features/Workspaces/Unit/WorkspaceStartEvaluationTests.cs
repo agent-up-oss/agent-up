@@ -50,6 +50,55 @@ public sealed class WorkspaceStartEvaluationTests
     }
 
     [Test]
+    public void StateFrom_countsCheckingAndUnhealthyApplicationsAsRunning()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(
+                WorkspaceStartEvaluation.StateFrom(
+                [
+                    new ApplicationInstance { Name = "Web", State = ApplicationState.Checking }
+                ]),
+                Is.EqualTo(WorkspaceState.Running));
+            Assert.That(
+                WorkspaceStartEvaluation.StateFrom(
+                [
+                    new ApplicationInstance { Name = "Web", State = ApplicationState.Unhealthy },
+                    Failed("Api")
+                ]),
+                Is.EqualTo(WorkspaceState.Degraded));
+        });
+    }
+
+    [Test]
+    public void Failures_preferTheRecordedLastError()
+    {
+        var workspace = new Workspace
+        {
+            Id = "ws",
+            DisplayName = "Shop",
+            RepositoryPath = "/repo",
+            WorktreePath = "/repo",
+            Branch = "main",
+            Commit = "abc",
+            Applications =
+            [
+                new ApplicationInstance
+                {
+                    Name = "Web",
+                    State = ApplicationState.Failed,
+                    LastError = "port 10301 never accepted a connection within 120s"
+                }
+            ]
+        };
+
+        var failures = WorkspaceStartEvaluation.Failures(workspace);
+
+        Assert.That(failures.Single().Reason,
+            Is.EqualTo("port 10301 never accepted a connection within 120s"));
+    }
+
+    [Test]
     public void Failures_useTheDefaultReason_whenCapabilityMessagesAreEmpty()
     {
         var workspace = new Workspace

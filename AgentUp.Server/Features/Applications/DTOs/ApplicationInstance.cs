@@ -37,6 +37,7 @@ public class ApplicationInstance
     public IReadOnlyList<PortMapping> AllocatedPorts { get; set; } = [];
 
     public ApplicationState State { get; set; } = ApplicationState.Stopped;
+    public string? LastError { get; set; }
 
     public bool Database { get; init; }
     public int DesktopWidth { get; init; } = 1280;

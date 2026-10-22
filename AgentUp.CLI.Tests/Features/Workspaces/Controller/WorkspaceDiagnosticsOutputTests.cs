@@ -31,6 +31,21 @@ public sealed class WorkspaceDiagnosticsOutputTests
     }
 
     [Test]
+    public void WriteDiagnosticsResult_PrintsTheReadinessSignalInsteadOfNoHealthCheck()
+    {
+        using var writer = new StringWriter();
+        var output = new WorkspaceCommandOutputService(writer);
+        var diagnostics = new WorkspaceDiagnosticsDto(
+            "workspace-1", "Shop", "Starting", null, DateTimeOffset.UtcNow,
+            [new ApplicationDiagnosticsDto("Docs", "Starting", null, ["compiled successfully"], false, "port 10300")],
+            []);
+
+        output.WriteDiagnosticsResult(WorkspaceCommandResult<WorkspaceDiagnosticsDto>.Success(diagnostics));
+
+        Assert.That(writer.ToString(), Does.Contain("Application: Docs (Starting, port 10300)"));
+    }
+
+    [Test]
     public void WriteTextResult_WritesJsonPassthrough()
     {
         using var writer = new StringWriter();

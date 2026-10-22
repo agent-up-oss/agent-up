@@ -220,7 +220,11 @@ public sealed class WorkspaceRegistry : IHostedService
         await _repository.SaveAllAsync(GetAll());
     }
 
-    public async Task<bool> UpdateApplicationStateAsync(string workspaceId, string appName, ApplicationState state)
+    public async Task<bool> UpdateApplicationStateAsync(
+        string workspaceId,
+        string appName,
+        ApplicationState state,
+        string? lastError = null)
     {
         if (!_workspaces.TryGetValue(workspaceId, out var workspace))
             return false;
@@ -230,6 +234,10 @@ public sealed class WorkspaceRegistry : IHostedService
             return false;
 
         app.State = state;
+        if (state is ApplicationState.Starting or ApplicationState.Running or ApplicationState.Stopped)
+            app.LastError = null;
+        if (lastError is not null)
+            app.LastError = lastError;
         TouchActivity(workspace);
         await _repository.SaveAllAsync(GetAll());
         _bus.PublishWorkspaceChange(workspace);

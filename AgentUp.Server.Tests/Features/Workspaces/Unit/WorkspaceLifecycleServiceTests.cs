@@ -1,6 +1,8 @@
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Features.Workspaces.Interfaces;
+using AgentUp.Server.Features.Workspaces.Models;
 using AgentUp.Server.Tests.Fake;
 using AgentUp.Server.Tests.Support;
 
@@ -211,6 +213,97 @@ public sealed class WorkspaceLifecycleServiceTests
     }
 
     [Test]
+    public async Task Start_returnsWhileStartingWhenAPortIsNotReady()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var created = await registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand)
+                .WithPort(3000)
+                .Build())
+            .Build());
+        var processes = new CountingWorkspaceProcessManager();
+        var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(
+            registry,
+            processes,
+            () => true,
+            new ClosedReadinessProbe(),
+            ApplicationReadinessOptions.Immediate);
+
+        var result = await lifecycle.StartAsync(created.Id);
+        var workspace = registry.GetById(created.Id)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Starting));
+            Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Starting));
+        });
+
+        await lifecycle.StopAsync(created.Id);
+    }
+
+    [Test]
+    public async Task Start_marksTheWorkspaceFailedWhenReadinessTimesOut()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var created = await registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand)
+                .WithPort(3000)
+                .Build())
+            .Build());
+        var processes = new CountingWorkspaceProcessManager();
+        var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(
+            registry,
+            processes,
+            () => true,
+            new ClosedReadinessProbe(),
+            new ApplicationReadinessOptions(TimeSpan.FromMilliseconds(20), TimeSpan.Zero, TimeSpan.Zero));
+
+        var result = await lifecycle.StartAsync(created.Id);
+        var workspace = registry.GetById(created.Id)!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(result.State, Is.EqualTo(WorkspaceState.Failed));
+            Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Failed));
+            Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
+            Assert.That(processes.KillCount, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task Start_OnStartingWorkspace_RecreatesWorkspace()
+    {
+        var registry = ServerTestComposition.CreateRegistry();
+        var created = await registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand)
+                .WithPort(3000)
+                .Build())
+            .Build());
+        var processes = new CountingWorkspaceProcessManager();
+        var lifecycle = ServerTestComposition.CreateWorkspaceLifecycleService(
+            registry,
+            processes,
+            () => true,
+            new ClosedReadinessProbe(),
+            ApplicationReadinessOptions.Immediate);
+
+        await lifecycle.StartAsync(created.Id);
+        var result = await lifecycle.StartAsync(created.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(result.State, Is.EqualTo(WorkspaceState.Starting));
+            Assert.That(processes.LaunchCount, Is.EqualTo(2));
+            Assert.That(processes.KillCount, Is.EqualTo(1));
+        });
+
+        await lifecycle.StopAsync(created.Id);
+    }
+
+    [Test]
     public async Task Start_stopsDesktopSessionsWhenLaunchFails()
     {
         var registry = ServerTestComposition.CreateRegistry();
@@ -277,5 +370,14 @@ public sealed class WorkspaceLifecycleServiceTests
         }
 
         public Task KillApplicationAsync(string workspaceId, string appName) => Task.CompletedTask;
+    }
+
+    private sealed class ClosedReadinessProbe : IApplicationReadinessProbe
+    {
+        public Task<bool> TcpReadyAsync(int port, CancellationToken cancellationToken)
+            => Task.FromResult(false);
+
+        public Task<bool> HttpReadyAsync(int port, string path, CancellationToken cancellationToken)
+            => Task.FromResult(false);
     }
 }

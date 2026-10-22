@@ -38,7 +38,7 @@ public sealed class AppHealthCheckService(
             foreach (var port in app.AllocatedPorts.Where(p => p.HealthCheckPath is not null))
             {
                 _portHealthState[(workspace.Id, app.Name, port.AllocatedPort)] = "Checking";
-                workspaceState.SetApplicationHealthState(workspace.Id, app.Name, AggregateAppState(workspace.Id, app.Name));
+                ApplyHealthState(workspace.Id, app.Name);
                 _ = Task.Run(
                     () => RunPortProbeAsync(workspace.Id, app.Name, port.AllocatedPort, port.HealthCheckPath!, cts.Token),
                     cts.Token);
@@ -127,7 +127,7 @@ public sealed class AppHealthCheckService(
             var newState = isHealthy ? "Healthy" : "Unhealthy";
             _portHealthState[(workspaceId, appName, allocatedPort)] = newState;
 
-            workspaceState.SetApplicationHealthState(workspaceId, appName, AggregateAppState(workspaceId, appName));
+            ApplyHealthState(workspaceId, appName);
 
             logger.LogDebug("Port health changed: {WorkspaceId}/{AppName}:{Port} → {State}",
                 workspaceId, appName, allocatedPort, newState);
@@ -151,6 +151,16 @@ public sealed class AppHealthCheckService(
             PortHealthChanged?.Invoke(workspaceId, appName, allocatedPort, isHealthy);
             lastHealthy = isHealthy;
         }
+    }
+
+    private void ApplyHealthState(string workspaceId, string appName)
+    {
+        var current = workspaceQuery.GetById(workspaceId)?.Applications
+            .FirstOrDefault(app => app.Name == appName)?.State;
+        if (current is not ApplicationState.Running and not ApplicationState.Checking and not ApplicationState.Unhealthy)
+            return;
+
+        workspaceState.SetApplicationHealthState(workspaceId, appName, AggregateAppState(workspaceId, appName));
     }
 
     private ApplicationState AggregateAppState(string workspaceId, string appName)

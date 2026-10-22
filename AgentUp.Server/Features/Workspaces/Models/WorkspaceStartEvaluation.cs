@@ -7,7 +7,11 @@ internal static class WorkspaceStartEvaluation
 {
     public static WorkspaceState StateFrom(IReadOnlyList<ApplicationInstance> applications)
     {
-        var running = applications.Any(app => app.State == ApplicationState.Running);
+        if (applications.Any(app => app.State == ApplicationState.Starting))
+            return WorkspaceState.Starting;
+
+        var running = applications.Any(app =>
+            app.State is ApplicationState.Running or ApplicationState.Checking or ApplicationState.Unhealthy);
         var failed = applications.Any(app => app.State == ApplicationState.Failed);
         if (running && failed)
             return WorkspaceState.Degraded;
@@ -27,6 +31,8 @@ internal static class WorkspaceStartEvaluation
 
     private static string ReasonFor(ApplicationInstance app)
     {
+        if (!string.IsNullOrWhiteSpace(app.LastError))
+            return app.LastError;
         if (app.CapabilityStatus is { CanRun: false, Messages.Count: > 0 })
             return string.Join(" ", app.CapabilityStatus.Messages);
         if (app.Kind == ApplicationKind.Desktop)

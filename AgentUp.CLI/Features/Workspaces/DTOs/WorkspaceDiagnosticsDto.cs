@@ -14,7 +14,8 @@ public sealed record ApplicationDiagnosticsDto(
     string ProcessState,
     string? Health,
     IReadOnlyList<string> Logs,
-    bool LogsTruncated);
+    bool LogsTruncated,
+    string? Readiness = null);
 
 public sealed record DiagnosticEntryDto(
     string Id,

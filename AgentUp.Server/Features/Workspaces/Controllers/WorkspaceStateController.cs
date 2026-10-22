@@ -16,8 +16,16 @@ public sealed class WorkspaceStateController
         _bus = bus;
     }
 
-    public async Task<bool> UpdateApplicationStateAsync(string workspaceId, string applicationName, ApplicationState state)
-        => await _registry.UpdateApplicationStateAsync(workspaceId, applicationName, state);
+    public async Task<bool> UpdateApplicationStateAsync(
+        string workspaceId,
+        string applicationName,
+        ApplicationState state,
+        string? lastError = null)
+        => await _registry.UpdateApplicationStateAsync(workspaceId, applicationName, state, lastError);
+
+    public ApplicationState? GetApplicationState(string workspaceId, string applicationName)
+        => _registry.GetById(workspaceId)?.Applications
+            .FirstOrDefault(app => app.Name == applicationName)?.State;
 
     public async Task<bool> UpdateWorkspaceStateAsync(string workspaceId, WorkspaceState state)
         => await _registry.UpdateStateAsync(workspaceId, state);

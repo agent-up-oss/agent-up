@@ -36,4 +36,7 @@ public sealed class ProcessesController
 
     public WorkspaceRuntimeSnapshot GetRuntime(string workspaceId)
         => _processes.GetRuntime(workspaceId);
+
+    public bool IsApplicationAlive(string workspaceId, string applicationName)
+        => _processes.IsApplicationAlive(workspaceId, applicationName);
 }
