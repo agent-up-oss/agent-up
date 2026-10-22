@@ -45,7 +45,7 @@ Local application commands are an executable plus arguments. The Server launches
 
 Managed local application processes also receive `AGENT_UP_AUDIT_ENDPOINT`, `AGENT_UP_WORKSPACE_ID`, and `AGENT_UP_APPLICATION`. Browser builds can expose these values to `@agent-up/audit`. The audit endpoint is derived from the orchestrating Server's configured public/listen URL, including the development port, rather than assuming the packaged port.
 
-Process output storage must not use workspace IDs or application names as raw path segments.
+Process output storage must not use workspace IDs or application names as raw path segments. The Server frames process output on newlines with a per-stream carry buffer, serialises appends per application so stdout and stderr cannot splice a line, and stores stream identity on each entry. Overflow of the bounded buffer inserts an explicit `[truncated]` marker rather than silently shortening a line. `GET /api/workspaces/{id}/applications/{name}/output` returns `{ text, stream }` objects.
 
 ## Application proxy
 

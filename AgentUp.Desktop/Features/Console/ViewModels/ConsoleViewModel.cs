@@ -87,7 +87,8 @@ public sealed class ConsoleViewModel : ReactiveObject
                 || !string.Equals(appName, _applicationName, StringComparison.Ordinal))
                 return;
 
-            WasTruncated = lines.Count > MaxLines;
+            WasTruncated = lines.Count > MaxLines
+                || lines.Any(line => line.StartsWith("[truncated]", StringComparison.Ordinal));
             Lines.Clear();
             foreach (var line in lines.TakeLast(MaxLines))
                 Lines.Add(line);

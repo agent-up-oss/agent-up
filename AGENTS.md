@@ -1398,7 +1398,7 @@ Read: `docs/user-docs/browser/index.md` and `docs/developer-guide/browser/index.
 
 ## Diagnostics
 
-Diagnostics make AI validation practical by exposing process, browser, network, console, health, and performance information from the live workspace. After an agent task, `export_workspace_review_snapshot` on `/mcp/audit`, `GET /api/workspaces/{workspaceId}/review-snapshot`, and `agent-up review-snapshot` emit a shareable snapshot of identity, ports, processes, diagnostics, the open browser URL, recent actions, and verification when that export can run. Missing verification does not fail the snapshot.
+Diagnostics make AI validation practical by exposing process, browser, network, console, health, and performance information from the live workspace. Process console capture frames on newlines, serialises appends per application, records stdout versus stderr on each entry, and inserts an explicit `[truncated]` marker when the bounded buffer drops older lines. After an agent task, `export_workspace_review_snapshot` on `/mcp/audit`, `GET /api/workspaces/{workspaceId}/review-snapshot`, and `agent-up review-snapshot` emit a shareable snapshot of identity, ports, processes, diagnostics, the open browser URL, recent actions, and verification when that export can run. Missing verification does not fail the snapshot.
 
 Read: `docs/user-docs/diagnostics/index.md` and `docs/developer-guide/diagnostics/index.md`.
 

@@ -1,57 +1,151 @@
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using AgentUp.Server.Features.Processes.Interfaces;
+using AgentUp.Server.Features.Processes.Models;
 
 namespace AgentUp.Server.Features.Processes.Repositories;
 
 public sealed class FileOutputRepository : IOutputRepository
 {
-    private readonly string _outputRoot;
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    public FileOutputRepository(string baseDir)
+    private readonly string _outputRoot;
+    private readonly int _capacity;
+    private readonly ConcurrentDictionary<(string, string), SemaphoreSlim> _gates = new();
+    private readonly ConcurrentDictionary<(string, string), ProcessOutputBuffer> _buffers = new();
+
+    public FileOutputRepository(string baseDir, int capacity = ProcessOutputBuffer.DefaultCapacity)
     {
         _outputRoot = Path.GetFullPath(Path.Join(baseDir, "output"));
+        _capacity = capacity;
     }
 
-    public async Task AppendAsync(string workspaceId, string appName, string line, CancellationToken ct = default)
+    public async Task AppendAsync(string workspaceId, string appName, ProcessOutputLine line, CancellationToken ct = default)
     {
-        var path = GetPath(workspaceId, appName);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        await File.AppendAllTextAsync(path, line + Environment.NewLine, ct);
+        var key = (workspaceId, appName);
+        var gate = _gates.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
+        try
+        {
+            var buffer = await LoadAsync(key, ct);
+            buffer.Append(line);
+            var path = GetPath(workspaceId, appName);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            await File.AppendAllTextAsync(path, Encode(line) + "\n", ct);
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
-    public async Task<IReadOnlyList<string>> GetAsync(string workspaceId, string appName, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ProcessOutputLine>> GetAsync(string workspaceId, string appName, CancellationToken ct = default)
     {
-        var path = GetPath(workspaceId, appName);
-        if (!File.Exists(path))
-            return [];
-        return await File.ReadAllLinesAsync(path, ct);
+        var key = (workspaceId, appName);
+        var gate = _gates.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
+        try
+        {
+            var buffer = await LoadAsync(key, ct);
+            return buffer.Snapshot();
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
-    public Task ClearAsync(string workspaceId, string appName, CancellationToken ct = default)
+    public async Task ClearAsync(string workspaceId, string appName, CancellationToken ct = default)
     {
-        var path = GetPath(workspaceId, appName);
+        var key = (workspaceId, appName);
+        var gate = _gates.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
+        try
+        {
+            if (_buffers.TryGetValue(key, out var buffer))
+                buffer.Clear();
+
+            var path = GetPath(workspaceId, appName);
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private async Task<ProcessOutputBuffer> LoadAsync((string WorkspaceId, string AppName) key, CancellationToken ct)
+    {
+        if (_buffers.TryGetValue(key, out var existing))
+            return existing;
+
+        var buffer = new ProcessOutputBuffer(_capacity);
+        var path = GetPath(key.WorkspaceId, key.AppName);
         if (File.Exists(path))
-            File.Delete(path);
-        return Task.CompletedTask;
+        {
+            foreach (var storageLine in await File.ReadAllLinesAsync(path, ct))
+                buffer.Append(Decode(storageLine));
+        }
+
+        return _buffers.GetOrAdd(key, buffer);
+    }
+
+    internal static string Encode(ProcessOutputLine line)
+        => JsonSerializer.Serialize(
+            new Dictionary<string, string> { ["text"] = line.Text, ["stream"] = line.StreamName },
+            Json);
+
+    internal static ProcessOutputLine Decode(string storageLine)
+    {
+        if (string.IsNullOrWhiteSpace(storageLine))
+            return new ProcessOutputLine(string.Empty, ProcessOutputStream.Stdout);
+
+        if (!storageLine.StartsWith('{'))
+            return new ProcessOutputLine(storageLine, ProcessOutputStream.Stdout);
+
+        try
+        {
+            using var document = JsonDocument.Parse(storageLine);
+            var text = document.RootElement.TryGetProperty("text", out var textNode)
+                ? textNode.GetString() ?? string.Empty
+                : string.Empty;
+            var streamName = document.RootElement.TryGetProperty("stream", out var streamNode)
+                ? streamNode.GetString()
+                : null;
+            var stream = string.Equals(streamName, "stderr", StringComparison.OrdinalIgnoreCase)
+                ? ProcessOutputStream.Stderr
+                : ProcessOutputStream.Stdout;
+            return new ProcessOutputLine(text, stream);
+        }
+        catch (JsonException)
+        {
+            return new ProcessOutputLine(storageLine, ProcessOutputStream.Stdout);
+        }
     }
 
     private string GetPath(string workspaceId, string appName)
     {
         var fileName = GetLogFileName(workspaceId, appName);
         var path = Path.GetFullPath(Path.Join(_outputRoot, fileName));
-        var root = _outputRoot.EndsWith(Path.DirectorySeparatorChar)
-            ? _outputRoot
-            : _outputRoot + Path.DirectorySeparatorChar;
-        var comparison = OperatingSystem.IsWindows()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
-
-        if (!path.StartsWith(root, comparison))
+        if (!IsUnderOutputRoot(path, _outputRoot, OperatingSystem.IsWindows()))
             throw new InvalidOperationException("Output log path escaped the output root.");
 
         return path;
     }
+
+    internal static bool IsUnderOutputRoot(string path, string outputRoot, bool windows)
+    {
+        var root = outputRoot.EndsWith(Path.DirectorySeparatorChar)
+            ? outputRoot
+            : outputRoot + Path.DirectorySeparatorChar;
+        return path.StartsWith(root, PathStringComparison(windows));
+    }
+
+    internal static StringComparison PathStringComparison(bool windows)
+        => windows ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
     private static string GetLogFileName(string workspaceId, string appName)
     {
