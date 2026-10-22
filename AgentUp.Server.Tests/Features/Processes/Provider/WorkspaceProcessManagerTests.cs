@@ -87,7 +87,7 @@ public class WorkspaceProcessManagerTests
         var ex = Assert.ThrowsAsync<InvalidOperationException>(() =>
             _manager.LaunchApplicationAsync(workspace, "Example API"));
 
-        var lines = await _output.GetAsync(workspace.Id, "Example API");
+        var lines = (await _output.GetAsync(workspace.Id, "Example API")).Texts();
         Assert.Multiple(() =>
         {
             Assert.That(ex!.Message, Does.Contain("Example API"));
