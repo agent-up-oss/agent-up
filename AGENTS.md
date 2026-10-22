@@ -751,11 +751,10 @@ deployment configuration: Agent-Up ships no default endpoint and depends on no
 particular identity provider.
 
 That remote mode reuses `ExternalBearerCredentialValidator` and the named
-operation permissions rather than adding a second token model. Two preconditions
-belonged to it, and both are in place. The `workspace` claim is
-enforced on MCP tool **arguments** by `McpWorkspaceArgumentBinder` (REST
+operation permissions rather than adding a second token model. The `workspace`
+claim is enforced on MCP tool **arguments** by `McpWorkspaceArgumentBinder` (REST
 workspace lists use `BoundWorkspaceFilter`), because `WorkspaceBindingMiddleware`
-reads route values while MCP carries the target in the JSON-RPC body. And the
+reads route values while MCP carries the target in the JSON-RPC body. The
 advertised toolset is filtered by the caller's `permissions`:
 `McpToolPermissionMap` declares the operation permission every MCP tool needs,
 and `McpEndpointSessionProvider.ConfigureAsync` removes the tools a session's
