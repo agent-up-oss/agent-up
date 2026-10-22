@@ -115,7 +115,7 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
     [
         MobileScreen("sign-in", "Mobile sign-in",
         [
-            ScreenStepDto.Fill("Server URL", DebugLayout.DemoServerUrl),
+            ScreenStepDto.Fill(MobileScreenSurface.ConnectFieldLabel, DebugLayout.DemoServerUrl),
             ScreenStepDto.Settle(800)
         ]),
         MobileScreen("apps", "Mobile apps",

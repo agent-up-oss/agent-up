@@ -82,7 +82,10 @@ Docs and README images of Desktop and Mobile are rendered from the design-system
 half: it drives the **real** Desktop window and the **real** Mobile web client through every
 screen the design system documents under Assembled screens, and photographs each one. No
 Server is involved — both clients connect to their built-in **Demo** entry, whose backend
-runs in the client process.
+runs in the client process. Mobile waits until the connect form's Server URL field is
+painted before the first route runs, rather than sleeping a fixed interval, because the
+Expo web bundle can take longer than that after Desktop capture has already occupied the
+runner.
 
 Every screen is captured *used*, not freshly opened. The routes interact first: they sign in
 by choosing Demo, send two prompts to the workspace agent, add two items to the Demo

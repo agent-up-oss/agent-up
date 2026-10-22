@@ -11,16 +11,28 @@ namespace AgentUp.AUDebug.Features.Screens.Providers;
 /// Drives the hosted Mobile web client in headless Chromium at phone metrics.
 /// </summary>
 /// <remarks>
-/// One document load per run: <see cref="OpenAsync"/> activates Demo and every later step
-/// routes inside the app, because the Demo backend lives in the page and a reload would
-/// discard the state the route has built.
+/// One document load per run: <see cref="OpenAsync"/> waits for the connect form and every
+/// later step routes inside the app, because the Demo backend lives in the page and a reload
+/// would discard the state the route has built.
 /// </remarks>
 public sealed class MobileScreenSurface : IProductScreenSurface
 {
+    /// <summary>
+    /// The connect form field the first Mobile screen fills. Open waits for this instead of
+    /// sleeping, because the Expo web bundle can take longer than a fixed delay to paint
+    /// after Desktop capture has already occupied the CI runner.
+    /// </summary>
+    public const string ConnectFieldLabel = "Server URL";
+
+    private static readonly TimeSpan DefaultFirstPaintTimeout = TimeSpan.FromSeconds(90);
+
+    private static readonly TimeSpan LocateTimeout = TimeSpan.FromSeconds(20);
+
     private readonly IAllowlistedProcessRunner _processes;
     private readonly IDebugEnvironment _environment;
     private readonly IDebugPathValidator _paths;
     private readonly int _debuggingPort;
+    private readonly TimeSpan _firstPaintTimeout;
     private System.Diagnostics.Process? _browser;
     private ChromiumCdpSession? _session;
 
@@ -28,12 +40,14 @@ public sealed class MobileScreenSurface : IProductScreenSurface
         IAllowlistedProcessRunner processes,
         IDebugEnvironment environment,
         IDebugPathValidator paths,
-        int debuggingPort = DebugLayout.ProductScreensDebuggingPort)
+        int debuggingPort = DebugLayout.ProductScreensDebuggingPort,
+        TimeSpan? firstPaintTimeout = null)
     {
         _processes = processes;
         _environment = environment;
         _paths = paths;
         _debuggingPort = debuggingPort;
+        _firstPaintTimeout = firstPaintTimeout ?? DefaultFirstPaintTimeout;
     }
 
     /// <summary>
@@ -53,7 +67,11 @@ public sealed class MobileScreenSurface : IProductScreenSurface
         _session = await ChromiumCdpSession.ConnectAsync(await WaitForDebuggerAsync(cancellationToken), cancellationToken);
         await SendAsync(id => ChromiumCdpMessageProvider.MobileDeviceMetrics(DebugLayout.MobileScreenWidth, DebugLayout.MobileScreenHeight, id), cancellationToken);
         await SendAsync(id => ChromiumCdpMessageProvider.Navigate(MobileConnectUrl, id), cancellationToken);
-        await Task.Delay(4000, cancellationToken);
+        await WaitForPointAsync(
+            MobileScreenScriptProvider.FocusField(ConnectFieldLabel),
+            ConnectFieldLabel,
+            _firstPaintTimeout,
+            cancellationToken);
     }
 
     public async Task RunAsync(IReadOnlyList<ScreenStepDto> steps, CancellationToken cancellationToken)
@@ -96,7 +114,10 @@ public sealed class MobileScreenSurface : IProductScreenSurface
                 await TapAsync(MobileScreenScriptProvider.Locate(step.Target ?? ""), step.Target ?? "", cancellationToken);
                 break;
             case ScreenStepKind.Fill:
-                await TapAsync(MobileScreenScriptProvider.FocusField(step.Target ?? ""), step.Target ?? "", cancellationToken);
+                await TapAsync(
+                    MobileScreenScriptProvider.FocusField(step.Target ?? ""),
+                    step.Target ?? "",
+                    cancellationToken);
                 await SendAsync(id => ChromiumCdpMessageProvider.InsertText(step.Text ?? "", id), cancellationToken);
                 break;
             case ScreenStepKind.Settle:
@@ -110,15 +131,19 @@ public sealed class MobileScreenSurface : IProductScreenSurface
 
     private async Task TapAsync(string script, string label, CancellationToken cancellationToken)
     {
-        var point = await WaitForPointAsync(script, label, cancellationToken);
+        var point = await WaitForPointAsync(script, label, LocateTimeout, cancellationToken);
         await SendAsync(id => ChromiumCdpMessageProvider.MouseEvent("mousePressed", point.X, point.Y, id), cancellationToken);
         await SendAsync(id => ChromiumCdpMessageProvider.MouseEvent("mouseReleased", point.X, point.Y, id), cancellationToken);
     }
 
     /// <summary>Polls rather than sleeping: a route must not pass because a fixed wait was generous.</summary>
-    private async Task<(int X, int Y)> WaitForPointAsync(string script, string label, CancellationToken cancellationToken)
+    private async Task<(int X, int Y)> WaitForPointAsync(
+        string script,
+        string label,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
     {
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(20);
+        var deadline = DateTimeOffset.UtcNow + timeout;
         while (DateTimeOffset.UtcNow < deadline)
         {
             var reply = await EvaluateAsync(script, $"locate '{label}'", cancellationToken);
