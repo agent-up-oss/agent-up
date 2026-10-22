@@ -137,9 +137,7 @@ is reused and left alone. Desktop is driven with `xdotool` and captured with Ima
 
 Desktop click points live in `DesktopScreenGeometry` and were read off a real 1440x900 Demo
 session, so a Desktop layout change moves those numbers and nothing else. Mobile addresses
-controls by the accessible label the client gives them, so it needs no coordinates. Opening
-Mobile waits until the connect Server URL field is in the document; a fixed sleep after
-navigate is not enough for the web export to hydrate under CI.
+controls by the accessible label the client gives them, so it needs no coordinates.
 
 CI runs this in the **Product screens** job and uploads `artifacts/product-screens` as a
 build artifact. It gates nothing; it is evidence to look at.

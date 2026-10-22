@@ -41,7 +41,6 @@ public static class DebugLayout
     public const string ProductScreensDirectory = "artifacts/product-screens";
     public const string ProductScreensManifestFile = "screens.json";
     public const int ProductScreensDebuggingPort = 19224;
-    public const int ProductScreensLocateTimeoutSeconds = 60;
     public const int MobileScreenWidth = 390;
     public const int MobileScreenHeight = 844;
 }

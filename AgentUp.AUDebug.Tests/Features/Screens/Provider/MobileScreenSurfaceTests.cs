@@ -25,8 +25,7 @@ public sealed class MobileScreenSurfaceTests
         Assert.Multiple(() =>
         {
             Assert.That(processes.Started.Single().FileName, Is.EqualTo("chromium"));
-            Assert.That(processes.Started.Single().Arguments, Does.Contain("about:blank"));
-            Assert.That(processes.Started.Single().Arguments, Does.Contain("--disable-dev-shm-usage"));
+            Assert.That(processes.Started.Single().Arguments, Does.Contain($"{DebugLayout.MobileUrl}/connect"));
             Assert.That(
                 processes.Started.Single().Arguments,
                 Does.Contain($"--window-size={DebugLayout.MobileScreenWidth},{DebugLayout.MobileScreenHeight}"));
@@ -112,7 +111,6 @@ public sealed class MobileScreenSurfaceTests
         try
         {
             await surface.OpenAsync(CancellationToken.None);
-            Assert.That(debugger.Methods, Does.Contain("Runtime.evaluate"));
             await surface.RunAsync(
                 [
                     ScreenStepDto.Navigate("/apps", 0),
@@ -135,36 +133,6 @@ public sealed class MobileScreenSurfaceTests
                 Assert.That(File.ReadAllBytes(shot), Is.EqualTo(FakeChromiumDebugEndpoint.Png));
                 Assert.That(processes.Killed, Does.Contain(pid));
             });
-        }
-        finally
-        {
-            TryKill(pid);
-        }
-    }
-
-    [Test]
-    public void Open_timesOutWhenTheConnectFieldNeverAppears()
-    {
-        using var debugger = new FakeChromiumDebugEndpoint { PointAvailable = false };
-        var processes = new FakeProcessRunner();
-        var environment = new FakeEnvironment();
-        environment.Executables["chromium"] = "/usr/bin/chromium";
-        var root = NewRoot();
-        using var browser = StartHeldBrowser();
-        processes.StartOverride = _ => browser;
-        var surface = new MobileScreenSurface(
-            processes,
-            environment,
-            new FakePathValidator(root),
-            debugger.Port,
-            TimeSpan.FromMilliseconds(200));
-        var pid = browser.Id;
-
-        try
-        {
-            Assert.That(
-                async () => await surface.OpenAsync(CancellationToken.None),
-                Throws.InvalidOperationException.With.Message.Contains("Server URL"));
         }
         finally
         {
