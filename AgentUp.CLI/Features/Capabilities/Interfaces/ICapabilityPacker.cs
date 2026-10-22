@@ -4,5 +4,7 @@ namespace AgentUp.CLI.Features.Capabilities.Interfaces;
 
 public interface ICapabilityPacker
 {
-    CapabilityPackResult PackFirstParty(string workingDirectory);
+    Task<CapabilityPackResult> PackFirstPartyAsync(
+        string workingDirectory,
+        CancellationToken cancellationToken = default);
 }

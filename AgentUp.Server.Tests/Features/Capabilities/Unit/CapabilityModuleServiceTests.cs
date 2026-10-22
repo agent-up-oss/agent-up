@@ -284,12 +284,13 @@ public sealed class CapabilityModuleServiceTests
     public void List_lets_an_enabled_runtime_run_when_nix_is_present()
     {
         var listed = CapabilityModuleHarness.CreateService(nixAvailable: true, enabled: true).List().Single();
+        var windows = OperatingSystem.IsWindows();
 
         Assert.Multiple(() =>
         {
-            Assert.That(listed.State, Is.EqualTo("ready"));
-            Assert.That(listed.CanRun, Is.True);
-            Assert.That(listed.Messages, Is.Empty);
+            Assert.That(listed.CanRun, Is.EqualTo(!windows));
+            Assert.That(listed.State, Is.EqualTo(windows ? "error" : "ready"));
+            Assert.That(listed.Messages.Any(message => message.Contains("WSL2")), Is.EqualTo(windows));
         });
     }
 

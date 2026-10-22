@@ -8,7 +8,9 @@ public sealed class FirstPartyCapabilityPacker(
     ICapabilityPackProcessRunner processes,
     Func<string?>? registryPath = null) : ICapabilityPacker
 {
-    public CapabilityPackResult PackFirstParty(string workingDirectory)
+    public async Task<CapabilityPackResult> PackFirstPartyAsync(
+        string workingDirectory,
+        CancellationToken cancellationToken = default)
     {
         var repositoryRoot = FindRepositoryRoot(workingDirectory);
         if (repositoryRoot is null)
@@ -28,7 +30,7 @@ public sealed class FirstPartyCapabilityPacker(
         CapabilityProcessResult ran;
         try
         {
-            ran = processes.Run("bash", [script, registryRoot], repositoryRoot);
+            ran = await processes.RunAsync("bash", [script, registryRoot], repositoryRoot, cancellationToken);
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or IOException)
         {

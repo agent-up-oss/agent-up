@@ -9,7 +9,7 @@ namespace AgentUp.CLI.Tests.Features.Capabilities.Provider;
 public sealed class FirstPartyCapabilityPackerTests
 {
     [Test]
-    public void PackFirstParty_runsThePackScriptAgainstTheResolvedRegistry()
+    public async Task PackFirstParty_runsThePackScriptAgainstTheResolvedRegistry()
     {
         var root = CreateRepository();
         try
@@ -17,7 +17,7 @@ public sealed class FirstPartyCapabilityPackerTests
             var runner = new RecordingProcessRunner();
             var packer = new FirstPartyCapabilityPacker(runner, () => Path.Join(root, "registry"));
 
-            var packed = packer.PackFirstParty(Path.Join(root, "nested"));
+            var packed = await packer.PackFirstPartyAsync(Path.Join(root, "nested"));
 
             Assert.Multiple(() =>
             {
@@ -35,14 +35,14 @@ public sealed class FirstPartyCapabilityPackerTests
     }
 
     [Test]
-    public void PackFirstParty_reportsANonZeroPackExit()
+    public async Task PackFirstParty_reportsANonZeroPackExit()
     {
         var root = CreateRepository();
         try
         {
-            var packed = new FirstPartyCapabilityPacker(
+            var packed = await new FirstPartyCapabilityPacker(
                 new RecordingProcessRunner(exitCode: 1, stderr: "nix missing"),
-                () => Path.Join(root, "registry")).PackFirstParty(root);
+                () => Path.Join(root, "registry")).PackFirstPartyAsync(root);
 
             Assert.Multiple(() =>
             {
@@ -58,14 +58,14 @@ public sealed class FirstPartyCapabilityPackerTests
     }
 
     [Test]
-    public void PackFirstParty_reportsAProcessLaunchFailure()
+    public async Task PackFirstParty_reportsAProcessLaunchFailure()
     {
         var root = CreateRepository();
         try
         {
-            var packed = new FirstPartyCapabilityPacker(
+            var packed = await new FirstPartyCapabilityPacker(
                 new FailingProcessRunner(),
-                () => Path.Join(root, "registry")).PackFirstParty(root);
+                () => Path.Join(root, "registry")).PackFirstPartyAsync(root);
 
             Assert.Multiple(() =>
             {
@@ -80,12 +80,12 @@ public sealed class FirstPartyCapabilityPackerTests
     }
 
     [Test]
-    public void PackFirstParty_explainsWhenTheRepositoryIsMissing()
+    public async Task PackFirstParty_explainsWhenTheRepositoryIsMissing()
     {
         var empty = Directory.CreateTempSubdirectory("AgentUp-NoRepo").FullName;
         try
         {
-            var packed = new FirstPartyCapabilityPacker(new RecordingProcessRunner()).PackFirstParty(empty);
+            var packed = await new FirstPartyCapabilityPacker(new RecordingProcessRunner()).PackFirstPartyAsync(empty);
 
             Assert.Multiple(() =>
             {
@@ -116,21 +116,29 @@ public sealed class FirstPartyCapabilityPackerTests
 
         public string? WorkingDirectory { get; private set; }
 
-        public CapabilityProcessResult Run(string fileName, IReadOnlyList<string> arguments, string workingDirectory)
+        public Task<CapabilityProcessResult> RunAsync(
+            string fileName,
+            IReadOnlyList<string> arguments,
+            string workingDirectory,
+            CancellationToken cancellationToken = default)
         {
             FileName = fileName;
             Arguments = arguments;
             WorkingDirectory = workingDirectory;
-            return new CapabilityProcessResult(
+            return Task.FromResult(new CapabilityProcessResult(
                 exitCode,
                 exitCode == 0 ? $"Packed first-party capabilities into {arguments[1]}" : "",
-                stderr);
+                stderr));
         }
     }
 
     private sealed class FailingProcessRunner : ICapabilityPackProcessRunner
     {
-        public CapabilityProcessResult Run(string fileName, IReadOnlyList<string> arguments, string workingDirectory)
+        public Task<CapabilityProcessResult> RunAsync(
+            string fileName,
+            IReadOnlyList<string> arguments,
+            string workingDirectory,
+            CancellationToken cancellationToken = default)
             => throw new InvalidOperationException("bash is not allowlisted.");
     }
 }

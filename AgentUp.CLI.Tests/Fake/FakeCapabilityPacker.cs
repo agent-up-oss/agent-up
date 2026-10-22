@@ -13,9 +13,11 @@ internal sealed class FakeCapabilityPacker : ICapabilityPacker
 
     public int Calls { get; private set; }
 
-    public CapabilityPackResult PackFirstParty(string workingDirectory)
+    public Task<CapabilityPackResult> PackFirstPartyAsync(
+        string workingDirectory,
+        CancellationToken cancellationToken = default)
     {
         Calls++;
-        return new CapabilityPackResult(Succeeded, RegistryRoot, Message);
+        return Task.FromResult(new CapabilityPackResult(Succeeded, RegistryRoot, Message));
     }
 }

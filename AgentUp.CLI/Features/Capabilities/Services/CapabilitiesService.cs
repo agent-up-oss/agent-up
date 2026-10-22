@@ -51,9 +51,9 @@ public sealed class CapabilitiesService(
         try
         {
             var listed = await api.ListAsync(cancellationToken);
-            var match = Find(listed, id);
+            var match = Find(listed, id, version);
             if (match is null)
-                return CapabilitiesCommandResult.Fail($"Error: Capability '{id}' is not in the local registry.");
+                return CapabilitiesCommandResult.Fail(UnknownCapability(id, version));
             if (match.Enabled)
                 return CapabilitiesCommandResult.Ok($"Capability '{match.Id}' is already enabled.");
 
@@ -94,7 +94,7 @@ public sealed class CapabilitiesService(
 
     private async Task<CapabilitiesCommandResult> BootstrapAsync(string workingDirectory, CancellationToken cancellationToken)
     {
-        var packed = packer.PackFirstParty(workingDirectory);
+        var packed = await packer.PackFirstPartyAsync(workingDirectory, cancellationToken);
         if (!packed.Succeeded)
             return CapabilitiesCommandResult.Fail(packed.Message);
 
@@ -131,6 +131,17 @@ public sealed class CapabilitiesService(
         }
     }
 
-    private static CapabilityModuleDto? Find(IReadOnlyList<CapabilityModuleDto> modules, string id)
-        => modules.FirstOrDefault(module => module.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+    private static CapabilityModuleDto? Find(
+        IReadOnlyList<CapabilityModuleDto> modules,
+        string id,
+        string? version = null)
+        => modules.FirstOrDefault(module =>
+            module.Id.Equals(id, StringComparison.OrdinalIgnoreCase)
+            && (string.IsNullOrWhiteSpace(version)
+                || module.Version.Equals(version, StringComparison.Ordinal)));
+
+    private static string UnknownCapability(string id, string? version)
+        => string.IsNullOrWhiteSpace(version)
+            ? $"Error: Capability '{id}' is not in the local registry."
+            : $"Error: Capability '{id}' version '{version}' is not in the local registry.";
 }

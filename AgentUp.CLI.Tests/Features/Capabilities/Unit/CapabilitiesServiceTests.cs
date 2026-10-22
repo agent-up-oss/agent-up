@@ -104,6 +104,53 @@ public sealed class CapabilitiesServiceTests
     }
 
     [Test]
+    public async Task Enable_with_version_enables_that_package_when_another_version_is_already_enabled()
+    {
+        var api = new FakeCapabilityModulesApi
+        {
+            Modules =
+            [
+                CliDomain.Capability().Versioned("1.0.0").Enabled().Build(),
+                CliDomain.Capability().Versioned("2.0.0").Build()
+            ]
+        };
+
+        var result = await Service(api).RunAsync(
+            ["enable", CliDomain.CapabilityId, "--version", "2.0.0"],
+            "/repo");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(result.Message, Does.Contain("Enabled"));
+            Assert.That(result.Message, Does.Not.Contain("already enabled"));
+            Assert.That(api.EnabledId, Is.EqualTo(CliDomain.CapabilityId));
+            Assert.That(api.EnabledVersion, Is.EqualTo("2.0.0"));
+        });
+    }
+
+    [Test]
+    public async Task Enable_with_version_rejects_a_version_that_is_not_listed()
+    {
+        var api = new FakeCapabilityModulesApi
+        {
+            Modules = [CliDomain.Capability().Versioned("1.0.0").Enabled().Build()]
+        };
+
+        var result = await Service(api).RunAsync(
+            ["enable", CliDomain.CapabilityId, "--version", "9.9.9"],
+            "/repo");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("version '9.9.9'"));
+            Assert.That(result.Message, Does.Contain("not in the local registry"));
+            Assert.That(api.EnabledId, Is.Null);
+        });
+    }
+
+    [Test]
     public async Task Enable_reportsHttpFailures()
     {
         var api = new FakeCapabilityModulesApi { EnableError = new HttpRequestException("connection refused") };

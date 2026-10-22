@@ -206,7 +206,7 @@ public sealed class CapabilityModuleService(
             module.Id.Equals(package.Manifest.Id, StringComparison.OrdinalIgnoreCase)
             && module.Version.Equals(package.Manifest.Version, StringComparison.Ordinal));
         var needsNix = NeedsNix(package.Manifest.Kind);
-        var nixMissing = needsNix && !nix.IsAvailable;
+        var nixMissing = needsNix && (!nix.IsAvailable || OperatingSystem.IsWindows());
         IReadOnlyList<string> messages = nixMissing
             ? CapabilityPrerequisiteMessages.NixMissing(package.Manifest.Id)
             : !isEnabled
