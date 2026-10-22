@@ -7,6 +7,8 @@ using AgentUp.Server.Features.DesktopApplications.Controllers;
 using AgentUp.Server.Features.DesktopApplications.Providers;
 using AgentUp.Server.Features.DesktopApplications.Services;
 using AgentUp.Server.Features.Ports.DTOs;
+using AgentUp.Server.Features.Processes.Interfaces;
+using AgentUp.Server.Features.Processes.Models;
 using AgentUp.Server.Features.Processes.Providers;
 using AgentUp.Server.Features.Processes.Repositories;
 using AgentUp.Server.Features.Processes.Services;
@@ -37,6 +39,7 @@ public class WorkspaceProcessManagerTests
             new ProcessOutputService(_output),
             new LocalProcessProvider(),
             new DockerProcessProvider(),
+            new ProcessOutputPump(),
             NullLogger<WorkspaceProcessManager>.Instance);
     }
 
@@ -50,7 +53,7 @@ public class WorkspaceProcessManagerTests
         Assert.ThrowsAsync<InvalidOperationException>(() =>
             _manager.LaunchApplicationAsync(workspace, "Db"));
 
-        var lines = await _output.GetAsync(workspace.Id, "Db");
+        var lines = (await _output.GetAsync(workspace.Id, "Db")).Texts();
         Assert.That(lines, Is.Not.Empty);
         Assert.That(lines, Has.Some.StartsWith("[err]"));
     }
@@ -591,7 +594,7 @@ public class WorkspaceProcessManagerTests
 
             // Only install-prefixed output should exist; the application's own printenv must
             // never have run.
-            var lines = await _output.GetAsync(workspace.Id, "Web");
+            var lines = (await _output.GetAsync(workspace.Id, "Web")).Texts();
             Assert.That(lines, Has.All.Matches<string>(line => line.StartsWith("[install]", StringComparison.Ordinal)));
         }
         finally
@@ -615,7 +618,7 @@ public class WorkspaceProcessManagerTests
         var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Failed);
         Assert.That(state, Is.EqualTo(ApplicationState.Failed));
 
-        var lines = await _output.GetAsync(workspace.Id, "Web");
+        var lines = (await _output.GetAsync(workspace.Id, "Web")).Texts();
         Assert.That(lines, Has.Some.Contains("not a shell expression"));
     }
 
@@ -649,7 +652,7 @@ public class WorkspaceProcessManagerTests
 
             // Only install-prefixed output (if any) should exist; the application's own
             // printenv must never have run.
-            var lines = await _output.GetAsync(workspace.Id, "Web");
+            var lines = (await _output.GetAsync(workspace.Id, "Web")).Texts();
             Assert.That(lines, Has.All.Matches<string>(line => line.StartsWith("[install]", StringComparison.Ordinal)));
         }
         finally
@@ -883,6 +886,7 @@ public class WorkspaceProcessManagerTests
             new ProcessOutputService(_output),
             new LocalProcessProvider(),
             new DockerProcessProvider(),
+            new ProcessOutputPump(),
             NullLogger<WorkspaceProcessManager>.Instance,
             isLinux: () => false);
         var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
@@ -891,7 +895,7 @@ public class WorkspaceProcessManagerTests
 
         await manager.LaunchApplicationAsync(workspace, "Editor");
 
-        var lines = await _output.GetAsync(workspace.Id, "Editor");
+        var lines = (await _output.GetAsync(workspace.Id, "Editor")).Texts();
         Assert.Multiple(() =>
         {
             Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Failed));
@@ -915,6 +919,7 @@ public class WorkspaceProcessManagerTests
             new ProcessOutputService(_output),
             new LocalProcessProvider(),
             new DockerProcessProvider(),
+            new ProcessOutputPump(),
             NullLogger<WorkspaceProcessManager>.Instance,
             desktop);
         var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
@@ -944,6 +949,277 @@ public class WorkspaceProcessManagerTests
         }
     }
 
+    [Test]
+    [CancelAfter(60_000)]
+    public async Task LaunchApplicationAsync_CapturesHighRateStdoutAndStderrWithoutSplicing()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+        var script = Path.Join(worktreePath, "generator.py");
+        await File.WriteAllTextAsync(script, """
+            import sys
+            for i in range(10000):
+                if i % 2 == 0:
+                    sys.stdout.write(f"out-{i:05d}\n")
+                    sys.stdout.flush()
+                else:
+                    sys.stderr.write(f"err-{i:05d}\n")
+                    sys.stderr.flush()
+            sys.stdout.write("L" * 8192 + "\n")
+            sys.stdout.write("final-no-nl")
+            sys.stdout.flush()
+            """);
+
+        try
+        {
+            var executable = new[] { "python3", "python" }.FirstOrDefault(ExecutableOnPath);
+            Assert.That(executable, Is.Not.Null, "python3 or python is required for the high-rate console generator.");
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, $"{executable} {script}").Build())
+                .Build());
+
+            await _manager.LaunchApplicationAsync(workspace, "Web");
+            var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(20);
+            var lines = (await _output.GetAsync(workspace.Id, "Web")).Texts().ToList();
+            while (!lines.Contains("final-no-nl") && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+                lines = (await _output.GetAsync(workspace.Id, "Web")).Texts().ToList();
+            }
+            var stdout = lines.Where(line => line.StartsWith("out-", StringComparison.Ordinal)).ToList();
+            var stderr = lines.Where(line => line.StartsWith("[err] err-", StringComparison.Ordinal)).ToList();
+            Assert.That(stdout, Is.EqualTo(Enumerable.Range(0, 5000).Select(index => $"out-{index * 2:00000}")));
+            Assert.That(stderr, Is.EqualTo(Enumerable.Range(0, 5000).Select(index => $"[err] err-{index * 2 + 1:00000}")));
+            Assert.That(lines, Has.Some.EqualTo(new string('L', 8192)));
+            Assert.That(lines, Has.Some.EqualTo("final-no-nl"));
+            Assert.That(lines, Has.None.Contains('\n'));
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(worktreePath);
+        }
+    }
+
+    [Test]
+    public async Task LaunchDockerService_writesMultilineStderrWhenRunFails()
+    {
+        var docker = new ScriptedDockerProcessProvider(
+            () => throw new InvalidOperationException("log process should not start"),
+            exitCode: 1,
+            runResult: new DockerCommandResult(1, "", "first\r\nsecond\n"));
+        var manager = CreateManager(docker);
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithService(ServerDomain.PostgresService())
+            .Build());
+
+        Assert.That(
+            async () => await manager.LaunchApplicationAsync(workspace, "Db"),
+            Throws.InvalidOperationException);
+        var lines = (await _output.GetAsync(workspace.Id, "Db")).Texts();
+        Assert.That(lines, Is.EqualTo(new[] { "[err] first", "[err] second" }));
+    }
+
+    [Test]
+    [CancelAfter(30_000)]
+    public async Task LaunchDockerService_capturesLogLinesAndMarksNaturalExit()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+        var script = Path.Join(worktreePath, "docker-log.py");
+        await File.WriteAllTextAsync(script, """
+            import sys
+            sys.stdout.write("docker-out\n")
+            sys.stdout.flush()
+            sys.stderr.write("docker-err\n")
+            sys.stderr.flush()
+            """);
+        var docker = new ScriptedDockerProcessProvider(() => CreateScriptProcess(script), exitCode: 0);
+        var manager = CreateManager(docker);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .WithService(ServerDomain.PostgresService())
+                .Build());
+
+            await manager.LaunchApplicationAsync(workspace, "Db");
+            var lines = await WaitForOutputAsync(
+                workspace.Id,
+                "Db",
+                current => current.Contains("docker-out") && current.Contains("[err] docker-err"));
+            var state = await WaitForApplicationStateAsync(workspace.Id, "Db", ApplicationState.Stopped, TimeSpan.FromSeconds(10));
+
+            Assert.That(state, Is.EqualTo(ApplicationState.Stopped));
+            Assert.That(lines, Does.Contain("docker-out"));
+            Assert.That(lines, Does.Contain("[err] docker-err"));
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(worktreePath);
+        }
+    }
+
+    [Test]
+    [CancelAfter(30_000)]
+    public async Task LaunchDockerService_ignoresLogExitAfterKill()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+        var script = Path.Join(worktreePath, "docker-sleep.py");
+        await File.WriteAllTextAsync(script, "import time\ntime.sleep(30)\n");
+        var docker = new ScriptedDockerProcessProvider(() => CreateScriptProcess(script), exitCode: 1);
+        var manager = CreateManager(docker);
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithService(ServerDomain.PostgresService())
+            .Build());
+
+        try
+        {
+            await manager.LaunchApplicationAsync(workspace, "Db");
+            await manager.KillApplicationAsync(workspace.Id, "Db");
+
+            Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Stopped));
+            Assert.That(docker.RemovedAfterKill, Is.True);
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(worktreePath);
+        }
+    }
+
+    [Test]
+    [CancelAfter(30_000)]
+    public async Task LaunchDockerService_continuesAfterAppendFailuresWhileFlushing()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+        var script = Path.Join(worktreePath, "docker-log.py");
+        await File.WriteAllTextAsync(script, "import sys\nsys.stdout.write('line\\n')\nsys.stdout.flush()\n");
+        var output = new AppendThrowsOutputRepository();
+        var docker = new ScriptedDockerProcessProvider(() => CreateScriptProcess(script), exitCode: 1);
+        var manager = new WorkspaceProcessManager(
+            ServerTestComposition.CreateWorkspaceStateController(_registry),
+            new ProcessOutputService(output),
+            new LocalProcessProvider(),
+            docker,
+            new ProcessOutputPump(),
+            NullLogger<WorkspaceProcessManager>.Instance);
+        var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithService(ServerDomain.PostgresService())
+            .Build());
+
+        try
+        {
+            await manager.LaunchApplicationAsync(workspace, "Db");
+            var state = await WaitForApplicationStateAsync(workspace.Id, "Db", ApplicationState.Failed, TimeSpan.FromSeconds(10));
+
+            Assert.That(state, Is.EqualTo(ApplicationState.Failed));
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(worktreePath);
+        }
+    }
+
+    [Test]
+    [CancelAfter(30_000)]
+    public async Task LaunchApplicationAsync_swallowsPumpReadFailures()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+        var script = Path.Join(worktreePath, "hello.py");
+        await File.WriteAllTextAsync(script, "print('hello')\n");
+        var manager = new WorkspaceProcessManager(
+            ServerTestComposition.CreateWorkspaceStateController(_registry),
+            new ProcessOutputService(_output),
+            new LocalProcessProvider(),
+            new DockerProcessProvider(),
+            new ThrowingOutputPump(),
+            NullLogger<WorkspaceProcessManager>.Instance);
+        var executable = new[] { "python3", "python" }.FirstOrDefault(ExecutableOnPath);
+        Assert.That(executable, Is.Not.Null);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, $"{executable} {script}").Build())
+                .Build());
+
+            await manager.LaunchApplicationAsync(workspace, "Web");
+            var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Stopped, TimeSpan.FromSeconds(10));
+
+            Assert.That(state, Is.EqualTo(ApplicationState.Stopped));
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(worktreePath);
+        }
+    }
+
+    [Test]
+    [CancelAfter(30_000)]
+    public async Task LaunchApplicationAsync_swallowsCancelledPumpReads()
+    {
+        var worktreePath = Path.Join(Path.GetTempPath(), "AgentUp-Tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(worktreePath);
+        var script = Path.Join(worktreePath, "hello.py");
+        await File.WriteAllTextAsync(script, "print('hello')\n");
+        var manager = new WorkspaceProcessManager(
+            ServerTestComposition.CreateWorkspaceStateController(_registry),
+            new ProcessOutputService(_output),
+            new LocalProcessProvider(),
+            new DockerProcessProvider(),
+            new CancelledOutputPump(),
+            NullLogger<WorkspaceProcessManager>.Instance);
+        var executable = new[] { "python3", "python" }.FirstOrDefault(ExecutableOnPath);
+        Assert.That(executable, Is.Not.Null);
+
+        try
+        {
+            var workspace = await _registry.RegisterAsync(ServerDomain.Workspace()
+                .At(worktreePath)
+                .WithApplication(new ApplicationDefinitionBuilder(ServerDomain.WebName, $"{executable} {script}").Build())
+                .Build());
+
+            await manager.LaunchApplicationAsync(workspace, "Web");
+            var state = await WaitForApplicationStateAsync(workspace.Id, "Web", ApplicationState.Stopped, TimeSpan.FromSeconds(10));
+
+            Assert.That(state, Is.EqualTo(ApplicationState.Stopped));
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(worktreePath);
+        }
+    }
+
+    private WorkspaceProcessManager CreateManager(IDockerProcessProvider docker)
+        => new(
+            ServerTestComposition.CreateWorkspaceStateController(_registry),
+            new ProcessOutputService(_output),
+            new LocalProcessProvider(),
+            docker,
+            new ProcessOutputPump(),
+            NullLogger<WorkspaceProcessManager>.Instance);
+
+    private static Process CreateScriptProcess(string scriptPath)
+    {
+        var executable = new[] { "python3", "python" }.First(ExecutableOnPath);
+        return new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = executable,
+                ArgumentList = { "-u", scriptPath },
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            },
+            EnableRaisingEvents = false
+        };
+    }
+
     private static string LongRunningStopCommand()
     {
         var executable = new[] { "python3", "python" }.FirstOrDefault(ExecutableOnPath);
@@ -966,9 +1242,10 @@ public class WorkspaceProcessManagerTests
     private async Task<ApplicationState> WaitForApplicationStateAsync(
         string workspaceId,
         string appName,
-        ApplicationState expected)
+        ApplicationState expected,
+        TimeSpan? timeout = null)
     {
-        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
+        var deadline = DateTimeOffset.UtcNow + (timeout ?? TimeSpan.FromSeconds(5));
         var state = _registry.GetById(workspaceId)!.Applications.Single(app => app.Name == appName).State;
         while (state != expected && DateTimeOffset.UtcNow < deadline)
         {
@@ -985,11 +1262,11 @@ public class WorkspaceProcessManagerTests
         Func<List<string>, bool> condition)
     {
         var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
-        var lines = (await _output.GetAsync(workspaceId, appName)).ToList();
+        var lines = (await _output.GetAsync(workspaceId, appName)).Texts().ToList();
         while (!condition(lines) && DateTimeOffset.UtcNow < deadline)
         {
             await Task.Delay(100);
-            lines = (await _output.GetAsync(workspaceId, appName)).ToList();
+            lines = (await _output.GetAsync(workspaceId, appName)).Texts().ToList();
         }
 
         return lines;
@@ -999,5 +1276,96 @@ public class WorkspaceProcessManagerTests
     {
         if (Directory.Exists(directory))
             Directory.Delete(directory, recursive: true);
+    }
+
+    private sealed class ScriptedDockerProcessProvider : IDockerProcessProvider
+    {
+        private readonly Func<Process> _createLog;
+        private readonly int _exitCode;
+        private readonly DockerCommandResult _runResult;
+
+        public ScriptedDockerProcessProvider(
+            Func<Process> createLog,
+            int exitCode,
+            DockerCommandResult? runResult = null)
+        {
+            _createLog = createLog;
+            _exitCode = exitCode;
+            _runResult = runResult ?? new DockerCommandResult(0, "", "");
+        }
+
+        public int RemoveCount { get; private set; }
+
+        public bool RemovedAfterKill => RemoveCount >= 2;
+
+        public string GetContainerName(string workspaceId, string appName)
+            => $"agentup-{appName}";
+
+        public IReadOnlyList<string> CreateRunArguments(
+            string containerName,
+            Workspace workspace,
+            ApplicationInstance app)
+            => ["run", app.Image ?? "image"];
+
+        public Process CreateLogProcess(string containerName)
+            => _createLog();
+
+        public Task<DockerCommandResult> RunAsync(params string[] args)
+        {
+            if (args is ["rm", "-f", _])
+            {
+                RemoveCount++;
+                return Task.FromResult(new DockerCommandResult(0, "", ""));
+            }
+
+            return Task.FromResult(_runResult);
+        }
+
+        public Task<int> GetExitCodeAsync(string containerName)
+            => Task.FromResult(_exitCode);
+    }
+
+    private sealed class AppendThrowsOutputRepository : IOutputRepository
+    {
+        public Task AppendAsync(
+            string workspaceId,
+            string appName,
+            ProcessOutputLine line,
+            CancellationToken ct = default)
+            => throw new InvalidOperationException("disk full");
+
+        public Task<IReadOnlyList<ProcessOutputLine>> GetAsync(
+            string workspaceId,
+            string appName,
+            CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<ProcessOutputLine>>([]);
+
+        public Task ClearAsync(string workspaceId, string appName, CancellationToken ct = default)
+            => Task.CompletedTask;
+    }
+
+    private sealed class ThrowingOutputPump : IProcessOutputPump
+    {
+        public Task DrainAsync(
+            StreamReader reader,
+            ProcessOutputStream stream,
+            Func<string, ProcessOutputStream, CancellationToken, Task> onLine,
+            CancellationToken cancellationToken = default)
+        {
+            Exception error = stream == ProcessOutputStream.Stdout
+                ? new IOException("stdout closed")
+                : new ObjectDisposedException(nameof(StreamReader));
+            return Task.FromException(error);
+        }
+    }
+
+    private sealed class CancelledOutputPump : IProcessOutputPump
+    {
+        public Task DrainAsync(
+            StreamReader reader,
+            ProcessOutputStream stream,
+            Func<string, ProcessOutputStream, CancellationToken, Task> onLine,
+            CancellationToken cancellationToken = default)
+            => Task.FromCanceled(new CancellationToken(canceled: true));
     }
 }

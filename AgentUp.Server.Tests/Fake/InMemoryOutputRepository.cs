@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using AgentUp.Server.Features.Processes.Interfaces;
+using AgentUp.Server.Features.Processes.Models;
 
 namespace AgentUp.Server.Tests.Fake;
 
@@ -17,29 +18,45 @@ namespace AgentUp.Server.Tests.Fake;
 /// </remarks>
 internal sealed class InMemoryOutputRepository : IOutputRepository
 {
-    private readonly ConcurrentDictionary<(string, string), List<string>> _lines = new();
+    private readonly ConcurrentDictionary<(string, string), ProcessOutputBuffer> _buffers = new();
+    private readonly ConcurrentDictionary<(string, string), object> _gates = new();
+    private readonly int _capacity;
+
+    public InMemoryOutputRepository(int capacity = ProcessOutputBuffer.DefaultCapacity)
+    {
+        _capacity = capacity;
+    }
 
     public Task AppendAsync(string workspaceId, string appName, string line, CancellationToken ct = default)
+        => AppendAsync(workspaceId, appName, new ProcessOutputLine(line, ProcessOutputStream.Stdout), ct);
+
+    public Task AppendAsync(string workspaceId, string appName, ProcessOutputLine line, CancellationToken ct = default)
     {
-        var stream = _lines.GetOrAdd((workspaceId, appName), _ => []);
-        lock (stream)
-            stream.Add(line);
+        var key = (workspaceId, appName);
+        var gate = _gates.GetOrAdd(key, _ => new object());
+        lock (gate)
+        {
+            var buffer = _buffers.GetOrAdd(key, _ => new ProcessOutputBuffer(_capacity));
+            buffer.Append(line);
+        }
 
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyList<string>> GetAsync(string workspaceId, string appName, CancellationToken ct = default)
+    public Task<IReadOnlyList<ProcessOutputLine>> GetAsync(string workspaceId, string appName, CancellationToken ct = default)
     {
-        if (!_lines.TryGetValue((workspaceId, appName), out var stream))
-            return Task.FromResult<IReadOnlyList<string>>([]);
+        var key = (workspaceId, appName);
+        if (!_buffers.TryGetValue(key, out var buffer))
+            return Task.FromResult<IReadOnlyList<ProcessOutputLine>>([]);
 
-        lock (stream)
-            return Task.FromResult<IReadOnlyList<string>>(stream.ToArray());
+        var gate = _gates.GetOrAdd(key, _ => new object());
+        lock (gate)
+            return Task.FromResult(buffer.Snapshot());
     }
 
     public Task ClearAsync(string workspaceId, string appName, CancellationToken ct = default)
     {
-        _lines.TryRemove((workspaceId, appName), out _);
+        _buffers.TryRemove((workspaceId, appName), out _);
         return Task.CompletedTask;
     }
 }

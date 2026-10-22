@@ -61,7 +61,7 @@ internal sealed class FakeHttpMessageHandler(
         {
             var key = ExtractOutputKey(path);
             var lines = outputLines.GetValueOrDefault(key, []);
-            return Task.FromResult(Ok(lines));
+            return Task.FromResult(Ok(lines.Select(line => new { text = line, stream = "stdout" })));
         }
 
         if (ValidationRoutes.IsFlowListRoute(path))

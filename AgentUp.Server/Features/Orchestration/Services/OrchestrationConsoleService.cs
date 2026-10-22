@@ -43,7 +43,7 @@ public sealed class OrchestrationConsoleService(
             var lines = await processes.GetOutputAsync(workspace.Id, app.Name);
             var visibleLines = lines
                 .Skip(Math.Max(0, lines.Count - normalizedLineLimit))
-                .Select(redactor.Redact)
+                .Select(line => redactor.Redact(line.Text))
                 .ToList();
             applications.Add(new ApplicationConsoleSnapshot(
                 app.Name,

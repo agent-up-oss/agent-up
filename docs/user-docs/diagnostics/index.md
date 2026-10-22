@@ -13,7 +13,7 @@ Product crash reporting for Agent-Up itself is separate.
 </DocWhat>
 
 <DocCallout>
-Console output is the first diagnostic source after a failed start, health check, or browser timeout.
+Console output is the first diagnostic source after a failed start, health check, or browser timeout. The Server keeps those lines intact: one source line per entry, stdout and stderr identity on the entry, and an explicit `[truncated]` marker when older output is dropped.
 </DocCallout>
 
 <DocSpine>
