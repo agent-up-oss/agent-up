@@ -390,6 +390,7 @@
 /* --------------------------------------------------------------- mobile --- */
 
 .aun-phone {
+  position: relative;
   width: 390px;
   height: 844px;
   background: var(--au-color-canvas);
@@ -422,6 +423,74 @@
 .aun-tabbar__item[aria-current='page'] { color: var(--au-color-text-primary); font-weight: var(--au-weight-ui-strong); }
 
 .aun-degrade { border: var(--au-stroke) dashed var(--au-color-border-strong); border-radius: var(--au-radius-md); padding: var(--au-space-3) var(--au-space-4); background: var(--au-color-surface); }
+
+/*
+ * The phone's sidebar. Desktop keeps the rail on screen, so everything that lives there —
+ * the server it is pointed at, settings, signing out — needs a way in on mobile too. The
+ * bottom bar is for moving between the three working surfaces; this drawer is for everything
+ * about the connection itself.
+ */
+.aun-iconbtn {
+  width: var(--au-control-height-touch);
+  height: var(--au-control-height-touch);
+  margin-left: calc(var(--au-space-2) * -1);
+  border: none;
+  background: none;
+  color: var(--au-color-text-secondary);
+  font-size: var(--au-font-size-ui-lg);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.aun-drawer { position: absolute; inset: 0; display: flex; }
+.aun-drawer__scrim { position: absolute; inset: 0; background: var(--au-color-scrim); }
+
+.aun-drawer__panel {
+  position: relative;
+  width: 17rem;
+  max-width: 82%;
+  background: var(--au-color-surface);
+  border-right: var(--au-stroke) solid var(--au-color-border-subtle);
+  padding: var(--au-space-4) var(--au-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.aun-drawer__link {
+  display: flex;
+  align-items: center;
+  gap: var(--au-space-3);
+  min-height: var(--au-control-height-touch);
+  padding: var(--au-space-2) var(--au-space-3);
+  border-radius: var(--au-radius-sm);
+  border: var(--au-stroke) solid transparent;
+  font-size: var(--au-font-size-ui-md);
+  color: var(--au-color-text-muted);
+  text-decoration: none;
+}
+
+.aun-drawer__link[aria-current='page'] {
+  background: var(--au-color-surface-selected);
+  border-color: var(--au-color-border-selected);
+  color: var(--au-color-text-primary);
+  font-weight: var(--au-weight-ui-strong);
+}
+
+.aun-drawer__server {
+  display: flex;
+  align-items: center;
+  gap: var(--au-space-3);
+  padding: var(--au-space-3);
+  margin-bottom: var(--au-space-3);
+  border: var(--au-stroke) solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-md);
+  background: var(--au-color-surface-raised);
+}
 
 /* -------------------------------------------------------------- toggles --- */
 

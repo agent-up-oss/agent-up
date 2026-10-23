@@ -744,8 +744,9 @@
          data-aun-intro="Phone triage. Approve and reject are reachable without opening anything.">
   <div class="aun-phone">
     <header class="aun-phone__head">
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px">
-        <span>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <button type="button" class="aun-iconbtn" aria-label="Open menu">&#9776;</button>
+        <span style="flex-grow: 1; min-width: 0">
           <span class="aun-title" style="display: block; font-size: var(--au-font-size-ui-lg)">Bridge</span>
           <span class="aun-rail__url">dev-box &middot; localhost:5000</span>
         </span>
@@ -816,8 +817,9 @@
          data-aun-intro="Who exists, what each one is doing, and the record that gives them a character.">
   <div class="aun-phone">
     <header class="aun-phone__head">
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px">
-        <span>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <button type="button" class="aun-iconbtn" aria-label="Open menu">&#9776;</button>
+        <span style="flex-grow: 1; min-width: 0">
           <span class="aun-title" style="display: block; font-size: var(--au-font-size-ui-lg)">Team</span>
           <span class="aun-subtitle">3 agents</span>
         </span>
@@ -973,8 +975,13 @@
          data-aun-intro="The same switch back, on the phone. Both clients carry it so neither can strand you in the new shell.">
   <div class="aun-phone">
     <header class="aun-phone__head">
-      <span class="aun-title" style="display: block; font-size: var(--au-font-size-ui-lg)">Settings</span>
-      <span class="aun-rail__url">dev-box &middot; localhost:5000</span>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <button type="button" class="aun-iconbtn" aria-label="Open menu">&#9776;</button>
+        <span style="flex-grow: 1; min-width: 0">
+          <span class="aun-title" style="display: block; font-size: var(--au-font-size-ui-lg)">Settings</span>
+          <span class="aun-rail__url">dev-box &middot; localhost:5000</span>
+        </span>
+      </div>
     </header>
     <div class="aun-phone__body">
       <section>
@@ -1019,6 +1026,299 @@
       <a class="aun-tabbar__item" href="#bridge"><span style="font-size: 15px">&#9632;</span>Bridge</a>
       <a class="aun-tabbar__item" href="#tasks"><span style="font-size: 15px">&#9644;</span>Tasks</a>
       <a class="aun-tabbar__item" href="#team"><span style="font-size: 15px">&#9679;</span>Team</a>
+    </nav>
+  </div>
+</section>
+
+<section data-aun-scene="mobile-menu" data-aun-title="Mobile &middot; Menu" data-aun-surface="mobile"
+         data-aun-intro="The rail, as a drawer. The bottom bar moves between working surfaces; everything about the connection itself — which server, settings, signing out — lives here.">
+  <div class="aun-phone">
+    <header class="aun-phone__head">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <button type="button" class="aun-iconbtn" aria-label="Open menu">&#9776;</button>
+        <span style="flex-grow: 1; min-width: 0">
+          <span class="aun-title" style="display: block; font-size: var(--au-font-size-ui-lg)">Bridge</span>
+          <span class="aun-rail__url">dev-box &middot; localhost:5000</span>
+        </span>
+        <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live</span>
+      </div>
+    </header>
+    <div class="aun-phone__body">
+      <article class="aun-card aun-card--gate" style="padding: 13px 14px">
+        <p class="aun-row__title">Lucy wants to submit her review on #412</p>
+        <p class="aun-row__meta">14 findings &middot; 3 blocking</p>
+      </article>
+    </div>
+    <nav class="aun-tabbar" aria-label="Sections">
+      <a class="aun-tabbar__item" href="#bridge" aria-current="page"><span style="font-size: 15px">&#9632;</span>Bridge</a>
+      <a class="aun-tabbar__item" href="#tasks"><span style="font-size: 15px">&#9644;</span>Tasks</a>
+      <a class="aun-tabbar__item" href="#team"><span style="font-size: 15px">&#9679;</span>Team</a>
+    </nav>
+
+    <div class="aun-drawer">
+      <div class="aun-drawer__scrim"></div>
+      <nav class="aun-drawer__panel" aria-label="Server menu">
+        <div class="aun-drawer__server">
+          <span class="aun-dot aun-dot--live"></span>
+          <span style="flex-grow: 1; min-width: 0">
+            <span class="aun-rail__name" style="display: block">dev-box</span>
+            <span class="aun-rail__url">localhost:5000</span>
+          </span>
+        </div>
+        <a class="aun-drawer__link" href="#bridge" aria-current="page"><span>&#9632;</span>Bridge</a>
+        <a class="aun-drawer__link" href="#tasks"><span>&#9644;</span>Tasks</a>
+        <a class="aun-drawer__link" href="#team"><span>&#9679;</span>Team</a>
+        <p class="aun-rail__section">TEAM</p>
+        <a class="aun-drawer__link" href="#lucy"><span class="aun-avatar aun-avatar--sm">L</span>Lucy<span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span></a>
+        <a class="aun-drawer__link" href="#bob"><span class="aun-avatar aun-avatar--sm">B</span>Bob<span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span></a>
+        <a class="aun-drawer__link" href="#hector"><span class="aun-avatar aun-avatar--sm">H</span>Hector<span class="aun-rail__spacer"></span><span class="aun-glyph--halted">&#9650;</span></a>
+        <span class="aun-rail__spacer"></span>
+        <a class="aun-drawer__link" href="#settings"><span>&#9881;</span>Settings</a>
+        <a class="aun-drawer__link" href="#switch"><span>&#8646;</span>Switch server</a>
+        <a class="aun-drawer__link" href="#signout"><span>&#8617;</span>Sign out</a>
+      </nav>
+    </div>
+  </div>
+</section>
+
+<section data-aun-scene="mobile-tasks" data-aun-title="Mobile &middot; Tasks" data-aun-surface="mobile"
+         data-aun-intro="The mirrored forge queue on the phone. Assigning an unassigned task is the one write this screen makes.">
+  <div class="aun-phone">
+    <header class="aun-phone__head">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <button type="button" class="aun-iconbtn" aria-label="Open menu">&#9776;</button>
+        <span style="flex-grow: 1; min-width: 0">
+          <span class="aun-title" style="display: block; font-size: var(--au-font-size-ui-lg)">Tasks</span>
+          <span class="aun-subtitle">7 open &middot; agent-up-oss</span>
+        </span>
+        <span class="aun-conn"><span class="aun-dot aun-dot--info"></span>60s</span>
+      </div>
+    </header>
+    <div class="aun-phone__body" style="gap: 9px">
+      <a class="aun-card aun-card--gate" href="#412" style="padding: 13px 14px; text-decoration: none; color: inherit">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+          <span class="aun-state aun-state--gate">&#9670; in review</span>
+          <span class="aun-rail__spacer"></span>
+          <span class="aun-row__time" style="margin: 0">2d</span>
+        </div>
+        <p class="aun-row__title">#412 &middot; Agent tab dead end on both clients</p>
+        <p class="aun-row__meta" style="display: flex; align-items: center; gap: 7px; margin-top: 7px"><span class="aun-avatar aun-avatar--sm">L</span>Lucy</p>
+      </a>
+
+      <a class="aun-card aun-card--gate" href="#398" style="padding: 13px 14px; text-decoration: none; color: inherit">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+          <span class="aun-state aun-state--gate">&#9670; gate open</span>
+          <span class="aun-rail__spacer"></span>
+          <span class="aun-row__time" style="margin: 0">4d</span>
+        </div>
+        <p class="aun-row__title">#398 &middot; Promote capability bootstrap to a CLI verb</p>
+        <p class="aun-row__meta" style="display: flex; align-items: center; gap: 7px; margin-top: 7px"><span class="aun-avatar aun-avatar--sm">B</span>Bob</p>
+      </a>
+
+      <a class="aun-card aun-card--halted" href="#405" style="padding: 13px 14px; text-decoration: none; color: inherit">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+          <span class="aun-state aun-state--halted">&#9650; halted</span>
+          <span class="aun-rail__spacer"></span>
+          <span class="aun-row__time" style="margin: 0">1d</span>
+        </div>
+        <p class="aun-row__title">#405 &middot; Forge surface renders nothing</p>
+        <p class="aun-row__meta" style="display: flex; align-items: center; gap: 7px; margin-top: 7px"><span class="aun-avatar aun-avatar--sm">H</span>Hector</p>
+      </a>
+
+      <a class="aun-card" href="#420" style="padding: 13px 14px; text-decoration: none; color: inherit">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+          <span class="aun-state aun-state--running">&#9679; building</span>
+          <span class="aun-rail__spacer"></span>
+          <span class="aun-row__time" style="margin: 0">6h</span>
+        </div>
+        <p class="aun-row__title">#420 &middot; Console output is spliced and truncated</p>
+        <p class="aun-row__meta" style="display: flex; align-items: center; gap: 7px; margin-top: 7px"><span class="aun-avatar aun-avatar--sm">B</span>Bob</p>
+      </a>
+
+      <article class="aun-card" style="padding: 13px 14px">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+          <span class="aun-state">&#9675; unassigned</span>
+          <span class="aun-rail__spacer"></span>
+          <span class="aun-row__time" style="margin: 0">3h</span>
+        </div>
+        <p class="aun-row__title" style="margin-bottom: 11px">#421 &middot; Application state never reaches Running</p>
+        <button type="button" class="aun-btn aun-btn--primary aun-btn--touch" style="width: 100%">Assign</button>
+      </article>
+
+      <article class="aun-card" style="padding: 13px 14px">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+          <span class="aun-state">&#9675; unassigned</span>
+          <span class="aun-rail__spacer"></span>
+          <span class="aun-row__time" style="margin: 0">3h</span>
+        </div>
+        <p class="aun-row__title" style="margin-bottom: 11px">#422 &middot; Start aborts and orphans processes</p>
+        <button type="button" class="aun-btn aun-btn--primary aun-btn--touch" style="width: 100%">Assign</button>
+      </article>
+    </div>
+    <nav class="aun-tabbar" aria-label="Sections">
+      <a class="aun-tabbar__item" href="#bridge"><span style="font-size: 15px">&#9632;</span>Bridge</a>
+      <a class="aun-tabbar__item" href="#tasks" aria-current="page"><span style="font-size: 15px">&#9644;</span>Tasks</a>
+      <a class="aun-tabbar__item" href="#team"><span style="font-size: 15px">&#9679;</span>Team</a>
+    </nav>
+  </div>
+</section>
+
+<section data-aun-scene="mobile-agent-overview" data-aun-title="Mobile &middot; Agent overview" data-aun-surface="mobile"
+         data-aun-intro="An agent's own page on the phone. The applications are here, as they are on desktop; opening one is a desktop job and says so.">
+  <div class="aun-phone">
+    <header class="aun-phone__head" style="padding-bottom: 0">
+      <a href="#team" style="color: var(--au-color-text-info); font-size: var(--au-font-size-ui-sm); display: inline-block; margin-bottom: 9px">&larr; Team</a>
+      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 11px">
+        <span class="aun-avatar aun-avatar--md">L</span>
+        <span style="flex-grow: 1; min-width: 0">
+          <span style="font-size: var(--au-font-size-ui-lg); font-weight: 700; display: block">Lucy</span>
+          <span class="aun-rail__url">@lucy-aup[bot] &middot; agent-up-qa</span>
+        </span>
+        <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live</span>
+      </div>
+      <nav class="aun-tabs" aria-label="Agent sections" style="border-bottom: none">
+        <a class="aun-tab" href="#overview" aria-current="page" style="flex: 1 1 0; text-align: center">Overview</a>
+        <a class="aun-tab" href="#chat" style="flex: 1 1 0; text-align: center">Chat</a>
+        <a class="aun-tab" href="#git" style="flex: 1 1 0; text-align: center">Git</a>
+      </nav>
+    </header>
+    <div class="aun-phone__body">
+      <article class="aun-card aun-card--gate" style="padding: 14px">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 9px">
+          <span class="aun-glyph--gate">&#9670;</span>
+          <h2 class="aun-card__title" style="margin: 0; color: var(--au-color-text-warning)">Waiting on you</h2>
+          <span class="aun-rail__spacer"></span>
+          <span class="aun-row__time" style="margin: 0">8m</span>
+        </div>
+        <p class="aun-row__title">Submit review on #412</p>
+        <p class="aun-row__meta" style="margin-bottom: 12px">14 findings &middot; 3 blocking</p>
+        <button type="button" class="aun-btn aun-btn--primary aun-btn--touch" style="width: 100%">Approve &amp; submit</button>
+      </article>
+
+      <section>
+        <h2 class="aun-section__head">CURRENT TASK</h2>
+        <article class="aun-card" style="padding: 14px">
+          <div class="aun-stack">
+            <p class="aun-kv"><span class="aun-kv__k">Task</span><span>#412 Agent tab dead end</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Proposal</span><span class="aun-mono">PR #431</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Branch</span><span class="aun-mono">feat/412-agent-remedy</span></p>
+            <p class="aun-kv"><span class="aun-kv__k">Prepared</span><span style="color: var(--au-color-accent-soft)">checked out 11m ago</span></p>
+          </div>
+        </article>
+      </section>
+
+      <section>
+        <h2 class="aun-section__head">APPLICATIONS</h2>
+        <div class="aun-stack">
+          <div class="aun-row" style="align-items: center; padding: 11px 13px">
+            <span class="aun-row__body"><span class="aun-row__title" style="display: block">Docs</span><span class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm)">:10300</span></span>
+            <span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9679; Running</span>
+          </div>
+          <div class="aun-row" style="align-items: center; padding: 11px 13px">
+            <span class="aun-row__body"><span class="aun-row__title" style="display: block">Example Web</span><span class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm)">:10301</span></span>
+            <span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9679; Running</span>
+          </div>
+          <div class="aun-row" style="align-items: center; padding: 11px 13px">
+            <span class="aun-row__body"><span class="aun-row__title" style="display: block">Example API</span><span class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm)">:10302</span></span>
+            <span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9679; Running</span>
+          </div>
+          <div class="aun-row" style="align-items: center; padding: 11px 13px">
+            <span class="aun-row__body"><span class="aun-row__title" style="display: block">Database</span><span class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm)">:10303</span></span>
+            <span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9679; Running</span>
+          </div>
+          <div class="aun-row" style="align-items: center; padding: 11px 13px">
+            <span class="aun-row__body"><span class="aun-row__title" style="display: block">Sample Desktop</span><span class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm)">X11</span></span>
+            <span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9679; Running</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="aun-degrade">
+        <p style="font-weight: 600; font-size: var(--au-font-size-ui-sm); margin: 0 0 4px">Not shown on phone</p>
+        <p class="aun-row__meta" style="margin: 0">Opening an application needs the embedded browser and its validation panel. Open Lucy on the desktop for those.</p>
+      </div>
+    </div>
+    <nav class="aun-tabbar" aria-label="Sections">
+      <a class="aun-tabbar__item" href="#bridge"><span style="font-size: 15px">&#9632;</span>Bridge</a>
+      <a class="aun-tabbar__item" href="#tasks"><span style="font-size: 15px">&#9644;</span>Tasks</a>
+      <a class="aun-tabbar__item" href="#team" aria-current="page"><span style="font-size: 15px">&#9679;</span>Team</a>
+    </nav>
+  </div>
+</section>
+
+<section data-aun-scene="mobile-agent-git" data-aun-title="Mobile &middot; Agent Git" data-aun-surface="mobile"
+         data-aun-intro="The working-tree surface that exists today, scoped to the agent whose workspace it is: branch, fetch, pull, push, history and the change tree.">
+  <div class="aun-phone">
+    <header class="aun-phone__head" style="padding-bottom: 0">
+      <a href="#team" style="color: var(--au-color-text-info); font-size: var(--au-font-size-ui-sm); display: inline-block; margin-bottom: 9px">&larr; Team</a>
+      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 11px">
+        <span class="aun-avatar aun-avatar--md">L</span>
+        <span style="flex-grow: 1; min-width: 0">
+          <span style="font-size: var(--au-font-size-ui-lg); font-weight: 700; display: block">Lucy</span>
+          <span class="aun-rail__url">@lucy-aup[bot] &middot; agent-up-qa</span>
+        </span>
+        <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live</span>
+      </div>
+      <nav class="aun-tabs" aria-label="Agent sections" style="border-bottom: none">
+        <a class="aun-tab" href="#overview" style="flex: 1 1 0; text-align: center">Overview</a>
+        <a class="aun-tab" href="#chat" style="flex: 1 1 0; text-align: center">Chat</a>
+        <a class="aun-tab" href="#git" aria-current="page" style="flex: 1 1 0; text-align: center">Git</a>
+      </nav>
+    </header>
+    <div class="aun-phone__body">
+      <div class="aun-input aun-mono" style="display: flex; align-items: center; gap: 8px; min-height: var(--au-control-height-touch)">
+        <span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">feat/412-agent-remedy</span>
+        <span class="aun-muted">&#9662;</span>
+      </div>
+
+      <div class="aun-wrap" style="gap: 7px">
+        <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">Fetch</button>
+        <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">Pull</button>
+        <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">Push</button>
+        <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">History</button>
+      </div>
+
+      <section>
+        <h2 class="aun-section__head">PROPOSAL</h2>
+        <article class="aun-card" style="padding: 13px 14px">
+          <p class="aun-row__title">PR #431 &mdash; Give the agent list a remedy</p>
+          <p class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm); margin-top: 3px">a71f093 &middot; bob-aup[bot]</p>
+          <div class="aun-wrap" style="gap: 14px; margin-top: 9px">
+            <span style="color: var(--au-color-accent-soft); font-size: var(--au-font-size-ui-sm)">+240</span>
+            <span style="color: var(--au-color-text-danger); font-size: var(--au-font-size-ui-sm)">&minus;58</span>
+            <span class="aun-muted" style="font-size: var(--au-font-size-ui-sm)">4 files</span>
+          </div>
+        </article>
+      </section>
+
+      <section>
+        <h2 class="aun-section__head">CHANGES &middot; 4</h2>
+        <article class="aun-card" style="padding: 7px 10px">
+          <a class="aun-file" href="#f1" style="min-height: var(--au-control-height-touch)"><span class="aun-glyph--gate">&#9670;</span><span class="aun-mono" style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis">AgentDtos.cs</span><span style="color: var(--au-color-accent-soft)">+18</span></a>
+          <a class="aun-file" href="#f2" style="min-height: var(--au-control-height-touch)"><span class="aun-glyph--gate">&#9670;</span><span class="aun-mono" style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis">MainWindow.axaml</span><span style="color: var(--au-color-accent-soft)">+96</span></a>
+          <a class="aun-file" href="#f3" style="min-height: var(--au-control-height-touch)"><span class="aun-glyph--idle">&#9675;</span><span class="aun-mono" style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis">AgentsScreen.tsx</span><span style="color: var(--au-color-accent-soft)">+104</span></a>
+          <a class="aun-file" href="#f4" style="min-height: var(--au-control-height-touch)"><span class="aun-glyph--idle">&#9675;</span><span class="aun-mono" style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis">AgentsHttpController.cs</span><span style="color: var(--au-color-accent-soft)">+22</span></a>
+        </article>
+      </section>
+
+      <section>
+        <h2 class="aun-section__head">FINDINGS &middot; 14</h2>
+        <article class="aun-card aun-card--gate" style="padding: 13px 14px">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+            <span class="aun-avatar aun-avatar--sm">L</span>
+            <span style="font-weight: 600; font-size: var(--au-font-size-ui-sm)">Lucy</span>
+            <span class="aun-state aun-state--halted">blocking</span>
+            <span class="aun-rail__spacer"></span>
+            <span class="aun-faint" style="font-size: var(--au-font-size-ui-xs)">line 16</span>
+          </div>
+          <p class="aun-row__meta">Three nullable strings with no enum behind <span class="aun-mono">Unavailability</span> means every client re-invents the branch.</p>
+        </article>
+      </section>
+    </div>
+    <nav class="aun-tabbar" aria-label="Sections">
+      <a class="aun-tabbar__item" href="#bridge"><span style="font-size: 15px">&#9632;</span>Bridge</a>
+      <a class="aun-tabbar__item" href="#tasks"><span style="font-size: 15px">&#9644;</span>Tasks</a>
+      <a class="aun-tabbar__item" href="#team" aria-current="page"><span style="font-size: 15px">&#9679;</span>Team</a>
     </nav>
   </div>
 </section>

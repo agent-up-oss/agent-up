@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mobile · Tasks — Agent-Up new UI</title>
+  <link rel="stylesheet" href="../new-ui.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
+    .aun-frame { width: 390px; height: 844px; overflow: hidden; display: flex; }
+    .aun-frame > * { flex: 1 1 auto; min-width: 0; }
+  </style>
+</head>
+<body>
+<div class="aun-frame">
+<div class="aun-phone">
+    <header class="aun-phone__head">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <button type="button" class="aun-iconbtn" aria-label="Open menu">&#9776;</button>
+        <span style="flex-grow: 1; min-width: 0">
+          <span class="aun-title" style="display: block; font-size: var(--au-font-size-ui-lg)">Tasks</span>
+          <span class="aun-subtitle">7 open &middot; agent-up-oss</span>
+        </span>
+        <span class="aun-conn"><span class="aun-dot aun-dot--info"></span>60s</span>
+      </div>
+    </header>
+    <div class="aun-phone__body" style="gap: 9px">
+      <a class="aun-card aun-card--gate" href="#412" style="padding: 13px 14px; text-decoration: none; color: inherit">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+          <span class="aun-state aun-state--gate">&#9670; in review</span>
+          <span class="aun-rail__spacer"></span>
+          <span class="aun-row__time" style="margin: 0">2d</span>
+        </div>
+        <p class="aun-row__title">#412 &middot; Agent tab dead end on both clients</p>
+        <p class="aun-row__meta" style="display: flex; align-items: center; gap: 7px; margin-top: 7px"><span class="aun-avatar aun-avatar--sm">L</span>Lucy</p>
+      </a>
+
+      <a class="aun-card aun-card--gate" href="#398" style="padding: 13px 14px; text-decoration: none; color: inherit">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+          <span class="aun-state aun-state--gate">&#9670; gate open</span>
+          <span class="aun-rail__spacer"></span>
+          <span class="aun-row__time" style="margin: 0">4d</span>
+        </div>
+        <p class="aun-row__title">#398 &middot; Promote capability bootstrap to a CLI verb</p>
+        <p class="aun-row__meta" style="display: flex; align-items: center; gap: 7px; margin-top: 7px"><span class="aun-avatar aun-avatar--sm">B</span>Bob</p>
+      </a>
+
+      <a class="aun-card aun-card--halted" href="#405" style="padding: 13px 14px; text-decoration: none; color: inherit">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+          <span class="aun-state aun-state--halted">&#9650; halted</span>
+          <span class="aun-rail__spacer"></span>
+          <span class="aun-row__time" style="margin: 0">1d</span>
+        </div>
+        <p class="aun-row__title">#405 &middot; Forge surface renders nothing</p>
+        <p class="aun-row__meta" style="display: flex; align-items: center; gap: 7px; margin-top: 7px"><span class="aun-avatar aun-avatar--sm">H</span>Hector</p>
+      </a>
+
+      <a class="aun-card" href="#420" style="padding: 13px 14px; text-decoration: none; color: inherit">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+          <span class="aun-state aun-state--running">&#9679; building</span>
+          <span class="aun-rail__spacer"></span>
+          <span class="aun-row__time" style="margin: 0">6h</span>
+        </div>
+        <p class="aun-row__title">#420 &middot; Console output is spliced and truncated</p>
+        <p class="aun-row__meta" style="display: flex; align-items: center; gap: 7px; margin-top: 7px"><span class="aun-avatar aun-avatar--sm">B</span>Bob</p>
+      </a>
+
+      <article class="aun-card" style="padding: 13px 14px">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+          <span class="aun-state">&#9675; unassigned</span>
+          <span class="aun-rail__spacer"></span>
+          <span class="aun-row__time" style="margin: 0">3h</span>
+        </div>
+        <p class="aun-row__title" style="margin-bottom: 11px">#421 &middot; Application state never reaches Running</p>
+        <button type="button" class="aun-btn aun-btn--primary aun-btn--touch" style="width: 100%">Assign</button>
+      </article>
+
+      <article class="aun-card" style="padding: 13px 14px">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+          <span class="aun-state">&#9675; unassigned</span>
+          <span class="aun-rail__spacer"></span>
+          <span class="aun-row__time" style="margin: 0">3h</span>
+        </div>
+        <p class="aun-row__title" style="margin-bottom: 11px">#422 &middot; Start aborts and orphans processes</p>
+        <button type="button" class="aun-btn aun-btn--primary aun-btn--touch" style="width: 100%">Assign</button>
+      </article>
+    </div>
+    <nav class="aun-tabbar" aria-label="Sections">
+      <a class="aun-tabbar__item" href="#bridge"><span style="font-size: 15px">&#9632;</span>Bridge</a>
+      <a class="aun-tabbar__item" href="#tasks" aria-current="page"><span style="font-size: 15px">&#9644;</span>Tasks</a>
+      <a class="aun-tabbar__item" href="#team"><span style="font-size: 15px">&#9679;</span>Team</a>
+    </nav>
+  </div>
+</div>
+</body>
+</html>
