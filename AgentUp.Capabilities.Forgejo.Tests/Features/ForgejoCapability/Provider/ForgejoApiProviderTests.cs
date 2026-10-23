@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text;
 using AgentUp.Capabilities.Forgejo.Features.ForgejoCapability.Providers;
@@ -246,13 +247,19 @@ public sealed class ForgejoApiProviderTests
             if (request.RequestUri is not null)
                 Uris.Add(request.RequestUri.ToString());
             if (!responses.TryGetValue(key, out var body))
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+                return Task.FromResult(CreateResponse(HttpStatusCode.NotFound));
 
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(body, Encoding.UTF8, "application/json")
-            });
+            return Task.FromResult(CreateResponse(HttpStatusCode.OK, body));
         }
+
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
+        private static HttpResponseMessage CreateResponse(HttpStatusCode status, string? body = null)
+            => body is null
+                ? new(status)
+                : new(status)
+                {
+                    Content = new StringContent(body, Encoding.UTF8, "application/json")
+                };
     }
 
     private const string Pulls = """
