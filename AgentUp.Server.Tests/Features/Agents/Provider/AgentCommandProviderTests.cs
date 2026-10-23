@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.Agents.DTOs;
+using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Tests.Support;
 using Microsoft.Extensions.Configuration;
@@ -68,6 +69,37 @@ public sealed class AgentCommandProviderTests
     }
 
     [Test]
+    public async Task IsAvailableAsync_isFalseWhenEnabledPackageCommandIsMissingFromPath()
+    {
+        var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex());
+        var available = await new AgentCommandProvider(new ConfigurationBuilder().Build(), packages)
+            .IsAvailableAsync("codex", CancellationToken.None);
+
+        Assert.That(available, Is.False);
+    }
+
+    [Test]
+    public async Task IsAvailableAsync_isTrueWhenEnabledPackageCommandExists()
+    {
+        var packages = new FakeEnabledCapabilityPackages(new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityPackageManifest
+        {
+            Id = "codex",
+            Version = "1.0.0",
+            DisplayName = "Codex",
+            Kind = "agent",
+            Launch = new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityLaunchTemplate
+            {
+                Command = OperatingSystem.IsWindows() ? "cmd" : "sh",
+                Arguments = []
+            }
+        });
+        var available = await new AgentCommandProvider(new ConfigurationBuilder().Build(), packages)
+            .IsAvailableAsync("codex", CancellationToken.None);
+
+        Assert.That(available, Is.True);
+    }
+
+    [Test]
     public async Task IsAvailableAsync_isFalseWhenNoAgentPackageIsEnabled()
     {
         var available = await new AgentCommandProvider(new ConfigurationBuilder().Build())
@@ -88,6 +120,31 @@ public sealed class AgentCommandProviderTests
 
         Assert.That(result, Is.Not.Null);
         Assert.That(result!.FileName, Is.EqualTo(command));
+    }
+
+    [Test]
+    public async Task IsAvailableAsync_findsTheScriptedTestAgentOnPath()
+    {
+        var directory = Directory.CreateTempSubdirectory();
+        var previous = Environment.GetEnvironmentVariable("PATH");
+        try
+        {
+            var name = AgentUnavailability.ScriptedTestAgent;
+            var file = Path.Join(directory.FullName, OperatingSystem.IsWindows() ? name + ".exe" : name);
+            await File.WriteAllBytesAsync(file, [0x23, 0x21]);
+            if (!OperatingSystem.IsWindows())
+                File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserExecute);
+            Environment.SetEnvironmentVariable("PATH", directory.FullName + Path.PathSeparator + previous);
+            var provider = new AgentCommandProvider(new ConfigurationBuilder().Build());
+
+            Assert.That(await provider.IsAvailableAsync(name, CancellationToken.None), Is.True);
+            Assert.That((await provider.ResolveAsync(name, CancellationToken.None))!.FileName, Is.EqualTo(name));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("PATH", previous);
+            directory.Delete(true);
+        }
     }
 
     [Test]

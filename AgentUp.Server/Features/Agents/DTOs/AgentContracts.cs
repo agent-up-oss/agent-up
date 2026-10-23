@@ -51,7 +51,14 @@ public sealed record AgentLoginChallengeDto(
     bool CanSubmitCode = false,
     DateTimeOffset? ExpiresAt = null,
     string? RedirectUri = null);
-public sealed record AgentDescriptor(string Agent, bool Available, string DisplayName, bool SupportsPermissionRequests = true);
+public sealed record AgentDescriptor(
+    string Agent,
+    bool Available,
+    string DisplayName,
+    bool SupportsPermissionRequests = true,
+    string? Unavailability = null,
+    string? Detail = null,
+    string? Remedy = null);
 public sealed record AgentSessionSummaryDto(string SessionId, string Agent, string Description, string Branch, DateTimeOffset LastUsedAt);
 public sealed record AgentSessionDto(
     string WorkspaceId,

@@ -496,10 +496,11 @@ public sealed class FakeBackendService
             if (string.IsNullOrWhiteSpace(requested))
                 return Json(LiveAgentSession(stored["session"]));
 
-            var match = EnabledAgentDescriptors()
+            var match = AgentCatalogDescriptors()
                 .OfType<JsonObject>()
                 .FirstOrDefault(item =>
-                    string.Equals(item["agent"]?.GetValue<string>(), requested, StringComparison.OrdinalIgnoreCase));
+                    string.Equals(item["agent"]?.GetValue<string>(), requested, StringComparison.OrdinalIgnoreCase)
+                    && item["available"]?.GetValue<bool>() == true);
             if (match is null)
             {
                 var problem = new JsonObject
@@ -913,13 +914,13 @@ public sealed class FakeBackendService
     private JsonObject LiveAgentSession(JsonNode? session)
     {
         var snapshot = session is JsonObject obj ? obj.DeepClone().AsObject() : new JsonObject();
-        var agents = EnabledAgentDescriptors();
+        var agents = AgentCatalogDescriptors();
         var current = snapshot["agent"]?.GetValue<string>();
         var selected = agents
             .OfType<JsonObject>()
             .FirstOrDefault(item =>
-                string.Equals(item["agent"]?.GetValue<string>(), current, StringComparison.OrdinalIgnoreCase))
-            ?? agents.OfType<JsonObject>().FirstOrDefault();
+                string.Equals(item["agent"]?.GetValue<string>(), current, StringComparison.OrdinalIgnoreCase)
+                && item["available"]?.GetValue<bool>() == true);
         if (selected?["agent"] is JsonNode agent)
             snapshot["agent"] = agent.DeepClone();
         else
@@ -928,19 +929,57 @@ public sealed class FakeBackendService
         return snapshot;
     }
 
-    private JsonArray EnabledAgentDescriptors()
+    private JsonArray AgentCatalogDescriptors()
         => new(
             [.. Capabilities()
                 .OfType<JsonObject>()
                 .Where(module =>
-                    string.Equals(module["kind"]?.GetValue<string>(), "agent", StringComparison.Ordinal)
-                    && module["enabled"]?.GetValue<bool>() == true)
-                .Select(module => new JsonObject
-                {
-                    ["agent"] = module["id"]?.DeepClone(),
-                    ["available"] = module["canRun"]?.DeepClone() ?? true,
-                    ["displayName"] = module["displayName"]?.DeepClone()
-                })]);
+                    string.Equals(module["kind"]?.GetValue<string>(), "agent", StringComparison.Ordinal))
+                .Select(DescribeFakeAgent)]);
+
+    private static JsonObject DescribeFakeAgent(JsonObject module)
+    {
+        var id = module["id"]?.GetValue<string>() ?? string.Empty;
+        var displayName = module["displayName"]?.GetValue<string>() ?? id;
+        var enabled = module["enabled"]?.GetValue<bool>() == true;
+        var canRun = module["canRun"]?.GetValue<bool>() ?? enabled;
+        var available = enabled && canRun;
+        if (available)
+        {
+            return new JsonObject
+            {
+                ["agent"] = id,
+                ["available"] = true,
+                ["displayName"] = displayName,
+                ["unavailability"] = null,
+                ["detail"] = null,
+                ["remedy"] = null
+            };
+        }
+
+        if (!enabled)
+        {
+            return new JsonObject
+            {
+                ["agent"] = id,
+                ["available"] = false,
+                ["displayName"] = displayName,
+                ["unavailability"] = "capabilityNotEnabled",
+                ["detail"] = $"{displayName} is not enabled on this Server.",
+                ["remedy"] = $"Enable the {id} capability."
+            };
+        }
+
+        return new JsonObject
+        {
+            ["agent"] = id,
+            ["available"] = false,
+            ["displayName"] = displayName,
+            ["unavailability"] = "executableNotFound",
+            ["detail"] = $"{id} ACP executable is not installed or is not on PATH.",
+            ["remedy"] = $"Install the {id} ACP executable and keep it on PATH."
+        };
+    }
 
     private JsonObject? GitState(string workspaceId)
         => _state.Git?[workspaceId] as JsonObject;

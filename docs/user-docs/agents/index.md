@@ -32,9 +32,9 @@ Desktop chrome for the live session is the **Agent** tab. Mobile chrome for the 
 
 Saved sessions from every enabled ACP agent appear together within the current workspace. Each row shows the agent, the agent-generated short description, and the branch last associated with the session. The live session is labeled Current. Select any other row to resume it. Sessions from another workspace never appear in this list.
 
-Workspace agent chat uses ACP packages enabled on the Server. The picker lists those modules by id. The Server wraps those launches in Nix. Enable the package from Desktop capability-module chrome or Mobile Settings. Clients never call the remote registry.
+Workspace agent chat uses ACP packages enabled on the Server. The picker lists first-party agents even when their package is off, plus any other enabled agent module. The Server wraps those launches in Nix. Enable the package from the agent row, Desktop capability-module chrome, or Mobile Settings. Clients never call the remote registry.
 
-Sign in with the corresponding CLI's subscription login from Desktop or Mobile when the agent asks. Agent-Up runs that vendor's no-browser or device-code flow on the Server, shows the sign-in link (and Codex device code) in the client, and then starts ACP. An unavailable executable is disabled in the Desktop and Mobile agent picker.
+Sign in with the corresponding CLI's subscription login from Desktop or Mobile when the agent asks. Agent-Up runs that vendor's no-browser or device-code flow on the Server, shows the sign-in link (and Codex device code) in the client, and then starts ACP. An unavailable agent shows why: a disabled package offers Enable on the row, and a missing ACP executable names the command and how to install it.
 
 ## Workspace-bound agent
 

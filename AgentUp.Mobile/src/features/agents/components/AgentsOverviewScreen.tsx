@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { bindAgent, getAgent, resumeAgent, scheduleAgent, type AgentId, type AgentSession } from '@agent-up/chat';
+import { agentRowDetail, bindAgent, enableAgentCapability, getAgent, presentAgentRow, resumeAgent, scheduleAgent, type AgentId, type AgentSession } from '@agent-up/chat';
 import { boundAgentActionLabel, formatLoopLine } from '@/features/agents/providers/LoopLineProvider';
 import { WorkspaceTabBar } from '@/features/shell/components/WorkspaceTabBar';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
@@ -54,6 +54,20 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
       openChat();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not start the agent.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const enable = async (agent: AgentId) => {
+    if (!server || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await enableAgentCapability(server, agent);
+      setSession(await getAgent(server, workspaceId));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not enable the agent.');
     } finally {
       setBusy(false);
     }
@@ -114,20 +128,41 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
           {agents.length === 0 && !error && <Text style={styles.detail}>Loading available agents…</Text>}
           {agents.map(agent => {
             const currentAgent = agent.agent === session?.agent;
+            const row = presentAgentRow(agent);
+            if (currentAgent || row.canSelect) {
+              return (
+                <Pressable
+                  key={agent.agent}
+                  testID={`agent-start-${agent.agent}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={currentAgent ? `Open ${agent.displayName}` : `Start ${agent.displayName}`}
+                  disabled={busy}
+                  onPress={() => currentAgent ? openChat() : void start(agent.agent)}
+                  style={styles.card}>
+                  <Text style={styles.title}>{agent.displayName}</Text>
+                  <Text style={styles.detail}>
+                    {currentAgent ? 'Open existing session' : agentRowDetail(agent)}
+                  </Text>
+                </Pressable>
+              );
+            }
             return (
-              <Pressable
-                key={agent.agent}
-                testID={`agent-start-${agent.agent}`}
-                accessibilityRole="button"
-                accessibilityLabel={currentAgent ? `Open ${agent.displayName}` : `Start ${agent.displayName}`}
-                disabled={!agent.available || busy}
-                onPress={() => currentAgent ? openChat() : void start(agent.agent)}
-                style={[styles.card, !agent.available && styles.disabled]}>
+              <View key={agent.agent} style={[styles.card, row.isBlocked && styles.disabled]}>
                 <Text style={styles.title}>{agent.displayName}</Text>
-                <Text style={styles.detail}>
-                  {currentAgent ? 'Open existing session' : agent.available ? 'Create a new session' : 'Not installed'}
-                </Text>
-              </Pressable>
+                <Text style={styles.detail}>{row.status}</Text>
+                {row.detail ? <Text style={styles.detail}>{row.detail}</Text> : null}
+                {row.remedy ? <Text style={styles.detail}>{row.remedy}</Text> : null}
+                {row.canEnable ? (
+                  <Pressable
+                    testID={`agent-enable-${agent.agent}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Enable ${agent.displayName}`}
+                    disabled={busy}
+                    onPress={() => void enable(agent.agent)}>
+                    <Text style={styles.action}>Enable</Text>
+                  </Pressable>
+                ) : null}
+              </View>
             );
           })}
         </View>

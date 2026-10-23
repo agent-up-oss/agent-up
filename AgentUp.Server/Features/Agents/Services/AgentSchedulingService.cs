@@ -4,9 +4,11 @@ using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Features.Agents.Interfaces;
+using AgentUp.Sdk.Agent;
 using AgentUp.Server.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Shared.Providers;
+using Microsoft.Extensions.Hosting;
 
 namespace AgentUp.Server.Features.Agents.Services;
 
@@ -25,6 +27,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     private readonly IEnabledCapabilityPackages? packages;
     private readonly IAgentSessionRepository? sessionRepository;
     private readonly IAgentWorkspaceSettingsRepository? settings;
+    private readonly IHostEnvironment? host;
     private readonly ConcurrentDictionary<string, AgentSessionState> _sessions = new();
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _lifecycleGates = new();
     private IReadOnlyList<AgentDescriptor> _descriptors = FirstPartyAgents
@@ -44,7 +47,8 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         ILogger<AgentSchedulingService> logger,
         IEnabledCapabilityPackages? packages = null,
         IAgentSessionRepository? sessionRepository = null,
-        IAgentWorkspaceSettingsRepository? settings = null)
+        IAgentWorkspaceSettingsRepository? settings = null,
+        IHostEnvironment? host = null)
     {
         this.workspaces = workspaces;
         this.processes = processes;
@@ -59,6 +63,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         this.packages = packages;
         this.sessionRepository = sessionRepository;
         this.settings = settings;
+        this.host = host;
         workspaces.WorkspaceRemoved += HandleWorkspaceRemoved;
     }
 
@@ -792,26 +797,61 @@ public sealed class AgentSchedulingService : IAsyncDisposable
 
     private async Task<IReadOnlyList<AgentDescriptor>> DescriptorsAsync(CancellationToken cancellationToken)
     {
-        var enabled = packages?.ListAgents() ?? [];
-        if (enabled.Count > 0)
+        var enabledAgents = packages?.ListAgents() ?? [];
+        var listed = FirstPartyAgents
+            .Concat(enabledAgents.Select(agent => agent.Identity.Id))
+            .Concat(IncludeDevelopmentAgents ? [AgentUnavailability.ScriptedTestAgent] : [])
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var descriptors = new AgentDescriptor[listed.Count];
+        for (var index = 0; index < listed.Count; index++)
+            descriptors[index] = await DescribeAsync(listed[index], enabledAgents, cancellationToken);
+        return descriptors;
+    }
+
+    private async Task<AgentDescriptor> DescribeAsync(
+        string agentId,
+        IReadOnlyList<IAgentCapability> enabledAgents,
+        CancellationToken cancellationToken)
+    {
+        var module = enabledAgents.FirstOrDefault(agent =>
+            agent.Identity.Id.Equals(agentId, StringComparison.OrdinalIgnoreCase));
+        var packageEnabled = module is not null || packages?.GetEnabled(agentId) is not null;
+        var developmentAgent = agentId.Equals(AgentUnavailability.ScriptedTestAgent, StringComparison.OrdinalIgnoreCase);
+        var displayName = module?.Identity.DisplayName
+            ?? packages?.GetEnabled(agentId)?.DisplayName
+            ?? DisplayName(agentId);
+        var supportsPermissionRequests = module?.SupportsPermissionRequests ?? true;
+        var canRun = module?.CanRun ?? true;
+        var available = canRun && await commands.IsAvailableAsync(agentId, cancellationToken);
+        if (available)
+            return new AgentDescriptor(agentId, true, displayName, supportsPermissionRequests);
+
+        if (!packageEnabled && !developmentAgent)
         {
-            return await Task.WhenAll(enabled.Select(async agent =>
-                new AgentDescriptor(
-                    agent.Identity.Id,
-                    agent.CanRun && await commands.IsAvailableAsync(agent.Identity.Id, cancellationToken),
-                    agent.Identity.DisplayName,
-                    agent.SupportsPermissionRequests)));
+            return new AgentDescriptor(
+                agentId,
+                false,
+                displayName,
+                supportsPermissionRequests,
+                AgentUnavailability.CapabilityNotEnabled,
+                AgentUnavailability.CapabilityNotEnabledDetail(displayName),
+                AgentUnavailability.CapabilityNotEnabledRemedy(agentId));
         }
 
-        return await LoadLegacyDescriptorsAsync(cancellationToken);
+        return new AgentDescriptor(
+            agentId,
+            false,
+            displayName,
+            supportsPermissionRequests,
+            AgentUnavailability.ExecutableNotFound,
+            AgentUnavailability.ExecutableNotFoundDetail(agentId),
+            AgentUnavailability.ExecutableNotFoundRemedy(commands.LaunchCommandName(agentId), agentId));
     }
 
-    private async Task<IReadOnlyList<AgentDescriptor>> LoadLegacyDescriptorsAsync(CancellationToken cancellationToken)
-    {
-        var descriptors = FirstPartyAgents.Select(async agent =>
-            new AgentDescriptor(agent, await commands.IsAvailableAsync(agent, cancellationToken), DisplayName(agent)));
-        return await Task.WhenAll(descriptors);
-    }
+    private bool IncludeDevelopmentAgents =>
+        host is not null && (host.IsDevelopment() || host.IsEnvironment("Testing"));
 
     private string NormalizeAgentId(string agent)
     {
@@ -833,6 +873,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         "codex" => "Codex",
         "cursor" => "Cursor",
         "claude" => "Claude",
+        AgentUnavailability.ScriptedTestAgent => AgentUnavailability.ScriptedTestAgentDisplayName,
         _ => agent
     };
 

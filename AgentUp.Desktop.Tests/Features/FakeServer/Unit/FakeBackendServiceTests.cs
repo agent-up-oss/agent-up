@@ -267,7 +267,10 @@ public sealed class FakeBackendServiceTests
         var scheduled = Json(backend, Post("/api/workspaces/harbor-shop/agent", """{"agent":"claude"}"""));
 
         Assert.That(listed["agents"]!.AsArray().Select(item => item!["agent"]!.GetValue<string>()), Is.EqualTo(new[] { "codex", "cursor", "claude" }));
-        Assert.That(afterDisable["agents"]!.AsArray().Select(item => item!["agent"]!.GetValue<string>()), Is.EqualTo(new[] { "codex", "cursor" }));
+        var disabled = afterDisable["agents"]!.AsArray().Single(item => item!["agent"]!.GetValue<string>() == "claude")!;
+        Assert.That(disabled["available"]!.GetValue<bool>(), Is.False);
+        Assert.That(disabled["unavailability"]!.GetValue<string>(), Is.EqualTo("capabilityNotEnabled"));
+        Assert.That(disabled["remedy"]!.GetValue<string>(), Does.Contain("claude"));
         Assert.That(rejected.Status, Is.EqualTo(409));
         Assert.That(scheduled["agent"]!.GetValue<string>(), Is.EqualTo("claude"));
     }
@@ -561,7 +564,7 @@ public sealed class FakeBackendServiceTests
         Json(backend, Post("/api/capabilities/disable/claude"));
         var session = Json(backend, Get("/api/workspaces/harbor-shop/agent"));
 
-        Assert.That(session["agents"]!.AsArray(), Is.Empty);
+        Assert.That(session["agents"]!.AsArray().Select(item => item!["available"]!.GetValue<bool>()), Is.All.False);
         Assert.That(session["agent"], Is.Null);
     }
 

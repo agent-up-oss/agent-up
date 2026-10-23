@@ -17,20 +17,50 @@ public sealed class AgentPickerPanelTests
         var app = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var viewModel = (MainViewModel)app.Window.DataContext!;
         viewModel.SelectedShellTab = WorkspaceShellTab.Agent;
-        viewModel.Agent.Agents.Add(new AgentDescriptorDto("Codex", true, "Codex"));
-        viewModel.Agent.Agents.Add(new AgentDescriptorDto("Cursor", false, "Cursor"));
+        viewModel.Agent.Agents.Add(DesktopDomain.AvailableAgent("Codex"));
+        viewModel.Agent.Agents.Add(DesktopDomain.Agent().Named("Cursor").ExecutableMissing("agent").Build());
         await HeadlessExtensions.FlushAsync();
 
         var picker = app.Window.FindControl<ItemsControl>("AgentPicker")!;
-        var buttons = picker.GetVisualDescendants().OfType<Button>().Where(button => button.Classes.Contains("au-choice")).ToList();
+        var buttons = picker.GetVisualDescendants().OfType<Button>()
+            .Where(button => button.Classes.Contains("au-choice") && button.IsVisible)
+            .ToList();
+        var text = picker.GetVisualDescendants().OfType<TextBlock>()
+            .Where(item => item.IsVisible)
+            .Select(item => item.Text)
+            .ToArray();
 
         Assert.Multiple(() =>
         {
             Assert.That(picker.IsVisible, Is.True);
-            Assert.That(buttons, Has.Count.EqualTo(2));
+            Assert.That(buttons, Has.Count.EqualTo(1));
             Assert.That(buttons.Any(button => button.GetVisualDescendants().OfType<Border>().Any(border => border.Classes.Contains("au-card"))), Is.False);
             Assert.That(buttons.Single(button => button.DataContext is AgentDescriptorDto { Agent: "Codex" }).IsEnabled, Is.True);
-            Assert.That(buttons.Single(button => button.DataContext is AgentDescriptorDto { Agent: "Cursor" }).IsEnabled, Is.False);
+            Assert.That(text, Does.Contain("Executable not found"));
+            Assert.That(text, Does.Contain("Install agent and keep it on PATH."));
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task AgentPicker_offersEnableWhenThePackageIsTheGap()
+    {
+        var app = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
+        var viewModel = (MainViewModel)app.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Agent;
+        viewModel.Agent.Agents.Add(DesktopDomain.Agent().Named("Claude").PackageDisabled().Build());
+        await HeadlessExtensions.FlushAsync();
+
+        var picker = app.Window.FindControl<ItemsControl>("AgentPicker")!;
+        var enable = picker.GetVisualDescendants().OfType<Button>().Single(button => button.Content as string == "Enable");
+        var text = picker.GetVisualDescendants().OfType<TextBlock>().Select(item => item.Text).ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(enable.IsEnabled, Is.True);
+            Assert.That(enable.CommandParameter, Is.EqualTo("Claude"));
+            Assert.That(text, Does.Contain("Not enabled"));
+            Assert.That(text, Does.Contain("Claude is not enabled on this Server."));
+            Assert.That(text, Does.Contain("Enable the Claude capability."));
         });
     }
 

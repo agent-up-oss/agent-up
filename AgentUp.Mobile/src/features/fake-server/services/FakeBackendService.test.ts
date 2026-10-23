@@ -112,7 +112,10 @@ test('agent list follows enabled agent capabilities', () => {
   json(service, 'POST', '/api/capabilities/enable', JSON.stringify({ id: 'claude' }));
   const scheduled = json(service, 'POST', '/api/workspaces/harbor-shop/agent', JSON.stringify({ agent: 'claude' }));
   assert.deepEqual(listed.agents.map((item: { agent: string }) => item.agent), ['codex', 'cursor', 'claude']);
-  assert.deepEqual(afterDisable.agents.map((item: { agent: string }) => item.agent), ['codex', 'cursor']);
+  const disabled = afterDisable.agents.find((item: { agent: string }) => item.agent === 'claude');
+  assert.equal(disabled.available, false);
+  assert.equal(disabled.unavailability, 'capabilityNotEnabled');
+  assert.match(disabled.remedy, /claude/);
   assert.equal(rejected.status, 409);
   assert.equal(scheduled.agent, 'claude');
 });

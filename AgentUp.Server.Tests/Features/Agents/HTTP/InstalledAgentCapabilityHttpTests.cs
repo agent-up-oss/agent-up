@@ -88,29 +88,28 @@ public sealed class InstalledAgentCapabilityHttpTests
         using var response = await _client.GetAsync($"/api/workspaces/{workspace.Id}/agent");
         var session = await response.Content.ReadFromJsonAsync<AgentSessionDto>(JsonOptions);
         var commands = _app.Services.GetRequiredService<AgentCommandProvider>();
-        var packages = _app.Services.GetRequiredService<IEnabledCapabilityPackages>();
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(session, Is.Not.Null);
-        Assert.That(session!.Agents, Has.Count.EqualTo(3));
+        Assert.That(session!.Agents.Select(agent => agent.Agent), Does.Contain("codex").And.Contain("cursor").And.Contain("claude"));
 
-        foreach (var descriptor in session.Agents)
+        foreach (var descriptor in session.Agents.Where(agent => agent.Agent is "codex" or "cursor" or "claude"))
         {
-            var plan = packages.AgentLaunch(descriptor.Agent);
             var available = await commands.IsAvailableAsync(descriptor.Agent, TestContext.CurrentContext.CancellationToken);
-            var command = await commands.ResolveAsync(descriptor.Agent, TestContext.CurrentContext.CancellationToken);
 
             Assert.Multiple(() =>
             {
                 Assert.That(descriptor.DisplayName, Is.Not.WhiteSpace);
-                Assert.That(descriptor.Available, Is.EqualTo(plan is not null));
                 Assert.That(descriptor.Available, Is.EqualTo(available));
-                Assert.That(command is not null, Is.EqualTo(descriptor.Available));
-                if (command is null)
+                if (descriptor.Available)
+                {
+                    Assert.That(descriptor.Unavailability, Is.Null);
                     return;
+                }
 
-                Assert.That(command.FileName, Is.Not.WhiteSpace);
-                Assert.That(command.Arguments, Is.Not.Null);
+                Assert.That(descriptor.Unavailability, Is.EqualTo("executableNotFound").Or.EqualTo("capabilityNotEnabled"));
+                Assert.That(descriptor.Detail, Is.Not.WhiteSpace);
+                Assert.That(descriptor.Remedy, Is.Not.WhiteSpace);
             });
         }
     }

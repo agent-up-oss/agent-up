@@ -1313,29 +1313,77 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Button Classes="au-choice"
-                                                            HorizontalAlignment="Stretch"
-                                                            HorizontalContentAlignment="Stretch"
-                                                            Focusable="False"
-                                                            Command="{Binding $parent[Window].DataContext.Agent.SelectAgentCommand}"
-                                                            CommandParameter="{Binding Agent}"
-                                                            IsEnabled="{Binding Available}">
-                                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                                                            <TextBlock Classes="wsName"
-                                                                       Text="{Binding DisplayName}"
-                                                                       VerticalAlignment="Center"/>
-                                                            <TextBlock Grid.Column="1"
-                                                                       Classes="au-accent"
-                                                                       Text="Available"
-                                                                       IsVisible="{Binding Available}"
-                                                                       VerticalAlignment="Center"/>
-                                                            <TextBlock Grid.Column="1"
-                                                                       Classes="au-muted"
-                                                                       Text="Not installed"
-                                                                       IsVisible="{Binding !Available}"
-                                                                       VerticalAlignment="Center"/>
-                                                        </Grid>
-                                                    </Button>
+                                                    <StackPanel Spacing="8">
+                                                        <Button Classes="au-choice"
+                                                                HorizontalAlignment="Stretch"
+                                                                HorizontalContentAlignment="Stretch"
+                                                                Focusable="False"
+                                                                Command="{Binding $parent[Window].DataContext.Agent.SelectAgentCommand}"
+                                                                CommandParameter="{Binding Agent}"
+                                                                IsVisible="{Binding Available}">
+                                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                                                                <TextBlock Classes="wsName"
+                                                                           Text="{Binding DisplayName}"
+                                                                           VerticalAlignment="Center"/>
+                                                                <TextBlock Grid.Column="1"
+                                                                           Classes="au-accent"
+                                                                           Text="{Binding StatusLabel}"
+                                                                           VerticalAlignment="Center"/>
+                                                            </Grid>
+                                                        </Button>
+                                                        <Border Classes="au-choice"
+                                                                HorizontalAlignment="Stretch"
+                                                                IsVisible="{Binding CanEnable}">
+                                                            <StackPanel Spacing="6">
+                                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                                                                    <TextBlock Classes="wsName"
+                                                                               Text="{Binding DisplayName}"
+                                                                               VerticalAlignment="Center"/>
+                                                                    <TextBlock Grid.Column="1"
+                                                                               Classes="au-muted"
+                                                                               Text="{Binding StatusLabel}"
+                                                                               VerticalAlignment="Center"/>
+                                                                </Grid>
+                                                                <TextBlock Classes="au-muted"
+                                                                           Text="{Binding Detail}"
+                                                                           TextWrapping="Wrap"
+                                                                           IsVisible="{Binding HasDetail}"/>
+                                                                <TextBlock Classes="au-muted"
+                                                                           Text="{Binding Remedy}"
+                                                                           TextWrapping="Wrap"
+                                                                           IsVisible="{Binding HasRemedy}"/>
+                                                                <Button Classes="au-button au-button--compact"
+                                                                        HorizontalAlignment="Left"
+                                                                        Content="Enable"
+                                                                        Command="{Binding $parent[Window].DataContext.Agent.EnableAgentCommand}"
+                                                                        CommandParameter="{Binding Agent}"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <Border Classes="au-choice"
+                                                                HorizontalAlignment="Stretch"
+                                                                IsEnabled="False"
+                                                                IsVisible="{Binding IsBlocked}">
+                                                            <StackPanel Spacing="6">
+                                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                                                                    <TextBlock Classes="wsName"
+                                                                               Text="{Binding DisplayName}"
+                                                                               VerticalAlignment="Center"/>
+                                                                    <TextBlock Grid.Column="1"
+                                                                               Classes="au-muted"
+                                                                               Text="{Binding StatusLabel}"
+                                                                               VerticalAlignment="Center"/>
+                                                                </Grid>
+                                                                <TextBlock Classes="au-muted"
+                                                                           Text="{Binding Detail}"
+                                                                           TextWrapping="Wrap"
+                                                                           IsVisible="{Binding HasDetail}"/>
+                                                                <TextBlock Classes="au-muted"
+                                                                           Text="{Binding Remedy}"
+                                                                           TextWrapping="Wrap"
+                                                                           IsVisible="{Binding HasRemedy}"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </StackPanel>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>

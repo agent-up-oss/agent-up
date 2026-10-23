@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { authenticateAgent, bindAgent, parseSseFrames, resumeAgent, scheduleAgent, streamAgentEvents } from './AgentApiProvider';
+import { authenticateAgent, bindAgent, enableAgentCapability, parseSseFrames, resumeAgent, scheduleAgent, streamAgentEvents } from './AgentApiProvider';
 
 test('parses fragmented and multiline SSE events without losing the tail', () => {
   const first = parseSseFrames('id: 1\nevent: state\ndata: {"sequence":1,\n');
@@ -66,6 +66,18 @@ test('bind puts the workspace binding route', async () => {
   assert.equal(calls[0]?.url, 'https://server.example/api/workspaces/ws%20%2F1/agent/binding');
   assert.equal(calls[0]?.init?.method, 'PUT');
   assert.equal(session?.boundAgent, 'Codex');
+});
+
+test('enableAgentCapability posts the package identity', async () => {
+  const calls: { url: string; init?: RequestInit }[] = [];
+  const request = async (input: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(input), init });
+    return new Response(JSON.stringify({ id: 'claude', enabled: true }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  await enableAgentCapability({ url: 'https://server.example', accessToken: 'token' }, 'claude', request as typeof fetch);
+  assert.equal(calls[0]?.url, 'https://server.example/api/capabilities/enable');
+  assert.equal(calls[0]?.init?.body, '{"id":"claude"}');
 });
 
 test('schedule uses a workspace-scoped authenticated JSON request', async () => {

@@ -6,6 +6,10 @@ using AgentUp.Desktop.Features.Agents.DTOs;
 using AgentUp.Desktop.Features.Agents.Interfaces;
 using AgentUp.Desktop.Features.Agents.Services;
 using AgentUp.Desktop.Features.Agents.ViewModels;
+using AgentUp.Desktop.Features.Capabilities.Controllers;
+using AgentUp.Desktop.Features.Capabilities.DTOs;
+using AgentUp.Desktop.Features.Capabilities.Interfaces;
+using AgentUp.Desktop.Features.Capabilities.Services;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Agents.Unit;
@@ -67,7 +71,7 @@ public sealed class AgentChatViewModelTests
                 .WithAgent("Claude")
                 .InState("authentication_required")
                 .WithError("""{"code":-32000,"message":"Authentication required"}""")
-                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .IdleWith(DesktopDomain.AvailableAgent("Claude"))
                 .Build()
         };
         var view = CreateView(fake);
@@ -95,7 +99,7 @@ public sealed class AgentChatViewModelTests
                     "Paste the code",
                     AgentLoginTransport.Code,
                     true))
-                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .IdleWith(DesktopDomain.AvailableAgent("Claude"))
                 .Build()
         };
         var view = CreateView(fake);
@@ -125,7 +129,7 @@ public sealed class AgentChatViewModelTests
                     "Paste the code",
                     AgentLoginTransport.Code,
                     true))
-                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .IdleWith(DesktopDomain.AvailableAgent("Claude"))
                 .Build()
         };
         var view = CreateView(fake);
@@ -150,7 +154,7 @@ public sealed class AgentChatViewModelTests
                     "ABCD-EFGHI",
                     "Enter this code",
                     AgentLoginTransport.Code))
-                .IdleWith(new AgentDescriptorDto("Codex", true, "Codex"))
+                .IdleWith(DesktopDomain.AvailableAgent())
                 .Build()
         };
         var view = CreateView(fake);
@@ -176,7 +180,7 @@ public sealed class AgentChatViewModelTests
                 .WithAgent("Claude")
                 .InState("authentication_required")
                 .WithError("JSON-RPC -32000")
-                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .IdleWith(DesktopDomain.AvailableAgent("Claude"))
                 .Build()
         };
         var view = CreateView(fake);
@@ -196,7 +200,7 @@ public sealed class AgentChatViewModelTests
                 .WithAgent("Claude")
                 .InState("authentication_required")
                 .WithError("   ")
-                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .IdleWith(DesktopDomain.AvailableAgent("Claude"))
                 .Build()
         };
         var view = CreateView(fake);
@@ -216,7 +220,7 @@ public sealed class AgentChatViewModelTests
                 .WithAgent("Claude")
                 .InState("authentication_required")
                 .WithError("spawn failed")
-                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .IdleWith(DesktopDomain.AvailableAgent("Claude"))
                 .Build()
         };
         var view = CreateView(fake);
@@ -319,8 +323,8 @@ public sealed class AgentChatViewModelTests
         var fake = new ChatApiFake
         {
             Session = DesktopDomain.Session().IdleWith(
-                new AgentDescriptorDto("Codex", true, "Codex"),
-                new AgentDescriptorDto("Cursor", false, "Cursor")).Build()
+                DesktopDomain.AvailableAgent(),
+                DesktopDomain.Agent().Named("Cursor").ExecutableMissing().Build()).Build()
         };
         var view = CreateView(fake);
 
@@ -363,7 +367,7 @@ public sealed class AgentChatViewModelTests
         var fake = new ChatApiFake
         {
             Session = DesktopDomain.Session()
-                .IdleWith(new AgentDescriptorDto("Codex", true, "Codex"))
+                .IdleWith(DesktopDomain.AvailableAgent())
                 .BoundTo("Codex")
                 .WithLoop(new AgentLoopStatusDto(false, "idle", Terminal: "Idle"))
                 .Build()
@@ -436,7 +440,7 @@ public sealed class AgentChatViewModelTests
         var fake = new ChatApiFake
         {
             Session = DesktopDomain.Session()
-                .IdleWith(new AgentDescriptorDto("Codex", true, "Codex"))
+                .IdleWith(DesktopDomain.AvailableAgent())
                 .BoundTo("Codex")
                 .Build(),
             NextSession = DesktopDomain.Session().Ready().BoundTo("Codex").Build()
@@ -470,7 +474,7 @@ public sealed class AgentChatViewModelTests
         var fake = new ChatApiFake
         {
             Session = DesktopDomain.Session()
-                .IdleWith(new AgentDescriptorDto("Codex", true, "Codex"))
+                .IdleWith(DesktopDomain.AvailableAgent())
                 .Build(),
             NextSession = DesktopDomain.Session().Ready().WithAgents().Build()
         };
@@ -630,12 +634,64 @@ public sealed class AgentChatViewModelTests
         new("Thought", "**Clarifying test meaning**");
 
     [Test]
+    public void AgentDescriptorDto_offersEnableWhenThePackageIsTheGap()
+    {
+        var agent = DesktopDomain.Agent().Named("claude", "Claude").PackageDisabled().Build();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(agent.CanEnable, Is.True);
+            Assert.That(agent.IsBlocked, Is.False);
+            Assert.That(agent.StatusLabel, Is.EqualTo("Not enabled"));
+            Assert.That(agent.HasDetail, Is.True);
+            Assert.That(agent.HasRemedy, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task EnableAgentCommand_reportsWhenCapabilitiesAreUnavailable()
+    {
+        var view = CreateView(new ChatApiFake());
+        await view.LoadAsync("ws-1");
+
+        await view.EnableAgentCommand.Execute("claude").FirstAsync();
+
+        Assert.That(view.Error, Does.Contain("cannot enable"));
+    }
+
+    [Test]
+    public async Task EnableAgentCommand_reloadsTheCatalogAfterEnabling()
+    {
+        var modules = new RecordingCapabilityModulesApi();
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session()
+                .IdleWith(DesktopDomain.Agent().Named("claude", "Claude").PackageDisabled().Build())
+                .Build()
+        };
+        var view = CreateView(fake, new CapabilityModulesController(new CapabilityModulesCatalogService(modules)));
+        await view.LoadAsync("ws-1");
+        fake.Session = DesktopDomain.Session()
+            .IdleWith(DesktopDomain.AvailableAgent("claude", "Claude"))
+            .Build();
+
+        await view.EnableAgentCommand.Execute("claude").FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(modules.EnabledId, Is.EqualTo("claude"));
+            Assert.That(view.Agents.Single().Available, Is.True);
+            Assert.That(view.Agents.Single().CanEnable, Is.False);
+        });
+    }
+
+    [Test]
     public void AgentSessionDto_preservesASubscriptionLoginChallenge()
     {
         var session = DesktopDomain.Session()
             .WithAgent("Cursor")
             .InState("authenticating")
-            .IdleWith(new AgentDescriptorDto("Cursor", true, "Cursor"))
+            .IdleWith(DesktopDomain.AvailableAgent("Cursor"))
             .WithAuthMethods(new AgentAuthMethodDto("cursor_login", "Cursor Login", "Sign in"))
             .WithLoginChallenge(new AgentLoginChallengeDto("https://cursor.com/loginDeepControl?challenge=abc", "ABCD-EFGHI", "Open this link"))
             .Build();
@@ -674,8 +730,8 @@ public sealed class AgentChatViewModelTests
         Assert.That(challenge.RedirectUri, Is.Null);
     }
 
-    private static AgentChatViewModel CreateView(IAgentApiProvider provider)
-        => new(new AgentsController(new AgentChatService(provider)));
+    private static AgentChatViewModel CreateView(IAgentApiProvider provider, CapabilityModulesController? modules = null)
+        => new(new AgentsController(new AgentChatService(provider)), modules);
 }
 
 internal sealed class ChatApiFake : IAgentApiProvider
@@ -739,4 +795,21 @@ internal sealed class ChatApiFake : IAgentApiProvider
             await EventsHang.Task.WaitAsync(cancellationToken);
         yield break;
     }
+}
+
+internal sealed class RecordingCapabilityModulesApi : ICapabilityModulesApiProvider
+{
+    public string? EnabledId { get; private set; }
+
+    public Task<IReadOnlyList<CapabilityModuleDto>> ListAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult<IReadOnlyList<CapabilityModuleDto>>([]);
+
+    public Task<CapabilityModuleDto> EnableAsync(string id, string? version, CancellationToken cancellationToken = default)
+    {
+        EnabledId = id;
+        return Task.FromResult(new CapabilityModuleDto(id, "1.0.0", id, "agent-up", "agent", true, "ready", true, []));
+    }
+
+    public Task<CapabilityModuleDto> DisableAsync(string id, CancellationToken cancellationToken = default)
+        => Task.FromResult(new CapabilityModuleDto(id, "1.0.0", id, "agent-up", "agent", false, "disabled", false, []));
 }

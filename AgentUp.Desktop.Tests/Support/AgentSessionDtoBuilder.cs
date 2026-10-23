@@ -92,7 +92,7 @@ internal sealed class AgentSessionDtoBuilder
         _state = "ready";
         _sessionId = sessionId;
         if (_agents.Count == 0)
-            _agents = [new AgentDescriptorDto(agent, true, agent)];
+            _agents = [DesktopDomain.AvailableAgent(agent)];
         return this;
     }
 

@@ -73,6 +73,40 @@ type CapabilityRecord = {
   messages: string[];
 };
 
+function describeFakeAgent(module: CapabilityRecord) {
+  const available = module.enabled && module.canRun;
+  if (available) {
+    return {
+      agent: module.id,
+      available: true,
+      displayName: module.displayName,
+      unavailability: null,
+      detail: null,
+      remedy: null,
+    };
+  }
+
+  if (!module.enabled) {
+    return {
+      agent: module.id,
+      available: false,
+      displayName: module.displayName,
+      unavailability: 'capabilityNotEnabled',
+      detail: `${module.displayName} is not enabled on this Server.`,
+      remedy: `Enable the ${module.id} capability.`,
+    };
+  }
+
+  return {
+    agent: module.id,
+    available: false,
+    displayName: module.displayName,
+    unavailability: 'executableNotFound',
+    detail: `${module.id} ACP executable is not installed or is not on PATH.`,
+    remedy: `Install the ${module.id} ACP executable and keep it on PATH.`,
+  };
+}
+
 const defaultScheduler: FakeScheduler = (delayMs, work) => {
   const timer = setTimeout(work, delayMs);
   return () => clearTimeout(timer);
@@ -393,8 +427,8 @@ export class FakeBackendService {
     if (!stored) return notFound();
     const requested = readJsonString(body, 'agent');
     if (!requested) return json(this.liveAgentSession(stored.session));
-    const enabled = this.enabledAgentDescriptors();
-    const match = enabled.find(item => item.agent.toLowerCase() === requested.toLowerCase());
+    const catalog = this.agentCatalogDescriptors();
+    const match = catalog.find(item => item.agent.toLowerCase() === requested.toLowerCase() && item.available);
     if (!match) {
       return {
         status: 409,
@@ -452,9 +486,10 @@ export class FakeBackendService {
 
   private liveAgentSession(session: unknown) {
     const snapshot = session && typeof session === 'object' ? session as Record<string, unknown> : {};
-    const agents = this.enabledAgentDescriptors();
+    const agents = this.agentCatalogDescriptors();
     const current = typeof snapshot.agent === 'string' ? snapshot.agent : null;
-    const selected = agents.find(item => item.agent.toLowerCase() === current?.toLowerCase()) ?? agents[0] ?? null;
+    const selected = agents.find(item =>
+      item.available && item.agent.toLowerCase() === current?.toLowerCase()) ?? null;
     return {
       ...snapshot,
       agent: selected?.agent ?? null,
@@ -462,14 +497,10 @@ export class FakeBackendService {
     };
   }
 
-  private enabledAgentDescriptors() {
+  private agentCatalogDescriptors() {
     return this.capabilities()
-      .filter(item => item.kind === 'agent' && item.enabled)
-      .map(item => ({
-        agent: item.id,
-        available: item.canRun,
-        displayName: item.displayName,
-      }));
+      .filter(item => item.kind === 'agent')
+      .map(item => describeFakeAgent(item));
   }
 
   private sendAgentMessage(workspaceId: string, body: string | null): FakeBackendResponse {
