@@ -65,10 +65,8 @@ public sealed class LoginPaneTests
         var saved = ((MainViewModel)window.DataContext!).Login.SavedServers
             .Single(server => server.Url == "https://agent-up.example.test");
 
-        var select = ChromeTestSupport.FindDescendantByAutomationId<Button>(
-            window, DesktopAutomationIds.LoginSaved(saved.Id));
-        var remove = ChromeTestSupport.FindDescendantByAutomationId<Button>(
-            window, DesktopAutomationIds.LoginRemoveSaved(saved.Id));
+        var select = ChromeTestSupport.FindDescendantByAutomationId<Button>(window, saved.SelectAutomationId);
+        var remove = ChromeTestSupport.FindDescendantByAutomationId<Button>(window, saved.RemoveAutomationId);
 
         Assert.Multiple(() =>
         {

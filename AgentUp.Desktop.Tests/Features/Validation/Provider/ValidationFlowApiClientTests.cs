@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text;
 using AgentUp.Desktop.Features.Validation.DTOs;
@@ -40,10 +41,14 @@ public sealed class ValidationFlowApiClientTests
     private sealed class SurfaceHandler(string json) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            Task.FromResult(CreateResponse(json));
+
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
+        private static HttpResponseMessage CreateResponse(string body) =>
+            new(HttpStatusCode.OK)
             {
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
-            });
+                Content = new StringContent(body, Encoding.UTF8, "application/json")
+            };
     }
 
     [Test]

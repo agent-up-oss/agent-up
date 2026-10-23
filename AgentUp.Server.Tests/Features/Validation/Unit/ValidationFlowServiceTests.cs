@@ -302,6 +302,28 @@ public sealed class ValidationFlowServiceTests
     }
 
     [Test]
+    public async Task Save_normalizesADesktopApplicationName()
+    {
+        var (service, workspaceId) = await CreateAsync();
+
+        var result = await service.SaveAsync(workspaceId, DesktopRequest(application: " desktop "));
+
+        Assert.That(result.Succeeded, Is.True, result.Error);
+        Assert.That(result.Flow!.Application, Is.EqualTo(DesktopSurfaceFlowRules.ApplicationName));
+    }
+
+    [Test]
+    public async Task Save_rejectsDesktopWhenTheNameIsMissing()
+    {
+        var (service, workspaceId) = await CreateAsync();
+
+        var result = await service.SaveAsync(workspaceId, DesktopRequest(name: " "));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Does.Contain("Name is required"));
+    }
+
+    [Test]
     public async Task Save_rejectsDesktopSelectorAndCoordinateLocators()
     {
         var (service, workspaceId) = await CreateAsync();

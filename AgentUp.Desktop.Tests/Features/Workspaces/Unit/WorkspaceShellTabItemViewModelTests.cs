@@ -12,4 +12,10 @@ public sealed class WorkspaceShellTabItemViewModelTests
     {
         Assert.That(new WorkspaceShellTabItemViewModel(kind, kind.ToString()).AutomationId, Is.EqualTo(expected));
     }
+
+    [Test]
+    public void Tab_fallsBackToAKindBasedIdForUnknownTabs() =>
+        Assert.That(
+            new WorkspaceShellTabItemViewModel((WorkspaceShellTab)99, "Other").AutomationId,
+            Is.EqualTo("shell.tab.99"));
 }

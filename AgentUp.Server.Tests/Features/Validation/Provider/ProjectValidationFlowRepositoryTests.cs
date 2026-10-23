@@ -112,6 +112,32 @@ public sealed class ProjectValidationFlowRepositoryTests
     }
 
     [Test]
+    public void Mapping_roundTripsDesktopSurfaceWithoutTouchingTheFilesystem()
+    {
+        var runtime = new ValidationFlow(
+            "id",
+            "ws",
+            "Desktop",
+            "Open Git",
+            "The Git tab is visible.",
+            "workspace/git",
+            [],
+            [new("open", "Open Git", ValidationAction.Click, new(TestId: "shell.tab.git"))],
+            DateTimeOffset.UnixEpoch,
+            Surface: ValidationSurface.Desktop);
+
+        var persisted = ProjectValidationFlowRepository.ToPersistedFlow(runtime);
+        var restored = ProjectValidationFlowRepository.ToRuntimeFlow("ws", persisted);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(persisted.Surface, Is.EqualTo(ValidationSurface.Desktop));
+            Assert.That(restored.Surface, Is.EqualTo(ValidationSurface.Desktop));
+            Assert.That(restored.Application, Is.EqualTo("Desktop"));
+        });
+    }
+
+    [Test]
     public async Task Save_persistsDesktopSurface()
     {
         var worktree = Path.Join(Path.GetTempPath(), "agent-up-validation-tests", Guid.NewGuid().ToString("N"));
