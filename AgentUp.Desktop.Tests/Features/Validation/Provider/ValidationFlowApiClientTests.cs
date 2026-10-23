@@ -1,7 +1,56 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using System.Text;
+using AgentUp.Desktop.Features.Validation.DTOs;
 using AgentUp.Desktop.Features.Validation.Providers;
 namespace AgentUp.Desktop.Tests.Features.Validation.Provider;
 public sealed class ValidationFlowApiClientTests
 {
+    [Test]
+    public async Task Get_defaultsAMissingSurface_toApplication()
+    {
+        using var http = new HttpClient(new SurfaceHandler("""{"id":"flow","workspaceId":"ws","application":"shop","name":"Checkout","description":"Cart","initialPath":"/","initialExpectations":[],"steps":[],"version":1}"""))
+        {
+            BaseAddress = new Uri("http://server/")
+        };
+        var client = new ValidationFlowApiClient(http);
+
+        var flow = await client.GetAsync("ws", "flow");
+
+        Assert.That(flow!.Surface, Is.EqualTo(ValidationSurfaceDto.Application));
+    }
+
+    [Test]
+    public async Task Get_readsDesktopSurface()
+    {
+        using var http = new HttpClient(new SurfaceHandler("""{"id":"flow","workspaceId":"ws","application":"Desktop","name":"Open Git","description":"Git","initialPath":"workspace/git","initialExpectations":[],"steps":[],"version":1,"surface":"Desktop"}"""))
+        {
+            BaseAddress = new Uri("http://server/")
+        };
+        var client = new ValidationFlowApiClient(http);
+
+        var flow = await client.GetAsync("ws", "flow");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(flow!.Surface, Is.EqualTo(ValidationSurfaceDto.Desktop));
+            Assert.That(flow.InitialPath, Is.EqualTo("workspace/git"));
+        });
+    }
+
+    private sealed class SurfaceHandler(string json) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(CreateResponse(json));
+
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
+        private static HttpResponseMessage CreateResponse(string body) =>
+            new(HttpStatusCode.OK)
+            {
+                Content = new StringContent(body, Encoding.UTF8, "application/json")
+            };
+    }
+
     [Test]
     public void ExportUri_scopes_path_to_workspace_and_flow()
     {

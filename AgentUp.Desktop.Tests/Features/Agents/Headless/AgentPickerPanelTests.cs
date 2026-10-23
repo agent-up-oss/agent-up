@@ -4,6 +4,7 @@ using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Agents.DTOs;
 using AgentUp.Desktop.Features.Agents.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Agents.Headless;
@@ -38,6 +39,12 @@ public sealed class AgentPickerPanelTests
             Assert.That(buttons.Single(button => button.DataContext is AgentDescriptorDto { Agent: "Codex" }).IsEnabled, Is.True);
             Assert.That(text, Does.Contain("Executable not found"));
             Assert.That(text, Does.Contain("Install agent and keep it on PATH."));
+            Assert.That(
+                ChromeTestSupport.FindDescendantByAutomationId<StackPanel>(app.Window, DesktopAutomationIds.AgentPickerRow("Codex")),
+                Is.Not.Null);
+            Assert.That(
+                ChromeTestSupport.FindDescendantByAutomationId<StackPanel>(app.Window, DesktopAutomationIds.AgentPickerRow("Cursor")),
+                Is.Not.Null);
         });
     }
 
@@ -61,6 +68,9 @@ public sealed class AgentPickerPanelTests
             Assert.That(text, Does.Contain("Not enabled"));
             Assert.That(text, Does.Contain("Claude is not enabled on this Server."));
             Assert.That(text, Does.Contain("Enable the Claude capability."));
+            Assert.That(
+                ChromeTestSupport.FindDescendantByAutomationId<StackPanel>(app.Window, DesktopAutomationIds.AgentPickerRow("Claude")),
+                Is.Not.Null);
         });
     }
 
@@ -85,6 +95,10 @@ public sealed class AgentPickerPanelTests
             Assert.That(text, Does.Contain("Fix session persistence"));
             Assert.That(text, Does.Contain("feature/sessions"));
             Assert.That(text, Does.Contain("Resume session →"));
+            Assert.That(
+                ChromeTestSupport.FindDescendantByAutomationId<Button>(
+                    app.Window, DesktopAutomationIds.AgentSession("saved")),
+                Is.Not.Null);
         });
     }
 

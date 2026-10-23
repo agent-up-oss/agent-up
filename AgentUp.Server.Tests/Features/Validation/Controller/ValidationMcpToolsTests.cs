@@ -12,6 +12,8 @@ public sealed class ValidationMcpToolsTests
             Assert.That(description, Does.Contain("source"));
             Assert.That(description, Does.Contain("Do not inspect every route"));
             Assert.That(description, Does.Contain("re-record"));
+            Assert.That(description, Does.Contain("Surface Desktop"));
+            Assert.That(description, Does.Contain("testId"));
         });
     }
 

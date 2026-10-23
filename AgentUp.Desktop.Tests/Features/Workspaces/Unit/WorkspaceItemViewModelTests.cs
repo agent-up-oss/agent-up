@@ -4,6 +4,7 @@ using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Ports.DTOs;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Workspaces.Unit;
@@ -316,6 +317,20 @@ public class WorkspaceItemViewModelTests
             BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("RequestDelete is missing.");
         method.Invoke(vm, null);
+    }
+
+    [Test]
+    public void LifecycleButtons_exposeStableAutomationIds()
+    {
+        var vm = new WorkspaceItemViewModel("ws-1", "App", "main", "/repo", "/worktree", "Stopped");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.StartAutomationId, Is.EqualTo(DesktopAutomationIds.WorkspaceStart("ws-1")));
+            Assert.That(vm.StopAutomationId, Is.EqualTo(DesktopAutomationIds.WorkspaceStop("ws-1")));
+            Assert.That(vm.RefreshAutomationId, Is.EqualTo(DesktopAutomationIds.WorkspaceRefresh("ws-1")));
+            Assert.That(vm.RemoveAutomationId, Is.EqualTo(DesktopAutomationIds.WorkspaceRemove("ws-1")));
+        });
     }
 
     private sealed class RecordingHost : IWorkspaceItemHost

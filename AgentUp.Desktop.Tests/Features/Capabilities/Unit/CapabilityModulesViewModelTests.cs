@@ -4,6 +4,7 @@ using AgentUp.Desktop.Features.Capabilities.DTOs;
 using AgentUp.Desktop.Features.Capabilities.Interfaces;
 using AgentUp.Desktop.Features.Capabilities.Services;
 using AgentUp.Desktop.Features.Capabilities.ViewModels;
+using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Tests.Features.Capabilities.Unit;
 
 namespace AgentUp.Desktop.Tests.Features.Capabilities.Unit;
@@ -100,6 +101,22 @@ public sealed class CapabilityModulesViewModelTests
 
         Assert.That(viewModel.IsOpen, Is.True);
         Assert.That(viewModel.Status, Is.EqualTo("Server unreachable"));
+    }
+
+    [Test]
+    public async Task Cards_exposeStableEnableAndDisableAutomationIds()
+    {
+        var client = new FakeCapabilityModulesApiProvider
+        {
+            Modules = [CapabilityModulesCatalogServiceTests.DotnetModule(true)]
+        };
+        var viewModel = CreateViewModel(client);
+
+        await viewModel.OpenAsync();
+
+        var card = viewModel.Modules.Single();
+        Assert.That(card.EnableAutomationId, Is.EqualTo(DesktopAutomationIds.CapabilityEnable("dotnet")));
+        Assert.That(card.DisableAutomationId, Is.EqualTo(DesktopAutomationIds.CapabilityDisable("dotnet")));
     }
 
     [Test]

@@ -10,7 +10,9 @@ using AgentUp.Desktop.Features.Capabilities.Controllers;
 using AgentUp.Desktop.Features.Capabilities.DTOs;
 using AgentUp.Desktop.Features.Capabilities.Interfaces;
 using AgentUp.Desktop.Features.Capabilities.Services;
+using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Tests.Support;
+using ReactiveUI;
 
 namespace AgentUp.Desktop.Tests.Features.Agents.Unit;
 
@@ -36,7 +38,16 @@ public sealed class AgentChatViewModelTests
             Assert.That(view.HasSession, Is.True);
             Assert.That(view.SessionId, Is.EqualTo("saved-1"));
             Assert.That(fake.ResumedSessionId, Is.EqualTo("saved-1"));
+            Assert.That(view.Sessions.Single().AutomationId, Is.EqualTo(DesktopAutomationIds.AgentSession("saved-1")));
         });
+    }
+
+    [Test]
+    public void PermissionOption_usesAStableAutomationId()
+    {
+        var option = new AgentOptionViewModel("allow-once", "Allow once", ReactiveCommand.Create(() => { }));
+
+        Assert.That(option.AutomationId, Is.EqualTo(DesktopAutomationIds.AgentOption("allow-once")));
     }
 
     [Test]

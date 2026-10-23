@@ -3,7 +3,9 @@ using System.Text;
 using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.Authentication.Providers;
 using AgentUp.Desktop.Features.Authentication.ViewModels;
+using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
+using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Tests.Support;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
@@ -35,6 +37,41 @@ public sealed class LoginPaneTests
             Assert.That(
                 window.GetVisualDescendants().OfType<TextBlock>().Select(text => text.Text),
                 Does.Not.Contain("Saved sign-in").And.Not.Contain("No saved sign-in").And.Not.Contain("In-app demo"));
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task LoginPane_exposesConnectByAutomationId()
+    {
+        var window = await LaunchPickerAsync("https://agent-up.example.test");
+
+        var connect = ChromeTestSupport.FindDescendantByAutomationId<Button>(
+            window, DesktopAutomationIds.LoginConnect);
+        var url = ChromeTestSupport.FindDescendantByAutomationId<TextBox>(
+            window, DesktopAutomationIds.LoginServerUrl);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(connect, Is.Not.Null);
+            Assert.That(connect!.Content?.ToString(), Is.EqualTo("Connect"));
+            Assert.That(url, Is.Not.Null);
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task LoginPane_exposesSavedServersByAutomationId()
+    {
+        var window = await LaunchPickerAsync("https://agent-up.example.test");
+        var saved = ((MainViewModel)window.DataContext!).Login.SavedServers
+            .Single(server => server.Url == "https://agent-up.example.test");
+
+        var select = ChromeTestSupport.FindDescendantByAutomationId<Button>(window, saved.SelectAutomationId);
+        var remove = ChromeTestSupport.FindDescendantByAutomationId<Button>(window, saved.RemoveAutomationId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(select, Is.Not.Null);
+            Assert.That(remove, Is.Not.Null);
         });
     }
 

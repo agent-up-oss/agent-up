@@ -15,6 +15,7 @@
         xmlns:chromeVm="using:AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome"
         xmlns:authDto="using:AgentUp.Desktop.Features.Authentication.DTOs"
         xmlns:entModels="using:AgentUp.Desktop.Features.Entitlements.Models"
+        xmlns:ids="using:AgentUp.Desktop.Shared.Providers"
         x:Class="AgentUp.Desktop.Features.Workspaces.Views.MainWindow"
         x:CompileBindings="False"
         Width="1100" Height="700"
@@ -543,21 +544,21 @@
                             Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
-                    <Button x:Name="MinimizeWindowButton"
+                    <Button x:Name="MinimizeWindowButton" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.WindowMinimize}"
                             Click="OnMinimizeWindowClicked"
                             ToolTip.Tip="Minimize">
                         <Border Classes="chromeButton">
                             <TextBlock Classes="chromeIcon chromeMinimizeIcon" Text="─"/>
                         </Border>
                     </Button>
-                    <Button x:Name="RestoreWindowButton"
+                    <Button x:Name="RestoreWindowButton" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.WindowRestore}"
                             Click="OnRestoreWindowClicked"
                             ToolTip.Tip="Restore">
                         <Border Classes="chromeButton">
                             <TextBlock Classes="chromeIcon chromeRestoreIcon" Text="□"/>
                         </Border>
                     </Button>
-                    <Button x:Name="CloseWindowButton"
+                    <Button x:Name="CloseWindowButton" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.WindowClose}"
                             Click="OnCloseWindowClicked"
                             ToolTip.Tip="Close">
                         <Border Classes="chromeButton chromeClose">
@@ -592,6 +593,7 @@
                                        Text="{Binding Login.Subtitle}"
                                        TextWrapping="Wrap"/>
                             <Button Classes="au-button--secondary"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.LoginBack}"
                                     Command="{Binding Login.GoBackCommand}"
                                     IsVisible="{Binding Login.CanGoBack}"
                                     HorizontalAlignment="Left"
@@ -600,11 +602,12 @@
                                 <TextBlock Classes="au-field-label"
                                            Text="SERVER URL"/>
                                 <TextBox Classes="au-input"
+                                         AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.LoginServerUrl}"
                                          Text="{Binding Login.ServerUrl, Mode=TwoWay}"
                                          PlaceholderText="http://localhost:5000"/>
                                 <TextBlock Classes="au-field-label"
                                            Text="SAVED SERVERS"/>
-                                <ScrollViewer x:Name="SavedServerList"
+                                <ScrollViewer x:Name="SavedServerList" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.LoginSavedList}"
                                               MaxHeight="168"
                                               VerticalScrollBarVisibility="Auto"
                                               HorizontalScrollBarVisibility="Disabled">
@@ -625,6 +628,7 @@
                                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                                 <Button Classes="au-choice au-choice--compact"
                                                         Classes.au-choice--selected="{Binding IsActive}"
+                                                        AutomationProperties.AutomationId="{Binding SelectAutomationId}"
                                                         Command="{Binding DataContext.Login.SelectSavedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                         CommandParameter="{Binding Id}"
                                                         MinWidth="0"
@@ -638,6 +642,7 @@
                                                 </Button>
                                                 <Button Grid.Column="1"
                                                         Classes="au-button--danger au-button--compact"
+                                                        AutomationProperties.AutomationId="{Binding RemoveAutomationId}"
                                                         Command="{Binding DataContext.Login.RemoveSavedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                         CommandParameter="{Binding Id}"
                                                         ToolTip.Tip="Remove saved server"
@@ -653,17 +658,20 @@
                                        Text="ADMIN PASSWORD"
                                        IsVisible="{Binding Login.NeedsPassword}"/>
                             <TextBox Classes="au-input"
+                                     AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.LoginPassword}"
                                      Text="{Binding Login.Password, Mode=TwoWay}"
                                      PasswordChar="●"
                                      PlaceholderText="Admin password"
                                      IsVisible="{Binding Login.NeedsPassword}"/>
                             <Button Classes="au-button"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.LoginConnect}"
                                     Command="{Binding Login.ConnectCommand}"
                                     IsEnabled="{Binding !Login.IsBusy}"
                                     HorizontalAlignment="Stretch"
                                     Content="Connect"
                                     IsVisible="{Binding !Login.NeedsPassword}"/>
                             <Button Classes="au-button"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.LoginSignIn}"
                                     Command="{Binding Login.SignInCommand}"
                                     IsEnabled="{Binding !Login.IsBusy}"
                                     IsVisible="{Binding Login.NeedsPassword}"
@@ -713,7 +721,7 @@
                         <StackPanel Grid.Column="1"
                                     Orientation="Horizontal"
                                     Spacing="4">
-                            <Button x:Name="AddWorkspaceButton"
+                            <Button x:Name="AddWorkspaceButton" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.SidebarAddWorkspace}"
                                     Command="{Binding Sidebar.ShowAddWorkspaceCommand}"
                                     IsVisible="{Binding Sidebar.CanCreateWorkspace}"
                                     ToolTip.Tip="Clone a repository into a new workspace">
@@ -721,7 +729,7 @@
                                     <TextBlock Classes="wsAddIcon" Text="+"/>
                                 </Border>
                             </Button>
-                            <Button x:Name="SidebarToggle"
+                            <Button x:Name="SidebarToggle" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.SidebarToggle}"
                                     Command="{Binding Sidebar.ToggleCommand}"
                                     ToolTip.Tip="Collapse workspace sidebar">
                                 <Border Classes="wsAddButton">
@@ -739,7 +747,7 @@
                         Padding="0,10,0,6"
                         IsVisible="{Binding Sidebar.IsCollapsed}">
                     <StackPanel Spacing="6">
-                        <Button x:Name="AddWorkspaceButtonCollapsed"
+                        <Button x:Name="AddWorkspaceButtonCollapsed" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.SidebarAddWorkspaceCollapsed}"
                                 HorizontalAlignment="Center"
                                 Command="{Binding Sidebar.ShowAddWorkspaceCommand}"
                                 IsVisible="{Binding Sidebar.CanCreateWorkspace}"
@@ -748,7 +756,7 @@
                                 <TextBlock Classes="wsAddIcon" Text="+"/>
                             </Border>
                         </Button>
-                        <Button x:Name="SidebarToggleCollapsed"
+                        <Button x:Name="SidebarToggleCollapsed" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.SidebarToggleCollapsed}"
                                 HorizontalAlignment="Center"
                                 Command="{Binding Sidebar.ToggleCommand}"
                                 ToolTip.Tip="Expand workspace sidebar">
@@ -793,7 +801,7 @@
                 </Border>
 
                 <!-- Expanded workspace list -->
-                <ScrollViewer x:Name="WorkspaceListExpanded"
+                <ScrollViewer x:Name="WorkspaceListExpanded" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.WorkspaceList}"
                               IsVisible="{Binding Sidebar.IsExpanded}"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
@@ -815,6 +823,7 @@
                                             ToolTip.Tip="{Binding RepositoryToolTip}">
                                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
                                             <Button Grid.Column="0"
+                                                    AutomationProperties.AutomationId="{Binding StartAutomationId}"
                                                     Command="{Binding StartCommand}"
                                                     IsVisible="{Binding ShowStartButton}"
                                                     IsEnabled="{Binding !IsLifecycleBusy}"
@@ -826,6 +835,7 @@
                                                 </Border>
                                             </Button>
                                             <Button Grid.Column="0"
+                                                    AutomationProperties.AutomationId="{Binding StopAutomationId}"
                                                     Command="{Binding StopCommand}"
                                                     IsVisible="{Binding ShowStopButton}"
                                                     IsEnabled="{Binding !IsLifecycleBusy}"
@@ -856,6 +866,7 @@
                                                                Margin="13,0,0,0"/>
                                                 </StackPanel>
                                                 <Button Classes="wsRefreshButton"
+                                                        AutomationProperties.AutomationId="{Binding RefreshAutomationId}"
                                                         HorizontalAlignment="Right"
                                                         VerticalAlignment="Top"
                                                         Margin="28,-2,-2,0"
@@ -867,6 +878,7 @@
                                                                VerticalAlignment="Center"/>
                                                 </Button>
                                                 <Button Classes="wsDeleteButton"
+                                                        AutomationProperties.AutomationId="{Binding RemoveAutomationId}"
                                                         HorizontalAlignment="Right"
                                                         VerticalAlignment="Top"
                                                         Margin="0,-2,-2,0"
@@ -887,7 +899,7 @@
                 </ScrollViewer>
 
                 <!-- Collapsed avatar list -->
-                <ScrollViewer x:Name="WorkspaceListCollapsed"
+                <ScrollViewer x:Name="WorkspaceListCollapsed" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.WorkspaceListCollapsed}"
                               IsVisible="{Binding Sidebar.IsCollapsed}"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
@@ -938,6 +950,7 @@
                                        Foreground="{DynamicResource AgentUpColorTextDangerBrush}"
                                        TextWrapping="Wrap"/>
                             <Button Classes="au-button"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.SidebarRetry}"
                                     Command="{Binding Sidebar.RefreshCommand}"
                                     HorizontalAlignment="Center"
                                     Content="Retry"/>
@@ -999,7 +1012,7 @@
                                 BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
                                 BorderThickness="0,0,0,1">
                             <StackPanel Orientation="Horizontal">
-                            <ListBox x:Name="ShellTabs"
+                            <ListBox x:Name="ShellTabs" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.ShellTabs}"
                                      ItemsSource="{Binding ShellTabs}"
                                      SelectedItem="{Binding SelectedShellTabItem}"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -1011,7 +1024,8 @@
                                 </ListBox.ItemsPanel>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate DataType="vm:WorkspaceShellTabItemViewModel">
-                                        <Border Classes="appTab">
+                                        <Border Classes="appTab"
+                                                AutomationProperties.AutomationId="{Binding AutomationId}">
                                             <TextBlock Classes="appTab"
                                                        Text="{Binding Label}"
                                                        VerticalAlignment="Center"/>
@@ -1024,7 +1038,7 @@
                                        FontSize="16"
                                        Margin="8,0"
                                        VerticalAlignment="Center"/>
-                            <ListBox x:Name="ApplicationTabs"
+                            <ListBox x:Name="ApplicationTabs" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.ApplicationTabs}"
                                      ItemsSource="{Binding Applications.Applications}"
                                      SelectedItem="{Binding SelectedApplicationTab}"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -1037,6 +1051,7 @@
                                 <ListBox.ItemTemplate>
                                     <DataTemplate DataType="appVm:ApplicationViewModel">
                                         <Border Classes="appTab"
+                                                AutomationProperties.AutomationId="{Binding AutomationId}"
                                                 ToolTip.Tip="{Binding CapabilitySummary}">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
                                                 <Border Width="6" Height="6" CornerRadius="3"
@@ -1060,7 +1075,7 @@
                                 BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
                                 BorderThickness="0,0,0,1"
                                 Padding="14,8">
-                            <ListBox x:Name="SubNavBar"
+                            <ListBox x:Name="SubNavBar" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.SubNav}"
                                      ItemsSource="{Binding SubTabs}"
                                      SelectedItem="{Binding SelectedSubTab}"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -1086,6 +1101,7 @@
                                   ColumnSpacing="6">
                                 <Button Grid.Column="0"
                                         x:Name="BrowserBackButton"
+                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.BrowserBack}"
                                         Command="{Binding BrowserBackCommand}"
                                         ToolTip.Tip="Back">
                                     <Border Classes="browserButton">
@@ -1098,6 +1114,7 @@
                                 </Button>
                                 <Button Grid.Column="1"
                                         x:Name="BrowserForwardButton"
+                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.BrowserForward}"
                                         Command="{Binding BrowserForwardCommand}"
                                         ToolTip.Tip="Forward">
                                     <Border Classes="browserButton">
@@ -1110,6 +1127,7 @@
                                 </Button>
                                 <Button Grid.Column="2"
                                         x:Name="BrowserReloadButton"
+                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.BrowserReload}"
                                         Command="{Binding BrowserReloadCommand}"
                                         ToolTip.Tip="Reload">
                                     <Border Classes="browserButton">
@@ -1122,6 +1140,7 @@
                                 </Button>
                                 <TextBox Grid.Column="3"
                                          x:Name="AddressBar"
+                                         AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.BrowserAddress}"
                                          Classes="addressBar"
                                          Text="{Binding AddressBarUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                          HorizontalAlignment="Stretch">
@@ -1265,6 +1284,7 @@
                                         </StackPanel>
                                         <Button Grid.Column="1"
                                                 Classes="au-button au-button--danger au-button--compact"
+                                                AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentStop}"
                                                 IsVisible="{Binding Agent.HasAgent}"
                                                 Command="{Binding Agent.StopCommand}"
                                                 Content="Stop agent"/>
@@ -1272,11 +1292,12 @@
                                     <StackPanel Grid.Row="1" Spacing="8" HorizontalAlignment="Stretch">
                                         <TextBlock Classes="au-field-label" Text="Workspace sessions"/>
                                         <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                        <ItemsControl x:Name="AgentSessionList" ItemsSource="{Binding Agent.Sessions}">
+                                        <ItemsControl x:Name="AgentSessionList" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentSessions}" ItemsSource="{Binding Agent.Sessions}">
                                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
                                                     <Button Classes="au-choice" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                                            AutomationProperties.AutomationId="{Binding AutomationId}"
                                                             Command="{Binding $parent[Window].DataContext.Agent.ResumeSessionCommand}" CommandParameter="{Binding SessionId}">
                                                         <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                                                             <Border Classes="au-badge"><TextBlock Classes="au-accent" Text="{Binding Agent}"/></Border>
@@ -1293,13 +1314,14 @@
                                                    Text="No saved sessions yet."
                                                    IsVisible="{Binding Agent.HasNoSavedSessions}"/>
                                         <Button Classes="au-button au-button--compact"
+                                                AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentStartBound}"
                                                 HorizontalAlignment="Stretch"
                                                 IsVisible="{Binding Agent.CanStartBound}"
                                                 Command="{Binding Agent.StartBoundCommand}"
                                                 Content="Start bound agent"/>
                                         <StackPanel Spacing="8" HorizontalAlignment="Stretch" IsVisible="{Binding !Agent.HasBoundAgent}">
                                         <TextBlock Classes="au-field-label" Text="Choose an ACP agent"/>
-                                        <ItemsControl x:Name="AgentPicker" ItemsSource="{Binding Agent.Agents}" HorizontalAlignment="Stretch">
+                                        <ItemsControl x:Name="AgentPicker" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentPicker}" ItemsSource="{Binding Agent.Agents}" HorizontalAlignment="Stretch">
                                             <ItemsControl.Styles>
                                                 <Style Selector="ContentPresenter">
                                                     <Setter Property="HorizontalAlignment" Value="Stretch"/>
@@ -1313,7 +1335,7 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <StackPanel Spacing="8">
+                                                    <StackPanel Spacing="8" AutomationProperties.AutomationId="{Binding Agent, StringFormat='agent.picker.{0}'}">
                                                         <Button Classes="au-choice"
                                                                 HorizontalAlignment="Stretch"
                                                                 HorizontalContentAlignment="Stretch"
@@ -1398,13 +1420,13 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="agentVm:AgentOptionViewModel">
-                                                    <Button Classes="au-button au-button--secondary au-button--compact" Command="{Binding Command}" Content="{Binding Label}"/>
+                                                    <Button Classes="au-button au-button--secondary au-button--compact" AutomationProperties.AutomationId="{Binding AutomationId}" Command="{Binding Command}" Content="{Binding Label}"/>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                         <StackPanel IsVisible="{Binding Agent.HasLoginChallenge}" Spacing="6">
                                             <TextBlock Text="{Binding Agent.LoginInstructions}" TextWrapping="Wrap" Foreground="{DynamicResource AgentUpColorTextWarningBrush}"/>
-                                            <TextBox Classes="au-input" IsReadOnly="True" Text="{Binding Agent.LoginUrl}" IsVisible="{Binding Agent.HasLoginUrl}"/>
+                                            <TextBox Classes="au-input" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentLoginUrl}" IsReadOnly="True" Text="{Binding Agent.LoginUrl}" IsVisible="{Binding Agent.HasLoginUrl}"/>
                                             <TextBlock Classes="au-mono"
                                                        Text="{Binding Agent.LoginCode}"
                                                        IsVisible="{Binding Agent.HasLoginCode}"
@@ -1413,10 +1435,12 @@
                                                        Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"/>
                                             <StackPanel IsVisible="{Binding Agent.CanCollectLoginCode}" Spacing="6">
                                                 <TextBox Classes="au-input"
+                                                         AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentLoginCode}"
                                                          Text="{Binding Agent.LoginCodeInput}"
                                                          PlaceholderText="Paste the code from the page"
                                                          IsEnabled="{Binding Agent.CanSubmitLoginCode}"/>
                                                 <Button Classes="au-button au-button--compact"
+                                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentSubmitCode}"
                                                         Content="Submit code"
                                                         Command="{Binding Agent.SubmitLoginCodeCommand}"
                                                         IsEnabled="{Binding Agent.CanSubmitLoginCode}"/>
@@ -1427,7 +1451,7 @@
                                                   HorizontalScrollBarVisibility="Disabled"
                                                   VerticalScrollBarVisibility="Auto"
                                                   Background="{DynamicResource AgentUpColorCanvasBrush}">
-                                        <ItemsControl x:Name="AgentTranscript"
+                                        <ItemsControl x:Name="AgentTranscript" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentTranscript}"
                                                       ItemsSource="{Binding Agent.Transcript}"
                                                       HorizontalAlignment="Stretch">
                                             <ItemsControl.ItemsPanel>
@@ -1443,11 +1467,11 @@
                                         <TextBlock Text="{Binding Agent.PermissionDetail}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" TextWrapping="Wrap"/>
                                         <ItemsControl ItemsSource="{Binding Agent.PermissionOptions}">
                                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate><DataTemplate DataType="agentVm:AgentOptionViewModel"><Button Classes="au-button au-button--secondary au-button--compact" Command="{Binding Command}" Content="{Binding Label}"/></DataTemplate></ItemsControl.ItemTemplate>
+                                            <ItemsControl.ItemTemplate><DataTemplate DataType="agentVm:AgentOptionViewModel"><Button Classes="au-button au-button--secondary au-button--compact" AutomationProperties.AutomationId="{Binding AutomationId}" Command="{Binding Command}" Content="{Binding Label}"/></DataTemplate></ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                     </StackPanel>
                                     <TextBlock Grid.Row="5" Text="{Binding Agent.Error}" Foreground="{DynamicResource AgentUpColorTextDangerBrush}"/>
-                                    <Grid Grid.Row="6" IsVisible="{Binding Agent.HasSession}" ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBox Classes="au-input" Text="{Binding Agent.Message}" PlaceholderText="Ask the agent…" AcceptsReturn="True" MaxHeight="100"/><Button Grid.Column="1" Classes="au-button" Command="{Binding Agent.SendCommand}" Content="Send"/></Grid>
+                                    <Grid Grid.Row="6" IsVisible="{Binding Agent.HasSession}" ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBox Classes="au-input" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentMessage}" Text="{Binding Agent.Message}" PlaceholderText="Ask the agent…" AcceptsReturn="True" MaxHeight="100"/><Button Grid.Column="1" Classes="au-button" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentSend}" Command="{Binding Agent.SendCommand}" Content="Send"/></Grid>
                                 </Grid>
                             </Border>
 
@@ -1501,16 +1525,16 @@
                             <Grid x:Name="AuditPanel" IsVisible="{Binding ShowAudit}" RowDefinitions="Auto,Auto,*,Auto">
                                 <StackPanel Grid.Row="0" Margin="16,12,16,0" Spacing="8">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Button x:Name="AuditStreamingButton"
+                                        <Button x:Name="AuditStreamingButton" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AuditStreaming}"
                                                 Classes="au-button au-button--secondary au-button--compact"
                                                 Command="{Binding Audit.ToggleStreamingCommand}"
                                                 Content="{Binding Audit.StreamingButtonText}"/>
-                                        <Button x:Name="AuditRefreshButton"
+                                        <Button x:Name="AuditRefreshButton" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AuditRefresh}"
                                                 Classes="au-button au-button--secondary au-button--compact"
                                                 Command="{Binding Audit.RefreshCommand}"
                                                 IsEnabled="{Binding Audit.CanRefresh}"
                                                 Content="Refresh"/>
-                                        <TextBox x:Name="AuditSearchBox"
+                                        <TextBox x:Name="AuditSearchBox" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AuditSearch}"
                                                  Classes="addressBar"
                                                  MinWidth="220"
                                                  PlaceholderText="Search diagnostics"
@@ -1866,7 +1890,7 @@
                             </Grid>
 
                             <!-- ── Git changes panel ──────────────────────────────────────────────── -->
-                            <Border x:Name="GitPanel"
+                            <Border x:Name="GitPanel" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitPanel}"
                                     IsVisible="{Binding ShowGit}"
                                     ClipToBounds="True"
                                     Background="{DynamicResource AgentUpColorCanvasBrush}">
@@ -1876,7 +1900,7 @@
                                     <Border Grid.Row="0" Padding="14,10,10,8">
                                         <StackPanel Spacing="8">
                                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                            <ComboBox x:Name="WorkspaceBranchCombo"
+                                            <ComboBox x:Name="WorkspaceBranchCombo" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitBranch}"
                                                       ItemsSource="{Binding Git.BranchItems}"
                                                       SelectedItem="{Binding Git.SelectedBranchItem}"
                                                       PlaceholderText="Branch"
@@ -1890,6 +1914,7 @@
                                             </ComboBox>
                                             <Button Grid.Column="1"
                                                     x:Name="WorkspaceCreateBranchButton"
+                                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitCreateBranchOpen}"
                                                     Classes="au-button au-button--secondary au-button--compact"
                                                     Command="{Binding Git.BeginCreateBranchCommand}"
                                                     Content="+"
@@ -1900,15 +1925,18 @@
                                             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6"
                                                   IsVisible="{Binding Git.IsCreatingBranch}">
                                                 <TextBox Classes="au-input"
+                                                         AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitNewBranchName}"
                                                          Text="{Binding Git.NewBranchName}"
                                                          PlaceholderText="New branch"/>
                                                 <Button Grid.Column="1"
                                                         x:Name="GitCreateBranchButton"
+                                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitCreateBranch}"
                                                         Classes="au-button au-button--compact"
                                                         Command="{Binding Git.CreateBranchCommand}"
                                                         Content="Create"/>
                                                 <Button Grid.Column="2"
                                                         Classes="au-button au-button--secondary au-button--compact"
+                                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitCancelCreateBranch}"
                                                         Command="{Binding Git.CancelCreateBranchCommand}"
                                                         Content="Cancel"/>
                                             </Grid>
@@ -1918,29 +1946,29 @@
                                                        FontSize="11"/>
                                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <Button x:Name="GitRefreshButton"
+                                                <Button x:Name="GitRefreshButton" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitRefresh}"
                                                         Command="{Binding Git.RefreshCommand}"
                                                         ToolTip.Tip="Reload Git changes">
                                                     <Border Classes="titleToolButton">
                                                         <TextBlock Classes="chromeIcon" Text="↺" FontSize="14"/>
                                                     </Border>
                                                 </Button>
-                                                <Button x:Name="GitFetchButton"
+                                                <Button x:Name="GitFetchButton" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitFetch}"
                                                         Classes="au-button au-button--secondary au-button--compact"
                                                         Command="{Binding Git.FetchCommand}"
                                                         Content="Fetch"
                                                         IsVisible="{Binding Git.CanWriteGit}"/>
-                                                <Button x:Name="GitPullButton"
+                                                <Button x:Name="GitPullButton" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitPull}"
                                                         Classes="au-button au-button--secondary au-button--compact"
                                                         Command="{Binding Git.PullCommand}"
                                                         Content="Pull"
                                                         IsVisible="{Binding Git.CanWriteGit}"/>
-                                                <Button x:Name="GitPushButton"
+                                                <Button x:Name="GitPushButton" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitPush}"
                                                         Classes="au-button au-button--compact"
                                                         Command="{Binding Git.PushCommand}"
                                                         Content="Push"
                                                         IsVisible="{Binding Git.CanWriteGit}"/>
-                                                <Button x:Name="GitDiscardButton"
+                                                <Button x:Name="GitDiscardButton" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitDiscard}"
                                                         Classes="au-button au-button--danger au-button--compact"
                                                         Command="{Binding Git.DiscardCommand}"
                                                         Content="Discard"
@@ -1948,6 +1976,7 @@
                                             </StackPanel>
                                                 <Button Grid.Column="1"
                                                         x:Name="GitHistoryButton"
+                                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitHistory}"
                                                         Classes="au-button au-button--secondary au-button--compact"
                                                         Command="{Binding Git.OpenHistoryCommand}"
                                                         Content="History"/>
@@ -1963,7 +1992,7 @@
                                                        Text="{Binding Git.SelectionSummary}"
                                                        Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
                                                        FontSize="11"/>
-                                            <Border x:Name="GitHostingStrip"
+                                            <Border x:Name="GitHostingStrip" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitHosting}"
                                                     IsVisible="{Binding Git.ShowHosting}"
                                                     Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
                                                     BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
@@ -2044,6 +2073,7 @@
                                                                 IsVisible="{Binding IsRowVisible}">
                                                             <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
                                                                 <CheckBox Grid.Column="0"
+                                                                          AutomationProperties.AutomationId="{Binding SelectAutomationId}"
                                                                           IsChecked="{Binding IsSelected}"
                                                                           MinWidth="0"
                                                                           Padding="0"
@@ -2063,6 +2093,7 @@
                                                                     </ItemsControl.ItemTemplate>
                                                                 </ItemsControl>
                                                                 <Button Grid.Column="2"
+                                                                        AutomationProperties.AutomationId="{Binding ToggleAutomationId}"
                                                                         Classes="au-git-tree-toggle gitTreeToggle"
                                                                         Classes.au-git-tree-toggle--expanded="{Binding IsExpanded}"
                                                                         Classes.au-git-tree-toggle--collapsed="{Binding IsCollapsed}"
@@ -2075,6 +2106,7 @@
                                                                         Margin="0,0,6,0"/>
                                                                 <Button Grid.Column="3"
                                                                         Classes="gitNodeName"
+                                                                        AutomationProperties.AutomationId="{Binding OpenAutomationId}"
                                                                         Command="{Binding OpenCommand}"
                                                                         IsEnabled="{Binding IsFile}"
                                                                         ToolTip.Tip="{Binding ToolTip}">
@@ -2122,7 +2154,7 @@
                                                    Text="{Binding Git.WriteUnavailableMessage}"
                                                    TextWrapping="Wrap"
                                                    IsVisible="{Binding !Git.CanWriteGit}"/>
-                                        <TextBox x:Name="GitCommitMessage"
+                                        <TextBox x:Name="GitCommitMessage" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitCommitMessage}"
                                                  Classes="au-input"
                                                  Text="{Binding Git.CommitMessage}"
                                                  PlaceholderText="Commit message"
@@ -2131,7 +2163,7 @@
                                                  MinHeight="72"
                                                  MaxHeight="140"
                                                  IsVisible="{Binding Git.CanWriteGit}"/>
-                                        <Button x:Name="GitCommitButton"
+                                        <Button x:Name="GitCommitButton" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitCommit}"
                                                 Classes="au-button"
                                                 HorizontalAlignment="Stretch"
                                                 Command="{Binding Git.CommitCommand}"
@@ -2146,7 +2178,7 @@
                                     <Border Grid.Row="0" Padding="14,10,10,8">
                                         <StackPanel Spacing="8">
                                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                                                <Button x:Name="GitHistoryBackButton"
+                                                <Button x:Name="GitHistoryBackButton" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitHistoryBack}"
                                                         Classes="au-button au-button--secondary au-button--compact"
                                                         Command="{Binding Git.CloseHistoryCommand}"
                                                         Content="Back"/>
@@ -2231,6 +2263,7 @@
 
                     <Border Grid.Column="1"
                             x:Name="ValidationPanel"
+                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.ValidationPanel}"
                             Width="{Binding Validation.Width}"
                             Background="{DynamicResource AgentUpColorCanvasBrush}"
                             BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
@@ -2254,6 +2287,7 @@
                                     </StackPanel>
                                     <Button Grid.Column="1"
                                             x:Name="ValidationToggle"
+                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.ValidationToggle}"
                                             Command="{Binding Validation.ToggleCommand}"
                                             ToolTip.Tip="Collapse validation sidebar">
                                         <Border Classes="wsAddButton">
@@ -2267,7 +2301,7 @@
                             <Border DockPanel.Dock="Top"
                                     Padding="0,10,0,6"
                                     IsVisible="{Binding Validation.IsCollapsed}">
-                                <Button x:Name="ValidationToggleCollapsed"
+                                <Button x:Name="ValidationToggleCollapsed" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.ValidationToggleCollapsed}"
                                         HorizontalAlignment="Center"
                                         Command="{Binding Validation.ToggleCommand}"
                                         ToolTip.Tip="Expand validation sidebar">
@@ -2286,7 +2320,7 @@
                                                Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
                                                TextWrapping="Wrap"
                                                IsVisible="{Binding Validation.Status, Converter={x:Static ObjectConverters.IsNotNull}}"/>
-                                    <ItemsControl x:Name="ValidationFlowList" ItemsSource="{Binding Validation.Flows}">
+                                    <ItemsControl x:Name="ValidationFlowList" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.ValidationFlows}" ItemsSource="{Binding Validation.Flows}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="validationVm:ValidationFlowItemViewModel">
                                                 <Border Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}" BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,8">
@@ -2310,6 +2344,7 @@
                                                                            IsVisible="{Binding HasRunResult}"/>
                                                             </StackPanel>
                                                             <Button Grid.Column="2"
+                                                                    AutomationProperties.AutomationId="{Binding PlayAutomationId}"
                                                                     Command="{Binding RunCommand}"
                                                                     IsEnabled="{Binding !IsRunning}"
                                                                     VerticalAlignment="Top">
@@ -2420,7 +2455,7 @@
                                        Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
                                        FontSize="11"
                                        FontWeight="Bold"/>
-                            <TextBox x:Name="AddWorkspaceRepository"
+                            <TextBox x:Name="AddWorkspaceRepository" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AddWorkspaceRepository}"
                                      Text="{Binding Sidebar.AddWorkspace.Repository}"
                                      Watermark="https://github.com/acme/widgets.git"
                                      IsEnabled="{Binding !Sidebar.AddWorkspace.IsBusy}"
@@ -2436,7 +2471,7 @@
                                        Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
                                        FontSize="11"
                                        FontWeight="Bold"/>
-                            <TextBox x:Name="AddWorkspaceBranch"
+                            <TextBox x:Name="AddWorkspaceBranch" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AddWorkspaceBranch}"
                                      Text="{Binding Sidebar.AddWorkspace.Branch}"
                                      Watermark="main"
                                      IsEnabled="{Binding !Sidebar.AddWorkspace.IsBusy}"
@@ -2447,7 +2482,7 @@
                                      FontSize="13"/>
                         </StackPanel>
 
-                        <CheckBox x:Name="AddWorkspaceDerived"
+                        <CheckBox x:Name="AddWorkspaceDerived" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AddWorkspaceDerived}"
                                   Content="Start a review workspace at this revision"
                                   IsChecked="{Binding Sidebar.AddWorkspace.Derived}"
                                   IsEnabled="{Binding !Sidebar.AddWorkspace.IsBusy}"
@@ -2463,6 +2498,7 @@
                         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
                             <Button Grid.Column="1"
                                     x:Name="AddWorkspaceCancelButton"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AddWorkspaceCancel}"
                                     Command="{Binding Sidebar.AddWorkspace.CancelCommand}">
                                 <Border Classes="tutorialSecondaryButton">
                                     <TextBlock Classes="tutorialButtonText" Text="Cancel"/>
@@ -2470,6 +2506,7 @@
                             </Button>
                             <Button Grid.Column="2"
                                     x:Name="AddWorkspaceConfirmButton"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AddWorkspaceConfirm}"
                                     Command="{Binding Sidebar.AddWorkspace.ConfirmCommand}">
                                 <Border Classes="tutorialButton">
                                     <TextBlock Classes="tutorialButtonText"
@@ -2522,7 +2559,7 @@
                                        Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
                                        FontSize="11"
                                        FontWeight="Bold"/>
-                            <TextBox x:Name="RefreshReviewRevision"
+                            <TextBox x:Name="RefreshReviewRevision" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.RefreshReviewRevision}"
                                      Text="{Binding Sidebar.RefreshReview.Revision}"
                                      PlaceholderText="branch, tag, or commit"
                                      IsEnabled="{Binding !Sidebar.RefreshReview.IsBusy}"
@@ -2543,6 +2580,7 @@
                         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
                             <Button Grid.Column="1"
                                     x:Name="RefreshReviewCancelButton"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.RefreshReviewCancel}"
                                     Command="{Binding Sidebar.RefreshReview.CancelCommand}">
                                 <Border Classes="tutorialSecondaryButton">
                                     <TextBlock Classes="tutorialButtonText" Text="Cancel"/>
@@ -2550,6 +2588,7 @@
                             </Button>
                             <Button Grid.Column="2"
                                     x:Name="RefreshReviewConfirmButton"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.RefreshReviewConfirm}"
                                     Command="{Binding Sidebar.RefreshReview.ConfirmCommand}">
                                 <Border Classes="tutorialButton">
                                     <TextBlock Classes="tutorialButtonText"
@@ -2625,10 +2664,12 @@
                                                             Spacing="8"
                                                             VerticalAlignment="Center">
                                                     <Button Classes="au-button au-button--compact"
+                                                            AutomationProperties.AutomationId="{Binding EnableAutomationId}"
                                                             Command="{Binding EnableCommand}"
                                                             Content="Enable"
                                                             IsVisible="{Binding !Enabled}"/>
                                                     <Button Classes="au-button au-button--secondary au-button--compact"
+                                                            AutomationProperties.AutomationId="{Binding DisableAutomationId}"
                                                             Command="{Binding DisableCommand}"
                                                             Content="Disable"
                                                             IsVisible="{Binding Enabled}"/>
@@ -2681,11 +2722,11 @@
                         <StackPanel Orientation="Horizontal"
                                     HorizontalAlignment="Right"
                                     Spacing="10">
-                            <Button x:Name="GitCancelConfirmButton"
+                            <Button x:Name="GitCancelConfirmButton" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitConfirmCancel}"
                                     Classes="au-button au-button--secondary au-button--compact"
                                     Command="{Binding Git.CancelConfirmCommand}"
                                     Content="Cancel"/>
-                            <Button x:Name="GitConfirmButton"
+                            <Button x:Name="GitConfirmButton" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitConfirmAccept}"
                                     Classes="au-button au-button--compact"
                                     Classes.au-button--danger="{Binding Git.ConfirmIsDestructive}"
                                     Command="{Binding Git.ConfirmCommand}"
@@ -2726,6 +2767,7 @@
                                 </StackPanel>
                                 <Button Grid.Column="1"
                                         x:Name="GitFileDiffCloseButton"
+                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitDiffClose}"
                                         Command="{Binding Git.Diff.CloseCommand}"
                                         ToolTip.Tip="Close">
                                     <Border Classes="chromeButton">
@@ -2754,7 +2796,7 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBox x:Name="GitFileDiffGoto"
+                            <TextBox x:Name="GitFileDiffGoto" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitDiffGoto}"
                                      Classes="au-file-viewer-goto"
                                      PlaceholderText="Line"
                                      Text="{Binding Git.Diff.GotoQuery}"
@@ -2882,7 +2924,7 @@
                                        TextWrapping="Wrap"/>
                         </StackPanel>
 
-                        <CheckBox x:Name="WorkspaceDeleteConfirmCheckbox"
+                        <CheckBox x:Name="WorkspaceDeleteConfirmCheckbox" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.WorkspaceDeleteConfirm}"
                                   Content="I understand this removes the workspace from Agent-Up"
                                   Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"
                                   FontSize="13"
@@ -2891,6 +2933,7 @@
                         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
                             <Button Grid.Column="1"
                                     x:Name="WorkspaceDeleteCancelButton"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.WorkspaceDeleteCancel}"
                                     Command="{Binding Sidebar.DeleteConfirmation.CancelCommand}">
                                 <Border Classes="tutorialSecondaryButton">
                                     <TextBlock Classes="tutorialButtonText" Text="Cancel"/>
@@ -2898,6 +2941,7 @@
                             </Button>
                             <Button Grid.Column="2"
                                     x:Name="WorkspaceDeleteConfirmButton"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.WorkspaceDeleteAccept}"
                                     Command="{Binding Sidebar.DeleteConfirmation.ConfirmCommand}">
                                 <Border Classes="tutorialButton">
                                     <TextBlock Classes="tutorialButtonText" Text="Delete"/>

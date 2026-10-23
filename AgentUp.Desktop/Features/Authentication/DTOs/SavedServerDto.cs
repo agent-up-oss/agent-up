@@ -1,3 +1,5 @@
+using AgentUp.Desktop.Shared.Providers;
+
 namespace AgentUp.Desktop.Features.Authentication.DTOs;
 
 public sealed record SavedServerDto(
@@ -8,4 +10,8 @@ public sealed record SavedServerDto(
     string DisplayName,
     bool CanRemove,
     bool IsFake,
-    bool IsRecommended);
+    bool IsRecommended)
+{
+    public string SelectAutomationId => DesktopAutomationIds.LoginSaved(Id);
+    public string RemoveAutomationId => DesktopAutomationIds.LoginRemoveSaved(Id);
+}
