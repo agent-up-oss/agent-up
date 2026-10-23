@@ -93,6 +93,8 @@ public sealed class FakeBackendServiceTests
         Assert.That(hosting["detail"]!.GetValue<string>(), Does.Contain("forge capability"));
         Assert.That(hosting["remedy"]!.GetValue<string>(), Does.Contain("capabilities bootstrap"));
         Assert.That(hosting["proposal"], Is.Null);
+        Assert.That(hosting["checks"]!.AsArray(), Is.Empty);
+        Assert.That(hosting["threads"]!.AsArray(), Is.Empty);
     }
 
     [Test]

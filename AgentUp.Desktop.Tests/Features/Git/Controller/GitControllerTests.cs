@@ -37,6 +37,7 @@ public sealed class GitControllerTests
         var hosting = await controller.GetHostingAsync("ws-1");
 
         Assert.That(hosting!.Availability, Is.EqualTo("notInstalled"));
+        Assert.That(hosting.Remedy, Does.Contain("capabilities bootstrap"));
     }
 
     [Test]

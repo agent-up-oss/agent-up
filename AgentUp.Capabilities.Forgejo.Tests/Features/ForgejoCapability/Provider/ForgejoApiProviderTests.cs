@@ -198,6 +198,54 @@ public sealed class ForgejoApiProviderTests
     }
 
     [Test]
+    public void HostConfiguration_defaultsOriginWhenBlank()
+    {
+        var host = ForgejoHostConfigurationProvider.From("  ", null, null, null);
+
+        Assert.That(host.ApiBaseUrl, Is.EqualTo(ForgejoHostConfigurationProvider.DefaultOrigin + "/api/v1/"));
+        Assert.That(host.OAuthAuthorizeUrl, Does.StartWith(ForgejoHostConfigurationProvider.DefaultOrigin));
+    }
+
+    [Test]
+    public void HostConfiguration_appendsATrailingSlashToApiBase()
+        => Assert.That(
+            ForgejoHostConfigurationProvider.ApiBase("https://git.example.test/api/v1"),
+            Is.EqualTo("https://git.example.test/api/v1/"));
+
+    [Test]
+    public async Task ReadAsync_treatsMissingMergeabilityAsUnknown()
+    {
+        const string pulls = """
+            [{"id":1,"number":42,"title":"Topic","html_url":"https://forgejo.example.test/acme/widgets/pulls/42","state":"open","head":{"ref":"topic","sha":"abc123"},"base":{"ref":"main"}}]
+            """;
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", pulls),
+            ("GET /repos/acme/widgets/commits/abc123/statuses", "[]"),
+            ("GET /repos/acme/widgets/pulls/42/comments", "[]"));
+        var snapshot = await new ForgejoForgeCapability(handler).ReadAsync(Request());
+
+        Assert.That(snapshot.Mergeability!.Mergeable, Is.False);
+        Assert.That(snapshot.Mergeability.State, Is.EqualTo("unknown"));
+    }
+
+    [Test]
+    public async Task ReadAsync_mapsStatusesWithoutContextOrUrl()
+    {
+        const string statuses = """
+            [{"id":1}]
+            """;
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/statuses", statuses),
+            ("GET /repos/acme/widgets/pulls/42/comments", "[]"));
+        var snapshot = await new ForgejoForgeCapability(handler).ReadAsync(Request());
+
+        Assert.That(snapshot.Checks.Single().Name, Is.Empty);
+        Assert.That(snapshot.Checks.Single().Url, Is.Empty);
+        Assert.That(snapshot.Checks.Single().Status, Is.EqualTo("completed"));
+    }
+
+    [Test]
     public async Task SubmitReviewAsync_posts_a_review()
     {
         var handler = Recorded(("POST /repos/acme/widgets/pulls/42/reviews", "{}"));

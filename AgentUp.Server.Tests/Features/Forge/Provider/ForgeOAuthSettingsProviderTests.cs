@@ -42,4 +42,33 @@ public sealed class ForgeOAuthSettingsProviderTests
         Assert.That(oauth.IsConfigured, Is.False);
         Assert.That(oauth.ClientId, Is.Empty);
     }
+
+    [Test]
+    public void Read_returnsEmptyStringsWhenForgeVariablesAreAbsent()
+    {
+        var oauth = new ForgeOAuthSettingsProvider(new ConfigurationBuilder().Build()).Read();
+
+        Assert.That(oauth.ClientId, Is.Empty);
+        Assert.That(oauth.ClientSecret, Is.Empty);
+        Assert.That(oauth.RedirectUri, Is.Empty);
+        Assert.That(oauth.IsConfigured, Is.False);
+    }
+
+    [Test]
+    public void Read_isNotConfiguredWhenAnyForgeVariableIsBlank()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["AGENTUP_FORGE_CLIENT_ID"] = "forge-client",
+                ["AGENTUP_FORGE_CLIENT_SECRET"] = " ",
+                ["AGENTUP_FORGE_REDIRECT_URI"] = "http://localhost/api/forge/callback"
+            })
+            .Build();
+
+        var oauth = new ForgeOAuthSettingsProvider(configuration).Read();
+
+        Assert.That(oauth.ClientId, Is.EqualTo("forge-client"));
+        Assert.That(oauth.IsConfigured, Is.False);
+    }
 }

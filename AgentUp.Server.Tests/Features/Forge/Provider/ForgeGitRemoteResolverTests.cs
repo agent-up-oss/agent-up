@@ -19,6 +19,18 @@ public sealed class ForgeGitRemoteResolverTests
         => AssertRemote("https://git.example.test/acme/widgets.git", "acme", "widgets", "main");
 
     [Test]
+    public void Resolve_readsAnHttpOrigin()
+        => AssertRemote("http://git.example.test/acme/widgets.git", "acme", "widgets", "main");
+
+    [Test]
+    public void Resolve_readsAnSshUriOrigin()
+        => AssertRemote("ssh://git@git.example.test/acme/widgets.git", "acme", "widgets", "main");
+
+    [Test]
+    public void Resolve_readsAGitSchemeOrigin()
+        => AssertRemote("git://git.example.test/acme/widgets.git", "acme", "widgets", "main");
+
+    [Test]
     public void Resolve_returnsNullForAFileRemote()
     {
         var root = WriteCheckout("file:///var/repos/acme/widgets.git", "main");
@@ -96,6 +108,47 @@ public sealed class ForgeGitRemoteResolverTests
     [Test]
     public void TryParse_rejectsAUrlWithNoRepository()
         => Assert.That(ForgeGitRemoteResolver.TryParse("https://git.example.test/acme", out _, out _), Is.False);
+
+    [Test]
+    public void TryParse_rejectsAnSshShortcutWithoutARepository()
+        => Assert.That(ForgeGitRemoteResolver.TryParse("git@git.example.test:acme", out _, out _), Is.False);
+
+    [Test]
+    public void TryParse_rejectsANonGitScheme()
+        => Assert.That(ForgeGitRemoteResolver.TryParse("ftp://git.example.test/acme/widgets.git", out _, out _), Is.False);
+
+    [Test]
+    public void Resolve_returnsAnEmptyBranchWhenHeadIsDetached()
+    {
+        var root = WriteCheckout("https://git.example.test/acme/widgets.git", "main");
+        try
+        {
+            File.WriteAllText(Path.Join(root, ".git", "HEAD"), "abc123def\n");
+            var remote = new ForgeGitRemoteResolver(new GitDirectoryProvider()).Resolve(root);
+            Assert.That(remote!.Branch, Is.Empty);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public void Resolve_returnsNullWhenTheOriginUrlLineHasNoValue()
+    {
+        var root = WriteCheckout("https://git.example.test/acme/widgets.git", "main");
+        try
+        {
+            File.WriteAllText(
+                Path.Join(root, ".git", "config"),
+                "[remote \"origin\"]\n\turl https://git.example.test/acme/widgets.git\n");
+            Assert.That(new ForgeGitRemoteResolver(new GitDirectoryProvider()).Resolve(root), Is.Null);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
 
     private static void AssertRemote(string url, string owner, string repository, string branch, string head = "main")
     {

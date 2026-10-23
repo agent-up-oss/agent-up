@@ -20,6 +20,20 @@ public sealed class ForgeCapabilityProjectDefinitionTests
         Assert.That(new SampleForgeCapability().Identity.Id, Is.EqualTo("sample-forge"));
     }
 
+    [Test]
+    public void Host_carries_module_owned_endpoints()
+    {
+        var host = new ForgeHostConfiguration(
+            "https://git.example.test/api/v1/",
+            "https://git.example.test/login/oauth/authorize",
+            "https://git.example.test/login/oauth/access_token");
+
+        Assert.That(host.ApiBaseUrl, Does.EndWith("/api/v1/"));
+        Assert.That(host.OAuthAuthorizeUrl, Does.Contain("authorize"));
+        Assert.That(host.OAuthTokenUrl, Does.Contain("access_token"));
+        Assert.That(new SampleForgeCapability().Host.ApiBaseUrl, Does.StartWith("https://example.test/"));
+    }
+
     private sealed class SampleForgeProject : ForgeCapabilityProjectDefinition
     {
         protected override void Register(ForgeCapabilityRegistrationBuilder registry)

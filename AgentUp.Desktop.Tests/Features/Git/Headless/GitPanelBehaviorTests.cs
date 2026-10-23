@@ -112,6 +112,7 @@ public sealed class GitPanelBehaviorTests
         var strip = driver.Window.FindControl<Border>("GitHostingStrip")!;
         Assert.That(strip.IsVisible, Is.True);
         Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text!.Contains("forge capability")), Is.True);
+        Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text!.Contains("capabilities bootstrap")), Is.True);
 
         viewModel.Git.ApplyHosting(DesktopDomain.Hosting().Ready()
             .WithChecks(new ForgeCheckDto("ci", "completed", "success", "https://example.test/check"))

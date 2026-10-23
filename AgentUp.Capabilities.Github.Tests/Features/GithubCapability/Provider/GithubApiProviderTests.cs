@@ -151,6 +151,39 @@ public sealed class GithubApiProviderTests
     }
 
     [Test]
+    public void HostConfiguration_treatsBlankOverridesAsGithubDotComDefaults()
+    {
+        var host = GithubHostConfigurationProvider.From("  ", "  ", "  ");
+
+        Assert.That(host.ApiBaseUrl, Is.EqualTo(GithubHostConfigurationProvider.DefaultApiBaseUrl));
+        Assert.That(host.OAuthAuthorizeUrl, Is.EqualTo(GithubHostConfigurationProvider.DefaultAuthorizeUrl));
+        Assert.That(host.OAuthTokenUrl, Is.EqualTo(GithubHostConfigurationProvider.DefaultTokenUrl));
+    }
+
+    [Test]
+    public void HostConfiguration_Read_returnsTheConfiguredEndpoints()
+    {
+        var host = new GithubHostConfigurationProvider().Read();
+
+        Assert.That(host.ApiBaseUrl, Does.EndWith("/"));
+        Assert.That(host.OAuthAuthorizeUrl, Does.Contain("authorize"));
+        Assert.That(host.OAuthTokenUrl, Does.Contain("access_token"));
+    }
+
+    [Test]
+    public void HostConfiguration_trimsTrailingSlashesOnOAuthUrls()
+    {
+        var host = GithubHostConfigurationProvider.From(
+            "https://ghe.example.test/api/v3/",
+            "https://ghe.example.test/login/oauth/authorize/",
+            "https://ghe.example.test/login/oauth/access_token/");
+
+        Assert.That(host.ApiBaseUrl, Is.EqualTo("https://ghe.example.test/api/v3/"));
+        Assert.That(host.OAuthAuthorizeUrl, Is.EqualTo("https://ghe.example.test/login/oauth/authorize"));
+        Assert.That(host.OAuthTokenUrl, Is.EqualTo("https://ghe.example.test/login/oauth/access_token"));
+    }
+
+    [Test]
     public async Task SubmitReviewAsync_posts_a_review()
     {
         var handler = Recorded(("POST /repos/acme/widgets/pulls/42/reviews", "{}"));

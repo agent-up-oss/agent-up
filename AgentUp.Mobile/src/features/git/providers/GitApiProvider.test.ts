@@ -82,6 +82,13 @@ test('startForgeLogin posts the workspace scoped login route', async () => {
   assert.equal(recorded[0].init.method, 'POST');
 });
 
+test('startForgeLogin throws when the server returns no url', async () => {
+  await assert.rejects(
+    () => startForgeLogin({ url: 'http://localhost:5000' }, 'ws-1', fakeFetch(200, 'null', [])),
+    /empty sign-in URL/,
+  );
+});
+
 test('getHeadState requests the workspace scoped head route', async () => {
   const recorded: Recorded[] = [];
   const body = JSON.stringify({ branch: 'main', localBranches: ['main', 'topic'] });

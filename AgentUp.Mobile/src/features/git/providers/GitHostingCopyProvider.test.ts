@@ -81,3 +81,35 @@ test('failed checks and conflicts use semantic labels', () => {
   assert.equal(copy.threads, '2 review threads');
   assert.equal(copy.mergeability, 'Conflicts with the base');
 });
+
+test('fallback titles cover each availability when detail is blank', () => {
+  assert.match(hostingCopy(hosting('notInstalled', { moduleId: null, detail: null })).title, /forge capability/);
+  assert.match(hostingCopy(hosting('needsCredential', { detail: ' ' })).title, /credential/);
+  assert.match(hostingCopy(hosting('noRemote', { detail: null })).title, /origin/);
+  assert.equal(hostingCopy(hosting('unreachable', { detail: null })).title, 'Could not reach the host.');
+  assert.match(hostingCopy(hosting('noProposal', { detail: '' })).title, /No open proposal/);
+});
+
+test('ready without a proposal title uses Open proposal and pending checks', () => {
+  const copy = hostingCopy(hosting('ready', {
+    proposal: null,
+    checks: [{ name: 'ci', status: 'in_progress', conclusion: '', url: 'https://example.test/check' }],
+    mergeability: null,
+  }));
+
+  assert.equal(copy.title, 'Open proposal');
+  assert.equal(copy.checks, 'Checks pending');
+  assert.equal(copy.checksTone, 'warning');
+  assert.equal(copy.threads, '0 review threads');
+  assert.equal(copy.mergeability, 'Mergeability unknown');
+});
+
+test('ready with no checks reports No checks', () => {
+  const copy = hostingCopy(hosting('ready', {
+    proposal: { id: '1', number: '42', title: 'Bare', url: 'https://example.test/42', headRef: 'topic', baseRef: 'main', state: 'open' },
+    mergeability: { mergeable: true, state: 'clean' },
+  }));
+
+  assert.equal(copy.checks, 'No checks');
+  assert.equal(copy.checksTone, 'healthy');
+});

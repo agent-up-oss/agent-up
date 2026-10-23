@@ -134,6 +134,67 @@ public sealed class GitApiClientTests
     }
 
     [Test]
+    public async Task StartLoginAsync_throwsTheServerDetailWhenSignInIsRejected()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.ServiceUnavailable,
+            """{"detail":"Repository host OAuth is not configured."}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.StartLoginAsync("ws-1"));
+
+        Assert.That(error!.Message, Does.Contain("OAuth is not configured"));
+    }
+
+    [Test]
+    public async Task StartLoginAsync_throwsWhenTheServerReturnsNoUrl()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK, "null");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => client.StartLoginAsync("ws-1"));
+
+        Assert.That(error!.Message, Does.Contain("empty sign-in URL"));
+    }
+
+    [Test]
+    public async Task StartLoginAsync_throwsHttpStatusWhenTheBodyIsNotJson()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.ServiceUnavailable, "nope");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.StartLoginAsync("ws-1"));
+
+        Assert.That(error!.Message, Is.EqualTo("HTTP 503"));
+    }
+
+    [Test]
+    public async Task StartLoginAsync_throwsTheRawBodyWhenDetailIsMissing()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.ServiceUnavailable, """{"title":"unavailable"}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.StartLoginAsync("ws-1"));
+
+        Assert.That(error!.Message, Does.Contain("unavailable"));
+    }
+
+    [Test]
+    public async Task StartLoginAsync_throwsTheBodyWhenDetailIsNull()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.BadRequest, """{"detail":null}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.StartLoginAsync("ws-1"));
+
+        Assert.That(error!.Message, Does.Contain("detail"));
+    }
+
+    [Test]
     public async Task GetFileDiffAsync_escapesThePathQueryParameter()
     {
         using var handler = new RecordingGitHandler(HttpStatusCode.OK,

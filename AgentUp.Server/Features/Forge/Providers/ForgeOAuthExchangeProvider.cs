@@ -31,6 +31,9 @@ public sealed class ForgeOAuthExchangeProvider(IForgeOAuthSettings settings, Htt
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
         if (!document.RootElement.TryGetProperty("access_token", out var token))
             throw new InvalidOperationException(ForgeHostingCopy.MissingToken);
-        return token.GetString() ?? throw new InvalidOperationException(ForgeHostingCopy.EmptyToken);
+        var value = token.GetString();
+        if (string.IsNullOrEmpty(value))
+            throw new InvalidOperationException(ForgeHostingCopy.EmptyToken);
+        return value;
     }
 }
