@@ -151,6 +151,7 @@ public sealed class ForgeServiceTests
 
         Assert.That(started.StatusCode, Is.EqualTo(200));
         Assert.That(((ForgeLoginStartDto)started.Body!).AuthorizationUrl, Does.StartWith("https://example.test/login/oauth/authorize"));
+        Assert.That(((ForgeLoginStartDto)started.Body!).AuthorizationUrl, Does.Contain("response_type=code"));
         Assert.That(((ForgeLoginStartDto)started.Body!).AuthorizationUrl, Does.Contain("client_id=client"));
         Assert.That(((ForgeLoginStartDto)started.Body!).AuthorizationUrl, Does.Contain("state="));
         Assert.That(((ForgeLoginStartDto)started.Body!).AuthorizationUrl, Does.Not.Contain("github.com"));
@@ -316,7 +317,7 @@ public sealed class ForgeServiceTests
 
         var url = ((ForgeLoginStartDto)service.StartLogin(workspaceId).Body!).AuthorizationUrl;
 
-        Assert.That(url, Does.Contain("authorize?prompt=consent&client_id=client"));
+        Assert.That(url, Does.Contain("authorize?prompt=consent&response_type=code&client_id=client"));
     }
 
     [Test]

@@ -90,7 +90,8 @@ public sealed class ForgeService(
         var url =
             authorizeUrl
             + separator
-            + $"client_id={Uri.EscapeDataString(configuration.ClientId)}"
+            + "response_type=code"
+            + $"&client_id={Uri.EscapeDataString(configuration.ClientId)}"
             + $"&redirect_uri={Uri.EscapeDataString(configuration.RedirectUri)}"
             + $"&state={Uri.EscapeDataString(state)}"
             + "&scope=repo";

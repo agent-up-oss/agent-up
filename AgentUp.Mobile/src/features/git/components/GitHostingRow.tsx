@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
@@ -7,6 +7,7 @@ import { agentUpTheme, auText } from '@agent-up/design-system/native';
 import type { ForgeHosting } from '../models/ForgeHosting';
 import { getForgeHosting, startForgeLogin } from '../providers/GitApiProvider';
 import { hostingCopy } from '../providers/GitHostingCopyProvider';
+import { signInUrlAfterScopeChange, signInUrlForCurrentScope } from '../providers/GitHostingSignInProvider';
 
 export function GitHostingRow({
   workspaceId,
@@ -20,12 +21,16 @@ export function GitHostingRow({
   const { activeServer } = useServers();
   const { server } = useWorkspaces();
   const scopeKey = workspaceScopeKey(activeServer?.id ?? '', workspaceId);
+  const scopeRef = useRef(scopeKey);
   const [hosting, setHosting] = useState<ForgeHosting | null>(null);
   const [signInUrl, setSignInUrl] = useState<string | null>(null);
   const [signInError, setSignInError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    setSignInUrl(current => signInUrlAfterScopeChange(scopeRef.current, scopeKey, current));
+    setSignInError(null);
+    scopeRef.current = scopeKey;
     if (!server) {
       setHosting(null);
       return;
@@ -68,10 +73,13 @@ export function GitHostingRow({
         <Pressable
           testID="git-hosting-sign-in"
           onPress={() => {
+            const startedScope = scopeKey;
             setSignInError(null);
             void startForgeLogin(server, workspaceId).then(started => {
-              setSignInUrl(started.authorizationUrl);
-              return Linking.openURL(started.authorizationUrl);
+              const url = signInUrlForCurrentScope(startedScope, scopeRef.current, started.authorizationUrl);
+              if (!url) return;
+              setSignInUrl(url);
+              return Linking.openURL(url);
             }).catch((error: unknown) => {
               setSignInError(error instanceof Error ? error.message : 'Could not start repository host sign-in.');
             });

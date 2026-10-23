@@ -22,7 +22,9 @@ public sealed class ForgejoForgeCapability : IForgeCapability
     }
 
     public ForgejoForgeCapability(HttpMessageHandler handler, ForgeHostConfiguration? host = null)
-        : this(new ForgejoApiProvider(handler, host?.ApiBaseUrl), host ?? new ForgejoHostConfigurationProvider().Read())
+        : this(
+            new ForgejoApiProvider(handler, (host ??= new ForgejoHostConfigurationProvider().Read()).ApiBaseUrl),
+            host)
     {
     }
 

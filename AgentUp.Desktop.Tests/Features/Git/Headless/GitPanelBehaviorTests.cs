@@ -1,6 +1,7 @@
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Git.DTOs;
 using AgentUp.Desktop.Features.Git.ViewModels;
+using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Tests.Support;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
@@ -147,6 +148,28 @@ public sealed class GitPanelBehaviorTests
         viewModel.Git.ApplyHosting(DesktopDomain.Hosting().NoProposal().Build());
         await HeadlessExtensions.FlushAsync();
         Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text!.Contains("No open proposal")), Is.True);
+    }
+
+    [AvaloniaTest]
+    public async Task GitPanel_keepsTheOpenSignInLinkAcrossAHostingPoll()
+    {
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
+        var viewModel = (MainViewModel)driver.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Git;
+        viewModel.Git.ApplyHosting(DesktopDomain.Hosting().NeedsCredential().Build());
+        viewModel.Git.HostingSignInUrl = "https://example.test/login/oauth/authorize";
+        await HeadlessExtensions.FlushAsync();
+
+        var open = ChromeTestSupport.FindDescendantByAutomationId<HyperlinkButton>(
+            driver.Window, DesktopAutomationIds.GitHostingOpenSignIn);
+        Assert.That(open, Is.Not.Null);
+        Assert.That(open!.IsVisible, Is.True);
+
+        viewModel.Git.ApplyHosting(DesktopDomain.Hosting().NeedsCredential().Build());
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(viewModel.Git.HostingSignInUrl, Is.EqualTo("https://example.test/login/oauth/authorize"));
+        Assert.That(open.IsVisible, Is.True);
     }
 
     [AvaloniaTest]

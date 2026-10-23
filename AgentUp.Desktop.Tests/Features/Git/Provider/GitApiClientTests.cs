@@ -159,6 +159,18 @@ public sealed class GitApiClientTests
     }
 
     [Test]
+    public async Task StartLoginAsync_throwsWhenTheAuthorizationUrlIsBlank()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK, """{"authorizationUrl":""}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => client.StartLoginAsync("ws-1"));
+
+        Assert.That(error!.Message, Does.Contain("empty sign-in URL"));
+    }
+
+    [Test]
     public async Task StartLoginAsync_throwsHttpStatusWhenTheBodyIsNotJson()
     {
         using var handler = new RecordingGitHandler(HttpStatusCode.ServiceUnavailable, "nope");

@@ -18,7 +18,8 @@ public sealed class ForgejoForgeCapabilityTests
     [Test]
     public void Host_defaults_to_a_local_Forgejo_origin()
     {
-        var capability = new ForgejoForgeCapability();
+        var host = ForgejoHostConfigurationProvider.From(null, null, null, null);
+        var capability = new ForgejoForgeCapability(host);
 
         Assert.That(capability.Host.ApiBaseUrl, Is.EqualTo("http://localhost:3000/api/v1/"));
         Assert.That(capability.Host.OAuthAuthorizeUrl, Is.EqualTo("http://localhost:3000/login/oauth/authorize"));

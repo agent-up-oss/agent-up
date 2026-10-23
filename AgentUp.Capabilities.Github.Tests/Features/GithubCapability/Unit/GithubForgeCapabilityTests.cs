@@ -18,7 +18,8 @@ public sealed class GithubForgeCapabilityTests
     [Test]
     public void Host_defaults_to_github_dot_com_endpoints()
     {
-        var capability = new GithubForgeCapability();
+        var host = GithubHostConfigurationProvider.From(null, null, null);
+        var capability = new GithubForgeCapability(host);
 
         Assert.That(capability.Host.ApiBaseUrl, Is.EqualTo(GithubHostConfigurationProvider.DefaultApiBaseUrl));
         Assert.That(capability.Host.OAuthAuthorizeUrl, Is.EqualTo(GithubHostConfigurationProvider.DefaultAuthorizeUrl));

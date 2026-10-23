@@ -68,8 +68,13 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         get => _hosting;
         private set
         {
+            // WatchAsync reloads hosting every 2.5s. Clearing the URL on every apply would hide
+            // "Open sign-in page" unless the user clicked within that window.
+            var preserveSignInUrl = value?.Availability == "needsCredential"
+                && _hosting?.Availability == "needsCredential";
             this.RaiseAndSetIfChanged(ref _hosting, value);
-            HostingSignInUrl = null;
+            if (!preserveSignInUrl)
+                HostingSignInUrl = null;
             this.RaisePropertyChanged(nameof(ShowHosting));
             this.RaisePropertyChanged(nameof(HostingTitle));
             this.RaisePropertyChanged(nameof(HostingRemedy));
@@ -114,7 +119,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     public string? HostingSignInUrl
     {
         get => _hostingSignInUrl;
-        private set
+        internal set
         {
             this.RaiseAndSetIfChanged(ref _hostingSignInUrl, value);
             this.RaisePropertyChanged(nameof(HasHostingSignInUrl));

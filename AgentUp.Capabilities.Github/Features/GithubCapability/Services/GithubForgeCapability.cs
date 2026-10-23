@@ -22,7 +22,9 @@ public sealed class GithubForgeCapability : IForgeCapability
     }
 
     public GithubForgeCapability(HttpMessageHandler handler, ForgeHostConfiguration? host = null)
-        : this(new GithubApiProvider(handler, host?.ApiBaseUrl), host ?? new GithubHostConfigurationProvider().Read())
+        : this(
+            new GithubApiProvider(handler, (host ??= new GithubHostConfigurationProvider().Read()).ApiBaseUrl),
+            host)
     {
     }
 

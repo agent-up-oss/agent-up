@@ -163,11 +163,54 @@ public sealed class GithubApiProviderTests
     [Test]
     public void HostConfiguration_Read_returnsTheConfiguredEndpoints()
     {
-        var host = new GithubHostConfigurationProvider().Read();
+        var previousApi = Environment.GetEnvironmentVariable("AGENTUP_GITHUB_API_URL");
+        var previousAuthorize = Environment.GetEnvironmentVariable("AGENTUP_GITHUB_AUTHORIZE_URL");
+        var previousToken = Environment.GetEnvironmentVariable("AGENTUP_GITHUB_TOKEN_URL");
+        try
+        {
+            Environment.SetEnvironmentVariable("AGENTUP_GITHUB_API_URL", "https://ghe.example.test/api/v3");
+            Environment.SetEnvironmentVariable("AGENTUP_GITHUB_AUTHORIZE_URL", "https://ghe.example.test/login/oauth/authorize");
+            Environment.SetEnvironmentVariable("AGENTUP_GITHUB_TOKEN_URL", "https://ghe.example.test/login/oauth/access_token");
 
-        Assert.That(host.ApiBaseUrl, Does.EndWith("/"));
-        Assert.That(host.OAuthAuthorizeUrl, Does.Contain("authorize"));
-        Assert.That(host.OAuthTokenUrl, Does.Contain("access_token"));
+            var host = new GithubHostConfigurationProvider().Read();
+
+            Assert.That(host.ApiBaseUrl, Is.EqualTo("https://ghe.example.test/api/v3/"));
+            Assert.That(host.OAuthAuthorizeUrl, Is.EqualTo("https://ghe.example.test/login/oauth/authorize"));
+            Assert.That(host.OAuthTokenUrl, Is.EqualTo("https://ghe.example.test/login/oauth/access_token"));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("AGENTUP_GITHUB_API_URL", previousApi);
+            Environment.SetEnvironmentVariable("AGENTUP_GITHUB_AUTHORIZE_URL", previousAuthorize);
+            Environment.SetEnvironmentVariable("AGENTUP_GITHUB_TOKEN_URL", previousToken);
+        }
+    }
+
+    [Test]
+    public void HandlerConstructor_usesOneResolvedHostForApiAndOAuth()
+    {
+        var previousApi = Environment.GetEnvironmentVariable("AGENTUP_GITHUB_API_URL");
+        var previousAuthorize = Environment.GetEnvironmentVariable("AGENTUP_GITHUB_AUTHORIZE_URL");
+        var previousToken = Environment.GetEnvironmentVariable("AGENTUP_GITHUB_TOKEN_URL");
+        try
+        {
+            Environment.SetEnvironmentVariable("AGENTUP_GITHUB_API_URL", "https://ghe.example.test/api/v3");
+            Environment.SetEnvironmentVariable("AGENTUP_GITHUB_AUTHORIZE_URL", "https://ghe.example.test/login/oauth/authorize");
+            Environment.SetEnvironmentVariable("AGENTUP_GITHUB_TOKEN_URL", "https://ghe.example.test/login/oauth/access_token");
+
+            using var handler = new HttpClientHandler();
+            var capability = new GithubForgeCapability(handler);
+
+            Assert.That(capability.Host.ApiBaseUrl, Is.EqualTo("https://ghe.example.test/api/v3/"));
+            Assert.That(capability.Host.OAuthAuthorizeUrl, Is.EqualTo("https://ghe.example.test/login/oauth/authorize"));
+            Assert.That(capability.Host.OAuthTokenUrl, Is.EqualTo("https://ghe.example.test/login/oauth/access_token"));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("AGENTUP_GITHUB_API_URL", previousApi);
+            Environment.SetEnvironmentVariable("AGENTUP_GITHUB_AUTHORIZE_URL", previousAuthorize);
+            Environment.SetEnvironmentVariable("AGENTUP_GITHUB_TOKEN_URL", previousToken);
+        }
     }
 
     [Test]

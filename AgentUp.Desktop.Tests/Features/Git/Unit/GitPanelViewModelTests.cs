@@ -1380,7 +1380,7 @@ public sealed class GitPanelViewModelTests
     }
 
     [Test]
-    public async Task ApplyHosting_clearsAPreviousSignInUrl()
+    public async Task ApplyHosting_keepsTheSignInUrlWhileCredentialIsStillNeeded()
     {
         var panel = CreatePanel(new FakeGitApiProvider
         {
@@ -1393,6 +1393,23 @@ public sealed class GitPanelViewModelTests
         Assert.That(panel.HasHostingSignInUrl, Is.True);
 
         panel.ApplyHosting(DesktopDomain.Hosting().NeedsCredential().Build());
+
+        Assert.That(panel.HostingSignInUrl, Is.EqualTo("https://example.test/login/oauth/authorize"));
+    }
+
+    [Test]
+    public async Task ApplyHosting_clearsTheSignInUrlOnceCredentialIsNoLongerNeeded()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            Hosting = DesktopDomain.Hosting().NeedsCredential().Build(),
+            Login = new ForgeLoginStartDto("https://example.test/login/oauth/authorize")
+        });
+        await panel.LoadAsync("ws-1");
+        await panel.SignInCommand.Execute().FirstAsync();
+
+        panel.ApplyHosting(DesktopDomain.Hosting().NoProposal().Build());
 
         Assert.That(panel.HasHostingSignInUrl, Is.False);
     }

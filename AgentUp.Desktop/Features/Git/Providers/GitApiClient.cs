@@ -50,8 +50,11 @@ public sealed class GitApiClient(HttpClient http) : IGitApiProvider
         if (!response.IsSuccessStatusCode)
             throw new HttpRequestException(await ReadProblemDetailAsync(response));
 
-        return await response.Content.ReadFromJsonAsync<ForgeLoginStartDto>(Options, ct)
+        var started = await response.Content.ReadFromJsonAsync<ForgeLoginStartDto>(Options, ct)
             ?? throw new InvalidOperationException("The server returned an empty sign-in URL.");
+        if (string.IsNullOrWhiteSpace(started.AuthorizationUrl))
+            throw new InvalidOperationException("The server returned an empty sign-in URL.");
+        return started;
     }
 
     public async Task<GitFileDiffDto?> GetFileDiffAsync(string workspaceId, string path, CancellationToken ct = default)

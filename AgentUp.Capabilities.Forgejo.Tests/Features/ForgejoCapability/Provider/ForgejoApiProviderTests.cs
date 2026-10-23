@@ -258,6 +258,36 @@ public sealed class ForgejoApiProviderTests
     }
 
     [Test]
+    public void HandlerConstructor_usesOneResolvedHostForApiAndOAuth()
+    {
+        var previousOrigin = Environment.GetEnvironmentVariable("AGENTUP_FORGEJO_ORIGIN");
+        var previousApi = Environment.GetEnvironmentVariable("AGENTUP_FORGEJO_API_URL");
+        var previousAuthorize = Environment.GetEnvironmentVariable("AGENTUP_FORGEJO_AUTHORIZE_URL");
+        var previousToken = Environment.GetEnvironmentVariable("AGENTUP_FORGEJO_TOKEN_URL");
+        try
+        {
+            Environment.SetEnvironmentVariable("AGENTUP_FORGEJO_ORIGIN", "https://git.example.test");
+            Environment.SetEnvironmentVariable("AGENTUP_FORGEJO_API_URL", null);
+            Environment.SetEnvironmentVariable("AGENTUP_FORGEJO_AUTHORIZE_URL", null);
+            Environment.SetEnvironmentVariable("AGENTUP_FORGEJO_TOKEN_URL", null);
+
+            using var handler = new HttpClientHandler();
+            var capability = new ForgejoForgeCapability(handler);
+
+            Assert.That(capability.Host.ApiBaseUrl, Is.EqualTo("https://git.example.test/api/v1/"));
+            Assert.That(capability.Host.OAuthAuthorizeUrl, Is.EqualTo("https://git.example.test/login/oauth/authorize"));
+            Assert.That(capability.Host.OAuthTokenUrl, Is.EqualTo("https://git.example.test/login/oauth/access_token"));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("AGENTUP_FORGEJO_ORIGIN", previousOrigin);
+            Environment.SetEnvironmentVariable("AGENTUP_FORGEJO_API_URL", previousApi);
+            Environment.SetEnvironmentVariable("AGENTUP_FORGEJO_AUTHORIZE_URL", previousAuthorize);
+            Environment.SetEnvironmentVariable("AGENTUP_FORGEJO_TOKEN_URL", previousToken);
+        }
+    }
+
+    [Test]
     public void Write_creates_capability_json()
     {
         var directory = Directory.CreateDirectory(
