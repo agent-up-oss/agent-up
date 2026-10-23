@@ -5,6 +5,32 @@ namespace AgentUp.Desktop.Tests.Features.Workspaces.Unit;
 public sealed class DesktopAutomationIdsTests
 {
     [Test]
+    public void LoopSurface_usesStableCatalogIds() =>
+        Assert.That(
+            new[]
+            {
+                DesktopAutomationIds.AgentLoop,
+                DesktopAutomationIds.AgentLoopChecklist,
+                DesktopAutomationIds.AgentLoopEnable,
+                DesktopAutomationIds.AgentLoopActivate,
+                DesktopAutomationIds.AgentLoopCancel,
+                DesktopAutomationIds.AgentLoopTerminal,
+                DesktopAutomationIds.AgentLoopPhase,
+                DesktopAutomationIds.AgentLoopPrecondition("hostConnectionAuthorized")
+            },
+            Is.EqualTo(new[]
+            {
+                "agent.loop",
+                "agent.loop.checklist",
+                "agent.loop.enable",
+                "agent.loop.activate",
+                "agent.loop.cancel",
+                "agent.loop.terminal",
+                "agent.loop.phase",
+                "agent.loop.precondition.hostConnectionAuthorized"
+            }));
+
+    [Test]
     public void Formatters_prefixDynamicIdsWithTheStableCatalogStems() =>
         Assert.That(
             new[]
@@ -16,6 +42,7 @@ public sealed class DesktopAutomationIdsTests
                 DesktopAutomationIds.WorkspaceRefresh("ws"),
                 DesktopAutomationIds.WorkspaceRemove("ws"),
                 DesktopAutomationIds.ApplicationTab("Web"),
+                DesktopAutomationIds.AgentLoopPrecondition("autonomyEnabled"),
                 DesktopAutomationIds.AgentPickerRow("Codex"),
                 DesktopAutomationIds.AgentSession("s1"),
                 DesktopAutomationIds.AgentOption("allow-once"),
@@ -41,6 +68,7 @@ public sealed class DesktopAutomationIdsTests
                 "workspace.refresh.ws",
                 "workspace.remove.ws",
                 "app.tab.Web",
+                "agent.loop.precondition.autonomyEnabled",
                 "agent.picker.Codex",
                 "agent.session.s1",
                 "agent.option.allow-once",

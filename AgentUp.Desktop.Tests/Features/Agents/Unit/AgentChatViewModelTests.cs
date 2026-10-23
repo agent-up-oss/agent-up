@@ -446,6 +446,82 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
+    public async Task LoadAsync_loadsTheAutonomyChecklist()
+    {
+        var view = CreateView(new ChatApiFake());
+
+        await view.LoadAsync("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.HasAutonomy, Is.True);
+            Assert.That(view.Preconditions.Select(item => item.Id), Is.EqualTo(new[]
+            {
+                "forgeCapabilityEnabled",
+                "hostConnectionAuthorized",
+                "agentAvailable",
+                "autonomyEnabled"
+            }));
+            Assert.That(view.CanEnableAutonomy, Is.True);
+            Assert.That(view.CanActivateLoop, Is.False);
+        });
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task EnableAutonomyCommand_persistsServerEnablement()
+    {
+        var fake = new ChatApiFake();
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        var sawActivate = false;
+        view.PropertyChanged += (_, change) =>
+        {
+            if (change.PropertyName == nameof(AgentChatViewModel.CanActivateLoop) && view.CanActivateLoop)
+                sawActivate = true;
+        };
+        await view.EnableAutonomyCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fake.LastEnabled, Is.True);
+            Assert.That(view.CanEnableAutonomy, Is.False);
+            Assert.That(view.CanActivateLoop, Is.True);
+            Assert.That(sawActivate, Is.True);
+        });
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task ActivateThenCancel_exposesTheTypedLoopTerminal()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session().Ready().BoundTo("Codex").Build(),
+            Autonomy = new(true, [
+                new("forgeCapabilityEnabled", true),
+                new("hostConnectionAuthorized", true),
+                new("agentAvailable", true),
+                new("autonomyEnabled", true)
+            ])
+        };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+        await view.ActivateLoopCommand.Execute().FirstAsync();
+        await view.CancelLoopCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.LoopTerminal, Is.EqualTo("Cancelled"));
+            Assert.That(view.HasMessages, Is.False);
+            Assert.That(view.CanCancelLoop, Is.False);
+        });
+
+        await view.LoadAsync(null);
+    }
+
+    [Test]
     public async Task StartBoundCommand_schedulesTheBoundAgent()
     {
         var fake = new ChatApiFake
@@ -827,6 +903,47 @@ internal sealed class ChatApiFake : IAgentApiProvider
     }
     public Task DecideAsync(string workspaceId, string requestId, string optionId, CancellationToken cancellationToken) => Task.CompletedTask;
     public Task StopAsync(string workspaceId, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public ServerAutonomyDto? Autonomy { get; set; } = new(false, [
+        new("forgeCapabilityEnabled", true),
+        new("hostConnectionAuthorized", true),
+        new("agentAvailable", true),
+        new("autonomyEnabled", false, "Enable autonomy for this Server")
+    ]);
+    public bool? LastEnabled { get; private set; }
+    public bool? LastActive { get; private set; }
+
+    public Task<ServerAutonomyDto?> GetAutonomyAsync(CancellationToken cancellationToken)
+        => Task.FromResult(Autonomy);
+
+    public Task PutAutonomyAsync(bool enabled, CancellationToken cancellationToken)
+    {
+        LastEnabled = enabled;
+        Autonomy = new(enabled, (Autonomy?.Preconditions ?? []).Select(item =>
+            item.Id == "autonomyEnabled"
+                ? item with { Satisfied = enabled, Remedy = enabled ? null : "Enable autonomy for this Server" }
+                : item).ToArray());
+        return Task.CompletedTask;
+    }
+
+    public Task PutLoopActivationAsync(string workspaceId, bool active, CancellationToken cancellationToken)
+    {
+        LastActive = active;
+        LastWorkspace = workspaceId;
+        if (Session is not null)
+        {
+            Session = Session with
+            {
+                Loop = active
+                    ? new AgentLoopStatusDto(true, "running", TaskTitle: "Restock featured products")
+                    : new AgentLoopStatusDto(false, "stopped", Terminal: "Cancelled", StopReason: "cancelled")
+            };
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task<AgentLoopStatusDto?> GetLoopAsync(string workspaceId, CancellationToken cancellationToken)
+        => Task.FromResult(Session?.Loop);
 
     public async IAsyncEnumerable<AgentEventDto> EventsAsync(
         string workspaceId,

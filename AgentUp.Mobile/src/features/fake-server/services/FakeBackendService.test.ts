@@ -129,6 +129,39 @@ test('agent session exposes loop phase, task and stop reason', () => {
   assert.equal(session.boundAgent, 'Codex');
 });
 
+test('autonomy enable then activate exposes a typed terminal', () => {
+  const service = backend((_, work) => {
+    work();
+    return () => undefined;
+  });
+  const before = json(service, 'GET', '/api/autonomy');
+  assert.equal(before.enabled, false);
+  assert.equal(before.preconditions.map((item: { id: string }) => item.id).join(','),
+    'forgeCapabilityEnabled,hostConnectionAuthorized,agentAvailable,autonomyEnabled');
+  assert.equal(service.handle({ method: 'PUT', path: '/api/autonomy', query: '', body: '{"enabled":true}' }).status, 204);
+  assert.equal(json(service, 'GET', '/api/autonomy').enabled, true);
+  assert.equal(service.handle({
+    method: 'PUT',
+    path: '/api/workspaces/harbor-shop/agent/autonomy',
+    query: '',
+    body: '{"active":true}',
+  }).status, 204);
+  assert.equal(json(service, 'GET', '/api/workspaces/harbor-shop/agent/loop').terminal, 'Completed');
+  service.handle({
+    method: 'PUT',
+    path: '/api/workspaces/harbor-shop/agent/autonomy',
+    query: '',
+    body: '{"active":true}',
+  });
+  assert.equal(service.handle({
+    method: 'PUT',
+    path: '/api/workspaces/harbor-shop/agent/autonomy',
+    query: '',
+    body: '{"active":false}',
+  }).status, 204);
+  assert.equal(json(service, 'GET', '/api/workspaces/harbor-shop/agent/loop').terminal, 'Cancelled');
+});
+
 test('agent session lists current and prior saved sessions', () => {
   const session = json(backend(), 'GET', '/api/workspaces/harbor-shop/agent');
   assert.equal(session.sessions[0].sessionId, 'demo-agent');

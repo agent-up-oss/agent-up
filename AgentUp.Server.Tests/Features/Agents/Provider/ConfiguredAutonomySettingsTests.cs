@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Tests.Fake;
 using Microsoft.Extensions.Configuration;
@@ -18,13 +19,13 @@ public sealed class ConfiguredAutonomySettingsTests
         Assert.Multiple(() =>
         {
             Assert.That(enabled, Is.False);
-            Assert.That(refusal, Does.Contain("host connection"));
+            Assert.That(refusal, Is.EqualTo(AutonomyPreconditions.Refusal(AutonomyPreconditions.HostConnectionAuthorized)));
             Assert.That(autonomy.ServerEnabled, Is.False);
         });
     }
 
     [Test]
-    public void TryEnable_persistsUntilDisabled()
+    public void TryEnable_storesEnablementUntilDisabled()
     {
         var settings = new InMemoryAgentWorkspaceSettingsRepository();
         settings.Save(JsonAgentWorkspaceSettingsRepository.Empty("ws") with { HostConnectionAuthorized = true });
@@ -32,19 +33,33 @@ public sealed class ConfiguredAutonomySettingsTests
 
         Assert.That(autonomy.TryEnable(out _), Is.True);
         Assert.That(autonomy.ServerEnabled, Is.True);
+        Assert.That(settings.ServerEnabled, Is.True);
         autonomy.Disable();
         Assert.That(autonomy.ServerEnabled, Is.False);
+        Assert.That(settings.ServerEnabled, Is.False);
     }
 
     [Test]
-    public void ServerEnabled_readsTheEnvironmentOverride()
+    public void ServerEnabled_readsTheEnvironmentOverrideAheadOfStoredFalse()
     {
+        var settings = new InMemoryAgentWorkspaceSettingsRepository();
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> { ["AGENTUP_AUTONOMY_ENABLED"] = "true" })
             .Build();
-        var autonomy = new ConfiguredAutonomySettings(configuration, new InMemoryAgentWorkspaceSettingsRepository());
+        var autonomy = new ConfiguredAutonomySettings(configuration, settings);
 
         Assert.That(autonomy.ServerEnabled, Is.True);
+        autonomy.Disable();
+        Assert.That(autonomy.ServerEnabled, Is.True);
+    }
+
+    [Test]
+    public void ServerEnabled_readsStoredEnablementWhenTheEnvironmentIsUnset()
+    {
+        var settings = new InMemoryAgentWorkspaceSettingsRepository();
+        settings.SetServerEnabled(true);
+
+        Assert.That(new ConfiguredAutonomySettings(EmptyConfiguration(), settings).ServerEnabled, Is.True);
     }
 
     private static IConfiguration EmptyConfiguration() => new ConfigurationBuilder().AddInMemoryCollection().Build();

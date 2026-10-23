@@ -14,4 +14,22 @@ export type { AgentLoginPortOptions, PendingRedirect } from './providers/AgentLo
 export * from './models/AgentSession';
 export { presentAgentRow, agentRowDetail, capabilityNotEnabled, executableNotFound } from './providers/AgentAvailabilityProvider';
 export type { AgentRowPresentation } from './providers/AgentAvailabilityProvider';
-export { getAgent, bindAgent, scheduleAgent, resumeAgent, enableAgentCapability } from './providers/AgentApiProvider';
+export {
+  canActivateLoop,
+  canCancelLoop,
+  canEnableAutonomy,
+  preconditionLabel,
+} from './providers/LoopSurfaceProvider';
+export { AgentLoopControls } from './components/AgentLoopControls';
+export type { AgentLoopControlsProps } from './components/AgentLoopControls';
+export {
+  getAgent,
+  bindAgent,
+  scheduleAgent,
+  resumeAgent,
+  enableAgentCapability,
+  getAutonomy,
+  putAutonomy,
+  putLoopActivation,
+  getLoop,
+} from './providers/AgentApiProvider';

@@ -42,4 +42,18 @@ public sealed class JsonAgentWorkspaceSettingsRepositoryTests
 
         Assert.That(new JsonAgentWorkspaceSettingsRepository(directory).Get("ws-1").HostConnectionAuthorized, Is.False);
     }
+
+    [Test]
+    public void SetServerEnabled_survivesANewRepositoryInstance()
+    {
+        var directory = Directory.CreateTempSubdirectory("agent-up-autonomy-settings").FullName;
+        var first = new JsonAgentWorkspaceSettingsRepository(directory);
+        first.SetServerEnabled(true);
+
+        var loaded = new JsonAgentWorkspaceSettingsRepository(directory);
+
+        Assert.That(loaded.ServerEnabled, Is.True);
+        loaded.SetServerEnabled(false);
+        Assert.That(new JsonAgentWorkspaceSettingsRepository(directory).ServerEnabled, Is.False);
+    }
 }

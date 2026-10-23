@@ -795,6 +795,12 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         { logger.LogWarning(exception, "Could not stop the agent for removed workspace {WorkspaceId}.", LogSafeIdentifier.Of(workspaceId)); }
     }
 
+    public async Task<bool> HasAvailableAgentAsync(CancellationToken cancellationToken)
+    {
+        var descriptors = await DescriptorsAsync(cancellationToken);
+        return descriptors.Any(descriptor => descriptor.Available);
+    }
+
     private async Task<IReadOnlyList<AgentDescriptor>> DescriptorsAsync(CancellationToken cancellationToken)
     {
         var enabledAgents = packages?.ListAgents() ?? [];

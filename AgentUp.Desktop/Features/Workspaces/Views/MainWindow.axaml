@@ -1268,7 +1268,7 @@
                             </ScrollViewer>
 
                             <Border IsVisible="{Binding ShowAgent}" Background="{DynamicResource AgentUpColorCanvasBrush}" Padding="20">
-                                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto" RowSpacing="10">
+                                <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto" RowSpacing="10">
                                     <Grid ColumnDefinitions="*,Auto">
                                         <StackPanel>
                                             <TextBlock Classes="au-page-title" Text="Workspace agent"/>
@@ -1289,7 +1289,59 @@
                                                 Command="{Binding Agent.StopCommand}"
                                                 Content="Stop agent"/>
                                     </Grid>
-                                    <StackPanel Grid.Row="1" Spacing="8" HorizontalAlignment="Stretch">
+                                    <Border Grid.Row="1"
+                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentLoop}"
+                                            Classes="au-choice"
+                                            Padding="12"
+                                            IsVisible="{Binding Agent.HasAutonomy}">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Classes="au-field-label" Text="Unattended loop"/>
+                                            <ItemsControl AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentLoopChecklist}"
+                                                          ItemsSource="{Binding Agent.Preconditions}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Spacing="6"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Spacing="2" AutomationProperties.AutomationId="{Binding AutomationId}">
+                                                            <TextBlock Classes="wsName" Text="{Binding Label}"/>
+                                                            <TextBlock Classes="au-muted"
+                                                                       Text="{Binding Status}"
+                                                                       TextWrapping="Wrap"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <TextBlock Classes="au-muted"
+                                                       AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentLoopPhase}"
+                                                       Text="{Binding Agent.LoopPhase}"
+                                                       IsVisible="{Binding Agent.HasLoopPhase}"/>
+                                            <TextBlock Classes="au-accent"
+                                                       AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentLoopTerminal}"
+                                                       Text="{Binding Agent.LoopTerminal}"
+                                                       IsVisible="{Binding Agent.HasLoopTerminal}"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Button Classes="au-button au-button--compact"
+                                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentLoopEnable}"
+                                                        Content="Enable autonomy"
+                                                        IsVisible="{Binding Agent.CanEnableAutonomy}"
+                                                        Command="{Binding Agent.EnableAutonomyCommand}"/>
+                                                <Button Classes="au-button au-button--compact"
+                                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentLoopActivate}"
+                                                        Content="Activate"
+                                                        IsVisible="{Binding Agent.CanActivateLoop}"
+                                                        Command="{Binding Agent.ActivateLoopCommand}"/>
+                                                <Button Classes="au-button au-button--danger au-button--compact"
+                                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentLoopCancel}"
+                                                        Content="Cancel"
+                                                        IsVisible="{Binding Agent.CanCancelLoop}"
+                                                        Command="{Binding Agent.CancelLoopCommand}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                    <StackPanel Grid.Row="2" Spacing="8" HorizontalAlignment="Stretch">
                                         <TextBlock Classes="au-field-label" Text="Workspace sessions"/>
                                         <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                         <ItemsControl x:Name="AgentSessionList" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentSessions}" ItemsSource="{Binding Agent.Sessions}">
@@ -1411,7 +1463,7 @@
                                         </ItemsControl>
                                         </StackPanel>
                                     </StackPanel>
-                                    <StackPanel Grid.Row="2" Spacing="8">
+                                    <StackPanel Grid.Row="3" Spacing="8">
                                         <ItemsControl ItemsSource="{Binding Agent.AuthenticationOptions}">
                                             <ItemsControl.ItemsPanel>
                                                 <ItemsPanelTemplate>
@@ -1447,7 +1499,7 @@
                                             </StackPanel>
                                         </StackPanel>
                                     </StackPanel>
-                                    <ScrollViewer Grid.Row="3"
+                                    <ScrollViewer Grid.Row="4"
                                                   HorizontalScrollBarVisibility="Disabled"
                                                   VerticalScrollBarVisibility="Auto"
                                                   Background="{DynamicResource AgentUpColorCanvasBrush}">
@@ -1461,7 +1513,7 @@
                                             </ItemsControl.ItemsPanel>
                                         </ItemsControl>
                                     </ScrollViewer>
-                                    <StackPanel Grid.Row="4" IsVisible="{Binding Agent.HasPermission}" Spacing="8">
+                                    <StackPanel Grid.Row="5" IsVisible="{Binding Agent.HasPermission}" Spacing="8">
                                         <TextBlock Text="Decision needed" Foreground="{DynamicResource AgentUpColorTextWarningBrush}" FontSize="10"/>
                                         <TextBlock Text="{Binding Agent.PermissionTitle}" Foreground="{DynamicResource AgentUpColorTextWarningBrush}" FontWeight="Bold" TextWrapping="Wrap"/>
                                         <TextBlock Text="{Binding Agent.PermissionDetail}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" TextWrapping="Wrap"/>
@@ -1470,8 +1522,8 @@
                                             <ItemsControl.ItemTemplate><DataTemplate DataType="agentVm:AgentOptionViewModel"><Button Classes="au-button au-button--secondary au-button--compact" AutomationProperties.AutomationId="{Binding AutomationId}" Command="{Binding Command}" Content="{Binding Label}"/></DataTemplate></ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                     </StackPanel>
-                                    <TextBlock Grid.Row="5" Text="{Binding Agent.Error}" Foreground="{DynamicResource AgentUpColorTextDangerBrush}"/>
-                                    <Grid Grid.Row="6" IsVisible="{Binding Agent.HasSession}" ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBox Classes="au-input" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentMessage}" Text="{Binding Agent.Message}" PlaceholderText="Ask the agent…" AcceptsReturn="True" MaxHeight="100"/><Button Grid.Column="1" Classes="au-button" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentSend}" Command="{Binding Agent.SendCommand}" Content="Send"/></Grid>
+                                    <TextBlock Grid.Row="6" Text="{Binding Agent.Error}" Foreground="{DynamicResource AgentUpColorTextDangerBrush}"/>
+                                    <Grid Grid.Row="7" IsVisible="{Binding Agent.HasSession}" ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBox Classes="au-input" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentMessage}" Text="{Binding Agent.Message}" PlaceholderText="Ask the agent…" AcceptsReturn="True" MaxHeight="100"/><Button Grid.Column="1" Classes="au-button" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentSend}" Command="{Binding Agent.SendCommand}" Content="Send"/></Grid>
                                 </Grid>
                             </Border>
 

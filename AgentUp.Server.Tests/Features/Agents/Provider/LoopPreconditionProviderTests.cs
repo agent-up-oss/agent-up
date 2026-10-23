@@ -25,7 +25,7 @@ public sealed class LoopPreconditionProviderTests
 
         var unmet = await host.Preconditions.UnmetAsync("missing", CancellationToken.None);
 
-        Assert.That(unmet, Does.Contain("not registered"));
+        Assert.That(unmet, Does.Contain("workspaceRegistered"));
     }
 
     [Test]
@@ -40,7 +40,7 @@ public sealed class LoopPreconditionProviderTests
 
         var unmet = await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None);
 
-        Assert.That(unmet, Does.Contain("host connection"));
+        Assert.That(unmet, Does.Contain("hostConnectionAuthorized"));
     }
 
     [Test]
@@ -50,7 +50,7 @@ public sealed class LoopPreconditionProviderTests
 
         var unmet = await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None);
 
-        Assert.That(unmet, Does.Contain("not bound"));
+        Assert.That(unmet, Does.Contain("boundAgent"));
     }
 
     [Test]
@@ -61,7 +61,7 @@ public sealed class LoopPreconditionProviderTests
 
         var unmet = await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None);
 
-        Assert.That(unmet, Does.Contain("permission policy"));
+        Assert.That(unmet, Does.Contain("permissionPolicy"));
     }
 
     [Test]
@@ -72,7 +72,7 @@ public sealed class LoopPreconditionProviderTests
 
         var unmet = await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None);
 
-        Assert.That(unmet, Does.Contain("permission requests"));
+        Assert.That(unmet, Does.Contain("permissionRequests"));
     }
 
     [Test]
@@ -124,7 +124,7 @@ public sealed class LoopPreconditionProviderTests
 
         var unmet = await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None);
 
-        Assert.That(unmet, Does.Contain("not assigned"));
+        Assert.That(unmet, Does.Contain("unassignedChanges"));
     }
 
     [Test]

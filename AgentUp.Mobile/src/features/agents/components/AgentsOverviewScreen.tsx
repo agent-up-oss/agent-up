@@ -1,7 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { agentRowDetail, bindAgent, enableAgentCapability, getAgent, presentAgentRow, resumeAgent, scheduleAgent, type AgentId, type AgentSession } from '@agent-up/chat';
+import {
+  AgentLoopControls,
+  agentRowDetail,
+  bindAgent,
+  enableAgentCapability,
+  getAgent,
+  getAutonomy,
+  getLoop,
+  presentAgentRow,
+  putAutonomy,
+  putLoopActivation,
+  resumeAgent,
+  scheduleAgent,
+  type AgentId,
+  type AgentSession,
+  type ServerAutonomy,
+} from '@agent-up/chat';
 import { boundAgentActionLabel, formatLoopLine } from '@/features/agents/providers/LoopLineProvider';
 import { WorkspaceTabBar } from '@/features/shell/components/WorkspaceTabBar';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
@@ -15,6 +31,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
   const { expireActiveCredential } = useServers();
   const { server } = useWorkspaces();
   const [session, setSession] = useState<AgentSession | null>(null);
+  const [autonomy, setAutonomy] = useState<ServerAutonomy | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -29,6 +46,8 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
     if (!server) return;
     try {
       setSession(await getAgent(server, workspaceId));
+      try { setAutonomy(await getAutonomy(server)); }
+      catch { setAutonomy(null); }
       setError(null);
     } catch (cause) {
       if (isUnauthorized(cause)) {
@@ -40,6 +59,25 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
   }, [server, workspaceId, expireActiveCredential]);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    if (!server || !session?.loop?.active) return;
+    let cancelled = false;
+    const timer = setInterval(() => {
+      void getLoop(server, workspaceId)
+        .then(loop => { if (!cancelled) setSession(current => current ? { ...current, loop } : current); })
+        .catch(cause => { if (!cancelled) setError(cause instanceof Error ? cause.message : 'Could not load the loop.'); });
+    }, 500);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [server, workspaceId, session?.loop?.active]);
+
+  const runLoop = async (work: () => Promise<void>, failed: string) => {
+    if (!server || busy) return;
+    setBusy(true); setError(null);
+    try { await work(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : failed); }
+    finally { setBusy(false); }
+  };
 
   const openChat = () => router.push(`/(main)/workspace/${workspaceId}/agent`);
 
@@ -88,6 +126,29 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
         {busy && <ActivityIndicator color={agentUpTheme.colors.accent} />}
+        <AgentLoopControls
+          autonomy={autonomy}
+          loop={session?.loop}
+          busy={busy}
+          onEnable={() => void runLoop(async () => {
+            if (!server) return;
+            await putAutonomy(server, true);
+            setAutonomy(await getAutonomy(server));
+          }, 'Could not enable autonomy.')}
+          onActivate={() => void runLoop(async () => {
+            if (!server) return;
+            await putLoopActivation(server, workspaceId, true);
+            const loop = await getLoop(server, workspaceId);
+            setSession(current => current ? { ...current, loop } : current);
+            setAutonomy(await getAutonomy(server));
+          }, 'Could not activate the loop.')}
+          onCancel={() => void runLoop(async () => {
+            if (!server) return;
+            await putLoopActivation(server, workspaceId, false);
+            const loop = await getLoop(server, workspaceId);
+            setSession(current => current ? { ...current, loop } : current);
+          }, 'Could not cancel the loop.')}
+        />
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Workspace sessions</Text>

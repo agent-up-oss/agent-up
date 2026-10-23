@@ -21,13 +21,55 @@ namespace AgentUp.Server.Tests.Features.Agents.Unit;
 public sealed class AutonomousWorkspaceServiceTests
 {
     [Test]
+    public async Task GetStatusAsync_returnsTheOrderedPreconditionChain()
+    {
+        var host = await HostAsync();
+
+        var status = await host.Autonomy.GetStatusAsync(CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(status.Enabled, Is.False);
+            Assert.That(status.Preconditions.Select(item => item.Id), Is.EqualTo(new[]
+            {
+                "forgeCapabilityEnabled",
+                "hostConnectionAuthorized",
+                "agentAvailable",
+                "autonomyEnabled"
+            }));
+            Assert.That(status.Preconditions.Single(item => item.Id == "hostConnectionAuthorized").Satisfied, Is.False);
+            Assert.That(status.Preconditions.Single(item => item.Id == "autonomyEnabled").Satisfied, Is.False);
+        });
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task GetStatusAsync_marksHostAndAutonomyAfterEnablement()
+    {
+        var host = await HostAsync();
+        host.Settings.Save(host.Settings.Get(host.WorkspaceId) with { HostConnectionAuthorized = true });
+        Assert.That(host.Autonomy.TryEnableServer(out _), Is.True);
+
+        var status = await host.Autonomy.GetStatusAsync(CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(status.Enabled, Is.True);
+            Assert.That(status.Preconditions.Single(item => item.Id == "hostConnectionAuthorized").Satisfied, Is.True);
+            Assert.That(status.Preconditions.Single(item => item.Id == "autonomyEnabled").Satisfied, Is.True);
+            Assert.That(status.Preconditions.Single(item => item.Id == "autonomyEnabled").Remedy, Is.Null);
+        });
+        await host.DisposeAsync();
+    }
+
+    [Test]
     public async Task ActivateAsync_refusesWhenTheServerIsNotEnabled()
     {
         var host = await HostAsync();
 
         var result = await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
 
-        Assert.That(result.Error, Does.Contain("not enabled"));
+        Assert.That(result.Error, Does.Contain("autonomyEnabled"));
         await host.DisposeAsync();
     }
 
@@ -40,7 +82,7 @@ public sealed class AutonomousWorkspaceServiceTests
 
         var result = await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
 
-        Assert.That(result.Error, Does.Contain("not bound"));
+        Assert.That(result.Error, Does.Contain("boundAgent"));
         await host.DisposeAsync();
     }
 

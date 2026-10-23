@@ -615,6 +615,24 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_autonomyChainEnableThenActivateExposesATypedTerminal()
+    {
+        var backend = FakeServerTestComposition.Backend((_, work) => work());
+        var before = Json(backend, Get("/api/autonomy"));
+        Assert.That(before["enabled"]!.GetValue<bool>(), Is.False);
+        Assert.That(Run(backend, Put("/api/autonomy", """{"enabled":true}""")).Status, Is.EqualTo(204));
+        var enabled = Json(backend, Get("/api/autonomy"));
+        Assert.That(enabled["enabled"]!.GetValue<bool>(), Is.True);
+        Assert.That(Run(backend, Put("/api/workspaces/harbor-shop/agent/autonomy", """{"active":true}""")).Status, Is.EqualTo(204));
+        var loop = Json(backend, Get("/api/workspaces/harbor-shop/agent/loop"));
+        Assert.That(loop["terminal"]!.GetValue<string>(), Is.EqualTo("Completed"));
+        Assert.That(Run(backend, Put("/api/workspaces/harbor-shop/agent/autonomy", """{"active":true}""")).Status, Is.EqualTo(204));
+        Assert.That(Run(backend, Put("/api/workspaces/harbor-shop/agent/autonomy", """{"active":false}""")).Status, Is.EqualTo(204));
+        var cancelled = Json(backend, Get("/api/workspaces/harbor-shop/agent/loop"));
+        Assert.That(cancelled["terminal"]!.GetValue<string>(), Is.EqualTo("Cancelled"));
+    }
+
+    [Test]
     public void Handle_agentSessionListsCurrentAndPriorSavedSessions()
     {
         var backend = FakeServerTestComposition.Backend();
@@ -757,6 +775,9 @@ public sealed class FakeBackendServiceTests
 
     private static FakeBackendRequestDtoBuilder Post(string path, string? body = null)
         => new FakeBackendRequestDtoBuilder().Post(path, body);
+
+    private static FakeBackendRequestDtoBuilder Put(string path, string? body = null)
+        => new FakeBackendRequestDtoBuilder().Put(path, body);
 
     private static AgentUp.Desktop.Features.FakeServer.DTOs.FakeBackendResponseDto Run(
         AgentUp.Desktop.Features.FakeServer.Services.FakeBackendService backend,

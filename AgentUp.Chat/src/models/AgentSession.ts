@@ -30,6 +30,15 @@ export type AgentLoopStatus = {
   blockReason?: string | null;
   permissionRuleIds?: string[];
 };
+export type AutonomyPrecondition = {
+  id: string;
+  satisfied: boolean;
+  remedy?: string | null;
+};
+export type ServerAutonomy = {
+  enabled: boolean;
+  preconditions: AutonomyPrecondition[];
+};
 export type AgentSession = {
   workspaceId: string;
   agent: AgentId | null;

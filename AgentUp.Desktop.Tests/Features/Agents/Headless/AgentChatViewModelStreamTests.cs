@@ -430,6 +430,13 @@ internal sealed class StreamApiFake : IAgentApiProvider
         return Task.CompletedTask;
     }
 
+    public Task<ServerAutonomyDto?> GetAutonomyAsync(CancellationToken cancellationToken)
+        => Task.FromResult<ServerAutonomyDto?>(null);
+    public Task PutAutonomyAsync(bool enabled, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task PutLoopActivationAsync(string workspaceId, bool active, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task<AgentLoopStatusDto?> GetLoopAsync(string workspaceId, CancellationToken cancellationToken)
+        => Task.FromResult(Session?.Loop);
+
     public async IAsyncEnumerable<AgentEventDto> EventsAsync(
         string workspaceId,
         long after,

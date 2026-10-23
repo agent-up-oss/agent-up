@@ -27,8 +27,8 @@ Starting or resuming a session replaces the active process without mixing histor
 <DocContract label="Route">POST .../authenticate</DocContract>
 
 <DocSurfaces>
-<DocSurface desktop>The Agent tab lists the workspace's saved sessions across Codex, Cursor, and Claude with agent, generated description, and last branch. The live session is labeled Current; every other row is Resume. Empty history says there are no saved sessions yet. Paste-code sign-in collects the authorization code in the client and posts it to the Server. User prompts are right-aligned catalog bubbles. The live agent run stays fully open; the next question collapses tools, searches, and thoughts to a Worked disclosure. Loop phase, task, and stop reason render under the status line. ACP `Authentication required` is Waiting for sign-in, not a failed-session banner.</DocSurface>
-<DocSurface mobile>The Agents overview tab lists the workspace's saved sessions across all agent types with agent, generated description, and last branch. The live session is labeled Current; every other row is Resume. A bound workspace hides the picker and shows that agent. Selecting a session resumes it and opens chat as an inner page. `session/request_permission` is a blocking decision card. The client shows the sign-in URL and Codex device code from the Server and must not launch `xdg-open` itself. ACP `Authentication required` is Waiting for sign-in, not a raw JSON-RPC error.</DocSurface>
+<DocSurface desktop>The Agent tab lists the workspace's saved sessions across Codex, Cursor, and Claude with agent, generated description, and last branch. The live session is labeled Current; every other row is Resume. Empty history says there are no saved sessions yet. Paste-code sign-in collects the authorization code in the client and posts it to the Server. User prompts are right-aligned catalog bubbles. The live agent run stays fully open; the next question collapses tools, searches, and thoughts to a Worked disclosure. The Agent tab renders the `GET /api/autonomy` checklist plus Enable autonomy, Activate, Cancel, and the typed loop terminal. ACP `Authentication required` is Waiting for sign-in, not a failed-session banner.</DocSurface>
+<DocSurface mobile>The Agents overview tab lists the workspace's saved sessions across all agent types with agent, generated description, and last branch. The live session is labeled Current; every other row is Resume. A bound workspace hides the picker and shows that agent. Selecting a session resumes it and opens chat as an inner page. Agents and chat render the same autonomy checklist, Activate, Cancel, and typed terminal. `session/request_permission` is a blocking decision card. The client shows the sign-in URL and Codex device code from the Server and must not launch `xdg-open` itself. ACP `Authentication required` is Waiting for sign-in, not a raw JSON-RPC error.</DocSurface>
 </DocSurfaces>
 
 ## Session runtime
@@ -49,7 +49,7 @@ Agent-Up advertises no terminal-auth capability because the authenticated HTTP c
 
 ## Workspace bind and unattended loop
 
-A workspace may record one bound agent module id. Unbound is the interactive picker. Autonomy stays off until the Server is enabled and the workspace is activated against a policy, a host connection, and assigned issues. Roles prefix the prompt and may filter advertised MCP tools. The full contract is on Autonomy.
+A workspace may record one bound agent module id. Unbound is the interactive picker. Autonomy stays off until the Server is enabled (persisted, env var still wins) and the workspace is activated against the ordered `GET /api/autonomy` chain, a policy, a host connection, and assigned issues. Roles prefix the prompt and may filter advertised MCP tools. The full contract is on Autonomy.
 
 ## Loop coverage
 

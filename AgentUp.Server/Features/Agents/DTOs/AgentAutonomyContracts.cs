@@ -49,6 +49,8 @@ public sealed record AgentLoopStatusDto(
     string? BlockReason,
     IReadOnlyList<string> PermissionRuleIds);
 
-public sealed record ServerAutonomyDto(bool Enabled, bool HostConnectionPresent);
+public sealed record AutonomyPreconditionDto(string Id, bool Satisfied, string? Remedy);
+
+public sealed record ServerAutonomyDto(bool Enabled, IReadOnlyList<AutonomyPreconditionDto> Preconditions);
 
 public sealed record AgentBindingResult(AgentSessionDto? Session, bool Found, string? Error, int Status = 409);
