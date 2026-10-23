@@ -4,6 +4,7 @@ using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Agents.DTOs;
 using AgentUp.Desktop.Features.Agents.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Agents.Headless;
@@ -31,6 +32,9 @@ public sealed class AgentPickerPanelTests
             Assert.That(buttons.Any(button => button.GetVisualDescendants().OfType<Border>().Any(border => border.Classes.Contains("au-card"))), Is.False);
             Assert.That(buttons.Single(button => button.DataContext is AgentDescriptorDto { Agent: "Codex" }).IsEnabled, Is.True);
             Assert.That(buttons.Single(button => button.DataContext is AgentDescriptorDto { Agent: "Cursor" }).IsEnabled, Is.False);
+            Assert.That(
+                ChromeTestSupport.FindDescendantByAutomationId<Button>(app.Window, DesktopAutomationIds.AgentPickerRow("Codex")),
+                Is.Not.Null);
         });
     }
 
@@ -55,6 +59,10 @@ public sealed class AgentPickerPanelTests
             Assert.That(text, Does.Contain("Fix session persistence"));
             Assert.That(text, Does.Contain("feature/sessions"));
             Assert.That(text, Does.Contain("Resume session →"));
+            Assert.That(
+                ChromeTestSupport.FindDescendantByAutomationId<Button>(
+                    app.Window, DesktopAutomationIds.AgentSession("saved")),
+                Is.Not.Null);
         });
     }
 

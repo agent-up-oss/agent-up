@@ -2,6 +2,7 @@ using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Validation.DTOs;
 using AgentUp.Desktop.Features.Validation.Models;
 using AgentUp.Desktop.Features.Validation.ViewModels;
+using AgentUp.Desktop.Shared.Providers;
 
 namespace AgentUp.Desktop.Tests.Features.Validation.Unit;
 
@@ -265,6 +266,12 @@ public sealed class ValidationRunStateViewModelTests
             Assert.That(duringRun, Is.True, "IsRunning should be set before the replay starts");
             Assert.That(item.IsRunning, Is.False, "the finally must clear IsRunning once the replay returns");
         });
+    }
+
+    [Test]
+    public void Flow_exposesPlayAutomationIdFromTheFlowId()
+    {
+        Assert.That(Item().PlayAutomationId, Is.EqualTo(DesktopAutomationIds.ValidationPlay("flow")));
     }
 
     private static void Move(ValidationCheckViewModel check, ValidationRunState state)

@@ -2,6 +2,7 @@ namespace AgentUp.Desktop.Features.Validation.DTOs;
 
 public enum ValidationActionDto { Navigate, Click, Fill, Press }
 public enum ValidationExpectationDto { Url, Title, Text, Visible }
+public enum ValidationSurfaceDto { Application = 0, Desktop = 1 }
 
 public sealed record ValidationTargetDto(
     string? Role = null,
@@ -33,4 +34,5 @@ public sealed record ValidationFlowDto(
     string InitialPath,
     IReadOnlyList<ValidationAssertionDto> InitialExpectations,
     IReadOnlyList<ValidationStepDto> Steps,
-    int Version);
+    int Version,
+    ValidationSurfaceDto Surface = ValidationSurfaceDto.Application);

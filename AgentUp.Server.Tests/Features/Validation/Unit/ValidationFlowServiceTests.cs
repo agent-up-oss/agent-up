@@ -5,6 +5,7 @@ using AgentUp.Server.Features.DesktopApplications.Providers;
 using AgentUp.Server.Features.DesktopApplications.Services;
 using AgentUp.Server.Features.Validation.DTOs;
 using AgentUp.Server.Features.Validation.Interfaces;
+using AgentUp.Server.Features.Validation.Models;
 using AgentUp.Server.Features.Validation.Providers;
 using AgentUp.Server.Features.Validation.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
@@ -274,6 +275,170 @@ public sealed class ValidationFlowServiceTests
     }
 
     [Test]
+    public async Task Save_defaultsSurfaceToApplication()
+    {
+        var (service, workspaceId) = await CreateAsync();
+
+        var result = await service.SaveAsync(workspaceId, Request());
+
+        Assert.That(result.Succeeded, Is.True, result.Error);
+        Assert.That(result.Flow!.Surface, Is.EqualTo(ValidationSurface.Application));
+    }
+
+    [Test]
+    public async Task Save_acceptsADesktopSurfaceFlow_withANamedRouteAndTestId()
+    {
+        var (service, workspaceId) = await CreateAsync();
+
+        var result = await service.SaveAsync(workspaceId, DesktopRequest());
+
+        Assert.That(result.Succeeded, Is.True, result.Error);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Flow!.Surface, Is.EqualTo(ValidationSurface.Desktop));
+            Assert.That(result.Flow.Application, Is.EqualTo(DesktopSurfaceFlowRules.ApplicationName));
+            Assert.That(result.Flow.InitialPath, Is.EqualTo(DesktopSurfaceRoutes.WorkspaceGit));
+        });
+    }
+
+    [Test]
+    public async Task Save_normalizesADesktopApplicationName()
+    {
+        var (service, workspaceId) = await CreateAsync();
+
+        var result = await service.SaveAsync(workspaceId, DesktopRequest(application: " desktop "));
+
+        Assert.That(result.Succeeded, Is.True, result.Error);
+        Assert.That(result.Flow!.Application, Is.EqualTo(DesktopSurfaceFlowRules.ApplicationName));
+    }
+
+    [Test]
+    public async Task Save_rejectsDesktopWhenTheNameIsMissing()
+    {
+        var (service, workspaceId) = await CreateAsync();
+
+        var result = await service.SaveAsync(workspaceId, DesktopRequest(name: " "));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Does.Contain("Name is required"));
+    }
+
+    [Test]
+    public async Task Save_rejectsDesktopSelectorAndCoordinateLocators()
+    {
+        var (service, workspaceId) = await CreateAsync();
+        var withSelector = DesktopRequest(steps:
+        [
+            new ValidationStep("open", "Open Git", ValidationAction.Click,
+                new(TestId: "git.commit", Selector: "#commit"),
+                Expectations: [new ValidationAssertion(ValidationExpectation.Visible, "true")])
+        ]);
+        var withCoordinates = DesktopRequest(steps:
+        [
+            new ValidationStep("open", "Open Git", ValidationAction.Click,
+                new(Name: "Commit", X: 10, Y: 20),
+                Expectations: [new ValidationAssertion(ValidationExpectation.Visible, "true")])
+        ]);
+
+        var selector = await service.SaveAsync(workspaceId, withSelector);
+        var coordinates = await service.SaveAsync(workspaceId, withCoordinates);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(selector.Error, Does.Contain("reject Selector, X, and Y"));
+            Assert.That(coordinates.Error, Does.Contain("reject Selector, X, and Y"));
+        });
+    }
+
+    [Test]
+    public async Task Save_rejectsDesktopUrlExpectationsAndUnknownRoutes()
+    {
+        var (service, workspaceId) = await CreateAsync();
+        var url = DesktopRequest(initialExpectations: [new ValidationAssertion(ValidationExpectation.Url, "/")]);
+        var path = DesktopRequest(initialPath: "/git");
+
+        var urlResult = await service.SaveAsync(workspaceId, url);
+        var pathResult = await service.SaveAsync(workspaceId, path);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(urlResult.Error, Does.Contain("Url expectations are invalid"));
+            Assert.That(pathResult.Error, Does.Contain("named surface route"));
+        });
+    }
+
+    [Test]
+    public async Task Save_requiresASemanticLocatorForDesktopClick()
+    {
+        var (service, workspaceId) = await CreateAsync();
+        var step = new ValidationStep(
+            "open",
+            "Open Git",
+            ValidationAction.Click,
+            new(),
+            Expectations: [new ValidationAssertion(ValidationExpectation.Visible, "true")]);
+
+        var result = await service.SaveAsync(workspaceId, DesktopRequest(steps: [step]));
+
+        Assert.That(result.Error, Does.Contain("testId (AutomationId)"));
+    }
+
+    [Test]
+    public async Task Save_rejectsADesktopFlowBoundToAWorkspaceApplication()
+    {
+        var (service, workspaceId) = await CreateAsync();
+
+        var result = await service.SaveAsync(workspaceId, DesktopRequest(application: "web"));
+
+        Assert.That(result.Error, Does.Contain("application 'Desktop'"));
+    }
+
+    [Test]
+    public async Task Run_refusesDesktopSurfaceReplay_withoutTouchingTheBrowser()
+    {
+        var (service, workspaceId) = await CreateAsync();
+        var saved = await service.SaveAsync(workspaceId, DesktopRequest());
+        Assert.That(saved.Succeeded, Is.True, saved.Error);
+
+        var result = await service.RunAsync(workspaceId, saved.Flow!.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Is.EqualTo("Desktop surface replay is not implemented."));
+        });
+    }
+
+    [Test]
+    public async Task Export_skipsPlaywright_forDesktopSurfaceFlows()
+    {
+        var (service, workspaceId) = await CreateAsync();
+        var saved = await service.SaveAsync(workspaceId, DesktopRequest());
+        Assert.That(saved.Succeeded, Is.True, saved.Error);
+
+        var export = await service.ExportAsync(workspaceId, saved.Flow!.Id);
+
+        Assert.That(export, Is.Null);
+    }
+
+    [Test]
+    public async Task List_returnsDesktopSurfaceFlows_underTheDesktopApplication()
+    {
+        var (service, workspaceId) = await CreateAsync();
+        await service.SaveAsync(workspaceId, Request(name: "Checkout"));
+        await service.SaveAsync(workspaceId, DesktopRequest(name: "Open Git"));
+
+        var desktop = await service.ListAsync(workspaceId, DesktopSurfaceFlowRules.ApplicationName);
+        var web = await service.ListAsync(workspaceId, "web");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(desktop.Select(flow => flow.Name), Is.EqualTo(new[] { "Open Git" }));
+            Assert.That(web.Select(flow => flow.Name), Is.EqualTo(new[] { "Checkout" }));
+        });
+    }
+
+    [Test]
     public async Task Run_reportsAnUnknownFlow_withoutTouchingTheBrowser()
     {
         var (service, workspaceId) = await CreateAsync();
@@ -476,6 +641,30 @@ public sealed class ValidationFlowServiceTests
             new MemoryRepository(), new WorkspaceQueryController(registry), null!, new PlaywrightFlowExporter());
         return (service, workspace.Id);
     }
+
+    private static SaveValidationFlowRequest DesktopRequest(
+        string? application = null,
+        string name = "Open Git",
+        string initialPath = DesktopSurfaceRoutes.WorkspaceGit,
+        IReadOnlyList<ValidationAssertion>? initialExpectations = null,
+        IReadOnlyList<ValidationStep>? steps = null) =>
+        new(
+            null,
+            application ?? DesktopSurfaceFlowRules.ApplicationName,
+            name,
+            "The Git tab is visible.",
+            initialPath,
+            initialExpectations ?? [new ValidationAssertion(ValidationExpectation.Visible, "true")],
+            steps ??
+            [
+                new ValidationStep(
+                    "commit",
+                    "Commit selected files",
+                    ValidationAction.Click,
+                    new(TestId: "git.commit"),
+                    Expectations: [new ValidationAssertion(ValidationExpectation.Visible, "true")])
+            ],
+            ValidationSurface.Desktop);
 
     private static SaveValidationFlowRequest Request(
         string? id = null,

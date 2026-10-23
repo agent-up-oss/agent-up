@@ -1,5 +1,6 @@
 using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Git.ViewModels;
+using AgentUp.Desktop.Shared.Providers;
 
 namespace AgentUp.Desktop.Tests.Features.Git.Unit;
 
@@ -97,6 +98,19 @@ public sealed class GitChangeNodeViewModelTests
             Assert.That(node.IsRenamed, Is.EqualTo(renamed));
             Assert.That(node.IsConflicted, Is.EqualTo(conflicted));
             Assert.That(node.IsModified, Is.EqualTo(modified));
+        });
+    }
+
+    [Test]
+    public void File_exposesStableAutomationIdsFromItsPath()
+    {
+        var node = new GitChangeNodeViewModel("App.cs", "src/App.cs", 1, false, "Modified");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(node.SelectAutomationId, Is.EqualTo(DesktopAutomationIds.GitSelect("src/App.cs")));
+            Assert.That(node.ToggleAutomationId, Is.EqualTo(DesktopAutomationIds.GitToggle("src/App.cs")));
+            Assert.That(node.OpenAutomationId, Is.EqualTo(DesktopAutomationIds.GitOpen("src/App.cs")));
         });
     }
 }

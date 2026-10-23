@@ -1,4 +1,5 @@
 using System.Reactive;
+using AgentUp.Desktop.Shared.Providers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Git.ViewModels;
@@ -20,6 +21,9 @@ public sealed class GitChangeNodeViewModel : ReactiveObject
     public IReadOnlyList<int> Guides { get; }
 
     public bool IsFile => !IsDirectory;
+    public string SelectAutomationId => DesktopAutomationIds.GitSelect(Path);
+    public string ToggleAutomationId => DesktopAutomationIds.GitToggle(Path);
+    public string OpenAutomationId => DesktopAutomationIds.GitOpen(Path);
     public string Glyph => IsDirectory ? ToggleGlyph : StatusGlyph(Status);
     public string ToggleGlyph => IsExpanded ? "▾" : "▸";
     public string ToolTip => IsDirectory ? Path : $"{Path} — {Status}";
