@@ -42,7 +42,9 @@ public sealed class AgentCommandProvider(
     private bool IsLaunchExecutableAvailable(string agent)
     {
         var configured = ReadConfigured(agent);
-        if (configured is not null)
+        if (configured is not null && Path.IsPathRooted(configured.FileName))
+            return IsAvailableCommand(configured.FileName);
+        if (ResolveCapability(agent) is null && configured is not null)
             return IsAvailableCommand(configured.FileName);
 
         var raw = RawLaunchCommand(agent);

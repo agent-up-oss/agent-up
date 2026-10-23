@@ -141,10 +141,11 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task GetAsync_reportsExecutableNotFoundWhenThePackageIsEnabledButTheCliIsMissing()
     {
-        var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Claude())
+        var packages = new FakeEnabledCapabilityPackages(MissingClaudePackage())
             .WithAgents(new StubAgentCapability
             {
-                Identity = new("claude", "1.0.0", "Claude", "agent-up")
+                Identity = new("claude", "1.0.0", "Claude", "agent-up"),
+                LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult("agent-up-missing-claude-acp", [], null)
             });
         var service = new AgentSchedulingService(
             new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
@@ -161,7 +162,7 @@ public sealed class AgentSchedulingServiceTests
                 Assert.That(claude.Available, Is.False);
                 Assert.That(claude.Unavailability, Is.EqualTo(AgentUnavailability.ExecutableNotFound));
                 Assert.That(claude.Detail, Is.EqualTo(AgentUnavailability.ExecutableNotFoundDetail("claude")));
-                Assert.That(claude.Remedy, Does.Contain("codex-acp").Or.Contain("claude"));
+                Assert.That(claude.Remedy, Does.Contain("agent-up-missing-claude-acp"));
             });
         }
         finally
@@ -173,9 +174,14 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task GetAsync_listsScriptedTestAgentWhenTheHostIsDevelopment()
     {
+        var commands = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["Agents:test-agent-scripted:Command"] = $"/definitely-missing/{AgentUnavailability.ScriptedTestAgent}"
+            }).Build());
         var service = new AgentSchedulingService(
             new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
-            new AgentCommandProvider(new ConfigurationBuilder().Build()),
+            commands,
             _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
             _payloads, _events, NullLogger<AgentSchedulingService>.Instance,
             host: new StubHostEnvironment(Environments.Development));
@@ -298,7 +304,7 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task GetAsync_usesEnabledPackageDisplayNameWhenNoAgentModuleIsLoaded()
     {
-        var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Claude());
+        var packages = new FakeEnabledCapabilityPackages(MissingClaudePackage());
         var service = new AgentSchedulingService(
             new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
             new AgentCommandProvider(new ConfigurationBuilder().Build(), packages),
@@ -314,7 +320,7 @@ public sealed class AgentSchedulingServiceTests
                 Assert.That(claude.DisplayName, Is.EqualTo("claude"));
                 Assert.That(claude.Available, Is.False);
                 Assert.That(claude.Unavailability, Is.EqualTo(AgentUnavailability.ExecutableNotFound));
-                Assert.That(claude.Remedy, Does.Contain("claude-agent-acp"));
+                Assert.That(claude.Remedy, Does.Contain("agent-up-missing-claude-acp"));
             });
         }
         finally
@@ -657,6 +663,20 @@ public sealed class AgentSchedulingServiceTests
             Assert.That(_service.Get(_workspace.Id)!.State, Is.EqualTo("idle"));
         });
     }
+
+    private static AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityPackageManifest MissingClaudePackage()
+        => new()
+        {
+            Id = "claude",
+            Version = "1.0.0",
+            DisplayName = "claude",
+            Kind = "agent",
+            Launch = new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityLaunchTemplate
+            {
+                Command = "agent-up-missing-claude-acp",
+                Arguments = []
+            }
+        };
 
     private static object[] MissingSessionIds =>
     [

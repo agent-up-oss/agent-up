@@ -69,13 +69,63 @@ public sealed class AgentCommandProviderTests
     }
 
     [Test]
-    public async Task IsAvailableAsync_isFalseWhenEnabledPackageCommandIsMissingFromPath()
-    {
-        var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex());
-        var available = await new AgentCommandProvider(new ConfigurationBuilder().Build(), packages)
-            .IsAvailableAsync("codex", CancellationToken.None);
+    public Task IsAvailableAsync_isFalseWhenEnabledPackageCommandIsMissingFromPath()
+        => WithEmptyPathAsync(async () =>
+        {
+            var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex());
+            var available = await new AgentCommandProvider(new ConfigurationBuilder().Build(), packages)
+                .IsAvailableAsync("codex", CancellationToken.None);
 
-        Assert.That(available, Is.False);
+            Assert.That(available, Is.False);
+        });
+
+    [Test]
+    public async Task IsAvailableAsync_usesCapabilityLaunchWhenANonRootedConfiguredCommandIsMissing()
+    {
+        var command = OperatingSystem.IsWindows() ? "cmd" : "sh";
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
+            ["Agents:Codex:Command"] = "agent-up-missing-configured-cli"
+        }).Build();
+        var packages = new FakeEnabledCapabilityPackages(new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityPackageManifest
+        {
+            Id = "codex",
+            Version = "1.0.0",
+            DisplayName = "Codex",
+            Kind = "agent",
+            Launch = new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityLaunchTemplate
+            {
+                Command = command,
+                Arguments = []
+            }
+        });
+        var provider = new AgentCommandProvider(configuration, packages);
+
+        Assert.That(await provider.IsAvailableAsync("codex", CancellationToken.None), Is.True);
+        Assert.That((await provider.ResolveAsync("codex", CancellationToken.None))!.FileName, Is.EqualTo(command));
+    }
+
+    [Test]
+    public async Task IsAvailableAsync_keepsAMissingRootedCommandAheadOfCapability()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
+            ["Agents:Codex:Command"] = Path.Join(Path.GetTempPath(), "agent-up-missing-rooted-cli")
+        }).Build();
+        var packages = new FakeEnabledCapabilityPackages(new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityPackageManifest
+        {
+            Id = "codex",
+            Version = "1.0.0",
+            DisplayName = "Codex",
+            Kind = "agent",
+            Launch = new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityLaunchTemplate
+            {
+                Command = OperatingSystem.IsWindows() ? "cmd" : "sh",
+                Arguments = []
+            }
+        });
+        var provider = new AgentCommandProvider(configuration, packages);
+
+        Assert.That(await provider.IsAvailableAsync("codex", CancellationToken.None), Is.False);
+        Assert.That(await provider.ResolveAsync("codex", CancellationToken.None), Is.Null);
     }
 
     [Test]
@@ -189,13 +239,14 @@ public sealed class AgentCommandProviderTests
     }
 
     [Test]
-    public async Task ResolveAsync_isNullWhenTheScriptedTestAgentIsMissingFromPath()
-    {
-        var result = await new AgentCommandProvider(new ConfigurationBuilder().Build())
-            .ResolveAsync(AgentUnavailability.ScriptedTestAgent, CancellationToken.None);
+    public Task ResolveAsync_isNullWhenTheScriptedTestAgentIsMissingFromPath()
+        => WithEmptyPathAsync(async () =>
+        {
+            var result = await new AgentCommandProvider(new ConfigurationBuilder().Build())
+                .ResolveAsync(AgentUnavailability.ScriptedTestAgent, CancellationToken.None);
 
-        Assert.That(result, Is.Null);
-    }
+            Assert.That(result, Is.Null);
+        });
 
     [Test]
     public async Task IsAvailableAsync_usesTheAgentLaunchFileName()
@@ -248,4 +299,20 @@ public sealed class AgentCommandProviderTests
         OperatingSystem.IsWindows()
             ? Path.Join(Environment.SystemDirectory, "cmd.exe")
             : "/bin/sh";
+
+    private static async Task WithEmptyPathAsync(Func<Task> body)
+    {
+        var directory = Directory.CreateTempSubdirectory();
+        var previous = Environment.GetEnvironmentVariable("PATH");
+        Environment.SetEnvironmentVariable("PATH", directory.FullName);
+        try
+        {
+            await body();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("PATH", previous);
+            directory.Delete(true);
+        }
+    }
 }
