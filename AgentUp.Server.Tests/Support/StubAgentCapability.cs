@@ -15,5 +15,7 @@ internal sealed class StubAgentCapability : IAgentCapability
 
     public AgentLoginSpec? Login { get; init; }
 
-    public AgentLaunchResult Launch() => new("codex-acp", [], null);
+    public AgentLaunchResult LaunchResult { get; init; } = new("codex-acp", [], null);
+
+    public AgentLaunchResult Launch() => LaunchResult;
 }

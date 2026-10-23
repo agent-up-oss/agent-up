@@ -267,9 +267,39 @@ public sealed class FakeBackendServiceTests
         var scheduled = Json(backend, Post("/api/workspaces/harbor-shop/agent", """{"agent":"claude"}"""));
 
         Assert.That(listed["agents"]!.AsArray().Select(item => item!["agent"]!.GetValue<string>()), Is.EqualTo(new[] { "codex", "cursor", "claude" }));
-        Assert.That(afterDisable["agents"]!.AsArray().Select(item => item!["agent"]!.GetValue<string>()), Is.EqualTo(new[] { "codex", "cursor" }));
+        var available = listed["agents"]!.AsArray().Single(item => item!["agent"]!.GetValue<string>() == "codex")!;
+        Assert.That(available["available"]!.GetValue<bool>(), Is.True);
+        Assert.That(available["unavailability"], Is.Null);
+        var disabled = afterDisable["agents"]!.AsArray().Single(item => item!["agent"]!.GetValue<string>() == "claude")!;
+        Assert.That(disabled["available"]!.GetValue<bool>(), Is.False);
+        Assert.That(disabled["unavailability"]!.GetValue<string>(), Is.EqualTo("capabilityNotEnabled"));
+        Assert.That(disabled["remedy"]!.GetValue<string>(), Does.Contain("claude"));
         Assert.That(rejected.Status, Is.EqualTo(409));
         Assert.That(scheduled["agent"]!.GetValue<string>(), Is.EqualTo("claude"));
+    }
+
+    [Test]
+    public void Handle_agentListReportsExecutableNotFoundWhenEnabledModuleCannotRun()
+    {
+        var json = """
+            {"id":"fake","url":"http://127.0.0.1:9","displayName":"Demo","connection":{},"authentication":{},"entitlements":{},"workspaces":[{"id":"harbor-shop","displayName":"Harbor Shop","state":"Running","applications":[]}],"agents":{"harbor-shop":{"session":{"agent":"claude","state":"ready"}}},"capabilities":[{"id":"claude","displayName":"Claude","kind":"agent","enabled":true,"canRun":false}]}
+            """;
+        var backend = new AgentUp.Desktop.Features.FakeServer.Services.FakeBackendService(
+            new AgentUp.Desktop.Features.FakeServer.Providers.FakeServerDefinitionProvider().LoadJson(json));
+        var session = Json(backend, Get("/api/workspaces/harbor-shop/agent"));
+        var claude = session["agents"]!.AsArray().Single()!;
+        var rejected = Run(backend, Post("/api/workspaces/harbor-shop/agent", """{"agent":"claude"}"""));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(claude["available"]!.GetValue<bool>(), Is.False);
+            Assert.That(claude["unavailability"]!.GetValue<string>(), Is.EqualTo("executableNotFound"));
+            Assert.That(claude["detail"]!.GetValue<string>(), Does.Contain("claude"));
+            Assert.That(claude["remedy"]!.GetValue<string>(), Does.Contain("PATH"));
+            Assert.That(session["agent"], Is.Null);
+            Assert.That(rejected.Status, Is.EqualTo(409));
+            Assert.That(rejected.Body, Does.Contain("not enabled"));
+        });
     }
 
     [Test]
@@ -561,7 +591,7 @@ public sealed class FakeBackendServiceTests
         Json(backend, Post("/api/capabilities/disable/claude"));
         var session = Json(backend, Get("/api/workspaces/harbor-shop/agent"));
 
-        Assert.That(session["agents"]!.AsArray(), Is.Empty);
+        Assert.That(session["agents"]!.AsArray().Select(item => item!["available"]!.GetValue<bool>()), Is.All.False);
         Assert.That(session["agent"], Is.Null);
     }
 

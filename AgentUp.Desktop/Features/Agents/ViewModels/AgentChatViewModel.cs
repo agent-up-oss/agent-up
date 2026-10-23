@@ -5,6 +5,7 @@ using Avalonia.Threading;
 using AgentUp.Desktop.Features.Agents.Controllers;
 using AgentUp.Desktop.Features.Agents.DTOs;
 using AgentUp.Desktop.Features.Agents.Providers;
+using AgentUp.Desktop.Features.Capabilities.Controllers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Agents.ViewModels;
@@ -12,6 +13,7 @@ namespace AgentUp.Desktop.Features.Agents.ViewModels;
 public sealed class AgentChatViewModel : ReactiveObject
 {
     private readonly AgentsController _controller;
+    private readonly CapabilityModulesController? _modules;
     private string? _workspaceId, _selectedAgent, _boundAgent, _sessionId, _message, _error, _sessionTitle, _mode, _usage, _permissionTitle, _permissionDetail, _hintKind, _hintTool, _loginUrl, _loginCode, _loginInstructions, _loginCodeInput;
     private bool _canCollectLoginCode, _canSubmitLoginCode;
     private AgentLoopStatusDto? _loop;
@@ -80,16 +82,19 @@ public sealed class AgentChatViewModel : ReactiveObject
             ? $"{BoundAgentDisplayName} · {ActivityLabel}"
             : ActivityLabel;
     public ReactiveCommand<string, Unit> SelectAgentCommand { get; }
+    public ReactiveCommand<string, Unit> EnableAgentCommand { get; }
     public ReactiveCommand<Unit, Unit> StartBoundCommand { get; }
     public ReactiveCommand<string, Unit> ResumeSessionCommand { get; }
     public ReactiveCommand<Unit, Unit> SendCommand { get; }
     public ReactiveCommand<Unit, Unit> StopCommand { get; }
     public ReactiveCommand<Unit, Unit> SubmitLoginCodeCommand { get; }
 
-    public AgentChatViewModel(AgentsController controller)
+    public AgentChatViewModel(AgentsController controller, CapabilityModulesController? modules = null)
     {
         _controller = controller;
+        _modules = modules;
         SelectAgentCommand = ReactiveCommand.CreateFromTask<string>(SelectAsync);
+        EnableAgentCommand = ReactiveCommand.CreateFromTask<string>(EnableAgentAsync);
         StartBoundCommand = ReactiveCommand.CreateFromTask(StartBoundAsync);
         ResumeSessionCommand = ReactiveCommand.CreateFromTask<string>(ResumeAsync);
         SendCommand = ReactiveCommand.CreateFromTask(SendAsync);
@@ -135,6 +140,20 @@ public sealed class AgentChatViewModel : ReactiveObject
         Apply(await _controller.BindAsync(id, agent, CancellationToken.None));
         Apply(await _controller.ScheduleAsync(id, agent, CancellationToken.None));
     });
+    private async Task EnableAgentAsync(string agent)
+    {
+        if (_modules is null)
+        {
+            Error = "This Server cannot enable capability packages.";
+            return;
+        }
+
+        await RunAsync(async id =>
+        {
+            await _modules.EnableAsync(agent, version: null);
+            Apply(await _controller.GetAsync(id, CancellationToken.None));
+        });
+    }
     private async Task StartBoundAsync() => await RunAsync(async id =>
     {
         if (BoundAgent is null) return;

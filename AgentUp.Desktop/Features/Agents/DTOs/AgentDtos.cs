@@ -2,7 +2,32 @@ using System.Text.Json;
 
 namespace AgentUp.Desktop.Features.Agents.DTOs;
 
-public sealed record AgentDescriptorDto(string Agent, bool Available, string DisplayName);
+public sealed record AgentDescriptorDto(
+    string Agent,
+    bool Available,
+    string DisplayName,
+    string? Unavailability = null,
+    string? Detail = null,
+    string? Remedy = null)
+{
+    public const string CapabilityNotEnabled = "capabilityNotEnabled";
+    public const string ExecutableNotFound = "executableNotFound";
+
+    public bool CanEnable =>
+        !Available && string.Equals(Unavailability, CapabilityNotEnabled, StringComparison.Ordinal);
+
+    public bool IsBlocked => !Available && !CanEnable;
+
+    public bool HasDetail => !string.IsNullOrWhiteSpace(Detail);
+
+    public bool HasRemedy => !string.IsNullOrWhiteSpace(Remedy);
+
+    public string StatusLabel => Available
+        ? "Available"
+        : CanEnable
+            ? "Not enabled"
+            : "Executable not found";
+}
 public sealed record AgentAuthMethodDto(string Id, string Name, string? Description);
 public enum AgentLoginTransport
 {

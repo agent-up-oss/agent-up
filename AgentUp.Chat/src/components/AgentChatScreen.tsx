@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ServerSession } from '@agent-up/server-client';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import type { AgentActivityKind, AgentEvent, AgentId, AgentPermission, AgentSession, SessionContext, TranscriptItem } from '../models/AgentSession';
-import { authenticateAgent, bindAgent, cancelAgent, decideAgentPermission, getAgent, scheduleAgent, sendAgentMessage, stopAgent, streamAgentEvents, submitAgentLoginCallback, submitAgentLoginCode } from '../providers/AgentApiProvider';
+import { authenticateAgent, bindAgent, cancelAgent, decideAgentPermission, enableAgentCapability, getAgent, scheduleAgent, sendAgentMessage, stopAgent, streamAgentEvents, submitAgentLoginCallback, submitAgentLoginCode } from '../providers/AgentApiProvider';
+import { presentAgentRow } from '../providers/AgentAvailabilityProvider';
 import { AgentSignIn } from './AgentSignIn';
 import {
   activityHint,
@@ -136,6 +137,16 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
     catch (cause) { setError(readError(cause)); }
     finally { setBusy(false); }
   };
+  const enable = async (agent: AgentId) => {
+    if (!server) return; setBusy(true); setError(null);
+    try {
+      await enableAgentCapability(server, agent);
+      const next = await getAgent(server, workspace.id);
+      setSession(current => mergeAgentSession(current, next));
+    }
+    catch (cause) { setError(readError(cause)); }
+    finally { setBusy(false); }
+  };
   const authenticate = async (methodId: string) => {
     if (!server) return;
     setError(null);
@@ -182,8 +193,23 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
             {context.compacting ? <Text style={styles.chip}>Compacting context</Text> : null}
           </View>}
           {session?.boundAgent && !session.agent && <Pressable testID="agent-start-bound" accessibilityRole="button" disabled={waiting} onPress={() => void choose(session.boundAgent!)} style={styles.agentButton}><Text style={styles.agentText}>Start {session.boundAgent}</Text></Pressable>}
-          {!session?.boundAgent && <View style={styles.picker}><Text testID="agent-picker-prompt" style={styles.prompt}>Choose an ACP agent</Text>{session?.agents?.map(agent =>
-            <Pressable key={agent.agent} testID={`agent-picker-${agent.agent}`} disabled={!agent.available || waiting} onPress={() => void choose(agent.agent)} style={[styles.agentButton, !agent.available && auBox('choiceDisabled')]}><Text style={styles.agentText}>{agent.displayName}</Text><Text style={agent.available ? styles.available : styles.unavailable}>{agent.available ? 'Available' : 'Not installed'}</Text></Pressable>)}</View>}
+          {!session?.boundAgent && <View style={styles.picker}><Text testID="agent-picker-prompt" style={styles.prompt}>Choose an ACP agent</Text>{session?.agents?.map(agent => {
+            const row = presentAgentRow(agent);
+            if (row.canSelect) {
+              return <Pressable key={agent.agent} testID={`agent-picker-${agent.agent}`} disabled={waiting} onPress={() => void choose(agent.agent)} style={styles.agentButton}><Text style={styles.agentText}>{agent.displayName}</Text><Text style={styles.available}>{row.status}</Text></Pressable>;
+            }
+            return (
+              <View key={agent.agent} style={[styles.agentUnavailable, row.isBlocked && auBox('choiceDisabled')]}>
+                <View style={styles.agentHeading}>
+                  <Text style={styles.agentText}>{agent.displayName}</Text>
+                  <Text style={styles.unavailable}>{row.status}</Text>
+                </View>
+                {row.detail ? <Text style={styles.unavailable}>{row.detail}</Text> : null}
+                {row.remedy ? <Text style={styles.unavailable}>{row.remedy}</Text> : null}
+                {row.canEnable ? <Pressable testID={`agent-enable-${agent.agent}`} accessibilityRole="button" disabled={waiting} onPress={() => void enable(agent.agent)}><Text style={styles.available}>Enable</Text></Pressable> : null}
+              </View>
+            );
+          })}</View>}
           {(session?.state === 'authentication_required' || session?.state === 'authenticating') && <View style={styles.auth}>
             <Text style={styles.permissionTitle}>Sign in to {session.agent}</Text>
             {session.state === 'authenticating' && loginApi && <AgentSignIn challenge={session.loginChallenge} api={loginApi} copy={copyToClipboard} onError={setError} />}
@@ -295,6 +321,8 @@ const styles = StyleSheet.create({
   picker: { gap: 8, marginTop: 8 },
   prompt: { ...auText('fieldLabel') },
   agentButton: { ...auBox('choice'), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  agentUnavailable: { ...auBox('choice'), gap: 6 },
+  agentHeading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 16 },
   agentText: auText('workspaceName'),
   available: auText('accent'),
   unavailable: auText('muted'),

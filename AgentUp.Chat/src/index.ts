@@ -12,4 +12,6 @@ export { AgentSignIn } from './components/AgentSignIn';
 export { createAgentLoginPort } from './providers/AgentLoginPortProvider';
 export type { AgentLoginPortOptions, PendingRedirect } from './providers/AgentLoginPortProvider';
 export * from './models/AgentSession';
-export { getAgent, bindAgent, scheduleAgent, resumeAgent } from './providers/AgentApiProvider';
+export { presentAgentRow, agentRowDetail, capabilityNotEnabled, executableNotFound } from './providers/AgentAvailabilityProvider';
+export type { AgentRowPresentation } from './providers/AgentAvailabilityProvider';
+export { getAgent, bindAgent, scheduleAgent, resumeAgent, enableAgentCapability } from './providers/AgentApiProvider';

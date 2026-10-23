@@ -123,9 +123,9 @@ public static class MainViewModelFactory
         var agents = new AgentsController(new AgentChatService(agentClient ?? new AgentApiClient(DefaultGitHttpClient)));
         var validationApi = validationClient ?? new ValidationFlowApiClient(DefaultValidationHttpClient);
         var validationReplay = new ValidationFlowReplayService(validationApi, new BrowserInteractionController());
-        var modules = new CapabilityModulesViewModel(
-            new CapabilityModulesController(new CapabilityModulesCatalogService(
-                capabilityModulesClient ?? new CapabilityModulesApiClient(DefaultCapabilityHttpClient))));
+        var modulesController = new CapabilityModulesController(new CapabilityModulesCatalogService(
+            capabilityModulesClient ?? new CapabilityModulesApiClient(DefaultCapabilityHttpClient)));
+        var modules = new CapabilityModulesViewModel(modulesController);
 
         return new MainViewModel(
             new WorkspaceListViewModel(workspaces, entitlements),
@@ -137,7 +137,7 @@ public static class MainViewModelFactory
                 audit,
                 new ApplicationAuditStreamClient(auditApi.Http)),
             new GitPanelViewModel(git),
-            new AgentChatViewModel(agents),
+            new AgentChatViewModel(agents, modulesController),
             new WorkspaceOverviewViewModel(workspaces),
             login ?? CreateLogin(DefaultAuthHttpClient),
             ports,
