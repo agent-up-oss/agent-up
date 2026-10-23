@@ -21,6 +21,9 @@ public sealed class GitChangeListService
     public Task<ForgeHostingDto?> GetHostingAsync(string workspaceId, CancellationToken cancellationToken = default)
         => _client.GetHostingAsync(workspaceId, cancellationToken);
 
+    public Task<ForgeLoginStartDto> StartLoginAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => _client.StartLoginAsync(workspaceId, cancellationToken);
+
     public async Task<GitFileDiffDto?> GetFileDiffAsync(string workspaceId, string path, CancellationToken cancellationToken = default)
         => await _client.GetFileDiffAsync(workspaceId, path, cancellationToken);
 

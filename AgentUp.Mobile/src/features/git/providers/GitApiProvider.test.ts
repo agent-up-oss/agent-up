@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { checkoutRemote, commitFiles, discardFiles, fetchRemote, getChanges, getCommitQueue, getFileDiff, getForgeHosting, getHeadState, getLog, pullRemote, pushRemote, switchBranch } from './GitApiProvider';
+import { checkoutRemote, commitFiles, discardFiles, fetchRemote, getChanges, getCommitQueue, getFileDiff, getForgeHosting, getHeadState, getLog, pullRemote, pushRemote, startForgeLogin, switchBranch } from './GitApiProvider';
 
 type Recorded = { url: string; init: RequestInit };
 
@@ -56,6 +56,7 @@ test('getForgeHosting requests the workspace scoped forge route', async () => {
     threads: [],
     mergeability: { mergeable: true, state: 'clean' },
     detail: null,
+    remedy: null,
   });
 
   const hosting = await getForgeHosting({ url: 'http://localhost:5000' }, 'ws 1', fakeFetch(200, body, recorded));
@@ -68,6 +69,17 @@ test('getForgeHosting returns null for an unknown workspace', async () => {
   const hosting = await getForgeHosting({ url: 'http://localhost:5000' }, 'missing', fakeFetch(404, '', []));
 
   assert.equal(hosting, null);
+});
+
+test('startForgeLogin posts the workspace scoped login route', async () => {
+  const recorded: Recorded[] = [];
+  const body = JSON.stringify({ authorizationUrl: 'https://example.test/login/oauth/authorize?client_id=client' });
+
+  const started = await startForgeLogin({ url: 'http://localhost:5000' }, 'ws 1', fakeFetch(200, body, recorded));
+
+  assert.equal(started.authorizationUrl.startsWith('https://example.test/login/oauth/authorize'), true);
+  assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws%201/forge/login');
+  assert.equal(recorded[0].init.method, 'POST');
 });
 
 test('getHeadState requests the workspace scoped head route', async () => {

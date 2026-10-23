@@ -10,6 +10,8 @@ public interface IForgeCapability
 {
     CapabilityIdentity Identity { get; }
 
+    ForgeHostConfiguration Host { get; }
+
     Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<ForgeAssignedIssue>> ListAssignedAsync(

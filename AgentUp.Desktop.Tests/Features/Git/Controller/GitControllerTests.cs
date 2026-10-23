@@ -2,6 +2,7 @@ using AgentUp.Desktop.Features.Git.Controllers;
 using AgentUp.Desktop.Features.Git.DTOs;
 using AgentUp.Desktop.Features.Git.Services;
 using AgentUp.Desktop.Tests.Features.Git.Unit;
+using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Git.Controller;
 
@@ -29,13 +30,27 @@ public sealed class GitControllerTests
     {
         var client = new FakeGitApiProvider
         {
-            Hosting = new ForgeHostingDto("none", null, null, [], [], null, null)
+            Hosting = DesktopDomain.Hosting().NotInstalled().Build()
         };
         var controller = CreateController(client);
 
         var hosting = await controller.GetHostingAsync("ws-1");
 
-        Assert.That(hosting!.Availability, Is.EqualTo("none"));
+        Assert.That(hosting!.Availability, Is.EqualTo("notInstalled"));
+    }
+
+    [Test]
+    public async Task StartLoginAsync_delegatesToTheService()
+    {
+        var client = new FakeGitApiProvider
+        {
+            Login = new ForgeLoginStartDto("https://example.test/login/oauth/authorize")
+        };
+        var controller = CreateController(client);
+
+        var started = await controller.StartLoginAsync("ws-1");
+
+        Assert.That(started.AuthorizationUrl, Does.StartWith("https://example.test/login/oauth/authorize"));
     }
 
     [Test]

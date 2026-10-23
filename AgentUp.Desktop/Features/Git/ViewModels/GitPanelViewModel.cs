@@ -44,6 +44,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     private bool _isHistoryOpen;
     private bool _canWriteGit = true;
     private ForgeHostingDto? _hosting;
+    private string? _hostingSignInUrl;
     private CancellationTokenSource? _watch;
 
     public ObservableCollection<GitChangeNodeViewModel> Nodes { get; } = [];
@@ -68,24 +69,63 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         private set
         {
             this.RaiseAndSetIfChanged(ref _hosting, value);
+            HostingSignInUrl = null;
             this.RaisePropertyChanged(nameof(ShowHosting));
             this.RaisePropertyChanged(nameof(HostingTitle));
+            this.RaisePropertyChanged(nameof(HostingRemedy));
+            this.RaisePropertyChanged(nameof(HasHostingRemedy));
+            this.RaisePropertyChanged(nameof(CanSignIn));
             this.RaisePropertyChanged(nameof(HostingChecksLabel));
             this.RaisePropertyChanged(nameof(HostingThreadsLabel));
             this.RaisePropertyChanged(nameof(HostingMergeabilityLabel));
         }
     }
 
-    public bool ShowHosting => Hosting is not null && Hosting.Availability != "none";
+    public bool ShowHosting => Hosting is not null;
 
-    public string HostingTitle => Hosting?.Availability switch
+    public string HostingTitle
     {
-        "needsCredential" => "Sign in to GitHub in Server settings to see hosting state.",
-        "unreachable" => string.IsNullOrWhiteSpace(Hosting.Detail) ? "Could not reach the host." : Hosting.Detail,
-        "noProposal" => "No open proposal on this branch.",
-        "ready" => Hosting.Proposal?.Title ?? "Open proposal",
-        _ => string.Empty
-    };
+        get
+        {
+            if (Hosting is null)
+                return string.Empty;
+            if (Hosting.Availability == "ready")
+                return Hosting.Proposal?.Title ?? "Open proposal";
+            if (!string.IsNullOrWhiteSpace(Hosting.Detail))
+                return Hosting.Detail;
+            return Hosting.Availability switch
+            {
+                "notInstalled" or "none" => "No forge capability package is enabled.",
+                "needsCredential" => "This workspace has no repository host credential.",
+                "noRemote" => "No repository host origin is configured.",
+                "unreachable" => "Could not reach the host.",
+                "noProposal" => "No open proposal on this branch.",
+                _ => "Repository hosting"
+            };
+        }
+    }
+
+    public string HostingRemedy => Hosting?.Remedy ?? string.Empty;
+
+    public bool HasHostingRemedy => !string.IsNullOrWhiteSpace(HostingRemedy);
+
+    public bool CanSignIn => Hosting?.Availability == "needsCredential";
+
+    public string? HostingSignInUrl
+    {
+        get => _hostingSignInUrl;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _hostingSignInUrl, value);
+            this.RaisePropertyChanged(nameof(HasHostingSignInUrl));
+            this.RaisePropertyChanged(nameof(HostingSignInUri));
+        }
+    }
+
+    public bool HasHostingSignInUrl => !string.IsNullOrWhiteSpace(HostingSignInUrl);
+
+    public Uri? HostingSignInUri
+        => Uri.TryCreate(HostingSignInUrl, UriKind.Absolute, out var uri) ? uri : null;
 
     public string HostingChecksLabel
     {
@@ -187,6 +227,9 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
                 x => x.IsBusy,
                 (canWrite, selected, message, busy) =>
                     canWrite && selected > 0 && !string.IsNullOrWhiteSpace(message) && !busy));
+        SignInCommand = ReactiveCommand.CreateFromTask(
+            SignInAsync,
+            this.WhenAnyValue(x => x.CanSignIn, x => x.IsBusy, (canSignIn, busy) => canSignIn && !busy));
         Diff.WhenAnyValue(diff => diff.IsVisible, diff => diff.Path)
             .Subscribe(_ => MarkOpenFile(Diff.IsVisible ? Diff.Path : null));
     }
@@ -400,6 +443,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     public ReactiveCommand<Unit, Unit> OpenHistoryCommand { get; }
     public ReactiveCommand<Unit, Unit> CloseHistoryCommand { get; }
     public ReactiveCommand<Unit, Unit> CommitCommand { get; }
+    public ReactiveCommand<Unit, Unit> SignInCommand { get; }
 
     public bool IsHistoryOpen
     {
@@ -491,7 +535,15 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
             }
             catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or JsonException or TaskCanceledException)
             {
-                hosting = new ForgeHostingDto("unreachable", null, null, [], [], null, ex.Message);
+                hosting = new ForgeHostingDto(
+                    "unreachable",
+                    null,
+                    null,
+                    [],
+                    [],
+                    null,
+                    ex.Message,
+                    "Check the repository host URL and retry.");
             }
 
             if (request == _treeRequest)
@@ -548,6 +600,27 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
     }
 
     internal void ApplyHosting(ForgeHostingDto? hosting) => Hosting = hosting;
+
+    private async Task SignInAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_workspaceId) || !CanSignIn)
+            return;
+
+        IsBusy = true;
+        try
+        {
+            var started = await _git.StartLoginAsync(_workspaceId);
+            HostingSignInUrl = started.AuthorizationUrl;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
+        {
+            ErrorMessage = $"Could not start repository host sign-in: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
 
     private void ClearQueue() => ApplyQueue(null);
 

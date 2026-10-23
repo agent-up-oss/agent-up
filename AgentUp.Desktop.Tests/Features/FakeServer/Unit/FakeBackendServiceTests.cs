@@ -85,11 +85,13 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
-    public void Handle_forgeReturnsNoneUntilAHostIsEnabled()
+    public void Handle_forgeReturnsNotInstalledUntilAHostIsEnabled()
     {
         var hosting = Json(FakeServerTestComposition.Backend(), Get("/api/workspaces/harbor-shop/forge"));
 
-        Assert.That(hosting["availability"]!.GetValue<string>(), Is.EqualTo("none"));
+        Assert.That(hosting["availability"]!.GetValue<string>(), Is.EqualTo("notInstalled"));
+        Assert.That(hosting["detail"]!.GetValue<string>(), Does.Contain("forge capability"));
+        Assert.That(hosting["remedy"]!.GetValue<string>(), Does.Contain("capabilities bootstrap"));
         Assert.That(hosting["proposal"], Is.Null);
     }
 

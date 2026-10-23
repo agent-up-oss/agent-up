@@ -144,6 +144,9 @@ AgentUp.Capabilities.Claude/
 AgentUp.Capabilities.Github/
   AgentUp.Capabilities.Github.csproj
 
+AgentUp.Capabilities.Forgejo/
+  AgentUp.Capabilities.Forgejo.csproj
+
 AgentUp.Registry/
   AgentUp.Registry.csproj
 
@@ -258,6 +261,9 @@ AgentUp.Capabilities.Claude.Tests/
 AgentUp.Capabilities.Github.Tests/
   AgentUp.Capabilities.Github.Tests.csproj
 
+AgentUp.Capabilities.Forgejo.Tests/
+  AgentUp.Capabilities.Forgejo.Tests.csproj
+
 AgentUp.Registry.Tests/
   AgentUp.Registry.Tests.csproj
 
@@ -311,6 +317,7 @@ The exact project list may evolve, but ownership must not drift:
 | `AgentUp.Capabilities.Cursor` | First-party Agent SDK consumer that packs the `cursor` registry package |
 | `AgentUp.Capabilities.Claude` | First-party Agent SDK consumer that packs the `claude` registry package |
 | `AgentUp.Capabilities.Github` | First-party Forge SDK consumer that packs the `github` registry package |
+| `AgentUp.Capabilities.Forgejo` | First-party Forge SDK consumer that packs the `forgejo` registry package |
 | `AgentUp.Registry` | Local-directory store and remote HTTP catalog for versioned capability packages. Packages and push staging live under the configured registry root, resolved when the store is first used so nothing is written beside the running project. Not workspace orchestration; Server remains source of truth for enablement and launches |
 | `AgentUp.Desktop` | Avalonia UI, workspace display, logs, diagnostics, embedded WebView browser views |
 | `AgentUp.Mobile/` | Expo and React Native client for Android, iOS, and the installable web PWA; displays Server-owned state and submits user requests |
@@ -786,7 +793,7 @@ The Desktop is an Avalonia client for humans. It displays workspaces, browser ta
 
 Applications declared in `desktopApplications` are displayed in session-ticketed streamed application tabs. Desktop must not launch their virtual displays, capture frames, or own input/session state. HTTP application tabs connect directly to allocated ports for loopback Servers and use the session-ticketed application proxy for non-loopback Servers; they do not use the graphical application streaming path.
 
-It connects to one Server at a time and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. It must not own runtime state; its Git tab Git changes surface displays the Server-owned proposal queue, including entry order, messages, and verification state, and a hosting strip for Server-owned forge state when a forge module is enabled. Every launch is the connect picker: Desktop does not probe a packaged or repository Server URL until the user chooses a saved server or enters a URL, and the list always includes a built-in **Demo** entry. When `AGENTUP_RECOMMENDED_SERVER_URL` is set, that connection is listed after Demo and cannot be removed, matching Mobile. Sign-in UI is chosen from `GET /api/connection` `authentication.mode`. Only while Demo is connected does Desktop intercept `HttpClient` with the in-process fake backend from `AgentUp.FakeServer/definition.json`. While Demo is active, Desktop hides Database, Diagnostics, and Metrics. The Validation sidebar appears only when an application is selected and starts collapsed. Disconnecting and connecting to a real Server works without restart. Full guide: `docs/developer-guide/workspaces/index.md` and `docs/developer-guide/applications/index.md`.
+It connects to one Server at a time and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. It must not own runtime state; its Git tab Git changes surface displays the Server-owned proposal queue, including entry order, messages, and verification state, and a hosting strip for Server-owned forge state. The strip stays visible when no forge module is enabled: it shows `notInstalled` with the bootstrap remedy rather than hiding. Every launch is the connect picker: Desktop does not probe a packaged or repository Server URL until the user chooses a saved server or enters a URL, and the list always includes a built-in **Demo** entry. When `AGENTUP_RECOMMENDED_SERVER_URL` is set, that connection is listed after Demo and cannot be removed, matching Mobile. Sign-in UI is chosen from `GET /api/connection` `authentication.mode`. Only while Demo is connected does Desktop intercept `HttpClient` with the in-process fake backend from `AgentUp.FakeServer/definition.json`. While Demo is active, Desktop hides Database, Diagnostics, and Metrics. The Validation sidebar appears only when an application is selected and starts collapsed. Disconnecting and connecting to a real Server works without restart. Full guide: `docs/developer-guide/workspaces/index.md` and `docs/developer-guide/applications/index.md`.
 
 Installed Desktop packages must install or depend on a local Server service rather than embedding orchestration in the Desktop process.
 
@@ -947,6 +954,7 @@ This applies to every production/test project pair once created:
 | `AgentUp.Capabilities.Cursor` | `AgentUp.Capabilities.Cursor.Tests` |
 | `AgentUp.Capabilities.Claude` | `AgentUp.Capabilities.Claude.Tests` |
 | `AgentUp.Capabilities.Github` | `AgentUp.Capabilities.Github.Tests` |
+| `AgentUp.Capabilities.Forgejo` | `AgentUp.Capabilities.Forgejo.Tests` |
 | `AgentUp.Registry` | `AgentUp.Registry.Tests` |
 | `AgentUp.Desktop` | `AgentUp.Desktop.Tests` |
 | `AgentUp.CLI` | `AgentUp.CLI.Tests` |
@@ -1367,7 +1375,7 @@ Read: `docs/user-docs/applications/index.md` and `docs/developer-guide/applicati
 
 The Server's `Git` slice exposes the selected workspace's uncommitted changes as a directory tree, per-file diffs, a commit that stages only the requested paths, remote-tracking branches, fetch/pull/push, and a bounded commit log. It is the human review-and-commit surface rendered by the Desktop Git tab and the Mobile Git tab, and it is deliberately separate from the `Commits` slice, which owns the agent-facing commit queue described under Commit Workflow.
 
-When a forge module is enabled, Desktop Git shows a hosting strip above the change tree and Mobile shows a row on Git overview plus thread detail on Review. Display only — those surfaces do not open proposals, comment, or merge.
+Desktop Git always shows a hosting strip above the change tree, and Mobile always shows a row on Git overview plus thread detail on Review. With no forge module enabled that surface is `notInstalled` plus the bootstrap remedy, not an empty area. Display only — those surfaces do not open proposals, comment, or merge.
 
 Coding agents must still use the commit queue tools. The `Git` slice is a product surface for humans, not an escape hatch around `enqueue_commit`.
 
@@ -1415,7 +1423,7 @@ Agent-Up uses declarative repository configuration through `agent-up.json`. Appl
 
 Capability sections whose names match enabled runtime-kind modules are the preferred shape for ecosystem-aware requirements. First-party `dotnet` and `docker` use that same generic path. The registry `enabled.json` stores package id plus **package** version; `sdk` on a runtime entry is a **technology** version the module delivers. The Server loads enabled capability DLLs and calls `IRuntimeCapability` / `IAgentCapability` / `IForgeCapability`. The legacy `applications` list remains supported for executable-plus-arguments commands, and legacy Docker `services` remain supported for compatibility. ACP agents are listed from enabled agent-kind modules by module id, not a first-party enum.
 
-`CapabilityKind.Allowed` is `runtime`, `agent`, and `forge`. A forge has no Nix closure to deliver and no ACP session to run; it belongs beside the other two rather than inside either. `AgentUp.Sdk.Forge` owns the `IForgeCapability` contract. The first-party `github` module packs that SDK. A forge exposes the change proposal open against the current branch, its check results, its review threads with stable ids, and mergeability against the base branch. Those thread ids are what `enqueue_review_fix_commit` already requires as `reviewIssueId`. Writes the Server will issue through a forge are opening a proposal, updating a ref the module does not protect, commenting, and submitting a review. Merge and protected-ref writes stay with the host. Forge credentials are Server-owned and per workspace, stored the way agent credentials are; they never reach `agent-up.json` and never reach a managed process environment. A workspace with no forge enabled must behave exactly as it does today, and the clients display that state without mutating it.
+`CapabilityKind.Allowed` is `runtime`, `agent`, and `forge`. A forge has no Nix closure to deliver and no ACP session to run; it belongs beside the other two rather than inside either. `AgentUp.Sdk.Forge` owns the `IForgeCapability` contract. The first-party `github` and `forgejo` modules pack that SDK. Host URLs stay on the module (`IForgeCapability.Host`); Server Forge copy is host-neutral. A forge exposes the change proposal open against the current branch, its check results, its review threads with stable ids, and mergeability against the base branch. Those thread ids are what `enqueue_review_fix_commit` already requires as `reviewIssueId`. Writes the Server will issue through a forge are opening a proposal, updating a ref the module does not protect, commenting, and submitting a review. Merge and protected-ref writes stay with the host. Forge credentials are Server-owned and per workspace, stored the way agent credentials are; they never reach `agent-up.json` and never reach a managed process environment. A workspace with no forge enabled is `notInstalled`: Desktop Git and Mobile Git still show the hosting strip with that cause and the bootstrap remedy. Clients display hosting state; they do not mutate it.
 
 Read: `docs/user-docs/configuration/index.md` and `docs/developer-guide/configuration/index.md`.
 

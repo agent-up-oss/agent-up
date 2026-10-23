@@ -30,6 +30,11 @@ public sealed class ForgeCapabilityProjectDefinitionTests
     {
         public CapabilityIdentity Identity { get; } = new("sample-forge", "1.0.0", "Sample", "agent-up");
 
+        public ForgeHostConfiguration Host { get; } = new(
+            "https://example.test/api/",
+            "https://example.test/login/oauth/authorize",
+            "https://example.test/login/oauth/access_token");
+
         public Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken = default)
             => Task.FromResult(new ForgeHostSnapshot(null, [], [], null));
 

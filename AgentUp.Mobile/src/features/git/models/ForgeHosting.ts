@@ -1,4 +1,11 @@
-export type ForgeAvailability = 'none' | 'needsCredential' | 'unreachable' | 'noProposal' | 'ready';
+export type ForgeAvailability =
+  | 'none'
+  | 'notInstalled'
+  | 'needsCredential'
+  | 'noRemote'
+  | 'unreachable'
+  | 'noProposal'
+  | 'ready';
 
 export type ForgeProposal = {
   id: string;
@@ -37,4 +44,9 @@ export type ForgeHosting = {
   threads: ForgeReviewThread[];
   mergeability: ForgeMergeability | null;
   detail: string | null;
+  remedy: string | null;
+};
+
+export type ForgeLoginStart = {
+  authorizationUrl: string;
 };

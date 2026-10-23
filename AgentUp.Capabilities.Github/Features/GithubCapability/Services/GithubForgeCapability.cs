@@ -12,18 +12,29 @@ public sealed class GithubForgeCapability : IForgeCapability
     private readonly GithubApiProvider _api;
 
     public GithubForgeCapability()
-        : this(new GithubApiProvider())
+        : this(new GithubHostConfigurationProvider().Read())
     {
     }
 
-    public GithubForgeCapability(HttpMessageHandler handler)
-        : this(new GithubApiProvider(handler))
+    public GithubForgeCapability(ForgeHostConfiguration host)
+        : this(new GithubApiProvider(apiBaseUrl: host.ApiBaseUrl), host)
     {
     }
 
-    public GithubForgeCapability(GithubApiProvider api) => _api = api;
+    public GithubForgeCapability(HttpMessageHandler handler, ForgeHostConfiguration? host = null)
+        : this(new GithubApiProvider(handler, host?.ApiBaseUrl), host ?? new GithubHostConfigurationProvider().Read())
+    {
+    }
+
+    public GithubForgeCapability(GithubApiProvider api, ForgeHostConfiguration? host = null)
+    {
+        _api = api;
+        Host = host ?? new GithubHostConfigurationProvider().Read();
+    }
 
     public CapabilityIdentity Identity { get; } = new(PackageId, PackageVersion, "GitHub", "agent-up");
+
+    public ForgeHostConfiguration Host { get; }
 
     public Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken = default)
         => _api.ReadAsync(request, cancellationToken);

@@ -56,6 +56,25 @@ public sealed class DesktopAutomationIdTests
     }
 
     [AvaloniaTest]
+    public async Task GitHosting_isAddressableByAutomationId()
+    {
+        var app = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
+        var viewModel = (MainViewModel)app.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Git;
+        await HeadlessExtensions.FlushAsync();
+
+        var strip = ChromeTestSupport.FindDescendantByAutomationId<Border>(
+            app.Window, DesktopAutomationIds.GitHosting);
+        var title = ChromeTestSupport.FindDescendantByAutomationId<TextBlock>(
+            app.Window, DesktopAutomationIds.GitHostingTitle);
+
+        Assert.That(strip, Is.Not.Null);
+        Assert.That(strip!.IsVisible, Is.True);
+        Assert.That(title, Is.Not.Null);
+        Assert.That(title!.Text, Does.Contain("forge capability"));
+    }
+
+    [AvaloniaTest]
     public async Task ValidationToggle_isAddressableByAutomationId()
     {
         var app = await AppDriver.LaunchWithWorkspacesAsync([DesktopDomain.WorkspaceWithApplications().Build()]);

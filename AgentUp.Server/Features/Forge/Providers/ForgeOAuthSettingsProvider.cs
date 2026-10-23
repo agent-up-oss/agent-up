@@ -7,7 +7,7 @@ public sealed class ForgeOAuthSettingsProvider(IConfiguration configuration) : I
 {
     public ForgeOAuthConfiguration Read()
         => new(
-            configuration["AGENTUP_GITHUB_CLIENT_ID"] ?? "",
-            configuration["AGENTUP_GITHUB_CLIENT_SECRET"] ?? "",
-            configuration["AGENTUP_GITHUB_REDIRECT_URI"] ?? "");
+            configuration["AGENTUP_FORGE_CLIENT_ID"] ?? "",
+            configuration["AGENTUP_FORGE_CLIENT_SECRET"] ?? "",
+            configuration["AGENTUP_FORGE_REDIRECT_URI"] ?? "");
 }

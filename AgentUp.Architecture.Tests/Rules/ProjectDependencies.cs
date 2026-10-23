@@ -47,6 +47,7 @@ public sealed class ProjectDependencies
         AssertDoesNotDependOn("AgentUp.Capabilities.Cursor", Except("AgentUp.Capabilities.Cursor", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Sdk.Common", "AgentUp.Sdk.Agent"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Claude", Except("AgentUp.Capabilities.Claude", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Sdk.Common", "AgentUp.Sdk.Agent"));
         AssertDoesNotDependOn("AgentUp.Capabilities.Github", Except("AgentUp.Capabilities.Github", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Sdk.Common", "AgentUp.Sdk.Forge"));
+        AssertDoesNotDependOn("AgentUp.Capabilities.Forgejo", Except("AgentUp.Capabilities.Forgejo", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Sdk.Common", "AgentUp.Sdk.Forge"));
         AssertDoesNotDependOn("AgentUp.Server", Except("AgentUp.Server", "AgentUp.Browser.Streaming", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions", "AgentUp.Capabilities.Common", "AgentUp.Registry", "AgentUp.InstallerConfig", "AgentUp.Sdk.Common", "AgentUp.Sdk.Runtime", "AgentUp.Sdk.Agent", "AgentUp.Sdk.Forge"));
         AssertDoesNotDependOn("AgentUp.Desktop", Except("AgentUp.Desktop", "AgentUp.InstallerConfig"));
         AssertDoesNotDependOn("AgentUp.CLI", Except("AgentUp.CLI", "AgentUp.CommitPolicy", "AgentUp.Verification", "AgentUp.Capabilities.Abstractions", "AgentUp.InstallerConfig"));

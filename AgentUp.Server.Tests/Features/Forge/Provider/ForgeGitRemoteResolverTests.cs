@@ -15,9 +15,13 @@ public sealed class ForgeGitRemoteResolverTests
         => AssertRemote("git@github.com:acme/widgets.git", "acme", "widgets", "topic", "topic");
 
     [Test]
-    public void Resolve_returnsNullForANonGitHubRemote()
+    public void Resolve_readsAnHttpsForgejoOrigin()
+        => AssertRemote("https://git.example.test/acme/widgets.git", "acme", "widgets", "main");
+
+    [Test]
+    public void Resolve_returnsNullForAFileRemote()
     {
-        var root = WriteCheckout("https://example.test/acme/widgets.git", "main");
+        var root = WriteCheckout("file:///var/repos/acme/widgets.git", "main");
         try
         {
             Assert.That(new ForgeGitRemoteResolver(new GitDirectoryProvider()).Resolve(root), Is.Null);
@@ -90,8 +94,8 @@ public sealed class ForgeGitRemoteResolverTests
     }
 
     [Test]
-    public void TryParse_rejectsAGitHubUrlWithNoRepository()
-        => Assert.That(ForgeGitRemoteResolver.TryParse("https://github.com/acme", out _, out _), Is.False);
+    public void TryParse_rejectsAUrlWithNoRepository()
+        => Assert.That(ForgeGitRemoteResolver.TryParse("https://git.example.test/acme", out _, out _), Is.False);
 
     private static void AssertRemote(string url, string owner, string repository, string branch, string head = "main")
     {

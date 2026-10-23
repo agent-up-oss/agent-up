@@ -127,6 +127,30 @@ public sealed class GithubApiProviderTests
     }
 
     [Test]
+    public async Task CreateClient_uses_the_configured_api_base_url()
+    {
+        var host = GithubHostConfigurationProvider.From("https://ghe.example.test/api/v3", null, null);
+        var handler = Recorded(("GET /api/v3/repos/acme/widgets/pulls?head=acme:topic&state=open", "[]"));
+
+        await new GithubForgeCapability(handler, host).ReadAsync(Request());
+
+        Assert.That(handler.Uris.Single(), Does.StartWith("https://ghe.example.test/api/v3/repos/"));
+    }
+
+    [Test]
+    public void HostConfiguration_overrides_each_endpoint_independently()
+    {
+        var host = GithubHostConfigurationProvider.From(
+            "https://ghe.example.test/api/v3",
+            "https://ghe.example.test/login/oauth/authorize",
+            "https://ghe.example.test/login/oauth/access_token");
+
+        Assert.That(host.ApiBaseUrl, Is.EqualTo("https://ghe.example.test/api/v3/"));
+        Assert.That(host.OAuthAuthorizeUrl, Is.EqualTo("https://ghe.example.test/login/oauth/authorize"));
+        Assert.That(host.OAuthTokenUrl, Is.EqualTo("https://ghe.example.test/login/oauth/access_token"));
+    }
+
+    [Test]
     public async Task SubmitReviewAsync_posts_a_review()
     {
         var handler = Recorded(("POST /repos/acme/widgets/pulls/42/reviews", "{}"));
@@ -163,6 +187,7 @@ public sealed class GithubApiProviderTests
     private sealed class RecordedHandler(IReadOnlyDictionary<string, string> responses) : HttpMessageHandler
     {
         public List<string> Requests { get; } = [];
+        public List<string> Uris { get; } = [];
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -171,6 +196,8 @@ public sealed class GithubApiProviderTests
                 : request.RequestUri.PathAndQuery.TrimStart('/');
             var key = $"{request.Method.Method} /{path}";
             Requests.Add(key);
+            if (request.RequestUri is not null)
+                Uris.Add(request.RequestUri.ToString());
             if (!responses.TryGetValue(key, out var body))
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
 

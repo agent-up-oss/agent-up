@@ -16,6 +16,16 @@ public sealed class GithubForgeCapabilityTests
     }
 
     [Test]
+    public void Host_defaults_to_github_dot_com_endpoints()
+    {
+        var capability = new GithubForgeCapability();
+
+        Assert.That(capability.Host.ApiBaseUrl, Is.EqualTo(GithubHostConfigurationProvider.DefaultApiBaseUrl));
+        Assert.That(capability.Host.OAuthAuthorizeUrl, Is.EqualTo(GithubHostConfigurationProvider.DefaultAuthorizeUrl));
+        Assert.That(capability.Host.OAuthTokenUrl, Is.EqualTo(GithubHostConfigurationProvider.DefaultTokenUrl));
+    }
+
+    [Test]
     public void IsProtected_refuses_main_and_master()
     {
         Assert.That(GithubApiProvider.IsProtected("main"), Is.True);

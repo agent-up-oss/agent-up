@@ -295,6 +295,19 @@
           "AgentUp.Sdk.Forge"
         ]
       },
+      "capabilities-forgejo": {
+        "requires": ["dotnet"],
+        "command": "dotnet test AgentUp.Capabilities.Forgejo.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-forgejo",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Capabilities.Forgejo",
+          "AgentUp.Capabilities.Forgejo.Tests",
+          "AgentUp.Capabilities.Abstractions",
+          "AgentUp.Capabilities.Common",
+          "AgentUp.Sdk.Common",
+          "AgentUp.Sdk.Forge"
+        ]
+      },
       "server": {
         "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Server.Tests --filter Category!=LoopInference&Category!=LoopSoak --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
@@ -903,6 +916,21 @@
         ]
       },
       {
+        "match": "AgentUp.Capabilities.Forgejo/**",
+        "checks": [
+          "capabilities-forgejo",
+          "server",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Forgejo.Tests/**",
+        "checks": [
+          "capabilities-forgejo",
+          "patch-coverage"
+        ]
+      },
+      {
         "match": "AgentUp.Server/**",
         "checks": [
           "server",
@@ -1373,6 +1401,7 @@
       "AgentUp.Capabilities.Cursor/**/*.cs",
       "AgentUp.Capabilities.Claude/**/*.cs",
       "AgentUp.Capabilities.Github/**/*.cs",
+      "AgentUp.Capabilities.Forgejo/**/*.cs",
       "AgentUp.Browser.Streaming/**/*.cs",
       "AgentUp.Tray/**/*.cs",
       "AgentUp.InstallerConfig/**/*.cs",

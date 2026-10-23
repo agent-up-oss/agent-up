@@ -52,4 +52,5 @@ pack_one AgentUp.Capabilities.Codex/AgentUp.Capabilities.Codex.csproj
 pack_one AgentUp.Capabilities.Cursor/AgentUp.Capabilities.Cursor.csproj
 pack_one AgentUp.Capabilities.Claude/AgentUp.Capabilities.Claude.csproj
 pack_one AgentUp.Capabilities.Github/AgentUp.Capabilities.Github.csproj
+pack_one AgentUp.Capabilities.Forgejo/AgentUp.Capabilities.Forgejo.csproj
 echo "Packed first-party capabilities into $registry"
