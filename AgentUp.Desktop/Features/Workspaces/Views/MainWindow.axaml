@@ -15,6 +15,7 @@
         xmlns:chromeVm="using:AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome"
         xmlns:authDto="using:AgentUp.Desktop.Features.Authentication.DTOs"
         xmlns:entModels="using:AgentUp.Desktop.Features.Entitlements.Models"
+        xmlns:interfaceViews="using:AgentUp.Desktop.Features.Interface.Views"
         x:Class="AgentUp.Desktop.Features.Workspaces.Views.MainWindow"
         x:CompileBindings="False"
         Width="1100" Height="700"
@@ -686,7 +687,8 @@
                 </Grid>
             </Panel>
 
-            <Grid IsVisible="{Binding !Login.IsVisible}"
+            <Panel IsVisible="{Binding !Login.IsVisible}">
+            <Grid IsVisible="{Binding CommandCenter.Classic, FallbackValue=True}"
                   HorizontalAlignment="Stretch"
                   VerticalAlignment="Stretch">
             <Grid.ColumnDefinitions>
@@ -2331,6 +2333,10 @@
         </Border>
 
         </Grid>
+            <interfaceViews:CommandCenterView
+                x:Name="CommandCenterPage"
+                IsVisible="{Binding CommandCenter.Active, FallbackValue=False}"/>
+            </Panel>
 
         <Grid ZIndex="100"
               x:Name="AddWorkspaceOverlay"

@@ -20,6 +20,7 @@ using AgentUp.Desktop.Features.Validation.Controllers;
 using AgentUp.Desktop.Features.Validation.Interfaces;
 using AgentUp.Desktop.Features.Validation.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Features.Interface.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome;
 using ReactiveUI;
 
@@ -58,6 +59,9 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public WindowChromeViewModel Chrome { get; } = new();
     public ValidationViewModel? Validation { get; }
     public CapabilityModulesViewModel? Modules { get; }
+
+    /// <summary>Which shell the window draws. Null in hosts that never offer the command center.</summary>
+    public CommandCenterViewModel? CommandCenter { get; }
     internal IValidationReplayConnector? ValidationReplay { get; }
     public bool IsValidationOpen => ShowValidation && Validation is { IsCollapsed: false };
     public bool ShowValidation =>
@@ -175,9 +179,11 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         PortsController ports,
         ValidationViewModel? validation = null,
         IValidationReplayConnector? validationReplay = null,
-        CapabilityModulesViewModel? modules = null)
+        CapabilityModulesViewModel? modules = null,
+        CommandCenterViewModel? commandCenter = null)
     {
         Sidebar = sidebar;
+        CommandCenter = commandCenter;
         Applications = applications;
         Console = console;
         Metrics = metrics;
@@ -812,6 +818,15 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
                 14,
                 Modules.OpenCommand,
                 "Capability modules");
+        }
+        if (CommandCenter is not null)
+        {
+            yield return new ChromeIconButtonViewModel(
+                "CommandCenterButton",
+                "◧",
+                14,
+                CommandCenter.ToggleCommand,
+                CommandCenter.ToggleToolTip);
         }
         yield return _chromeServerStatus;
     }

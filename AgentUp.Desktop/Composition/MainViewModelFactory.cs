@@ -38,6 +38,9 @@ using AgentUp.Desktop.Features.Ports.Services;
 using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.Services;
+using AgentUp.Desktop.Features.Interface.Controllers;
+using AgentUp.Desktop.Features.Interface.Providers;
+using AgentUp.Desktop.Features.Interface.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Browser.Controllers;
 using AgentUp.Desktop.Features.Capabilities.Controllers;
@@ -104,7 +107,8 @@ public static class MainViewModelFactory
         AgentApiClient? agentClient = null,
         LoginViewModel? login = null,
         CapabilityModulesApiClient? capabilityModulesClient = null,
-        HttpClient? entitlementsHttp = null)
+        HttpClient? entitlementsHttp = null,
+        CommandCenterViewModel? commandCenter = null)
     {
         var workspaces = new WorkspacesController(new WorkspaceListService(workspaceClient));
         var entitlements = new EntitlementsController(new EntitlementsService(
@@ -143,7 +147,8 @@ public static class MainViewModelFactory
             ports,
             new ValidationViewModel(validationApi, validationReplay),
             validationReplay,
-            modules);
+            modules,
+            commandCenter ?? new CommandCenterViewModel(new InterfaceController(new FileInterfacePreferenceStore())));
     }
 
     public static MainViewModel Create(HttpClient http, LoginViewModel? login = null, HttpClient? agentEventsHttp = null)

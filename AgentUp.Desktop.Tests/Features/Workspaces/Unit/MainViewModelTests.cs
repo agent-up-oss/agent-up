@@ -18,6 +18,10 @@ using AgentUp.Desktop.Features.Agents.Providers;
 using AgentUp.Desktop.Features.Git.Providers;
 using AgentUp.Desktop.Features.Validation.Providers;
 using AgentUp.Desktop.Composition;
+using AgentUp.Desktop.Features.Interface.Controllers;
+using AgentUp.Desktop.Features.Interface.Interfaces;
+using AgentUp.Desktop.Features.Interface.Models;
+using AgentUp.Desktop.Features.Interface.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome;
 
@@ -179,7 +183,7 @@ public class MainViewModelTests
 
     // Named rather than counted so adding a chrome action reads as a deliberate change here
     // instead of an off-by-one, and so a rename cannot pass by keeping the count the same.
-    private static readonly string[] WorkspaceChromeButtons = ["ReloadButton", "CapabilityModulesButton"];
+    private static readonly string[] WorkspaceChromeButtons = ["ReloadButton", "CapabilityModulesButton", "CommandCenterButton"];
 
     private static string[] ChromeButtonNames(MainViewModel vm)
         => vm.Chrome.LeftItems.OfType<ChromeIconButtonViewModel>().Select(item => item.Name).ToArray();
@@ -1086,7 +1090,22 @@ public class MainViewModelTests
             validationClient: NullValidationClient(),
             agentClient: NullAgentClient(),
             login: login,
-            entitlementsHttp: NullEntitlementsHttp);
+            entitlementsHttp: NullEntitlementsHttp,
+            commandCenter: new CommandCenterViewModel(new InterfaceController(new MemoryInterfaceStore())));
+
+    /// <summary>Keeps these tests off the real preference file, so the shell they assert on is the one they chose.</summary>
+    private sealed class MemoryInterfaceStore : IInterfacePreferenceStore
+    {
+        private InterfacePreference _preference = new();
+
+        public InterfacePreference Load() => _preference;
+
+        public bool Save(InterfacePreference preference)
+        {
+            _preference = preference;
+            return true;
+        }
+    }
 
     private static readonly HttpClient NullEntitlementsHttp = new(new StatusCodeHandler(HttpStatusCode.NotFound))
     {

@@ -1,0 +1,141 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AgentUp.Desktop.Features.Interface.Views.CommandCenterView"
+             x:CompileBindings="False"
+             Background="{DynamicResource AgentUpColorCanvasBrush}">
+
+    <!--
+        The command center shell. It draws only what the Server already answers: the team is
+        the workspace list, because an agent and its workspace are the same thing. Surfaces
+        that need a read the Server does not expose yet say so rather than showing a number
+        that nothing produced.
+    -->
+    <Grid ColumnDefinitions="208,*">
+
+        <Border Grid.Column="0"
+                Background="{DynamicResource AgentUpColorSurfaceBrush}"
+                BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                BorderThickness="0,0,1,0"
+                Padding="12,16">
+            <DockPanel LastChildFill="False">
+                <StackPanel DockPanel.Dock="Top" Spacing="2">
+                    <TextBlock Text="TEAM"
+                               FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource AgentUpColorTextFaintBrush}"
+                               Margin="10,4,0,6"/>
+                    <ItemsControl ItemsSource="{Binding Sidebar.Workspaces}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="10,8"
+                                        CornerRadius="6"
+                                        Background="{DynamicResource AgentUpColorTransparentBrush}">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   FontSize="13"
+                                                   Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                                        <TextBlock Text="{Binding State}"
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Bottom" Spacing="6">
+                    <Button Command="{Binding CommandCenter.ToggleCommand}"
+                            x:Name="SwitchBackButton"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Padding="10,8"
+                            Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
+                            BorderBrush="{DynamicResource AgentUpColorBorderStrongBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6">
+                        <TextBlock Text="Switch back to the classic interface"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                    </Button>
+                    <TextBlock Text="This machine could not store the choice, so it resets on restart."
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Margin="2,0"
+                               IsVisible="{Binding !CommandCenter.Persists}"
+                               Foreground="{DynamicResource AgentUpColorTextWarningBrush}"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <ScrollViewer Grid.Column="1" Padding="30,26">
+            <StackPanel Spacing="18" MaxWidth="980" HorizontalAlignment="Left">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Bridge"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                    <TextBlock Text="One page per agent, and what needs you across all of them."
+                               FontSize="13"
+                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                </StackPanel>
+
+                <Border Background="{DynamicResource AgentUpColorSurfaceBrush}"
+                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="20">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="TEAM"
+                                   FontSize="10"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                        <ItemsControl ItemsSource="{Binding Sidebar.Workspaces}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,8"
+                                            Padding="14,12"
+                                            CornerRadius="8"
+                                            Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
+                                            BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                                            BorderThickness="1">
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="{Binding DisplayName}"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                                            <TextBlock Text="{Binding Branch}"
+                                                       FontSize="12"
+                                                       FontFamily="{DynamicResource AgentUpFontMono}"
+                                                       Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                                            <TextBlock Text="{Binding State}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <Border BorderBrush="{DynamicResource AgentUpColorBorderStrongBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="20">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Approval gates and the task queue are not here yet"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                        <TextBlock TextWrapping="Wrap"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
+                                   Text="Triage needs one read across every agent, and the task queue needs a connected repository host. This Server answers neither yet, so this shell shows what the workspace list reports instead of inventing a queue. The classic interface remains complete."/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
