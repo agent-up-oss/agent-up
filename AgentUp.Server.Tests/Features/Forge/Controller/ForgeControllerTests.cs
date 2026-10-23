@@ -69,6 +69,18 @@ public sealed class ForgeControllerTests
         Assert.That(hosting!.Availability, Is.EqualTo("needsCredential"));
     }
 
+    [Test]
+    public async Task HasCredential_forwardsTheStoredForgeToken()
+    {
+        var (controller, workspaceId, _) = await ArrangeAsync();
+
+        Assert.That(controller.HasCredential(workspaceId), Is.True);
+        Assert.That(controller.HasAnyCredential(), Is.True);
+        Assert.That(controller.Logout(workspaceId), Is.True);
+        Assert.That(controller.HasCredential(workspaceId), Is.False);
+        Assert.That(controller.HasAnyCredential(), Is.False);
+    }
+
     private static async Task<(ForgeController Controller, string WorkspaceId, StubForgeCapability Forge)> ArrangeAsync()
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());

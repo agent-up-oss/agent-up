@@ -362,6 +362,18 @@ public sealed class ForgeServiceTests
     }
 
     [Test]
+    public async Task HasCredential_treatsAWhitespaceTokenAsMissing()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var (service, workspaceId) = await ArrangeAsync(new StubForgeCapability(), credentials);
+        credentials.Write(workspaceId, "github", "   ");
+
+        Assert.That(service.HasCredential(workspaceId), Is.False);
+        Assert.That(service.HasAnyCredential(), Is.False);
+        Assert.That(service.HasCredential("missing"), Is.False);
+    }
+
+    [Test]
     public async Task CompleteLoginAsync_returnsFalseForAnUnknownState()
     {
         var (service, _) = await ArrangeAsync(new StubForgeCapability());

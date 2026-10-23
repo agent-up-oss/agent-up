@@ -136,6 +136,30 @@ public sealed class LoopPreconditionProviderTests
         Assert.That(await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None), Is.Null);
     }
 
+    [Test]
+    public async Task UnmetAsync_treatsInjectedHostPresenceAsAuthorization()
+    {
+        var host = await HostAsync(hostPresence: new FixedHostPresence(true));
+        await host.Workspaces.UpdateBoundAgentAsync(host.WorkspaceId, "codex");
+        host.Settings.Save(host.Settings.Get(host.WorkspaceId) with
+        {
+            PolicyRules = [new PermissionRule("all", PermissionRuleKind.WorktreeWrite, true)]
+        });
+
+        Assert.That(await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None), Is.Null);
+    }
+
+    [Test]
+    public async Task UnmetAsync_namesAMissingHostWhenInjectedPresenceIsAbsent()
+    {
+        var host = await HostAsync(hostPresence: new FixedHostPresence(false));
+        await ReadyAsync(host);
+
+        var unmet = await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None);
+
+        Assert.That(unmet, Does.Contain("hostConnectionAuthorized"));
+    }
+
     private static async Task ReadyAsync(Host host)
     {
         await host.Workspaces.UpdateBoundAgentAsync(host.WorkspaceId, "codex");
@@ -146,7 +170,7 @@ public sealed class LoopPreconditionProviderTests
         });
     }
 
-    private static async Task<Host> HostAsync(bool supportsPermissions = true)
+    private static async Task<Host> HostAsync(bool supportsPermissions = true, IHostConnectionPresence? hostPresence = null)
     {
         var registry = ServerTestComposition.CreateRegistry();
         await registry.StartAsync(CancellationToken.None);
@@ -163,7 +187,8 @@ public sealed class LoopPreconditionProviderTests
             new GitQueryController(new GitChangeTreeService(workspaces, git, new FakeWorkspacePromptGuard())),
             commits,
             settings,
-            new FixedInspector(supportsPermissions));
+            new FixedInspector(supportsPermissions),
+            hostPresence);
         return new Host(workspace.Id, workspaces, git, settings, queue, commitsGit, preconditions);
     }
 
@@ -179,6 +204,12 @@ public sealed class LoopPreconditionProviderTests
     private sealed class FixedInspector(bool supported) : IEnabledAgentInspector
     {
         public bool SupportsPermissionRequests(string agentModuleId) => supported;
+    }
+
+    private sealed class FixedHostPresence(bool present) : IHostConnectionPresence
+    {
+        public bool IsPresent() => present;
+        public bool IsPresent(string workspaceId) => present;
     }
 
     private sealed class MemoryCommitsQueue : ICommitsQueueProvider

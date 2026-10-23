@@ -30,4 +30,38 @@ public sealed class AutonomyPreconditionsTests
     {
         Assert.That(AutonomyPreconditions.Remedy("unknownStep"), Is.EqualTo("unknownStep"));
     }
+
+    [Test]
+    public void Remedy_namesTheControlSurfaceSteps()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(AutonomyPreconditions.Remedy(AutonomyPreconditions.ForgeCapabilityEnabled), Is.EqualTo(AutonomyPreconditions.ForgeCapabilityRemedy));
+            Assert.That(AutonomyPreconditions.Remedy(AutonomyPreconditions.HostConnectionAuthorized), Is.EqualTo(AutonomyPreconditions.HostConnectionRemedy));
+            Assert.That(AutonomyPreconditions.Remedy(AutonomyPreconditions.AgentAvailable), Is.EqualTo(AutonomyPreconditions.AgentAvailableRemedy));
+            Assert.That(AutonomyPreconditions.Remedy(AutonomyPreconditions.AutonomyEnabled), Is.EqualTo(AutonomyPreconditions.AutonomyEnabledRemedy));
+        });
+    }
+
+    [Test]
+    public void Remedy_namesTheLoopActivationSteps()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(AutonomyPreconditions.Remedy(AutonomyPreconditions.WorkspaceRegistered), Is.EqualTo(AutonomyPreconditions.WorkspaceRegisteredRemedy));
+            Assert.That(AutonomyPreconditions.Remedy(AutonomyPreconditions.BoundAgent), Is.EqualTo(AutonomyPreconditions.BoundAgentRemedy));
+            Assert.That(AutonomyPreconditions.Remedy(AutonomyPreconditions.PermissionRequests), Is.EqualTo(AutonomyPreconditions.PermissionRequestsRemedy));
+            Assert.That(AutonomyPreconditions.Remedy(AutonomyPreconditions.PermissionPolicy), Is.EqualTo(AutonomyPreconditions.PermissionPolicyRemedy));
+            Assert.That(AutonomyPreconditions.Remedy(AutonomyPreconditions.GitBranch), Is.EqualTo(AutonomyPreconditions.GitBranchRemedy));
+            Assert.That(AutonomyPreconditions.Remedy(AutonomyPreconditions.UnpushedCommits), Is.EqualTo(AutonomyPreconditions.UnpushedCommitsRemedy));
+            Assert.That(AutonomyPreconditions.Remedy(AutonomyPreconditions.CommitQueueEdit), Is.EqualTo(AutonomyPreconditions.CommitQueueEditRemedy));
+            Assert.That(AutonomyPreconditions.Remedy(AutonomyPreconditions.UnassignedChanges), Is.EqualTo(AutonomyPreconditions.UnassignedChangesRemedy));
+        });
+    }
+
+    [Test]
+    public void Refusal_usesTheStepIdWhenTheRemedyFallsBack()
+    {
+        Assert.That(AutonomyPreconditions.Refusal("unknownStep"), Is.EqualTo("unknownStep: unknownStep"));
+    }
 }

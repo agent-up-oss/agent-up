@@ -633,6 +633,68 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_ignoresAStaleLoopCompletionAfterALaterActivation()
+    {
+        var queued = new Queue<Action>();
+        var backend = FakeServerTestComposition.Backend((_, work) => queued.Enqueue(work));
+        Assert.That(Run(backend, Put("/api/autonomy", """{"enabled":true}""")).Status, Is.EqualTo(204));
+        Assert.That(Run(backend, Put("/api/workspaces/harbor-shop/agent/autonomy", """{"active":true}""")).Status, Is.EqualTo(204));
+        Assert.That(Run(backend, Put("/api/workspaces/harbor-shop/agent/autonomy", """{"active":true}""")).Status, Is.EqualTo(204));
+        queued.Dequeue()();
+        Assert.That(Json(backend, Get("/api/workspaces/harbor-shop/agent/loop"))["active"]!.GetValue<bool>(), Is.True);
+        queued.Dequeue()();
+        Assert.That(Json(backend, Get("/api/workspaces/harbor-shop/agent/loop"))["terminal"]!.GetValue<string>(), Is.EqualTo("Completed"));
+    }
+
+    [Test]
+    public void Handle_ignoresLoopCompletionAfterCancel()
+    {
+        var queued = new Queue<Action>();
+        var backend = FakeServerTestComposition.Backend((_, work) => queued.Enqueue(work));
+        Assert.That(Run(backend, Put("/api/autonomy", """{"enabled":true}""")).Status, Is.EqualTo(204));
+        Assert.That(Run(backend, Put("/api/workspaces/harbor-shop/agent/autonomy", """{"active":true}""")).Status, Is.EqualTo(204));
+        Assert.That(Run(backend, Put("/api/workspaces/harbor-shop/agent/autonomy", """{"active":false}""")).Status, Is.EqualTo(204));
+        queued.Dequeue()();
+        Assert.That(Json(backend, Get("/api/workspaces/harbor-shop/agent/loop"))["terminal"]!.GetValue<string>(), Is.EqualTo("Cancelled"));
+    }
+
+    [Test]
+    public void Handle_autonomyLoopRoutesReturnNotFoundForUnknownWorkspaces()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Assert.That(Run(backend, Get("/api/workspaces/missing/agent/loop")).Status, Is.EqualTo(404));
+        Assert.That(Run(backend, Put("/api/workspaces/missing/agent/autonomy", """{"active":true}""")).Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public void Handle_autonomyEnablementReadsJsonBooleansAndResets()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Assert.That(Run(backend, Put("/api/autonomy", "")).Status, Is.EqualTo(204));
+        Assert.That(Json(backend, Get("/api/autonomy"))["enabled"]!.GetValue<bool>(), Is.False);
+        Assert.That(Run(backend, Put("/api/autonomy", "{not-json")).Status, Is.EqualTo(204));
+        Assert.That(Run(backend, Put("/api/autonomy", """{"enabled":true}""")).Status, Is.EqualTo(204));
+        Assert.That(Json(backend, Get("/api/autonomy"))["enabled"]!.GetValue<bool>(), Is.True);
+        backend.Reset();
+        Assert.That(Json(backend, Get("/api/autonomy"))["enabled"]!.GetValue<bool>(), Is.False);
+    }
+
+    [Test]
+    public void Handle_autonomyMarksAgentAvailableFalseWhenEveryAgentIsDisabled()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Json(backend, Post("/api/capabilities/disable/codex"));
+        Json(backend, Post("/api/capabilities/disable/cursor"));
+        Json(backend, Post("/api/capabilities/disable/claude"));
+        var status = Json(backend, Get("/api/autonomy"));
+        var agent = status["preconditions"]!.AsArray()
+            .Single(item => item!["id"]!.GetValue<string>() == "agentAvailable")!;
+
+        Assert.That(agent["satisfied"]!.GetValue<bool>(), Is.False);
+        Assert.That(agent["remedy"]!.GetValue<string>(), Is.EqualTo("Enable an agent capability"));
+    }
+
+    [Test]
     public void Handle_agentSessionListsCurrentAndPriorSavedSessions()
     {
         var backend = FakeServerTestComposition.Backend();
