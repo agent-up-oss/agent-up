@@ -58,22 +58,57 @@
                                    FontFamily="{DynamicResource AgentUpFontMono}"
                                    IsVisible="{Binding HasDiagnosticCode}"
                                    Foreground="{DynamicResource AgentUpColorTextWarningBrush}"/>
-                        <TextBlock Text="{Binding PermissionSummary}"
-                                   FontSize="11"
-                                   FontFamily="{DynamicResource AgentUpFontMono}"
-                                   IsVisible="{Binding HasPermissionSummary}"
-                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                        <TextBlock Text="{Binding ToolsSummary}"
-                                   FontSize="11"
-                                   TextWrapping="Wrap"
-                                   FontFamily="{DynamicResource AgentUpFontMono}"
-                                   IsVisible="{Binding HasTools}"
-                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
                         <TextBlock Text="{Binding ProposalLabel}"
                                    FontSize="11"
                                    TextWrapping="Wrap"
                                    IsVisible="{Binding ShowProposalBesideTask}"
                                    Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="8"
+                                    Margin="0,4,0,0"
+                                    IsVisible="{Binding HasStatusRow}">
+                            <TextBlock Text="●"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       ToolTip.Tip="{Binding ChecksToolTip}"
+                                       Foreground="{Binding ChecksColor}"/>
+                            <TextBlock Text="{Binding ChecksCount}"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       ToolTip.Tip="{Binding ChecksToolTip}"
+                                       Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                            <TextBlock Text="—"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                            <ItemsControl ItemsSource="{Binding Reviews}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="6"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="7,2"
+                                                CornerRadius="4"
+                                                ToolTip.Tip="{Binding ToolTip}"
+                                                BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                                                BorderThickness="1">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock Text="{Binding Label}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                                                <TextBlock Text="{Binding Glyph}"
+                                                           FontSize="11"
+                                                           FontWeight="Bold"
+                                                           Foreground="{Binding Color}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
                         <TextBlock Text="{Binding ThreadSummary}"
                                    FontSize="11"
                                    IsVisible="{Binding HasUnresolvedThreads}"
@@ -91,14 +126,6 @@
                                    HorizontalAlignment="Right"
                                    FontFamily="{DynamicResource AgentUpFontMono}"
                                    Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                        <TextBlock Text="{Binding ChecksSummary}"
-                                   FontSize="11"
-                                   HorizontalAlignment="Right"
-                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                        <TextBlock Text="{Binding ForgeStatus}"
-                                   FontSize="11"
-                                   HorizontalAlignment="Right"
-                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
                     </StackPanel>
                 </Grid>
             </Border>

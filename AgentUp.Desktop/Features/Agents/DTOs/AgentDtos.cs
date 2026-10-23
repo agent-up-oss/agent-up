@@ -40,7 +40,8 @@ public sealed record AgentRoleDto(
     string Prompt,
     IReadOnlyList<string> Tools,
     string Trigger,
-    string Termination);
+    string Termination,
+    string? Review = null);
 public sealed record AgentSessionDto(
     string WorkspaceId,
     string? Agent,

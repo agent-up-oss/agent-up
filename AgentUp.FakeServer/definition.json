@@ -620,7 +620,8 @@
             "stop_workspace"
           ],
           "trigger": "IssueAssigned",
-          "termination": "ProposalOpened"
+          "termination": "ProposalOpened",
+          "review": "None"
         }
       },
       "scripts": [
@@ -756,7 +757,8 @@
             "export_workspace_review_snapshot"
           ],
           "trigger": "ProposalAwaitingReview",
-          "termination": "ReviewSubmitted"
+          "termination": "ReviewSubmitted",
+          "review": "Pm"
         }
       },
       "scripts": [
@@ -889,7 +891,8 @@
             "export_verification"
           ],
           "trigger": "ProposalAwaitingReview",
-          "termination": "ReviewSubmitted"
+          "termination": "ReviewSubmitted",
+          "review": "Dev"
         }
       },
       "scripts": [
@@ -1074,7 +1077,17 @@
         "displayName": "Bob",
         "isBot": true,
         "url": "https://github.com/apps/bob-aup"
-      }
+      },
+      "reviews": [
+        {
+          "login": "hector-aup[bot]",
+          "state": "APPROVED"
+        },
+        {
+          "login": "lucy-aup[bot]",
+          "state": "COMMENTED"
+        }
+      ]
     },
     "lucy": {
       "availability": "ready",
@@ -1106,6 +1119,12 @@
           "status": "in_progress",
           "conclusion": "",
           "url": "https://github.com/harbor-oss/harbor/actions"
+        },
+        {
+          "name": "visual regression",
+          "status": "completed",
+          "conclusion": "skipped",
+          "url": "https://github.com/harbor-oss/harbor/actions"
         }
       ],
       "threads": [
@@ -1132,7 +1151,13 @@
         "displayName": "Lucy",
         "isBot": true,
         "url": "https://github.com/apps/lucy-aup"
-      }
+      },
+      "reviews": [
+        {
+          "login": "hector-aup[bot]",
+          "state": "CHANGES_REQUESTED"
+        }
+      ]
     },
     "hector": {
       "availability": "unreachable",
@@ -1147,7 +1172,8 @@
         "displayName": "Hector",
         "isBot": true,
         "url": "https://github.com/apps/hector-aup"
-      }
+      },
+      "reviews": []
     }
   }
 }

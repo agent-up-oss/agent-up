@@ -8,7 +8,11 @@ public sealed record ForgeHostingDto(
     IReadOnlyList<ForgeReviewThreadDto> Threads,
     ForgeMergeabilityDto? Mergeability,
     string? Detail,
-    ForgeAccountDto? Account = null);
+    ForgeAccountDto? Account = null,
+    IReadOnlyList<ForgeReviewDto>? Reviews = null);
+
+/// <summary>A verdict left on the proposal; the state is the host's own word for it.</summary>
+public sealed record ForgeReviewDto(string Login, string State);
 
 /// <summary>
 /// The account this workspace acts as on its host. It belongs to the workspace rather than to the

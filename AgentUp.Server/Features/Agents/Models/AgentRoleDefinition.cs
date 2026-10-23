@@ -4,4 +4,5 @@ public sealed record AgentRoleDefinition(
     string Prompt,
     IReadOnlyList<string> Tools,
     RoleTriggerKind Trigger,
-    RoleTerminationKind Termination);
+    RoleTerminationKind Termination,
+    RoleReviewKind Review = RoleReviewKind.None);

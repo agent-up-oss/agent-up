@@ -15,7 +15,8 @@ public sealed class GithubApiProviderTests
         var handler = Recorded(
             ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
             ("GET /repos/acme/widgets/commits/abc123/check-runs", Checks),
-            ("GET /repos/acme/widgets/pulls/42/comments", Comments));
+            ("GET /repos/acme/widgets/pulls/42/comments", Comments),
+            ("GET /repos/acme/widgets/pulls/42/reviews", Reviews));
         var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
 
         Assert.Multiple(() =>
@@ -44,7 +45,8 @@ public sealed class GithubApiProviderTests
             ("GET /user", Account),
             ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
             ("GET /repos/acme/widgets/commits/abc123/check-runs", Checks),
-            ("GET /repos/acme/widgets/pulls/42/comments", Comments));
+            ("GET /repos/acme/widgets/pulls/42/comments", Comments),
+            ("GET /repos/acme/widgets/pulls/42/reviews", Reviews));
 
         var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
 
@@ -93,12 +95,49 @@ public sealed class GithubApiProviderTests
         var handler = Recorded(
             ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
             ("GET /repos/acme/widgets/commits/abc123/check-runs", Checks),
-            ("GET /repos/acme/widgets/pulls/42/comments", Comments));
+            ("GET /repos/acme/widgets/pulls/42/comments", Comments),
+            ("GET /repos/acme/widgets/pulls/42/reviews", Reviews));
 
         var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
 
         Assert.That(snapshot.Account, Is.Null);
         Assert.That(snapshot.Proposal!.Number, Is.EqualTo("42"));
+    }
+
+    [Test]
+    public async Task ReadAsync_keepsOnlyEachReviewersLatestVerdict()
+    {
+        var handler = Recorded(
+            ("GET /user", Account),
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/check-runs", Checks),
+            ("GET /repos/acme/widgets/pulls/42/comments", Comments),
+            ("GET /repos/acme/widgets/pulls/42/reviews", Reviews));
+
+        var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.Reviews!, Has.Count.EqualTo(2), "one verdict per reviewer, not one per review");
+            Assert.That(snapshot.Reviews!.Single(review => review.Login == "hector-aup[bot]").State,
+                Is.EqualTo("APPROVED"), "the approval came after the changes were requested");
+            Assert.That(snapshot.Reviews!.Single(review => review.Login == "lucy-aup[bot]").State,
+                Is.EqualTo("COMMENTED"));
+        });
+    }
+
+    [Test]
+    public async Task ReadAsync_aProposalNobodyReviewedCarriesNoVerdicts()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/check-runs", Checks),
+            ("GET /repos/acme/widgets/pulls/42/comments", Comments),
+            ("GET /repos/acme/widgets/pulls/42/reviews", "[]"));
+
+        var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
+
+        Assert.That(snapshot.Reviews!, Is.Empty);
     }
 
     [Test]
@@ -128,7 +167,8 @@ public sealed class GithubApiProviderTests
             """;
         var handler = Recorded(
             ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", pulls),
-            ("GET /repos/acme/widgets/pulls/42/comments", "{}"));
+            ("GET /repos/acme/widgets/pulls/42/comments", "{}"),
+            ("GET /repos/acme/widgets/pulls/42/reviews", "{}"));
         var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
 
         Assert.That(snapshot.Checks, Is.Empty);
@@ -142,7 +182,8 @@ public sealed class GithubApiProviderTests
         var handler = Recorded(
             ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
             ("GET /repos/acme/widgets/commits/abc123/check-runs", "{}"),
-            ("GET /repos/acme/widgets/pulls/42/comments", "[]"));
+            ("GET /repos/acme/widgets/pulls/42/comments", "[]"),
+            ("GET /repos/acme/widgets/pulls/42/reviews", "[]"));
         var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
 
         Assert.That(snapshot.Checks, Is.Empty);
@@ -255,6 +296,12 @@ public sealed class GithubApiProviderTests
 
     private const string Comments = """
         [{"id":99,"html_url":"https://github.com/acme/widgets/pull/42#discussion_r99","body":"please fix"}]
+        """;
+
+    private const string Reviews = """
+        [{"user":{"login":"hector-aup[bot]"},"state":"CHANGES_REQUESTED","submitted_at":"2026-09-22T06:00:00Z"},
+         {"user":{"login":"hector-aup[bot]"},"state":"APPROVED","submitted_at":"2026-09-22T07:00:00Z"},
+         {"user":{"login":"lucy-aup[bot]"},"state":"COMMENTED","submitted_at":"2026-09-22T07:30:00Z"}]
         """;
 
     private const string Account = """

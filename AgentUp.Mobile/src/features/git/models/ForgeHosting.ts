@@ -49,4 +49,11 @@ export type ForgeHosting = {
   mergeability: ForgeMergeability | null;
   detail: string | null;
   account?: ForgeAccount | null;
+  reviews?: ForgeReview[] | null;
+};
+
+/** A verdict left on the proposal; the state is the host's own word for it. */
+export type ForgeReview = {
+  login: string;
+  state: string;
 };

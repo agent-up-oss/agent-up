@@ -51,7 +51,8 @@ public sealed class ForgeService(
                 [.. snapshot.Threads.Select(ToThread)],
                 snapshot.Mergeability is null ? null : new ForgeMergeabilityDto(snapshot.Mergeability.Mergeable, snapshot.Mergeability.State),
                 null,
-                account);
+                account,
+                [.. (snapshot.Reviews ?? []).Select(ToReview)]);
         }
         catch (HttpRequestException exception)
         {
@@ -217,6 +218,9 @@ public sealed class ForgeService(
 
     private static ForgeHostingDto None()
         => new("none", null, null, [], [], null, null);
+
+    private static ForgeReviewDto ToReview(ForgeReview review)
+        => new(review.Login, review.State);
 
     private static ForgeAccountDto? ToAccount(ForgeAccount? account)
         => account is null ? null : new ForgeAccountDto(account.Login, account.DisplayName, account.IsBot, account.Url);

@@ -45,6 +45,73 @@ public enum TeamRoleKind
 }
 
 /// <summary>
+/// Which review a reviewing role supplies. A proposal needs one of each before it is settled, so
+/// the two are slots rather than a list.
+/// </summary>
+public enum ReviewSlotKind
+{
+    /// <summary>The review of the change itself: what it does and whether it holds up.</summary>
+    Dev,
+
+    /// <summary>The review of the result: whether what was built is what was asked for.</summary>
+    Pm
+}
+
+/// <summary>What a reviewer left in their slot, if anything yet.</summary>
+public enum ReviewMark
+{
+    /// <summary>Nobody has reviewed for this slot.</summary>
+    None,
+
+    /// <summary>Approved.</summary>
+    Approved,
+
+    /// <summary>Reviewed, with findings that do not block.</summary>
+    Warning,
+
+    /// <summary>Changes requested: findings that block.</summary>
+    Blocked
+}
+
+/// <summary>One of the two review slots on a proposal, and what fills it.</summary>
+public sealed record ReviewSlot(ReviewSlotKind Kind, ReviewMark Mark)
+{
+    public string Label => Kind == ReviewSlotKind.Dev ? "dev" : "pm";
+
+    /// <summary>The mark as one character, or a dash while the slot is still empty.</summary>
+    public string Glyph => Mark switch
+    {
+        ReviewMark.Approved => "✓",
+        ReviewMark.Warning => "!",
+        ReviewMark.Blocked => "✗",
+        _ => "–"
+    };
+}
+
+/// <summary>
+/// How a proposal's checks stand as one signal. Failing beats running beats passing, because a
+/// surface that reports a run in flight while something has already failed reads as healthier
+/// than it is.
+/// </summary>
+public enum ChecksState
+{
+    /// <summary>No checks were reported.</summary>
+    None,
+
+    /// <summary>Every check that ran was skipped or excluded.</summary>
+    Skipped,
+
+    /// <summary>At least one check is still running, and none has failed.</summary>
+    Running,
+
+    /// <summary>Everything that ran passed.</summary>
+    Passed,
+
+    /// <summary>At least one check failed.</summary>
+    Failed
+}
+
+/// <summary>
 /// The account a workspace acts as on its repository host. One workspace keeps one account, so
 /// everything its agent pushes, comments, or reviews is attributable to this name.
 /// </summary>
@@ -68,14 +135,31 @@ public sealed record ForgeStanding(
     int ChecksRunning,
     int UnresolvedThreads,
     string? MergeState,
-    string? Detail)
+    string? Detail,
+    int ChecksSkipped = 0,
+    IReadOnlyList<ForgeVerdict>? Reviews = null)
 {
     public static ForgeStanding None { get; } =
         new("none", null, null, null, 0, 0, 0, 0, null, null);
 
     /// <summary>True once the host answered with a proposal to show.</summary>
     public bool HasProposal => ProposalNumber is { Length: > 0 };
+
+    /// <summary>Every check the host reported, however it ended.</summary>
+    public int ChecksTotal => ChecksPassed + ChecksFailed + ChecksRunning + ChecksSkipped;
+
+    /// <summary>Where the checks stand as one signal.</summary>
+    public ChecksState Checks => ChecksFailed > 0 ? ChecksState.Failed
+        : ChecksRunning > 0 ? ChecksState.Running
+        : ChecksPassed > 0 ? ChecksState.Passed
+        : ChecksSkipped > 0 ? ChecksState.Skipped
+        : ChecksState.None;
+
+    public IReadOnlyList<ForgeVerdict> Verdicts => Reviews ?? [];
 }
+
+/// <summary>A verdict on the proposal, as the host reported it, before it is matched to a slot.</summary>
+public sealed record ForgeVerdict(string Login, string State);
 
 /// <summary>
 /// Where one agent stands, composed from the two reads a Server answers per workspace: its agent
@@ -96,8 +180,17 @@ public sealed record TeamStanding(
     ForgeStanding Forge,
     TeamRoleKind Role = TeamRoleKind.None,
     IReadOnlyList<string>? RoleTools = null,
-    TeamIdentity? Identity = null)
+    TeamIdentity? Identity = null,
+    ReviewSlotKind? Reviews = null,
+    IReadOnlyList<ReviewSlot>? ReviewSlots = null)
 {
+    /// <summary>
+    /// The two review slots on this agent's proposal, empty when there is no proposal to review.
+    /// They are always both present or both absent: a missing slot is a slot nobody has filled,
+    /// which is a different thing from there being nothing to review.
+    /// </summary>
+    public IReadOnlyList<ReviewSlot> Slots => ReviewSlots ?? [];
+
     /// <summary>What this agent is for, in one word, or null while no role is configured.</summary>
     public string? RoleLabel => Role switch
     {

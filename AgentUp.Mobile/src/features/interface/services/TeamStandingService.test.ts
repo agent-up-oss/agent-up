@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { noForge, type TeamStanding } from '../models/TeamStanding';
-import { checksSummary, forgeStatus, headlineFor, identityHandle, roleLabel, showProposalBesideTask, stateLabel, taskLabel, threadSummary, toolsSummary, triage, whoIs } from './TeamStandingService';
+import { checksCount, hasStatusRow, headlineFor, identityHandle, roleLabel, showProposalBesideTask, slotGlyph, stateLabel, taskLabel, threadSummary, triage, whoIs } from './TeamStandingService';
 
 function standing(partial: Partial<TeamStanding> = {}): TeamStanding {
   return {
@@ -20,6 +20,8 @@ function standing(partial: Partial<TeamStanding> = {}): TeamStanding {
     role: 'none',
     roleTools: [],
     identity: null,
+    reviews: null,
+    slots: [],
     ...partial,
   };
 }
@@ -65,16 +67,22 @@ test('a task label pairs the number with the title when there is one', () => {
   assert.equal(taskLabel(standing()), null);
 });
 
-test('summaries say what was not reported instead of showing zeroes', () => {
-  assert.equal(checksSummary(standing()), 'no checks reported');
-  assert.equal(forgeStatus(standing()), 'no host connected');
-  assert.equal(
-    checksSummary(standing({ forge: { ...noForge, checksPassed: 1, checksFailed: 1, checksRunning: 1 } })),
-    '1 passing · 1 failing · 1 running',
-  );
-  assert.equal(forgeStatus(standing({ forge: { ...noForge, availability: 'ready', mergeState: 'clean' } })), 'mergeable: clean');
-  assert.equal(forgeStatus(standing({ forge: { ...noForge, availability: 'unreachable' } })), 'host unreachable');
-  assert.equal(forgeStatus(standing({ forge: { ...noForge, availability: 'needsCredential' } })), 'host needs a credential');
+test('the checks read as passed over total, and the row only shows with a proposal', () => {
+  const forge = { ...noForge, proposalNumber: '44', checksPassed: 24, checksTotal: 34 };
+  assert.equal(checksCount(standing({ forge })), '(24/34)');
+  assert.equal(hasStatusRow(standing({ forge })), true);
+  assert.equal(checksCount(standing()), '(0/0)');
+  assert.equal(hasStatusRow(standing()), false);
+});
+
+test('a slot draws its mark, or a dash while nobody has filled it', () => {
+  assert.equal(slotGlyph({ kind: 'dev', mark: 'approved' }), '\u2713');
+  assert.equal(slotGlyph({ kind: 'dev', mark: 'blocked' }), '\u2717');
+  assert.equal(slotGlyph({ kind: 'pm', mark: 'warning' }), '!');
+  assert.equal(slotGlyph({ kind: 'pm', mark: 'none' }), '\u2013');
+});
+
+test('thread summaries still count what is unresolved', () => {
   assert.equal(threadSummary(standing({ forge: { ...noForge, unresolvedThreads: 1 } })), '1 unresolved review thread');
   assert.equal(threadSummary(standing({ forge: { ...noForge, unresolvedThreads: 2 } })), '2 unresolved review threads');
 });
@@ -109,11 +117,6 @@ test('who an agent is drops the parts the Server did not report', () => {
   assert.equal(whoIs(standing({ agent: null, state: 'Stopped' })), 'Stopped');
 });
 
-test('the tools summary is everything the role may do, or nothing at all', () => {
-  assert.equal(toolsSummary(standing({ roleTools: ['play_validation_flow', 'browser_screenshot'] })),
-    'may play_validation_flow, browser_screenshot');
-  assert.equal(toolsSummary(standing()), null);
-});
 
 test('the bridge groups put each agent in exactly one place', () => {
   const result = triage([

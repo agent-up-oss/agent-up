@@ -1,4 +1,4 @@
-import type { ForgeAccount, ForgeHosting } from '@/features/git/models/ForgeHosting';
+import type { ForgeAccount, ForgeHosting, ForgeReview } from '@/features/git/models/ForgeHosting';
 import type { AgentRole, AgentSession } from '@agent-up/chat';
 
 /**
@@ -12,6 +12,25 @@ export type TeamStandingKind = 'idle' | 'working' | 'waiting' | 'halted';
  * any other way is named from its two halves rather than forced into one of these.
  */
 export type TeamRoleKind = 'none' | 'developer' | 'reviewer' | 'other';
+
+/**
+ * Which review a reviewing role supplies. A proposal needs one of each before it is settled, so
+ * the two are slots rather than a list.
+ */
+export type ReviewSlotKind = 'dev' | 'pm';
+
+/** What a reviewer left in their slot, if anything yet. */
+export type ReviewMark = 'none' | 'approved' | 'warning' | 'blocked';
+
+/** One of the two review slots on a proposal, and what fills it. */
+export type ReviewSlot = { kind: ReviewSlotKind; mark: ReviewMark };
+
+/**
+ * How a proposal's checks stand as one signal. Failing beats running beats passing, because a
+ * surface that reports a run in flight while something has already failed reads as healthier than
+ * it is.
+ */
+export type ChecksState = 'none' | 'skipped' | 'running' | 'passed' | 'failed';
 
 /**
  * The account a workspace acts as on its repository host. One workspace keeps one account, so
@@ -44,6 +63,10 @@ export type ForgeStanding = {
   unresolvedThreads: number;
   mergeState: string | null;
   detail: string | null;
+  checksSkipped: number;
+  checksTotal: number;
+  checks: ChecksState;
+  verdicts: ForgeReview[];
 };
 
 /**
@@ -62,6 +85,10 @@ export type TeamStanding = TeamMember & {
   role: TeamRoleKind;
   roleTools: string[];
   identity: TeamIdentity | null;
+  /** Which review this agent supplies for other agents' proposals. */
+  reviews: ReviewSlotKind | null;
+  /** The two slots on this agent's own proposal, empty when there is nothing to review. */
+  slots: ReviewSlot[];
 };
 
 export const noForge: ForgeStanding = {
@@ -75,24 +102,53 @@ export const noForge: ForgeStanding = {
   unresolvedThreads: 0,
   mergeState: null,
   detail: null,
+  checksSkipped: 0,
+  checksTotal: 0,
+  checks: 'none',
+  verdicts: [],
 };
 
 export function countForge(hosting: ForgeHosting | null | undefined): ForgeStanding {
   if (!hosting) return noForge;
   const checks = hosting.checks ?? [];
   const threads = hosting.threads ?? [];
+  const done = checks.filter(check => same(check.status, 'completed'));
+  const passed = done.filter(check => same(check.conclusion, 'success')).length;
+  const failed = done.filter(check => failedCheck(check.conclusion)).length;
+  const running = checks.length - done.length;
+  const skipped = done.length - passed - failed;
   return {
     availability: hosting.availability,
     proposalNumber: hosting.proposal?.number ?? null,
     proposalTitle: hosting.proposal?.title ?? null,
     proposalUrl: hosting.proposal?.url ?? null,
-    checksPassed: checks.filter(check => same(check.conclusion, 'success')).length,
-    checksFailed: checks.filter(check => same(check.conclusion, 'failure')).length,
-    checksRunning: checks.filter(check => !same(check.status, 'completed')).length,
+    checksPassed: passed,
+    checksFailed: failed,
+    checksRunning: running,
     unresolvedThreads: threads.filter(thread => !thread.isResolved).length,
     mergeState: hosting.mergeability?.state ?? null,
     detail: hosting.detail ?? null,
+    checksSkipped: skipped,
+    checksTotal: checks.length,
+    checks: checksState(passed, failed, running, skipped),
+    verdicts: hosting.reviews ?? [],
   };
+}
+
+function checksState(passed: number, failed: number, running: number, skipped: number): ChecksState {
+  if (failed > 0) return 'failed';
+  if (running > 0) return 'running';
+  if (passed > 0) return 'passed';
+  return skipped > 0 ? 'skipped' : 'none';
+}
+
+/**
+ * A check that completed without running the thing it checks is neither a pass nor a failure, and
+ * counting it as either misreports what the host said.
+ */
+function failedCheck(conclusion: string): boolean {
+  return ['failure', 'timed_out', 'action_required', 'startup_failure']
+    .some(kind => same(conclusion, kind));
 }
 
 export function composeStanding(
@@ -116,7 +172,15 @@ export function composeStanding(
     role: classifyRole(role),
     roleTools: role?.tools ?? [],
     identity: identify(hosting?.account),
+    reviews: reviewKind(role),
+    slots: [],
   };
+}
+
+/** Which review this role supplies, or null when it supplies none. */
+export function reviewKind(role: AgentRole | null | undefined): ReviewSlotKind | null {
+  const named = (role?.review ?? '').toLowerCase();
+  return named === 'dev' ? 'dev' : named === 'pm' ? 'pm' : null;
 }
 
 /**

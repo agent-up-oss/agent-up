@@ -32,6 +32,8 @@ export type AgentRole = {
   tools: string[];
   trigger: string;
   termination: string;
+  /** Which review this role supplies: 'Dev', 'Pm', or 'None'. */
+  review?: string | null;
 };
 export type AgentSession = {
   workspaceId: string;

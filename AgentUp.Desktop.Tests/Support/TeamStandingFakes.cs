@@ -118,6 +118,10 @@ internal static class TeamStandingComposition
     public static AgentRoleDto Role(string trigger, string termination, params string[] tools)
         => new("prompt", tools, trigger, termination);
 
+    public static AgentRoleDto Reviewer(string review, params string[] tools)
+        => new("prompt", tools.Length == 0 ? ["play_validation_flow"] : tools,
+            "ProposalAwaitingReview", "ReviewSubmitted", review);
+
     public static AgentRoleDto Developer(params string[] tools)
         => Role("IssueAssigned", "ProposalOpened", tools.Length == 0 ? ["enqueue_commit"] : tools);
 
@@ -146,7 +150,8 @@ internal static class TeamStandingComposition
         IReadOnlyList<ForgeReviewThreadDto>? threads = null,
         string? mergeState = "clean",
         string? detail = null,
-        ForgeAccountDto? account = null)
+        ForgeAccountDto? account = null,
+        IReadOnlyList<ForgeReviewDto>? reviews = null)
         => new(
             availability,
             "github",
@@ -155,10 +160,13 @@ internal static class TeamStandingComposition
             threads ?? [],
             mergeState is null ? null : new ForgeMergeabilityDto(true, mergeState),
             detail,
-            account);
+            account,
+            reviews);
 
     public static ForgeCheckDto Check(string name, string status, string conclusion)
         => new(name, status, conclusion, "https://example/checks");
+
+    public static ForgeReviewDto Verdict(string login, string state) => new(login, state);
 
     public static ForgeReviewThreadDto Thread(string id, bool resolved)
         => new(id, "https://example/thread/" + id, id, resolved);

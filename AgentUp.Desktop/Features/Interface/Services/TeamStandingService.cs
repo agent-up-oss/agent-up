@@ -31,7 +31,52 @@ public sealed class TeamStandingService
     public async Task<IReadOnlyList<TeamStanding>> ReadAsync(
         IReadOnlyList<TeamMember> workspaces,
         CancellationToken cancellationToken = default)
-        => await Task.WhenAll(workspaces.Select(workspace => ReadAsync(workspace, cancellationToken)));
+    {
+        var standings = await Task.WhenAll(workspaces.Select(workspace => ReadAsync(workspace, cancellationToken)));
+        return [.. standings.Select(standing => standing with { ReviewSlots = SlotsFor(standing, standings) })];
+    }
+
+    /// <summary>
+    /// Fills the two review slots on one agent's proposal. A verdict names the account that left
+    /// it, and every account on this Server belongs to a workspace whose role says which review it
+    /// supplies, so the team is what turns a list of verdicts into slots. A verdict from an account
+    /// outside the team fills no slot: it is somebody's review, but not one of these two.
+    /// </summary>
+    private static IReadOnlyList<ReviewSlot>? SlotsFor(TeamStanding standing, IReadOnlyList<TeamStanding> team)
+    {
+        if (!standing.Forge.HasProposal) return null;
+        return
+        [
+            new ReviewSlot(ReviewSlotKind.Dev, MarkFor(ReviewSlotKind.Dev, standing, team)),
+            new ReviewSlot(ReviewSlotKind.Pm, MarkFor(ReviewSlotKind.Pm, standing, team))
+        ];
+    }
+
+    private static ReviewMark MarkFor(ReviewSlotKind slot, TeamStanding standing, IReadOnlyList<TeamStanding> team)
+    {
+        var verdict = standing.Forge.Verdicts.FirstOrDefault(item => Supplies(slot, item.Login, team));
+        return verdict is null ? ReviewMark.None : Mark(verdict.State);
+    }
+
+    private static bool Supplies(ReviewSlotKind slot, string login, IReadOnlyList<TeamStanding> team)
+        => team.Any(member =>
+            member.Reviews == slot
+            && member.Identity is { } identity
+            && string.Equals(identity.Login, login, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// What a verdict means for its slot. The three a host distinguishes are the three that matter:
+    /// approved settles the slot, changes requested blocks it, and a plain comment is worth reading
+    /// without standing in the way. Anything else — a dismissed or still-pending review — has not
+    /// been said yet.
+    /// </summary>
+    private static ReviewMark Mark(string state) => state.ToUpperInvariant() switch
+    {
+        "APPROVED" => ReviewMark.Approved,
+        "CHANGES_REQUESTED" => ReviewMark.Blocked,
+        "COMMENTED" => ReviewMark.Warning,
+        _ => ReviewMark.None
+    };
 
     private async Task<TeamStanding> ReadAsync(TeamMember workspace, CancellationToken cancellationToken)
     {
@@ -83,8 +128,17 @@ public sealed class TeamStandingService
             forge,
             Classify(session?.Role),
             session?.Role?.Tools,
-            Identify(hosting?.Account));
+            Identify(hosting?.Account),
+            ReviewKind(session?.Role));
     }
+
+    /// <summary>Which review this role supplies, or null when it supplies none.</summary>
+    private static ReviewSlotKind? ReviewKind(AgentRoleDto? role) => role?.Review?.ToUpperInvariant() switch
+    {
+        "DEV" => ReviewSlotKind.Dev,
+        "PM" => ReviewSlotKind.Pm,
+        _ => null
+    };
 
     /// <summary>
     /// The agent driving this workspace, named the way its capability names itself. The session
@@ -150,13 +204,28 @@ public sealed class TeamStandingService
             hosting.Proposal?.Number,
             hosting.Proposal?.Title,
             hosting.Proposal?.Url,
-            checks.Count(check => Equals(check.Conclusion, "success")),
-            checks.Count(check => Equals(check.Conclusion, "failure")),
+            checks.Count(check => Equals(check.Status, "completed") && Equals(check.Conclusion, "success")),
+            checks.Count(check => Equals(check.Status, "completed") && Failed(check.Conclusion)),
             checks.Count(check => !Equals(check.Status, "completed")),
             (hosting.Threads ?? []).Count(thread => !thread.IsResolved),
             hosting.Mergeability?.State,
-            hosting.Detail);
+            hosting.Detail,
+            checks.Count(check => Equals(check.Status, "completed") && Skipped(check.Conclusion)),
+            [.. (hosting.Reviews ?? []).Select(review => new ForgeVerdict(review.Login, review.State))]);
     }
+
+    /// <summary>
+    /// A check that completed without running the thing it checks. It is neither a pass nor a
+    /// failure, and counting it as either misreports what the host said.
+    /// </summary>
+    private static bool Skipped(string conclusion)
+        => !Equals(conclusion, "success") && !Failed(conclusion);
+
+    private static bool Failed(string conclusion)
+        => Equals(conclusion, "failure")
+           || Equals(conclusion, "timed_out")
+           || Equals(conclusion, "action_required")
+           || Equals(conclusion, "startup_failure");
 
     private static bool Equals(string? left, string right)
         => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);

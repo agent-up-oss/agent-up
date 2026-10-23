@@ -29,10 +29,49 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null)
         var sha = pull.GetProperty("head").GetProperty("sha").GetString() ?? "";
         var checks = await ReadChecksAsync(client, request, sha, cancellationToken);
         var threads = await ReadThreadsAsync(client, request, proposal.Number, cancellationToken);
+        var reviews = await ReadReviewsAsync(client, request, proposal.Number, cancellationToken);
         var mergeability = new ForgeMergeability(
             pull.TryGetProperty("mergeable", out var mergeable) && mergeable.ValueKind == JsonValueKind.True,
             pull.TryGetProperty("mergeable_state", out var state) ? state.GetString() ?? "unknown" : "unknown");
-        return new ForgeHostSnapshot(proposal, checks, threads, mergeability, account);
+        return new ForgeHostSnapshot(proposal, checks, threads, mergeability, account, reviews);
+    }
+
+    /// <summary>
+    /// The verdicts left on the proposal, one per reviewer. A host keeps every review a reviewer
+    /// ever submitted, so only their latest counts: an approval after changes were requested means
+    /// the changes landed.
+    /// </summary>
+    private static async Task<IReadOnlyList<ForgeReview>> ReadReviewsAsync(
+        HttpClient client,
+        ForgeRequest request,
+        string proposalNumber,
+        CancellationToken cancellationToken)
+    {
+        var reviews = await client.GetFromJsonAsync<JsonElement>(
+            $"repos/{request.Owner}/{request.Repository}/pulls/{proposalNumber}/reviews",
+            Json,
+            cancellationToken);
+        if (reviews.ValueKind != JsonValueKind.Array) return [];
+
+        return reviews.EnumerateArray()
+            .Select(ReadReview)
+            .OfType<ForgeReview>()
+            .GroupBy(review => review.Login, StringComparer.OrdinalIgnoreCase)
+            .Select(reviewer => reviewer.OrderBy(review => review.SubmittedAt).Last())
+            .ToArray();
+    }
+
+    private static ForgeReview? ReadReview(JsonElement review)
+    {
+        var login = review.TryGetProperty("user", out var user) && user.ValueKind == JsonValueKind.Object
+            ? user.TryGetProperty("login", out var name) ? name.GetString() : null
+            : null;
+        if (string.IsNullOrWhiteSpace(login)) return null;
+        var state = review.TryGetProperty("state", out var verdict) ? verdict.GetString() ?? "" : "";
+        var submitted = review.TryGetProperty("submitted_at", out var at) && at.ValueKind == JsonValueKind.String
+            ? at.GetDateTimeOffset()
+            : DateTimeOffset.MinValue;
+        return new ForgeReview(login, state, submitted);
     }
 
     /// <summary>

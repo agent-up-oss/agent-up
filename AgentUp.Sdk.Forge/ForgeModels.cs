@@ -5,7 +5,15 @@ public sealed record ForgeHostSnapshot(
     IReadOnlyList<ForgeCheck> Checks,
     IReadOnlyList<ForgeReviewThread> Threads,
     ForgeMergeability? Mergeability,
-    ForgeAccount? Account = null);
+    ForgeAccount? Account = null,
+    IReadOnlyList<ForgeReview>? Reviews = null);
+
+/// <summary>
+/// A verdict somebody left on the proposal. The state is the host's own word for it, because the
+/// three a host distinguishes — approved, changes requested, commented — are exactly the three a
+/// reader needs: settled, blocked, and something worth reading but not blocking.
+/// </summary>
+public sealed record ForgeReview(string Login, string State, DateTimeOffset SubmittedAt);
 
 /// <summary>
 /// The account a workspace acts as on its repository host. It belongs to the workspace, not to the

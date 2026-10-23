@@ -190,10 +190,9 @@ public sealed class StandingRowViewModelTests
             Assert.That(row.Initial, Is.EqualTo("L"));
             Assert.That(row.StateLabel, Is.EqualTo("◆ gate open"));
             Assert.That(row.Headline, Is.EqualTo("Lucy is waiting on you on #48"));
-            Assert.That(row.PermissionSummary, Is.EqualTo("needs forge.submit_review"));
-            Assert.That(row.ChecksSummary, Is.EqualTo("1 passing · 1 failing · 1 running"));
+            Assert.That(row.ChecksCount, Is.EqualTo("(1/3)"));
             Assert.That(row.ThreadSummary, Is.EqualTo("2 unresolved review threads"));
-            Assert.That(row.ForgeStatus, Is.EqualTo("mergeable: unstable"));
+            Assert.That(row.HasStatusRow, Is.True);
             Assert.That(row.HasProposal, Is.True);
             Assert.That(row.ShowProposalBesideTask, Is.False, "the proposal repeats task #48 word for word");
         });
@@ -215,7 +214,6 @@ public sealed class StandingRowViewModelTests
             Assert.That(row.RoleLabel, Is.EqualTo("Reviewer"));
             Assert.That(row.IdentityHandle, Is.EqualTo("@lucy-aup[bot]"));
             Assert.That(row.IdentityToolTip, Is.EqualTo("Lucy · https://github.com/apps/lucy-aup"));
-            Assert.That(row.ToolsSummary, Is.EqualTo("may play_validation_flow, browser_screenshot"));
         });
     }
 
@@ -231,7 +229,7 @@ public sealed class StandingRowViewModelTests
             Assert.That(row.Subtitle, Is.EqualTo("Stopped"));
             Assert.That(row.HasRole, Is.False);
             Assert.That(row.HasIdentity, Is.False);
-            Assert.That(row.HasTools, Is.False);
+            Assert.That(row.HasStatusRow, Is.False);
             Assert.That(row.IdentityToolTip, Is.Empty);
         });
     }
@@ -266,11 +264,11 @@ public sealed class StandingRowViewModelTests
             Assert.That(row.StateLabel, Is.EqualTo("○ idle"));
             Assert.That(row.Headline, Is.EqualTo("Fresh has nothing in hand"));
             Assert.That(row.TaskLabel, Is.EqualTo("no task in hand"));
-            Assert.That(row.ChecksSummary, Is.EqualTo("no checks reported"));
-            Assert.That(row.ForgeStatus, Is.EqualTo("no host connected"));
+            Assert.That(row.ChecksCount, Is.EqualTo("(0/0)"));
+            Assert.That(row.ChecksToolTip, Is.EqualTo("no checks reported"));
             Assert.That(row.HasProposal, Is.False);
             Assert.That(row.HasUnresolvedThreads, Is.False);
-            Assert.That(row.HasPermissionSummary, Is.False);
+            Assert.That(row.HasStatusRow, Is.False);
             Assert.That(row.Subtitle, Is.EqualTo("Stopped"));
         });
     }
@@ -291,7 +289,7 @@ public sealed class StandingRowViewModelTests
             Assert.That(row.Headline, Is.EqualTo("Hector stopped on #51"));
             Assert.That(row.HasDiagnosticCode, Is.True);
             Assert.That(row.DiagnosticCode, Is.EqualTo("forge.unreachable"));
-            Assert.That(row.ForgeStatus, Is.EqualTo("host unreachable"));
+            Assert.That(row.HasStatusRow, Is.False);
             Assert.That(row.TaskLabel, Is.EqualTo("#51 · Docs anchors break on deep links"));
         });
     }

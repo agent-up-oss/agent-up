@@ -5,15 +5,15 @@ import { agentUpTheme } from '@agent-up/design-system/native';
 import { useTeamStanding } from '../controllers/TeamStandingContext';
 import type { TeamStanding } from '../models/TeamStanding';
 import {
-  checksSummary,
-  forgeStatus,
+  checksCount,
+  hasStatusRow,
   headlineFor,
   roleLabel,
   showProposalBesideTask,
+  slotGlyph,
   stateLabel,
   taskLabel,
   threadSummary,
-  toolsSummary,
   whoIs,
   type TeamTriage,
 } from '../services/TeamStandingService';
@@ -175,18 +175,47 @@ function StandingCard({ standing }: { standing: TeamStanding }) {
       <Text style={styles.note}>{whoIs(standing)}</Text>
       <Text style={[styles.note, toneStyle(standing)]}>{stateLabel(standing.kind)} · {standing.branch}</Text>
       {standing.reason ? <Text style={styles.note}>{standing.reason}</Text> : null}
-      {standing.diagnosticCode ? <Text style={styles.code}>{standing.diagnosticCode}</Text> : null}
-      {standing.permissionRuleIds.length ? (
-        <Text style={styles.code}>needs {standing.permissionRuleIds.join(', ')}</Text>
+      {standing.kind === 'halted' && standing.diagnosticCode ? (
+        <Text style={styles.code}>{standing.diagnosticCode}</Text>
       ) : null}
-      {toolsSummary(standing) ? <Text style={styles.code}>{toolsSummary(standing)}</Text> : null}
       {showProposalBesideTask(standing) ? (
         <Text style={styles.note}>#{standing.forge.proposalNumber} {standing.forge.proposalTitle}</Text>
       ) : null}
-      <Text style={styles.note}>{checksSummary(standing)} · {forgeStatus(standing)}</Text>
+      {hasStatusRow(standing) ? <StatusRow standing={standing} /> : null}
       {standing.forge.unresolvedThreads > 0 ? <Text style={styles.note}>{threadSummary(standing)}</Text> : null}
     </View>
   );
+}
+
+/** Where the proposal stands, in one row: the checks as a dot and a count, then the two slots. */
+function StatusRow({ standing }: { standing: TeamStanding }) {
+  return (
+    <View style={styles.statusRow}>
+      <Text style={[styles.statusDot, checksTone(standing)]}>●</Text>
+      <Text style={styles.statusCount}>{checksCount(standing)}</Text>
+      <Text style={styles.statusDash}>—</Text>
+      {standing.slots.map(slot => (
+        <View key={slot.kind} style={styles.slot}>
+          <Text style={styles.slotLabel}>{slot.kind}</Text>
+          <Text style={[styles.slotGlyph, slotTone(slot.mark)]}>{slotGlyph(slot)}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function checksTone(standing: TeamStanding) {
+  if (standing.forge.checks === 'failed') return styles.toneDanger;
+  if (standing.forge.checks === 'running') return styles.toneWarning;
+  if (standing.forge.checks === 'passed') return styles.toneLive;
+  return styles.toneFaint;
+}
+
+function slotTone(mark: TeamStanding['slots'][number]['mark']) {
+  if (mark === 'approved') return styles.toneLive;
+  if (mark === 'warning') return styles.toneWarning;
+  if (mark === 'blocked') return styles.toneDanger;
+  return styles.toneFaint;
 }
 
 function toneStyle(standing: TeamStanding) {
@@ -282,6 +311,23 @@ const styles = StyleSheet.create({
   toneDanger: { color: agentUpTheme.colors.textDanger },
   toneWarning: { color: agentUpTheme.colors.textWarning },
   toneLive: { color: agentUpTheme.colors.accentBright },
+  toneFaint: { color: agentUpTheme.colors.textFaint },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' },
+  statusDot: { fontSize: 12 },
+  statusCount: { color: agentUpTheme.colors.textSecondary, fontSize: 13 },
+  statusDash: { color: agentUpTheme.colors.textFaint, fontSize: 13 },
+  slot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: agentUpTheme.colors.borderSubtle,
+  },
+  slotLabel: { color: agentUpTheme.colors.textMuted, fontSize: 11 },
+  slotGlyph: { fontSize: 11, fontWeight: '700' },
   cardAction: { minHeight: 44 },
   cardTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 15, fontWeight: '600' },
   cardTitleDanger: { color: agentUpTheme.colors.textDanger, fontSize: 15, fontWeight: '600' },

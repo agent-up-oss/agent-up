@@ -97,7 +97,11 @@ public sealed class FakeBackendServiceTests
             Assert.That(shop["availability"]!.GetValue<string>(), Is.EqualTo("ready"));
             Assert.That(shop["proposal"]!["number"]!.GetValue<string>(), Is.EqualTo("44"));
             Assert.That(shop["mergeability"]!["state"]!.GetValue<string>(), Is.EqualTo("clean"));
-            Assert.That(checkout["checks"]!.AsArray(), Has.Count.EqualTo(3));
+            Assert.That(checkout["checks"]!.AsArray(), Has.Count.EqualTo(4), "one passing, one failing, one running, one skipped");
+            Assert.That(shop["reviews"]!.AsArray().Select(review => review!["state"]!.GetValue<string>()),
+                Is.EqualTo(new[] { "APPROVED", "COMMENTED" }));
+            Assert.That(checkout["reviews"]!.AsArray().Single()!["state"]!.GetValue<string>(),
+                Is.EqualTo("CHANGES_REQUESTED"));
             Assert.That(checkout["threads"]!.AsArray().Count(thread => !thread!["isResolved"]!.GetValue<bool>()), Is.EqualTo(2));
             Assert.That(docs["availability"]!.GetValue<string>(), Is.EqualTo("unreachable"));
             Assert.That(docs["detail"]!.GetValue<string>(), Does.Contain("502"));

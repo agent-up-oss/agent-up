@@ -1,4 +1,4 @@
-import type { TeamStanding, TeamStandingKind } from '../models/TeamStanding';
+import type { ReviewSlot, TeamStanding, TeamStandingKind } from '../models/TeamStanding';
 
 /** The bridge's three groups, plus the queue, from one list of standings. */
 export type TeamTriage = {
@@ -57,11 +57,6 @@ export function whoIs(standing: TeamStanding): string {
     .join(' · ');
 }
 
-/** Everything the role may do, which is also everything this agent can do. */
-export function toolsSummary(standing: TeamStanding): string | null {
-  return standing.roleTools.length ? `may ${standing.roleTools.join(', ')}` : null;
-}
-
 export function taskLabel(standing: TeamStanding): string | null {
   if (standing.taskNumber === null) return null;
   return standing.taskTitle ? `#${standing.taskNumber} · ${standing.taskTitle}` : `#${standing.taskNumber}`;
@@ -84,23 +79,6 @@ export function showProposalBesideTask(standing: TeamStanding): boolean {
   return standing.forge.proposalNumber !== String(standing.taskNumber ?? '');
 }
 
-export function checksSummary(standing: TeamStanding): string {
-  const parts: string[] = [];
-  if (standing.forge.checksPassed > 0) parts.push(`${standing.forge.checksPassed} passing`);
-  if (standing.forge.checksFailed > 0) parts.push(`${standing.forge.checksFailed} failing`);
-  if (standing.forge.checksRunning > 0) parts.push(`${standing.forge.checksRunning} running`);
-  return parts.length ? parts.join(' · ') : 'no checks reported';
-}
-
-export function forgeStatus(standing: TeamStanding): string {
-  const { availability, mergeState } = standing.forge;
-  if (availability === 'ready') return mergeState ? `mergeable: ${mergeState}` : 'host connected';
-  if (availability === 'noProposal') return 'no proposal open';
-  if (availability === 'needsCredential') return 'host needs a credential';
-  if (availability === 'unreachable') return 'host unreachable';
-  return 'no host connected';
-}
-
 export function threadSummary(standing: TeamStanding): string {
   const count = standing.forge.unresolvedThreads;
   return count === 1 ? '1 unresolved review thread' : `${count} unresolved review threads`;
@@ -108,4 +86,25 @@ export function threadSummary(standing: TeamStanding): string {
 
 function plural(count: number, word: string): string {
   return count === 1 ? word : `${word}s`;
+}
+
+/**
+ * How the checks stand, as "(passed/total)". The dot beside it carries the verdict, so the numbers
+ * only have to say how much of the run is accounted for.
+ */
+export function checksCount(standing: TeamStanding): string {
+  return `(${standing.forge.checksPassed}/${standing.forge.checksTotal})`;
+}
+
+/** One review slot as it is drawn: a mark, or a dash while nobody has filled it. */
+export function slotGlyph(slot: ReviewSlot): string {
+  if (slot.mark === 'approved') return '\u2713';
+  if (slot.mark === 'warning') return '!';
+  if (slot.mark === 'blocked') return '\u2717';
+  return '\u2013';
+}
+
+/** True while this agent has a proposal, which is what the status row reports on. */
+export function hasStatusRow(standing: TeamStanding): boolean {
+  return !!standing.forge.proposalNumber;
 }

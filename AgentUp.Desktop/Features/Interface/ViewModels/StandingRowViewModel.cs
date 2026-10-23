@@ -44,13 +44,6 @@ public sealed class StandingRowViewModel
         ? string.Empty
         : $"{Standing.Identity.DisplayName} · {Standing.Identity.Url}";
 
-    /// <summary>Everything the role may do, which is also everything this agent can do.</summary>
-    public string ToolsSummary => Standing.Tools.Count == 0
-        ? string.Empty
-        : $"may {string.Join(", ", Standing.Tools)}";
-
-    public bool HasTools => Standing.Tools.Count > 0;
-
     public string StateLabel => Standing.Kind switch
     {
         TeamStandingKind.WaitingOnYou => "◆ gate open",
@@ -85,14 +78,8 @@ public sealed class StandingRowViewModel
 
     public string? DiagnosticCode => Standing.DiagnosticCode;
 
-    public bool HasDiagnosticCode => Standing.DiagnosticCode is { Length: > 0 };
-
-    /// <summary>The permissions a gate is waiting on, as the Server named them.</summary>
-    public string PermissionSummary => Standing.PermissionRuleIds.Count == 0
-        ? string.Empty
-        : $"needs {string.Join(", ", Standing.PermissionRuleIds)}";
-
-    public bool HasPermissionSummary => Standing.PermissionRuleIds.Count > 0;
+    public bool HasDiagnosticCode =>
+        Standing.Kind == TeamStandingKind.Halted && Standing.DiagnosticCode is { Length: > 0 };
 
     public bool HasProposal => Standing.Forge.HasProposal;
 
@@ -109,18 +96,6 @@ public sealed class StandingRowViewModel
     public bool ShowProposalBesideTask =>
         HasProposal && Standing.Forge.ProposalNumber != Standing.TaskNumber?.ToString();
 
-    /// <summary>The checks as counts, which is all a triage row needs to show.</summary>
-    public string ChecksSummary => Parts().Count == 0 ? "no checks reported" : string.Join(" · ", Parts());
-
-    public string ForgeStatus => Standing.Forge.Availability switch
-    {
-        "ready" => Standing.Forge.MergeState is { Length: > 0 } state ? $"mergeable: {state}" : "host connected",
-        "noProposal" => "no proposal open",
-        "needsCredential" => "host needs a credential",
-        "unreachable" => "host unreachable",
-        _ => "no host connected"
-    };
-
     public bool HasUnresolvedThreads => Standing.Forge.UnresolvedThreads > 0;
 
     public string ThreadSummary => Standing.Forge.UnresolvedThreads == 1
@@ -128,6 +103,36 @@ public sealed class StandingRowViewModel
         : $"{Standing.Forge.UnresolvedThreads} unresolved review threads";
 
     private string TaskSuffix => Standing.TaskNumber is null ? string.Empty : $" on #{Standing.TaskNumber}";
+
+    /// <summary>
+    /// How the checks stand, as "(passed/total)". The dot beside it carries the verdict, so the
+    /// numbers only have to say how much of the run is accounted for.
+    /// </summary>
+    public string ChecksCount => $"({Standing.Forge.ChecksPassed}/{Standing.Forge.ChecksTotal})";
+
+    public string ChecksColor => Standing.Forge.Checks switch
+    {
+        ChecksState.Failed => AgentUpThemeColors.StatusDanger,
+        ChecksState.Running => AgentUpThemeColors.StatusWarning,
+        ChecksState.Passed => AgentUpThemeColors.AccentBright,
+        _ => AgentUpThemeColors.TextFaint
+    };
+
+    public string ChecksToolTip => Standing.Forge.Checks switch
+    {
+        ChecksState.Failed => $"{Standing.Forge.ChecksFailed} of {Standing.Forge.ChecksTotal} checks failed",
+        ChecksState.Running => $"{Standing.Forge.ChecksRunning} of {Standing.Forge.ChecksTotal} checks still running",
+        ChecksState.Passed => $"all {Standing.Forge.ChecksTotal} checks passed",
+        ChecksState.Skipped => $"all {Standing.Forge.ChecksTotal} checks were skipped",
+        _ => "no checks reported"
+    };
+
+    /// <summary>The two review slots, drawn only when there is a proposal to review.</summary>
+    public IReadOnlyList<ReviewSlotViewModel> Reviews =>
+        [.. Standing.Slots.Select(slot => new ReviewSlotViewModel(slot))];
+
+    /// <summary>True while this agent has a proposal, which is what the status row reports on.</summary>
+    public bool HasStatusRow => Standing.Forge.HasProposal;
 
     private IEnumerable<string> SubtitleParts()
     {
@@ -137,12 +142,4 @@ public sealed class StandingRowViewModel
         yield return Standing.WorkspaceState;
     }
 
-    private List<string> Parts()
-    {
-        var parts = new List<string>();
-        if (Standing.Forge.ChecksPassed > 0) parts.Add($"{Standing.Forge.ChecksPassed} passing");
-        if (Standing.Forge.ChecksFailed > 0) parts.Add($"{Standing.Forge.ChecksFailed} failing");
-        if (Standing.Forge.ChecksRunning > 0) parts.Add($"{Standing.Forge.ChecksRunning} running");
-        return parts;
-    }
 }

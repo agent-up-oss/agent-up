@@ -351,8 +351,11 @@ test('forge answers what the definition says the host reports', () => {
   assert.equal(shop.availability, 'ready');
   assert.equal(shop.proposal.number, '44');
   assert.equal(shop.mergeability.state, 'clean');
-  assert.equal(checkout.checks.length, 3);
+  assert.equal(checkout.checks.length, 4, 'one passing, one failing, one running, one skipped');
+  assert.equal(checkout.checks.filter((check: { conclusion: string }) => check.conclusion === 'skipped').length, 1);
   assert.equal(checkout.threads.filter((thread: { isResolved: boolean }) => !thread.isResolved).length, 2);
+  assert.deepEqual(shop.reviews.map((review: { state: string }) => review.state), ['APPROVED', 'COMMENTED']);
+  assert.deepEqual(checkout.reviews.map((review: { state: string }) => review.state), ['CHANGES_REQUESTED']);
   assert.equal(docs.availability, 'unreachable');
   assert.ok(docs.detail.includes('502'));
 });
