@@ -30,8 +30,14 @@ public sealed class BridgeViewModel : ReactiveObject
     /// <summary>Faults: a run ended and someone has to look.</summary>
     public ObservableCollection<StandingRowViewModel> Halted { get; } = [];
 
-    /// <summary>Everyone, in the order the sidebar lists them.</summary>
+    /// <summary>
+    /// Everyone, in the order the sidebar lists them. The rail draws from this; the bridge does
+    /// not, because the bridge shows each agent once under what they need rather than twice.
+    /// </summary>
     public ObservableCollection<StandingRowViewModel> Team { get; } = [];
+
+    /// <summary>The rest of the team: running or idle, and needing nothing from you.</summary>
+    public ObservableCollection<StandingRowViewModel> NothingNeeded { get; } = [];
 
     /// <summary>One row per task an agent reports holding.</summary>
     public ObservableCollection<StandingRowViewModel> Tasks { get; } = [];
@@ -55,6 +61,7 @@ public sealed class BridgeViewModel : ReactiveObject
     public bool HasWaiting => WaitingOnYou.Count > 0;
     public bool HasHalted => Halted.Count > 0;
     public bool HasTeam => Team.Count > 0;
+    public bool HasNothingNeeded => NothingNeeded.Count > 0;
     public bool HasTasks => Tasks.Count > 0;
 
     /// <summary>True once a read finished, so an empty surface can tell apart "nothing" from "not yet".</summary>
@@ -80,6 +87,7 @@ public sealed class BridgeViewModel : ReactiveObject
     public string EmptyWaitingHint => "Nothing is waiting on you.";
     public string EmptyHaltedHint => "Nothing halted.";
     public string EmptyTeamHint => "This server has no workspaces yet.";
+    public string EmptyNothingNeededHint => "Every agent needs something from you.";
 
     public async Task ReadAsync(IReadOnlyList<TeamMember>? members = null, CancellationToken cancellationToken = default)
     {
@@ -109,11 +117,13 @@ public sealed class BridgeViewModel : ReactiveObject
         Replace(Team, standings);
         Replace(WaitingOnYou, standings.Where(standing => standing.Kind == TeamStandingKind.WaitingOnYou));
         Replace(Halted, standings.Where(standing => standing.Kind == TeamStandingKind.Halted));
+        Replace(NothingNeeded, standings.Where(standing =>
+            standing.Kind is not (TeamStandingKind.WaitingOnYou or TeamStandingKind.Halted)));
         Replace(Tasks, standings.Where(standing => standing.TaskNumber is not null));
         foreach (var name in new[]
                  {
                      nameof(HasWaiting), nameof(HasHalted), nameof(HasTeam), nameof(HasTasks),
-                     nameof(Headline), nameof(HasError)
+                     nameof(HasNothingNeeded), nameof(Headline), nameof(HasError)
                  })
         {
             this.RaisePropertyChanged(name);

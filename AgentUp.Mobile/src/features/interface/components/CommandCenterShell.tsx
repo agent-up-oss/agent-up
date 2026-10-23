@@ -8,6 +8,7 @@ import {
   checksSummary,
   forgeStatus,
   headlineFor,
+  roleLabel,
   showProposalBesideTask,
   stateLabel,
   taskLabel,
@@ -119,8 +120,10 @@ function Bridge({ standing }: { standing: Standing }) {
         ? standing.halted.map(item => <StandingCard key={item.workspaceId} standing={item} />)
         : <Text style={styles.note}>Nothing halted.</Text>}
 
-      <Section title={`TEAM · ${standing.team.length}`} tone="muted" />
-      {standing.team.map(item => <StandingCard key={item.workspaceId} standing={item} />)}
+      <Section title={`NOTHING NEEDED · ${standing.settled.length}`} tone="muted" />
+      {standing.settled.length
+        ? standing.settled.map(item => <StandingCard key={item.workspaceId} standing={item} />)
+        : <Text style={styles.note}>Every agent needs something from you.</Text>}
     </>
   );
 }
@@ -137,7 +140,9 @@ function Tasks({ standing }: { standing: Standing }) {
           <View key={item.workspaceId} style={styles.card}>
             <Text style={styles.cardTitle}>{taskLabel(item)}</Text>
             <Text style={[styles.note, toneStyle(item)]}>{stateLabel(item.kind)}</Text>
-            <Text style={styles.note}>{item.displayName} · {whoIs(item)}</Text>
+            <Text style={styles.note}>
+              {item.displayName}{roleLabel(item) ? ` · ${roleLabel(item)}` : ''}
+            </Text>
             {showProposalBesideTask(item) ? (
               <Text style={styles.note}>#{item.forge.proposalNumber} {item.forge.proposalTitle}</Text>
             ) : null}

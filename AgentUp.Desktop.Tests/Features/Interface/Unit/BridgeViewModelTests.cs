@@ -35,10 +35,38 @@ public sealed class BridgeViewModelTests
             Assert.That(bridge.Team, Has.Count.EqualTo(3));
             Assert.That(bridge.WaitingOnYou.Select(row => row.WorkspaceId), Is.EqualTo(new[] { "checkout" }));
             Assert.That(bridge.Halted.Select(row => row.WorkspaceId), Is.EqualTo(new[] { "docs" }));
+            Assert.That(bridge.NothingNeeded.Select(row => row.WorkspaceId), Is.EqualTo(new[] { "shop" }));
             Assert.That(bridge.Tasks, Has.Count.EqualTo(3));
             Assert.That(bridge.Headline, Is.EqualTo("3 agents · 1 waiting on you · 1 halted"));
             Assert.That(bridge.HasRead, Is.True);
             Assert.That(bridge.IsLoading, Is.False);
+        });
+    }
+
+    [Test]
+    public async Task ReadAsync_putsEachAgentInExactlyOneBridgeGroup()
+    {
+        var agents = new StandingAgentFake();
+        agents.Sessions["gate"] = TeamStandingComposition.Session(
+            "gate", state: "awaiting_input",
+            loop: TeamStandingComposition.Loop(true, "blocked", 1, "Gate", "BlockedAwaitingInput", blockReason: "waiting"));
+        agents.Sessions["stopped"] = TeamStandingComposition.Session(
+            "stopped", loop: TeamStandingComposition.Loop(false, "failed", 2, "Stopped", "Failed", stopReason: "forge.unreachable"));
+        agents.Sessions["busy"] = TeamStandingComposition.Session(
+            "busy", loop: TeamStandingComposition.Loop(true, "running", 3, "Busy", "Running"));
+        agents.Sessions["spare"] = TeamStandingComposition.Session(
+            "spare", loop: TeamStandingComposition.Loop(false, "idle", stopReason: "queue_empty"));
+        var bridge = new BridgeViewModel(TeamStandingComposition.Controller(agents, new StandingForgeFake()));
+
+        await bridge.ReadAsync(Members("gate", "stopped", "busy", "spare"));
+        var drawn = bridge.WaitingOnYou.Concat(bridge.Halted).Concat(bridge.NothingNeeded)
+            .Select(row => row.WorkspaceId).ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(drawn, Is.Unique, "the bridge must not draw an agent twice");
+            Assert.That(drawn, Is.EquivalentTo(bridge.Team.Select(row => row.WorkspaceId)));
+            Assert.That(bridge.NothingNeeded.Select(row => row.WorkspaceId), Is.EqualTo(new[] { "busy", "spare" }));
         });
     }
 
@@ -55,6 +83,7 @@ public sealed class BridgeViewModelTests
             Assert.That(bridge.HasTeam, Is.False);
             Assert.That(bridge.HasWaiting, Is.False);
             Assert.That(bridge.HasHalted, Is.False);
+            Assert.That(bridge.HasNothingNeeded, Is.False);
             Assert.That(bridge.HasTasks, Is.False);
             Assert.That(bridge.HasRead, Is.True);
             Assert.That(bridge.Headline, Is.EqualTo("0 agents · 0 waiting on you · 0 halted"));

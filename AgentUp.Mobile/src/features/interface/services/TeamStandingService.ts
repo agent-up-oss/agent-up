@@ -2,9 +2,12 @@ import type { TeamStanding, TeamStandingKind } from '../models/TeamStanding';
 
 /** The bridge's three groups, plus the queue, from one list of standings. */
 export type TeamTriage = {
+  /** Everyone. The rail draws from this; the bridge shows each agent once instead. */
   team: TeamStanding[];
   waiting: TeamStanding[];
   halted: TeamStanding[];
+  /** The rest of the team: running or idle, and needing nothing from you. */
+  settled: TeamStanding[];
   tasks: TeamStanding[];
   headline: string;
 };
@@ -16,6 +19,7 @@ export function triage(standings: TeamStanding[]): TeamTriage {
     team: standings,
     waiting,
     halted,
+    settled: standings.filter(standing => standing.kind !== 'waiting' && standing.kind !== 'halted'),
     tasks: standings.filter(standing => standing.taskNumber !== null),
     headline: `${standings.length} ${plural(standings.length, 'agent')} · ${waiting.length} waiting on you · ${halted.length} halted`,
   };

@@ -34,6 +34,7 @@ test('triage splits the team into the groups the bridge draws', () => {
   assert.equal(result.team.length, 4);
   assert.deepEqual(result.waiting.map(item => item.workspaceId), ['checkout']);
   assert.deepEqual(result.halted.map(item => item.workspaceId), ['docs']);
+  assert.deepEqual(result.settled.map(item => item.workspaceId), ['shop', 'fresh']);
   assert.equal(result.tasks.length, 3);
   assert.equal(result.headline, '4 agents · 1 waiting on you · 1 halted');
 });
@@ -112,4 +113,21 @@ test('the tools summary is everything the role may do, or nothing at all', () =>
   assert.equal(toolsSummary(standing({ roleTools: ['play_validation_flow', 'browser_screenshot'] })),
     'may play_validation_flow, browser_screenshot');
   assert.equal(toolsSummary(standing()), null);
+});
+
+test('the bridge groups put each agent in exactly one place', () => {
+  const result = triage([
+    standing({ workspaceId: 'gate', kind: 'waiting' }),
+    standing({ workspaceId: 'stopped', kind: 'halted' }),
+    standing({ workspaceId: 'busy', kind: 'working' }),
+    standing({ workspaceId: 'spare', kind: 'idle' }),
+  ]);
+  const drawn = [...result.waiting, ...result.halted, ...result.settled].map(item => item.workspaceId);
+  assert.equal(new Set(drawn).size, drawn.length, 'the bridge must not draw an agent twice');
+  assert.deepEqual(drawn.slice().sort(), result.team.map(item => item.workspaceId).slice().sort());
+  assert.deepEqual(result.settled.map(item => item.workspaceId), ['busy', 'spare']);
+});
+
+test('an empty team settles nobody', () => {
+  assert.deepEqual(triage([]).settled, []);
 });

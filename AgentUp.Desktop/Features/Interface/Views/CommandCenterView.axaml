@@ -130,9 +130,13 @@
                 <StackPanel Grid.Column="2" Spacing="2" Margin="0,8">
                     <TextBlock Text="{Binding DisplayName}"
                                FontSize="12"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding Subtitle}"
                                Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
-                    <TextBlock Text="{Binding Subtitle}"
+                    <TextBlock Text="{Binding RoleLabel}"
                                FontSize="11"
+                               IsVisible="{Binding HasRole}"
+                               TextTrimming="CharacterEllipsis"
                                Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
                 </StackPanel>
             </Grid>
@@ -264,21 +268,19 @@
                                Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
                 </StackPanel>
 
-                <Border Background="{DynamicResource AgentUpColorSurfaceBrush}"
-                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
-                        BorderThickness="1"
-                        CornerRadius="12"
-                        Padding="20">
-                    <StackPanel Spacing="10">
-                        <TextBlock Text="TEAM"
-                                   FontSize="10"
-                                   FontWeight="Bold"
-                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                        <ItemsControl x:Name="TeamList"
-                                      ItemsSource="{Binding CommandCenter.Bridge.Team}"
-                                      ItemTemplate="{StaticResource StandingRowTemplate}"/>
-                    </StackPanel>
-                </Border>
+                <StackPanel Spacing="8">
+                    <TextBlock Text="NOTHING NEEDED"
+                               FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                    <ItemsControl x:Name="TeamList"
+                                  ItemsSource="{Binding CommandCenter.Bridge.NothingNeeded}"
+                                  ItemTemplate="{StaticResource StandingRowTemplate}"/>
+                    <TextBlock Text="{Binding CommandCenter.Bridge.EmptyNothingNeededHint}"
+                               FontSize="12"
+                               IsVisible="{Binding !CommandCenter.Bridge.HasNothingNeeded}"
+                               Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                </StackPanel>
 
                 <Border Background="{DynamicResource AgentUpColorSurfaceBrush}"
                         BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
