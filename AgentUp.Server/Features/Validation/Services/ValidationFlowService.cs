@@ -3,6 +3,7 @@ using AgentUp.Server.Shared.Interfaces;
 using System.Text.Json;
 using AgentUp.Server.Features.Validation.DTOs;
 using AgentUp.Server.Features.Validation.Interfaces;
+using AgentUp.Server.Features.Validation.Models;
 using AgentUp.Server.Features.Validation.Providers;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Applications.DTOs;
@@ -32,7 +33,10 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
             var flows = (await repository.LoadAsync(workspaceId, ct)).ToList();
             var id = string.IsNullOrWhiteSpace(request.Id) ? Guid.NewGuid().ToString("N") : request.Id;
             var existing = flows.FindIndex(x => x.Id == id);
-            var flow = new ValidationFlow(id!, workspaceId, request.Application.Trim(), request.Name.Trim(), request.Description.Trim(), request.InitialPath.Trim(), request.InitialExpectations ?? [], request.Steps, DateTimeOffset.UtcNow, existing < 0 ? 1 : flows[existing].Version + 1);
+            var application = request.Surface == ValidationSurface.Desktop
+                ? DesktopSurfaceFlowRules.ApplicationName
+                : request.Application.Trim();
+            var flow = new ValidationFlow(id!, workspaceId, application, request.Name.Trim(), request.Description.Trim(), request.InitialPath.Trim(), request.InitialExpectations ?? [], request.Steps, DateTimeOffset.UtcNow, existing < 0 ? 1 : flows[existing].Version + 1, request.Surface);
             if (existing < 0) flows.Add(flow); else flows[existing] = flow;
             await repository.SaveAsync(workspaceId, flows, ct);
             return new SaveValidationFlowResult(true, flow);
@@ -57,13 +61,17 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
     public async Task<PlaywrightExport?> ExportAsync(string workspaceId, string id, CancellationToken ct = default)
     {
         var flow = (await repository.LoadAsync(workspaceId, ct)).SingleOrDefault(x => x.Id == id);
-        return flow is null ? null : exporter.Export(flow);
+        if (flow is null || flow.Surface == ValidationSurface.Desktop)
+            return null;
+        return exporter.Export(flow);
     }
 
     public async Task<ValidationRunResult> RunAsync(string workspaceId, string id, CancellationToken ct = default)
     {
         var flow = (await repository.LoadAsync(workspaceId, ct)).SingleOrDefault(x => x.Id == id);
         if (flow is null) return new(false, "Validation flow was not found.");
+        if (flow.Surface == ValidationSurface.Desktop)
+            return new(false, "Desktop surface replay is not implemented.");
         var workspace = workspaces.GetById(workspaceId);
         var app = workspace?.Applications.SingleOrDefault(x => x.Name == flow.Application);
         if (app?.Kind == ApplicationKind.Desktop)
@@ -195,6 +203,8 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
     {
         if (workspaces.GetById(workspaceId) is null)
             return "Workspace was not found.";
+        if (request.Surface == ValidationSurface.Desktop)
+            return DesktopSurfaceFlowRules.Validate(request);
         if (!workspaces.HasApplication(workspaceId, request.Application))
             return "Application was not found in this workspace.";
         if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length > 120)

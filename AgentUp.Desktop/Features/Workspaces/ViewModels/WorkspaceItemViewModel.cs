@@ -3,6 +3,7 @@ using System.Reactive;
 using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Shared.Providers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -24,6 +25,10 @@ public sealed class WorkspaceItemViewModel : ReactiveObject
     public string RepositoryToolTip { get; }
     public string WorktreePath { get; }
     public string Initials { get; }
+    public string StartAutomationId => DesktopAutomationIds.WorkspaceStart(Id);
+    public string StopAutomationId => DesktopAutomationIds.WorkspaceStop(Id);
+    public string RefreshAutomationId => DesktopAutomationIds.WorkspaceRefresh(Id);
+    public string RemoveAutomationId => DesktopAutomationIds.WorkspaceRemove(Id);
 
     public string State
     {

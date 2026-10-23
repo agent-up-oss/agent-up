@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AgentUp.Server.Features.Validation.DTOs;
 
 public sealed record PersistedValidationFlow(
@@ -9,6 +11,8 @@ public sealed record PersistedValidationFlow(
     IReadOnlyList<ValidationAssertion> InitialExpectations,
     IReadOnlyList<ValidationStep> Steps,
     DateTimeOffset UpdatedAtUtc,
-    int Version = 1);
+    int Version = 1,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    ValidationSurface Surface = ValidationSurface.Application);
 
 public sealed record ValidationFlowFile(IReadOnlyList<PersistedValidationFlow> Flows);

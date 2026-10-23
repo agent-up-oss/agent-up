@@ -1,5 +1,6 @@
 using System.Reactive;
 using AgentUp.Desktop.Features.Capabilities.DTOs;
+using AgentUp.Desktop.Shared.Providers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Capabilities.ViewModels;
@@ -21,6 +22,10 @@ public sealed class CapabilityModuleCardViewModel : ReactiveObject
     }
 
     public string Id { get; }
+
+    public string EnableAutomationId => DesktopAutomationIds.CapabilityEnable(Id);
+
+    public string DisableAutomationId => DesktopAutomationIds.CapabilityDisable(Id);
 
     public string Version { get; }
 

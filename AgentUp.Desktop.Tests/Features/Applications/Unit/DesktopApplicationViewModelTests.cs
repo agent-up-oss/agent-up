@@ -1,5 +1,6 @@
 using AgentUp.Desktop.Features.Applications.Services;
 using AgentUp.Desktop.Features.Applications.ViewModels;
+using AgentUp.Desktop.Shared.Providers;
 
 namespace AgentUp.Desktop.Tests.Features.Applications.Unit;
 
@@ -27,5 +28,13 @@ public sealed class DesktopApplicationViewModelTests
         var applications = new[] { new ApplicationViewModel("Web", "dotnet run", "Running") };
 
         Assert.That(service.Normalize(applications), Is.SameAs(applications));
+    }
+
+    [Test]
+    public void ApplicationTab_exposesAStableAutomationId()
+    {
+        var application = new ApplicationViewModel("Web", "dotnet run", "Running");
+
+        Assert.That(application.AutomationId, Is.EqualTo(DesktopAutomationIds.ApplicationTab("Web")));
     }
 }

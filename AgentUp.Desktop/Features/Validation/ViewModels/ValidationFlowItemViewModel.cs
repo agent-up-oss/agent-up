@@ -1,4 +1,5 @@
 using AgentUp.Desktop.Shared.Models;
+using AgentUp.Desktop.Shared.Providers;
 using System.Collections.ObjectModel;
 using System.Reactive;
 using AgentUp.Desktop.Features.Validation.DTOs;
@@ -43,6 +44,7 @@ public sealed class ValidationFlowItemViewModel : ReactiveObject, IValidationRep
     }
 
     public ValidationFlowDto Flow { get; }
+    public string PlayAutomationId => DesktopAutomationIds.ValidationPlay(Flow.Id);
     public string Name => Flow.Name;
     public string Description => Flow.Description;
     public string InitialPath => Flow.InitialPath;

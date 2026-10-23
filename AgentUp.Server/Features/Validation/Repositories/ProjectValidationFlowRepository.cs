@@ -59,7 +59,8 @@ public sealed class ProjectValidationFlowRepository(ValidationFlowPathProvider p
             flow.InitialExpectations,
             flow.Steps,
             flow.UpdatedAtUtc,
-            flow.Version);
+            flow.Version,
+            flow.Surface);
 
     internal static PersistedValidationFlow ToPersistedFlow(ValidationFlow flow) =>
         new(
@@ -71,5 +72,6 @@ public sealed class ProjectValidationFlowRepository(ValidationFlowPathProvider p
             flow.InitialExpectations,
             flow.Steps,
             flow.UpdatedAtUtc,
-            flow.Version);
+            flow.Version,
+            flow.Surface);
 }
