@@ -7,7 +7,8 @@ public sealed record ForgeHostingDto(
     IReadOnlyList<ForgeCheckDto> Checks,
     IReadOnlyList<ForgeReviewThreadDto> Threads,
     ForgeMergeabilityDto? Mergeability,
-    string? Detail);
+    string? Detail,
+    string? Remedy);
 
 public sealed record ForgeProposalDto(
     string Id,
@@ -23,3 +24,5 @@ public sealed record ForgeCheckDto(string Name, string Status, string Conclusion
 public sealed record ForgeReviewThreadDto(string Id, string Url, string Summary, bool IsResolved);
 
 public sealed record ForgeMergeabilityDto(bool Mergeable, string State);
+
+public sealed record ForgeLoginStartDto(string AuthorizationUrl);

@@ -59,6 +59,9 @@ internal static class DesktopDomain
     /// <summary>A Git log commit; tests override the id, parents, and refs they care about.</summary>
     public static GitLogCommitDtoBuilder GitCommit() => new();
 
+    /// <summary>Git hosting state; tests pick availability rather than restating the DTO.</summary>
+    public static ForgeHostingDtoBuilder Hosting() => new();
+
     /// <summary>A second workspace, so "two different workspaces" has one spelling.</summary>
     public static WorkspaceDtoBuilder SecondWorkspace()
         => new WorkspaceDtoBuilder()

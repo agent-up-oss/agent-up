@@ -1098,18 +1098,20 @@ public sealed class GitPanelViewModelTests
     }
 
     [Test]
-    public async Task LoadAsync_hidesHostingWhenAvailabilityIsNone()
+    public async Task LoadAsync_showsNotInstalledWhenNoForgeIsEnabled()
     {
         var panel = CreatePanel(new FakeGitApiProvider
         {
             Tree = SampleTree(),
-            Hosting = new ForgeHostingDto("none", null, null, [], [], null, null)
+            Hosting = DesktopDomain.Hosting().NotInstalled().Build()
         });
 
         await panel.LoadAsync("ws-1", connectionId: "conn-1");
 
-        Assert.That(panel.ShowHosting, Is.False);
-        Assert.That(panel.HostingTitle, Is.Empty);
+        Assert.That(panel.ShowHosting, Is.True);
+        Assert.That(panel.HostingTitle, Does.Contain("forge capability"));
+        Assert.That(panel.HostingRemedy, Does.Contain("capabilities bootstrap"));
+        Assert.That(panel.CanSignIn, Is.False);
     }
 
     [Test]
@@ -1117,13 +1119,14 @@ public sealed class GitPanelViewModelTests
     {
         var panel = CreatePanel(new FakeGitApiProvider { Tree = SampleTree() });
 
-        await LoadHosting(panel, "needsCredential");
-        Assert.That(panel.HostingTitle, Does.Contain("Sign in"));
+        await LoadHosting(panel, DesktopDomain.Hosting().NeedsCredential().Build());
+        Assert.That(panel.HostingTitle, Does.Contain("credential"));
+        Assert.That(panel.CanSignIn, Is.True);
 
-        await LoadHosting(panel, "unreachable", "offline");
+        await LoadHosting(panel, DesktopDomain.Hosting().Unreachable("offline").Build());
         Assert.That(panel.HostingTitle, Is.EqualTo("offline"));
 
-        await LoadHosting(panel, "noProposal");
+        await LoadHosting(panel, DesktopDomain.Hosting().NoProposal().Build());
         Assert.That(panel.HostingTitle, Does.Contain("No open proposal"));
     }
 
@@ -1131,22 +1134,19 @@ public sealed class GitPanelViewModelTests
     public void ApplyHosting_readyShowsChecksThreadsAndMergeability()
     {
         var panel = CreatePanel(new FakeGitApiProvider());
-        panel.ApplyHosting(new ForgeHostingDto(
-            "ready",
-            "github",
-            new ForgeProposalDto("1", "42", "Ready", "https://example.test/42", "topic", "main", "open"),
-            [new ForgeCheckDto("ci", "completed", "success", "https://example.test/check")],
-            [new ForgeReviewThreadDto("PRRT_1", "https://example.test/thread", "nits", false)],
-            new ForgeMergeabilityDto(true, "clean"),
-            null));
+        panel.ApplyHosting(DesktopDomain.Hosting().Ready()
+            .WithChecks(new ForgeCheckDto("ci", "completed", "success", "https://example.test/check"))
+            .WithThreads(new ForgeReviewThreadDto("PRRT_1", "https://example.test/thread", "nits", false))
+            .Mergeable()
+            .Build());
 
         Assert.Multiple(() =>
         {
             Assert.That(panel.ShowHosting, Is.True);
             Assert.That(panel.HostingTitle, Is.EqualTo("Ready"));
-            Assert.That(panel.Hosting.Proposal!.Id, Is.EqualTo("1"));
-            Assert.That(panel.Hosting.Proposal.Url, Does.Contain("/42"));
-            Assert.That(panel.Hosting.Proposal.HeadRef, Is.EqualTo("topic"));
+            Assert.That(panel.Hosting?.Proposal?.Id, Is.EqualTo("1"));
+            Assert.That(panel.Hosting?.Proposal?.Url, Does.Contain("/42"));
+            Assert.That(panel.Hosting?.Proposal?.HeadRef, Is.EqualTo("topic"));
             Assert.That(panel.HostingChecksLabel, Is.EqualTo("Checks passed"));
             Assert.That(panel.HostingThreadsLabel, Is.EqualTo("1 review thread"));
             Assert.That(panel.HostingMergeabilityLabel, Is.EqualTo("Mergeable"));
@@ -1157,17 +1157,13 @@ public sealed class GitPanelViewModelTests
     public void ApplyHosting_reportsFailedChecksAndConflicts()
     {
         var panel = CreatePanel(new FakeGitApiProvider());
-        panel.ApplyHosting(new ForgeHostingDto(
-            "ready",
-            "github",
-            new ForgeProposalDto("1", "42", "Broken", "https://example.test/42", "topic", "main", "open"),
-            [new ForgeCheckDto("ci", "completed", "failure", "https://example.test/check")],
-            [
+        panel.ApplyHosting(DesktopDomain.Hosting().Ready().Titled("Broken")
+            .WithChecks(new ForgeCheckDto("ci", "completed", "failure", "https://example.test/check"))
+            .WithThreads(
                 new ForgeReviewThreadDto("1", "https://example.test/1", "a", false),
-                new ForgeReviewThreadDto("2", "https://example.test/2", "b", false)
-            ],
-            new ForgeMergeabilityDto(false, "dirty"),
-            null));
+                new ForgeReviewThreadDto("2", "https://example.test/2", "b", false))
+            .Mergeable(false, "dirty")
+            .Build());
 
         Assert.That(panel.HostingChecksLabel, Is.EqualTo("Checks failed"));
         Assert.That(panel.HostingThreadsLabel, Is.EqualTo("2 review threads"));
@@ -1178,26 +1174,15 @@ public sealed class GitPanelViewModelTests
     public void ApplyHosting_pendingAndEmptyChecksHaveTheirOwnLabels()
     {
         var panel = CreatePanel(new FakeGitApiProvider());
-        panel.ApplyHosting(new ForgeHostingDto(
-            "ready",
-            "github",
-            new ForgeProposalDto("1", "42", "Pending", "https://example.test/42", "topic", "main", "open"),
-            [new ForgeCheckDto("ci", "in_progress", "", "https://example.test/check")],
-            [],
-            null,
-            null));
+        panel.ApplyHosting(DesktopDomain.Hosting().Ready().Titled("Pending")
+            .WithChecks(new ForgeCheckDto("ci", "in_progress", "", "https://example.test/check"))
+            .UnknownMergeability()
+            .Build());
 
         Assert.That(panel.HostingChecksLabel, Is.EqualTo("Checks pending"));
         Assert.That(panel.HostingMergeabilityLabel, Is.EqualTo("Mergeability unknown"));
 
-        panel.ApplyHosting(new ForgeHostingDto(
-            "ready",
-            "github",
-            new ForgeProposalDto("1", "42", "Bare", "https://example.test/42", "topic", "main", "open"),
-            [],
-            [],
-            new ForgeMergeabilityDto(true, "clean"),
-            null));
+        panel.ApplyHosting(DesktopDomain.Hosting().Ready().Titled("Bare").Mergeable().Build());
         Assert.That(panel.HostingChecksLabel, Is.EqualTo("No checks"));
     }
 
@@ -1240,23 +1225,283 @@ public sealed class GitPanelViewModelTests
         var api = new FakeGitApiProvider
         {
             Tree = SampleTree(),
-            Hosting = new ForgeHostingDto("ready", "github", null, [], [], null, null)
+            Hosting = DesktopDomain.Hosting().Ready().WithProposal(null).Build()
         };
         var panel = CreatePanel(api);
         await panel.LoadAsync("ws-1", connectionId: "conn-a");
         Assert.That(panel.ShowHosting, Is.True);
 
-        api.Hosting = new ForgeHostingDto("none", null, null, [], [], null, null);
+        api.Hosting = DesktopDomain.Hosting().NotInstalled().Build();
         await panel.LoadAsync("ws-1", connectionId: "conn-b");
-        Assert.That(panel.ShowHosting, Is.False);
+        Assert.That(panel.ShowHosting, Is.True);
+        Assert.That(panel.HostingTitle, Does.Contain("forge capability"));
     }
 
-    private static async Task LoadHosting(GitPanelViewModel panel, string availability, string? detail = null)
+    [Test]
+    public async Task SignInAsync_storesTheAuthorizationUrl()
     {
         var api = new FakeGitApiProvider
         {
             Tree = SampleTree(),
-            Hosting = new ForgeHostingDto(availability, "github", null, [], [], null, detail)
+            Hosting = DesktopDomain.Hosting().NeedsCredential().Build(),
+            Login = new ForgeLoginStartDto("https://example.test/login/oauth/authorize?client_id=client")
+        };
+        var panel = CreatePanel(api);
+        await panel.LoadAsync("ws-1");
+
+        await panel.SignInCommand.Execute().FirstAsync();
+
+        Assert.That(panel.HostingSignInUrl, Does.StartWith("https://example.test/login/oauth/authorize"));
+        Assert.That(panel.HasHostingSignInUrl, Is.True);
+        Assert.That(panel.HostingSignInUri, Is.Not.Null);
+    }
+
+    [Test]
+    public void ApplyHosting_usesFallbackTitlesWhenDetailIsMissing()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider());
+
+        panel.ApplyHosting(DesktopDomain.Hosting().NotInstalled().WithDetail(null).WithRemedy(null).Build());
+        Assert.That(panel.HostingTitle, Does.Contain("forge capability"));
+        Assert.That(panel.HasHostingRemedy, Is.False);
+
+        panel.ApplyHosting(DesktopDomain.Hosting().WithAvailability("none").WithDetail("").WithModule(null).Build());
+        Assert.That(panel.HostingTitle, Does.Contain("forge capability"));
+    }
+
+    [Test]
+    public void ApplyHosting_namesEachAvailabilityWhenDetailIsBlank()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider());
+
+        panel.ApplyHosting(DesktopDomain.Hosting().NeedsCredential().WithDetail(null).Build());
+        Assert.That(panel.HostingTitle, Does.Contain("credential"));
+        Assert.That(panel.CanSignIn, Is.True);
+
+        panel.ApplyHosting(DesktopDomain.Hosting().NoRemote().WithDetail(" ").Build());
+        Assert.That(panel.HostingTitle, Does.Contain("origin"));
+
+        panel.ApplyHosting(DesktopDomain.Hosting().Unreachable(detail: null).Build());
+        Assert.That(panel.HostingTitle, Is.EqualTo("Could not reach the host."));
+
+        panel.ApplyHosting(DesktopDomain.Hosting().NoProposal().WithDetail(null).Build());
+        Assert.That(panel.HostingTitle, Does.Contain("No open proposal"));
+
+        panel.ApplyHosting(DesktopDomain.Hosting().WithAvailability("mystery").WithDetail(null).WithRemedy(null).Build());
+        Assert.That(panel.HostingTitle, Is.EqualTo("Repository hosting"));
+    }
+
+    [Test]
+    public void ApplyHosting_readyWithoutAProposalTitleUsesOpenProposal()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider());
+        panel.ApplyHosting(DesktopDomain.Hosting().Ready().WithProposal(null).Build());
+
+        Assert.That(panel.HostingTitle, Is.EqualTo("Open proposal"));
+        Assert.That(panel.HostingChecksLabel, Is.EqualTo("No checks"));
+        Assert.That(panel.HostingThreadsLabel, Is.EqualTo("0 review threads"));
+    }
+
+    [Test]
+    public void ApplyHosting_hidesReadyFactsWhenAvailabilityIsNotReady()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider());
+        panel.ApplyHosting(DesktopDomain.Hosting().NotInstalled().Build());
+
+        Assert.That(panel.HostingChecksLabel, Is.Empty);
+        Assert.That(panel.HostingThreadsLabel, Is.Empty);
+        Assert.That(panel.HostingMergeabilityLabel, Is.Empty);
+    }
+
+    [Test]
+    public void ApplyHosting_nullClearsTheStripAndSignInUrl()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider());
+        panel.ApplyHosting(DesktopDomain.Hosting().NeedsCredential().Build());
+        Assert.That(panel.ShowHosting, Is.True);
+
+        panel.ApplyHosting(null);
+
+        Assert.That(panel.ShowHosting, Is.False);
+        Assert.That(panel.HostingTitle, Is.Empty);
+        Assert.That(panel.HostingRemedy, Is.Empty);
+        Assert.That(panel.HasHostingSignInUrl, Is.False);
+        Assert.That(panel.HostingSignInUri, Is.Null);
+    }
+
+    [Test]
+    public async Task SignInAsync_mapsALoginFailure()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            Hosting = DesktopDomain.Hosting().NeedsCredential().Build(),
+            LoginException = new HttpRequestException("denied")
+        });
+        await panel.LoadAsync("ws-1");
+
+        await panel.SignInCommand.Execute().FirstAsync();
+
+        Assert.That(panel.ErrorMessage, Does.Contain("sign-in"));
+        Assert.That(panel.ErrorMessage, Does.Contain("denied"));
+        Assert.That(panel.HasHostingSignInUrl, Is.False);
+    }
+
+    [Test]
+    public async Task SignInAsync_doesNothingWithoutAWorkspace()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Hosting = DesktopDomain.Hosting().NeedsCredential().Build(),
+            Login = new ForgeLoginStartDto("https://example.test/login/oauth/authorize")
+        });
+        panel.ApplyHosting(DesktopDomain.Hosting().NeedsCredential().Build());
+
+        await InvokeAsync(panel, "SignInAsync");
+
+        Assert.That(panel.HasHostingSignInUrl, Is.False);
+    }
+
+    [Test]
+    public async Task HostingSignInUri_isNullForARelativeAuthorizationUrl()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            Hosting = DesktopDomain.Hosting().NeedsCredential().Build(),
+            Login = new ForgeLoginStartDto("login/oauth/authorize")
+        });
+        await panel.LoadAsync("ws-1");
+
+        await panel.SignInCommand.Execute().FirstAsync();
+
+        Assert.That(panel.HasHostingSignInUrl, Is.True);
+        Assert.That(panel.HostingSignInUri, Is.Null);
+    }
+
+    [Test]
+    public async Task ApplyHosting_keepsTheSignInUrlWhileCredentialIsStillNeeded()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            Hosting = DesktopDomain.Hosting().NeedsCredential().Build(),
+            Login = new ForgeLoginStartDto("https://example.test/login/oauth/authorize")
+        });
+        await panel.LoadAsync("ws-1");
+        await panel.SignInCommand.Execute().FirstAsync();
+        Assert.That(panel.HasHostingSignInUrl, Is.True);
+
+        panel.ApplyHosting(DesktopDomain.Hosting().NeedsCredential().Build());
+
+        Assert.That(panel.HostingSignInUrl, Is.EqualTo("https://example.test/login/oauth/authorize"));
+    }
+
+    [Test]
+    public async Task ApplyHosting_clearsTheSignInUrlOnceCredentialIsNoLongerNeeded()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            Hosting = DesktopDomain.Hosting().NeedsCredential().Build(),
+            Login = new ForgeLoginStartDto("https://example.test/login/oauth/authorize")
+        });
+        await panel.LoadAsync("ws-1");
+        await panel.SignInCommand.Execute().FirstAsync();
+
+        panel.ApplyHosting(DesktopDomain.Hosting().NoProposal().Build());
+
+        Assert.That(panel.HasHostingSignInUrl, Is.False);
+    }
+
+    [Test]
+    public async Task SignInAsync_mapsAnInvalidOperation()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            Hosting = DesktopDomain.Hosting().NeedsCredential().Build(),
+            LoginException = new InvalidOperationException("empty sign-in URL")
+        });
+        await panel.LoadAsync("ws-1");
+
+        await panel.SignInCommand.Execute().FirstAsync();
+
+        Assert.That(panel.ErrorMessage, Does.Contain("empty sign-in URL"));
+        Assert.That(panel.HasHostingSignInUrl, Is.False);
+    }
+
+    [Test]
+    public async Task SignInAsync_mapsACanceledLogin()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            Hosting = DesktopDomain.Hosting().NeedsCredential().Build(),
+            LoginException = new TaskCanceledException("timed out")
+        });
+        await panel.LoadAsync("ws-1");
+
+        await panel.SignInCommand.Execute().FirstAsync();
+
+        Assert.That(panel.ErrorMessage, Does.Contain("sign-in"));
+        Assert.That(panel.ErrorMessage, Does.Contain("timed out"));
+    }
+
+    [Test]
+    public async Task SignInAsync_doesNothingWhenAvailabilityIsNotNeedsCredential()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            Hosting = DesktopDomain.Hosting().NotInstalled().Build(),
+            Login = new ForgeLoginStartDto("https://example.test/login/oauth/authorize")
+        });
+        await panel.LoadAsync("ws-1");
+
+        await InvokeAsync(panel, "SignInAsync");
+
+        Assert.That(panel.HasHostingSignInUrl, Is.False);
+        Assert.That(panel.ErrorMessage, Is.Null);
+    }
+
+    [Test]
+    public async Task LoadAsync_mapsAJsonHostingFailureToUnreachable()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            HostingException = new JsonException("truncated")
+        });
+
+        await panel.LoadAsync("ws-1");
+
+        Assert.That(panel.HostingTitle, Does.Contain("truncated"));
+        Assert.That(panel.HostingRemedy, Does.Contain("retry"));
+    }
+
+    [Test]
+    public async Task LoadAsync_mapsAHostingTimeoutToUnreachable()
+    {
+        var panel = CreatePanel(new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            HostingException = new TaskCanceledException("timed out")
+        });
+
+        await panel.LoadAsync("ws-1");
+
+        Assert.That(panel.ShowHosting, Is.True);
+        Assert.That(panel.HostingTitle, Does.Contain("timed out"));
+        Assert.That(panel.CanSignIn, Is.False);
+    }
+
+    private static async Task LoadHosting(GitPanelViewModel panel, ForgeHostingDto hosting)
+    {
+        var api = new FakeGitApiProvider
+        {
+            Tree = SampleTree(),
+            Hosting = hosting
         };
         var next = CreatePanel(api);
         await next.LoadAsync("ws-1");
@@ -1327,10 +1572,19 @@ internal sealed class FakeGitApiProvider : IGitApiProvider
 
     public Exception? HostingException { get; set; }
 
+    public ForgeLoginStartDto Login { get; set; } = new("https://example.test/login/oauth/authorize");
+
+    public Exception? LoginException { get; set; }
+
     public Task<ForgeHostingDto?> GetHostingAsync(string workspaceId, CancellationToken cancellationToken = default)
         => HostingException is not null
             ? Task.FromException<ForgeHostingDto?>(HostingException)
             : Task.FromResult(Hosting);
+
+    public Task<ForgeLoginStartDto> StartLoginAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => LoginException is not null
+            ? Task.FromException<ForgeLoginStartDto>(LoginException)
+            : Task.FromResult(Login);
 
     public CommitQueueDto? Queue { get; set; }
 

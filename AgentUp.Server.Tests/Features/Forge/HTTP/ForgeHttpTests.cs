@@ -23,7 +23,7 @@ public sealed class ForgeHttpTests
     }
 
     [Test]
-    public async Task Get_returnsNoneWhenNoForgeModuleIsEnabled()
+    public async Task Get_returnsNotInstalledWhenNoForgeModuleIsEnabled()
     {
         using var host = await HostAsync();
         using var client = host.Factory.CreateClient();
@@ -31,7 +31,9 @@ public sealed class ForgeHttpTests
 
         var hosting = await client.GetFromJsonAsync<ForgeHostingDto>($"/api/workspaces/{workspaceId}/forge");
 
-        Assert.That(hosting!.Availability, Is.EqualTo("none"));
+        Assert.That(hosting!.Availability, Is.EqualTo("notInstalled"));
+        Assert.That(hosting.Detail, Does.Contain("forge capability"));
+        Assert.That(hosting.Remedy, Does.Contain("capabilities bootstrap"));
         Assert.That(hosting.Proposal, Is.Null);
     }
 

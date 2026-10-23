@@ -7,7 +7,8 @@ public sealed record ForgeHostingDto(
     IReadOnlyList<ForgeCheckDto> Checks,
     IReadOnlyList<ForgeReviewThreadDto> Threads,
     ForgeMergeabilityDto? Mergeability,
-    string? Detail);
+    string? Detail,
+    string? Remedy);
 
 public sealed record ForgeProposalDto(
     string Id,

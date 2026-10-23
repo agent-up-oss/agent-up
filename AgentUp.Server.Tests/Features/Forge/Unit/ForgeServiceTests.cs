@@ -13,14 +13,16 @@ namespace AgentUp.Server.Tests.Features.Forge.Unit;
 public sealed class ForgeServiceTests
 {
     [Test]
-    public async Task GetHostingAsync_returnsNoneWhenNoForgeIsEnabled()
+    public async Task GetHostingAsync_returnsNotInstalledWhenNoForgeIsEnabled()
     {
         var (service, workspaceId) = await ArrangeAsync();
 
         var hosting = await service.GetHostingAsync(workspaceId, CancellationToken.None);
 
-        Assert.That(hosting!.Availability, Is.EqualTo("none"));
+        Assert.That(hosting!.Availability, Is.EqualTo("notInstalled"));
         Assert.That(hosting.ModuleId, Is.Null);
+        Assert.That(hosting.Detail, Does.Contain("forge capability"));
+        Assert.That(hosting.Remedy, Does.Contain("capabilities bootstrap"));
     }
 
     [Test]
@@ -32,10 +34,26 @@ public sealed class ForgeServiceTests
 
         Assert.That(hosting!.Availability, Is.EqualTo("needsCredential"));
         Assert.That(hosting.ModuleId, Is.EqualTo("github"));
+        Assert.That(hosting.Detail, Does.Contain("OAuth"));
+        Assert.That(hosting.Remedy, Does.Contain("AGENTUP_FORGE_CLIENT_ID"));
     }
 
     [Test]
-    public async Task GetHostingAsync_returnsUnreachableWhenTheRemoteCannotBeRead()
+    public async Task GetHostingAsync_asksForSignInWhenOAuthIsConfigured()
+    {
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability(),
+            oauth: new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback"));
+
+        var hosting = await service.GetHostingAsync(workspaceId, CancellationToken.None);
+
+        Assert.That(hosting!.Availability, Is.EqualTo("needsCredential"));
+        Assert.That(hosting.Detail, Does.Contain("credential"));
+        Assert.That(hosting.Remedy, Does.Contain("Sign in"));
+    }
+
+    [Test]
+    public async Task GetHostingAsync_returnsNoRemoteWhenTheRemoteCannotBeRead()
     {
         var credentials = new MemoryForgeCredentialStore();
         var (service, workspaceId) = await ArrangeAsync(
@@ -46,8 +64,9 @@ public sealed class ForgeServiceTests
 
         var hosting = await service.GetHostingAsync(workspaceId, CancellationToken.None);
 
-        Assert.That(hosting!.Availability, Is.EqualTo("unreachable"));
+        Assert.That(hosting!.Availability, Is.EqualTo("noRemote"));
         Assert.That(hosting.Detail, Does.Contain("origin"));
+        Assert.That(hosting.Remedy, Does.Contain("git remote"));
     }
 
     [Test]
@@ -60,6 +79,7 @@ public sealed class ForgeServiceTests
         var hosting = await service.GetHostingAsync(workspaceId, CancellationToken.None);
 
         Assert.That(hosting!.Availability, Is.EqualTo("noProposal"));
+        Assert.That(hosting.Detail, Does.Contain("No open proposal"));
     }
 
     [Test]
@@ -107,6 +127,7 @@ public sealed class ForgeServiceTests
 
         Assert.That(hosting!.Availability, Is.EqualTo("unreachable"));
         Assert.That(hosting.Detail, Does.Contain("rate limited"));
+        Assert.That(hosting.Remedy, Does.Contain("retry"));
     }
 
     [Test]
@@ -129,8 +150,22 @@ public sealed class ForgeServiceTests
         var started = service.StartLogin(workspaceId);
 
         Assert.That(started.StatusCode, Is.EqualTo(200));
+        Assert.That(((ForgeLoginStartDto)started.Body!).AuthorizationUrl, Does.StartWith("https://example.test/login/oauth/authorize"));
+        Assert.That(((ForgeLoginStartDto)started.Body!).AuthorizationUrl, Does.Contain("response_type=code"));
         Assert.That(((ForgeLoginStartDto)started.Body!).AuthorizationUrl, Does.Contain("client_id=client"));
         Assert.That(((ForgeLoginStartDto)started.Body!).AuthorizationUrl, Does.Contain("state="));
+        Assert.That(((ForgeLoginStartDto)started.Body!).AuthorizationUrl, Does.Not.Contain("github.com"));
+    }
+
+    [Test]
+    public async Task StartLogin_returnsUnavailableWhenNoForgeIsEnabled()
+    {
+        var (service, workspaceId) = await ArrangeAsync(
+            oauth: new ForgeOAuthConfiguration("client", "secret", "http://localhost/api/forge/callback"));
+
+        var started = service.StartLogin(workspaceId);
+
+        Assert.That(started.StatusCode, Is.EqualTo(503));
     }
 
     [Test]
@@ -138,17 +173,20 @@ public sealed class ForgeServiceTests
     {
         var credentials = new MemoryForgeCredentialStore();
         var states = new ForgeOAuthStateStore();
+        var exchange = new FixedForgeOAuthExchange("exchanged");
         var (service, workspaceId) = await ArrangeAsync(
             new StubForgeCapability(),
             credentials,
             oauth: new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback"),
-            states: states);
+            states: states,
+            exchange: exchange);
         var state = states.Issue(workspaceId);
 
         var completed = await service.CompleteLoginAsync("code", state, CancellationToken.None);
 
         Assert.That(completed, Is.True);
         Assert.That(credentials.Read(workspaceId, "github"), Is.EqualTo("exchanged"));
+        Assert.That(exchange.LastTokenUrl, Is.EqualTo("https://example.test/login/oauth/access_token"));
     }
 
     [Test]
@@ -232,13 +270,246 @@ public sealed class ForgeServiceTests
             Is.Null);
     }
 
+    [Test]
+    public async Task StartLogin_returnsNotFoundForAnUnknownWorkspace()
+    {
+        var (service, _) = await ArrangeAsync(new StubForgeCapability());
+
+        Assert.That(service.StartLogin("missing").StatusCode, Is.EqualTo(404));
+    }
+
+    [Test]
+    public async Task StartLogin_returnsUnavailableWhenOAuthIsNotConfigured()
+    {
+        var (service, workspaceId) = await ArrangeAsync(new StubForgeCapability());
+
+        var started = service.StartLogin(workspaceId);
+
+        Assert.That(started.StatusCode, Is.EqualTo(503));
+        Assert.That(started.Body!.ToString(), Does.Contain("OAuth is not configured"));
+    }
+
+    [Test]
+    public async Task StartLogin_returnsUnavailableWhenTheAuthorizeUrlIsBlank()
+    {
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability
+            {
+                Host = new ForgeHostConfiguration("https://example.test/api/", "  ", "https://example.test/token")
+            },
+            oauth: new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback"));
+
+        Assert.That(service.StartLogin(workspaceId).StatusCode, Is.EqualTo(503));
+    }
+
+    [Test]
+    public async Task StartLogin_appendsToAnAuthorizeUrlThatAlreadyHasAQuery()
+    {
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability
+            {
+                Host = new ForgeHostConfiguration(
+                    "https://example.test/api/",
+                    "https://example.test/login/oauth/authorize?prompt=consent",
+                    "https://example.test/token")
+            },
+            oauth: new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback"));
+
+        var url = ((ForgeLoginStartDto)service.StartLogin(workspaceId).Body!).AuthorizationUrl;
+
+        Assert.That(url, Does.Contain("authorize?prompt=consent&response_type=code&client_id=client"));
+    }
+
+    [Test]
+    public async Task Logout_deletesTheStoredToken()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var (service, workspaceId) = await ArrangeAsync(new StubForgeCapability(), credentials);
+        credentials.Write(workspaceId, "github", "token");
+
+        Assert.That(service.Logout(workspaceId), Is.True);
+        Assert.That(credentials.Read(workspaceId, "github"), Is.Null);
+    }
+
+    [Test]
+    public async Task Logout_succeedsWhenNoForgeIsEnabled()
+    {
+        var (service, workspaceId) = await ArrangeAsync();
+
+        Assert.That(service.Logout(workspaceId), Is.True);
+    }
+
+    [Test]
+    public async Task CompleteLoginAsync_returnsFalseForAnUnknownState()
+    {
+        var (service, _) = await ArrangeAsync(new StubForgeCapability());
+
+        Assert.That(await service.CompleteLoginAsync("code", "missing", CancellationToken.None), Is.False);
+    }
+
+    [Test]
+    public async Task GetHostingAsync_usesDefaultUnreachableCopyWhenTheHostMessageIsBlank()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability { ReadFailure = new HttpRequestException(" ") },
+            credentials);
+        credentials.Write(workspaceId, "github", "token");
+
+        var hosting = await service.GetHostingAsync(workspaceId, CancellationToken.None);
+
+        Assert.That(hosting!.Detail, Is.EqualTo(ForgeHostingCopy.UnreachableDetail));
+        Assert.That(hosting.Remedy, Does.Contain("retry"));
+    }
+
+    [Test]
+    public async Task GetHostingAsync_returnsReadyWithoutMergeability()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability
+            {
+                Snapshot = new ForgeHostSnapshot(
+                    new ForgeProposal("1", "42", "Ready", "https://example.test/42", "topic", "main", "open"),
+                    [],
+                    [],
+                    null)
+            },
+            credentials);
+        credentials.Write(workspaceId, "github", "token");
+
+        var hosting = await service.GetHostingAsync(workspaceId, CancellationToken.None);
+
+        Assert.That(hosting!.Availability, Is.EqualTo("ready"));
+        Assert.That(hosting.Mergeability, Is.Null);
+    }
+
+    [Test]
+    public async Task ListAssignedAsync_returnsEmptyWhenTheRequestCannotBeBuilt()
+    {
+        var (service, workspaceId) = await ArrangeAsync(new StubForgeCapability());
+
+        Assert.That(await service.ListAssignedAsync(workspaceId, CancellationToken.None), Is.Empty);
+    }
+
+    [Test]
+    public async Task CommentAndReview_runWhenTheRequestCanBeBuilt()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var forge = new StubForgeCapability();
+        var (service, workspaceId) = await ArrangeAsync(forge, credentials);
+        credentials.Write(workspaceId, "github", "token");
+
+        await service.CommentAsync(workspaceId, new ForgeCommentRequest("42", "noted"), CancellationToken.None);
+        await service.SubmitReviewAsync(
+            workspaceId,
+            new ForgeReviewRequest("42", "lgtm", "COMMENT"),
+            CancellationToken.None);
+
+        Assert.That(forge.CommentCalls, Is.EqualTo(1));
+        Assert.That(forge.ReviewCalls, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task OpenProposalAsync_returnsTheOpenedProposal()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var (service, workspaceId) = await ArrangeAsync(new StubForgeCapability(), credentials);
+        credentials.Write(workspaceId, "github", "token");
+
+        var opened = await service.OpenProposalAsync(
+            workspaceId,
+            new ForgeOpenProposalRequest("Title", "Body", "topic", "main"),
+            CancellationToken.None);
+
+        Assert.That(opened!.Title, Is.EqualTo("Title"));
+        Assert.That(opened.HeadRef, Is.EqualTo("topic"));
+    }
+
+    [Test]
+    public async Task UpdateRefAsync_returnsNoContentForAnUnprotectedRef()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var forge = new StubForgeCapability();
+        var (service, workspaceId) = await ArrangeAsync(forge, credentials);
+        credentials.Write(workspaceId, "github", "token");
+
+        var outcome = await service.UpdateRefAsync(
+            workspaceId,
+            new ForgeUpdateRefRequest("topic", "abc"),
+            CancellationToken.None);
+
+        Assert.That(outcome.StatusCode, Is.EqualTo(204));
+        Assert.That(forge.UpdateRefCalls, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task Logout_returnsFalseForAnUnknownWorkspace()
+    {
+        var (service, _) = await ArrangeAsync(new StubForgeCapability());
+
+        Assert.That(service.Logout("missing"), Is.False);
+    }
+
+    [Test]
+    public async Task CompleteLoginAsync_returnsFalseWhenTheWorkspaceNoLongerExists()
+    {
+        var states = new ForgeOAuthStateStore();
+        var (service, _) = await ArrangeAsync(new StubForgeCapability(), states: states);
+        var state = states.Issue("missing");
+
+        Assert.That(await service.CompleteLoginAsync("code", state, CancellationToken.None), Is.False);
+    }
+
+    [Test]
+    public async Task GetHostingAsync_treatsAWhitespaceTokenAsMissingCredential()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability(),
+            credentials,
+            oauth: new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback"));
+        credentials.Write(workspaceId, "github", "   ");
+
+        var hosting = await service.GetHostingAsync(workspaceId, CancellationToken.None);
+
+        Assert.That(hosting!.Availability, Is.EqualTo("needsCredential"));
+        Assert.That(hosting.Remedy, Does.Contain("Sign in"));
+    }
+
+    [Test]
+    public async Task GetHostingAsync_doesNotMapCallerCancellationToUnreachable()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability { ReadFailure = new TaskCanceledException("canceled") },
+            credentials);
+        credentials.Write(workspaceId, "github", "token");
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+
+        Assert.ThrowsAsync<TaskCanceledException>(
+            () => service.GetHostingAsync(workspaceId, canceled.Token));
+    }
+
+    [Test]
+    public async Task ListAssignedAsync_returnsEmptyWhenTheStoredTokenIsBlank()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var (service, workspaceId) = await ArrangeAsync(new StubForgeCapability(), credentials);
+        credentials.Write(workspaceId, "github", " ");
+
+        Assert.That(await service.ListAssignedAsync(workspaceId, CancellationToken.None), Is.Empty);
+    }
+
     private static async Task<(ForgeService Service, string WorkspaceId)> ArrangeAsync(
         StubForgeCapability? forge = null,
         MemoryForgeCredentialStore? credentials = null,
         ForgeGitRemote? remote = null,
         bool noRemote = false,
         ForgeOAuthConfiguration? oauth = null,
-        ForgeOAuthStateStore? states = null)
+        ForgeOAuthStateStore? states = null,
+        FixedForgeOAuthExchange? exchange = null)
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
         var workspace = await workspaces.RegisterAsync(ServerDomain.Workspace().Build());
@@ -247,7 +518,7 @@ public sealed class ForgeServiceTests
             packages.WithForges(forge);
         var resolved = noRemote
             ? null
-            : remote ?? (forge is null ? null : new ForgeGitRemote("acme", "widgets", "main", "https://github.com/acme/widgets.git"));
+            : remote ?? (forge is null ? null : new ForgeGitRemote("acme", "widgets", "main", "https://example.test/acme/widgets.git"));
         var service = new ForgeService(
             workspaces,
             packages,
@@ -255,7 +526,7 @@ public sealed class ForgeServiceTests
             new FixedForgeGitRemoteResolver(resolved),
             new FixedForgeOAuthSettings(oauth ?? new ForgeOAuthConfiguration("", "", "")),
             states ?? new ForgeOAuthStateStore(),
-            new FixedForgeOAuthExchange("exchanged"));
+            exchange ?? new FixedForgeOAuthExchange("exchanged"));
         return (service, workspace.Id);
     }
 }

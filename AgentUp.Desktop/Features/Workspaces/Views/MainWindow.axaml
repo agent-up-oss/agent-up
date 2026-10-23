@@ -2000,13 +2000,32 @@
                                                     CornerRadius="4"
                                                     Padding="8">
                                                 <StackPanel Spacing="4">
-                                                    <TextBlock Text="{Binding Git.HostingTitle}"
+                                                    <TextBlock AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitHostingTitle}"
+                                                               Text="{Binding Git.HostingTitle}"
                                                                Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"
                                                                FontSize="11"
                                                                TextWrapping="Wrap"/>
+                                                    <TextBlock AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitHostingRemedy}"
+                                                               Text="{Binding Git.HostingRemedy}"
+                                                               IsVisible="{Binding Git.HasHostingRemedy}"
+                                                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
+                                                               FontSize="11"
+                                                               TextWrapping="Wrap"/>
+                                                    <Button AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitHostingSignIn}"
+                                                            Classes="au-button au-button--secondary au-button--compact"
+                                                            Command="{Binding Git.SignInCommand}"
+                                                            Content="Sign in"
+                                                            HorizontalAlignment="Left"
+                                                            IsVisible="{Binding Git.CanSignIn}"/>
+                                                    <HyperlinkButton AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitHostingOpenSignIn}"
+                                                                     NavigateUri="{Binding Git.HostingSignInUri}"
+                                                                     Content="Open sign-in page"
+                                                                     FontSize="11"
+                                                                     IsVisible="{Binding Git.HasHostingSignInUrl}"/>
                                                     <StackPanel Orientation="Horizontal" Spacing="12"
                                                                 IsVisible="{Binding Git.HostingChecksLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                                                         <TextBlock x:Name="GitHostingChecks"
+                                                                   AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitHostingChecks}"
                                                                    Text="{Binding Git.HostingChecksLabel}"
                                                                    Foreground="{DynamicResource AgentUpColorStatusHealthyBrush}"
                                                                    FontSize="11"/>

@@ -29,7 +29,18 @@ Agents still enqueue through the commit queue. This slice does not replace `enqu
 <DocSurface mobile>Open it from the Git tab. The overview lists uncommitted changes; a filename opens the file viewer. History sits next to Push. Inner Review and History pages return through the nav-bar back button. Fetch, pull, push, discard, and commit stay hidden when the Server does not allow `git.write`.</DocSurface>
 </DocSurfaces>
 
-When a hosting module is enabled, Desktop Git shows a strip above the change tree with the open proposal, check state, review threads, and mergeability. Mobile shows the same facts as a row on the Git overview, with thread links on Review.
+Desktop Git always shows a hosting strip above the change tree. With no forge module enabled it names that cause and the bootstrap remedy. After sign-in it shows the open proposal, check state, review threads, and mergeability. Mobile shows the same facts as a row on the Git overview, with thread links on Review.
+
+## Enable a repository host
+
+GitHub and Forgejo are first-party forge modules. Enable one, then sign in from the Git hosting strip. The Server stores the token; it never goes in `agent-up.json`.
+
+<DocSteps>
+<DocStep title="Pack and enable">Run `agent-up capabilities bootstrap`, or enable `github` or `forgejo` from Settings. With neither enabled the strip shows `notInstalled` and `Run: agent-up capabilities bootstrap`.</DocStep>
+<DocStep title="Configure OAuth">Set `AGENTUP_FORGE_CLIENT_ID`, `AGENTUP_FORGE_CLIENT_SECRET`, and `AGENTUP_FORGE_REDIRECT_URI` on the Server. Those names are shared by every forge module.</DocStep>
+<DocStep title="Point at the host">GitHub defaults to github.com. For GitHub Enterprise set `AGENTUP_GITHUB_API_URL`, `AGENTUP_GITHUB_AUTHORIZE_URL`, and `AGENTUP_GITHUB_TOKEN_URL`. For Forgejo set `AGENTUP_FORGEJO_ORIGIN` (API and OAuth URLs are derived); override with `AGENTUP_FORGEJO_API_URL` when the instance is not at `/api/v1`.</DocStep>
+<DocStep title="Sign in">Use Sign in on the Git hosting strip. Desktop and Mobile open the authorization URL the Server returns.</DocStep>
+</DocSteps>
 
 <p><img src="/desktop-git.png" alt="Desktop Git changes showing ProductGrid.tsx" /></p>
 <p><img src="/mobile-git.png" alt="Mobile Git tab showing ProductGrid.tsx" /></p>

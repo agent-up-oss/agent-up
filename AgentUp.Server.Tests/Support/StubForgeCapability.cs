@@ -7,6 +7,11 @@ internal sealed class StubForgeCapability : IForgeCapability
 {
     public CapabilityIdentity Identity { get; init; } = new("github", "1.0.0", "GitHub", "agent-up");
 
+    public ForgeHostConfiguration Host { get; init; } = new(
+        "https://example.test/api/",
+        "https://example.test/login/oauth/authorize",
+        "https://example.test/login/oauth/access_token");
+
     public ForgeHostSnapshot Snapshot { get; init; } = new(null, [], [], null);
 
     public IReadOnlyList<ForgeAssignedIssue> Assigned { get; init; } = [];

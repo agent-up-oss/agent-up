@@ -38,13 +38,19 @@ public sealed class ForgeGitRemoteResolver(GitDirectoryProvider gitDirectories) 
         }
 
         if (Uri.TryCreate(trimmed, UriKind.Absolute, out var uri)
-            && uri.Host.Contains("github", StringComparison.OrdinalIgnoreCase))
+            && IsGitTransport(uri.Scheme))
         {
             return Split(uri.AbsolutePath.Trim('/'), out owner, out repository);
         }
 
         return false;
     }
+
+    private static bool IsGitTransport(string scheme)
+        => scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+            || scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+            || scheme.Equals(Uri.UriSchemeSsh, StringComparison.OrdinalIgnoreCase)
+            || scheme.Equals("git", StringComparison.OrdinalIgnoreCase);
 
     private static bool Split(string path, out string owner, out string repository)
     {

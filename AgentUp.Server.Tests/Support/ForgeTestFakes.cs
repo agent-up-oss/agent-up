@@ -31,6 +31,11 @@ internal sealed class FixedForgeOAuthSettings(ForgeOAuthConfiguration configurat
 
 internal sealed class FixedForgeOAuthExchange(string token) : IForgeOAuthExchange
 {
-    public Task<string> ExchangeAsync(string code, CancellationToken cancellationToken)
-        => Task.FromResult(token);
+    public string? LastTokenUrl { get; private set; }
+
+    public Task<string> ExchangeAsync(string code, string tokenUrl, CancellationToken cancellationToken)
+    {
+        LastTokenUrl = tokenUrl;
+        return Task.FromResult(token);
+    }
 }

@@ -199,13 +199,14 @@ public sealed class FakeBackendService
         if (method == "GET" && rest == "forge")
             return Json(new JsonObject
             {
-                ["availability"] = "none",
+                ["availability"] = "notInstalled",
                 ["moduleId"] = null,
                 ["proposal"] = null,
                 ["checks"] = new JsonArray(),
                 ["threads"] = new JsonArray(),
                 ["mergeability"] = null,
-                ["detail"] = null
+                ["detail"] = "No forge capability package is enabled.",
+                ["remedy"] = "Run: agent-up capabilities bootstrap"
             });
         if (method == "GET" && rest.StartsWith("git/file", StringComparison.Ordinal))
             return GitDiff(workspaceId, request.Query);

@@ -230,13 +230,14 @@ export class FakeBackendService {
     if (method === 'GET' && rest === 'commit-queue') return this.gitQueue(workspaceId);
     if (method === 'GET' && rest === 'forge') {
       return json({
-        availability: 'none',
+        availability: 'notInstalled',
         moduleId: null,
         proposal: null,
         checks: [],
         threads: [],
         mergeability: null,
-        detail: null,
+        detail: 'No forge capability package is enabled.',
+        remedy: 'Run: agent-up capabilities bootstrap',
       });
     }
     if (method === 'GET' && rest.startsWith('git/file')) return this.gitDiff(workspaceId, request.query);

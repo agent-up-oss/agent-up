@@ -58,6 +58,11 @@ public static class DesktopAutomationIds
     public const string GitHistory = "git.history";
     public const string GitHistoryBack = "git.history.back";
     public const string GitHosting = "git.hosting";
+    public const string GitHostingTitle = "git.hosting.title";
+    public const string GitHostingRemedy = "git.hosting.remedy";
+    public const string GitHostingSignIn = "git.hosting.sign-in";
+    public const string GitHostingOpenSignIn = "git.hosting.open-sign-in";
+    public const string GitHostingChecks = "git.hosting.checks";
     public const string GitCommitMessage = "git.commit-message";
     public const string GitCommit = "git.commit";
     public const string GitConfirmCancel = "git.confirm.cancel";
