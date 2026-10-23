@@ -197,16 +197,7 @@ public sealed class FakeBackendService
         if (method == "GET" && rest == "commit-queue")
             return GitNode(workspaceId, "queue");
         if (method == "GET" && rest == "forge")
-            return Json(new JsonObject
-            {
-                ["availability"] = "none",
-                ["moduleId"] = null,
-                ["proposal"] = null,
-                ["checks"] = new JsonArray(),
-                ["threads"] = new JsonArray(),
-                ["mergeability"] = null,
-                ["detail"] = null
-            });
+            return Json(Forge(workspaceId));
         if (method == "GET" && rest.StartsWith("git/file", StringComparison.Ordinal))
             return GitDiff(workspaceId, request.Query);
         if (method == "POST" && rest.StartsWith("git/", StringComparison.Ordinal))
@@ -887,6 +878,24 @@ public sealed class FakeBackendService
             return Json(module);
         }
     }
+
+    /// <summary>
+    /// What the repository host reports for this workspace. The Demo answers the same shape a
+    /// real forge capability returns, so a client fills from it without a demo-only path; a
+    /// workspace the definition says nothing about reads as no host connected.
+    /// </summary>
+    private JsonNode Forge(string workspaceId)
+        => _state.Forge?[workspaceId]?.DeepClone()
+           ?? new JsonObject
+           {
+               ["availability"] = "none",
+               ["moduleId"] = null,
+               ["proposal"] = null,
+               ["checks"] = new JsonArray(),
+               ["threads"] = new JsonArray(),
+               ["mergeability"] = null,
+               ["detail"] = null
+           };
 
     private JsonArray Capabilities()
         => _state.Capabilities as JsonArray ?? [];

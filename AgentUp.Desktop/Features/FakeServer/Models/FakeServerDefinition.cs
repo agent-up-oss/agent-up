@@ -37,6 +37,9 @@ public sealed class FakeServerDefinition
 
     public JsonNode? Capabilities => Root["capabilities"];
 
+    /// <summary>What a connected repository host reports, per workspace.</summary>
+    public JsonNode? Forge => Root["forge"];
+
     public FakeServerDefinition Clone()
         => new(Root.DeepClone());
 

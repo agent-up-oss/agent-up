@@ -1,0 +1,130 @@
+using System.Collections.ObjectModel;
+using System.Reactive;
+using AgentUp.Desktop.Features.Interface.Controllers;
+using AgentUp.Desktop.Features.Interface.Models;
+using ReactiveUI;
+
+namespace AgentUp.Desktop.Features.Interface.ViewModels;
+
+/// <summary>
+/// Triage for the whole team. It groups the standings the Server reports and says plainly when a
+/// group is empty, because an empty triage list is the good outcome and must not read as a failure
+/// to load.
+/// </summary>
+public sealed class BridgeViewModel : ReactiveObject
+{
+    private readonly TeamStandingController _standings;
+    private bool _isLoading;
+    private string? _errorMessage;
+    private bool _hasRead;
+
+    public BridgeViewModel(TeamStandingController standings)
+    {
+        _standings = standings;
+        RefreshCommand = ReactiveCommand.CreateFromTask(() => ReadAsync());
+    }
+
+    /// <summary>Gates: a run stopped and will not move until the user answers.</summary>
+    public ObservableCollection<StandingRowViewModel> WaitingOnYou { get; } = [];
+
+    /// <summary>Faults: a run ended and someone has to look.</summary>
+    public ObservableCollection<StandingRowViewModel> Halted { get; } = [];
+
+    /// <summary>Everyone, in the order the sidebar lists them.</summary>
+    public ObservableCollection<StandingRowViewModel> Team { get; } = [];
+
+    /// <summary>One row per task an agent reports holding.</summary>
+    public ObservableCollection<StandingRowViewModel> Tasks { get; } = [];
+
+    public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
+
+    public bool IsLoading
+    {
+        get => _isLoading;
+        private set => this.RaiseAndSetIfChanged(ref _isLoading, value);
+    }
+
+    public string? ErrorMessage
+    {
+        get => _errorMessage;
+        private set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
+    }
+
+    public bool HasError => ErrorMessage is { Length: > 0 };
+
+    public bool HasWaiting => WaitingOnYou.Count > 0;
+    public bool HasHalted => Halted.Count > 0;
+    public bool HasTeam => Team.Count > 0;
+    public bool HasTasks => Tasks.Count > 0;
+
+    /// <summary>True once a read finished, so an empty surface can tell apart "nothing" from "not yet".</summary>
+    public bool HasRead
+    {
+        get => _hasRead;
+        private set => this.RaiseAndSetIfChanged(ref _hasRead, value);
+    }
+
+    public string Headline => HasRead
+        ? $"{Team.Count} {Plural(Team.Count, "agent")} · {WaitingOnYou.Count} waiting on you · {Halted.Count} halted"
+        : "Reading the team…";
+
+    /// <summary>
+    /// Why the queue can be shorter than the forge's own issue list. The Server exposes the
+    /// assigned-issue queue per workspace to the agent that works it, and nowhere else, so a client
+    /// can only show the tasks agents report holding.
+    /// </summary>
+    public string TasksCaveat =>
+        "These are the tasks the agents report holding. Unassigned issues live on the repository host; "
+        + "this Server does not expose its queue to clients, so they are not listed here.";
+
+    public string EmptyWaitingHint => "Nothing is waiting on you.";
+    public string EmptyHaltedHint => "Nothing halted.";
+    public string EmptyTeamHint => "This server has no workspaces yet.";
+
+    public async Task ReadAsync(IReadOnlyList<TeamMember>? members = null, CancellationToken cancellationToken = default)
+    {
+        var requested = members ?? Team.Select(row => row.Member).ToArray();
+        IsLoading = true;
+        ErrorMessage = null;
+        try
+        {
+            var standings = await _standings.ReadAsync(requested, cancellationToken);
+            // Before Apply, which raises Headline: the headline reads HasRead.
+            HasRead = true;
+            Apply(standings);
+        }
+        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
+        {
+            ErrorMessage = exception.Message;
+            this.RaisePropertyChanged(nameof(HasError));
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void Apply(IReadOnlyList<TeamStanding> standings)
+    {
+        Replace(Team, standings);
+        Replace(WaitingOnYou, standings.Where(standing => standing.Kind == TeamStandingKind.WaitingOnYou));
+        Replace(Halted, standings.Where(standing => standing.Kind == TeamStandingKind.Halted));
+        Replace(Tasks, standings.Where(standing => standing.TaskNumber is not null));
+        foreach (var name in new[]
+                 {
+                     nameof(HasWaiting), nameof(HasHalted), nameof(HasTeam), nameof(HasTasks),
+                     nameof(Headline), nameof(HasError)
+                 })
+        {
+            this.RaisePropertyChanged(name);
+        }
+    }
+
+    private static void Replace(ObservableCollection<StandingRowViewModel> target, IEnumerable<TeamStanding> standings)
+    {
+        target.Clear();
+        foreach (var standing in standings) target.Add(new StandingRowViewModel(standing));
+    }
+
+    private static string Plural(int count, string word) => count == 1 ? word : $"{word}s";
+}

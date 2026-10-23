@@ -120,9 +120,9 @@ test('agent list follows enabled agent capabilities', () => {
 test('agent session exposes loop phase, task and stop reason', () => {
   const service = backend();
   const session = json(service, 'GET', '/api/workspaces/harbor-shop/agent');
-  assert.equal(session.loop.phase, 'idle');
+  assert.equal(session.loop.phase, 'running');
   assert.equal(session.loop.taskTitle, 'Restock featured products');
-  assert.equal(session.loop.stopReason, 'queue_empty');
+  assert.equal(session.loop.stopReason, null);
   assert.equal(session.boundAgent, 'Codex');
 });
 
@@ -230,17 +230,18 @@ test('start walks starting checking then healthy and stop keeps apps offline', (
   assert.equal(healthy.applications.length, 2);
 });
 
-test('reset restores the bundled workspace after a clone', () => {
+test('reset restores the bundled workspaces after a clone', () => {
   const service = backend();
+  const bundled = json(service, 'GET', '/api/workspaces').length;
   service.handle({
     method: 'POST',
     path: '/api/source-clones',
     query: '',
     body: JSON.stringify({ repository: 'https://git.example/widgets.git' }),
   });
-  assert.equal(json(service, 'GET', '/api/workspaces').length, 2);
+  assert.equal(json(service, 'GET', '/api/workspaces').length, bundled + 1);
   service.reset();
-  assert.equal(json(service, 'GET', '/api/workspaces').length, 1);
+  assert.equal(json(service, 'GET', '/api/workspaces').length, bundled);
 });
 
 test('git discard branch and checkout mutate the demo tree', () => {
@@ -340,4 +341,39 @@ test('unknown git action and empty commit bodies stay safe', () => {
   assert.equal(other.succeeded, true);
   assert.equal(emptyCommit.succeeded, false);
   assert.equal(invalid.succeeded, false);
+});
+
+test('forge answers what the definition says the host reports', () => {
+  const service = backend();
+  const shop = json(service, 'GET', '/api/workspaces/harbor-shop/forge');
+  const checkout = json(service, 'GET', '/api/workspaces/harbor-checkout/forge');
+  const docs = json(service, 'GET', '/api/workspaces/harbor-docs/forge');
+  assert.equal(shop.availability, 'ready');
+  assert.equal(shop.proposal.number, '44');
+  assert.equal(shop.mergeability.state, 'clean');
+  assert.equal(checkout.checks.length, 3);
+  assert.equal(checkout.threads.filter((thread: { isResolved: boolean }) => !thread.isResolved).length, 2);
+  assert.equal(docs.availability, 'unreachable');
+  assert.ok(docs.detail.includes('502'));
+});
+
+test('forge reads as no host when the definition says nothing', () => {
+  const definition = loadFakeServerDefinition();
+  delete definition.forge;
+  const hosting = json(new FakeBackendService(definition), 'GET', '/api/workspaces/harbor-shop/forge');
+  assert.equal(hosting.availability, 'none');
+  assert.equal(hosting.proposal, null);
+});
+
+test('the agent loop reports the task and what blocks it', () => {
+  const service = backend();
+  const shop = json(service, 'GET', '/api/workspaces/harbor-shop/agent').loop;
+  const checkout = json(service, 'GET', '/api/workspaces/harbor-checkout/agent').loop;
+  const docs = json(service, 'GET', '/api/workspaces/harbor-docs/agent').loop;
+  assert.equal(shop.taskNumber, 44);
+  assert.equal(shop.active, true);
+  assert.ok(checkout.blockReason.includes('approve the review'));
+  assert.equal(checkout.permissionRuleIds[0], 'forge.submit_review');
+  assert.equal(docs.stopReason, 'forge.unreachable');
+  assert.equal(docs.active, false);
 });

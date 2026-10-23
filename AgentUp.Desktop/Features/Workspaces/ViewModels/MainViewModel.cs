@@ -20,6 +20,7 @@ using AgentUp.Desktop.Features.Validation.Controllers;
 using AgentUp.Desktop.Features.Validation.Interfaces;
 using AgentUp.Desktop.Features.Validation.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Features.Interface.Models;
 using AgentUp.Desktop.Features.Interface.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome;
 using ReactiveUI;
@@ -228,6 +229,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         SubscribeMetricsRefresh();
         SubscribeOverviewRefresh();
         SubscribeClientSurfaces();
+        SubscribeCommandCenter();
         SubscribeSelectedPortProbe(selectedPortTab);
 
         BrowserTabNavigation = CreateBrowserTabNavigation();
@@ -353,6 +355,40 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             .Switch()
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(workspaceId => _ = Overview.LoadAsync(workspaceId));
+
+    /// <summary>
+    /// Keeps the command center's triage current while it is the shell on screen. It reads nothing
+    /// while the classic shell is up, so turning the setting off costs the Server nothing.
+    /// </summary>
+    private void SubscribeCommandCenter()
+    {
+        if (CommandCenter?.Bridge is null) return;
+        CommandCenter.WhenAnyValue(x => x.Active)
+            .Select(active => active
+                ? Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(10), RxApp.TaskpoolScheduler)
+                : Observable.Empty<long>())
+            .Switch()
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(_ => ReadTeamStanding());
+
+        // The timer alone would leave the bridge empty from launch until its next tick, because the
+        // shell is already on screen before the workspace list arrives. The team changing is the
+        // read's real trigger; the timer only keeps standings current afterwards.
+        Sidebar.Workspaces.CollectionChanged += (_, _) =>
+        {
+            if (CommandCenter.Active) ReadTeamStanding();
+        };
+    }
+
+    private void ReadTeamStanding()
+    {
+        var bridge = CommandCenter?.Bridge;
+        if (bridge is null) return;
+        var members = Sidebar.Workspaces
+            .Select(workspace => new TeamMember(workspace.Id, workspace.DisplayName, workspace.Branch, workspace.State))
+            .ToArray();
+        _ = bridge.ReadAsync(members);
+    }
 
     private void LoadMetricsIfPossible()
     {

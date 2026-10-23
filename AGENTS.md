@@ -432,12 +432,21 @@ AgentUp.Desktop/
       Models/
       Providers/
       Services/
+    Interface/        (which shell the window draws, and the command center's team triage)
+      Controllers/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
+      ViewModels/
+      Views/
 
 AgentUp.Mobile/
   src/
     app/               (Expo Router entrypoints only)
     features/          (product-meaningful React Native client slices)
       fake-server/     (built-in Demo server list entry and fetch interceptor)
+      interface/       (which shell the app draws, and the command center's team triage)
 
 AgentUp.CLI/
   Features/

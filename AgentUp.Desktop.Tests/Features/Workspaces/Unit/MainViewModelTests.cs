@@ -1078,10 +1078,43 @@ public class MainViewModelTests
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
+    [Test]
+    public async Task CommandCenter_readsTheBridgeAsSoonAsTheTeamArrives()
+    {
+        var agents = new StandingAgentFake();
+        agents.Sessions["harbor-shop"] = TeamStandingComposition.Session(
+            "harbor-shop",
+            loop: TeamStandingComposition.Loop(true, "running", 44, "Restock featured products", "Running"));
+        var bridge = new BridgeViewModel(TeamStandingComposition.Controller(agents, new StandingForgeFake()));
+        var vm = CreateVm(
+            NullWorkspaceClient(),
+            commandCenter: InterfaceTestComposition.Classic(bridge));
+        vm.CommandCenter!.ToggleCommand.Execute().Subscribe();
+
+        vm.Sidebar.Workspaces.Add(new WorkspaceItemViewModel(
+            "harbor-shop", "Harbor Shop", "main", "/demo/harbor-shop", "/demo/harbor-shop", "Running"));
+        await WaitForAsync(() => bridge.Team.Count == 1);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.CommandCenter.Active, Is.True);
+            Assert.That(bridge.Team[0].WorkspaceId, Is.EqualTo("harbor-shop"));
+            Assert.That(bridge.Team[0].TaskLabel, Is.EqualTo("#44 · Restock featured products"));
+        });
+    }
+
+    /// <summary>The read is fired and forgotten, so the assertion waits on its effect rather than on a task.</summary>
+    private static async Task WaitForAsync(Func<bool> settled)
+    {
+        for (var attempt = 0; attempt < 100 && !settled(); attempt++) await Task.Delay(10);
+        Assert.That(settled(), Is.True, "The bridge never read the team.");
+    }
+
     private static MainViewModel CreateVm(
         WorkspaceApiClient workspaceClient,
         ConsoleApiClient? consoleClient = null,
-        LoginViewModel? login = null)
+        LoginViewModel? login = null,
+        CommandCenterViewModel? commandCenter = null)
         => MainViewModelFactory.Create(
             workspaceClient,
             consoleClient ?? NullConsoleClient(),
@@ -1091,21 +1124,7 @@ public class MainViewModelTests
             agentClient: NullAgentClient(),
             login: login,
             entitlementsHttp: NullEntitlementsHttp,
-            commandCenter: new CommandCenterViewModel(new InterfaceController(new MemoryInterfaceStore())));
-
-    /// <summary>Keeps these tests off the real preference file, so the shell they assert on is the one they chose.</summary>
-    private sealed class MemoryInterfaceStore : IInterfacePreferenceStore
-    {
-        private InterfacePreference _preference = new();
-
-        public InterfacePreference Load() => _preference;
-
-        public bool Save(InterfacePreference preference)
-        {
-            _preference = preference;
-            return true;
-        }
-    }
+            commandCenter: commandCenter ?? InterfaceTestComposition.Classic());
 
     private static readonly HttpClient NullEntitlementsHttp = new(new StatusCodeHandler(HttpStatusCode.NotFound))
     {

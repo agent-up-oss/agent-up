@@ -1,10 +1,19 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
-import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
-import type { Workspace } from '@/features/workspaces/models/Workspace';
 import { agentUpTheme } from '@agent-up/design-system/native';
-import { useInterfaceChoice } from '../controllers/InterfaceContext';
+import { useTeamStanding } from '../controllers/TeamStandingContext';
+import type { TeamStanding } from '../models/TeamStanding';
+import {
+  checksSummary,
+  forgeStatus,
+  headlineFor,
+  showProposalBesideTask,
+  stateLabel,
+  taskLabel,
+  threadSummary,
+  type TeamTriage,
+} from '../services/TeamStandingService';
 import { InterfaceToggleRow } from './InterfaceToggleRow';
 
 type Surface = 'bridge' | 'tasks' | 'team' | 'settings';
@@ -13,12 +22,12 @@ type Surface = 'bridge' | 'tasks' | 'team' | 'settings';
  * The command center, on the phone.
  *
  * An agent and its workspace are the same thing here, so the team is the workspace list and a
- * workspace's own page is that agent's page. Only what the Server already answers is drawn:
- * surfaces that need reads the Server does not expose yet say so rather than showing a number
- * that nothing produced.
+ * workspace's own page is that agent's page. Everything drawn comes from two reads the Server
+ * answers per workspace - the agent session and the forge - so the same screens fill against the
+ * Demo and against a real Server. Where a read said nothing, the screen says so.
  */
 export function CommandCenterShell() {
-  const { workspaces, loading, error, refresh } = useWorkspaces();
+  const standing = useTeamStanding();
   const { activeServer, logout } = useServers();
   const [surface, setSurface] = useState<Surface>('bridge');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -38,15 +47,17 @@ export function CommandCenterShell() {
         </Pressable>
         <View style={styles.headBody}>
           <Text style={styles.title}>{titleFor(surface)}</Text>
-          <Text style={styles.subtitle} numberOfLines={1}>{serverLabel}</Text>
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {standing.read ? standing.headline : serverLabel}
+          </Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
-        {surface === 'bridge' ? <Bridge workspaces={workspaces} loading={loading} error={error} onRetry={refresh} /> : null}
-        {surface === 'tasks' ? <Tasks /> : null}
-        {surface === 'team' ? <Team workspaces={workspaces} loading={loading} /> : null}
-        {surface === 'settings' ? <Settings onSignOut={logout} /> : null}
+        {surface === 'bridge' ? <Bridge standing={standing} /> : null}
+        {surface === 'tasks' ? <Tasks standing={standing} /> : null}
+        {surface === 'team' ? <Team standing={standing} /> : null}
+        {surface === 'settings' ? <Settings onSignOut={logout} serverLabel={serverLabel} /> : null}
       </ScrollView>
 
       <View style={styles.tabBar}>
@@ -80,6 +91,8 @@ export function CommandCenterShell() {
   );
 }
 
+type Standing = TeamTriage & { loading: boolean; read: boolean; error: string | null; refresh: () => void };
+
 function titleFor(surface: Surface): string {
   if (surface === 'bridge') return 'Bridge';
   if (surface === 'tasks') return 'Tasks';
@@ -87,79 +100,103 @@ function titleFor(surface: Surface): string {
   return 'Settings';
 }
 
-function Bridge({ workspaces, loading, error, onRetry }: {
-  workspaces: Workspace[];
-  loading: boolean;
-  error: string | null;
-  onRetry: () => void;
-}) {
-  const failed = useMemo(() => workspaces.filter(item => item.state === 'Failed'), [workspaces]);
-
-  if (error) return <Empty title="Could not reach the Server" note={error} action="Retry" onPress={onRetry} />;
-  if (loading && !workspaces.length) return <Empty title="Loading" note="Reading the team from the Server." />;
-  if (!workspaces.length) return <Empty title="No agents yet" note="Register a workspace and it becomes an agent's own space." />;
+function Bridge({ standing }: { standing: Standing }) {
+  if (standing.error) return <Empty title="Could not reach the Server" note={standing.error} action="Retry" onPress={standing.refresh} />;
+  if (!standing.read && standing.loading) return <Empty title="Loading" note="Reading the team from the Server." />;
+  if (!standing.team.length) return <Empty title="No agents yet" note="Register a workspace and it becomes an agent's own space." />;
 
   return (
     <>
-      <Section title={`HALTED · ${failed.length}`} tone={failed.length ? 'danger' : 'muted'} />
-      {failed.length
-        ? failed.map(item => (
-          <View key={item.id} style={[styles.card, styles.cardDanger]}>
-            <Text style={styles.cardTitle}>{item.displayName} stopped</Text>
-            <Text style={styles.note}>The workspace reports Failed. Open it on the desktop for the diagnostic.</Text>
-          </View>
-        ))
+      <Section title={`WAITING ON YOU · ${standing.waiting.length}`} tone={standing.waiting.length ? 'warning' : 'muted'} />
+      {standing.waiting.length
+        ? standing.waiting.map(item => <StandingCard key={item.workspaceId} standing={item} />)
+        : <Text style={styles.note}>Nothing is waiting on you.</Text>}
+
+      <Section title={`HALTED · ${standing.halted.length}`} tone={standing.halted.length ? 'danger' : 'muted'} />
+      {standing.halted.length
+        ? standing.halted.map(item => <StandingCard key={item.workspaceId} standing={item} />)
         : <Text style={styles.note}>Nothing halted.</Text>}
 
-      <Section title={`TEAM · ${workspaces.length}`} tone="muted" />
-      {workspaces.map(item => (
-        <View key={item.id} style={styles.card}>
-          <Text style={styles.cardTitle}>{item.displayName}</Text>
-          <Text style={styles.note}>{item.state}</Text>
-        </View>
-      ))}
+      <Section title={`TEAM · ${standing.team.length}`} tone="muted" />
+      {standing.team.map(item => <StandingCard key={item.workspaceId} standing={item} />)}
+    </>
+  );
+}
 
+function Tasks({ standing }: { standing: Standing }) {
+  if (standing.error) return <Empty title="Could not reach the Server" note={standing.error} action="Retry" onPress={standing.refresh} />;
+  if (!standing.read && standing.loading) return <Empty title="Loading" note="Reading the queue from the Server." />;
+
+  return (
+    <>
+      <Section title={`TASKS · ${standing.tasks.length}`} tone="muted" />
+      {standing.tasks.length
+        ? standing.tasks.map(item => (
+          <View key={item.workspaceId} style={styles.card}>
+            <Text style={styles.cardTitle}>{taskLabel(item)}</Text>
+            <Text style={[styles.note, toneStyle(item)]}>{stateLabel(item.kind)}</Text>
+            <Text style={styles.note}>{item.displayName}{item.agent ? ` · ${item.agent}` : ''}</Text>
+            {showProposalBesideTask(item) ? (
+              <Text style={styles.note}>#{item.forge.proposalNumber} {item.forge.proposalTitle}</Text>
+            ) : null}
+          </View>
+        ))
+        : <Text style={styles.note}>No agent reports a task in hand.</Text>}
       <View style={styles.degrade}>
-        <Text style={styles.degradeTitle}>Approval gates are not here yet</Text>
+        <Text style={styles.degradeTitle}>Why the list can be short</Text>
         <Text style={styles.note}>
-          Triage needs one read across every agent, which this Server does not answer yet. Until it does,
-          this screen shows what the workspace list reports rather than inventing a queue.
+          These are the tasks the agents report holding. Unassigned issues live on the repository host;
+          this Server does not expose its queue to clients, so they are not listed here.
         </Text>
       </View>
     </>
   );
 }
 
-function Tasks() {
+function Team({ standing }: { standing: Standing }) {
+  if (!standing.read && standing.loading) return <Empty title="Loading" note="Reading the team from the Server." />;
+  if (!standing.team.length) return <Empty title="No agents yet" note="Each workspace on this Server is one agent's own space." />;
+  return <>{standing.team.map(item => <StandingCard key={item.workspaceId} standing={item} />)}</>;
+}
+
+/** One agent as a card: who, what they are on, and what the host reports about it. */
+function StandingCard({ standing }: { standing: TeamStanding }) {
+  const tone = standing.kind === 'halted' ? styles.cardDanger : standing.kind === 'waiting' ? styles.cardWarning : null;
   return (
-    <Empty
-      title="No task source connected"
-      note="Tasks mirror the issues assigned to this Server on its repository host. Connect a host and enable a forge capability to fill this screen."
-    />
+    <View style={[styles.card, tone]}>
+      <Text style={styles.cardTitle}>{headlineFor(standing)}</Text>
+      <Text style={[styles.note, toneStyle(standing)]}>{stateLabel(standing.kind)} · {standing.branch}</Text>
+      {standing.reason ? <Text style={styles.note}>{standing.reason}</Text> : null}
+      {standing.diagnosticCode ? <Text style={styles.code}>{standing.diagnosticCode}</Text> : null}
+      {standing.permissionRuleIds.length ? (
+        <Text style={styles.code}>needs {standing.permissionRuleIds.join(', ')}</Text>
+      ) : null}
+      {showProposalBesideTask(standing) ? (
+        <Text style={styles.note}>#{standing.forge.proposalNumber} {standing.forge.proposalTitle}</Text>
+      ) : null}
+      <Text style={styles.note}>{checksSummary(standing)} · {forgeStatus(standing)}</Text>
+      {standing.forge.unresolvedThreads > 0 ? <Text style={styles.note}>{threadSummary(standing)}</Text> : null}
+    </View>
   );
 }
 
-function Team({ workspaces, loading }: { workspaces: Workspace[]; loading: boolean }) {
-  if (loading && !workspaces.length) return <Empty title="Loading" note="Reading the team from the Server." />;
-  if (!workspaces.length) return <Empty title="No agents yet" note="Each workspace on this Server is one agent's own space." />;
-  return (
-    <>
-      {workspaces.map(item => (
-        <View key={item.id} style={styles.card}>
-          <Text style={styles.cardTitle}>{item.displayName}</Text>
-          <Text style={styles.note}>{item.state}</Text>
-        </View>
-      ))}
-    </>
-  );
+function toneStyle(standing: TeamStanding) {
+  if (standing.kind === 'halted') return styles.toneDanger;
+  if (standing.kind === 'waiting') return styles.toneWarning;
+  if (standing.kind === 'working') return styles.toneLive;
+  return undefined;
 }
 
-function Settings({ onSignOut }: { onSignOut: () => void }) {
+function Settings({ onSignOut, serverLabel }: { onSignOut: () => void; serverLabel: string }) {
   return (
     <>
       <Section title="INTERFACE" tone="muted" />
       <InterfaceToggleRow />
       <Section title="SERVER" tone="muted" />
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Connected to</Text>
+        <Text style={styles.note}>{serverLabel}</Text>
+      </View>
       <Pressable accessibilityRole="button" style={[styles.card, styles.cardAction]} onPress={onSignOut}>
         <Text style={styles.cardTitleDanger}>Sign out of this server</Text>
         <Text style={styles.note}>Disconnects this client. Agents keep running on the Server.</Text>
@@ -168,8 +205,16 @@ function Settings({ onSignOut }: { onSignOut: () => void }) {
   );
 }
 
-function Section({ title, tone }: { title: string; tone: 'muted' | 'danger' }) {
-  return <Text style={[styles.section, tone === 'danger' && styles.sectionDanger]}>{title}</Text>;
+function Section({ title, tone }: { title: string; tone: 'muted' | 'warning' | 'danger' }) {
+  return (
+    <Text style={[
+      styles.section,
+      tone === 'danger' && styles.sectionDanger,
+      tone === 'warning' && styles.sectionWarning,
+    ]}>
+      {title}
+    </Text>
+  );
 }
 
 function Empty({ title, note, action, onPress }: { title: string; note: string; action?: string; onPress?: () => void }) {
@@ -213,6 +258,7 @@ const styles = StyleSheet.create({
   body: { padding: agentUpTheme.spacing[4], gap: 10, paddingBottom: agentUpTheme.spacing[8] },
   section: { color: agentUpTheme.colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginTop: 6 },
   sectionDanger: { color: agentUpTheme.colors.textDanger },
+  sectionWarning: { color: agentUpTheme.colors.textWarning },
   card: {
     borderWidth: 1,
     borderColor: agentUpTheme.colors.borderSubtle,
@@ -222,6 +268,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   cardDanger: { borderColor: agentUpTheme.colors.borderDanger, backgroundColor: agentUpTheme.colors.surfaceDanger },
+  cardWarning: { borderColor: agentUpTheme.colors.borderStrong },
+  code: { color: agentUpTheme.colors.textMuted, fontSize: 12, fontFamily: agentUpTheme.fonts.mono },
+  toneDanger: { color: agentUpTheme.colors.textDanger },
+  toneWarning: { color: agentUpTheme.colors.textWarning },
+  toneLive: { color: agentUpTheme.colors.accentBright },
   cardAction: { minHeight: 44 },
   cardTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 15, fontWeight: '600' },
   cardTitleDanger: { color: agentUpTheme.colors.textDanger, fontSize: 15, fontWeight: '600' },

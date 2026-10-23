@@ -17,12 +17,19 @@ public sealed class CommandCenterViewModel : ReactiveObject
     private bool _active;
     private bool _persists = true;
 
-    public CommandCenterViewModel(InterfaceController controller)
+    public CommandCenterViewModel(InterfaceController controller, BridgeViewModel? bridge = null)
     {
         _controller = controller;
         _active = controller.UsesCommandCenter;
+        Bridge = bridge;
         ToggleCommand = ReactiveCommand.Create(Toggle);
     }
+
+    /// <summary>
+    /// Triage for the whole team, or null where the shell was composed without the reads behind it
+    /// (the headless tests). The classic shell never touches it.
+    /// </summary>
+    public BridgeViewModel? Bridge { get; }
 
     /// <summary>True while the command center is the shell on screen.</summary>
     public bool Active

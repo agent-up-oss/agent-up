@@ -194,17 +194,7 @@ export class FakeBackendService {
     if (method === 'GET' && rest === 'git/head') return this.gitHead(workspaceId);
     if (method === 'GET' && rest === 'git/log') return this.gitLog(workspaceId);
     if (method === 'GET' && rest === 'commit-queue') return this.gitQueue(workspaceId);
-    if (method === 'GET' && rest === 'forge') {
-      return json({
-        availability: 'none',
-        moduleId: null,
-        proposal: null,
-        checks: [],
-        threads: [],
-        mergeability: null,
-        detail: null,
-      });
-    }
+    if (method === 'GET' && rest === 'forge') return json(this.forge(workspaceId));
     if (method === 'GET' && rest.startsWith('git/file')) return this.gitDiff(workspaceId, request.query);
     if (method === 'POST' && rest.startsWith('git/')) return this.gitMutation(workspaceId, rest.slice('git/'.length), request.body);
     if (method === 'GET' && rest === 'agent') return this.agentSession(workspaceId);
@@ -327,6 +317,23 @@ export class FakeBackendService {
       processCount: overview.processCount ?? 0,
       applicationCount: live.applications?.length ?? 0,
     });
+  }
+
+  /**
+   * What the repository host reports for this workspace. The Demo answers the same shape a real
+   * forge capability returns, so a client fills from it without a demo-only path; a workspace the
+   * definition says nothing about reads as no host connected.
+   */
+  private forge(workspaceId: string): unknown {
+    return this.state.forge?.[workspaceId] ?? {
+      availability: 'none',
+      moduleId: null,
+      proposal: null,
+      checks: [],
+      threads: [],
+      mergeability: null,
+      detail: null,
+    };
   }
 
   private gitChanges(workspaceId: string): FakeBackendResponse {

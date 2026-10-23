@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using AgentUp.Desktop.Features.FakeServer.Models;
+using AgentUp.Desktop.Features.FakeServer.Services;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.FakeServer.Unit;
@@ -84,12 +85,53 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
-    public void Handle_forgeReturnsNoneUntilAHostIsEnabled()
+    public void Handle_forgeAnswersWhatTheDefinitionSaysTheHostReports()
     {
-        var hosting = Json(FakeServerTestComposition.Backend(), Get("/api/workspaces/harbor-shop/forge"));
+        var backend = FakeServerTestComposition.Backend();
+        var shop = Json(backend, Get("/api/workspaces/harbor-shop/forge"));
+        var checkout = Json(backend, Get("/api/workspaces/harbor-checkout/forge"));
+        var docs = Json(backend, Get("/api/workspaces/harbor-docs/forge"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(shop["availability"]!.GetValue<string>(), Is.EqualTo("ready"));
+            Assert.That(shop["proposal"]!["number"]!.GetValue<string>(), Is.EqualTo("44"));
+            Assert.That(shop["mergeability"]!["state"]!.GetValue<string>(), Is.EqualTo("clean"));
+            Assert.That(checkout["checks"]!.AsArray(), Has.Count.EqualTo(3));
+            Assert.That(checkout["threads"]!.AsArray().Count(thread => !thread!["isResolved"]!.GetValue<bool>()), Is.EqualTo(2));
+            Assert.That(docs["availability"]!.GetValue<string>(), Is.EqualTo("unreachable"));
+            Assert.That(docs["detail"]!.GetValue<string>(), Does.Contain("502"));
+        });
+    }
+
+    [Test]
+    public void Handle_forgeReadsAsNoHostWhenTheDefinitionSaysNothing()
+    {
+        var definition = new FakeServerDefinition(FakeServerTestComposition.Definition().Root.DeepClone());
+        definition.Root.AsObject().Remove("forge");
+        var hosting = Json(new FakeBackendService(definition), Get("/api/workspaces/harbor-shop/forge"));
 
         Assert.That(hosting["availability"]!.GetValue<string>(), Is.EqualTo("none"));
         Assert.That(hosting["proposal"], Is.Null);
+    }
+
+    [Test]
+    public void Handle_agentLoopReportsTheTaskAndWhatBlocksIt()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var shop = Json(backend, Get("/api/workspaces/harbor-shop/agent"))["loop"]!;
+        var checkout = Json(backend, Get("/api/workspaces/harbor-checkout/agent"))["loop"]!;
+        var docs = Json(backend, Get("/api/workspaces/harbor-docs/agent"))["loop"]!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(shop["taskNumber"]!.GetValue<int>(), Is.EqualTo(44));
+            Assert.That(shop["active"]!.GetValue<bool>(), Is.True);
+            Assert.That(checkout["blockReason"]!.GetValue<string>(), Does.Contain("approve the review"));
+            Assert.That(checkout["permissionRuleIds"]!.AsArray()[0]!.GetValue<string>(), Is.EqualTo("forge.submit_review"));
+            Assert.That(docs["stopReason"]!.GetValue<string>(), Is.EqualTo("forge.unreachable"));
+            Assert.That(docs["active"]!.GetValue<bool>(), Is.False);
+        });
     }
 
     [Test]
@@ -136,13 +178,14 @@ public sealed class FakeBackendServiceTests
     public void Handle_cloneAddsAWorkspaceAndResetRestoresTheTemplate()
     {
         var backend = FakeServerTestComposition.Backend();
+        var bundled = Json(backend, Get("/api/workspaces")).AsArray().Count;
         var cloned = Json(backend, Post("/api/source-clones", """{"repository":"https://git.example/widgets.git","branch":"main"}"""));
         Assert.That(cloned["displayName"]!.GetValue<string>(), Is.EqualTo("widgets"));
-        Assert.That(Json(backend, Get("/api/workspaces")).AsArray(), Has.Count.EqualTo(2));
+        Assert.That(Json(backend, Get("/api/workspaces")).AsArray(), Has.Count.EqualTo(bundled + 1));
 
         backend.Reset();
 
-        Assert.That(Json(backend, Get("/api/workspaces")).AsArray(), Has.Count.EqualTo(1));
+        Assert.That(Json(backend, Get("/api/workspaces")).AsArray(), Has.Count.EqualTo(bundled));
     }
 
     [Test]
@@ -572,9 +615,9 @@ public sealed class FakeBackendServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(session["loop"]!["phase"]!.GetValue<string>(), Is.EqualTo("idle"));
+            Assert.That(session["loop"]!["phase"]!.GetValue<string>(), Is.EqualTo("running"));
             Assert.That(session["loop"]!["taskTitle"]!.GetValue<string>(), Is.EqualTo("Restock featured products"));
-            Assert.That(session["loop"]!["stopReason"]!.GetValue<string>(), Is.EqualTo("queue_empty"));
+            Assert.That(session["loop"]!["stopReason"], Is.Null);
             Assert.That(session["boundAgent"]!.GetValue<string>(), Is.EqualTo("Codex"));
         });
     }

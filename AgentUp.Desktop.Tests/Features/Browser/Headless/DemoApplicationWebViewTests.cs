@@ -87,7 +87,8 @@ public sealed class DemoApplicationWebViewTests
 
         var window = new MainWindow(http, fakeServers)
         {
-            DataContext = MainViewModelFactory.Create(http, login)
+            DataContext = MainViewModelFactory.Create(
+                http, login, commandCenter: InterfaceTestComposition.Classic())
         };
         window.WebViewFactory = webViewFactory;
         if (browserProbe is not null)

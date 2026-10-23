@@ -123,6 +123,66 @@
           ]
         }
       ]
+    },
+    {
+      "id": "harbor-checkout",
+      "displayName": "Harbor Checkout",
+      "repositoryPath": "/demo/harbor-checkout",
+      "worktreePath": "/demo/harbor-checkout",
+      "branch": "feat/48-express-checkout",
+      "commit": "d4e5f6a",
+      "state": "Running",
+      "healthState": "Healthy",
+      "lastActivityAtUtc": "2026-09-22T08:00:00Z",
+      "applications": [
+        {
+          "name": "Checkout",
+          "command": "npm run dev",
+          "path": "apps/checkout",
+          "state": "Running",
+          "kind": "Process",
+          "database": false,
+          "page": "storefront",
+          "allocatedPorts": [
+            {
+              "variable": "WEB_PORT",
+              "defaultPort": 3000,
+              "allocatedPort": 9300,
+              "protocol": "http"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "harbor-docs",
+      "displayName": "Harbor Docs",
+      "repositoryPath": "/demo/harbor-docs",
+      "worktreePath": "/demo/harbor-docs",
+      "branch": "fix/51-broken-anchors",
+      "commit": "b7c8d9e",
+      "state": "Failed",
+      "healthState": "Unhealthy",
+      "lastActivityAtUtc": "2026-09-22T08:00:00Z",
+      "applications": [
+        {
+          "name": "Docs",
+          "command": "npm run start",
+          "path": "apps/docs",
+          "state": "Failed",
+          "kind": "Process",
+          "database": false,
+          "page": "storefront",
+          "allocatedPorts": [
+            {
+              "variable": "WEB_PORT",
+              "defaultPort": 3000,
+              "allocatedPort": 9400,
+              "protocol": "http"
+            }
+          ]
+        }
+      ]
     }
   ],
   "overview": {
@@ -131,10 +191,238 @@
       "memoryBytes": 268435456,
       "storageBytes": 52428800,
       "processCount": 2
+    },
+    "harbor-checkout": {
+      "workspaceId": "harbor-checkout",
+      "displayName": "Harbor Checkout",
+      "state": "Running",
+      "cpuPercent": 2.1,
+      "memoryBytes": 182452224,
+      "storageBytes": 2415919104,
+      "processCount": 1,
+      "applicationCount": 1,
+      "repositoryPath": "/demo/harbor-checkout",
+      "worktreePath": "/demo/harbor-checkout",
+      "commit": "d4e5f6a",
+      "branch": "feat/48-express-checkout",
+      "healthState": "Healthy"
+    },
+    "harbor-docs": {
+      "workspaceId": "harbor-docs",
+      "displayName": "Harbor Docs",
+      "state": "Failed",
+      "cpuPercent": 0.0,
+      "memoryBytes": 51380224,
+      "storageBytes": 2415919104,
+      "processCount": 0,
+      "applicationCount": 1,
+      "repositoryPath": "/demo/harbor-docs",
+      "worktreePath": "/demo/harbor-docs",
+      "commit": "b7c8d9e",
+      "branch": "fix/51-broken-anchors",
+      "healthState": "Healthy"
     }
   },
   "git": {
     "harbor-shop": {
+      "changes": {
+        "workspaceId": "harbor-shop",
+        "branch": "main",
+        "fileCount": 2,
+        "commit": "a1b2c3d",
+        "ahead": 0,
+        "behind": 0,
+        "localBranches": [
+          "main"
+        ],
+        "remoteBranches": [
+          {
+            "remote": "origin",
+            "name": "main"
+          }
+        ],
+        "upstream": "origin/main",
+        "root": {
+          "name": "",
+          "path": "",
+          "directories": [
+            {
+              "name": "apps",
+              "path": "apps",
+              "directories": [
+                {
+                  "name": "storefront",
+                  "path": "apps/storefront",
+                  "directories": [],
+                  "files": [
+                    {
+                      "name": "ProductGrid.tsx",
+                      "path": "apps/storefront/ProductGrid.tsx",
+                      "status": "Modified"
+                    }
+                  ]
+                },
+                {
+                  "name": "api",
+                  "path": "apps/api",
+                  "directories": [],
+                  "files": [
+                    {
+                      "name": "orders.ts",
+                      "path": "apps/api/orders.ts",
+                      "status": "Modified"
+                    }
+                  ]
+                }
+              ],
+              "files": []
+            }
+          ],
+          "files": []
+        }
+      },
+      "diffs": {
+        "apps/storefront/ProductGrid.tsx": {
+          "path": "apps/storefront/ProductGrid.tsx",
+          "status": "Modified",
+          "isBinary": false,
+          "diff": "--- a/apps/storefront/ProductGrid.tsx\n+++ b/apps/storefront/ProductGrid.tsx\n@@ -1,3 +1,4 @@\n+export const featured = ['Harbor Mug', 'Canvas Tote', 'Chart Lamp'];\n export function ProductGrid() {\n   return <section>Featured goods</section>;\n }\n"
+        },
+        "apps/api/orders.ts": {
+          "path": "apps/api/orders.ts",
+          "status": "Modified",
+          "isBinary": false,
+          "diff": "--- a/apps/api/orders.ts\n+++ b/apps/api/orders.ts\n@@ -1,3 +1,4 @@\n+export const openOrders = 12;\n export function listOrders() {\n   return [];\n }\n"
+        }
+      },
+      "log": {
+        "commits": [
+          {
+            "id": "a1b2c3d4e5f6",
+            "shortId": "a1b2c3d",
+            "parents": [],
+            "subject": "feat(storefront): featured product grid",
+            "author": "Demo",
+            "timestamp": "2026-09-22T07:30:00Z",
+            "refs": [
+              "HEAD",
+              "main"
+            ]
+          }
+        ]
+      },
+      "queue": {
+        "entries": [],
+        "unassignedFiles": [
+          "apps/storefront/ProductGrid.tsx",
+          "apps/api/orders.ts"
+        ],
+        "queueWorktreePath": null,
+        "baseCommit": "a1b2c3d4e5f6",
+        "tipCommit": "a1b2c3d4e5f6",
+        "generation": 0
+      }
+    },
+    "harbor-checkout": {
+      "changes": {
+        "workspaceId": "harbor-shop",
+        "branch": "main",
+        "fileCount": 2,
+        "commit": "a1b2c3d",
+        "ahead": 0,
+        "behind": 0,
+        "localBranches": [
+          "main"
+        ],
+        "remoteBranches": [
+          {
+            "remote": "origin",
+            "name": "main"
+          }
+        ],
+        "upstream": "origin/main",
+        "root": {
+          "name": "",
+          "path": "",
+          "directories": [
+            {
+              "name": "apps",
+              "path": "apps",
+              "directories": [
+                {
+                  "name": "storefront",
+                  "path": "apps/storefront",
+                  "directories": [],
+                  "files": [
+                    {
+                      "name": "ProductGrid.tsx",
+                      "path": "apps/storefront/ProductGrid.tsx",
+                      "status": "Modified"
+                    }
+                  ]
+                },
+                {
+                  "name": "api",
+                  "path": "apps/api",
+                  "directories": [],
+                  "files": [
+                    {
+                      "name": "orders.ts",
+                      "path": "apps/api/orders.ts",
+                      "status": "Modified"
+                    }
+                  ]
+                }
+              ],
+              "files": []
+            }
+          ],
+          "files": []
+        }
+      },
+      "diffs": {
+        "apps/storefront/ProductGrid.tsx": {
+          "path": "apps/storefront/ProductGrid.tsx",
+          "status": "Modified",
+          "isBinary": false,
+          "diff": "--- a/apps/storefront/ProductGrid.tsx\n+++ b/apps/storefront/ProductGrid.tsx\n@@ -1,3 +1,4 @@\n+export const featured = ['Harbor Mug', 'Canvas Tote', 'Chart Lamp'];\n export function ProductGrid() {\n   return <section>Featured goods</section>;\n }\n"
+        },
+        "apps/api/orders.ts": {
+          "path": "apps/api/orders.ts",
+          "status": "Modified",
+          "isBinary": false,
+          "diff": "--- a/apps/api/orders.ts\n+++ b/apps/api/orders.ts\n@@ -1,3 +1,4 @@\n+export const openOrders = 12;\n export function listOrders() {\n   return [];\n }\n"
+        }
+      },
+      "log": {
+        "commits": [
+          {
+            "id": "a1b2c3d4e5f6",
+            "shortId": "a1b2c3d",
+            "parents": [],
+            "subject": "feat(storefront): featured product grid",
+            "author": "Demo",
+            "timestamp": "2026-09-22T07:30:00Z",
+            "refs": [
+              "HEAD",
+              "main"
+            ]
+          }
+        ]
+      },
+      "queue": {
+        "entries": [],
+        "unassignedFiles": [
+          "apps/storefront/ProductGrid.tsx",
+          "apps/api/orders.ts"
+        ],
+        "queueWorktreePath": null,
+        "baseCommit": "a1b2c3d4e5f6",
+        "tipCommit": "a1b2c3d4e5f6",
+        "generation": 0
+      }
+    },
+    "harbor-docs": {
       "changes": {
         "workspaceId": "harbor-shop",
         "branch": "main",
@@ -242,6 +530,14 @@
     "harbor-shop/Orders API": [
       "[install] npm install",
       "Orders API listening on API_PORT"
+    ],
+    "harbor-checkout/Checkout": [
+      "[install] npm install",
+      "Storefront listening on WEB_PORT"
+    ],
+    "harbor-docs/Docs": [
+      "[install] npm install",
+      "Storefront listening on WEB_PORT"
     ]
   },
   "agents": {
@@ -270,14 +566,258 @@
           }
         ],
         "loop": {
-          "active": false,
-          "phase": "idle",
-          "taskId": "12",
-          "taskNumber": 12,
+          "active": true,
+          "phase": "running",
+          "taskId": "44",
+          "taskNumber": 44,
           "taskTitle": "Restock featured products",
-          "terminal": "Idle",
-          "stopReason": "queue_empty",
+          "terminal": "Running",
+          "stopReason": null,
           "blockReason": null,
+          "permissionRuleIds": []
+        },
+        "agents": [
+          {
+            "agent": "Codex",
+            "available": true,
+            "displayName": "Codex"
+          },
+          {
+            "agent": "Cursor",
+            "available": true,
+            "displayName": "Cursor"
+          },
+          {
+            "agent": "Claude",
+            "available": true,
+            "displayName": "Claude"
+          }
+        ]
+      },
+      "scripts": [
+        {
+          "match": "*",
+          "events": [
+            {
+              "delayMs": 0,
+              "type": "state",
+              "payload": {
+                "workspaceId": "harbor-shop",
+                "agent": "Codex",
+                "state": "running",
+                "sessionId": "demo-agent",
+                "error": null,
+                "agents": [
+                  {
+                    "agent": "Codex",
+                    "available": true,
+                    "displayName": "Codex"
+                  },
+                  {
+                    "agent": "Cursor",
+                    "available": true,
+                    "displayName": "Cursor"
+                  },
+                  {
+                    "agent": "Claude",
+                    "available": true,
+                    "displayName": "Claude"
+                  }
+                ]
+              }
+            },
+            {
+              "delayMs": 0,
+              "type": "session_update",
+              "payload": {
+                "sessionUpdate": "agent_message_chunk",
+                "content": {
+                  "type": "text",
+                  "text": "Harbor Shop is running locally. The storefront is showing three featured products, and the Orders API reports twelve open orders."
+                }
+              }
+            },
+            {
+              "delayMs": 0,
+              "type": "state",
+              "payload": {
+                "workspaceId": "harbor-shop",
+                "agent": "Codex",
+                "state": "ready",
+                "sessionId": "demo-agent",
+                "error": null,
+                "agents": [
+                  {
+                    "agent": "Codex",
+                    "available": true,
+                    "displayName": "Codex"
+                  },
+                  {
+                    "agent": "Cursor",
+                    "available": true,
+                    "displayName": "Cursor"
+                  },
+                  {
+                    "agent": "Claude",
+                    "available": true,
+                    "displayName": "Claude"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "harbor-checkout": {
+      "session": {
+        "workspaceId": "harbor-checkout",
+        "agent": "Claude",
+        "state": "awaiting_input",
+        "sessionId": "demo-harbor-checkout",
+        "error": null,
+        "boundAgent": "Claude",
+        "sessions": [
+          {
+            "sessionId": "demo-harbor-checkout",
+            "agent": "Claude",
+            "description": "Review express checkout",
+            "branch": "feat/48-express-checkout",
+            "lastUsedAt": "2026-09-22T07:30:00Z"
+          }
+        ],
+        "loop": {
+          "active": true,
+          "phase": "blocked",
+          "taskId": "48",
+          "taskNumber": 48,
+          "taskTitle": "Express checkout for returning customers",
+          "terminal": "BlockedAwaitingInput",
+          "stopReason": "awaiting_input",
+          "blockReason": "Waiting for you to approve the review before it is posted.",
+          "permissionRuleIds": [
+            "forge.submit_review"
+          ]
+        },
+        "agents": [
+          {
+            "agent": "Codex",
+            "available": true,
+            "displayName": "Codex"
+          },
+          {
+            "agent": "Cursor",
+            "available": true,
+            "displayName": "Cursor"
+          },
+          {
+            "agent": "Claude",
+            "available": true,
+            "displayName": "Claude"
+          }
+        ]
+      },
+      "scripts": [
+        {
+          "match": "*",
+          "events": [
+            {
+              "delayMs": 0,
+              "type": "state",
+              "payload": {
+                "workspaceId": "harbor-shop",
+                "agent": "Codex",
+                "state": "running",
+                "sessionId": "demo-agent",
+                "error": null,
+                "agents": [
+                  {
+                    "agent": "Codex",
+                    "available": true,
+                    "displayName": "Codex"
+                  },
+                  {
+                    "agent": "Cursor",
+                    "available": true,
+                    "displayName": "Cursor"
+                  },
+                  {
+                    "agent": "Claude",
+                    "available": true,
+                    "displayName": "Claude"
+                  }
+                ]
+              }
+            },
+            {
+              "delayMs": 0,
+              "type": "session_update",
+              "payload": {
+                "sessionUpdate": "agent_message_chunk",
+                "content": {
+                  "type": "text",
+                  "text": "Harbor Shop is running locally. The storefront is showing three featured products, and the Orders API reports twelve open orders."
+                }
+              }
+            },
+            {
+              "delayMs": 0,
+              "type": "state",
+              "payload": {
+                "workspaceId": "harbor-shop",
+                "agent": "Codex",
+                "state": "ready",
+                "sessionId": "demo-agent",
+                "error": null,
+                "agents": [
+                  {
+                    "agent": "Codex",
+                    "available": true,
+                    "displayName": "Codex"
+                  },
+                  {
+                    "agent": "Cursor",
+                    "available": true,
+                    "displayName": "Cursor"
+                  },
+                  {
+                    "agent": "Claude",
+                    "available": true,
+                    "displayName": "Claude"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "harbor-docs": {
+      "session": {
+        "workspaceId": "harbor-docs",
+        "agent": "Claude",
+        "state": "error",
+        "sessionId": "demo-harbor-docs",
+        "error": null,
+        "boundAgent": "Claude",
+        "sessions": [
+          {
+            "sessionId": "demo-harbor-docs",
+            "agent": "Claude",
+            "description": "Review docs anchors",
+            "branch": "fix/51-broken-anchors",
+            "lastUsedAt": "2026-09-22T07:30:00Z"
+          }
+        ],
+        "loop": {
+          "active": false,
+          "phase": "failed",
+          "taskId": "51",
+          "taskNumber": 51,
+          "taskTitle": "Docs anchors break on deep links",
+          "terminal": "Failed",
+          "stopReason": "forge.unreachable",
+          "blockReason": "The repository host returned 502 on read.",
           "permissionRuleIds": []
         },
         "agents": [
@@ -434,5 +974,108 @@
       "canRun": true,
       "messages": []
     }
-  ]
+  ],
+  "forge": {
+    "harbor-shop": {
+      "availability": "ready",
+      "moduleId": "github",
+      "proposal": {
+        "id": "PR-44",
+        "number": "44",
+        "title": "Restock featured products",
+        "url": "https://github.com/harbor-oss/harbor/pull/44",
+        "headRef": "feat/44-restock",
+        "baseRef": "main",
+        "state": "open"
+      },
+      "checks": [
+        {
+          "name": "build",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/harbor-oss/harbor/actions"
+        },
+        {
+          "name": "unit tests",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/harbor-oss/harbor/actions"
+        }
+      ],
+      "threads": [
+        {
+          "id": "t1",
+          "url": "https://github.com/harbor-oss/harbor/pull/44#discussion_t1",
+          "summary": "Naming on the restock helper",
+          "isResolved": true
+        }
+      ],
+      "mergeability": {
+        "mergeable": true,
+        "state": "clean"
+      },
+      "detail": null
+    },
+    "harbor-checkout": {
+      "availability": "ready",
+      "moduleId": "github",
+      "proposal": {
+        "id": "PR-48",
+        "number": "48",
+        "title": "Express checkout for returning customers",
+        "url": "https://github.com/harbor-oss/harbor/pull/48",
+        "headRef": "feat/48-express-checkout",
+        "baseRef": "main",
+        "state": "open"
+      },
+      "checks": [
+        {
+          "name": "build",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/harbor-oss/harbor/actions"
+        },
+        {
+          "name": "e2e",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/harbor-oss/harbor/actions"
+        },
+        {
+          "name": "lint",
+          "status": "in_progress",
+          "conclusion": "",
+          "url": "https://github.com/harbor-oss/harbor/actions"
+        }
+      ],
+      "threads": [
+        {
+          "id": "t2",
+          "url": "https://github.com/harbor-oss/harbor/pull/48#discussion_t2",
+          "summary": "Address form skips keyboard focus",
+          "isResolved": false
+        },
+        {
+          "id": "t3",
+          "url": "https://github.com/harbor-oss/harbor/pull/48#discussion_t3",
+          "summary": "Totals rounding on discounts",
+          "isResolved": false
+        }
+      ],
+      "mergeability": {
+        "mergeable": true,
+        "state": "unstable"
+      },
+      "detail": null
+    },
+    "harbor-docs": {
+      "availability": "unreachable",
+      "moduleId": "github",
+      "proposal": null,
+      "checks": [],
+      "threads": [],
+      "mergeability": null,
+      "detail": "The repository host returned 502 on read. No work was lost; the run halted before its first write."
+    }
+  }
 }
