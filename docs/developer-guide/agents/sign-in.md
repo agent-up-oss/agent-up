@@ -78,9 +78,11 @@ lagged.
 `AgentUp.TestAgents` publishes real CLIs implementing each shape, with a real OAuth identity
 provider behind them, so the whole path is exercised without signing in to a real vendor.
 `AgentUp.Mobile.E2E` drives them through the real mobile client on an iOS simulator, an Android
-emulator, and the installable web build. Device-code scenarios wait until the challenge carries
-the user code, not only the sign-in URL: the CLI prints the URL first, and treating that as ready
-is how the installable-web suite approved a challenge with no code. The Detox Jest envelope must
+emulator, and the installable web build. Device-code and silent-poll flows retry a timed-out or
+dropped identity-provider poll instead of exiting; `HttpClient` timeout is unreachable (exit 3),
+not SIGINT (exit 130). Caller cancellation still exits 130. Device-code scenarios wait until the
+challenge carries the user code, not only the sign-in URL: the CLI prints the URL first, and
+treating that as ready is how the installable-web suite approved a challenge with no code. The Detox Jest envelope must
 outlive the pasted-code wait budget (challenge, in-app browser return, code submit, ready); a
 smaller envelope kills the test with `Exceeded timeout` instead of naming the wait. The method
 button wait must outlive schedule rendering the session: Detox synchronization is off, so the

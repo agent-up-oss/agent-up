@@ -121,8 +121,28 @@ public sealed class TestAgentHostServiceTests
         });
     }
 
+    // HttpClient.Timeout throws TaskCanceledException. That used to be reported as SIGINT (130),
+    // which is what the iOS device-code suite waited out after a slow identity-provider poll.
+    [Test]
+    public async Task RunAsync_reportsAnIdentityProviderTimeoutAsUnreachableRatherThanInterrupted()
+    {
+        using var errors = new StringWriter();
+        using var client = new HttpClient(new TimeoutHandler());
+        var command = new TestAgentCommand(TestAgentSchema.SilentPoll, TestAgentVerb.Login, "http://idp.test", 0, null);
+
+        var exitCode = await Host(errors, client).RunAsync(command, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(3));
+            Assert.That(errors.ToString(), Does.Contain("Could not reach the identity provider"));
+        });
+    }
+
     /// <summary>The host as the entrypoint composes it, reaching each slice through its controller.</summary>
-    private static TestAgentHostService Host() => new(
+    private static TestAgentHostService Host() => Host(TextWriter.Null, signInClient: null);
+
+    private static TestAgentHostService Host(TextWriter errors, HttpClient? signInClient) => new(
         new AcpController(new AcpAgentService()),
         new AuthenticationController(new TestAgentSignInService()),
         new IdentityProviderController(new IdentityProviderHostService()),
@@ -133,5 +153,14 @@ public sealed class TestAgentHostServiceTests
                 new WorktreeToolExecutor(),
                 new FixedLoopInferenceSettings(42))),
         new ScriptedAcpController(new ScriptedAcpService(new EnvironmentScriptedTurnScript())),
-        new TestAgentConsole(TextReader.Null, TextWriter.Null, TextWriter.Null));
+        new TestAgentConsole(TextReader.Null, TextWriter.Null, errors),
+        signInClient);
+
+    private sealed class TimeoutHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken) =>
+            throw new TaskCanceledException(
+                "The request was canceled due to the configured HttpClient.Timeout elapsing.");
+    }
 }

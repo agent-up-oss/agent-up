@@ -47,27 +47,42 @@ public sealed class SilentPollLoginFlow(HttpClient client, string identityProvid
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            using var response = await client.GetAsync(statusUrl, cancellationToken);
-            var payload = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
-            var status = payload.TryGetProperty("status", out var value) ? value.GetString() : "unknown";
-
-            if (status == "approved")
+            try
             {
-                await output.WriteLineAsync("Signed in.");
-                return payload.GetProperty("access_token").GetString();
-            }
+                using var response = await client.GetAsync(statusUrl, cancellationToken);
+                var payload = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+                var status = payload.TryGetProperty("status", out var value) ? value.GetString() : "unknown";
 
-            if (status != "pending")
+                if (status == "approved")
+                {
+                    await output.WriteLineAsync("Signed in.");
+                    return payload.GetProperty("access_token").GetString();
+                }
+
+                if (status != "pending")
+                {
+                    await output.WriteLineAsync($"Sign-in failed: {status}.");
+                    return null;
+                }
+
+                // Progress noise, on purpose: a tracking code here must not be mistaken for a code
+                // the user is meant to type.
+                await output.WriteLineAsync("Waiting for approval, tracking code POLL-000001");
+                await output.FlushAsync(cancellationToken);
+                await Task.Delay(Interval, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                await output.WriteLineAsync($"Sign-in failed: {status}.");
-                return null;
+                throw;
             }
-
-            // Progress noise, on purpose: a tracking code here must not be mistaken for a code
-            // the user is meant to type.
-            await output.WriteLineAsync("Waiting for approval, tracking code POLL-000001");
-            await output.FlushAsync(cancellationToken);
-            await Task.Delay(Interval, cancellationToken);
+            catch (HttpRequestException)
+            {
+                await Task.Delay(Interval, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                await Task.Delay(Interval, cancellationToken);
+            }
         }
 
         return null;
