@@ -39,8 +39,9 @@ public sealed class ForgeService(
             var snapshot = await forge.ReadAsync(
                 new ForgeRequest(token, remote.Owner, remote.Repository, remote.Branch),
                 cancellationToken);
+            var account = ToAccount(snapshot.Account);
             if (snapshot.Proposal is null)
-                return new ForgeHostingDto("noProposal", forge.Identity.Id, null, [], [], null, null);
+                return new ForgeHostingDto("noProposal", forge.Identity.Id, null, [], [], null, null, account);
 
             return new ForgeHostingDto(
                 "ready",
@@ -49,7 +50,8 @@ public sealed class ForgeService(
                 [.. snapshot.Checks.Select(ToCheck)],
                 [.. snapshot.Threads.Select(ToThread)],
                 snapshot.Mergeability is null ? null : new ForgeMergeabilityDto(snapshot.Mergeability.Mergeable, snapshot.Mergeability.State),
-                null);
+                null,
+                account);
         }
         catch (HttpRequestException exception)
         {
@@ -215,6 +217,9 @@ public sealed class ForgeService(
 
     private static ForgeHostingDto None()
         => new("none", null, null, [], [], null, null);
+
+    private static ForgeAccountDto? ToAccount(ForgeAccount? account)
+        => account is null ? null : new ForgeAccountDto(account.Login, account.DisplayName, account.IsBot, account.Url);
 
     private static ForgeProposalDto ToProposal(ForgeProposal proposal)
         => new(proposal.Id, proposal.Number, proposal.Title, proposal.Url, proposal.HeadRef, proposal.BaseRef, proposal.State);

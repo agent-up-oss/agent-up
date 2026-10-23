@@ -5,7 +5,7 @@ import type { TeamMember } from '../models/TeamStanding';
 import { readStanding, readStandings } from './TeamStandingProvider';
 
 const server = { url: 'http://127.0.0.1:5000', token: null } as unknown as ServerSession;
-const member: TeamMember = { workspaceId: 'shop', displayName: 'Harbor Shop', branch: 'main', state: 'Running' };
+const member: TeamMember = { workspaceId: 'shop', displayName: 'Bob', branch: 'main', state: 'Running' };
 
 function respond(bodies: Record<string, unknown>): typeof fetch {
   return (async (input: RequestInfo | URL) => {
@@ -45,13 +45,13 @@ test('readStanding still stands when neither read answers', async () => {
 
   assert.equal(standing.kind, 'idle');
   assert.equal(standing.agent, null);
-  assert.equal(standing.displayName, 'Harbor Shop');
+  assert.equal(standing.displayName, 'Bob');
 });
 
 test('readStandings reads every member and keeps their order', async () => {
   const members: TeamMember[] = [
     member,
-    { workspaceId: 'docs', displayName: 'Harbor Docs', branch: 'fix/51', state: 'Failed' },
+    { workspaceId: 'docs', displayName: 'Hector', branch: 'fix/51', state: 'Failed' },
   ];
   const standings = await readStandings(server, members, respond({}));
 

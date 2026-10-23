@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { noForge, type TeamStanding } from '../models/TeamStanding';
-import { checksSummary, forgeStatus, headlineFor, showProposalBesideTask, stateLabel, taskLabel, threadSummary, triage } from './TeamStandingService';
+import { checksSummary, forgeStatus, headlineFor, identityHandle, roleLabel, showProposalBesideTask, stateLabel, taskLabel, threadSummary, toolsSummary, triage, whoIs } from './TeamStandingService';
 
 function standing(partial: Partial<TeamStanding> = {}): TeamStanding {
   return {
     workspaceId: 'shop',
-    displayName: 'Harbor Shop',
+    displayName: 'Bob',
     branch: 'main',
     state: 'Running',
     agent: 'Claude',
@@ -17,6 +17,9 @@ function standing(partial: Partial<TeamStanding> = {}): TeamStanding {
     diagnosticCode: null,
     permissionRuleIds: [],
     forge: noForge,
+    role: 'none',
+    roleTools: [],
+    identity: null,
     ...partial,
   };
 }
@@ -50,9 +53,9 @@ test('state labels and headlines name what each kind needs', () => {
   assert.equal(stateLabel('halted'), '▲ halted');
   assert.equal(stateLabel('working'), '● working');
   assert.equal(stateLabel('idle'), '○ idle');
-  assert.equal(headlineFor(standing({ kind: 'waiting', taskNumber: 48 })), 'Harbor Shop is waiting on you on #48');
-  assert.equal(headlineFor(standing({ kind: 'halted', taskNumber: 51 })), 'Harbor Shop stopped on #51');
-  assert.equal(headlineFor(standing({ kind: 'idle' })), 'Harbor Shop has nothing in hand');
+  assert.equal(headlineFor(standing({ kind: 'waiting', taskNumber: 48 })), 'Bob is waiting on you on #48');
+  assert.equal(headlineFor(standing({ kind: 'halted', taskNumber: 51 })), 'Bob stopped on #51');
+  assert.equal(headlineFor(standing({ kind: 'idle' })), 'Bob has nothing in hand');
 });
 
 test('a task label pairs the number with the title when there is one', () => {
@@ -80,4 +83,33 @@ test('a proposal is named beside the task only when it is a different number', (
   assert.equal(showProposalBesideTask(standing({ taskNumber: 44, forge })), true);
   assert.equal(showProposalBesideTask(standing({ taskNumber: 44, forge: { ...forge, proposalNumber: '44' } })), false);
   assert.equal(showProposalBesideTask(standing({ taskNumber: 44 })), false);
+});
+
+test('a role reads as one word, and as nothing when none is configured', () => {
+  assert.equal(roleLabel(standing({ role: 'developer' })), 'Developer');
+  assert.equal(roleLabel(standing({ role: 'reviewer' })), 'Reviewer');
+  assert.equal(roleLabel(standing({ role: 'other' })), 'Custom role');
+  assert.equal(roleLabel(standing()), null);
+});
+
+test('the identity reads as the handle a reviewer sees on a thread', () => {
+  const identity = { login: 'lucy-aup[bot]', displayName: 'Lucy', isBot: true, url: 'u' };
+  assert.equal(identityHandle(standing({ identity })), '@lucy-aup[bot]');
+  assert.equal(identityHandle(standing({ identity: { ...identity, login: '@lucy' } })), '@lucy');
+  assert.equal(identityHandle(standing()), null);
+});
+
+test('who an agent is drops the parts the Server did not report', () => {
+  const identity = { login: 'lucy-aup[bot]', displayName: 'Lucy', isBot: true, url: 'u' };
+  assert.equal(
+    whoIs(standing({ role: 'reviewer', identity, agent: 'Claude', state: 'Running' })),
+    'Reviewer · @lucy-aup[bot] · Claude · Running',
+  );
+  assert.equal(whoIs(standing({ agent: null, state: 'Stopped' })), 'Stopped');
+});
+
+test('the tools summary is everything the role may do, or nothing at all', () => {
+  assert.equal(toolsSummary(standing({ roleTools: ['play_validation_flow', 'browser_screenshot'] })),
+    'may play_validation_flow, browser_screenshot');
+  assert.equal(toolsSummary(standing()), null);
 });

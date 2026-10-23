@@ -140,8 +140,8 @@ public sealed class StandingRowViewModelTests
     public void Row_namesTheGateTheStateAndWhatTheHostReports()
     {
         var row = new StandingRowViewModel(new TeamStanding(
-            "checkout",
-            "Harbor Checkout",
+            "lucy",
+            "Lucy",
             "feat/48-express-checkout",
             "Running",
             "Claude",
@@ -151,20 +151,59 @@ public sealed class StandingRowViewModelTests
             "Waiting for you to approve the review before it is posted.",
             null,
             ["forge.submit_review"],
-            new ForgeStanding("ready", "48", "Express checkout", "https://example/pull/48", 1, 1, 1, 2, "unstable", null)));
+            new ForgeStanding("ready", "48", "Express checkout", "https://example/pull/48", 1, 1, 1, 2, "unstable", null),
+            TeamRoleKind.Reviewer,
+            ["play_validation_flow", "browser_screenshot"],
+            new TeamIdentity("lucy-aup[bot]", "Lucy", true, "https://github.com/apps/lucy-aup")));
 
         Assert.Multiple(() =>
         {
-            Assert.That(row.Initial, Is.EqualTo("H"));
+            Assert.That(row.Initial, Is.EqualTo("L"));
             Assert.That(row.StateLabel, Is.EqualTo("◆ gate open"));
-            Assert.That(row.Headline, Is.EqualTo("Harbor Checkout is waiting on you on #48"));
+            Assert.That(row.Headline, Is.EqualTo("Lucy is waiting on you on #48"));
             Assert.That(row.PermissionSummary, Is.EqualTo("needs forge.submit_review"));
             Assert.That(row.ChecksSummary, Is.EqualTo("1 passing · 1 failing · 1 running"));
             Assert.That(row.ThreadSummary, Is.EqualTo("2 unresolved review threads"));
             Assert.That(row.ForgeStatus, Is.EqualTo("mergeable: unstable"));
-            Assert.That(row.Subtitle, Is.EqualTo("Claude · Running"));
             Assert.That(row.HasProposal, Is.True);
             Assert.That(row.ShowProposalBesideTask, Is.False, "the proposal repeats task #48 word for word");
+        });
+    }
+
+    [Test]
+    public void Row_saysWhoTheAgentIsUnderTheirName()
+    {
+        var row = new StandingRowViewModel(new TeamStanding(
+            "lucy", "Lucy", "feat/48-express-checkout", "Running", "Claude", TeamStandingKind.WaitingOnYou,
+            48, "Express checkout", null, null, [], ForgeStanding.None,
+            TeamRoleKind.Reviewer,
+            ["play_validation_flow", "browser_screenshot"],
+            new TeamIdentity("lucy-aup[bot]", "Lucy", true, "https://github.com/apps/lucy-aup")));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(row.Subtitle, Is.EqualTo("Reviewer · @lucy-aup[bot] · Claude · Running"));
+            Assert.That(row.RoleLabel, Is.EqualTo("Reviewer"));
+            Assert.That(row.IdentityHandle, Is.EqualTo("@lucy-aup[bot]"));
+            Assert.That(row.IdentityToolTip, Is.EqualTo("Lucy · https://github.com/apps/lucy-aup"));
+            Assert.That(row.ToolsSummary, Is.EqualTo("may play_validation_flow, browser_screenshot"));
+        });
+    }
+
+    [Test]
+    public void Row_withNoRoleOrAccountFallsBackToWhatTheServerDidReport()
+    {
+        var row = new StandingRowViewModel(new TeamStanding(
+            "fresh", "Fresh", "main", "Stopped", null, TeamStandingKind.Idle,
+            null, null, null, null, [], ForgeStanding.None));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(row.Subtitle, Is.EqualTo("Stopped"));
+            Assert.That(row.HasRole, Is.False);
+            Assert.That(row.HasIdentity, Is.False);
+            Assert.That(row.HasTools, Is.False);
+            Assert.That(row.IdentityToolTip, Is.Empty);
         });
     }
 
@@ -172,7 +211,7 @@ public sealed class StandingRowViewModelTests
     public void Row_namesTheProposalBesideTheTaskOnlyWhenItIsADifferentNumber()
     {
         var standing = new TeamStanding(
-            "shop", "Harbor Shop", "main", "Running", "Codex", TeamStandingKind.Working,
+            "shop", "Bob", "main", "Running", "Codex", TeamStandingKind.Working,
             44, "Restock", null, null, [],
             new ForgeStanding("ready", "52", "Restock, split out", "u", 0, 0, 0, 0, "clean", null));
 
@@ -211,7 +250,7 @@ public sealed class StandingRowViewModelTests
     public void Row_namesAHaltedRunAndItsDiagnostic()
     {
         var row = new StandingRowViewModel(new TeamStanding(
-            "docs", "Harbor Docs", "fix/51-broken-anchors", "Failed", "Claude", TeamStandingKind.Halted,
+            "docs", "Hector", "fix/51-broken-anchors", "Failed", "Claude", TeamStandingKind.Halted,
             51, "Docs anchors break on deep links",
             "The repository host returned 502 on read.", "forge.unreachable", [],
             new ForgeStanding("unreachable", null, null, null, 0, 0, 0, 0, null,
@@ -220,7 +259,7 @@ public sealed class StandingRowViewModelTests
         Assert.Multiple(() =>
         {
             Assert.That(row.StateLabel, Is.EqualTo("▲ halted"));
-            Assert.That(row.Headline, Is.EqualTo("Harbor Docs stopped on #51"));
+            Assert.That(row.Headline, Is.EqualTo("Hector stopped on #51"));
             Assert.That(row.HasDiagnosticCode, Is.True);
             Assert.That(row.DiagnosticCode, Is.EqualTo("forge.unreachable"));
             Assert.That(row.ForgeStatus, Is.EqualTo("host unreachable"));

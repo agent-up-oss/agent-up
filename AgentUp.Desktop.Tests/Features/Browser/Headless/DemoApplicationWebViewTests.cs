@@ -35,14 +35,14 @@ public sealed class DemoApplicationWebViewTests
             },
             paths);
 
-        window.NavigateTo("harbor-shop", "http://localhost:9100/");
+        window.NavigateTo("bob", "http://localhost:9100/");
         await WaitUntilAsync(() => webView?.Source is { IsFile: true });
 
         Assert.Multiple(() =>
         {
             Assert.That(probed, Is.False);
             Assert.That(paths, Does.Contain("/api/apps/tickets"));
-            Assert.That(paths, Does.Contain("/apps/harbor-shop/storefront"));
+            Assert.That(paths, Does.Contain("/apps/bob/storefront"));
             Assert.That(File.ReadAllText(webView!.Source!.LocalPath), Does.Contain("Harbor Shop"));
             Assert.That(File.ReadAllText(webView.Source.LocalPath), Does.Contain("Place order"));
         });
@@ -54,7 +54,7 @@ public sealed class DemoApplicationWebViewTests
         NativeWebView? webView = null;
         var window = await LaunchDemoWindowAsync(() => webView = new NativeWebView());
 
-        window.NavigateTo("harbor-shop", "http://localhost:1/");
+        window.NavigateTo("bob", "http://localhost:1/");
         await WaitUntilAsync(() => webView?.Source is { IsFile: true });
 
         Assert.That(

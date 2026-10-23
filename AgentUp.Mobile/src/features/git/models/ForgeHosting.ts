@@ -29,6 +29,17 @@ export type ForgeMergeability = {
   state: string;
 };
 
+/**
+ * The account this workspace acts as on its host. It belongs to the workspace rather than to the
+ * person operating it, so everything the agent pushes, comments, or reviews is attributable to it.
+ */
+export type ForgeAccount = {
+  login: string;
+  displayName: string;
+  isBot: boolean;
+  url: string;
+};
+
 export type ForgeHosting = {
   availability: ForgeAvailability;
   moduleId: string | null;
@@ -37,4 +48,5 @@ export type ForgeHosting = {
   threads: ForgeReviewThread[];
   mergeability: ForgeMergeability | null;
   detail: string | null;
+  account?: ForgeAccount | null;
 };

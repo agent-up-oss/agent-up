@@ -111,8 +111,21 @@ internal static class TeamStandingComposition
         string workspaceId,
         string? agent = "Claude",
         string state = "ready",
-        AgentLoopStatusDto? loop = null)
-        => new(workspaceId, agent, state, null, null, [], null, Loop: loop);
+        AgentLoopStatusDto? loop = null,
+        AgentRoleDto? role = null)
+        => new(workspaceId, agent, state, null, null, [], null, Loop: loop, Role: role);
+
+    public static AgentRoleDto Role(string trigger, string termination, params string[] tools)
+        => new("prompt", tools, trigger, termination);
+
+    public static AgentRoleDto Developer(params string[] tools)
+        => Role("IssueAssigned", "ProposalOpened", tools.Length == 0 ? ["enqueue_commit"] : tools);
+
+    public static AgentRoleDto Reviewer(params string[] tools)
+        => Role("ProposalAwaitingReview", "ReviewSubmitted", tools.Length == 0 ? ["play_validation_flow"] : tools);
+
+    public static ForgeAccountDto Account(string login, bool isBot = true)
+        => new(login, login.Replace("-aup[bot]", string.Empty), isBot, $"https://github.com/apps/{login}");
 
     public static AgentLoopStatusDto Loop(
         bool active,
@@ -132,7 +145,8 @@ internal static class TeamStandingComposition
         IReadOnlyList<ForgeCheckDto>? checks = null,
         IReadOnlyList<ForgeReviewThreadDto>? threads = null,
         string? mergeState = "clean",
-        string? detail = null)
+        string? detail = null,
+        ForgeAccountDto? account = null)
         => new(
             availability,
             "github",
@@ -140,7 +154,8 @@ internal static class TeamStandingComposition
             checks ?? [],
             threads ?? [],
             mergeState is null ? null : new ForgeMergeabilityDto(true, mergeState),
-            detail);
+            detail,
+            account);
 
     public static ForgeCheckDto Check(string name, string status, string conclusion)
         => new(name, status, conclusion, "https://example/checks");

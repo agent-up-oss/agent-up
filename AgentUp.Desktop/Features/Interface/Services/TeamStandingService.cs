@@ -73,15 +73,49 @@ public sealed class TeamStandingService
             workspace.DisplayName,
             workspace.Branch,
             workspace.State,
-            session?.Agent ?? session?.BoundAgent,
+            AgentName(session),
             Classify(session, loop),
             loop?.TaskNumber,
             loop?.TaskTitle,
             Reason(loop, forge),
             loop?.StopReason,
             loop?.PermissionRuleIds ?? [],
-            forge);
+            forge,
+            Classify(session?.Role),
+            session?.Role?.Tools,
+            Identify(hosting?.Account));
     }
+
+    /// <summary>
+    /// The agent driving this workspace, named the way its capability names itself. The session
+    /// carries the module id, which is lowercase and not what anyone calls the thing.
+    /// </summary>
+    private static string? AgentName(AgentSessionDto? session)
+    {
+        var id = session?.Agent ?? session?.BoundAgent;
+        if (id is null) return null;
+        var descriptor = session?.Agents?.FirstOrDefault(
+            item => string.Equals(item.Agent, id, StringComparison.OrdinalIgnoreCase));
+        return descriptor?.DisplayName is { Length: > 0 } name ? name : id;
+    }
+
+    /// <summary>
+    /// What the role is for, from the pair the Server stores. An issue in and a proposal out is a
+    /// builder; a proposal in and a review out is a reviewer. Any other pairing is a role someone
+    /// configured deliberately, so it is reported as its own thing rather than squeezed into one.
+    /// </summary>
+    private static TeamRoleKind Classify(AgentRoleDto? role) => role switch
+    {
+        null => TeamRoleKind.None,
+        { Trigger: "IssueAssigned", Termination: "ProposalOpened" } => TeamRoleKind.Developer,
+        { Trigger: "ProposalAwaitingReview", Termination: "ReviewSubmitted" } => TeamRoleKind.Reviewer,
+        _ => TeamRoleKind.Other
+    };
+
+    private static TeamIdentity? Identify(ForgeAccountDto? account)
+        => account is null
+            ? null
+            : new TeamIdentity(account.Login, account.DisplayName, account.IsBot, account.Url);
 
     private static TeamStandingKind Classify(AgentSessionDto? session, AgentLoopStatusDto? loop)
     {

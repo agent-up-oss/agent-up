@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { ForgeHosting } from '@/features/git/models/ForgeHosting';
 import type { AgentSession } from '@agent-up/chat';
-import { composeStanding, countForge, noForge, type TeamMember } from './TeamStanding';
+import { classifyRole, composeStanding, countForge, noForge, type TeamMember } from './TeamStanding';
 
-const member: TeamMember = { workspaceId: 'shop', displayName: 'Harbor Shop', branch: 'main', state: 'Running' };
+const member: TeamMember = { workspaceId: 'shop', displayName: 'Bob', branch: 'main', state: 'Running' };
 
 function session(partial: Partial<AgentSession> = {}): AgentSession {
   return { workspaceId: 'shop', agent: 'Claude', state: 'ready', sessionId: null, error: null, agents: [], ...partial };
@@ -110,4 +110,59 @@ test('countForge counts checks by conclusion and threads by resolution', () => {
 test('countForge with no reading is the empty standing', () => {
   assert.deepEqual(countForge(null), noForge);
   assert.deepEqual(countForge(undefined), noForge);
+});
+
+test('a role composes to a builder or a reviewer from its trigger and termination', () => {
+  const builder = composeStanding(
+    member,
+    session({ role: { prompt: 'p', tools: ['enqueue_commit'], trigger: 'IssueAssigned', termination: 'ProposalOpened' } }),
+    null,
+  );
+  const reviewer = composeStanding(
+    member,
+    session({ role: { prompt: 'p', tools: ['play_validation_flow'], trigger: 'ProposalAwaitingReview', termination: 'ReviewSubmitted' } }),
+    null,
+  );
+  assert.equal(builder.role, 'developer');
+  assert.deepEqual(builder.roleTools, ['enqueue_commit']);
+  assert.equal(reviewer.role, 'reviewer');
+});
+
+test('a pairing neither archetype covers is not forced into one', () => {
+  assert.equal(classifyRole({ prompt: 'p', tools: [], trigger: 'IssueAssigned', termination: 'ReviewSubmitted' }), 'other');
+  assert.equal(classifyRole(null), 'none');
+  assert.equal(classifyRole(undefined), 'none');
+});
+
+test('no role configured composes as no role rather than a developer', () => {
+  const standing = composeStanding(member, session(), null);
+  assert.equal(standing.role, 'none');
+  assert.deepEqual(standing.roleTools, []);
+});
+
+test('the account the workspace acts as comes through the forge read', () => {
+  const standing = composeStanding(member, null, hosting({
+    account: { login: 'lucy-aup[bot]', displayName: 'Lucy', isBot: true, url: 'https://github.com/apps/lucy-aup' },
+  }));
+  assert.equal(standing.identity?.login, 'lucy-aup[bot]');
+  assert.equal(standing.identity?.isBot, true);
+});
+
+test('a host that names no account leaves the identity unset', () => {
+  assert.equal(composeStanding(member, null, hosting()).identity, null);
+  assert.equal(composeStanding(member, null, null).identity, null);
+});
+
+test('the agent is named the way its capability names itself', () => {
+  const named = composeStanding(
+    member,
+    session({ agent: 'claude', agents: [{ agent: 'claude', available: true, displayName: 'Claude' }] }),
+    null,
+  );
+  assert.equal(named.agent, 'Claude');
+});
+
+test('the module id stands in when no descriptor names the agent', () => {
+  assert.equal(composeStanding(member, session({ agent: 'codex', agents: [] }), null).agent, 'codex');
+  assert.equal(composeStanding(member, session({ agent: null, agents: [] }), null).agent, null);
 });

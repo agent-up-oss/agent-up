@@ -584,7 +584,7 @@ public sealed class FakeBackendService
         PublishAgent(workspaceId, "user_message", new JsonObject { ["text"] = message });
         PublishAgent(workspaceId, "state", running);
         var text = path is null
-            ? "Harbor Shop is running locally."
+            ? "Harbor is running locally."
             : $"I added `{path}` so the storefront can show the weekly harbor special. It is uncommitted in the working tree.";
         PublishAgent(workspaceId, "session_update", new JsonObject
         {

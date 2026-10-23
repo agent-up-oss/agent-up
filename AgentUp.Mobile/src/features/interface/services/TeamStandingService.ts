@@ -28,6 +28,36 @@ export function stateLabel(kind: TeamStandingKind): string {
   return '○ idle';
 }
 
+/** What this agent is for, in one word, or null while no role is configured. */
+export function roleLabel(standing: TeamStanding): string | null {
+  if (standing.role === 'developer') return 'Developer';
+  if (standing.role === 'reviewer') return 'Reviewer';
+  if (standing.role === 'other') return 'Custom role';
+  return null;
+}
+
+/** The account as a host writes it, which is how a reviewer will see it on a thread. */
+export function identityHandle(standing: TeamStanding): string | null {
+  if (!standing.identity) return null;
+  return standing.identity.login.startsWith('@') ? standing.identity.login : `@${standing.identity.login}`;
+}
+
+/**
+ * Who this agent is, under their name: what they are for, which account they act as, and which
+ * model drives them. Each part is dropped when the Server did not report it, so the line never
+ * pads itself out with placeholders.
+ */
+export function whoIs(standing: TeamStanding): string {
+  return [roleLabel(standing), identityHandle(standing), standing.agent, standing.state]
+    .filter((part): part is string => !!part)
+    .join(' · ');
+}
+
+/** Everything the role may do, which is also everything this agent can do. */
+export function toolsSummary(standing: TeamStanding): string | null {
+  return standing.roleTools.length ? `may ${standing.roleTools.join(', ')}` : null;
+}
+
 export function taskLabel(standing: TeamStanding): string | null {
   if (standing.taskNumber === null) return null;
   return standing.taskTitle ? `#${standing.taskNumber} · ${standing.taskTitle}` : `#${standing.taskNumber}`;

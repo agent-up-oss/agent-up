@@ -16,12 +16,13 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null)
     public async Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken)
     {
         using var client = CreateClient(request.Token);
+        var account = await ReadAccountAsync(client, cancellationToken);
         var pulls = await client.GetFromJsonAsync<JsonElement>(
             $"repos/{request.Owner}/{request.Repository}/pulls?head={request.Owner}:{request.Branch}&state=open",
             Json,
             cancellationToken);
         if (pulls.ValueKind != JsonValueKind.Array || pulls.GetArrayLength() == 0)
-            return new ForgeHostSnapshot(null, [], [], null);
+            return new ForgeHostSnapshot(null, [], [], null, account);
 
         var pull = pulls[0];
         var proposal = ReadProposal(pull);
@@ -31,7 +32,35 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null)
         var mergeability = new ForgeMergeability(
             pull.TryGetProperty("mergeable", out var mergeable) && mergeable.ValueKind == JsonValueKind.True,
             pull.TryGetProperty("mergeable_state", out var state) ? state.GetString() ?? "unknown" : "unknown");
-        return new ForgeHostSnapshot(proposal, checks, threads, mergeability);
+        return new ForgeHostSnapshot(proposal, checks, threads, mergeability, account);
+    }
+
+    /// <summary>
+    /// Who the credential acts as. The workspace has an account whether or not a proposal is open,
+    /// so this is read before the proposal and carried on every snapshot. A token the host will not
+    /// identify leaves the account null; it is not worth failing an otherwise good read over.
+    /// </summary>
+    private static async Task<ForgeAccount?> ReadAccountAsync(HttpClient client, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var user = await client.GetFromJsonAsync<JsonElement>("user", Json, cancellationToken);
+            if (user.ValueKind != JsonValueKind.Object) return null;
+            var login = user.TryGetProperty("login", out var name) ? name.GetString() : null;
+            if (string.IsNullOrWhiteSpace(login)) return null;
+            var display = user.TryGetProperty("name", out var full) ? full.GetString() : null;
+            var type = user.TryGetProperty("type", out var kind) ? kind.GetString() : null;
+            var url = user.TryGetProperty("html_url", out var link) ? link.GetString() : null;
+            return new ForgeAccount(
+                login,
+                string.IsNullOrWhiteSpace(display) ? login : display,
+                string.Equals(type, "Bot", StringComparison.OrdinalIgnoreCase),
+                url ?? $"https://github.com/{login}");
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
     }
 
     public async Task<IReadOnlyList<ForgeAssignedIssue>> ListAssignedAsync(

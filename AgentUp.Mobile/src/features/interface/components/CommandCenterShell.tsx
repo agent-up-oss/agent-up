@@ -12,6 +12,8 @@ import {
   stateLabel,
   taskLabel,
   threadSummary,
+  toolsSummary,
+  whoIs,
   type TeamTriage,
 } from '../services/TeamStandingService';
 import { InterfaceToggleRow } from './InterfaceToggleRow';
@@ -135,7 +137,7 @@ function Tasks({ standing }: { standing: Standing }) {
           <View key={item.workspaceId} style={styles.card}>
             <Text style={styles.cardTitle}>{taskLabel(item)}</Text>
             <Text style={[styles.note, toneStyle(item)]}>{stateLabel(item.kind)}</Text>
-            <Text style={styles.note}>{item.displayName}{item.agent ? ` · ${item.agent}` : ''}</Text>
+            <Text style={styles.note}>{item.displayName} · {whoIs(item)}</Text>
             {showProposalBesideTask(item) ? (
               <Text style={styles.note}>#{item.forge.proposalNumber} {item.forge.proposalTitle}</Text>
             ) : null}
@@ -165,12 +167,14 @@ function StandingCard({ standing }: { standing: TeamStanding }) {
   return (
     <View style={[styles.card, tone]}>
       <Text style={styles.cardTitle}>{headlineFor(standing)}</Text>
+      <Text style={styles.note}>{whoIs(standing)}</Text>
       <Text style={[styles.note, toneStyle(standing)]}>{stateLabel(standing.kind)} · {standing.branch}</Text>
       {standing.reason ? <Text style={styles.note}>{standing.reason}</Text> : null}
       {standing.diagnosticCode ? <Text style={styles.code}>{standing.diagnosticCode}</Text> : null}
       {standing.permissionRuleIds.length ? (
         <Text style={styles.code}>needs {standing.permissionRuleIds.join(', ')}</Text>
       ) : null}
+      {toolsSummary(standing) ? <Text style={styles.code}>{toolsSummary(standing)}</Text> : null}
       {showProposalBesideTask(standing) ? (
         <Text style={styles.note}>#{standing.forge.proposalNumber} {standing.forge.proposalTitle}</Text>
       ) : null}

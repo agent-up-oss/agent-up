@@ -1082,8 +1082,8 @@ public class MainViewModelTests
     public async Task CommandCenter_readsTheBridgeAsSoonAsTheTeamArrives()
     {
         var agents = new StandingAgentFake();
-        agents.Sessions["harbor-shop"] = TeamStandingComposition.Session(
-            "harbor-shop",
+        agents.Sessions["bob"] = TeamStandingComposition.Session(
+            "bob",
             loop: TeamStandingComposition.Loop(true, "running", 44, "Restock featured products", "Running"));
         var bridge = new BridgeViewModel(TeamStandingComposition.Controller(agents, new StandingForgeFake()));
         var vm = CreateVm(
@@ -1092,13 +1092,13 @@ public class MainViewModelTests
         vm.CommandCenter!.ToggleCommand.Execute().Subscribe();
 
         vm.Sidebar.Workspaces.Add(new WorkspaceItemViewModel(
-            "harbor-shop", "Harbor Shop", "main", "/demo/harbor-shop", "/demo/harbor-shop", "Running"));
+            "bob", "Bob", "main", "/demo/agents/bob", "/demo/agents/bob", "Running"));
         await WaitForAsync(() => bridge.Team.Count == 1);
 
         Assert.Multiple(() =>
         {
             Assert.That(vm.CommandCenter.Active, Is.True);
-            Assert.That(bridge.Team[0].WorkspaceId, Is.EqualTo("harbor-shop"));
+            Assert.That(bridge.Team[0].WorkspaceId, Is.EqualTo("bob"));
             Assert.That(bridge.Team[0].TaskLabel, Is.EqualTo("#44 · Restock featured products"));
         });
     }

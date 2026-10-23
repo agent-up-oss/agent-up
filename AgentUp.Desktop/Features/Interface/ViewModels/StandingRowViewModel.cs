@@ -23,9 +23,33 @@ public sealed class StandingRowViewModel
     public string Initial => Standing.Initial;
     public string Branch => Standing.Branch;
 
-    public string Subtitle => Standing.Agent is { Length: > 0 } agent
-        ? $"{agent} · {Standing.WorkspaceState}"
-        : Standing.WorkspaceState;
+    /// <summary>
+    /// Who this agent is, under their name: what they are for, which account they act as, and which
+    /// model drives them. Each part is dropped when the Server did not report it, so the line never
+    /// pads itself out with placeholders.
+    /// </summary>
+    public string Subtitle => string.Join(" · ", SubtitleParts());
+
+    /// <summary>What this agent is for, or an empty string while no role is configured.</summary>
+    public string RoleLabel => Standing.RoleLabel ?? string.Empty;
+
+    public bool HasRole => Standing.RoleLabel is { Length: > 0 };
+
+    /// <summary>The account the agent acts as on its host, as a reviewer sees it on a thread.</summary>
+    public string IdentityHandle => Standing.Identity?.Handle ?? string.Empty;
+
+    public bool HasIdentity => Standing.Identity is not null;
+
+    public string IdentityToolTip => Standing.Identity is null
+        ? string.Empty
+        : $"{Standing.Identity.DisplayName} · {Standing.Identity.Url}";
+
+    /// <summary>Everything the role may do, which is also everything this agent can do.</summary>
+    public string ToolsSummary => Standing.Tools.Count == 0
+        ? string.Empty
+        : $"may {string.Join(", ", Standing.Tools)}";
+
+    public bool HasTools => Standing.Tools.Count > 0;
 
     public string StateLabel => Standing.Kind switch
     {
@@ -104,6 +128,14 @@ public sealed class StandingRowViewModel
         : $"{Standing.Forge.UnresolvedThreads} unresolved review threads";
 
     private string TaskSuffix => Standing.TaskNumber is null ? string.Empty : $" on #{Standing.TaskNumber}";
+
+    private IEnumerable<string> SubtitleParts()
+    {
+        if (Standing.RoleLabel is { Length: > 0 } role) yield return role;
+        if (Standing.Identity is { } identity) yield return identity.Handle;
+        if (Standing.Agent is { Length: > 0 } agent) yield return agent;
+        yield return Standing.WorkspaceState;
+    }
 
     private List<string> Parts()
     {

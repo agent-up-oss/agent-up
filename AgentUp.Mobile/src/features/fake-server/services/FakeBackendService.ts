@@ -490,7 +490,7 @@ export class FakeBackendService {
     this.publishAgent(workspaceId, 'state', { ...snapshot, state: 'running' });
     const text = added
       ? `I added \`${added.path}\` so the storefront can show the weekly harbor special. It is uncommitted in the working tree.`
-      : 'Harbor Shop is running locally.';
+      : 'Harbor is running locally.';
     this.publishAgent(workspaceId, 'session_update', {
       sessionUpdate: 'agent_message_chunk',
       content: { type: 'text', text },

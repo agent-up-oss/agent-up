@@ -22,6 +22,17 @@ export type AgentLoopStatus = {
   blockReason?: string | null;
   permissionRuleIds?: string[];
 };
+/**
+ * What a workspace's agent is for. The Server stores one role per workspace and sends it with the
+ * session; the trigger and termination pair is what distinguishes a builder from a reviewer, so a
+ * client reads the role kind from those rather than from any label.
+ */
+export type AgentRole = {
+  prompt: string;
+  tools: string[];
+  trigger: string;
+  termination: string;
+};
 export type AgentSession = {
   workspaceId: string;
   agent: AgentId | null;
@@ -34,6 +45,7 @@ export type AgentSession = {
   sessions?: AgentSessionSummary[];
   boundAgent?: AgentId | null;
   loop?: AgentLoopStatus | null;
+  role?: AgentRole | null;
 };
 export type AgentEvent = { sequence: number; type: string; payload: unknown; timestamp: string };
 export type AgentPermissionOption = { optionId: string; name: string; kind?: string };

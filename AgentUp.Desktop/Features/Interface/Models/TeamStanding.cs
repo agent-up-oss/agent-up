@@ -26,6 +26,35 @@ public enum TeamStandingKind
 public sealed record TeamMember(string WorkspaceId, string DisplayName, string Branch, string State);
 
 /// <summary>
+/// What an agent is for, as the Server's role trigger and termination say. A role that pairs them
+/// any other way is named from its two halves rather than forced into one of these.
+/// </summary>
+public enum TeamRoleKind
+{
+    /// <summary>No role is configured for this workspace.</summary>
+    None,
+
+    /// <summary>Takes an assigned issue and ends by opening a proposal.</summary>
+    Developer,
+
+    /// <summary>Takes a proposal awaiting review and ends by submitting one.</summary>
+    Reviewer,
+
+    /// <summary>A trigger and termination the two archetypes do not cover.</summary>
+    Other
+}
+
+/// <summary>
+/// The account a workspace acts as on its repository host. One workspace keeps one account, so
+/// everything its agent pushes, comments, or reviews is attributable to this name.
+/// </summary>
+public sealed record TeamIdentity(string Login, string DisplayName, bool IsBot, string Url)
+{
+    /// <summary>The account as a host writes it, which is how a reviewer will see it on a thread.</summary>
+    public string Handle => Login.StartsWith('@') ? Login : $"@{Login}";
+}
+
+/// <summary>
 /// What the repository host reports for one workspace, counted. The counts are what a triage
 /// surface shows; the lists behind them stay in the agent's own Git tab.
 /// </summary>
@@ -64,8 +93,23 @@ public sealed record TeamStanding(
     string? Reason,
     string? DiagnosticCode,
     IReadOnlyList<string> PermissionRuleIds,
-    ForgeStanding Forge)
+    ForgeStanding Forge,
+    TeamRoleKind Role = TeamRoleKind.None,
+    IReadOnlyList<string>? RoleTools = null,
+    TeamIdentity? Identity = null)
 {
+    /// <summary>What this agent is for, in one word, or null while no role is configured.</summary>
+    public string? RoleLabel => Role switch
+    {
+        TeamRoleKind.Developer => "Developer",
+        TeamRoleKind.Reviewer => "Reviewer",
+        TeamRoleKind.Other => "Custom role",
+        _ => null
+    };
+
+    /// <summary>The tools the role is allowed, which is the whole of what this agent may do.</summary>
+    public IReadOnlyList<string> Tools => RoleTools ?? [];
+
     /// <summary>The agent's initial, for the avatar the design draws.</summary>
     public string Initial => DisplayName.Length > 0 ? DisplayName[..1].ToUpperInvariant() : "?";
 

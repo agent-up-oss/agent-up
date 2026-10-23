@@ -38,6 +38,70 @@ public sealed class GithubApiProviderTests
     }
 
     [Test]
+    public async Task ReadAsync_namesTheAccountTheCredentialActsAs()
+    {
+        var handler = Recorded(
+            ("GET /user", Account),
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/check-runs", Checks),
+            ("GET /repos/acme/widgets/pulls/42/comments", Comments));
+
+        var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.Account!.Login, Is.EqualTo("lucy-aup[bot]"));
+            Assert.That(snapshot.Account.DisplayName, Is.EqualTo("Lucy"));
+            Assert.That(snapshot.Account.IsBot, Is.True);
+            Assert.That(snapshot.Account.Url, Is.EqualTo("https://github.com/apps/lucy-aup"));
+        });
+    }
+
+    [Test]
+    public async Task ReadAsync_namesTheAccountEvenWithNoProposalOpen()
+    {
+        var handler = Recorded(
+            ("GET /user", Account),
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", "[]"));
+
+        var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
+
+        Assert.That(snapshot.Proposal, Is.Null);
+        Assert.That(snapshot.Account!.Login, Is.EqualTo("lucy-aup[bot]"));
+    }
+
+    [Test]
+    public async Task ReadAsync_fallsBackToTheLoginWhenTheHostNamesNoDisplayName()
+    {
+        var handler = Recorded(
+            ("GET /user", PlainAccount),
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", "[]"));
+
+        var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.Account!.DisplayName, Is.EqualTo("carla"));
+            Assert.That(snapshot.Account.IsBot, Is.False);
+            Assert.That(snapshot.Account.Url, Is.EqualTo("https://github.com/carla"));
+        });
+    }
+
+    [Test]
+    public async Task ReadAsync_aHostThatWillNotIdentifyTheTokenStillReturnsTheProposal()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/check-runs", Checks),
+            ("GET /repos/acme/widgets/pulls/42/comments", Comments));
+
+        var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
+
+        Assert.That(snapshot.Account, Is.Null);
+        Assert.That(snapshot.Proposal!.Number, Is.EqualTo("42"));
+    }
+
+    [Test]
     public async Task ListAssignedAsync_maps_stable_ids()
     {
         var issues = await new GithubForgeCapability(Recorded(("GET /issues?filter=assigned&state=open&per_page=100", Assigned)))
@@ -191,6 +255,14 @@ public sealed class GithubApiProviderTests
 
     private const string Comments = """
         [{"id":99,"html_url":"https://github.com/acme/widgets/pull/42#discussion_r99","body":"please fix"}]
+        """;
+
+    private const string Account = """
+        {"login":"lucy-aup[bot]","name":"Lucy","type":"Bot","html_url":"https://github.com/apps/lucy-aup"}
+        """;
+
+    private const string PlainAccount = """
+        {"login":"carla","type":"User"}
         """;
 
     private const string Assigned = """

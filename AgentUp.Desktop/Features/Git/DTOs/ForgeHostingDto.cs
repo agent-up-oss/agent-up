@@ -7,7 +7,14 @@ public sealed record ForgeHostingDto(
     IReadOnlyList<ForgeCheckDto> Checks,
     IReadOnlyList<ForgeReviewThreadDto> Threads,
     ForgeMergeabilityDto? Mergeability,
-    string? Detail);
+    string? Detail,
+    ForgeAccountDto? Account = null);
+
+/// <summary>
+/// The account this workspace acts as on its host. It belongs to the workspace rather than to the
+/// person operating it, so everything the agent pushes, comments, or reviews is attributable to it.
+/// </summary>
+public sealed record ForgeAccountDto(string Login, string DisplayName, bool IsBot, string Url);
 
 public sealed record ForgeProposalDto(
     string Id,

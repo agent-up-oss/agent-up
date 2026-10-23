@@ -25,7 +25,7 @@ Desktop chrome for the live session is the **Agent** tab. Mobile chrome for the 
 <DocSurface mobile>Agents lists saved sessions and Server-discovered ACP agents, then opens the selected chat as an inner page. The live session is labeled Current; every other row is Resume. A bound workspace hides the picker and shows that agent. An unattended loop's phase, current task, and stop reason appear on the bound-agent card.</DocSurface>
 </DocSurfaces>
 
-<p><img src="/desktop-agents.png" alt="Desktop Agent tab showing Codex and Harbor Shop" /></p>
+<p><img src="/desktop-agents.png" alt="Desktop Agent tab showing the agent bound to Bob's workspace" /></p>
 <p><img src="/mobile-agents.png" alt="Mobile Agents tab showing Codex" /></p>
 
 ## Workspace agent CLIs

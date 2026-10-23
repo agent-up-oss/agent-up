@@ -4,7 +4,16 @@ public sealed record ForgeHostSnapshot(
     ForgeProposal? Proposal,
     IReadOnlyList<ForgeCheck> Checks,
     IReadOnlyList<ForgeReviewThread> Threads,
-    ForgeMergeability? Mergeability);
+    ForgeMergeability? Mergeability,
+    ForgeAccount? Account = null);
+
+/// <summary>
+/// The account a workspace acts as on its repository host. It belongs to the workspace, not to the
+/// person operating it: the credential is per workspace, so everything an agent pushes, comments,
+/// or reviews is attributable to this account and to no one else. A module that cannot name the
+/// account leaves it null rather than guessing one.
+/// </summary>
+public sealed record ForgeAccount(string Login, string DisplayName, bool IsBot, string Url);
 
 public sealed record ForgeProposal(
     string Id,

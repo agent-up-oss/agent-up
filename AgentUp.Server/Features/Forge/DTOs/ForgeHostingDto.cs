@@ -7,7 +7,11 @@ public sealed record ForgeHostingDto(
     IReadOnlyList<ForgeCheckDto> Checks,
     IReadOnlyList<ForgeReviewThreadDto> Threads,
     ForgeMergeabilityDto? Mergeability,
-    string? Detail);
+    string? Detail,
+    ForgeAccountDto? Account = null);
+
+/// <summary>The account this workspace acts as on its host; null until the host names one.</summary>
+public sealed record ForgeAccountDto(string Login, string DisplayName, bool IsBot, string Url);
 
 public sealed record ForgeProposalDto(
     string Id,
