@@ -686,6 +686,37 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
+    public async Task EnableAgentCommand_reportsEnableFailures()
+    {
+        var modules = new RecordingCapabilityModulesApi
+        {
+            EnableFailure = new InvalidOperationException("The claude package is not in the registry.")
+        };
+        var view = CreateView(
+            new ChatApiFake(),
+            new CapabilityModulesController(new CapabilityModulesCatalogService(modules)));
+        await view.LoadAsync("ws-1");
+
+        await view.EnableAgentCommand.Execute("claude").FirstAsync();
+
+        Assert.That(view.Error, Does.Contain("not in the registry"));
+    }
+
+    [Test]
+    public async Task EnableAgentCommand_doesNothingUntilAWorkspaceIsLoaded()
+    {
+        var modules = new RecordingCapabilityModulesApi();
+        var view = CreateView(
+            new ChatApiFake(),
+            new CapabilityModulesController(new CapabilityModulesCatalogService(modules)));
+
+        await view.EnableAgentCommand.Execute("claude").FirstAsync();
+
+        Assert.That(modules.EnabledId, Is.Null);
+        Assert.That(view.Error, Is.Null);
+    }
+
+    [Test]
     public void AgentSessionDto_preservesASubscriptionLoginChallenge()
     {
         var session = DesktopDomain.Session()
@@ -800,12 +831,15 @@ internal sealed class ChatApiFake : IAgentApiProvider
 internal sealed class RecordingCapabilityModulesApi : ICapabilityModulesApiProvider
 {
     public string? EnabledId { get; private set; }
+    public Exception? EnableFailure { get; set; }
 
     public Task<IReadOnlyList<CapabilityModuleDto>> ListAsync(CancellationToken cancellationToken = default)
         => Task.FromResult<IReadOnlyList<CapabilityModuleDto>>([]);
 
     public Task<CapabilityModuleDto> EnableAsync(string id, string? version, CancellationToken cancellationToken = default)
     {
+        if (EnableFailure is not null)
+            return Task.FromException<CapabilityModuleDto>(EnableFailure);
         EnabledId = id;
         return Task.FromResult(new CapabilityModuleDto(id, "1.0.0", id, "agent-up", "agent", true, "ready", true, []));
     }

@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AgentUp.Server.Features.Agents.Controllers;
@@ -86,12 +85,14 @@ public sealed class InstalledAgentCapabilityHttpTests
     {
         var workspace = await RegisterAsync();
         using var response = await _client.GetAsync($"/api/workspaces/{workspace.Id}/agent");
-        var session = await response.Content.ReadFromJsonAsync<AgentSessionDto>(JsonOptions);
+        var json = await response.Content.ReadAsStringAsync();
+        var session = JsonSerializer.Deserialize<AgentSessionDto>(json, JsonOptions);
         var commands = _app.Services.GetRequiredService<AgentCommandProvider>();
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(session, Is.Not.Null);
         Assert.That(session!.Agents.Select(agent => agent.Agent), Does.Contain("codex").And.Contain("cursor").And.Contain("claude"));
+        Assert.That(json, Does.Contain("\"unavailability\"").Or.Contain("\"available\":true"));
 
         foreach (var descriptor in session.Agents.Where(agent => agent.Agent is "codex" or "cursor" or "claude"))
         {

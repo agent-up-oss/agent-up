@@ -148,6 +148,87 @@ public sealed class AgentCommandProviderTests
     }
 
     [Test]
+    public void LaunchCommandName_returnsTheConfiguredFileName()
+    {
+        var command = RootedShellCommand();
+        var provider = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?> { ["Agents:Codex:Command"] = command }).Build());
+
+        Assert.That(provider.LaunchCommandName("codex"), Is.EqualTo(Path.GetFileName(command)));
+    }
+
+    [Test]
+    public void LaunchCommandName_returnsTheUnwrappedPackageCommand()
+    {
+        var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Claude());
+        var provider = new AgentCommandProvider(new ConfigurationBuilder().Build(), packages);
+
+        Assert.That(provider.LaunchCommandName("claude"), Is.EqualTo("claude-agent-acp"));
+    }
+
+    [Test]
+    public void LaunchCommandName_returnsTheAgentLaunchFileName()
+    {
+        var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
+            .WithAgents(new StubAgentCapability
+            {
+                LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult("codex-cli", [], null)
+            });
+        var provider = new AgentCommandProvider(new ConfigurationBuilder().Build(), packages);
+
+        Assert.That(provider.LaunchCommandName("codex"), Is.EqualTo("codex-cli"));
+    }
+
+    [Test]
+    public void LaunchCommandName_returnsTheScriptedTestAgentWhenNoPackageIsEnabled()
+    {
+        var provider = new AgentCommandProvider(new ConfigurationBuilder().Build());
+
+        Assert.That(provider.LaunchCommandName(AgentUnavailability.ScriptedTestAgent), Is.EqualTo(AgentUnavailability.ScriptedTestAgent));
+        Assert.That(provider.LaunchCommandName("claude"), Is.Null);
+    }
+
+    [Test]
+    public async Task ResolveAsync_isNullWhenTheScriptedTestAgentIsMissingFromPath()
+    {
+        var result = await new AgentCommandProvider(new ConfigurationBuilder().Build())
+            .ResolveAsync(AgentUnavailability.ScriptedTestAgent, CancellationToken.None);
+
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public async Task IsAvailableAsync_usesTheAgentLaunchFileName()
+    {
+        var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
+            .WithAgents(new StubAgentCapability
+            {
+                LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult(
+                    OperatingSystem.IsWindows() ? "cmd" : "sh",
+                    [],
+                    null)
+            });
+        var available = await new AgentCommandProvider(new ConfigurationBuilder().Build(), packages)
+            .IsAvailableAsync("codex", CancellationToken.None);
+
+        Assert.That(available, Is.True);
+    }
+
+    [Test]
+    public void LaunchCommandName_fallsBackToTheEnabledPackageWhenLaunchFileNameIsBlank()
+    {
+        var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Claude())
+            .WithAgents(new StubAgentCapability
+            {
+                Identity = new("claude", "1.0.0", "Claude", "agent-up"),
+                LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult("  ", [], null)
+            });
+        var provider = new AgentCommandProvider(new ConfigurationBuilder().Build(), packages);
+
+        Assert.That(provider.LaunchCommandName("claude"), Is.EqualTo("claude-agent-acp"));
+    }
+
+    [Test]
     public async Task ResolveAsync_isNullWhenEnabledAgentPackageHasNoCommand()
     {
         var packages = new FakeEnabledCapabilityPackages(new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityPackageManifest

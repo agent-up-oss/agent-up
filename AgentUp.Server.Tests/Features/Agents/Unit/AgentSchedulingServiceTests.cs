@@ -245,6 +245,106 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
+    public async Task GetAsync_listsScriptedTestAgentWhenTheHostIsTesting()
+    {
+        var service = new AgentSchedulingService(
+            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
+            new AgentCommandProvider(new ConfigurationBuilder().Build()),
+            _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
+            _payloads, _events, NullLogger<AgentSchedulingService>.Instance,
+            host: new StubHostEnvironment("Testing"));
+        try
+        {
+            var session = await service.GetAsync(_workspace.Id, CancellationToken.None);
+
+            Assert.That(session!.Agents.Select(agent => agent.Agent), Does.Contain(AgentUnavailability.ScriptedTestAgent));
+        }
+        finally
+        {
+            await service.DisposeAsync();
+        }
+    }
+
+    [Test]
+    public async Task GetAsync_reportsExecutableNotFoundWhenTheModuleCannotRun()
+    {
+        var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
+        var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
+            .WithAgents(new StubAgentCapability { CanRun = false });
+        var service = new AgentSchedulingService(
+            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
+            new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(
+                new Dictionary<string, string?> { ["Agents:codex:Command"] = command }).Build(), packages),
+            _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
+            _payloads, _events, NullLogger<AgentSchedulingService>.Instance, packages);
+        try
+        {
+            var session = await service.GetAsync(_workspace.Id, CancellationToken.None);
+            var codex = session!.Agents.Single(agent => agent.Agent == "codex");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(codex.Available, Is.False);
+                Assert.That(codex.Unavailability, Is.EqualTo(AgentUnavailability.ExecutableNotFound));
+                Assert.That(codex.Detail, Is.EqualTo(AgentUnavailability.ExecutableNotFoundDetail("codex")));
+            });
+        }
+        finally
+        {
+            await service.DisposeAsync();
+        }
+    }
+
+    [Test]
+    public async Task GetAsync_usesEnabledPackageDisplayNameWhenNoAgentModuleIsLoaded()
+    {
+        var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Claude());
+        var service = new AgentSchedulingService(
+            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
+            new AgentCommandProvider(new ConfigurationBuilder().Build(), packages),
+            _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
+            _payloads, _events, NullLogger<AgentSchedulingService>.Instance, packages);
+        try
+        {
+            var session = await service.GetAsync(_workspace.Id, CancellationToken.None);
+            var claude = session!.Agents.Single(agent => agent.Agent == "claude");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(claude.DisplayName, Is.EqualTo("claude"));
+                Assert.That(claude.Available, Is.False);
+                Assert.That(claude.Unavailability, Is.EqualTo(AgentUnavailability.ExecutableNotFound));
+                Assert.That(claude.Remedy, Does.Contain("claude-agent-acp"));
+            });
+        }
+        finally
+        {
+            await service.DisposeAsync();
+        }
+    }
+
+    [Test]
+    public async Task ScheduleAsync_reportsWhenTheExecutableIsMissing()
+    {
+        var service = new AgentSchedulingService(
+            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
+            new AgentCommandProvider(new ConfigurationBuilder().Build()),
+            _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
+            _payloads, _events, NullLogger<AgentSchedulingService>.Instance);
+        try
+        {
+            var scheduled = await service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+
+            Assert.That(scheduled.Error, Does.Contain("not installed"));
+            Assert.That(scheduled.Session, Is.Null);
+        }
+        finally
+        {
+            await service.DisposeAsync();
+        }
+    }
+
+    [Test]
     public async Task Schedule_initializesAcpInWorktreeAndKeepsTheLiveSession()
     {
         var first = await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
