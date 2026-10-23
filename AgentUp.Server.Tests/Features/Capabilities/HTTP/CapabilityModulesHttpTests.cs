@@ -40,14 +40,33 @@ public sealed class CapabilityModulesHttpTests
         Assert.That(disabled!.Enabled, Is.False);
     }
 
+    [Test]
+    public async Task List_names_nix_when_an_enabled_module_cannot_run()
+    {
+        await using var host = await StartAsync(nixAvailable: false, enabled: true);
+        using var client = host.Client;
+
+        using var response = await client.GetAsync("/api/capabilities");
+        var modules = await response.Content.ReadFromJsonAsync<List<CapabilityModuleDto>>(Json);
+        var listed = modules!.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(listed.State, Is.EqualTo("error"));
+            Assert.That(listed.CanRun, Is.False);
+            Assert.That(listed.Messages, Has.Some.Contains("https://nixos.org/download"));
+        });
+    }
+
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    private static async Task<Host> StartAsync()
+    private static async Task<Host> StartAsync(bool nixAvailable = true, bool enabled = false)
     {
         var port = TcpPort();
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = [$"--urls=http://127.0.0.1:{port}"] });
         builder.Services.AddControllers().AddApplicationPart(typeof(CapabilityModulesHttpController).Assembly);
-        builder.Services.AddSingleton(CapabilityModuleHarness.CreateService());
+        builder.Services.AddSingleton(CapabilityModuleHarness.CreateService(nixAvailable, enabled));
         builder.Services.AddSingleton<CapabilityModulesController>();
         var app = builder.Build();
         app.MapControllers();

@@ -52,7 +52,7 @@ Contributor architecture details live in the [Developer Guide](docs/developer-gu
 - Git.
 - Docker and Docker Compose for repositories that declare Docker services.
 - Node.js and npm for the documentation site.
-- Nix on NixOS or Linux systems that need the provided native desktop dependency shell.
+- Nix on the host that runs the Server. Capability packages deliver toolchains through Nix. On Linux or macOS: `sh <(curl -L https://nixos.org/nix/install) --daemon` (see https://nixos.org/download). On Windows, run the Server under WSL2. Nix is also used for the native desktop dependency shell.
 
 Agent-Up may work on additional platforms, but the current development setup has only been verified on NixOS.
 

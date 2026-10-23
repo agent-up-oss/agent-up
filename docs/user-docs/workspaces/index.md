@@ -128,6 +128,7 @@ agent-up start --server http://localhost:5001
 <DocFact label="list">Lists workspaces the Server knows</DocFact>
 <DocFact label="status">Shows workspace status</DocFact>
 <DocFact label="clear">Stops and removes all known workspaces</DocFact>
+<DocFact label="capabilities">List, enable, disable, or bootstrap Server capability modules</DocFact>
 </DocFacts>
 
 `auth` authenticates the CLI with a Server that requires the admin password. Tokens are stored locally per server URL. `auth` commands always require an explicit `--server` argument. They do not fall back to repository `.env` values or `AGENTUP_SERVER_URL`.

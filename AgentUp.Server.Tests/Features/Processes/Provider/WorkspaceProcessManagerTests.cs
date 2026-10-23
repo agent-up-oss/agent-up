@@ -2,7 +2,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Applications.DTOs;
-using AgentUp.Server.Features.Capabilities.Services;
+using AgentUp.Server.Features.Capabilities.DTOs;
+using AgentUp.Server.Features.Capabilities.Models;
 using AgentUp.Server.Features.DesktopApplications.Controllers;
 using AgentUp.Server.Features.DesktopApplications.Providers;
 using AgentUp.Server.Features.DesktopApplications.Services;
@@ -54,6 +55,45 @@ public class WorkspaceProcessManagerTests
         var lines = (await _output.GetAsync(workspace.Id, "Db")).Texts();
         Assert.That(lines, Is.Not.Empty);
         Assert.That(lines, Has.Some.StartsWith("[err]"));
+    }
+
+    [Test]
+    public async Task LaunchApplication_WhenCapabilityCannotRun_MarksFailedAndWritesMessages()
+    {
+        var registered = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder("Example API", "true").Build())
+            .Build());
+        var messages = CapabilityPrerequisiteMessages.NotEnabled("dotnet", "Example API");
+        var workspace = CapabilityWorkspace(registered, messages);
+
+        await _manager.LaunchApplicationAsync(workspace, "Example API");
+
+        var lines = (await _output.GetAsync(workspace.Id, "Example API")).Texts();
+        Assert.Multiple(() =>
+        {
+            Assert.That(FailedState(workspace.Id, "Example API"), Is.EqualTo(ApplicationState.Failed));
+            Assert.That(lines, Has.Some.Contains("not enabled"));
+            Assert.That(lines, Has.Some.Contains("agent-up capabilities bootstrap"));
+            Assert.That(lines, Has.Some.StartsWith("[err]"));
+        });
+    }
+
+    [Test]
+    public async Task LaunchApplication_WhenCapabilityCannotRunWithoutMessages_MarksFailedAndReturns()
+    {
+        var registered = await _registry.RegisterAsync(ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder("Example API", "true").Build())
+            .Build());
+        var workspace = CapabilityWorkspace(registered, []);
+
+        await _manager.LaunchApplicationAsync(workspace, "Example API");
+
+        var lines = (await _output.GetAsync(workspace.Id, "Example API")).Texts();
+        Assert.Multiple(() =>
+        {
+            Assert.That(FailedState(workspace.Id, "Example API"), Is.EqualTo(ApplicationState.Failed));
+            Assert.That(lines, Is.Empty);
+        });
     }
 
     [Test]
@@ -1522,6 +1562,29 @@ public class WorkspaceProcessManagerTests
             .Any(directory => File.Exists(Path.Join(directory, name + suffix))
                               || File.Exists(Path.Join(directory, name)));
     }
+
+    private static Workspace CapabilityWorkspace(Workspace registered, IReadOnlyList<string> messages)
+        => new()
+        {
+            Id = registered.Id,
+            DisplayName = registered.DisplayName,
+            RepositoryPath = registered.RepositoryPath,
+            WorktreePath = registered.WorktreePath,
+            Branch = registered.Branch,
+            Commit = registered.Commit,
+            Applications =
+            [
+                new ApplicationInstance
+                {
+                    Name = "Example API",
+                    CapabilityId = "dotnet",
+                    CapabilityStatus = new CapabilityStatusDto("dotnet", null, false, messages)
+                }
+            ]
+        };
+
+    private ApplicationState FailedState(string workspaceId, string appName)
+        => _registry.GetById(workspaceId)!.Applications.Single(app => app.Name == appName).State;
 
     private async Task<ApplicationState> WaitForApplicationStateAsync(
         string workspaceId,

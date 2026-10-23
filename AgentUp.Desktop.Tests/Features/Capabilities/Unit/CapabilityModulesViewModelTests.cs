@@ -132,6 +132,38 @@ public sealed class CapabilityModulesViewModelTests
         });
     }
 
+    [Test]
+    public async Task Cards_showTheNixInstallUrlWhenTheServerSaysNixIsMissing()
+    {
+        var client = new FakeCapabilityModulesApiProvider
+        {
+            Modules =
+            [
+                CapabilityModulesCatalogServiceTests.DotnetModule(true) with
+                {
+                    CanRun = false,
+                    State = "error",
+                    Messages =
+                    [
+                        "Capability 'dotnet' needs Nix to provide the .NET SDK, and Nix was not found.",
+                        "Install Nix: https://nixos.org/download"
+                    ]
+                }
+            ]
+        };
+        var viewModel = CreateViewModel(client);
+
+        await viewModel.OpenAsync();
+
+        var card = viewModel.Modules.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(card.Summary, Does.Contain("https://nixos.org/download"));
+            Assert.That(card.Summary, Does.Not.Contain("is not enabled"));
+            Assert.That(card.CanRun, Is.False);
+        });
+    }
+
     private static CapabilityModulesViewModel CreateViewModel(ICapabilityModulesApiProvider client)
         => new(new CapabilityModulesController(new CapabilityModulesCatalogService(client)));
 }

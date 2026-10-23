@@ -64,6 +64,16 @@ Use compatibility sections when Agent-Up should preserve a legacy executable-plu
 
 The complete field contract is in the [reference](/docs/configuration/reference).
 
+## Enable first-party capabilities
+
+`dotnet` and `docker` sections only start when that package is packed into the Server registry and enabled. From a repository checkout:
+
+```bash
+agent-up capabilities bootstrap
+```
+
+That packs the first-party set into the Server registry (`.agent-up-dev/capability-registry` here, or `AGENTUP_CAPABILITY_REGISTRY_PATH`) and enables each module. `agent-up capabilities list` prints id, version, enabled, `canRun`, and the reason when a module cannot run. Without Nix on the Server host, that reason names Nix and https://nixos.org/download rather than "is not enabled".
+
 ## Capability-aware example
 
 ```json

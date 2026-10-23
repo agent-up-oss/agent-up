@@ -1,5 +1,6 @@
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
 using AgentUp.Server.Features.Capabilities.DTOs;
+using AgentUp.Server.Features.Capabilities.Models;
 using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Capabilities.Unit;
@@ -224,7 +225,82 @@ public sealed class CapabilityModuleServiceTests
             Assert.That(listed.Enabled, Is.True);
             Assert.That(listed.CanRun, Is.False);
             Assert.That(listed.State, Is.EqualTo("error"));
-            Assert.That(listed.Messages, Is.Not.Empty);
+            Assert.That(listed.Messages, Has.Some.Contains("Nix"));
+            Assert.That(listed.Messages, Has.Some.Contains("https://nixos.org/download"));
+            Assert.That(listed.Messages, Has.None.Contains("is not enabled"));
         });
+    }
+
+    [Test]
+    public void List_explains_a_disabled_module_with_the_bootstrap_remedy()
+    {
+        var listed = CapabilityModuleHarness.CreateService(nixAvailable: true, enabled: false).List().Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(listed.Enabled, Is.False);
+            Assert.That(listed.CanRun, Is.False);
+            Assert.That(listed.Messages, Has.Some.Contains("is not enabled"));
+            Assert.That(listed.Messages, Has.Some.Contains("agent-up capabilities bootstrap"));
+        });
+    }
+
+    [Test]
+    public void List_lets_an_enabled_forge_run_without_nix()
+    {
+        var listed = CapabilityModuleHarness.CreateService(
+            nixAvailable: false,
+            enabled: true,
+            manifest: GithubManifest()).List().Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(listed.Enabled, Is.True);
+            Assert.That(listed.CanRun, Is.True);
+            Assert.That(listed.Messages, Is.Empty);
+            Assert.That(listed.State, Is.EqualTo("ready"));
+        });
+    }
+
+    [Test]
+    public void List_explains_an_enabled_agent_that_cannot_run_without_nix()
+    {
+        var listed = CapabilityModuleHarness.CreateService(
+            nixAvailable: false,
+            enabled: true,
+            manifest: CodexManifest()).List().Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(listed.Kind, Is.EqualTo("agent"));
+            Assert.That(listed.State, Is.EqualTo("error"));
+            Assert.That(listed.CanRun, Is.False);
+            Assert.That(listed.Messages, Has.Some.Contains("the agent CLI"));
+            Assert.That(listed.Messages, Has.Some.Contains(CapabilityPrerequisiteMessages.NixInstallUrl));
+        });
+    }
+
+    [Test]
+    public void List_lets_an_enabled_runtime_run_when_nix_is_present()
+    {
+        var listed = CapabilityModuleHarness.CreateService(nixAvailable: true, enabled: true).List().Single();
+        var windows = OperatingSystem.IsWindows();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(listed.CanRun, Is.EqualTo(!windows));
+            Assert.That(listed.State, Is.EqualTo(windows ? "error" : "ready"));
+            Assert.That(listed.Messages.Any(message => message.Contains("WSL2")), Is.EqualTo(windows));
+        });
+    }
+
+    [Test]
+    public void WrapModule_leaves_the_command_unchanged_when_nix_is_missing()
+    {
+        var wrap = CapabilityModuleHarness.CreateService(nixAvailable: false, enabled: true)
+            .WrapModule("dotnet", "dotnet", ["run"]);
+
+        Assert.That(wrap.FileName, Is.EqualTo("dotnet"));
+        Assert.That(wrap.Arguments, Is.EqualTo(new[] { "run" }));
     }
 }
