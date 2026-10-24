@@ -41,8 +41,12 @@ test('authentication and entitlements do not require a password', () => {
 test('lists the bundled Bob workspace', () => {
   const service = backend();
   const workspaces = json(service, 'GET', '/api/workspaces');
-  assert.equal(workspaces[0].id, 'bob');
-  assert.equal(workspaces[0].state, 'Running');
+  // The definition lists the team in the reverse of the order a client shows them, because each
+  // arriving workspace event promotes its workspace to the top. Find Bob rather than taking the
+  // first entry: where he sits in the file is not what this is about.
+  const bob = workspaces.find((workspace: { id: string }) => workspace.id === 'bob');
+  assert.ok(bob, 'the Demo always carries Bob');
+  assert.equal(bob.state, 'Running');
 });
 
 test('binding records the workspace agent', () => {

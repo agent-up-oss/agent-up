@@ -29,10 +29,16 @@ public sealed class FakeBackendServiceTests
         var workspaces = Json(backend, Get("/api/workspaces")).AsArray();
         var overview = Json(backend, Get("/api/workspaces/bob/overview"));
 
+        // The definition lists the team in the reverse of the order a client shows them, because
+        // each arriving workspace event promotes its workspace to the top. So find Bob rather
+        // than taking the first entry: where he sits in the file is not what this is about.
+        var bob = workspaces.Single(entry => entry!["id"]!.GetValue<string>() == "bob");
+
         Assert.Multiple(() =>
         {
-            Assert.That(workspaces[0]!["id"]!.GetValue<string>(), Is.EqualTo("bob"));
-            Assert.That(workspaces[0]!["state"]!.GetValue<string>(), Is.EqualTo("Running"));
+            Assert.That(workspaces.Select(entry => entry!["id"]!.GetValue<string>()),
+                Is.EquivalentTo(new[] { "bob", "lucy", "hector" }));
+            Assert.That(bob["state"]!.GetValue<string>(), Is.EqualTo("Running"));
             Assert.That(overview["displayName"]!.GetValue<string>(), Is.EqualTo("Bob"));
             Assert.That(overview["applicationCount"]!.GetValue<int>(), Is.EqualTo(2));
         });

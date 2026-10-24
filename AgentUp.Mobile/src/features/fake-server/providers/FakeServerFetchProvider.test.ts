@@ -17,7 +17,12 @@ test('intercepts the Demo URL and leaves other hosts alone', async () => {
   const passthrough = await request('http://127.0.0.1:5000/api/workspaces');
 
   assert.equal(workspaces.status, 200);
-  assert.equal((await workspaces.json())[0].id, 'bob');
+  // The definition lists the team in the reverse of the order a client shows them, so assert
+  // the Demo answers with the whole team rather than pinning whoever sits first in the file.
+  assert.deepEqual(
+    (await workspaces.json()).map((workspace: { id: string }) => workspace.id).sort(),
+    ['bob', 'hector', 'lucy'],
+  );
   assert.equal(passthrough.status, 204);
   assert.equal(forwarded, 1);
 });
