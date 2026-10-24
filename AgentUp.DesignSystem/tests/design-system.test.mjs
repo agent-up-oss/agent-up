@@ -16,7 +16,7 @@ import {
   varName,
 } from '../scripts/lib/css.mjs';
 import { emitNative } from '../scripts/lib/native.mjs';
-import { parseNewUi } from '../scripts/lib/new-ui.mjs';
+import { parseNewUi, wrapNewUiScene } from '../scripts/lib/new-ui.mjs';
 import { applyProps } from '../scripts/lib/slots.mjs';
 
 const root = new URL('..', import.meta.url);
@@ -692,6 +692,19 @@ test('an unclosed scene is refused rather than silently swallowing the file', ()
   assert.throws(
     () => parseNewUi('<section data-aun-scene="a" data-aun-title="T" data-aun-surface="desktop"><p>x</p>'),
     /missing its closing/);
+});
+
+test('a scene title carries no markup into the page, however it is nested', () => {
+  const plain = wrapNewUiScene(
+    { id: 'a', title: 'Br<span>idge', surface: 'desktop', intro: '', html: '<p>body</p>' });
+  const nested = wrapNewUiScene(
+    { id: 'b', title: 'Br<<span>span>idge', surface: 'desktop', intro: '', html: '<p>body</p>' });
+
+  assert.match(plain, /<title>Bridge — Agent-Up new UI<\/title>/);
+  // What is left of a nested tag stays text, and the escape makes it text on the page too, so
+  // nothing in a title can open an element whatever the strip leaves behind.
+  assert.match(nested, /<title>Brspan&gt;idge — Agent-Up new UI<\/title>/);
+  assert.ok(!nested.includes('<span>'), 'no tag may survive the strip');
 });
 
 test('reading a long tag that is not a scene stays linear', () => {

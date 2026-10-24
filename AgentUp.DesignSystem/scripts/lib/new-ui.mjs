@@ -174,7 +174,17 @@ function escapeRegExp(value) {
 }
 
 function stripMarkup(value) {
-  return value.replace(/&middot;/g, '·').replace(/<[^>]+>/g, '').trim();
+  // One pass is not enough: removing the inner tag of `<<span>span>` closes the outer angle
+  // brackets up into a tag again, so markup survives a single strip. Strip until the text stops
+  // changing. The one caller escapes this before it reaches a page, so nothing was injectable,
+  // but a function called stripMarkup should not hand the next caller a tag it promised to remove.
+  let text = value.replace(/&middot;/g, '·');
+  let previous;
+  do {
+    previous = text;
+    text = text.replace(/<[^>]+>/g, '');
+  } while (text !== previous);
+  return text.trim();
 }
 
 function escapeText(value) {
