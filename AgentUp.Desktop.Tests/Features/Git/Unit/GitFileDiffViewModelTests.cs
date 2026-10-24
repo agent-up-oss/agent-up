@@ -1,5 +1,6 @@
 using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Git.ViewModels;
+using AgentUp.Desktop.Shared.Providers;
 
 namespace AgentUp.Desktop.Tests.Features.Git.Unit;
 
@@ -22,6 +23,7 @@ public sealed class GitFileDiffViewModelTests
     {
         var diff = new GitFileDiffViewModel();
         diff.ShowDiff("src/app/main.cs", "Modified", Sample);
+        Assert.That(diff.Hunks[0].AutomationId, Is.EqualTo(DesktopAutomationIds.GitDiffJump("@@ -1,3 +1,4 @@")));
 
         await diff.JumpCommand.Execute(-1).FirstAsync();
         Assert.That(diff.CurrentLine, Is.EqualTo(diff.Lines[0]));

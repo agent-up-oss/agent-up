@@ -20,6 +20,7 @@ using AgentUp.Desktop.Features.Validation.Providers;
 using AgentUp.Desktop.Composition;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome;
+using AgentUp.Desktop.Shared.Providers;
 
 namespace AgentUp.Desktop.Tests.Features.Workspaces.Unit;
 
@@ -175,6 +176,21 @@ public class MainViewModelTests
 
         vm.Login.Dismiss();
         Assert.That(ChromeButtonNames(vm), Is.EqualTo(WorkspaceChromeButtons));
+    }
+
+    [Test]
+    public void WorkspaceChrome_exposesStableAutomationIds()
+    {
+        var vm = CreateVm(NullWorkspaceClient());
+        var buttons = vm.Chrome.LeftItems.OfType<ChromeIconButtonViewModel>().ToArray();
+        var status = vm.Chrome.LeftItems.OfType<ChromeServerStatusViewModel>().Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(buttons[0].AutomationId, Is.EqualTo(DesktopAutomationIds.ChromeReload));
+            Assert.That(buttons[1].AutomationId, Is.EqualTo(DesktopAutomationIds.ChromeCapabilities));
+            Assert.That(status.AutomationId, Is.EqualTo(DesktopAutomationIds.ChromeServerStatus));
+        });
     }
 
     // Named rather than counted so adding a chrome action reads as a deliberate change here

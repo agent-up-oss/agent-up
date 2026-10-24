@@ -18,6 +18,8 @@ public sealed class DesktopValidationLaunchProviderTests
         var resolved = provider.ResolveOutputPath(null);
 
         Assert.That(resolved, Is.EqualTo(Path.Join(root, "artifacts", "desktop-validation")));
+        Assert.That(provider.ResolveOutputPath("/tmp/out"), Is.EqualTo(Path.GetFullPath("/tmp/out")));
+        Assert.That(provider.ResolveOutputPath("relative/out"), Is.EqualTo(Path.Join(root, "relative", "out")));
     }
 
     [Test]

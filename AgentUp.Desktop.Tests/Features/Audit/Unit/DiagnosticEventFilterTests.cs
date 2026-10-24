@@ -1,5 +1,6 @@
 using AgentUp.Desktop.Features.Audit.DTOs;
 using AgentUp.Desktop.Features.Audit.ViewModels;
+using AgentUp.Desktop.Shared.Providers;
 
 namespace AgentUp.Desktop.Tests.Features.Audit.Unit;
 
@@ -44,6 +45,7 @@ public sealed class DiagnosticEventFilterTests
         {
             Assert.That(DiagnosticEventFilter.MatchesCategories(stdout, filters), Is.True);
             Assert.That(DiagnosticEventFilter.MatchesCategories(stderr, filters), Is.False);
+            Assert.That(filters[0].AutomationId, Is.EqualTo(DesktopAutomationIds.AuditFilter("application")));
         });
     }
 

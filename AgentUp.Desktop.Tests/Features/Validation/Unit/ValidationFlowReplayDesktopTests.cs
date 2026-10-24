@@ -7,6 +7,7 @@ using AgentUp.Desktop.Features.Validation.DTOs;
 using AgentUp.Desktop.Features.Validation.Interfaces;
 using AgentUp.Desktop.Features.Validation.Providers;
 using AgentUp.Desktop.Features.Validation.Services;
+using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Validation.Unit;
 
@@ -87,6 +88,71 @@ public sealed class ValidationFlowReplayDesktopTests
         });
     }
 
+    [Test]
+    public async Task RunFlowAsync_failsWhenPrepareReturnsAnError()
+    {
+        var host = new FakeDesktopHost { PrepareError = "named surface route" };
+        var artifacts = new MemoryArtifactStore();
+        var (service, http) = Create(host, artifacts);
+        using var client = http;
+
+        var result = await service.RunFlowAsync(DesktopFlow(), new Reporter(), "/tmp/out", CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Is.EqualTo("named surface route"));
+        Assert.That(artifacts.Reports[0].Passed, Is.False);
+    }
+
+    [Test]
+    public async Task RunFlowAsync_failsInitialExpectationsAndFallsBackWhenErrorIsNull()
+    {
+        var host = new FakeDesktopHost
+        {
+            EvaluateResult = new ValidationExpectationReportDto("Visible", "", false, "false", null)
+        };
+        var artifacts = new MemoryArtifactStore();
+        var (service, http) = Create(host, artifacts);
+        using var client = http;
+
+        var result = await service.RunFlowAsync(DesktopFlow(), new Reporter(), "/tmp/out", CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Message, Is.EqualTo("Expected Visible ''."));
+        Assert.That(artifacts.Reports[0].Steps[0].Passed, Is.False);
+    }
+
+    [Test]
+    public async Task RunFlowAsync_rewritesUnsafeStepIdsInScreenshotNames()
+    {
+        var host = new FakeDesktopHost();
+        var artifacts = new MemoryArtifactStore();
+        var (service, http) = Create(host, artifacts);
+        using var client = http;
+
+        var result = await service.RunFlowAsync(UnsafeStepFlow(), new Reporter(), "/tmp/out", CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.True, result.Message);
+        Assert.That(artifacts.Reports[0].Steps[1].Screenshot, Is.EqualTo("01-open_git_.png"));
+    }
+
+    [Test]
+    public async Task RunFlowAsync_replaysAnApplicationSurfaceThroughTheBrowserHost()
+    {
+        var handler = new Handler(HttpStatusCode.OK, ApplicationJson());
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://server/") };
+        var host = new ApplicationHost();
+        var service = new ValidationFlowReplayService(
+            new ValidationFlowApiClient(http),
+            new BrowserInteractionController(),
+            skipCosmeticStaging: true);
+        service.Connect(host);
+
+        var result = await service.RunFlowAsync(ApplicationSurfaceFlow(), new Reporter(), null, CancellationToken.None);
+
+        Assert.That(result.Succeeded, Is.True, result.Message);
+        Assert.That(host.Scripts.Any(script => script.Contains(".click()")), Is.True);
+    }
+
     private static (ValidationFlowReplayService Service, HttpClient Http) Create(
         IDesktopValidationReplayHost? host,
         IValidationArtifactStore? artifacts)
@@ -109,17 +175,49 @@ public sealed class ValidationFlowReplayDesktopTests
             "Open Git",
             "Open the Git tab",
             "workspace/git",
-            [new ValidationAssertionDto(ValidationExpectationDto.Visible, "", new ValidationTargetDto(TestId: "shell.tab.git"))],
+            [new ValidationAssertionDto(ValidationExpectationDto.Visible, "", DesktopDomain.Target().WithTestId("shell.tab.git").Build())],
             [
                 new ValidationStepDto(
                     "open-git",
                     "Click Git",
                     ValidationActionDto.Click,
-                    new ValidationTargetDto(TestId: "shell.tab.git"),
-                    Expectations: [new ValidationAssertionDto(ValidationExpectationDto.Visible, "", new ValidationTargetDto(TestId: "git.panel"))])
+                    DesktopDomain.Target().WithTestId("shell.tab.git").Build(),
+                    Expectations: [new ValidationAssertionDto(ValidationExpectationDto.Visible, "", DesktopDomain.Target().WithTestId("git.panel").Build())])
             ],
             1,
             ValidationSurfaceDto.Desktop);
+
+    private static ValidationFlowDto UnsafeStepFlow()
+        => new(
+            "flow",
+            "ws",
+            "Desktop",
+            "Open Git",
+            "Open the Git tab",
+            "workspace/git",
+            [new ValidationAssertionDto(ValidationExpectationDto.Visible, "", DesktopDomain.Target().WithTestId("shell.tab.git").Build())],
+            [
+                new ValidationStepDto(
+                    "open git!",
+                    "Click Git",
+                    ValidationActionDto.Click,
+                    DesktopDomain.Target().WithTestId("shell.tab.git").Build(),
+                    Expectations: [new ValidationAssertionDto(ValidationExpectationDto.Visible, "", DesktopDomain.Target().WithTestId("git.panel").Build())])
+            ],
+            1,
+            ValidationSurfaceDto.Desktop);
+
+    private static ValidationFlowDto ApplicationSurfaceFlow()
+        => new(
+            "flow",
+            "ws",
+            "shop",
+            "Tabs work",
+            "User can switch tabs",
+            "/",
+            [],
+            [],
+            1);
 
     private static string ApplicationJson()
         => """
@@ -149,7 +247,9 @@ public sealed class ValidationFlowReplayDesktopTests
     {
         public bool Prepared { get; private set; }
         public List<ValidationStepDto> Executed { get; } = [];
+        public string? PrepareError { get; init; }
         public string? ExecuteError { get; init; }
+        public ValidationExpectationReportDto? EvaluateResult { get; init; }
         public IReadOnlyList<DesktopTargetCandidateDto> Candidates { get; init; } = [];
         public DesktopResolvedTargetDto? LastResolution { get; private set; }
         public IReadOnlyList<DesktopTargetCandidateDto> LastCandidates { get; private set; } = [];
@@ -161,7 +261,7 @@ public sealed class ValidationFlowReplayDesktopTests
         public Task<string?> PrepareAsync(ValidationFlowDto flow, CancellationToken cancellationToken)
         {
             Prepared = true;
-            return Task.FromResult<string?>(null);
+            return Task.FromResult(PrepareError);
         }
 
         public Task<string?> ExecuteAsync(ValidationStepDto step, CancellationToken cancellationToken)
@@ -178,7 +278,7 @@ public sealed class ValidationFlowReplayDesktopTests
             ValidationAssertionDto assertion,
             CancellationToken cancellationToken)
         {
-            return Task.FromResult(new ValidationExpectationReportDto(
+            return Task.FromResult(EvaluateResult ?? new ValidationExpectationReportDto(
                 assertion.Kind.ToString(),
                 assertion.Value,
                 true,

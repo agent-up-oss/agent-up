@@ -467,7 +467,34 @@ public sealed class DebugArgParserTests
     [Test]
     public void Parse_validateFlags_areRejectedOnOtherCommands()
     {
-        var (_, error) = _parser.Parse(["status", "--surface", "desktop"]);
-        Assert.That(error, Does.Contain("--surface is only valid for validate"));
+        var (_, surface) = _parser.Parse(["status", "--surface", "desktop"]);
+        var (_, flow) = _parser.Parse(["status", "--flow", "open-git"]);
+        var (_, output) = _parser.Parse(["status", "--out", "/tmp/out"]);
+        var (_, workspace) = _parser.Parse(["status", "--workspace", "main"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(surface, Does.Contain("--surface is only valid for validate"));
+            Assert.That(flow, Does.Contain("--flow is only valid for validate"));
+            Assert.That(output, Does.Contain("--out is only valid for validate"));
+            Assert.That(workspace, Does.Contain("--workspace is only valid for validate"));
+        });
+    }
+
+    [Test]
+    public void Parse_validate_rejectsExtraFlagsAndMissingValues()
+    {
+        var (_, extra) = _parser.Parse(["validate", "--surface", "desktop", "nope"]);
+        var (_, heading) = _parser.Parse(["validate", "--surface", "desktop", "--heading", "Git"]);
+        var (_, live) = _parser.Parse(["validate", "--surface", "desktop", "--live"]);
+        var (_, missing) = _parser.Parse(["validate", "--surface"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(extra, Does.Contain("does not take extra arguments"));
+            Assert.That(heading, Does.Contain("--heading and --full-page"));
+            Assert.That(live, Does.Contain("--live is only valid"));
+            Assert.That(missing, Does.Contain("--surface requires a value"));
+        });
     }
 }

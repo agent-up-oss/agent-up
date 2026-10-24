@@ -6,6 +6,7 @@ using AgentUp.Desktop.Features.Audit.DTOs;
 using AgentUp.Desktop.Features.Audit.Providers;
 using AgentUp.Desktop.Features.Audit.Services;
 using AgentUp.Desktop.Features.Audit.ViewModels;
+using AgentUp.Desktop.Shared.Providers;
 
 namespace AgentUp.Desktop.Tests.Features.Audit.Unit;
 
@@ -471,6 +472,9 @@ public sealed class ApplicationAuditViewModelTests
             Assert.That(vm.PageJumpButtons, Is.Not.Empty);
             Assert.That(vm.PageJumpButtons.Single(button => button.IsCurrent).PageNumber, Is.EqualTo(vm.CurrentPage));
             Assert.That(vm.PageJumpButtons.Any(button => button.PageNumber == vm.CurrentPage), Is.True);
+            Assert.That(
+                vm.PageJumpButtons.Single(button => button.IsCurrent).AutomationId,
+                Is.EqualTo(DesktopAutomationIds.AuditPage(vm.CurrentPage)));
         });
     }
 

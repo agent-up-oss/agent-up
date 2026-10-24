@@ -273,7 +273,8 @@ public sealed class DesktopValidationReplayTests
     private static ValidationAssertionDto Visible(string testId)
         => new(ValidationExpectationDto.Visible, "", Target(testId));
 
-    private static ValidationTargetDto Target(string testId) => new(TestId: testId);
+    private static ValidationTargetDto Target(string testId) =>
+        DesktopDomain.Target().WithTestId(testId).Build();
 
     private sealed class ListHandler(IReadOnlyList<ValidationFlowDto> flows) : HttpMessageHandler
     {

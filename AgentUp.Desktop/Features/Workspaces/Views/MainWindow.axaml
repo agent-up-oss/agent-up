@@ -1414,6 +1414,7 @@
                                                         </Button>
                                                         <Border Classes="au-choice"
                                                                 HorizontalAlignment="Stretch"
+                                                                AutomationProperties.AutomationId="{Binding AutomationId}"
                                                                 IsVisible="{Binding CanEnable}">
                                                             <StackPanel Spacing="6">
                                                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
@@ -1444,6 +1445,7 @@
                                                         <Border Classes="au-choice"
                                                                 HorizontalAlignment="Stretch"
                                                                 IsEnabled="False"
+                                                                AutomationProperties.AutomationId="{Binding AutomationId}"
                                                                 IsVisible="{Binding IsBlocked}">
                                                             <StackPanel Spacing="6">
                                                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">

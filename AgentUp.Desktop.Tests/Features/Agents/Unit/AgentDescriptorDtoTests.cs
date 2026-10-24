@@ -1,4 +1,5 @@
 using AgentUp.Desktop.Features.Agents.DTOs;
+using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Agents.Unit;
@@ -18,6 +19,8 @@ public sealed class AgentDescriptorDtoTests
             Assert.That(agent.IsBlocked, Is.False);
             Assert.That(agent.HasDetail, Is.False);
             Assert.That(agent.HasRemedy, Is.False);
+            Assert.That(agent.AutomationId, Is.EqualTo(DesktopAutomationIds.AgentPickerRow("claude")));
+            Assert.That(agent.EnableAutomationId, Is.EqualTo(DesktopAutomationIds.AgentEnable("claude")));
         });
     }
 

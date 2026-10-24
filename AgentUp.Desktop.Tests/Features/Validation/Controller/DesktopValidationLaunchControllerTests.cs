@@ -15,11 +15,38 @@ public sealed class DesktopValidationLaunchControllerTests
     {
         using var surface = new Env(DesktopValidationKeys.Surface, null);
         using var output = new Env(DesktopValidationKeys.Output, null);
+        using var password = new Env("AGENTUP_ADMIN_PASSWORD", null);
         var host = new RecordingHost();
         using var http = new HttpClient { BaseAddress = new Uri("http://server/") };
         var controller = Controller(host, http);
 
         Assert.That(controller.IsRequested, Is.False);
+        Assert.That(controller.AdminPassword, Is.Null);
+    }
+
+    [Test]
+    public async Task RunIfRequestedAsync_returnsNullWhenValidateEnvIsUnset()
+    {
+        using var surface = new Env(DesktopValidationKeys.Surface, null);
+        using var output = new Env(DesktopValidationKeys.Output, null);
+        var host = new RecordingHost();
+        using var http = new HttpClient { BaseAddress = new Uri("http://server/") };
+        var controller = Controller(host, http);
+
+        var code = await controller.RunIfRequestedAsync("window", "view-model", CancellationToken.None);
+
+        Assert.That(code, Is.Null);
+    }
+
+    [Test]
+    public void AdminPassword_readsTheProcessEnvironment()
+    {
+        using var password = new Env("AGENTUP_ADMIN_PASSWORD", "secret");
+        var host = new RecordingHost();
+        using var http = new HttpClient { BaseAddress = new Uri("http://server/") };
+        var controller = Controller(host, http);
+
+        Assert.That(controller.AdminPassword, Is.EqualTo("secret"));
     }
 
     [Test]

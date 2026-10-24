@@ -42,6 +42,23 @@ public sealed class DesktopValidationEnvironmentTests
         });
     }
 
+    [Test]
+    public void AdminPasswordAndServerLog_treatBlankAsMissing()
+    {
+        using var password = new Env("AGENTUP_ADMIN_PASSWORD", "secret");
+        using var log = new Env(DesktopValidationKeys.ServerLog, "/tmp/server.log");
+
+        var environment = new DesktopValidationEnvironment();
+        Assert.That(environment.AdminPassword, Is.EqualTo("secret"));
+        Assert.That(environment.ServerLogPath, Is.EqualTo("/tmp/server.log"));
+
+        using var blankPassword = new Env("AGENTUP_ADMIN_PASSWORD", "  ");
+        using var blankLog = new Env(DesktopValidationKeys.ServerLog, "");
+        var blank = new DesktopValidationEnvironment();
+        Assert.That(blank.AdminPassword, Is.Null);
+        Assert.That(blank.ServerLogPath, Is.Null);
+    }
+
     private sealed class Env : IDisposable
     {
         private readonly string _key;

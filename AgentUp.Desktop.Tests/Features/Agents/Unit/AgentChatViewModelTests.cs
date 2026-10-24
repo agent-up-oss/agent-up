@@ -732,10 +732,19 @@ public sealed class AgentChatViewModelTests
     [Test]
     public void ChatItem_usesDisplayRoleWhenPresent()
     {
-        Assert.That(new AgentChatItemViewModel("Agent", "Working", displayRole: "Codex").Label, Is.EqualTo("Codex"));
-        Assert.That(new AgentChatItemViewModel("You", "Hello").Label, Is.EqualTo("You"));
-        Assert.That(new AgentChatItemViewModel("You", "Hello").IsUser, Is.True);
-        Assert.That(new AgentChatItemViewModel("You", "Hello").IsWork, Is.False);
+        var agent = new AgentChatItemViewModel("Agent", "Working", displayRole: "Codex");
+        var you = new AgentChatItemViewModel("You", "Hello");
+        var tool = new AgentChatItemViewModel("Tool", "Search", "completed", "t1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(agent.Label, Is.EqualTo("Codex"));
+            Assert.That(agent.AutomationId, Is.EqualTo(DesktopAutomationIds.AgentThought("Agent")));
+            Assert.That(you.Label, Is.EqualTo("You"));
+            Assert.That(you.IsUser, Is.True);
+            Assert.That(you.IsWork, Is.False);
+            Assert.That(tool.AutomationId, Is.EqualTo(DesktopAutomationIds.AgentThought("t1")));
+        });
     }
 
     [Test]
@@ -749,6 +758,7 @@ public sealed class AgentChatViewModelTests
             Assert.That(run.ShowHeader, Is.False);
             Assert.That(run.IsExpanded, Is.True);
             Assert.That(run.Chevron, Is.EqualTo("▾"));
+            Assert.That(run.AutomationId, Is.EqualTo(DesktopAutomationIds.AgentRun));
         });
     }
 

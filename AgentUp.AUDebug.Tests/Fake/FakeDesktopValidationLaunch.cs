@@ -10,6 +10,7 @@ public sealed class FakeDesktopValidationLaunch : IDesktopValidationLaunch
     public ProcessResult NextResult { get; set; } = new(0, "Desktop validation passed.", "");
     public string ResolvedOutput { get; set; } = "/tmp/desktop-validation";
     public bool DelayUntilCanceled { get; set; }
+    public Exception? ThrowOnRun { get; set; }
 
     public string ResolveOutputPath(string? outputPath)
         => string.IsNullOrWhiteSpace(outputPath) ? ResolvedOutput : outputPath;
@@ -17,6 +18,8 @@ public sealed class FakeDesktopValidationLaunch : IDesktopValidationLaunch
     public async Task<ProcessResult> RunAsync(DesktopValidationLaunchSpec spec, CancellationToken cancellationToken)
     {
         Ran.Add(spec);
+        if (ThrowOnRun is not null)
+            throw ThrowOnRun;
         if (DelayUntilCanceled)
             await Task.Delay(Timeout.Infinite, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();

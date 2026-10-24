@@ -60,4 +60,28 @@ public sealed class ValidationArtifactStoreTests
 
         Assert.That(File.Exists(Path.Join(directory, "server.log")), Is.False);
     }
+
+    [Test]
+    public async Task FlowDirectory_replacesDotSegmentsWithFlow()
+    {
+        var root = Path.Join(Path.GetTempPath(), "desktop-validation", Guid.NewGuid().ToString("N"));
+        var store = new ValidationArtifactStore();
+
+        Assert.That(store.FlowDirectory(root, "."), Does.EndWith("flow"));
+        Assert.That(store.FlowDirectory(root, ".."), Does.EndWith("flow"));
+        Assert.That(store.FlowDirectory(root, "..."), Does.EndWith("flow"));
+
+        var captured = "";
+        await store.WriteScreenshotAsync(
+            Path.Join(root, "shot.png"),
+            (path, _) =>
+            {
+                captured = path;
+                return Task.CompletedTask;
+            },
+            CancellationToken.None);
+
+        Assert.That(captured, Does.EndWith("shot.png"));
+        Assert.That(Directory.Exists(root), Is.True);
+    }
 }
