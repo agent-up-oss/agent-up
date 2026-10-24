@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Interfaces;
@@ -33,6 +34,13 @@ public class WorkspaceListViewModelOrderingTests
         sidebar.Workspaces.Add(new WorkspaceItemViewModel(
             "ws-2", "agent2", "main", "/repo/agent2", "/worktrees/agent2", "Running"));
         sidebar.SelectedWorkspace = sidebar.Workspaces[0];
+        // Stand in for the bound list control, which is what makes this worth guarding: clearing
+        // the collection makes it drop its selection and write that null straight back. Without
+        // this the test passes against the clear-and-repopulate code it exists to rule out.
+        sidebar.Workspaces.CollectionChanged += (_, change) =>
+        {
+            if (change.Action == NotifyCollectionChangedAction.Reset) sidebar.SelectedWorkspace = null;
+        };
 
         sidebar.ApplyEvent("ws-1", "Stopping", [], null);
 

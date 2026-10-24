@@ -159,6 +159,7 @@ function Tasks({ standing }: { standing: Standing }) {
 }
 
 function Team({ standing }: { standing: Standing }) {
+  if (standing.error) return <Empty title="Could not reach the Server" note={standing.error} action="Retry" onPress={standing.refresh} />;
   if (!standing.read && standing.loading) return <Empty title="Loading" note="Reading the team from the Server." />;
   if (!standing.team.length) return <Empty title="No agents yet" note="Each workspace on this Server is one agent's own space." />;
   return <>{standing.team.map(item => <StandingCard key={item.workspaceId} standing={item} />)}</>;

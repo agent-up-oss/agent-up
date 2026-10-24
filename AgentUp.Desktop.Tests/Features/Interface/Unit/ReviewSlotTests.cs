@@ -90,8 +90,8 @@ public sealed class ReviewSlotTests
         var agents = new StandingAgentFake();
         var forge = new StandingForgeFake();
         agents.Sessions["bob"] = TeamStandingComposition.Session("bob", role: TeamStandingComposition.Developer());
-        agents.Sessions["hector"] = TeamStandingComposition.Session("hector", role: TeamStandingComposition.Reviewer("Dev"));
-        agents.Sessions["lucy"] = TeamStandingComposition.Session("lucy", role: TeamStandingComposition.Reviewer("Pm"));
+        agents.Sessions["hector"] = TeamStandingComposition.Session("hector", role: TeamStandingComposition.ReviewerOf("Dev"));
+        agents.Sessions["lucy"] = TeamStandingComposition.Session("lucy", role: TeamStandingComposition.ReviewerOf("Pm"));
         forge.Hosting["bob"] = TeamStandingComposition.Hosting(
             account: TeamStandingComposition.Account("bob-aup[bot]"), reviews: verdicts);
         forge.Hosting["hector"] = TeamStandingComposition.Hosting(
@@ -193,8 +193,8 @@ public sealed class TaskQueueTests
     {
         var bridge = await QueueAsync(
             ("bob", TeamStandingComposition.Developer(), 44),
-            ("lucy", TeamStandingComposition.Reviewer("Pm"), 44),
-            ("hector", TeamStandingComposition.Reviewer("Dev"), 44));
+            ("lucy", TeamStandingComposition.ReviewerOf("Pm"), 44),
+            ("hector", TeamStandingComposition.ReviewerOf("Dev"), 44));
 
         Assert.Multiple(() =>
         {
@@ -211,7 +211,7 @@ public sealed class TaskQueueTests
     {
         var bridge = await QueueAsync(
             ("bob", TeamStandingComposition.Developer(), 44),
-            ("lucy", TeamStandingComposition.Reviewer("Pm"), 44),
+            ("lucy", TeamStandingComposition.ReviewerOf("Pm"), 44),
             ("other", TeamStandingComposition.Developer(), 51));
 
         Assert.Multiple(() =>

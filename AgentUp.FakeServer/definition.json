@@ -330,7 +330,7 @@
     },
     "lucy": {
       "changes": {
-        "workspaceId": "bob",
+        "workspaceId": "lucy",
         "branch": "feat/44-restock",
         "fileCount": 2,
         "commit": "a1b2c3d",
@@ -434,7 +434,7 @@
     },
     "hector": {
       "changes": {
-        "workspaceId": "bob",
+        "workspaceId": "hector",
         "branch": "feat/44-restock",
         "fileCount": 2,
         "commit": "a1b2c3d",

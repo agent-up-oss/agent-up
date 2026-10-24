@@ -9,6 +9,9 @@ import { triage, type TeamTriage } from '../services/TeamStandingService';
  * when the workspace list changes and on a pull, and it reports `read` so an empty bridge can tell
  * apart "nothing is waiting" from "not yet loaded" — an empty triage list is the good outcome.
  */
+/** How often the command center re-reads the team, matching Desktop's own refresh. */
+const teamStandingRefreshMs = 10_000;
+
 export function useTeamStanding(): TeamTriage & { loading: boolean; read: boolean; error: string | null; refresh: () => void } {
   const { server, workspaces, error: workspaceError } = useWorkspaces();
   const [standings, setStandings] = useState<TeamStanding[]>([]);
@@ -50,7 +53,15 @@ export function useTeamStanding(): TeamTriage & { loading: boolean; read: boolea
     }
   }, [server, signature]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+    // Standings go stale on their own: an agent can reach a gate, or a review can land, with the
+    // workspace list unchanged, and nothing else would re-read. The hook lives exactly as long as
+    // the command center is on screen, so the timer stops with it. Desktop re-reads on the same
+    // ten seconds for the same reason.
+    const timer = setInterval(() => { void load(); }, teamStandingRefreshMs);
+    return () => clearInterval(timer);
+  }, [load]);
 
   return {
     ...triage(standings),

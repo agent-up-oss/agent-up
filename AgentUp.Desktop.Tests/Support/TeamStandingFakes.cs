@@ -141,7 +141,12 @@ internal static class TeamStandingComposition
     public static AgentRoleDto Role(string trigger, string termination, params string[] tools)
         => new("prompt", tools, trigger, termination);
 
-    public static AgentRoleDto Reviewer(string review, params string[] tools)
+    /// <summary>
+    /// A reviewer role that supplies a named review. Distinct from <see cref="Reviewer"/> on
+    /// purpose: one overload taking a string would bind ahead of the params one, so a caller
+    /// naming a tool would silently set the review instead.
+    /// </summary>
+    public static AgentRoleDto ReviewerOf(string review, params string[] tools)
         => new("prompt", tools.Length == 0 ? ["play_validation_flow"] : tools,
             "ProposalAwaitingReview", "ReviewSubmitted", review);
 

@@ -192,6 +192,9 @@ public sealed class TeamStandingRoleAndIdentityTests
         {
             Assert.That(standing.Role, Is.EqualTo(TeamRoleKind.Reviewer));
             Assert.That(standing.RoleLabel, Is.EqualTo("Reviewer"));
+            Assert.That(standing.Tools, Is.EqualTo(new[] { "play_validation_flow" }),
+                "the tools the role may call are the whole of what this agent may do");
+            Assert.That(standing.Reviews, Is.Null, "this role names no review of its own");
         });
     }
 
