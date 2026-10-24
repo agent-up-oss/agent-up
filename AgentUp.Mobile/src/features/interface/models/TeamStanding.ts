@@ -177,6 +177,15 @@ export function composeStanding(
   };
 }
 
+/**
+ * True when this agent works on a branch somebody else authored. A reviewer's workspace checks the
+ * proposal out so it can be read, which puts a proposal on their branch that is not theirs: its
+ * checks and its sign-offs are the author's standing, not the reviewer's.
+ */
+export function reviewsOthersWork(standing: TeamStanding): boolean {
+  return standing.role === 'reviewer' || standing.reviews !== null;
+}
+
 /** Which review this role supplies, or null when it supplies none. */
 export function reviewKind(role: AgentRole | null | undefined): ReviewSlotKind | null {
   const named = (role?.review ?? '').toLowerCase();

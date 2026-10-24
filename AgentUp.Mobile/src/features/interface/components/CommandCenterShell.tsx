@@ -12,7 +12,6 @@ import {
   showProposalBesideTask,
   slotGlyph,
   stateLabel,
-  taskLabel,
   threadSummary,
   whoIs,
   type TeamTriage,
@@ -136,16 +135,15 @@ function Tasks({ standing }: { standing: Standing }) {
     <>
       <Section title={`TASKS · ${standing.tasks.length}`} tone="muted" />
       {standing.tasks.length
-        ? standing.tasks.map(item => (
-          <View key={item.workspaceId} style={styles.card}>
-            <Text style={styles.cardTitle}>{taskLabel(item)}</Text>
-            <Text style={[styles.note, toneStyle(item)]}>{stateLabel(item.kind)}</Text>
-            <Text style={styles.note}>
-              {item.displayName}{roleLabel(item) ? ` · ${roleLabel(item)}` : ''}
-            </Text>
-            {showProposalBesideTask(item) ? (
-              <Text style={styles.note}>#{item.forge.proposalNumber} {item.forge.proposalTitle}</Text>
-            ) : null}
+        ? standing.tasks.map(task => (
+          <View key={task.number} style={styles.card}>
+            <Text style={styles.cardTitle}>{task.label}</Text>
+            <Text style={[styles.note, kindTone(task.kind)]}>{stateLabel(task.kind)}</Text>
+            {task.agents.map(agent => (
+              <Text key={agent.workspaceId} style={styles.note}>
+                {agent.displayName}{roleLabel(agent) ? ` · ${roleLabel(agent)}` : ''}
+              </Text>
+            ))}
           </View>
         ))
         : <Text style={styles.note}>No agent reports a task in hand.</Text>}
@@ -219,9 +217,13 @@ function slotTone(mark: TeamStanding['slots'][number]['mark']) {
 }
 
 function toneStyle(standing: TeamStanding) {
-  if (standing.kind === 'halted') return styles.toneDanger;
-  if (standing.kind === 'waiting') return styles.toneWarning;
-  if (standing.kind === 'working') return styles.toneLive;
+  return kindTone(standing.kind);
+}
+
+function kindTone(kind: TeamStanding['kind']) {
+  if (kind === 'halted') return styles.toneDanger;
+  if (kind === 'waiting') return styles.toneWarning;
+  if (kind === 'working') return styles.toneLive;
   return undefined;
 }
 

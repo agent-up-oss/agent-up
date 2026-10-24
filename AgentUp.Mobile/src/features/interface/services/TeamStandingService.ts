@@ -1,4 +1,4 @@
-import type { ReviewSlot, TeamStanding, TeamStandingKind } from '../models/TeamStanding';
+import { reviewsOthersWork, type ReviewSlot, type TeamStanding, type TeamStandingKind } from '../models/TeamStanding';
 
 /** The bridge's three groups, plus the queue, from one list of standings. */
 export type TeamTriage = {
@@ -8,8 +8,20 @@ export type TeamTriage = {
   halted: TeamStanding[];
   /** The rest of the team: running or idle, and needing nothing from you. */
   settled: TeamStanding[];
-  tasks: TeamStanding[];
+  tasks: TaskGroup[];
   headline: string;
+};
+
+/**
+ * One task in the queue, with everyone on it. A task is not one agent's: an author builds it and
+ * the reviewers read what they built, so an issue with three agents on it is one row naming three
+ * people, not three rows naming the same issue.
+ */
+export type TaskGroup = {
+  number: number;
+  label: string;
+  kind: TeamStandingKind;
+  agents: TeamStanding[];
 };
 
 export function triage(standings: TeamStanding[]): TeamTriage {
@@ -20,9 +32,46 @@ export function triage(standings: TeamStanding[]): TeamTriage {
     waiting,
     halted,
     settled: standings.filter(standing => standing.kind !== 'waiting' && standing.kind !== 'halted'),
-    tasks: standings.filter(standing => standing.taskNumber !== null),
+    tasks: queue(standings),
     headline: `${standings.length} ${plural(standings.length, 'agent')} · ${waiting.length} waiting on you · ${halted.length} halted`,
   };
+}
+
+/**
+ * The queue: one row per task, most urgent first, with every agent on that task. An issue three
+ * agents hold is one piece of work, not three.
+ */
+export function queue(standings: TeamStanding[]): TaskGroup[] {
+  const byTask = new Map<number, TeamStanding[]>();
+  for (const standing of standings) {
+    if (standing.taskNumber === null) continue;
+    const held = byTask.get(standing.taskNumber) ?? [];
+    held.push(standing);
+    byTask.set(standing.taskNumber, held);
+  }
+  return [...byTask.entries()]
+    .map(([number, agents]) => ({ number, label: taskGroupLabel(number, agents), kind: taskKind(agents), agents }))
+    .sort((left, right) => urgency(left.kind) - urgency(right.kind) || left.number - right.number);
+}
+
+function taskGroupLabel(number: number, agents: TeamStanding[]): string {
+  const title = agents.map(agent => agent.taskTitle).find(name => !!name);
+  return title ? `#${number} · ${title}` : `#${number}`;
+}
+
+/**
+ * Where the task stands, which is the most urgent thing any of its agents needs. A task with one
+ * agent at a gate needs you, whatever the others are doing.
+ */
+function taskKind(agents: TeamStanding[]): TeamStandingKind {
+  return [...agents].sort((left, right) => urgency(left.kind) - urgency(right.kind))[0]?.kind ?? 'idle';
+}
+
+/** How soon a standing needs somebody; lower comes first in the queue. */
+function urgency(kind: TeamStandingKind): number {
+  if (kind === 'waiting') return 0;
+  if (kind === 'halted') return 1;
+  return kind === 'working' ? 2 : 3;
 }
 
 export function stateLabel(kind: TeamStandingKind): string {
@@ -62,11 +111,20 @@ export function taskLabel(standing: TeamStanding): string | null {
   return standing.taskTitle ? `#${standing.taskNumber} · ${standing.taskTitle}` : `#${standing.taskNumber}`;
 }
 
+/**
+ * What this agent is doing, in their own terms. A reviewer never works on an issue — the branch is
+ * somebody else's and the only thing they produce is a review — so saying they are "working on" it
+ * would claim work that is not theirs.
+ */
 export function headlineFor(standing: TeamStanding): string {
-  const suffix = standing.taskNumber === null ? '' : ` on #${standing.taskNumber}`;
-  if (standing.kind === 'waiting') return `${standing.displayName} is waiting on you${suffix}`;
-  if (standing.kind === 'halted') return `${standing.displayName} stopped${suffix}`;
-  if (standing.kind === 'working') return `${standing.displayName} is working${suffix}`;
+  const reviews = reviewsOthersWork(standing);
+  const task = standing.taskNumber === null ? '' : `${reviews ? ' ' : ' on '}#${standing.taskNumber}`;
+  const verb = reviews ? 'reviewing' : 'working';
+  if (standing.kind === 'waiting') {
+    return `${standing.displayName} is waiting on you${standing.taskNumber === null ? '' : ` on #${standing.taskNumber}`}`;
+  }
+  if (standing.kind === 'halted') return `${standing.displayName} stopped ${verb}${task}`;
+  if (standing.kind === 'working') return `${standing.displayName} is ${verb}${task}`;
   return `${standing.displayName} has nothing in hand`;
 }
 
@@ -104,7 +162,10 @@ export function slotGlyph(slot: ReviewSlot): string {
   return '\u2013';
 }
 
-/** True while this agent has a proposal, which is what the status row reports on. */
+/**
+ * True while this agent holds a proposal of its own. A reviewer has one on its branch too, but it
+ * belongs to whoever opened it, so the row would report somebody else's standing.
+ */
 export function hasStatusRow(standing: TeamStanding): boolean {
-  return !!standing.forge.proposalNumber;
+  return !!standing.forge.proposalNumber && !reviewsOthersWork(standing);
 }

@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Features.Agents.DTOs;
 using AgentUp.Desktop.Features.Git.DTOs;
 using AgentUp.Desktop.Features.Interface.Models;
 using AgentUp.Desktop.Features.Interface.ViewModels;
@@ -128,4 +129,118 @@ public sealed class ChecksStateTests
 
     private static ForgeStanding Forge(int passed = 0, int failed = 0, int running = 0, int skipped = 0)
         => new("ready", "44", "Title", "u", passed, failed, running, 0, "clean", null, skipped);
+}
+
+[TestFixture]
+public sealed class ProposalOwnershipTests
+{
+    [Test]
+    public void StatusRow_belongsToTheAgentWhoOpenedTheProposal()
+    {
+        var author = new StandingRowViewModel(Standing(TeamRoleKind.Developer, reviews: null));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(author.HasStatusRow, Is.True);
+            Assert.That(author.ChecksCount, Is.EqualTo("(2/2)"));
+        });
+    }
+
+    [Test]
+    public void StatusRow_isNotDrawnForAReviewerWorkingOnSomebodyElsesBranch()
+    {
+        var dev = new StandingRowViewModel(Standing(TeamRoleKind.Reviewer, ReviewSlotKind.Dev));
+        var pm = new StandingRowViewModel(Standing(TeamRoleKind.Reviewer, ReviewSlotKind.Pm));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(dev.HasStatusRow, Is.False);
+            Assert.That(pm.HasStatusRow, Is.False);
+        });
+    }
+
+    [Test]
+    public void StatusRow_isNotDrawnForARoleThatSuppliesAReviewHoweverItIsClassified()
+    {
+        var custom = new StandingRowViewModel(Standing(TeamRoleKind.Other, ReviewSlotKind.Dev));
+
+        Assert.That(custom.HasStatusRow, Is.False);
+    }
+
+    [Test]
+    public void StatusRow_isDrawnForAnAgentWhoseRoleIsNotKnownToReview()
+    {
+        var unknown = new StandingRowViewModel(Standing(TeamRoleKind.None, reviews: null));
+
+        Assert.That(unknown.HasStatusRow, Is.True,
+            "nothing says this agent reviews, and a proposal on its branch is most likely its own");
+    }
+
+    private static TeamStanding Standing(TeamRoleKind role, ReviewSlotKind? reviews)
+        => new("ws", "Agent", "feat/44", "Running", "Claude", TeamStandingKind.Working,
+            44, "Restock", null, null, [],
+            new ForgeStanding("ready", "44", "Restock", "u", 2, 0, 0, 0, "clean", null),
+            role, null, null, reviews,
+            [new ReviewSlot(ReviewSlotKind.Dev, ReviewMark.Approved), new ReviewSlot(ReviewSlotKind.Pm, ReviewMark.None)]);
+}
+
+[TestFixture]
+public sealed class TaskQueueTests
+{
+    [Test]
+    public async Task ReadAsync_theQueueIsOneRowPerTaskNamingEveryoneOnIt()
+    {
+        var bridge = await QueueAsync(
+            ("bob", TeamStandingComposition.Developer(), 44),
+            ("lucy", TeamStandingComposition.Reviewer("Pm"), 44),
+            ("hector", TeamStandingComposition.Reviewer("Dev"), 44));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(bridge.Tasks, Has.Count.EqualTo(1), "three agents on one issue is one piece of work");
+            Assert.That(bridge.Tasks[0].TaskLabel, Is.EqualTo("#44 · Restock"));
+            Assert.That(bridge.Tasks[0].Agents.Select(agent => agent.DisplayName),
+                Is.EqualTo(new[] { "bob", "lucy", "hector" }));
+            Assert.That(bridge.Tasks[0].Agents[1].RoleLabel, Is.EqualTo("Reviewer"));
+        });
+    }
+
+    [Test]
+    public async Task ReadAsync_aTaskStandsAtTheMostUrgentThingAnyOfItsAgentsNeeds()
+    {
+        var bridge = await QueueAsync(
+            ("bob", TeamStandingComposition.Developer(), 44),
+            ("lucy", TeamStandingComposition.Reviewer("Pm"), 44),
+            ("other", TeamStandingComposition.Developer(), 51));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(bridge.Tasks.Select(task => task.Number), Is.EqualTo(new[] { 44, 51 }),
+                "the task with someone at a gate comes first");
+            Assert.That(bridge.Tasks[0].StateLabel, Is.EqualTo("◆ gate open"));
+            Assert.That(bridge.Tasks[1].StateLabel, Is.EqualTo("● working"));
+        });
+    }
+
+    /// <summary>The second agent in each call sits at a gate, so a task holding one needs you.</summary>
+    private static async Task<BridgeViewModel> QueueAsync(params (string Id, AgentRoleDto Role, int Task)[] team)
+    {
+        var agents = new StandingAgentFake();
+        foreach (var (id, role, task) in team)
+        {
+            var gate = id == "lucy";
+            agents.Sessions[id] = TeamStandingComposition.Session(
+                id,
+                state: gate ? "awaiting_input" : "ready",
+                loop: TeamStandingComposition.Loop(
+                    true, gate ? "blocked" : "running", task, "Restock",
+                    gate ? "BlockedAwaitingInput" : "Running",
+                    blockReason: gate ? "waiting" : null),
+                role: role);
+        }
+
+        var bridge = new BridgeViewModel(TeamStandingComposition.Controller(agents, new StandingForgeFake()));
+        await bridge.ReadAsync([.. team.Select(member => new TeamMember(member.Id, member.Id, "main", "Running"))]);
+        return bridge;
+    }
 }

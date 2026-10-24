@@ -129,16 +129,16 @@
       "displayName": "Lucy",
       "repositoryPath": "/demo/harbor",
       "worktreePath": "/demo/agents/lucy",
-      "branch": "feat/48-express-checkout",
-      "commit": "d4e5f6a",
+      "branch": "feat/44-restock",
+      "commit": "a1b2c3d",
       "state": "Running",
       "healthState": "Healthy",
       "lastActivityAtUtc": "2026-09-22T08:00:00Z",
       "applications": [
         {
-          "name": "Checkout",
+          "name": "Storefront",
           "command": "npm run dev",
-          "path": "apps/checkout",
+          "path": "apps/storefront",
           "state": "Running",
           "kind": "Process",
           "database": false,
@@ -159,17 +159,17 @@
       "displayName": "Hector",
       "repositoryPath": "/demo/harbor",
       "worktreePath": "/demo/agents/hector",
-      "branch": "fix/51-broken-anchors",
-      "commit": "b7c8d9e",
-      "state": "Failed",
-      "healthState": "Unhealthy",
+      "branch": "feat/44-restock",
+      "commit": "a1b2c3d",
+      "state": "Running",
+      "healthState": "Healthy",
       "lastActivityAtUtc": "2026-09-22T08:00:00Z",
       "applications": [
         {
-          "name": "Docs",
-          "command": "npm run start",
-          "path": "apps/docs",
-          "state": "Failed",
+          "name": "Storefront",
+          "command": "npm run dev",
+          "path": "apps/storefront",
+          "state": "Running",
           "kind": "Process",
           "database": false,
           "page": "storefront",
@@ -331,14 +331,14 @@
     "lucy": {
       "changes": {
         "workspaceId": "bob",
-        "branch": "feat/48-express-checkout",
+        "branch": "feat/44-restock",
         "fileCount": 2,
         "commit": "a1b2c3d",
         "ahead": 0,
         "behind": 0,
         "localBranches": [
           "main",
-          "feat/48-express-checkout"
+          "feat/44-restock"
         ],
         "remoteBranches": [
           {
@@ -347,7 +347,7 @@
           },
           {
             "remote": "origin",
-            "name": "feat/48-express-checkout"
+            "name": "feat/44-restock"
           }
         ],
         "upstream": "origin/main",
@@ -435,14 +435,14 @@
     "hector": {
       "changes": {
         "workspaceId": "bob",
-        "branch": "fix/51-broken-anchors",
+        "branch": "feat/44-restock",
         "fileCount": 2,
         "commit": "a1b2c3d",
         "ahead": 0,
         "behind": 0,
         "localBranches": [
           "main",
-          "fix/51-broken-anchors"
+          "feat/44-restock"
         ],
         "remoteBranches": [
           {
@@ -451,7 +451,7 @@
           },
           {
             "remote": "origin",
-            "name": "fix/51-broken-anchors"
+            "name": "feat/44-restock"
           }
         ],
         "upstream": "origin/main",
@@ -546,11 +546,11 @@
       "[install] npm install",
       "Orders API listening on API_PORT"
     ],
-    "lucy/Checkout": [
+    "lucy/Storefront": [
       "[install] npm install",
       "Storefront listening on WEB_PORT"
     ],
-    "hector/Docs": [
+    "hector/Storefront": [
       "[install] npm install",
       "Storefront listening on WEB_PORT"
     ]
@@ -719,12 +719,12 @@
         "loop": {
           "active": true,
           "phase": "blocked",
-          "taskId": "48",
-          "taskNumber": 48,
-          "taskTitle": "Express checkout for returning customers",
+          "taskId": "44",
+          "taskNumber": 44,
+          "taskTitle": "Restock featured products",
           "terminal": "BlockedAwaitingInput",
           "stopReason": "awaiting_input",
-          "blockReason": "Waiting for you to approve the review before it is posted.",
+          "blockReason": "Waiting for you to approve the review of #44 before it is posted.",
           "permissionRuleIds": [
             "forge.submit_review"
           ]
@@ -856,9 +856,9 @@
         "loop": {
           "active": false,
           "phase": "failed",
-          "taskId": "51",
-          "taskNumber": 51,
-          "taskTitle": "Docs anchors break on deep links",
+          "taskId": "44",
+          "taskNumber": 44,
+          "taskTitle": "Restock featured products",
           "terminal": "Failed",
           "stopReason": "forge.unreachable",
           "blockReason": "The repository host returned 502 on read.",
@@ -1055,7 +1055,19 @@
         {
           "name": "unit tests",
           "status": "completed",
-          "conclusion": "success",
+          "conclusion": "failure",
+          "url": "https://github.com/harbor-oss/harbor/actions"
+        },
+        {
+          "name": "e2e",
+          "status": "in_progress",
+          "conclusion": "",
+          "url": "https://github.com/harbor-oss/harbor/actions"
+        },
+        {
+          "name": "visual regression",
+          "status": "completed",
+          "conclusion": "skipped",
           "url": "https://github.com/harbor-oss/harbor/actions"
         }
       ],
@@ -1069,7 +1081,7 @@
       ],
       "mergeability": {
         "mergeable": true,
-        "state": "clean"
+        "state": "unstable"
       },
       "detail": null,
       "account": {
@@ -1081,11 +1093,7 @@
       "reviews": [
         {
           "login": "hector-aup[bot]",
-          "state": "APPROVED"
-        },
-        {
-          "login": "lucy-aup[bot]",
-          "state": "COMMENTED"
+          "state": "CHANGES_REQUESTED"
         }
       ]
     },
@@ -1093,11 +1101,11 @@
       "availability": "ready",
       "moduleId": "github",
       "proposal": {
-        "id": "PR-48",
-        "number": "48",
-        "title": "Express checkout for returning customers",
-        "url": "https://github.com/harbor-oss/harbor/pull/48",
-        "headRef": "feat/48-express-checkout",
+        "id": "PR-44",
+        "number": "44",
+        "title": "Restock featured products",
+        "url": "https://github.com/harbor-oss/harbor/pull/44",
+        "headRef": "feat/44-restock",
         "baseRef": "main",
         "state": "open"
       },
@@ -1109,13 +1117,13 @@
           "url": "https://github.com/harbor-oss/harbor/actions"
         },
         {
-          "name": "e2e",
+          "name": "unit tests",
           "status": "completed",
           "conclusion": "failure",
           "url": "https://github.com/harbor-oss/harbor/actions"
         },
         {
-          "name": "lint",
+          "name": "e2e",
           "status": "in_progress",
           "conclusion": "",
           "url": "https://github.com/harbor-oss/harbor/actions"

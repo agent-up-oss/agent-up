@@ -192,7 +192,7 @@ public sealed class StandingRowViewModelTests
             Assert.That(row.Headline, Is.EqualTo("Lucy is waiting on you on #48"));
             Assert.That(row.ChecksCount, Is.EqualTo("(1/3)"));
             Assert.That(row.ThreadSummary, Is.EqualTo("2 unresolved review threads"));
-            Assert.That(row.HasStatusRow, Is.True);
+            Assert.That(row.HasStatusRow, Is.False, "the proposal on a reviewer's branch is not theirs");
             Assert.That(row.HasProposal, Is.True);
             Assert.That(row.ShowProposalBesideTask, Is.False, "the proposal repeats task #48 word for word");
         });
@@ -277,20 +277,21 @@ public sealed class StandingRowViewModelTests
     public void Row_namesAHaltedRunAndItsDiagnostic()
     {
         var row = new StandingRowViewModel(new TeamStanding(
-            "docs", "Hector", "fix/51-broken-anchors", "Failed", "Claude", TeamStandingKind.Halted,
-            51, "Docs anchors break on deep links",
+            "hector", "Hector", "feat/44-restock", "Running", "Claude", TeamStandingKind.Halted,
+            44, "Restock featured products",
             "The repository host returned 502 on read.", "forge.unreachable", [],
             new ForgeStanding("unreachable", null, null, null, 0, 0, 0, 0, null,
-                "The repository host returned 502 on read.")));
+                "The repository host returned 502 on read."),
+            TeamRoleKind.Reviewer, null, null, ReviewSlotKind.Dev));
 
         Assert.Multiple(() =>
         {
             Assert.That(row.StateLabel, Is.EqualTo("▲ halted"));
-            Assert.That(row.Headline, Is.EqualTo("Hector stopped on #51"));
+            Assert.That(row.Headline, Is.EqualTo("Hector stopped reviewing #44"));
             Assert.That(row.HasDiagnosticCode, Is.True);
             Assert.That(row.DiagnosticCode, Is.EqualTo("forge.unreachable"));
             Assert.That(row.HasStatusRow, Is.False);
-            Assert.That(row.TaskLabel, Is.EqualTo("#51 · Docs anchors break on deep links"));
+            Assert.That(row.TaskLabel, Is.EqualTo("#44 · Restock featured products"));
         });
     }
 }

@@ -39,8 +39,8 @@ public sealed class BridgeViewModel : ReactiveObject
     /// <summary>The rest of the team: running or idle, and needing nothing from you.</summary>
     public ObservableCollection<StandingRowViewModel> NothingNeeded { get; } = [];
 
-    /// <summary>One row per task an agent reports holding.</summary>
-    public ObservableCollection<StandingRowViewModel> Tasks { get; } = [];
+    /// <summary>One row per task, with everyone on it.</summary>
+    public ObservableCollection<TaskRowViewModel> Tasks { get; } = [];
 
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
 
@@ -119,7 +119,8 @@ public sealed class BridgeViewModel : ReactiveObject
         Replace(Halted, standings.Where(standing => standing.Kind == TeamStandingKind.Halted));
         Replace(NothingNeeded, standings.Where(standing =>
             standing.Kind is not (TeamStandingKind.WaitingOnYou or TeamStandingKind.Halted)));
-        Replace(Tasks, standings.Where(standing => standing.TaskNumber is not null));
+        Tasks.Clear();
+        foreach (var task in Queue(standings)) Tasks.Add(task);
         foreach (var name in new[]
                  {
                      nameof(HasWaiting), nameof(HasHalted), nameof(HasTeam), nameof(HasTasks),
@@ -129,6 +130,18 @@ public sealed class BridgeViewModel : ReactiveObject
             this.RaisePropertyChanged(name);
         }
     }
+
+    /// <summary>
+    /// The queue: one row per task, most urgent first, with every agent on that task. An issue
+    /// three agents hold is one piece of work, not three.
+    /// </summary>
+    private static IEnumerable<TaskRowViewModel> Queue(IReadOnlyList<TeamStanding> standings)
+        => standings
+            .Where(standing => standing.TaskNumber is not null)
+            .GroupBy(standing => standing.TaskNumber!.Value)
+            .Select(task => new TaskRowViewModel(task.Key, [.. task]))
+            .OrderBy(task => task.Rank)
+            .ThenBy(task => task.Number);
 
     private static void Replace(ObservableCollection<StandingRowViewModel> target, IEnumerable<TeamStanding> standings)
     {

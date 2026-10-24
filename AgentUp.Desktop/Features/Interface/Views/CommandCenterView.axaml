@@ -131,41 +131,42 @@
             </Border>
         </DataTemplate>
 
-        <!-- A queue row: the task an agent reports holding, and where it stands. -->
+        <!-- A queue row: one task, where it stands, and everyone on it. -->
         <DataTemplate x:Key="TaskRowTemplate">
             <Grid ColumnDefinitions="*,150,160"
                   ColumnSpacing="12"
                   Margin="0,0,0,1"
                   Background="{DynamicResource AgentUpColorTransparentBrush}">
-                <StackPanel Grid.Column="0" Spacing="2" Margin="0,8">
-                    <TextBlock Text="{Binding TaskLabel}"
-                               FontSize="13"
-                               FontWeight="SemiBold"
-                               TextWrapping="Wrap"
-                               Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
-                    <TextBlock Text="{Binding ProposalLabel}"
-                               FontSize="11"
-                               IsVisible="{Binding ShowProposalBesideTask}"
-                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                </StackPanel>
+                <TextBlock Grid.Column="0"
+                           Text="{Binding TaskLabel}"
+                           FontSize="13"
+                           FontWeight="SemiBold"
+                           TextWrapping="Wrap"
+                           Margin="0,8"
+                           Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
                 <TextBlock Grid.Column="1"
                            Text="{Binding StateLabel}"
                            FontSize="12"
                            Margin="0,8"
                            VerticalAlignment="Top"
                            Foreground="{Binding StateColor}"/>
-                <StackPanel Grid.Column="2" Spacing="2" Margin="0,8">
-                    <TextBlock Text="{Binding DisplayName}"
-                               FontSize="12"
-                               TextTrimming="CharacterEllipsis"
-                               ToolTip.Tip="{Binding Subtitle}"
-                               Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
-                    <TextBlock Text="{Binding RoleLabel}"
-                               FontSize="11"
-                               IsVisible="{Binding HasRole}"
-                               TextTrimming="CharacterEllipsis"
-                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                </StackPanel>
+                <ItemsControl Grid.Column="2" Margin="0,8" ItemsSource="{Binding Agents}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,4">
+                                <TextBlock Text="{Binding DisplayName}"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                                <TextBlock Text="{Binding RoleLabel}"
+                                           FontSize="11"
+                                           VerticalAlignment="Center"
+                                           IsVisible="{Binding HasRole}"
+                                           TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </Grid>
         </DataTemplate>
     </UserControl.Resources>

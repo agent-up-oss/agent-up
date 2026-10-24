@@ -191,6 +191,13 @@ public sealed record TeamStanding(
     /// </summary>
     public IReadOnlyList<ReviewSlot> Slots => ReviewSlots ?? [];
 
+    /// <summary>
+    /// True when this agent works on a branch somebody else authored. A reviewer's workspace
+    /// checks the proposal out so it can be read, which puts a proposal on their branch that is
+    /// not theirs: its checks and its sign-offs are the author's standing, not the reviewer's.
+    /// </summary>
+    public bool ReviewsOthersWork => Role == TeamRoleKind.Reviewer || Reviews is not null;
+
     /// <summary>What this agent is for, in one word, or null while no role is configured.</summary>
     public string? RoleLabel => Role switch
     {

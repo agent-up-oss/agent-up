@@ -64,13 +64,25 @@ public sealed class StandingRowViewModel
 
     public bool HasTask => Standing.TaskNumber is not null;
 
+    /// <summary>
+    /// What this agent is doing, in their own terms. A reviewer never works on an issue — the
+    /// branch is somebody else's and the only thing they produce is a review — so saying they are
+    /// "working on" it would claim work that is not theirs.
+    /// </summary>
     public string Headline => Standing.Kind switch
     {
-        TeamStandingKind.WaitingOnYou => $"{DisplayName} is waiting on you{TaskSuffix}",
-        TeamStandingKind.Halted => $"{DisplayName} stopped{TaskSuffix}",
-        TeamStandingKind.Working => $"{DisplayName} is working{TaskSuffix}",
+        // What a gate needs is yours whoever holds it, so this one reads the same for either role.
+        TeamStandingKind.WaitingOnYou => $"{DisplayName} is waiting on you{OnTask}",
+        TeamStandingKind.Halted => $"{DisplayName} stopped {Verb}{TaskSuffix}",
+        TeamStandingKind.Working => $"{DisplayName} is {Verb}{TaskSuffix}",
         _ => $"{DisplayName} has nothing in hand"
     };
+
+    /// <summary>
+    /// What this agent does to a task: a reviewer reviews it, everyone else works on it. The
+    /// preposition belongs to the suffix, so "reviewing #44" and "working on #44" both read.
+    /// </summary>
+    public string Verb => Standing.ReviewsOthersWork ? "reviewing" : "working";
 
     public string? Reason => Standing.Reason;
 
@@ -102,7 +114,11 @@ public sealed class StandingRowViewModel
         ? "1 unresolved review thread"
         : $"{Standing.Forge.UnresolvedThreads} unresolved review threads";
 
-    private string TaskSuffix => Standing.TaskNumber is null ? string.Empty : $" on #{Standing.TaskNumber}";
+    private string OnTask => Standing.TaskNumber is null ? string.Empty : $" on #{Standing.TaskNumber}";
+
+    private string TaskSuffix => Standing.TaskNumber is null
+        ? string.Empty
+        : Standing.ReviewsOthersWork ? $" #{Standing.TaskNumber}" : OnTask;
 
     /// <summary>
     /// How the checks stand, as "(passed/total)". The dot beside it carries the verdict, so the
@@ -131,8 +147,11 @@ public sealed class StandingRowViewModel
     public IReadOnlyList<ReviewSlotViewModel> Reviews =>
         [.. Standing.Slots.Select(slot => new ReviewSlotViewModel(slot))];
 
-    /// <summary>True while this agent has a proposal, which is what the status row reports on.</summary>
-    public bool HasStatusRow => Standing.Forge.HasProposal;
+    /// <summary>
+    /// True while this agent holds a proposal of its own. A reviewer has one on its branch too,
+    /// but it belongs to whoever opened it, so the row would report somebody else's standing.
+    /// </summary>
+    public bool HasStatusRow => Standing.Forge.HasProposal && !Standing.ReviewsOthersWork;
 
     private IEnumerable<string> SubtitleParts()
     {

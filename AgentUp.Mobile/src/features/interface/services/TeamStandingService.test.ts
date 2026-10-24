@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { noForge, type TeamStanding } from '../models/TeamStanding';
-import { checksCount, hasStatusRow, headlineFor, identityHandle, roleLabel, showProposalBesideTask, slotGlyph, stateLabel, taskLabel, threadSummary, triage, whoIs } from './TeamStandingService';
+import { checksCount, hasStatusRow, queue, headlineFor, identityHandle, roleLabel, showProposalBesideTask, slotGlyph, stateLabel, taskLabel, threadSummary, triage, whoIs } from './TeamStandingService';
 
 function standing(partial: Partial<TeamStanding> = {}): TeamStanding {
   return {
@@ -57,7 +57,7 @@ test('state labels and headlines name what each kind needs', () => {
   assert.equal(stateLabel('working'), '● working');
   assert.equal(stateLabel('idle'), '○ idle');
   assert.equal(headlineFor(standing({ kind: 'waiting', taskNumber: 48 })), 'Bob is waiting on you on #48');
-  assert.equal(headlineFor(standing({ kind: 'halted', taskNumber: 51 })), 'Bob stopped on #51');
+  assert.equal(headlineFor(standing({ kind: 'halted', taskNumber: 51 })), 'Bob stopped working on #51');
   assert.equal(headlineFor(standing({ kind: 'idle' })), 'Bob has nothing in hand');
 });
 
@@ -73,6 +73,17 @@ test('the checks read as passed over total, and the row only shows with a propos
   assert.equal(hasStatusRow(standing({ forge })), true);
   assert.equal(checksCount(standing()), '(0/0)');
   assert.equal(hasStatusRow(standing()), false);
+});
+
+test('the status row belongs to the agent who opened the proposal', () => {
+  const forge = { ...noForge, proposalNumber: '44', checksPassed: 2, checksTotal: 2 };
+  assert.equal(hasStatusRow(standing({ forge, role: 'developer' })), true);
+  assert.equal(hasStatusRow(standing({ forge, role: 'reviewer', reviews: 'dev' })), false);
+  assert.equal(hasStatusRow(standing({ forge, role: 'reviewer', reviews: 'pm' })), false);
+  assert.equal(hasStatusRow(standing({ forge, role: 'other', reviews: 'dev' })),
+    false, 'a role that supplies a review is on somebody else\'s branch however it is classified');
+  assert.equal(hasStatusRow(standing({ forge })),
+    true, 'nothing says this agent reviews, so a proposal on its branch is most likely its own');
 });
 
 test('a slot draws its mark, or a dash while nobody has filled it', () => {
@@ -133,4 +144,35 @@ test('the bridge groups put each agent in exactly one place', () => {
 
 test('an empty team settles nobody', () => {
   assert.deepEqual(triage([]).settled, []);
+});
+
+test('a reviewer reviews a task rather than working on it', () => {
+  const reviewer = { role: 'reviewer' as const, reviews: 'pm' as const, taskNumber: 44 };
+  assert.equal(headlineFor(standing({ ...reviewer, kind: 'working' })), 'Bob is reviewing #44');
+  assert.equal(headlineFor(standing({ ...reviewer, kind: 'halted' })), 'Bob stopped reviewing #44');
+  assert.equal(headlineFor(standing({ kind: 'working', taskNumber: 44 })), 'Bob is working on #44');
+  assert.equal(headlineFor(standing({ kind: 'halted', taskNumber: 44 })), 'Bob stopped working on #44');
+});
+
+test('the queue is one row per task, naming everyone on it, most urgent first', () => {
+  const onTask = (id: string, kind: TeamStanding['kind']) =>
+    standing({ workspaceId: id, displayName: id, kind, taskNumber: 44, taskTitle: 'Restock' });
+  const result = queue([
+    onTask('bob', 'working'),
+    onTask('lucy', 'waiting'),
+    onTask('hector', 'halted'),
+    standing({ workspaceId: 'other', kind: 'working', taskNumber: 51, taskTitle: 'Anchors' }),
+    standing({ workspaceId: 'spare', kind: 'idle' }),
+  ]);
+
+  assert.equal(result.length, 2, 'three agents on one issue is one piece of work');
+  assert.equal(result[0].number, 44);
+  assert.equal(result[0].label, '#44 · Restock');
+  assert.equal(result[0].kind, 'waiting', 'a task with one agent at a gate needs you');
+  assert.deepEqual(result[0].agents.map(agent => agent.workspaceId), ['bob', 'lucy', 'hector']);
+  assert.equal(result[1].number, 51);
+});
+
+test('the queue leaves out agents holding no task', () => {
+  assert.deepEqual(queue([standing()]), []);
 });
