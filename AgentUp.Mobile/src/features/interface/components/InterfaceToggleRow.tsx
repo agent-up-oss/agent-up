@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { agentUpTheme } from '@agent-up/design-system/native';
+import { agentUpTheme, auBox } from '@agent-up/design-system/native';
 import { useInterfaceChoice } from '../controllers/InterfaceContext';
 
 /**
@@ -41,13 +41,9 @@ export function InterfaceToggleRow() {
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
+    ...auBox('card'),
     alignItems: 'center',
     gap: agentUpTheme.spacing[4],
-    padding: agentUpTheme.spacing[4],
-    borderWidth: 1,
-    borderColor: agentUpTheme.colors.borderSubtle,
-    borderRadius: 12,
-    backgroundColor: agentUpTheme.colors.surface,
   },
   body: { flex: 1, gap: 4 },
   name: { color: agentUpTheme.colors.textPrimary, fontSize: 15, fontWeight: '600' },

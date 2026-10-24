@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
-import { agentUpTheme } from '@agent-up/design-system/native';
+import { agentUpTheme, auBox } from '@agent-up/design-system/native';
 import { useTeamStanding } from '../controllers/TeamStandingContext';
 import type { TeamStanding } from '../models/TeamStanding';
 import {
@@ -299,15 +299,8 @@ const styles = StyleSheet.create({
   section: { color: agentUpTheme.colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginTop: 6 },
   sectionDanger: { color: agentUpTheme.colors.textDanger },
   sectionWarning: { color: agentUpTheme.colors.textWarning },
-  card: {
-    borderWidth: 1,
-    borderColor: agentUpTheme.colors.borderSubtle,
-    borderRadius: 12,
-    backgroundColor: agentUpTheme.colors.surface,
-    padding: agentUpTheme.spacing[4],
-    gap: 4,
-  },
-  cardDanger: { borderColor: agentUpTheme.colors.borderDanger, backgroundColor: agentUpTheme.colors.surfaceDanger },
+  card: { ...auBox('card'), gap: 4 },
+  cardDanger: auBox('cardDanger'),
   cardWarning: { borderColor: agentUpTheme.colors.borderStrong },
   code: { color: agentUpTheme.colors.textMuted, fontSize: 12, fontFamily: agentUpTheme.fonts.mono },
   toneDanger: { color: agentUpTheme.colors.textDanger },
@@ -345,48 +338,36 @@ const styles = StyleSheet.create({
   },
   degradeTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 14, fontWeight: '600' },
   button: {
-    minHeight: 44,
+    ...auBox('button', 'buttonSecondary'),
     marginTop: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: agentUpTheme.colors.borderSelected,
-    backgroundColor: agentUpTheme.colors.surfaceSelected,
   },
   buttonText: { color: agentUpTheme.colors.accentSoft, fontSize: 13, fontWeight: '600' },
   tabBar: {
+    ...auBox('panel'),
     flexDirection: 'row',
+    borderRadius: 0,
+    borderWidth: 0,
     borderTopWidth: 1,
     borderTopColor: agentUpTheme.colors.borderSubtle,
-    backgroundColor: agentUpTheme.colors.surface,
   },
   tabItem: { flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center' },
   tabText: { color: agentUpTheme.colors.textFaint, fontSize: 12 },
   tabTextOn: { color: agentUpTheme.colors.textPrimary, fontSize: 12, fontWeight: '600' },
   drawer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, flexDirection: 'row' },
   scrim: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: agentUpTheme.colors.scrim },
-  drawerPanel: {
-    width: 272,
-    maxWidth: '82%',
-    backgroundColor: agentUpTheme.colors.surface,
-    borderRightWidth: 1,
-    borderRightColor: agentUpTheme.colors.borderSubtle,
-    padding: agentUpTheme.spacing[3],
-    gap: 2,
-  },
+  drawerPanel: { ...auBox('drawer'), paddingVertical: agentUpTheme.spacing[3], gap: 2 },
   drawerServer: {
-    padding: agentUpTheme.spacing[3],
+    ...auBox('card'),
+    paddingHorizontal: agentUpTheme.spacing[3],
+    paddingVertical: agentUpTheme.spacing[3],
     marginBottom: agentUpTheme.spacing[3],
-    borderWidth: 1,
-    borderColor: agentUpTheme.colors.borderSubtle,
-    borderRadius: 10,
-    backgroundColor: agentUpTheme.colors.surfaceRaised,
     gap: 2,
   },
   drawerServerName: { color: agentUpTheme.colors.textPrimary, fontSize: 13, fontWeight: '700' },
   drawerLink: { minHeight: 44, justifyContent: 'center', paddingHorizontal: agentUpTheme.spacing[3], borderRadius: 8 },
-  drawerLinkOn: { backgroundColor: agentUpTheme.colors.surfaceSelected },
+  drawerLinkOn: auBox('cardSelected'),
   drawerLinkText: { color: agentUpTheme.colors.textMuted, fontSize: 15 },
   drawerLinkTextOn: { color: agentUpTheme.colors.textPrimary, fontSize: 15, fontWeight: '600' },
 });

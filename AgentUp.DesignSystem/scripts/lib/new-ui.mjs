@@ -25,6 +25,8 @@ export function parseNewUi(html) {
   if (!scenes.length) throw new Error('The New UI space has no scenes.');
   const seen = new Set();
   for (const scene of scenes) {
+    // The tag match no longer insists on a non-empty id, so the check belongs here instead.
+    if (!scene.id) throw new Error('A New UI scene declares data-aun-scene with no id.');
     if (seen.has(scene.id)) throw new Error(`Duplicate New UI scene id "${scene.id}".`);
     seen.add(scene.id);
     if (scene.surface !== 'desktop' && scene.surface !== 'mobile') {
@@ -105,10 +107,14 @@ function collectPartials(html) {
  */
 function collectScenes(html) {
   const scenes = [];
-  const open = /<section\s+([^>]*?data-aun-scene="[^"]+"[^>]*?)>/g;
+  // One unbounded run, not two around a literal: `[^>]*?data-aun-scene="..."[^>]*?` backtracks
+  // quadratically over any long tag that turns out not to be a scene. Match the attributes once
+  // and ask afterwards whether they name a scene.
+  const open = /<section\s+([^>]*)>/g;
   let match;
   while ((match = open.exec(html)) !== null) {
     const attributes = match[1];
+    if (!attributes.includes('data-aun-scene=')) continue;
     const bodyStart = match.index + match[0].length;
     const bodyEnd = findSectionClose(html, bodyStart);
     scenes.push({

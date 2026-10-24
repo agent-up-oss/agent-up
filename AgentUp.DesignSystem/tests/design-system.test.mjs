@@ -16,6 +16,7 @@ import {
   varName,
 } from '../scripts/lib/css.mjs';
 import { emitNative } from '../scripts/lib/native.mjs';
+import { parseNewUi } from '../scripts/lib/new-ui.mjs';
 import { applyProps } from '../scripts/lib/slots.mjs';
 
 const root = new URL('..', import.meta.url);
@@ -640,3 +641,63 @@ async function readProductCss(base) {
   const fragments = await Promise.all(extras.map(name => readFile(new URL(name, src), 'utf8')));
   return `${product}\n\n${fragments.join('\n\n')}`;
 }
+
+function scene(attributes, body = '<p>body</p>') {
+  return `<section ${attributes}>${body}</section>`;
+}
+
+test('a New UI scene is read from its attributes', () => {
+  const scenes = parseNewUi(scene(
+    'data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop" data-aun-intro="Triage"'));
+  assert.equal(scenes.length, 1);
+  assert.equal(scenes[0].id, 'bridge');
+  assert.equal(scenes[0].title, 'Bridge');
+  assert.equal(scenes[0].surface, 'desktop');
+  assert.equal(scenes[0].intro, 'Triage');
+  assert.equal(scenes[0].html, '<p>body</p>');
+});
+
+test('a section that is not a scene is skipped rather than parsed as one', () => {
+  const html = [
+    '<section class="decoration">ignored</section>',
+    scene('data-aun-scene="tasks" data-aun-title="Tasks" data-aun-surface="mobile"'),
+  ].join('\n');
+  const scenes = parseNewUi(html);
+  assert.deepEqual(scenes.map(item => item.id), ['tasks']);
+});
+
+test('a scene keeps its own nested sections rather than ending at the first one', () => {
+  const scenes = parseNewUi(scene(
+    'data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop"',
+    '<section>inner</section><p>after</p>'));
+  assert.match(scenes[0].html, /<p>after<\/p>$/, 'the scene must not be truncated at the inner close');
+});
+
+test('a scene must name itself, say which surface it is, and carry a title', () => {
+  assert.throws(() => parseNewUi(scene('data-aun-scene="" data-aun-title="T" data-aun-surface="desktop"')),
+    /no id/);
+  assert.throws(() => parseNewUi(scene('data-aun-scene="a" data-aun-title="T" data-aun-surface="watch"')),
+    /desktop or mobile/);
+  assert.throws(() => parseNewUi(scene('data-aun-scene="a" data-aun-surface="desktop"')),
+    /missing data-aun-title/);
+  assert.throws(() => parseNewUi('<p>no scenes here</p>'), /no scenes/);
+});
+
+test('a duplicate scene id is refused', () => {
+  const one = scene('data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop"');
+  assert.throws(() => parseNewUi(`${one}\n${one}`), /Duplicate New UI scene id "bridge"/);
+});
+
+test('an unclosed scene is refused rather than silently swallowing the file', () => {
+  assert.throws(
+    () => parseNewUi('<section data-aun-scene="a" data-aun-title="T" data-aun-surface="desktop"><p>x</p>'),
+    /missing its closing/);
+});
+
+test('reading a long tag that is not a scene stays linear', () => {
+  // The shape this guards: two unbounded runs around a literal backtrack quadratically here.
+  const haystack = `<section ${'data-other="x" '.repeat(20000)}>no scene</section>`;
+  const started = Date.now();
+  assert.throws(() => parseNewUi(haystack), /no scenes/);
+  assert.ok(Date.now() - started < 2000, 'parsing a long non-scene tag must not blow up');
+});
