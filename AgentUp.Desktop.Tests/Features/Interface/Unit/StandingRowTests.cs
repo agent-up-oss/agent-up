@@ -1,5 +1,6 @@
 using AgentUp.Desktop.Features.Interface.Models;
 using AgentUp.Desktop.Features.Interface.ViewModels;
+using AgentUp.Desktop.Shared.Models;
 
 namespace AgentUp.Desktop.Tests.Features.Interface.Unit;
 
@@ -145,6 +146,52 @@ public sealed class StandingRowTests
         });
     }
 
+    [TestCase(TeamStandingKind.WaitingOnYou, "◆ gate open")]
+    [TestCase(TeamStandingKind.Halted, "▲ halted")]
+    [TestCase(TeamStandingKind.Working, "● working")]
+    [TestCase(TeamStandingKind.Idle, "○ idle")]
+    public void StateLabel_namesWhatTheAgentNeeds(TeamStandingKind kind, string expected)
+    {
+        Assert.That(Row(Standing(kind, TeamRoleKind.Developer)).StateLabel, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void StateColor_tellsTheFourStandingsApart()
+    {
+        var colors = new[]
+        {
+            TeamStandingKind.WaitingOnYou, TeamStandingKind.Halted,
+            TeamStandingKind.Working, TeamStandingKind.Idle
+        }.Select(kind => Row(Standing(kind, TeamRoleKind.Developer)).StateColor).ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(colors[0], Is.EqualTo(AgentUpThemeColors.StatusWarning));
+            Assert.That(colors[1], Is.EqualTo(AgentUpThemeColors.StatusDanger));
+            Assert.That(colors[2], Is.EqualTo(AgentUpThemeColors.AccentBright));
+            Assert.That(colors[3], Is.EqualTo(AgentUpThemeColors.TextMuted));
+            Assert.That(colors, Is.Unique, "telling them apart at a glance is the whole job");
+        });
+    }
+
+    [Test]
+    public void TheRowCarriesTheBranchTheProposalAndWhyAnAgentStopped()
+    {
+        var halted = Row(Standing(TeamStandingKind.Halted, TeamRoleKind.Developer,
+            reason: "The repository host stopped answering.", forge: Proposal()));
+        var running = Row(Standing(TeamStandingKind.Working, TeamRoleKind.Developer));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(halted.Branch, Is.EqualTo("feat/44-restock"), "the branch the work sits on");
+            Assert.That(halted.HasReason, Is.True);
+            Assert.That(halted.Reason, Is.EqualTo("The repository host stopped answering."));
+            Assert.That(halted.ProposalUrl, Is.EqualTo("https://example.test/pull/44"));
+            Assert.That(running.HasReason, Is.False, "nothing stopped it, so there is nothing to say");
+            Assert.That(running.ProposalUrl, Is.Null, "no proposal, nowhere to open");
+        });
+    }
+
     private static StandingRowViewModel Row(TeamStanding standing) => new(standing);
 
     private static ForgeStanding Proposal(string number = "44", int threads = 0)
@@ -159,8 +206,9 @@ public sealed class StandingRowTests
         string? agent = "codex",
         string? code = null,
         TeamIdentity? identity = null,
-        ForgeStanding? forge = null)
+        ForgeStanding? forge = null,
+        string? reason = null)
         => new(name.ToLowerInvariant(), name, "feat/44-restock", "Running", agent, kind, task,
-            "Restock the storefront", null, code, [], forge ?? ForgeStanding.None, role,
+            "Restock the storefront", reason, code, [], forge ?? ForgeStanding.None, role,
             Identity: identity);
 }
