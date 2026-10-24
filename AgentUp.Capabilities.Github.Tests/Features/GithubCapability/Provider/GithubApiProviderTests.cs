@@ -239,7 +239,10 @@ public sealed class GithubApiProviderTests
 
         await new GithubForgeCapability(handler, host).ReadAsync(Request());
 
-        Assert.That(handler.Uris.Single(), Does.StartWith("https://ghe.example.test/api/v3/repos/"));
+        // ReadAsync asks the host who the credential is before it looks for a proposal, so this
+        // route makes more than one request. Every one of them has to go to the configured host.
+        Assert.That(handler.Uris, Is.Not.Empty);
+        Assert.That(handler.Uris, Is.All.StartWith("https://ghe.example.test/api/v3/"));
     }
 
     [Test]
