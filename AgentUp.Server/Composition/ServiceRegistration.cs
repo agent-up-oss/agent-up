@@ -212,6 +212,9 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IHostConnectionPresence, HostConnectionPresenceProvider>();
         builder.Services.AddSingleton<IAutonomySettings, ConfiguredAutonomySettings>();
         builder.Services.AddSingleton<IForgeCredentialStore>(_ => new ForgeCredentialStore(dataDir));
+        builder.Services.AddSingleton<IGithubAppConnectionStore>(_ => new GithubAppConnectionStore(dataDir));
+        builder.Services.AddSingleton<GithubAppApiProvider>();
+        builder.Services.AddSingleton<GithubAppConnectionService>();
         builder.Services.AddSingleton<IForgeGitRemoteResolver, ForgeGitRemoteResolver>();
         builder.Services.AddSingleton<IForgeOAuthSettings, ForgeOAuthSettingsProvider>();
         builder.Services.AddSingleton<IForgeOAuthStateStore, ForgeOAuthStateStore>();

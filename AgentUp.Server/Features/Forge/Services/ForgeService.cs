@@ -15,7 +15,8 @@ public sealed class ForgeService(
     IForgeGitRemoteResolver remotes,
     IForgeOAuthSettings oauth,
     IForgeOAuthStateStore states,
-    IForgeOAuthExchange exchange)
+    IForgeOAuthExchange exchange,
+    GithubAppConnectionService? githubApps = null)
 {
     public async Task<ForgeHostingDto?> GetHostingAsync(string workspaceId, CancellationToken cancellationToken)
     {
@@ -23,20 +24,22 @@ public sealed class ForgeService(
         if (workspace is null)
             return null;
 
-        var forge = packages.ListForges().FirstOrDefault();
-        if (forge is null)
+        var enabledForges = packages.ListForges();
+        if (enabledForges.Count == 0)
             return NotInstalled();
-
-        var token = credentials.Read(workspaceId, forge.Identity.Id);
-        if (string.IsNullOrWhiteSpace(token))
-            return NeedsCredential(forge.Identity.Id, oauth.Read().IsConfigured);
 
         var remote = remotes.Resolve(workspace.WorktreePath);
         if (remote is null)
-            return NoRemote(forge.Identity.Id);
+            return NoRemote(enabledForges[0].Identity.Id);
+
+        var forge = ResolveForge(enabledForges, remote);
 
         try
         {
+            var token = await CredentialAsync(workspaceId, forge, remote, cancellationToken);
+            if (string.IsNullOrWhiteSpace(token))
+                return NeedsCredential(forge.Identity.Id, IsLoginConfigured(forge.Identity.Id));
+
             var snapshot = await forge.ReadAsync(
                 new ForgeRequest(token, remote.Owner, remote.Repository, remote.Branch),
                 cancellationToken);
@@ -62,16 +65,38 @@ public sealed class ForgeService(
         }
     }
 
-    public ForgeHttpOutcome StartLogin(string workspaceId)
+    public async Task<ForgeHttpOutcome> StartLoginAsync(
+        string workspaceId,
+        string callbackOrigin,
+        CancellationToken cancellationToken = default)
     {
-        if (workspaces.GetById(workspaceId) is null)
+        var workspace = workspaces.GetById(workspaceId);
+        if (workspace is null)
             return new ForgeHttpOutcome(StatusCodes.Status404NotFound, null);
 
-        var forge = packages.ListForges().FirstOrDefault();
+        var remote = remotes.Resolve(workspace.WorktreePath);
+        var forge = remote is null ? packages.ListForges().FirstOrDefault() : ResolveForge(packages.ListForges(), remote);
         if (forge is null)
             return new ForgeHttpOutcome(
                 StatusCodes.Status503ServiceUnavailable,
                 new { title = ForgeHostingCopy.OAuthUnavailableTitle, detail = ForgeHostingCopy.MissingForgeDetail });
+
+        if (UsesGithubApp(forge) && remote is null)
+            return new ForgeHttpOutcome(
+                StatusCodes.Status409Conflict,
+                new { title = "Repository remote required", detail = ForgeHostingCopy.NoRemoteDetail });
+
+        if (UsesGithubApp(forge))
+            return new ForgeHttpOutcome(
+                StatusCodes.Status200OK,
+                await (githubApps ?? throw new InvalidOperationException("GitHub App connections are unavailable."))
+                    .StartAsync(
+                        workspaceId,
+                        workspace.DisplayName,
+                        remote!.Owner,
+                        forge.Host,
+                        callbackOrigin,
+                        cancellationToken));
 
         var configuration = oauth.Read();
         if (!configuration.IsConfigured)
@@ -104,7 +129,8 @@ public sealed class ForgeService(
         if (workspaceId is null || workspaces.GetById(workspaceId) is null)
             return false;
 
-        var forge = packages.ListForges().FirstOrDefault();
+        var remote = remotes.Resolve(workspaces.GetById(workspaceId)!.WorktreePath);
+        var forge = remote is null ? packages.ListForges().FirstOrDefault() : ResolveForge(packages.ListForges(), remote);
         if (forge is null)
             return false;
 
@@ -117,26 +143,32 @@ public sealed class ForgeService(
 
     public bool HasCredential(string workspaceId)
     {
-        var forge = packages.ListForges().FirstOrDefault();
-        return forge is not null && !string.IsNullOrWhiteSpace(credentials.Read(workspaceId, forge.Identity.Id));
+        var workspace = workspaces.GetById(workspaceId);
+        var remote = workspace is null ? null : remotes.Resolve(workspace.WorktreePath);
+        var forge = remote is null ? packages.ListForges().FirstOrDefault() : ResolveForge(packages.ListForges(), remote);
+        return forge is not null && (UsesGithubApp(forge)
+            ? githubApps?.IsConnected(workspaceId) == true
+            : !string.IsNullOrWhiteSpace(credentials.Read(workspaceId, forge.Identity.Id)));
     }
 
     public bool HasAnyCredential()
-    {
-        var forge = packages.ListForges().FirstOrDefault();
-        return forge is not null
-            && workspaces.GetAll().Any(workspace =>
-                !string.IsNullOrWhiteSpace(credentials.Read(workspace.Id, forge.Identity.Id)));
-    }
+        => workspaces.GetAll().Any(workspace => HasCredential(workspace.Id));
 
     public bool Logout(string workspaceId)
     {
-        if (workspaces.GetById(workspaceId) is null)
+        var workspace = workspaces.GetById(workspaceId);
+        if (workspace is null)
             return false;
 
-        var forge = packages.ListForges().FirstOrDefault();
+        var remote = remotes.Resolve(workspace.WorktreePath);
+        var forge = remote is null ? packages.ListForges().FirstOrDefault() : ResolveForge(packages.ListForges(), remote);
         if (forge is not null)
-            credentials.Delete(workspaceId, forge.Identity.Id);
+        {
+            if (UsesGithubApp(forge))
+                githubApps!.Disconnect(workspaceId);
+            else
+                credentials.Delete(workspaceId, forge.Identity.Id);
+        }
         return true;
     }
 
@@ -144,7 +176,7 @@ public sealed class ForgeService(
         string workspaceId,
         CancellationToken cancellationToken)
     {
-        var request = RequestFor(workspaceId);
+        var request = await RequestForAsync(workspaceId, cancellationToken);
         if (request is null)
             return [];
 
@@ -158,11 +190,11 @@ public sealed class ForgeService(
         }
     }
 
-    public Task<ForgeProposal?> OpenProposalAsync(
+    public async Task<ForgeProposal?> OpenProposalAsync(
         string workspaceId,
         ForgeOpenProposalRequest command,
         CancellationToken cancellationToken)
-        => MutateAsync(
+        => await MutateAsync(
             workspaceId,
             (forge, request) => forge.OpenProposalAsync(
                 request,
@@ -175,7 +207,7 @@ public sealed class ForgeService(
         ForgeUpdateRefRequest command,
         CancellationToken cancellationToken)
     {
-        var request = RequestFor(workspaceId);
+        var request = await RequestForAsync(workspaceId, cancellationToken);
         if (request is null)
             return new ForgeHttpOutcome(StatusCodes.Status404NotFound, null);
 
@@ -195,14 +227,14 @@ public sealed class ForgeService(
         }
     }
 
-    public Task CommentAsync(string workspaceId, ForgeCommentRequest command, CancellationToken cancellationToken)
-        => MutateAsync(
+    public async Task CommentAsync(string workspaceId, ForgeCommentRequest command, CancellationToken cancellationToken)
+        => await MutateAsync(
             workspaceId,
             (forge, request) => forge.CommentAsync(request, new ForgeCommentCommand(command.ProposalNumber, command.Body), cancellationToken),
             cancellationToken);
 
-    public Task SubmitReviewAsync(string workspaceId, ForgeReviewRequest command, CancellationToken cancellationToken)
-        => MutateAsync(
+    public async Task SubmitReviewAsync(string workspaceId, ForgeReviewRequest command, CancellationToken cancellationToken)
+        => await MutateAsync(
             workspaceId,
             (forge, request) => forge.SubmitReviewAsync(
                 request,
@@ -215,7 +247,7 @@ public sealed class ForgeService(
         Func<IForgeCapability, ForgeRequest, Task<T>> action,
         CancellationToken cancellationToken)
     {
-        var request = RequestFor(workspaceId);
+        var request = await RequestForAsync(workspaceId, cancellationToken);
         if (request is null)
             return default;
         return await action(request.Value.Forge, request.Value.Request);
@@ -231,20 +263,73 @@ public sealed class ForgeService(
             return true;
         }, cancellationToken);
 
-    private (IForgeCapability Forge, ForgeRequest Request)? RequestFor(string workspaceId)
+    private async Task<(IForgeCapability Forge, ForgeRequest Request)?> RequestForAsync(
+        string workspaceId,
+        CancellationToken cancellationToken)
     {
         var workspace = workspaces.GetById(workspaceId);
-        var forge = packages.ListForges().FirstOrDefault();
-        if (workspace is null || forge is null)
+        if (workspace is null)
             return null;
 
-        var token = credentials.Read(workspaceId, forge.Identity.Id);
         var remote = remotes.Resolve(workspace.WorktreePath);
-        if (string.IsNullOrWhiteSpace(token) || remote is null)
+        if (remote is null)
             return null;
+        var forge = ResolveForge(packages.ListForges(), remote);
+        if (forge is null)
+            return null;
+        var token = await CredentialAsync(workspaceId, forge, remote, cancellationToken);
+        if (string.IsNullOrWhiteSpace(token)) return null;
 
         return (forge, new ForgeRequest(token, remote.Owner, remote.Repository, remote.Branch));
     }
+
+    private Task<string?> CredentialAsync(
+        string workspaceId,
+        IForgeCapability forge,
+        ForgeGitRemote remote,
+        CancellationToken cancellationToken)
+        => UsesGithubApp(forge)
+            ? githubApps!.TokenAsync(workspaceId, remote.Repository, cancellationToken)
+            : Task.FromResult(credentials.Read(workspaceId, forge.Identity.Id));
+
+    private bool IsLoginConfigured(string moduleId)
+        => moduleId.Equals("github", StringComparison.OrdinalIgnoreCase) && githubApps is not null
+           || oauth.Read().IsConfigured;
+
+    private bool UsesGithubApp(IForgeCapability forge)
+        => githubApps is not null
+           && forge.Identity.Id.Equals("github", StringComparison.OrdinalIgnoreCase);
+
+    private static IForgeCapability? ResolveForge(
+        IReadOnlyList<IForgeCapability> enabledForges,
+        ForgeGitRemote remote)
+    {
+        if (enabledForges.Count == 0) return null;
+        var remoteHost = RemoteHost(remote.RemoteUrl);
+        return enabledForges.FirstOrDefault(forge => HostMatches(forge.Host, remoteHost))
+               ?? enabledForges[0];
+    }
+
+    private static bool HostMatches(ForgeHostConfiguration host, string? remoteHost)
+    {
+        if (string.IsNullOrWhiteSpace(remoteHost)) return false;
+        return Host(host.ApiBaseUrl).Equals(remoteHost, StringComparison.OrdinalIgnoreCase)
+               || Host(host.OAuthAuthorizeUrl).Equals(remoteHost, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string Host(string value)
+        => Uri.TryCreate(value, UriKind.Absolute, out var uri) ? uri.Host : string.Empty;
+
+    private static string? RemoteHost(string value)
+    {
+        if (Uri.TryCreate(value, UriKind.Absolute, out var uri)) return uri.Host;
+        var at = value.IndexOf('@');
+        var colon = value.IndexOf(':', at + 1);
+        return at >= 0 && colon > at ? value[(at + 1)..colon] : null;
+    }
+
+    public Task<ForgeHttpOutcome> StartLoginAsync(string workspaceId)
+        => StartLoginAsync(workspaceId, "http://localhost");
 
     private static ForgeHostingDto NotInstalled()
         => new(

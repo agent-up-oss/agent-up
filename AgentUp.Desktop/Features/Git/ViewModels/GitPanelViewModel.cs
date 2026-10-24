@@ -619,7 +619,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
         }
         catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
         {
-            ErrorMessage = $"Could not start repository host sign-in: {ex.Message}";
+            ErrorMessage = $"Could not start repository host setup: {ex.Message}";
         }
         finally
         {

@@ -2087,12 +2087,12 @@
                                                     <Button AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitHostingSignIn}"
                                                             Classes="au-button au-button--secondary au-button--compact"
                                                             Command="{Binding Git.SignInCommand}"
-                                                            Content="Sign in"
+                                                            Content="Connect"
                                                             HorizontalAlignment="Left"
                                                             IsVisible="{Binding Git.CanSignIn}"/>
                                                     <HyperlinkButton AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitHostingOpenSignIn}"
                                                                      NavigateUri="{Binding Git.HostingSignInUri}"
-                                                                     Content="Open sign-in page"
+                                                                     Content="Continue setup"
                                                                      FontSize="11"
                                                                      IsVisible="{Binding Git.HasHostingSignInUrl}"/>
                                                     <StackPanel Orientation="Horizontal" Spacing="12"

@@ -13,3 +13,4 @@ HTTP routes owned by the Diagnostics slice.
 | Method | Path | Operation |
 |---|---|---|
 | `GET` | `/api/diagnostics/workspaces/{workspaceId}` | Get |
+| `GET` | `/api/workspaces/{workspaceId}/review-snapshot` | Get |

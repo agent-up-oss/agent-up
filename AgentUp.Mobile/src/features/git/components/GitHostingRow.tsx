@@ -73,7 +73,7 @@ export function GitHostingRow({
         <Pressable
           testID="git-hosting-sign-in"
           accessibilityRole="button"
-          accessibilityLabel="Sign in"
+          accessibilityLabel="Connect repository host"
           onPress={() => {
             const startedScope = scopeKey;
             setSignInError(null);
@@ -83,20 +83,20 @@ export function GitHostingRow({
               setSignInUrl(url);
               return Linking.openURL(url);
             }).catch((error: unknown) => {
-              setSignInError(error instanceof Error ? error.message : 'Could not start repository host sign-in.');
+              setSignInError(error instanceof Error ? error.message : 'Could not start repository host setup.');
             });
           }}
         >
-          <Text style={styles.link}>Sign in</Text>
+          <Text style={styles.link}>Connect</Text>
         </Pressable>
       ) : null}
       {signInUrl ? (
         <Pressable
           testID="git-hosting-open-sign-in"
           accessibilityRole="button"
-          accessibilityLabel="Open sign-in page"
+          accessibilityLabel="Continue repository host setup"
           onPress={() => { void Linking.openURL(signInUrl); }}>
-          <Text style={styles.link}>Open sign-in page</Text>
+          <Text style={styles.link}>Continue setup</Text>
         </Pressable>
       ) : null}
       {signInError ? <Text style={styles.error}>{signInError}</Text> : null}

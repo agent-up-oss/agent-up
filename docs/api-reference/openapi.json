@@ -496,6 +496,45 @@
         }
       }
     },
+    "/api/forge/github/install/callback": {
+      "get": {
+        "tags": [
+          "Forge"
+        ],
+        "operationId": "ForgeOAuthHttpController_GithubInstallCallback",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/forge/github/manifest/callback": {
+      "get": {
+        "tags": [
+          "Forge"
+        ],
+        "operationId": "ForgeOAuthHttpController_GithubManifestCallback",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/forge/github/register": {
+      "get": {
+        "tags": [
+          "Forge"
+        ],
+        "operationId": "ForgeOAuthHttpController_GithubRegister",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/service/restart": {
       "post": {
         "tags": [
@@ -1305,6 +1344,19 @@
           "Git"
         ],
         "operationId": "GitChangesController_Push",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/review-snapshot": {
+      "get": {
+        "tags": [
+          "Diagnostics"
+        ],
+        "operationId": "WorkspaceReviewSnapshotHttpController_Get",
         "responses": {
           "200": {
             "description": "Success"

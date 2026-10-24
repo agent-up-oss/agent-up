@@ -13,6 +13,9 @@ HTTP routes owned by the Forge slice.
 | Method | Path | Operation |
 |---|---|---|
 | `GET` | `/api/forge/callback` | Callback |
+| `GET` | `/api/forge/github/install/callback` | GithubInstallCallback |
+| `GET` | `/api/forge/github/manifest/callback` | GithubManifestCallback |
+| `GET` | `/api/forge/github/register` | GithubRegister |
 | `GET` | `/api/workspaces/{workspaceId}/forge` | Get |
 | `POST` | `/api/workspaces/{workspaceId}/forge/comments` | Comment |
 | `POST` | `/api/workspaces/{workspaceId}/forge/login` | Login |
