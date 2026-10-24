@@ -109,7 +109,13 @@ public static class AuDebugRunnerFactory
                 new ScreenComparisonProvider()));
         var validation = new ValidationController(
             new ValidationCommandService(
-                new DesktopValidationLaunchProvider(processes, paths, environment, probe),
+                new DesktopValidationLaunchProvider(
+                    processes,
+                    paths,
+                    environment,
+                    probe,
+                    new ValidationWorkspaceFixtureProvider(paths),
+                    new LoopbackEndpointOccupancyProvider()),
                 environment));
         var validate = new ValidateController(
             new ValidateCommandService(

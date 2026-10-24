@@ -2,7 +2,7 @@ namespace AgentUp.Desktop.Features.Validation.Models;
 
 public static class ValidationConditionWait
 {
-    public const int DefaultAttempts = 40;
+    public const int DefaultAttempts = 120;
 
     public static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(250);
 
@@ -10,9 +10,10 @@ public static class ValidationConditionWait
         Func<CancellationToken, Task<bool>> condition,
         string name,
         Func<TimeSpan, CancellationToken, Task> delay,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int attempts = DefaultAttempts)
     {
-        for (var attempt = 0; attempt < DefaultAttempts; attempt++)
+        for (var attempt = 0; attempt < attempts; attempt++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (await condition(cancellationToken))

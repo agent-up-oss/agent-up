@@ -106,6 +106,9 @@ public static class DesktopAutomationIds
     public const string AuditNextPage = "audit.page.next";
     public const string AuditLastPage = "audit.page.last";
     public const string ConsoleShowMore = "console.show-more";
+    public const string AppSubtabConsole = "app.subtab.console";
+    public const string AppSubtabDiagnostics = "app.subtab.diagnostics";
+    public const string AppConsolePane = "app.console.pane";
     public const string WorkspaceListItems = "workspace.list.items";
     public const string WorkspaceListItemsCollapsed = "workspace.list.items.collapsed";
     public const string DatabaseList = "database.list";

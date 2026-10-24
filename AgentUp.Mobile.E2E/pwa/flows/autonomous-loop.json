@@ -1,0 +1,43 @@
+{
+  "id": "autonomous-loop",
+  "application": "Mobile",
+  "name": "Read the unattended loop checklist",
+  "description": "A person opens the Agents tab and reads the unattended-loop preconditions. Fixture: isolated Server with no forge module, so Forge capability is not ready. Enable and Activate are not clicked.",
+  "surface": "Mobile",
+  "initialPath": "/connect",
+  "initialExpectations": [
+    { "kind": "Text", "value": "Connect to server" }
+  ],
+  "steps": [
+    {
+      "id": "enter-server-url",
+      "description": "Enter the Server URL",
+      "action": "Fill",
+      "target": { "label": "Server URL" },
+      "value": "{serverUrl}",
+      "expectations": [
+        { "kind": "Text", "value": "{serverUrl}", "target": { "label": "Server URL" } }
+      ]
+    },
+    {
+      "id": "try-and-save",
+      "description": "Save the Server URL and open the workspace",
+      "action": "Click",
+      "target": { "role": "button", "name": "Try and save" },
+      "expectations": [
+        { "kind": "Visible", "value": "true", "target": { "role": "tab", "name": "Agents" } }
+      ]
+    },
+    {
+      "id": "open-agents",
+      "description": "Open the Agents tab",
+      "action": "Click",
+      "target": { "role": "tab", "name": "Agents" },
+      "expectations": [
+        { "kind": "Text", "value": "Unattended loop" },
+        { "kind": "Text", "value": "Forge capability" },
+        { "kind": "Visible", "value": "true", "target": { "testId": "agent-loop-checklist" } }
+      ]
+    }
+  ]
+}

@@ -21,7 +21,7 @@ public sealed class DesktopVisualTreeLocator
             .ToList();
 
         var matches = controls.Where(control => Matches(control, target)).ToList();
-        return matches.Count == 1 ? matches[0] : matches.FirstOrDefault(IsShown);
+        return matches.FirstOrDefault(IsShown) ?? matches.FirstOrDefault();
     }
 
     public DesktopResolvedTargetDto Describe(Control control)

@@ -59,11 +59,11 @@ Cold Desktop compiles can exceed 30 seconds. Pass `--timeout 120` for those runs
 ./au-debug down
 ```
 
-`au-debug validate --surface mobile` starts a real Server, serves the Mobile web export, and drives the connect, workspace, applications, Git, and Agents flows. Optional `--flow <id>` runs one fixture. Artifacts land in `artifacts/mobile-validation/` (`report.json` plus per-step PNGs) unless `--out` names another directory under the repository. Build the export first with `./au-debug build mobile`.
+`au-debug validate --surface mobile` starts an isolated real Server, puts `test-agent-scripted` on that Server's PATH, serves the Mobile web export, and drives the first-suite Mobile chrome flows. Optional `--flow <id>` runs one fixture. Artifacts land in `artifacts/mobile-validation/<flow-id>/` (`report.json`, numbered step PNGs, and `server.log`) unless `--out` names another directory under the repository. Build the export first with `./au-debug build mobile`.
 
 `status` probes the hosted Server, Mobile, and docs URLs and checks that the Desktop window is present. Do not curl those ports or call `xdotool` from the shell; those checks belong inside `au-debug`.
 
-`validate --surface desktop` launches Desktop against the repository Server and replays Desktop-surface flows. It writes `<out>/<flow-id>/report.json`, per-step PNGs, and `server.log`. `--out` defaults to `artifacts/desktop-validation`. `--flow` and `--workspace` select one flow or workspace; omitted, every Desktop-surface flow on listed workspaces runs. Cosmetic mouse staging is off. Exit 1 if any flow fails.
+`validate --surface desktop` starts an isolated repository Server, registers the `agent-up.json` workspace, puts `test-agent-scripted` on that Server's PATH, launches Desktop, and replays Desktop-surface flows. If `http://127.0.0.1:5001` already answers, the command fails instead of registering onto that Server. It writes `<out>/<flow-id>/report.json`, numbered per-step PNGs, and `server.log`. `--out` defaults to `artifacts/desktop-validation`. `--flow` and `--workspace` select one flow or workspace; omitted, every Desktop-surface flow on listed workspaces runs. Cosmetic mouse staging is off. Exit 1 if any flow fails. Two runs use a fresh Server data directory so the verdicts match.
 
 `docs screenshot` captures the hosted Docusaurus site after `up` is ready. With no path it captures `/docs/`. Pass `/` for the marketing homepage, or a site path under `/docs/`, `/developer-guide/`, or `/design-system` to inspect one page. `--heading` scrolls that heading into the 1440x900 viewport before capture. Viewport captures always emulate that size so a 100% zoom check is the same on every host. `--full-page` captures the whole document. Both flags can be used together.
 

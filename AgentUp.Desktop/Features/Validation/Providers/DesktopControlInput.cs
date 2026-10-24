@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 
 namespace AgentUp.Desktop.Features.Validation.Providers;
 
@@ -25,7 +26,23 @@ public sealed class DesktopControlInput
             return;
         }
 
+        if (TrySelectListBoxItem(control))
+            return;
+
         RaisePointer(control);
+    }
+
+    private static bool TrySelectListBoxItem(Control control)
+    {
+        var item = control as ListBoxItem
+                   ?? control.GetVisualAncestors().OfType<ListBoxItem>().FirstOrDefault();
+        if (item is null)
+            return false;
+        var list = item.GetVisualAncestors().OfType<ListBox>().FirstOrDefault();
+        if (list is null)
+            return false;
+        list.SelectedItem = item.DataContext ?? item;
+        return true;
     }
 
     public void Fill(Control control, string value)

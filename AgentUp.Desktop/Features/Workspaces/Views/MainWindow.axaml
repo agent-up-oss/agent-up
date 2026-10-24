@@ -27,28 +27,28 @@
     <Window.DataTemplates>
         <!-- Console sub-tab -->
         <DataTemplate DataType="portVm:ConsoleSubTabViewModel">
-            <Border Classes="subTab">
+            <Border Classes="subTab" AutomationProperties.AutomationId="{Binding AutomationId}">
                 <TextBlock Text="Console"/>
             </Border>
         </DataTemplate>
 
         <!-- Database sub-tab -->
         <DataTemplate DataType="databaseVm:DatabaseSubTabViewModel">
-            <Border Classes="subTab">
+            <Border Classes="subTab" AutomationProperties.AutomationId="{Binding AutomationId}">
                 <TextBlock Text="Database"/>
             </Border>
         </DataTemplate>
 
         <!-- Metrics sub-tab -->
         <DataTemplate DataType="portVm:MetricsSubTabViewModel">
-            <Border Classes="subTab">
+            <Border Classes="subTab" AutomationProperties.AutomationId="{Binding AutomationId}">
                 <TextBlock Text="Metrics"/>
             </Border>
         </DataTemplate>
 
         <!-- Audit sub-tab -->
         <DataTemplate DataType="portVm:AuditSubTabViewModel">
-            <Border Classes="subTab">
+            <Border Classes="subTab" AutomationProperties.AutomationId="{Binding AutomationId}">
                 <TextBlock Text="Diagnostics"/>
             </Border>
         </DataTemplate>
@@ -829,6 +829,7 @@
                                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
                                             <Button Grid.Column="0"
                                                     AutomationProperties.AutomationId="{Binding StartAutomationId}"
+                                                    AutomationProperties.Name="Start workspace"
                                                     Command="{Binding StartCommand}"
                                                     IsVisible="{Binding ShowStartButton}"
                                                     IsEnabled="{Binding !IsLifecycleBusy}"
@@ -841,6 +842,7 @@
                                             </Button>
                                             <Button Grid.Column="0"
                                                     AutomationProperties.AutomationId="{Binding StopAutomationId}"
+                                                    AutomationProperties.Name="Stop workspace"
                                                     Command="{Binding StopCommand}"
                                                     IsVisible="{Binding ShowStopButton}"
                                                     IsEnabled="{Binding !IsLifecycleBusy}"
@@ -1562,7 +1564,9 @@
                                            Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
                                            FontSize="11"
                                            Margin="20,8,20,0"/>
-                                <Panel x:Name="ConsolePane" Grid.Row="1" />
+                                <Panel x:Name="ConsolePane"
+                                       Grid.Row="1"
+                                       AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AppConsolePane}" />
                                 <StackPanel Grid.Row="2"
                                             IsVisible="{Binding Console.HasHiddenLines}"
                                             Orientation="Horizontal"

@@ -37,10 +37,17 @@ export async function writeJson(path, value) {
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-export function screenshotPath(outDir, flowId, stepId) {
-  return join(outDir, flowId, `${stepId}.png`);
+export function screenshotName(index, stepId) {
+  const safe = String(stepId ?? 'step').replace(/[^A-Za-z0-9._-]+/g, '_');
+  if (index === 0)
+    return '00-initial.png';
+  return `${String(index).padStart(2, '0')}-${safe}.png`;
 }
 
-export function relativeScreenshot(flowId, stepId) {
-  return `${flowId}/${stepId}.png`;
+export function screenshotPath(outDir, flowId, index, stepId) {
+  return join(outDir, flowId, screenshotName(index, stepId));
+}
+
+export function relativeScreenshot(index, stepId) {
+  return screenshotName(index, stepId);
 }

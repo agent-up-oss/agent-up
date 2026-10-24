@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -7,7 +7,8 @@ import test from 'node:test';
 import { parseArgs } from '../pwa/flows/args.mjs';
 import { interpolate } from '../pwa/flows/interpolate.mjs';
 import { locatorPlan } from '../pwa/flows/locate.mjs';
-import { emptyReport, finishReport, relativeScreenshot, summaryReport, writeJson } from '../pwa/flows/report.mjs';
+import { emptyReport, finishReport, relativeScreenshot, screenshotName, summaryReport, writeJson } from '../pwa/flows/report.mjs';
+import { scriptedAgentEnvironment } from '../pwa/flows/host.mjs';
 
 test('parseArgs requires --out and accepts --flow', () => {
   assert.deepEqual(parseArgs(['--out', '/tmp/out', '--flow', 'git']), { outDir: '/tmp/out', flowId: 'git' });
@@ -23,11 +24,11 @@ test('interpolate replaces host placeholders throughout a flow', () => {
   }, {
     serverUrl: 'http://127.0.0.1:5100',
     workspaceId: 'ws-1',
-    workspaceName: 'Agent-Up',
+    workspaceName: 'Agent Up',
   });
 
   assert.equal(flow.value, 'http://127.0.0.1:5100');
-  assert.equal(flow.target.name, 'Open workspace Agent-Up');
+  assert.equal(flow.target.name, 'Open workspace Agent Up');
   assert.equal(flow.expectations[0].value, '/workspace/ws-1/git');
 });
 
@@ -59,7 +60,7 @@ test('report.json names each step screenshot and the overall verdict', async () 
     const report = emptyReport({ flowId: 'connect', startedAtUtc: started });
     report.steps.push({
       id: 'try-and-save',
-      screenshot: relativeScreenshot('connect', 'try-and-save'),
+      screenshot: relativeScreenshot(1, 'try-and-save'),
       passed: true,
     });
     const finished = finishReport(report, { passed: true, finishedAtUtc: '2026-10-24T00:00:01.000Z' });
@@ -73,8 +74,27 @@ test('report.json names each step screenshot and the overall verdict', async () 
     const saved = JSON.parse(await readFile(path, 'utf8'));
     assert.equal(saved.surface, 'Mobile');
     assert.equal(saved.passed, true);
-    assert.equal(saved.flows[0].steps[0].screenshot, 'connect/try-and-save.png');
+    assert.equal(saved.flows[0].steps[0].screenshot, '01-try-and-save.png');
+    assert.equal(screenshotName(0, 'initial'), '00-initial.png');
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('scriptedAgentEnvironment writes an executable shim onto PATH', async () => {
+  const repo = await mkdtemp(join(tmpdir(), 'scripted-agent-'));
+  try {
+    const agents = join(repo, 'AgentUp.TestAgents', 'bin', 'Debug', 'net10.0');
+    await mkdir(agents, { recursive: true });
+    const executable = join(agents, 'AgentUp.TestAgents');
+    await writeFile(executable, '#!/bin/sh\n');
+    await chmod(executable, 0o755);
+    const bin = join(repo, 'bin');
+    const env = await scriptedAgentEnvironment(repo, bin);
+    const shim = env['Agents__test-agent-scripted__Command'];
+    assert.equal((await readFile(shim, 'utf8')).includes(executable), true);
+    assert.equal(env.PATH.startsWith(bin), true);
+  } finally {
+    await rm(repo, { recursive: true, force: true });
   }
 });

@@ -1,14 +1,13 @@
 import { spawn } from 'node:child_process';
-import { mkdir, access } from 'node:fs/promises';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdir, access, mkdtemp, readFile, writeFile, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter as pathDelimiter, join } from 'node:path';
 
 import { startStaticServer } from '../../harness/staticServer.mjs';
 import { freePort, removeWorkspaceTree, stopProcess } from '../../harness/stack.mjs';
 import { supervise } from '../../harness/supervise.mjs';
 
-const WORKSPACE_NAME = 'Agent-Up';
+const WORKSPACE_NAME = 'Agent Up';
 
 /**
  * A real Agent-Up Server plus the Mobile web export, isolated to this run.
@@ -22,7 +21,9 @@ export async function startValidationHost(repoRoot) {
 
   const root = await mkdtemp(join(tmpdir(), 'agent-up-validate-'));
   const dataDir = join(root, 'data');
+  const binDir = join(root, 'bin');
   await mkdir(dataDir, { recursive: true });
+  const agentEnv = await scriptedAgentEnvironment(repoRoot, binDir);
 
   const processes = [];
   const dispose = async () => {
@@ -45,6 +46,7 @@ export async function startValidationHost(repoRoot) {
       cwd: repoRoot,
       env: {
         ...process.env,
+        ...agentEnv,
         ASPNETCORE_URLS: `http://127.0.0.1:${serverPort}`,
         ASPNETCORE_ENVIRONMENT: 'Development',
         AGENTUP_AUTH_DISABLED: 'true',
@@ -68,6 +70,7 @@ export async function startValidationHost(repoRoot) {
       mobileUrl: site.url,
       workspace,
       workspaceName: WORKSPACE_NAME,
+      serverLog: () => server.said(),
       dispose,
     };
   } catch (cause) {
@@ -76,17 +79,33 @@ export async function startValidationHost(repoRoot) {
   }
 }
 
+const RESERVED_CONFIG_KEYS = new Set([
+  'name',
+  'display',
+  'prompts',
+  'commits',
+  'verification',
+  'coverage',
+]);
+
 async function registerWorkspace(serverUrl, repoRoot) {
+  const config = JSON.parse(await readFile(join(repoRoot, 'agent-up.json'), 'utf8'));
+  const body = {
+    displayName: WORKSPACE_NAME,
+    repositoryPath: repoRoot,
+    worktreePath: repoRoot,
+    branch: 'main',
+    commit: '0000000000000000000000000000000000000000',
+  };
+  for (const [key, value] of Object.entries(config)) {
+    if (RESERVED_CONFIG_KEYS.has(key) || !Array.isArray(value))
+      continue;
+    body[key] = value;
+  }
   const response = await fetch(`${serverUrl}/api/workspaces`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      displayName: WORKSPACE_NAME,
-      repositoryPath: repoRoot,
-      worktreePath: repoRoot,
-      branch: 'main',
-      commit: '0000000000000000000000000000000000000000',
-    }),
+    body: JSON.stringify(body),
   });
   if (!response.ok)
     throw new Error(`Could not register the validation workspace: ${response.status} ${await response.text()}`);
@@ -99,6 +118,38 @@ async function assertExport(exportDir) {
   } catch {
     throw new Error(`Mobile web export is missing at ${exportDir}. Run: ./au-debug build mobile`);
   }
+}
+
+export async function scriptedAgentEnvironment(repoRoot, binDir) {
+  const executable = await findTestAgentsExecutable(repoRoot);
+  await mkdir(binDir, { recursive: true });
+  const shim = join(binDir, 'test-agent-scripted');
+  await writeFile(shim, [
+    '#!/bin/sh',
+    'set -e',
+    "export AGENTUP_TEST_AGENT='test-agent-scripted'",
+    `exec '${executable}' "$@"`,
+    '',
+  ].join('\n'));
+  await chmod(shim, 0o755);
+  return {
+    PATH: `${binDir}${pathDelimiter}${process.env.PATH ?? ''}`,
+    'Agents__test-agent-scripted__Command': shim,
+  };
+}
+
+async function findTestAgentsExecutable(repoRoot) {
+  for (const configuration of ['Debug', 'Release']) {
+    const candidate = join(repoRoot, 'AgentUp.TestAgents', 'bin', configuration, 'net10.0', 'AgentUp.TestAgents');
+    try {
+      await access(candidate);
+      return candidate;
+    } catch (error) {
+      if (error && typeof error === 'object' && 'code' in error && error.code !== 'ENOENT')
+        throw error;
+    }
+  }
+  throw new Error('Could not find AgentUp.TestAgents. Build AgentUp.TestAgents before au-debug validate --surface mobile.');
 }
 
 export function varsFor(host) {

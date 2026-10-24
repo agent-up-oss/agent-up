@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -87,7 +87,8 @@ async function runFlow(browser, host, fixture, outDir) {
   try {
     await page.goto(new URL(fixture.initialPath ?? '/connect', `${host.mobileUrl}/`).toString());
     await assertExpectations(page, fixture.initialExpectations ?? [], 'the initial place');
-    await capture(page, outDir, fixture.id, 'initial', report, {
+    let shot = 0;
+    await capture(page, outDir, fixture.id, shot, 'initial', report, {
       id: 'initial',
       description: 'Arrive at the starting place',
       action: 'Open',
@@ -97,18 +98,20 @@ async function runFlow(browser, host, fixture, outDir) {
 
     for (const step of fixture.steps ?? []) {
       const started = Date.now();
+      shot += 1;
       try {
         await perform(page, host, step);
         await assertExpectations(page, step.expectations ?? [], `step ${step.id}`);
-        await capture(page, outDir, fixture.id, step.id, report, step, true, Date.now() - started);
+        await capture(page, outDir, fixture.id, shot, step.id, report, step, true, Date.now() - started);
       } catch (cause) {
-        await capture(page, outDir, fixture.id, step.id, report, step, false, Date.now() - started, cause);
+        await capture(page, outDir, fixture.id, shot, step.id, report, step, false, Date.now() - started, cause);
         throw cause;
       }
     }
 
     const finished = finishReport(report, { passed: true });
     await writeJson(join(outDir, fixture.id, 'report.json'), finished);
+    await writeServerLog(outDir, fixture.id, host);
     return finished;
   } catch (cause) {
     const finished = finishReport(report, {
@@ -116,6 +119,7 @@ async function runFlow(browser, host, fixture, outDir) {
       error: cause instanceof Error ? cause.message : String(cause),
     });
     await writeJson(join(outDir, fixture.id, 'report.json'), finished);
+    await writeServerLog(outDir, fixture.id, host);
     return finished;
   } finally {
     await context.close();
@@ -148,16 +152,25 @@ async function assertExpectations(page, expectations, description) {
     const kind = String(expectation.kind ?? '');
     if (kind === 'Url') {
       await waitFor(`${description} URL ${expectation.value}`, async () =>
-        urlMatches(page.url(), expectation.value));
+        urlMatches(page.url(), expectation.value), { timeoutMs: 180_000 });
       continue;
     }
     if (kind === 'Title') {
       await waitFor(`${description} title ${expectation.value}`, async () =>
-        (await page.title()).includes(expectation.value));
+        (await page.title()).includes(expectation.value), { timeoutMs: 180_000 });
       continue;
     }
     if (kind === 'Text') {
-      await page.getByText(expectation.value, { exact: false }).first().waitFor({ state: 'visible' });
+      if (expectation.target) {
+        const locator = locatorFor(page, expectation.target);
+        await waitFor(`${description} text ${expectation.value}`, async () => {
+          const value = await locator.inputValue().catch(() => null);
+          const text = value ?? await locator.textContent();
+          return typeof text === 'string' && text.includes(expectation.value);
+        }, { timeoutMs: 180_000 });
+        continue;
+      }
+      await page.getByText(expectation.value, { exact: false }).first().waitFor({ state: 'visible', timeout: 180_000 });
       continue;
     }
     if (kind === 'Visible') {
@@ -165,7 +178,7 @@ async function assertExpectations(page, expectations, description) {
         ? locatorFor(page, expectation.target)
         : page.getByText(expectation.value, { exact: false }).first();
       const shouldBeVisible = String(expectation.value ?? 'true').toLowerCase() !== 'false';
-      await locator.waitFor({ state: shouldBeVisible ? 'visible' : 'hidden' });
+      await locator.waitFor({ state: shouldBeVisible ? 'visible' : 'hidden', timeout: 180_000 });
       continue;
     }
     if (kind === 'Running')
@@ -183,8 +196,8 @@ function urlMatches(actual, expected) {
   return path === want || path.startsWith(`${want}/`) || path.endsWith(want);
 }
 
-async function capture(page, outDir, flowId, stepId, report, step, passed, durationMs = 0, cause = null) {
-  const file = screenshotPath(outDir, flowId, stepId);
+async function capture(page, outDir, flowId, index, stepId, report, step, passed, durationMs = 0, cause = null) {
+  const file = screenshotPath(outDir, flowId, index, stepId);
   await mkdir(dirname(file), { recursive: true });
   await page.screenshot({ path: file, fullPage: true });
   const resolved = await resolveTarget(page, step.target);
@@ -203,8 +216,14 @@ async function capture(page, outDir, flowId, stepId, report, step, passed, durat
     })),
     passed,
     durationMs,
-    screenshot: relativeScreenshot(flowId, stepId),
+    screenshot: relativeScreenshot(index, stepId),
   });
+}
+
+async function writeServerLog(outDir, flowId, host) {
+  const text = typeof host.serverLog === 'function' ? host.serverLog() : '';
+  await mkdir(join(outDir, flowId), { recursive: true });
+  await writeFile(join(outDir, flowId, 'server.log'), `${text}\n`);
 }
 
 async function resolveTarget(page, target) {

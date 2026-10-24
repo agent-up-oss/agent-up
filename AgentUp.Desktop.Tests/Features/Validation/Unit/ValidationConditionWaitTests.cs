@@ -27,4 +27,23 @@ public sealed class ValidationConditionWaitTests
 
         Assert.That(error, Is.EqualTo("Timed out waiting for enabled 'git.commit'."));
     }
+
+    [Test]
+    public async Task UntilAsync_stopsAfterTheRequestedAttemptCount()
+    {
+        var attempts = 0;
+        var error = await ValidationConditionWait.UntilAsync(
+            _ =>
+            {
+                attempts++;
+                return Task.FromResult(false);
+            },
+            "visible 'login.connect'",
+            (_, _) => Task.CompletedTask,
+            CancellationToken.None,
+            attempts: 2);
+
+        Assert.That(attempts, Is.EqualTo(2));
+        Assert.That(error, Does.Contain("visible 'login.connect'"));
+    }
 }

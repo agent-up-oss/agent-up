@@ -191,6 +191,19 @@ public sealed class MobileSurfaceFlowRulesTests
     public void Validate_acceptsANameOf120Characters() =>
         Assert.That(MobileSurfaceFlowRules.Validate(Request(name: new string('a', 120))), Is.Null);
 
+    [Test]
+    public void Validate_rejectsAFillWhoseOnlyExpectationIsTheSameField() =>
+        Assert.That(
+            MobileSurfaceFlowRules.Validate(Request(steps:
+            [
+                Step(
+                    action: ValidationAction.Fill,
+                    target: new(Label: "Server URL"),
+                    value: "http://127.0.0.1:5001",
+                    expectations: [new(ValidationExpectation.Visible, "true", new(Label: "Server URL"))])
+            ])),
+            Does.Contain("visible consequence"));
+
     private static SaveValidationFlowRequest Request(
         string application = MobileSurfaceFlowRules.ApplicationName,
         string name = "Open Agents",

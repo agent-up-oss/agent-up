@@ -30,6 +30,8 @@ public static class MobileSurfaceFlowRules
             return "Mobile Navigate steps require an expo-router path such as /connect or /workspace/{workspaceId}/git.";
         if (request.Steps.Any(step => step.Action is ValidationAction.Click or ValidationAction.Fill && !HasSemanticLocator(step.Target)))
             return "Mobile click and fill steps require a role, label, name, text, or testId locator.";
+        if (request.Steps.Select(ValidationFlowAuthoringRules.SameTargetOnlyVisible).FirstOrDefault(error => error is not null) is { } authoring)
+            return authoring;
         return null;
     }
 

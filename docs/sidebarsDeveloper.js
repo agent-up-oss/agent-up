@@ -91,6 +91,7 @@ const sidebars = {
       collapsed: true,
       items: [
         { type: 'doc', id: 'verification/index', label: 'General' },
+        'verification/qa-coverage',
       ],
     },
     {
