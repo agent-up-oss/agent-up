@@ -394,6 +394,8 @@ export default function DesignSystemPage() {
                 <button
                   type="button"
                   role="tab"
+                  id="space-tab-current"
+                  aria-controls="space-panel-current"
                   aria-selected={space === 'current'}
                   className={`au-chip${space === 'current' ? ' au-chip--selected' : ''}`}
                   onClick={() => setSpace('current')}
@@ -403,6 +405,8 @@ export default function DesignSystemPage() {
                 <button
                   type="button"
                   role="tab"
+                  id="space-tab-new"
+                  aria-controls="space-panel-new"
                   aria-selected={space === 'new'}
                   className={`au-chip${space === 'new' ? ' au-chip--selected' : ''}`}
                   onClick={() => setSpace('new')}
@@ -412,48 +416,63 @@ export default function DesignSystemPage() {
               </div>
             </div>
 
-            {space === 'new' ? <NewUiSpace
-              scenes={newUiScenes}
-              activeId={activeNewUi}
-              onSelect={setActiveNewUi}
-            /> : <div className={styles.screenNav}>
-              <nav aria-label="Assembled screens">
-                <div className={styles.screenChipRow} role="tablist" aria-orientation="horizontal">
-                  {screens.map(item => (
-                    <button
-                      key={item.id}
-                      id={`screen-tab-${item.id}`}
-                      type="button"
-                      className={`au-chip${item.id === activeScreen ? ' au-chip--selected' : ''} ${styles.screenChip}`}
-                      role="tab"
-                      aria-selected={item.id === activeScreen}
-                      aria-controls={`screen-panel-${item.id}`}
-                      onClick={() => selectScreen(item.id)}
-                    >
-                      {item.title}
-                    </button>
-                  ))}
-                </div>
-              </nav>
-
-              <section
-                id={`screen-panel-${screen.id}`}
-                className={styles.screenPanel}
-                role="tabpanel"
-                aria-labelledby={`screen-tab-${screen.id}`}
-              >
-                <div className={styles.screenCopy}>
-                  <h3 className="au-page-title">{screen.title}</h3>
-                  <p className="au-muted">{screen.intro}</p>
-                </div>
-                <div className="au-screenshot-stage">
-                  <div className="au-screenshot-pair">
-                    {desktop ? <ScenePreview scene={desktop} label="Desktop" /> : null}
-                    {mobile ? <ScenePreview scene={mobile} label="Mobile" /> : null}
+            <div
+              id="space-panel-new"
+              role="tabpanel"
+              aria-labelledby="space-tab-new"
+              hidden={space !== 'new'}
+            >
+              <NewUiSpace
+                scenes={newUiScenes}
+                activeId={activeNewUi}
+                onSelect={setActiveNewUi}
+              />
+            </div>
+            <div
+              id="space-panel-current"
+              role="tabpanel"
+              aria-labelledby="space-tab-current"
+              hidden={space !== 'current'}
+            >
+              <div className={styles.screenNav}>
+                <nav aria-label="Assembled screens">
+                  <div className={styles.screenChipRow} role="tablist" aria-orientation="horizontal">
+                    {screens.map(item => (
+                      <button
+                        key={item.id}
+                        id={`screen-tab-${item.id}`}
+                        type="button"
+                        className={`au-chip${item.id === activeScreen ? ' au-chip--selected' : ''} ${styles.screenChip}`}
+                        role="tab"
+                        aria-selected={item.id === activeScreen}
+                        aria-controls={`screen-panel-${item.id}`}
+                        onClick={() => selectScreen(item.id)}
+                      >
+                        {item.title}
+                      </button>
+                    ))}
                   </div>
-                </div>
-              </section>
-            </div>}
+                </nav>
+
+                <section
+                  id={`screen-panel-${screen.id}`}
+                  className={styles.screenPanel}
+                  role="tabpanel"
+                  aria-labelledby={`screen-tab-${screen.id}`}
+                >
+                  <div className={styles.screenCopy}>
+                    <h3 className="au-page-title">{screen.title}</h3>
+                    <p className="au-muted">{screen.intro}</p>
+                  </div>
+                  <div className="au-screenshot-stage">
+                    <div className="au-screenshot-pair">
+                      {desktop ? <ScenePreview scene={desktop} label="Desktop" /> : null}
+                      {mobile ? <ScenePreview scene={mobile} label="Mobile" /> : null}
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
           </div>
         </div>
       </section>
