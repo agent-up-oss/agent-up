@@ -136,10 +136,13 @@ describe('agent sign-in', () => {
         // The pasted-code shape: the value travels back through the client, exactly as a user
         // carries it out of the browser. fill() taps first so Fabric onChangeText enables Finish;
         // typeText alone leaves the button disabled. iOS then covers Finish with the keyboard.
+        // Detox 20.42's Jest device has no dismissKeyboard; Return blurs the field, then wait
+        // until Finish is hittable instead of sleeping.
         await waitFor(element(by.id('agent-signin-code-input'))).toBeVisible().withTimeout(30_000);
         await fill('agent-signin-code-input', carriedCode);
         if (device.getPlatform() === 'ios') {
-          await device.dismissKeyboard();
+          await element(by.id('agent-signin-code-input')).tapReturnKey();
+          await waitFor(element(by.id('agent-signin-submit-code'))).toBeVisible().withTimeout(30_000);
         }
         await tap('agent-signin-submit-code', 60_000);
       }
