@@ -804,7 +804,7 @@ The CLI is a thin developer convenience wrapper over Server capabilities.
 
 `agent-up start` posts workspace identity plus legacy `applications`, `desktopApplications`, and `services`, and every other `agent-up.json` root array as `runtimeSections`. It does not bind those arrays; the Server matches names to enabled runtime-kind module ids. CLI HTTP, including `start`, uses a 20-minute timeout so a cold workspace is not reported as failed while the Server is still working.
 
-`agent-up capabilities list|enable|disable|bootstrap` is the human CLI over Server capability modules. `bootstrap` packs the first-party set through `scripts/pack-first-party-capabilities.sh` into the Server registry (`AGENTUP_CAPABILITY_REGISTRY_PATH` or `.agent-up-dev/capability-registry`) and enables each module. `list` prints id, version, enabled, canRun, and the reason when a module cannot run. User guide: `docs/user-docs/workspaces/index.md`.
+`agent-up capabilities list|enable|disable|bootstrap` is the human CLI over Server capability modules. Linux and macOS solution builds pack the already-built first-party set through `scripts/pack-first-party-capabilities.sh` into `.agent-up-dev/capability-registry`; `AgentUpPackFirstPartyCapabilities=false` opts out and `AgentUpDevelopmentCapabilityRegistry` changes that build output. `bootstrap` packs the first-party set into the Server registry (`AGENTUP_CAPABILITY_REGISTRY_PATH` or `.agent-up-dev/capability-registry`) and enables each module. `list` prints id, version, enabled, canRun, and the reason when a module cannot run. User guide: `docs/user-docs/workspaces/index.md`.
 
 ## AUDebug
 

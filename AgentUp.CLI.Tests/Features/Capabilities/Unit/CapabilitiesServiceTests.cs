@@ -194,7 +194,8 @@ public sealed class CapabilitiesServiceTests
                 CliDomain.Capability().Named("codex").Enabled().Build(),
                 CliDomain.Capability().Named("cursor").Enabled().Build(),
                 CliDomain.Capability().Named("claude").Enabled().Build(),
-                CliDomain.Capability().Named("github").Enabled().Build()
+                CliDomain.Capability().Named("github").Enabled().Build(),
+                CliDomain.Capability().Named("forgejo").Enabled().Build()
             ]
         };
 

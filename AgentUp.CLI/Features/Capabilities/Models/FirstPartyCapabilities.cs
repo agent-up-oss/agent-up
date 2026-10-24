@@ -11,6 +11,7 @@ public static class FirstPartyCapabilities
         "codex",
         "cursor",
         "claude",
-        "github"
+        "github",
+        "forgejo"
     ];
 }

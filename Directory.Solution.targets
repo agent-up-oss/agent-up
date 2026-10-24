@@ -1,0 +1,14 @@
+<Project>
+  <PropertyGroup>
+    <AgentUpPackFirstPartyCapabilities Condition="'$(AgentUpPackFirstPartyCapabilities)' == ''">true</AgentUpPackFirstPartyCapabilities>
+    <AgentUpDevelopmentCapabilityRegistry Condition="'$(AgentUpDevelopmentCapabilityRegistry)' == ''">$(MSBuildThisFileDirectory).agent-up-dev/capability-registry</AgentUpDevelopmentCapabilityRegistry>
+  </PropertyGroup>
+
+  <Target Name="PackFirstPartyCapabilities"
+          AfterTargets="Build"
+          Condition="'$(AgentUpPackFirstPartyCapabilities)' == 'true' and '$(OS)' != 'Windows_NT'">
+    <Exec Command="bash &quot;$(MSBuildThisFileDirectory)scripts/pack-first-party-capabilities.sh&quot; &quot;$(AgentUpDevelopmentCapabilityRegistry)&quot;"
+          WorkingDirectory="$(MSBuildThisFileDirectory)"
+          EnvironmentVariables="CONFIGURATION=$(Configuration);AGENTUP_CAPABILITY_PACK_NO_BUILD=1" />
+  </Target>
+</Project>
