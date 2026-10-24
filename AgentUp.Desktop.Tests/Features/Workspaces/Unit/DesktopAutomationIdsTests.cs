@@ -44,6 +44,8 @@ public sealed class DesktopAutomationIdsTests
                 DesktopAutomationIds.ApplicationTab("Web"),
                 DesktopAutomationIds.AgentLoopPrecondition("autonomyEnabled"),
                 DesktopAutomationIds.AgentPickerRow("Codex"),
+                DesktopAutomationIds.AgentEnable("Codex"),
+                DesktopAutomationIds.AgentThought("think-1"),
                 DesktopAutomationIds.AgentSession("s1"),
                 DesktopAutomationIds.AgentOption("allow-once"),
                 DesktopAutomationIds.GitSelect("src/App.cs"),
@@ -55,9 +57,15 @@ public sealed class DesktopAutomationIdsTests
                 DesktopAutomationIds.GitHostingSignIn,
                 DesktopAutomationIds.GitHostingOpenSignIn,
                 DesktopAutomationIds.GitHostingChecks,
+                DesktopAutomationIds.AuditPage(2),
+                DesktopAutomationIds.AuditFilter("error"),
+                DesktopAutomationIds.GitLogRef("main"),
+                DesktopAutomationIds.GitDiffJump("@@ -1 +1 @@"),
                 DesktopAutomationIds.ValidationPlay("flow"),
                 DesktopAutomationIds.CapabilityEnable("dotnet"),
-                DesktopAutomationIds.CapabilityDisable("dotnet")
+                DesktopAutomationIds.CapabilityDisable("dotnet"),
+                DesktopAutomationIds.ConsoleShowMore,
+                DesktopAutomationIds.CapabilityClose
             },
             Is.EqualTo(new[]
             {
@@ -70,6 +78,8 @@ public sealed class DesktopAutomationIdsTests
                 "app.tab.Web",
                 "agent.loop.precondition.autonomyEnabled",
                 "agent.picker.Codex",
+                "agent.enable.Codex",
+                "agent.thought.think-1",
                 "agent.session.s1",
                 "agent.option.allow-once",
                 "git.select.src/App.cs",
@@ -81,8 +91,14 @@ public sealed class DesktopAutomationIdsTests
                 "git.hosting.sign-in",
                 "git.hosting.open-sign-in",
                 "git.hosting.checks",
+                "audit.page.2",
+                "audit.filter.error",
+                "git.log.ref.main",
+                "git.diff.jump.@@ -1 +1 @@",
                 "validation.play.flow",
                 "capability.enable.dotnet",
-                "capability.disable.dotnet"
+                "capability.disable.dotnet",
+                "console.show-more",
+                "capability.close"
             }));
 }

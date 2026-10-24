@@ -1,7 +1,7 @@
 namespace AgentUp.Desktop.Features.Validation.DTOs;
 
 public enum ValidationActionDto { Navigate, Click, Fill, Press }
-public enum ValidationExpectationDto { Url, Title, Text, Visible }
+public enum ValidationExpectationDto { Url, Title, Text, Visible, Running, Enabled, State, Absent }
 public enum ValidationSurfaceDto { Application = 0, Desktop = 1 }
 
 public sealed record ValidationTargetDto(

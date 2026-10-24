@@ -71,7 +71,7 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
         var flow = (await repository.LoadAsync(workspaceId, ct)).SingleOrDefault(x => x.Id == id);
         if (flow is null) return new(false, "Validation flow was not found.");
         if (flow.Surface == ValidationSurface.Desktop)
-            return new(false, "Desktop surface replay is not implemented.");
+            return new(false, "Desktop surface flows run on the Desktop client. Use au-debug validate --surface desktop.");
         var workspace = workspaces.GetById(workspaceId);
         var app = workspace?.Applications.SingleOrDefault(x => x.Name == flow.Application);
         if (app?.Kind == ApplicationKind.Desktop)

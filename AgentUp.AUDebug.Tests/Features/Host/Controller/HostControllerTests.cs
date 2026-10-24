@@ -16,6 +16,8 @@ using AgentUp.AUDebug.Features.Screenshots.Services;
 using AgentUp.AUDebug.Features.Test.Controllers;
 using AgentUp.AUDebug.Features.Test.Providers;
 using AgentUp.AUDebug.Features.Test.Services;
+using AgentUp.AUDebug.Features.Validation.Controllers;
+using AgentUp.AUDebug.Features.Validation.Services;
 using AgentUp.AUDebug.Tests.Fake;
 
 namespace AgentUp.AUDebug.Tests.Features.Host.Controller;
@@ -36,6 +38,7 @@ public sealed class HostControllerTests
             Assert.That(output.ToString(), Does.Contain("desktop screenshot"));
             Assert.That(output.ToString(), Does.Contain("screenshots persist"));
             Assert.That(output.ToString(), Does.Contain("test <suite>"));
+            Assert.That(output.ToString(), Does.Contain("validate --surface desktop"));
         });
     }
 
@@ -136,6 +139,16 @@ public sealed class HostControllerTests
     }
 
     [Test]
+    public async Task ValidateDesktop_routesToValidation()
+    {
+        using var output = new StringWriter();
+        var exit = await Controller(output).RunAsync(["validate", "--surface", "desktop", "--out", "/tmp/out"]);
+
+        Assert.That(exit, Is.EqualTo(0));
+        Assert.That(output.ToString(), Does.Contain("Desktop validation passed"));
+    }
+
+    [Test]
     public async Task Build_scopedTarget_routesWithoutLaunchingLaterTargets()
     {
         using var output = new StringWriter();
@@ -187,6 +200,8 @@ public sealed class HostControllerTests
                 new FakeScreenRunStore(),
                 new FakeDocumentedScreens(),
                 new ScreenComparisonProvider()));
-        return new HostController(host, desktop, mobile, docs, testController, screenshots, screens, new DebugArgParser(), debugOutput);
+        var validation = new ValidationController(
+            new ValidationCommandService(new FakeDesktopValidationLaunch(), new FakeEnvironment()));
+        return new HostController(host, desktop, mobile, docs, testController, screenshots, screens, validation, new DebugArgParser(), debugOutput);
     }
 }

@@ -44,6 +44,7 @@ using AgentUp.Desktop.Features.Capabilities.Controllers;
 using AgentUp.Desktop.Features.Capabilities.Providers;
 using AgentUp.Desktop.Features.Capabilities.Services;
 using AgentUp.Desktop.Features.Capabilities.ViewModels;
+using AgentUp.Desktop.Features.Validation.Controllers;
 using AgentUp.Desktop.Features.Validation.Providers;
 using AgentUp.Desktop.Features.Validation.Services;
 using AgentUp.Desktop.Features.Validation.ViewModels;
@@ -122,7 +123,22 @@ public static class MainViewModelFactory
             gitClient ?? new GitApiClient(DefaultGitHttpClient)));
         var agents = new AgentsController(new AgentChatService(agentClient ?? new AgentApiClient(DefaultGitHttpClient)));
         var validationApi = validationClient ?? new ValidationFlowApiClient(DefaultValidationHttpClient);
-        var validationReplay = new ValidationFlowReplayService(validationApi, new BrowserInteractionController());
+        var desktopEnvironment = new DesktopValidationEnvironment();
+        var desktopHost = new AvaloniaValidationReplayHost(
+            new DesktopVisualTreeLocator(),
+            new DesktopControlInput(),
+            new DesktopWindowCapture(),
+            new DesktopSurfaceNavigator());
+        var artifacts = new ValidationArtifactStore();
+        var validationReplay = new ValidationFlowReplayService(
+            validationApi,
+            new BrowserInteractionController(),
+            desktopHost,
+            artifacts,
+            desktopEnvironment.SkipCosmeticStaging);
+        var desktopLaunch = new DesktopValidationLaunchController(
+            desktopHost,
+            new DesktopValidationLaunchService(validationReplay, validationApi, artifacts, desktopHost, desktopEnvironment));
         var modulesController = new CapabilityModulesController(new CapabilityModulesCatalogService(
             capabilityModulesClient ?? new CapabilityModulesApiClient(DefaultCapabilityHttpClient)));
         var modules = new CapabilityModulesViewModel(modulesController);
@@ -143,7 +159,8 @@ public static class MainViewModelFactory
             ports,
             new ValidationViewModel(validationApi, validationReplay),
             validationReplay,
-            modules);
+            modules,
+            desktopLaunch);
     }
 
     public static MainViewModel Create(HttpClient http, LoginViewModel? login = null, HttpClient? agentEventsHttp = null)

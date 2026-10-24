@@ -21,6 +21,7 @@ using AgentUp.Desktop.Features.Validation.Interfaces;
 using AgentUp.Desktop.Features.Validation.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome;
+using AgentUp.Desktop.Shared.Providers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -59,6 +60,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public ValidationViewModel? Validation { get; }
     public CapabilityModulesViewModel? Modules { get; }
     internal IValidationReplayConnector? ValidationReplay { get; }
+    internal DesktopValidationLaunchController? DesktopValidationLaunch { get; }
     public bool IsValidationOpen => ShowValidation && Validation is { IsCollapsed: false };
     public bool ShowValidation =>
         Login.Surfaces.Validation && Validation is not null && ShowApplicationChrome;
@@ -175,7 +177,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         PortsController ports,
         ValidationViewModel? validation = null,
         IValidationReplayConnector? validationReplay = null,
-        CapabilityModulesViewModel? modules = null)
+        CapabilityModulesViewModel? modules = null,
+        DesktopValidationLaunchController? desktopValidationLaunch = null)
     {
         Sidebar = sidebar;
         Applications = applications;
@@ -191,6 +194,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         Validation = validation;
         ValidationReplay = validationReplay;
         Modules = modules;
+        DesktopValidationLaunch = desktopValidationLaunch;
         _validationController = validation is null ? null : new ValidationController(validation);
         if (validation is not null)
             validation.WhenAnyValue(x => x.IsCollapsed)
@@ -803,7 +807,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             "↺",
             15,
             Sidebar.RefreshCommand,
-            "Reload workspaces");
+            "Reload workspaces",
+            DesktopAutomationIds.ChromeReload);
         if (Modules is not null)
         {
             yield return new ChromeIconButtonViewModel(
@@ -811,7 +816,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
                 "⌘",
                 14,
                 Modules.OpenCommand,
-                "Capability modules");
+                "Capability modules",
+                DesktopAutomationIds.ChromeCapabilities);
         }
         yield return _chromeServerStatus;
     }

@@ -1,5 +1,6 @@
 using System.Reactive;
 using AgentUp.Desktop.Features.Agents.Providers;
+using AgentUp.Desktop.Shared.Providers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Agents.ViewModels;
@@ -24,6 +25,7 @@ public sealed class AgentChatItemViewModel : ReactiveObject
     public string Role { get; }
     public string? ToolCallId { get; }
     public string? DisplayRole { get; }
+    public string AutomationId => DesktopAutomationIds.AgentThought(ToolCallId ?? Role);
     public ReactiveCommand<Unit, Unit> ToggleCommand { get; }
     public string Text
     {

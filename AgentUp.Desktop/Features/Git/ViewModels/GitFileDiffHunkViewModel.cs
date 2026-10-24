@@ -1,3 +1,5 @@
+using AgentUp.Desktop.Shared.Providers;
+
 namespace AgentUp.Desktop.Features.Git.ViewModels;
 
 public sealed class GitFileDiffHunkViewModel
@@ -10,4 +12,5 @@ public sealed class GitFileDiffHunkViewModel
 
     public string Label { get; }
     public int LineIndex { get; }
+    public string AutomationId => DesktopAutomationIds.GitDiffJump(Label);
 }

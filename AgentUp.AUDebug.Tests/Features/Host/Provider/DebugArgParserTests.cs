@@ -435,4 +435,39 @@ public sealed class DebugArgParserTests
 
         Assert.That(error, Does.Contain("at most a surface and one screen name"));
     }
+
+    [Test]
+    public void Parse_validate_readsDesktopSurfaceFlags()
+    {
+        var (command, error) = _parser.Parse([
+            "validate", "--surface", "desktop", "--flow", "open-git", "--out", "artifacts/qa", "--workspace", "main"
+        ]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(error, Is.Null);
+            Assert.That(command!.Verb, Is.EqualTo("validate"));
+            Assert.That(command.Surface, Is.EqualTo("desktop"));
+            Assert.That(command.FlowId, Is.EqualTo("open-git"));
+            Assert.That(command.OutputPath, Is.EqualTo("artifacts/qa"));
+            Assert.That(command.WorkspaceName, Is.EqualTo("main"));
+        });
+    }
+
+    [Test]
+    public void Parse_validate_requiresDesktopSurface()
+    {
+        var (_, missing) = _parser.Parse(["validate"]);
+        var (_, mobile) = _parser.Parse(["validate", "--surface", "mobile"]);
+
+        Assert.That(missing, Does.Contain("--surface desktop"));
+        Assert.That(mobile, Does.Contain("Mobile surface replay is not implemented"));
+    }
+
+    [Test]
+    public void Parse_validateFlags_areRejectedOnOtherCommands()
+    {
+        var (_, error) = _parser.Parse(["status", "--surface", "desktop"]);
+        Assert.That(error, Does.Contain("--surface is only valid for validate"));
+    }
 }

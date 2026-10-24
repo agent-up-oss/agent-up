@@ -22,6 +22,9 @@ using AgentUp.AUDebug.Features.Screenshots.Services;
 using AgentUp.AUDebug.Features.Test.Controllers;
 using AgentUp.AUDebug.Features.Test.Providers;
 using AgentUp.AUDebug.Features.Test.Services;
+using AgentUp.AUDebug.Features.Validation.Controllers;
+using AgentUp.AUDebug.Features.Validation.Providers;
+using AgentUp.AUDebug.Features.Validation.Services;
 using AgentUp.AUDebug.Shared.Providers;
 
 namespace AgentUp.AUDebug.Composition;
@@ -101,6 +104,10 @@ public static class AuDebugRunnerFactory
                 new ScreenRunStore(paths),
                 new DocumentedScreensProvider(paths),
                 new ScreenComparisonProvider()));
-        return new HostController(host, desktop, mobile, docs, tests, screenshotsController, screens, new DebugArgParser(), outputService);
+        var validation = new ValidationController(
+            new ValidationCommandService(
+                new DesktopValidationLaunchProvider(processes, paths, environment, probe),
+                environment));
+        return new HostController(host, desktop, mobile, docs, tests, screenshotsController, screens, validation, new DebugArgParser(), outputService);
     }
 }

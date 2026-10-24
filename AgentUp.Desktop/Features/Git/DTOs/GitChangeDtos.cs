@@ -52,6 +52,7 @@ public sealed record GitLogRefDto(string Name, string Kind)
     public bool CanCheckout => Kind is "local" or "remote";
     public bool IsHead => Kind == "head";
     public bool IsRemote => Kind == "remote";
+    public string AutomationId => AgentUp.Desktop.Shared.Providers.DesktopAutomationIds.GitLogRef(Name);
 }
 
 public sealed record GitLogGraphLinkDto(int FromLane, int ToLane, int ColorLane);

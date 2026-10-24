@@ -120,6 +120,7 @@
 
         <DataTemplate DataType="chromeVm:ChromeIconButtonViewModel">
             <Button Name="{Binding Name}"
+                    AutomationProperties.AutomationId="{Binding AutomationId}"
                     Command="{Binding Command}"
                     ToolTip.Tip="{Binding ToolTip}">
                 <Border Classes="titleToolButton">
@@ -131,7 +132,8 @@
         </DataTemplate>
 
         <DataTemplate DataType="chromeVm:ChromeServerStatusViewModel">
-            <Button Command="{Binding OpenConnectionsCommand}"
+            <Button AutomationProperties.AutomationId="{Binding AutomationId}"
+                    Command="{Binding OpenConnectionsCommand}"
                     ToolTip.Tip="Switch server">
                 <Border x:Name="ServerStatusBadge"
                         Margin="6,0,0,0"
@@ -177,6 +179,7 @@
                         HorizontalContentAlignment="Stretch"
                         Focusable="False"
                         IsVisible="{Binding ShowHeader}"
+                        AutomationProperties.AutomationId="{Binding AutomationId}"
                         Command="{Binding ToggleCommand}">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Classes="au-muted" Text="{Binding Summary}"/>
@@ -199,6 +202,7 @@
                                         HorizontalContentAlignment="Stretch"
                                         Focusable="False"
                                         IsVisible="{Binding IsThought}"
+                                        AutomationProperties.AutomationId="{Binding AutomationId}"
                                         Command="{Binding ToggleCommand}">
                                     <StackPanel>
                                         <TextBlock Classes="au-field-label" Text="{Binding Label}"/>
@@ -807,6 +811,7 @@
                               HorizontalScrollBarVisibility="Disabled">
                     <ListBox HorizontalAlignment="Stretch"
                              Width="{Binding #SidebarRail.Bounds.Width}"
+                             AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.WorkspaceListItems}"
                              ItemsSource="{Binding Sidebar.Workspaces}"
                              SelectedItem="{Binding Sidebar.SelectedWorkspace}">
                         <ListBox.ItemsPanel>
@@ -904,6 +909,7 @@
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
                     <ListBox
+                             AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.WorkspaceListItemsCollapsed}"
                              ItemsSource="{Binding Sidebar.Workspaces}"
                              SelectedItem="{Binding Sidebar.SelectedWorkspace}">
                         <ListBox.ItemTemplate>
@@ -1387,11 +1393,12 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <StackPanel Spacing="8" AutomationProperties.AutomationId="{Binding Agent, StringFormat='agent.picker.{0}'}">
+                                                    <StackPanel Spacing="8">
                                                         <Button Classes="au-choice"
                                                                 HorizontalAlignment="Stretch"
                                                                 HorizontalContentAlignment="Stretch"
                                                                 Focusable="False"
+                                                                AutomationProperties.AutomationId="{Binding AutomationId}"
                                                                 Command="{Binding $parent[Window].DataContext.Agent.SelectAgentCommand}"
                                                                 CommandParameter="{Binding Agent}"
                                                                 IsVisible="{Binding Available}">
@@ -1429,6 +1436,7 @@
                                                                 <Button Classes="au-button au-button--compact"
                                                                         HorizontalAlignment="Left"
                                                                         Content="Enable"
+                                                                        AutomationProperties.AutomationId="{Binding EnableAutomationId}"
                                                                         Command="{Binding $parent[Window].DataContext.Agent.EnableAgentCommand}"
                                                                         CommandParameter="{Binding Agent}"/>
                                                             </StackPanel>
@@ -1563,6 +1571,7 @@
                                                VerticalAlignment="Center"
                                                Text="Showing last 2,000 lines."/>
                                     <Button Command="{Binding Console.ShowMoreCommand}"
+                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.ConsoleShowMore}"
                                             Padding="0"
                                             Background="Transparent"
                                             BorderThickness="0"
@@ -1602,6 +1611,7 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <ToggleButton Classes="filterChip"
+                                                              AutomationProperties.AutomationId="{Binding AutomationId}"
                                                               IsChecked="{Binding IsSelected}">
                                                     <TextBlock Text="{Binding Label}" Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}" FontSize="11"/>
                                                 </ToggleButton>
@@ -1639,10 +1649,10 @@
                                     </ScrollViewer>
                                 </Grid>
                                 <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="6" Margin="20,8" VerticalAlignment="Center">
-                                    <Button x:Name="AuditFirstPageButton" Classes="auditPageJump" Command="{Binding Audit.FirstPageCommand}" IsEnabled="{Binding Audit.CanGoFirst}" ToolTip.Tip="First page">
+                                    <Button x:Name="AuditFirstPageButton" Classes="auditPageJump" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AuditFirstPage}" Command="{Binding Audit.FirstPageCommand}" IsEnabled="{Binding Audit.CanGoFirst}" ToolTip.Tip="First page">
                                         <Border Classes="auditPageJumpInner"><TextBlock Text="&#xAB;" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="11" HorizontalAlignment="Center"/></Border>
                                     </Button>
-                                    <Button x:Name="AuditPreviousPageButton" Classes="auditPageJump" Command="{Binding Audit.PreviousPageCommand}" IsEnabled="{Binding Audit.CanGoPrevious}" ToolTip.Tip="Previous page">
+                                    <Button x:Name="AuditPreviousPageButton" Classes="auditPageJump" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AuditPreviousPage}" Command="{Binding Audit.PreviousPageCommand}" IsEnabled="{Binding Audit.CanGoPrevious}" ToolTip.Tip="Previous page">
                                         <Border Classes="auditPageJumpInner"><TextBlock Text="&#x2039;" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="13" HorizontalAlignment="Center"/></Border>
                                     </Button>
                                     <ItemsControl ItemsSource="{Binding Audit.PageJumpButtons}">
@@ -1653,7 +1663,7 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Button Classes="auditPageJump" Command="{Binding JumpCommand}">
+                                                <Button Classes="auditPageJump" AutomationProperties.AutomationId="{Binding AutomationId}" Command="{Binding JumpCommand}">
                                                     <Border Classes="auditPageJumpInner" Classes.auditPageJumpInnerCurrent="{Binding IsCurrent}">
                                                         <TextBlock Text="{Binding PageNumber}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="11" HorizontalAlignment="Center"/>
                                                     </Border>
@@ -1661,10 +1671,10 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <Button x:Name="AuditNextPageButton" Classes="auditPageJump" Command="{Binding Audit.NextPageCommand}" IsEnabled="{Binding Audit.CanGoNext}" ToolTip.Tip="Next page">
+                                    <Button x:Name="AuditNextPageButton" Classes="auditPageJump" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AuditNextPage}" Command="{Binding Audit.NextPageCommand}" IsEnabled="{Binding Audit.CanGoNext}" ToolTip.Tip="Next page">
                                         <Border Classes="auditPageJumpInner"><TextBlock Text="&#x203A;" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="13" HorizontalAlignment="Center"/></Border>
                                     </Button>
-                                    <Button x:Name="AuditLastPageButton" Classes="auditPageJump" Command="{Binding Audit.LastPageCommand}" IsEnabled="{Binding Audit.CanGoLast}" ToolTip.Tip="Last page">
+                                    <Button x:Name="AuditLastPageButton" Classes="auditPageJump" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AuditLastPage}" Command="{Binding Audit.LastPageCommand}" IsEnabled="{Binding Audit.CanGoLast}" ToolTip.Tip="Last page">
                                         <Border Classes="auditPageJumpInner"><TextBlock Text="&#xBB;" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" FontSize="11" HorizontalAlignment="Center"/></Border>
                                     </Button>
                                 </StackPanel>
@@ -1735,6 +1745,7 @@
                                                FontSize="12"
                                                FontWeight="Medium"/>
                                     <ListBox Grid.Row="1"
+                                             AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.DatabaseList}"
                                              ItemsSource="{Binding Database.Databases}"
                                              SelectedItem="{Binding Database.SelectedDatabase}"
                                              Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
@@ -1757,6 +1768,7 @@
                                                FontSize="12"
                                                FontWeight="Medium"/>
                                     <ListBox Grid.Row="3"
+                                             AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.DatabaseTables}"
                                              ItemsSource="{Binding Database.Tables}"
                                              SelectedItem="{Binding Database.SelectedTable}"
                                              Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
@@ -1780,9 +1792,11 @@
                                         <Button DockPanel.Dock="Right"
                                                 Classes="dbRunButton"
                                                 Content="Run"
+                                                AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.DatabaseRun}"
                                                 Command="{Binding Database.RunQueryCommand}"
                                                 Margin="8,0,0,0"/>
                                         <TextBox Classes="sqlEditor"
+                                                 AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.DatabaseSql}"
                                                  Text="{Binding Database.SqlQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                  AcceptsReturn="True"
                                                  TextWrapping="Wrap"
@@ -1844,6 +1858,7 @@
                                                                     <Border Classes="dbDataCell"
                                                                             Width="{Binding Width}">
                                                                         <TextBox Classes="dbCell"
+                                                                                 AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.DatabaseCell}"
                                                                                  Text="{Binding Value}"
                                                                                  TextWrapping="NoWrap"/>
                                                                     </Border>
@@ -2275,6 +2290,7 @@
                                     <ListBox x:Name="GitLog"
                                              Grid.Row="1"
                                              Classes="au-git-log"
+                                             AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitLog}"
                                              Margin="8,0,8,14"
                                              IsVisible="{Binding Git.IsHistoryOpen}"
                                              ItemsSource="{Binding Git.LogRows}"
@@ -2297,6 +2313,7 @@
                                                                             <Button Classes="gitLogRef au-git-log-ref"
                                                                                     Classes.au-git-log-ref--head="{Binding IsHead}"
                                                                                     Classes.au-git-log-ref--remote="{Binding IsRemote}"
+                                                                                    AutomationProperties.AutomationId="{Binding AutomationId}"
                                                                                     Command="{Binding DataContext.Git.CheckoutLogRefCommand, ElementName=GitPanel}"
                                                                                     CommandParameter="{Binding Name}"
                                                                                     IsEnabled="{Binding CanCheckout}"
@@ -2699,6 +2716,7 @@
                             </StackPanel>
                             <Button Grid.Column="1"
                                     x:Name="CapabilityModulesCloseButton"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.CapabilityClose}"
                                     Command="{Binding Modules.CloseCommand}"
                                     ToolTip.Tip="Close">
                                 <Border Classes="chromeButton">
@@ -2861,6 +2879,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="gitVm:GitFileDiffHunkViewModel">
                                         <Button Classes="au-file-viewer-jump"
+                                                AutomationProperties.AutomationId="{Binding AutomationId}"
                                                 Command="{Binding DataContext.Git.Diff.JumpCommand, ElementName=GitFileDiffOverlay}"
                                                 CommandParameter="{Binding LineIndex}"
                                                 Content="{Binding Label}"/>
@@ -2873,6 +2892,7 @@
                                      Text="{Binding Git.Diff.GotoQuery}"
                                      MinWidth="72"/>
                             <Button Classes="au-button au-button--secondary au-button--compact"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitDiffGo}"
                                     Command="{Binding Git.Diff.JumpToEnteredLineCommand}"
                                     Content="Go"/>
                             </StackPanel>
@@ -2886,6 +2906,7 @@
                                        VerticalAlignment="Center"/>
                             <Border Classes="au-file-viewer-body" IsVisible="{Binding !Git.Diff.IsLoading}">
                             <ListBox x:Name="GitFileDiffLines"
+                                     AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitDiffLines}"
                                      ItemsSource="{Binding Git.Diff.Lines}"
                                      SelectedItem="{Binding Git.Diff.CurrentLine}"
                                      gitViews:GitFileViewerScroll.TargetIndex="{Binding Git.Diff.CurrentIndex}">
@@ -2944,6 +2965,7 @@
                         <Button Grid.Row="3"
                                 x:Name="GitFileDiffDismissButton"
                                 Classes="au-button au-button--secondary"
+                                AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.GitDiffDismiss}"
                                 HorizontalAlignment="Right"
                                 Margin="16,0,16,16"
                                 Command="{Binding Git.Diff.CloseCommand}"

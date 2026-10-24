@@ -43,6 +43,12 @@ public sealed class DebugOutputService
                                          Start the named workspace on the repo Server and screenshot Desktop.
               desktop open-agent         Click the Agent tab in Desktop and screenshot it.
 
+            Validation:
+              validate --surface desktop [--flow <id>] [--out <dir>] [--workspace <id>]
+                                         Replay Desktop-surface flows against the real Desktop window.
+                                         Writes <out>/<flow-id>/report.json, per-step PNGs, and server.log.
+                                         Defaults --out to artifacts/desktop-validation. Exit 1 if any flow fails.
+
             Mobile:
               mobile screenshot          Capture Mobile web and print the file path.
               mobile login               Drive the Mobile connect/login screen against the repo Server.
@@ -92,6 +98,10 @@ public sealed class DebugOutputService
               --heading <text>           Scroll that heading into view (docs screenshot).
               --full-page                Capture the whole docs page, not just the viewport.
               --live                     Also probe hosted Mobile pages (screenshots validate).
+              --surface desktop          Required for validate. Mobile surface replay is a separate issue.
+              --flow <id>                Replay one saved Desktop-surface flow.
+              --out <dir>                Artifact root for validate (default artifacts/desktop-validation).
+              --workspace <id>           Limit validate to one registered workspace id.
             """);
         return 0;
     }

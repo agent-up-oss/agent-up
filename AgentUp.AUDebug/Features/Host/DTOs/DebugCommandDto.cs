@@ -13,4 +13,6 @@ public sealed record DebugCommandDto(
     string? Heading = null,
     bool FullPage = false,
     string? View = null,
-    bool Live = false);
+    bool Live = false,
+    string? FlowId = null,
+    string? OutputPath = null);

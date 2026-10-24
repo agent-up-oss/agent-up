@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Shared.Providers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Audit.ViewModels;
@@ -15,6 +16,7 @@ public sealed class DiagnosticKindFilterOption : ReactiveObject
     public string Label { get; }
     public string Kind { get; }
     public string? Stream { get; }
+    public string AutomationId => DesktopAutomationIds.AuditFilter(Kind);
 
     private bool _isSelected;
     public bool IsSelected

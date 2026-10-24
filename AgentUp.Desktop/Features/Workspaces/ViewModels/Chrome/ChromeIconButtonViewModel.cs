@@ -10,16 +10,20 @@ public sealed class ChromeIconButtonViewModel : ReactiveObject
         string icon,
         double fontSize,
         ICommand command,
-        string toolTip)
+        string toolTip,
+        string automationId)
     {
         Name = name;
         Icon = icon;
         FontSize = fontSize;
         Command = command;
         ToolTip = toolTip;
+        AutomationId = automationId;
     }
 
     public string Name { get; }
+
+    public string AutomationId { get; }
 
     public string Icon { get; }
 

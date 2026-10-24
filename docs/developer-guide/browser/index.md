@@ -39,7 +39,7 @@ After `start_workspace`, use the returned workspace id and allocated ports direc
 `browser_navigate`, `browser_inspect`, `browser_click`, `browser_fill`, `browser_press`, wait helpers, and `browser_screenshot`.
 </DocStep>
 <DocStep title="Validation flows">
-`save_validation_flow`, `list_validation_flows`, `play_validation_flow`, `export_validation_flow`, and `delete_validation_flow`. Application is the default surface. `surface: Desktop` names Agent-Up chrome with `testId` locators; replay of that surface is not implemented yet.
+`save_validation_flow`, `list_validation_flows`, `play_validation_flow`, `export_validation_flow`, and `delete_validation_flow`. Application is the default surface. `surface: Desktop` names Agent-Up chrome with `testId` locators; replay that surface with `au-debug validate --surface desktop`.
 </DocStep>
 <DocStep title="Hosted GUI">
 `desktop_inspect`, `desktop_screenshot`, `desktop_click`, `desktop_fill`, and `desktop_press`.

@@ -6,7 +6,10 @@ public static class DebugLayout
     public const int TestTimeoutSeconds = 180;
     public const int TestAllTimeoutSeconds = 600;
     public const int ScreenshotsTimeoutSeconds = 180;
+    public const int ValidateTimeoutSeconds = 180;
     public const int ScreensTimeoutSeconds = 600;
+    public const string ValidationOutputDirectory = "artifacts/desktop-validation";
+    public const string ValidateSurfaceDesktop = "desktop";
     public const int MaxTimeoutSeconds = 600;
     public const int ScreenshotMaxChannelDelta = 0;
     public const int DesktopScreenshotWidth = 1440;
