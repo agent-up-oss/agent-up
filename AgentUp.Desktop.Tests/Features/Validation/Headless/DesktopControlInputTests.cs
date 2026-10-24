@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
 using Avalonia.Input;
+using Avalonia.VisualTree;
 using AgentUp.Desktop.Features.Validation.Providers;
 
 namespace AgentUp.Desktop.Tests.Features.Validation.Headless;
@@ -55,6 +56,23 @@ public sealed class DesktopControlInputTests
         new DesktopControlInput().Fill(box, "feat(Git): cover");
 
         Assert.That(box.Text, Is.EqualTo("feat(Git): cover"));
+    }
+
+    [AvaloniaTest]
+    public void Click_selectsTheContainingListBoxItem()
+    {
+        var list = new ListBox
+        {
+            Width = 280,
+            Height = 160,
+            ItemsSource = new[] { "Apps", "Git", "Agent" }
+        };
+        Show(list);
+        var item = list.GetVisualDescendants().OfType<ListBoxItem>().Skip(1).First();
+
+        new DesktopControlInput().Click(item);
+
+        Assert.That(list.SelectedItem, Is.EqualTo("Git"));
     }
 
     [AvaloniaTest]

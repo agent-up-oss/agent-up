@@ -13,7 +13,7 @@ public sealed class DesktopValidationLaunchProviderTests
     {
         var root = Path.Join(Path.GetTempPath(), "au-debug-validate", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
-        var provider = Provider(root, new FakeProcessRunner(), new FakeReadyProbe());
+        var provider = Provider(root, new FakeProcessRunner(), new FakeReadyProbe(), new FakeValidationWorkspaceFixture());
 
         var resolved = provider.ResolveOutputPath(null);
 
@@ -23,13 +23,15 @@ public sealed class DesktopValidationLaunchProviderTests
     }
 
     [Test]
-    public async Task RunAsync_reusesAReadyServerAndLaunchesDesktopWithValidateEnv()
+    public async Task RunAsync_startsAnIsolatedServerRegistersTheWorkspaceAndLaunchesDesktop()
     {
         var root = Path.Join(Path.GetTempPath(), "au-debug-validate", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
-        File.WriteAllText(Path.Join(root, "run-desktop.sh"), "#!/bin/sh\n");
+        Directory.CreateDirectory(Path.Join(root, "AgentUp.Server"));
+        Directory.CreateDirectory(Path.Join(root, "AgentUp.Desktop"));
         var processes = new FakeProcessRunner();
-        var provider = Provider(root, processes, new FakeReadyProbe());
+        var fixture = new FakeValidationWorkspaceFixture();
+        var provider = Provider(root, processes, new FakeReadyProbe(), fixture);
 
         await provider.RunAsync(
             new DesktopValidationLaunchSpec("/tmp/out", "flow-1", "ws-1", "secret"),
@@ -37,27 +39,43 @@ public sealed class DesktopValidationLaunchProviderTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(processes.Started, Is.Empty);
-            Assert.That(processes.Ran, Has.Count.EqualTo(1));
-            Assert.That(processes.Ran[0].FileName, Is.EqualTo("bash"));
+            Assert.That(processes.Started.Select(command => command.FileName), Does.Contain("dotnet"));
+            Assert.That(processes.Started[0].Environment!["AGENTUP_AUTH_DISABLED"], Is.EqualTo("true"));
+            Assert.That(processes.Started[0].Environment["Storage__DataDirectory"], Does.Contain("agent-up-desktop-validate").Or.Contain("fake-validate-data"));
+            Assert.That(fixture.Prepared, Does.Contain(DebugLayout.ServerUrl));
+            Assert.That(processes.Ran[0].FileName, Is.EqualTo("dotnet"));
             Assert.That(processes.Ran[0].Environment!["AGENTUP_VALIDATE_SURFACE"], Is.EqualTo("desktop"));
-            Assert.That(processes.Ran[0].Environment["AGENTUP_VALIDATE_OUT"], Is.EqualTo("/tmp/out"));
-            Assert.That(processes.Ran[0].Environment["AGENTUP_VALIDATE_FLOW"], Is.EqualTo("flow-1"));
-            Assert.That(processes.Ran[0].Environment["AGENTUP_VALIDATE_WORKSPACE"], Is.EqualTo("ws-1"));
-            Assert.That(processes.Ran[0].Environment["AGENTUP_VALIDATE_SKIP_COSMETIC"], Is.EqualTo("1"));
-            Assert.That(processes.Ran[0].Environment["AGENTUP_ADMIN_PASSWORD"], Is.EqualTo("secret"));
+            Assert.That(processes.Ran[0].Environment["AGENTUP_VALIDATE_SERVER_LOG"], Is.EqualTo("/tmp/out/server.log"));
+            Assert.That(processes.Killed, Is.Not.Empty);
         });
     }
 
     [Test]
-    public async Task RunAsync_startsTheServerWhenItIsNotReadyAndStopsItAfterwards()
+    public async Task RunAsync_passesTheFixtureServerEnvironmentToTheIsolatedServer()
     {
         var root = Path.Join(Path.GetTempPath(), "au-debug-validate", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Join(root, "AgentUp.Server"));
-        File.WriteAllText(Path.Join(root, "run-desktop.sh"), "#!/bin/sh\n");
+        Directory.CreateDirectory(Path.Join(root, "AgentUp.Desktop"));
         var processes = new FakeProcessRunner();
-        var probe = new FakeReadyProbe { Ready = { [DebugLayout.ServerUrl + DebugLayout.ServerReadyPath] = false } };
-        var provider = Provider(root, processes, probe);
+        var fixture = new FakeValidationWorkspaceFixture();
+        fixture.Environment["Agents__test-agent-scripted__Command"] = "/tmp/test-agent-scripted";
+        var provider = Provider(root, processes, new FakeReadyProbe(), fixture);
+
+        await provider.RunAsync(
+            new DesktopValidationLaunchSpec("/tmp/out", null, null, null),
+            CancellationToken.None);
+
+        Assert.That(processes.Started[0].Environment!["Agents__test-agent-scripted__Command"], Is.EqualTo("/tmp/test-agent-scripted"));
+    }
+
+    [Test]
+    public async Task RunAsync_stopsTheIsolatedServerAfterwards()
+    {
+        var root = Path.Join(Path.GetTempPath(), "au-debug-validate", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Join(root, "AgentUp.Server"));
+        Directory.CreateDirectory(Path.Join(root, "AgentUp.Desktop"));
+        var processes = new FakeProcessRunner();
+        var provider = Provider(root, processes, new FakeReadyProbe(), new FakeValidationWorkspaceFixture());
 
         await provider.RunAsync(
             new DesktopValidationLaunchSpec("/tmp/out", null, null, null),
@@ -70,6 +88,7 @@ public sealed class DesktopValidationLaunchProviderTests
     private static DesktopValidationLaunchProvider Provider(
         string root,
         FakeProcessRunner processes,
-        FakeReadyProbe probe)
-        => new(processes, new FakePathValidator(root), new FakeEnvironment(), probe);
+        FakeReadyProbe probe,
+        FakeValidationWorkspaceFixture fixture)
+        => new(processes, new FakePathValidator(root), new FakeEnvironment(), probe, fixture);
 }

@@ -2,7 +2,7 @@ namespace AgentUp.Desktop.Features.Validation.Models;
 
 public static class ValidationConditionWait
 {
-    public const int DefaultAttempts = 40;
+    public const int DefaultAttempts = 120;
 
     public static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(250);
 

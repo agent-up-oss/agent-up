@@ -1,55 +1,35 @@
 {
   "id": "connect",
   "application": "Mobile",
-  "name": "Connect to a Server",
-  "description": "A person types a real Server URL and saves it, then lands in that Server's workspace.",
+  "name": "Connect to a Server and reach a workspace",
+  "description": "A person types a real Server URL, saves it, and lands in that Server's registered workspace. Fixture: isolated Development Server with authentication disabled and the repository-root agent-up.json workspace already registered.",
   "surface": "Mobile",
   "initialPath": "/connect",
   "initialExpectations": [
-    {
-      "kind": "Url",
-      "value": "/connect"
-    },
-    {
-      "kind": "Text",
-      "value": "Connect to server"
-    },
-    {
-      "kind": "Visible",
-      "value": "true",
-      "target": { "role": "button", "name": "Try and save" }
-    }
+    { "kind": "Url", "value": "/connect" },
+    { "kind": "Text", "value": "Connect to server" },
+    { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Try and save" } }
   ],
   "steps": [
     {
-      "id": "fill-server-url",
+      "id": "enter-server-url",
       "description": "Enter the Server URL",
       "action": "Fill",
       "target": { "label": "Server URL" },
       "value": "{serverUrl}",
       "expectations": [
-        {
-          "kind": "Visible",
-          "value": "true",
-          "target": { "label": "Server URL" }
-        }
+        { "kind": "Text", "value": "{serverUrl}", "target": { "label": "Server URL" } }
       ]
     },
     {
       "id": "try-and-save",
-      "description": "Try and save the Server URL",
+      "description": "Save the Server URL and open the workspace",
       "action": "Click",
       "target": { "role": "button", "name": "Try and save" },
       "expectations": [
-        {
-          "kind": "Url",
-          "value": "/workspace/{workspaceId}"
-        },
-        {
-          "kind": "Visible",
-          "value": "true",
-          "target": { "role": "button", "name": "Start workspace" }
-        }
+        { "kind": "Url", "value": "/workspace/{workspaceId}" },
+        { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Start workspace" } },
+        { "kind": "Text", "value": "{workspaceName}" }
       ]
     }
   ]

@@ -109,7 +109,14 @@ public static class AuDebugRunnerFactory
                 new ScreenComparisonProvider()));
         var validation = new ValidationController(
             new ValidationCommandService(
-                new DesktopValidationLaunchProvider(processes, paths, environment, probe),
+                new DesktopValidationLaunchProvider(
+                    processes,
+                    paths,
+                    environment,
+                    probe,
+                    new ValidationWorkspaceFixtureProvider(
+                        paths,
+                        new HttpClient { Timeout = TimeSpan.FromSeconds(30) })),
                 environment));
         var validate = new ValidateController(
             new ValidateCommandService(

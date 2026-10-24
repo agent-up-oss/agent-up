@@ -46,6 +46,24 @@ public sealed class DesktopVisualTreeLocatorTests
     }
 
     [AvaloniaTest]
+    public void Resolve_prefersTheShownControlWhenSeveralShareATestId()
+    {
+        var hidden = new Border { IsVisible = false };
+        AutomationProperties.SetAutomationId(hidden, DesktopAutomationIds.AgentPickerRow("test-agent-scripted"));
+        var shown = new Button { Content = "Scripted test agent" };
+        AutomationProperties.SetAutomationId(shown, DesktopAutomationIds.AgentPickerRow("test-agent-scripted"));
+        var window = Show(new StackPanel { Children = { hidden, shown } });
+        var locator = new DesktopVisualTreeLocator();
+
+        var resolved = locator.Resolve(
+            window,
+            DesktopDomain.Target().WithTestId(DesktopAutomationIds.AgentPickerRow("test-agent-scripted")).Build(),
+            out _);
+
+        Assert.That(resolved, Is.SameAs(shown));
+    }
+
+    [AvaloniaTest]
     public void Nearby_listsControlsWhoseIdOrNameContainsTheWantedText()
     {
         var commit = new Button { Content = "Commit" };

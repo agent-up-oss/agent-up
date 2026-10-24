@@ -1416,7 +1416,9 @@ Read: `docs/user-docs/diagnostics/index.md` and `docs/developer-guide/diagnostic
 
 Path-rule checks, receipts, coverage, and export stay in Verification. Verification never reads the commit queue. `export_verification` and `agent-up verify export` emit a report (check ids, commands, exit codes, revision, digest) that never includes the per-file hash map. The guard cannot be satisfied by an exported document.
 
-Read: `docs/user-docs/verification/index.md` and `docs/developer-guide/verification/index.md`.
+Named QA journeys for Agent-Up's own Desktop and Mobile chrome live on `docs/developer-guide/verification/qa-coverage.md`. A pull request that adds a user-facing surface updates that map in the same change; every cell is `covered`, `gap`, `blocked by #N`, or a justified `n/a`. Empty cells are forbidden. First-suite flows run from `au-debug validate --surface desktop` and `au-debug validate --surface mobile` and write `<out>/<flow-id>/report.json`, numbered step screenshots, and `server.log`. A flow names a user's intent, not a click path; each step asserts a visible consequence, not that the clicked control still exists.
+
+Read: `docs/user-docs/verification/index.md`, `docs/developer-guide/verification/index.md`, and `docs/developer-guide/verification/qa-coverage.md`.
 
 ## Configuration
 

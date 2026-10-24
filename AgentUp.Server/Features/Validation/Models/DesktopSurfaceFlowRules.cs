@@ -32,6 +32,8 @@ public static class DesktopSurfaceFlowRules
             return "Desktop Navigate steps require a named surface route such as workspaces/list or workspace/git.";
         if (request.Steps.Any(step => step.Action is ValidationAction.Click or ValidationAction.Fill && !HasSemanticLocator(step.Target)))
             return "Desktop click and fill steps require a testId (AutomationId), name, label, role, or text locator.";
+        if (request.Steps.Select(ValidationFlowAuthoringRules.SameTargetOnlyVisible).FirstOrDefault(error => error is not null) is { } authoring)
+            return authoring;
         return null;
     }
 

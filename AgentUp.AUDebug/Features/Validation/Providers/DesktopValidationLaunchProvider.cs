@@ -11,7 +11,8 @@ public sealed class DesktopValidationLaunchProvider(
     IAllowlistedProcessRunner processes,
     IDebugPathValidator paths,
     IDebugEnvironment environment,
-    IHostReadyProbe probe) : IDesktopValidationLaunch
+    IHostReadyProbe probe,
+    IValidationWorkspaceFixture fixture) : IDesktopValidationLaunch
 {
     public string ResolveOutputPath(string? outputPath)
     {
@@ -26,41 +27,43 @@ public sealed class DesktopValidationLaunchProvider(
         DesktopValidationLaunchSpec spec,
         CancellationToken cancellationToken)
     {
-        var startedServer = await EnsureServerAsync(cancellationToken);
+        Directory.CreateDirectory(spec.OutputPath);
+        var logPath = Path.Join(spec.OutputPath, "server.log");
+        var dataDirectory = fixture.CreateDataDirectory();
+        var process = processes.Start(ServerCommand(dataDirectory, fixture.ServerEnvironment(dataDirectory)));
+        AttachServerLog(process, logPath);
         try
         {
-            return await processes.RunAsync(DesktopCommand(spec), cancellationToken);
+            await probe.WaitAsync(DebugLayout.ServerUrl + DebugLayout.ServerReadyPath, cancellationToken);
+            await fixture.PrepareAsync(DebugLayout.ServerUrl, cancellationToken);
+            return await processes.RunAsync(DesktopCommand(spec, logPath), cancellationToken);
         }
         finally
         {
-            if (startedServer is { } process)
-                processes.KillTree(process.Id);
+            processes.KillTree(process.Id);
         }
     }
 
-    private async Task<System.Diagnostics.Process?> EnsureServerAsync(CancellationToken cancellationToken)
+    private AllowlistedCommand ServerCommand(string dataDirectory, IReadOnlyDictionary<string, string> extra)
     {
-        var readyUrl = DebugLayout.ServerUrl + DebugLayout.ServerReadyPath;
-        if (await probe.CheckAsync(readyUrl, cancellationToken))
-            return null;
-
-        var process = processes.Start(ServerCommand());
-        await probe.WaitAsync(readyUrl, cancellationToken);
-        return process;
+        var environment = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["ASPNETCORE_ENVIRONMENT"] = "Development",
+            ["ASPNETCORE_URLS"] = DebugLayout.ServerUrl,
+            ["AGENTUP_AUTH_DISABLED"] = "true",
+            ["AGENTUP_SKIP_DEV_AGENT_BOOTSTRAP"] = "1",
+            ["Storage__DataDirectory"] = dataDirectory
+        };
+        foreach (var pair in extra)
+            environment[pair.Key] = pair.Value;
+        return new(
+            "dotnet",
+            ["run", "--project", paths.JoinUnderRoot("AgentUp.Server"), "--no-launch-profile", "--urls", DebugLayout.ServerUrl],
+            paths.RepositoryRoot,
+            environment);
     }
 
-    private AllowlistedCommand ServerCommand()
-        => new(
-            "dotnet",
-            ["run", "--project", paths.JoinUnderRoot("AgentUp.Server"), "--urls", DebugLayout.ServerUrl],
-            paths.RepositoryRoot,
-            new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["ASPNETCORE_ENVIRONMENT"] = "Development",
-                ["ASPNETCORE_URLS"] = DebugLayout.ServerUrl
-            });
-
-    private AllowlistedCommand DesktopCommand(DesktopValidationLaunchSpec spec)
+    private AllowlistedCommand DesktopCommand(DesktopValidationLaunchSpec spec, string logPath)
     {
         var environmentVariables = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -69,7 +72,7 @@ public sealed class DesktopValidationLaunchProvider(
             [DesktopValidationLaunchKeys.Surface] = DesktopValidationLaunchKeys.DesktopValue,
             [DesktopValidationLaunchKeys.Output] = spec.OutputPath,
             [DesktopValidationLaunchKeys.SkipCosmetic] = "1",
-            [DesktopValidationLaunchKeys.ServerLog] = Path.Join(paths.LogsDirectory, "server.log")
+            [DesktopValidationLaunchKeys.ServerLog] = logPath
         };
         if (!string.IsNullOrWhiteSpace(spec.FlowId))
             environmentVariables[DesktopValidationLaunchKeys.Flow] = spec.FlowId;
@@ -79,9 +82,31 @@ public sealed class DesktopValidationLaunchProvider(
             environmentVariables["AGENTUP_ADMIN_PASSWORD"] = spec.Password;
 
         return new(
-            "bash",
-            [paths.JoinUnderRoot("run-desktop.sh")],
+            "dotnet",
+            ["run", "--project", paths.JoinUnderRoot("AgentUp.Desktop"), "--no-launch-profile"],
             paths.RepositoryRoot,
             environmentVariables);
+    }
+
+    private static void AttachServerLog(System.Diagnostics.Process process, string logPath)
+    {
+        try
+        {
+            process.OutputDataReceived += (_, args) => AppendLog(logPath, args.Data);
+            process.ErrorDataReceived += (_, args) => AppendLog(logPath, args.Data);
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+        }
+        catch (InvalidOperationException exception)
+        {
+            System.Diagnostics.Trace.WriteLine(exception.Message);
+        }
+    }
+
+    private static void AppendLog(string logPath, string? line)
+    {
+        if (string.IsNullOrEmpty(line))
+            return;
+        File.AppendAllText(logPath, line + Environment.NewLine);
     }
 }

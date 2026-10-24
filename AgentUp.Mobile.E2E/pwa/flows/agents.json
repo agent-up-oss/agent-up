@@ -1,42 +1,31 @@
 {
   "id": "agents",
   "application": "Mobile",
-  "name": "Agents",
-  "description": "The Agents tab lists saved sessions for the connected workspace.",
+  "name": "See agent availability and start a session",
+  "description": "A person opens the Agents tab, reads availability and remedies, and starts test-agent-scripted. Fixture: isolated Development Server with test-agent-scripted on PATH, listed as Available. Enable is not clicked.",
   "surface": "Mobile",
   "initialPath": "/connect",
   "initialExpectations": [
-    {
-      "kind": "Text",
-      "value": "Connect to server"
-    }
+    { "kind": "Text", "value": "Connect to server" }
   ],
   "steps": [
     {
-      "id": "fill-server-url",
+      "id": "enter-server-url",
       "description": "Enter the Server URL",
       "action": "Fill",
       "target": { "label": "Server URL" },
       "value": "{serverUrl}",
       "expectations": [
-        {
-          "kind": "Visible",
-          "value": "true",
-          "target": { "role": "button", "name": "Try and save" }
-        }
+        { "kind": "Text", "value": "{serverUrl}", "target": { "label": "Server URL" } }
       ]
     },
     {
       "id": "try-and-save",
-      "description": "Try and save the Server URL",
+      "description": "Save the Server URL and open the workspace",
       "action": "Click",
       "target": { "role": "button", "name": "Try and save" },
       "expectations": [
-        {
-          "kind": "Visible",
-          "value": "true",
-          "target": { "role": "tab", "name": "Agents" }
-        }
+        { "kind": "Visible", "value": "true", "target": { "role": "tab", "name": "Agents" } }
       ]
     },
     {
@@ -45,14 +34,19 @@
       "action": "Click",
       "target": { "role": "tab", "name": "Agents" },
       "expectations": [
-        {
-          "kind": "Url",
-          "value": "/workspace/{workspaceId}/agents"
-        },
-        {
-          "kind": "Text",
-          "value": "Workspace sessions"
-        }
+        { "kind": "Url", "value": "/workspace/{workspaceId}/agents" },
+        { "kind": "Text", "value": "Start a session" },
+        { "kind": "Text", "value": "Scripted test agent" },
+        { "kind": "Text", "value": "Not enabled" }
+      ]
+    },
+    {
+      "id": "start-scripted",
+      "description": "Start a test-agent-scripted session",
+      "action": "Click",
+      "target": { "testId": "agent-start-test-agent-scripted" },
+      "expectations": [
+        { "kind": "Url", "value": "/workspace/{workspaceId}/agent" }
       ]
     }
   ]

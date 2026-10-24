@@ -318,6 +318,743 @@
       ],
       "updatedAtUtc": "2026-09-21T03:00:00.0000000+00:00",
       "version": 1
+    },
+  {
+      "id": "connect",
+      "application": "Desktop",
+      "name": "Connect to a Server and see the workspace",
+      "description": "A person types the Server URL, connects, and reaches the registered agent-up.json workspace. Fixture: isolated Development Server with authentication disabled and the repository-root workspace already registered.",
+      "surface": "Desktop",
+      "initialPath": "login",
+      "initialExpectations": [
+        {
+          "kind": "Title",
+          "value": "Agent-Up"
+        },
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": {
+            "testId": "login.connect"
+          }
+        },
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": {
+            "testId": "login.server-url"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "enter-server-url",
+          "description": "Enter the Server URL",
+          "action": "Fill",
+          "target": {
+            "testId": "login.server-url"
+          },
+          "value": "http://127.0.0.1:5001",
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "http://127.0.0.1:5001",
+              "target": {
+                "testId": "login.server-url"
+              }
+            }
+          ]
+        },
+        {
+          "id": "connect",
+          "description": "Connect to the Server",
+          "action": "Click",
+          "target": {
+            "testId": "login.connect"
+          },
+          "expectations": [
+            {
+              "kind": "Absent",
+              "value": "",
+              "target": {
+                "testId": "login.connect"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "workspace.list"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "text": "Agent Up"
+              }
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-10-24T00:00:00.0000000+00:00",
+      "version": 1
+    },
+    {
+      "id": "workspace-lifecycle",
+      "application": "Desktop",
+      "name": "Start a workspace and stop it",
+      "description": "A person connects, starts the registered agent-up.json workspace, and sees it leave Stopped. Fixture: isolated Server, workspace registered and stopped. Stop stays disabled until Running or Degraded; applications reaching Running is the Runtime capability E2E job.",
+      "surface": "Desktop",
+      "initialPath": "login",
+      "initialExpectations": [
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": {
+            "testId": "login.connect"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "enter-server-url",
+          "description": "Enter the Server URL",
+          "action": "Fill",
+          "target": {
+            "testId": "login.server-url"
+          },
+          "value": "http://127.0.0.1:5001",
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "http://127.0.0.1:5001",
+              "target": {
+                "testId": "login.server-url"
+              }
+            }
+          ]
+        },
+        {
+          "id": "connect",
+          "description": "Connect to the Server",
+          "action": "Click",
+          "target": {
+            "testId": "login.connect"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "name": "Start workspace"
+              }
+            }
+          ]
+        },
+        {
+          "id": "start-workspace",
+          "description": "Start the workspace",
+          "action": "Click",
+          "target": {
+            "name": "Start workspace"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "name": "Stop workspace"
+              }
+            },
+            {
+              "kind": "Absent",
+              "value": "",
+              "target": {
+                "name": "Start workspace"
+              }
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-10-24T00:00:00.0000000+00:00",
+      "version": 1
+    },
+    {
+      "id": "console-diagnostics",
+      "application": "Desktop",
+      "name": "Read an application console and diagnostics",
+      "description": "A person starts the workspace, opens Docs, and reads the Console and Diagnostics surfaces. Fixture: isolated Server, repository-root agent-up.json workspace.",
+      "surface": "Desktop",
+      "initialPath": "login",
+      "initialExpectations": [
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": {
+            "testId": "login.connect"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "enter-server-url",
+          "description": "Enter the Server URL",
+          "action": "Fill",
+          "target": {
+            "testId": "login.server-url"
+          },
+          "value": "http://127.0.0.1:5001",
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "http://127.0.0.1:5001",
+              "target": {
+                "testId": "login.server-url"
+              }
+            }
+          ]
+        },
+        {
+          "id": "connect",
+          "description": "Connect to the Server",
+          "action": "Click",
+          "target": {
+            "testId": "login.connect"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "app.tab.Docs"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-docs",
+          "description": "Open the Docs application",
+          "action": "Click",
+          "target": {
+            "testId": "app.tab.Docs"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "app.subtab.console"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-console",
+          "description": "Open the application console",
+          "action": "Click",
+          "target": {
+            "testId": "app.subtab.console"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "app.console.pane"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-diagnostics",
+          "description": "Open diagnostics for the application",
+          "action": "Click",
+          "target": {
+            "testId": "app.subtab.diagnostics"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "audit.search"
+              }
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-10-24T00:00:00.0000000+00:00",
+      "version": 1
+    },
+    {
+      "id": "git-review",
+      "application": "Desktop",
+      "name": "Review Git changes",
+      "description": "A person opens the Git tab and sees Git changes plus working-tree actions. Fixture: the registered workspace is this repository; the tree may be clean. A seeded dirty file is not required.",
+      "surface": "Desktop",
+      "initialPath": "login",
+      "initialExpectations": [
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": {
+            "testId": "login.connect"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "enter-server-url",
+          "description": "Enter the Server URL",
+          "action": "Fill",
+          "target": {
+            "testId": "login.server-url"
+          },
+          "value": "http://127.0.0.1:5001",
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "http://127.0.0.1:5001",
+              "target": {
+                "testId": "login.server-url"
+              }
+            }
+          ]
+        },
+        {
+          "id": "connect",
+          "description": "Connect to the Server",
+          "action": "Click",
+          "target": {
+            "testId": "login.connect"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "shell.tab.git"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-git",
+          "description": "Open the Git tab",
+          "action": "Click",
+          "target": {
+            "testId": "shell.tab.git"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "git.panel"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "text": "Git changes"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "git.fetch"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "git.history"
+              }
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-10-24T00:00:00.0000000+00:00",
+      "version": 1
+    },
+    {
+      "id": "forge-hosting",
+      "application": "Desktop",
+      "name": "See repository hosting when no forge is enabled",
+      "description": "A person opens Git changes and reads the hosting strip. Fixture: isolated Server with no forge module enabled, so availability is notInstalled.",
+      "surface": "Desktop",
+      "initialPath": "login",
+      "initialExpectations": [
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": {
+            "testId": "login.connect"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "enter-server-url",
+          "description": "Enter the Server URL",
+          "action": "Fill",
+          "target": {
+            "testId": "login.server-url"
+          },
+          "value": "http://127.0.0.1:5001",
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "http://127.0.0.1:5001",
+              "target": {
+                "testId": "login.server-url"
+              }
+            }
+          ]
+        },
+        {
+          "id": "connect",
+          "description": "Connect to the Server",
+          "action": "Click",
+          "target": {
+            "testId": "login.connect"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "shell.tab.git"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-git",
+          "description": "Open the Git tab",
+          "action": "Click",
+          "target": {
+            "testId": "shell.tab.git"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "No forge capability package is enabled.",
+              "target": {
+                "testId": "git.hosting.title"
+              }
+            },
+            {
+              "kind": "Text",
+              "value": "Run: agent-up capabilities bootstrap",
+              "target": {
+                "testId": "git.hosting.remedy"
+              }
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-10-24T00:00:00.0000000+00:00",
+      "version": 1
+    },
+    {
+      "id": "validation-panel",
+      "application": "Desktop",
+      "name": "List validation flows for an application",
+      "description": "A person selects Docs and expands the Validation sidebar to see the recorded flows. Fixture: repository-root agent-up.json workspace with the Docs application flows. Replay of an Application-surface flow is not this journey.",
+      "surface": "Desktop",
+      "initialPath": "login",
+      "initialExpectations": [
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": {
+            "testId": "login.connect"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "enter-server-url",
+          "description": "Enter the Server URL",
+          "action": "Fill",
+          "target": {
+            "testId": "login.server-url"
+          },
+          "value": "http://127.0.0.1:5001",
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "http://127.0.0.1:5001",
+              "target": {
+                "testId": "login.server-url"
+              }
+            }
+          ]
+        },
+        {
+          "id": "connect",
+          "description": "Connect to the Server",
+          "action": "Click",
+          "target": {
+            "testId": "login.connect"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "app.tab.Docs"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-docs",
+          "description": "Open the Docs application",
+          "action": "Click",
+          "target": {
+            "testId": "app.tab.Docs"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "validation.toggle.collapsed"
+              }
+            }
+          ]
+        },
+        {
+          "id": "expand-validation",
+          "description": "Expand the Validation sidebar",
+          "action": "Click",
+          "target": {
+            "testId": "validation.toggle.collapsed"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "validation.flows"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "text": "Checks for the displayed app"
+              }
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-10-24T00:00:00.0000000+00:00",
+      "version": 1
+    },
+    {
+      "id": "agents",
+      "application": "Desktop",
+      "name": "See agent availability and start a session",
+      "description": "A person opens the Agent tab, reads availability and remedies, and starts test-agent-scripted. Fixture: isolated Development Server with test-agent-scripted on PATH, listed as Available. Other agent packages are not enabled, so Enable is not clicked.",
+      "surface": "Desktop",
+      "initialPath": "login",
+      "initialExpectations": [
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": {
+            "testId": "login.connect"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "enter-server-url",
+          "description": "Enter the Server URL",
+          "action": "Fill",
+          "target": {
+            "testId": "login.server-url"
+          },
+          "value": "http://127.0.0.1:5001",
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "http://127.0.0.1:5001",
+              "target": {
+                "testId": "login.server-url"
+              }
+            }
+          ]
+        },
+        {
+          "id": "connect",
+          "description": "Connect to the Server",
+          "action": "Click",
+          "target": {
+            "testId": "login.connect"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "shell.tab.agent"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-agent",
+          "description": "Open the Agent tab",
+          "action": "Click",
+          "target": {
+            "testId": "shell.tab.agent"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "text": "Choose an ACP agent"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "agent.picker"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "text": "Scripted test agent"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "text": "Not enabled"
+              }
+            }
+          ]
+        },
+        {
+          "id": "start-scripted",
+          "description": "Start a test-agent-scripted session",
+          "action": "Click",
+          "target": {
+            "testId": "agent.picker.test-agent-scripted"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "agent.message"
+              }
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-10-24T00:00:00.0000000+00:00",
+      "version": 1
+    },
+    {
+      "id": "autonomous-loop",
+      "application": "Desktop",
+      "name": "Read the unattended loop checklist",
+      "description": "A person opens the Agent tab and reads the unattended-loop preconditions. Fixture: isolated Server with no forge module, so Forge capability is not ready. Enable and Activate are not clicked.",
+      "surface": "Desktop",
+      "initialPath": "login",
+      "initialExpectations": [
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": {
+            "testId": "login.connect"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "enter-server-url",
+          "description": "Enter the Server URL",
+          "action": "Fill",
+          "target": {
+            "testId": "login.server-url"
+          },
+          "value": "http://127.0.0.1:5001",
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "http://127.0.0.1:5001",
+              "target": {
+                "testId": "login.server-url"
+              }
+            }
+          ]
+        },
+        {
+          "id": "connect",
+          "description": "Connect to the Server",
+          "action": "Click",
+          "target": {
+            "testId": "login.connect"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "shell.tab.agent"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-agent",
+          "description": "Open the Agent tab",
+          "action": "Click",
+          "target": {
+            "testId": "shell.tab.agent"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "agent.loop"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "text": "Unattended loop"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "text": "Forge capability"
+              }
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-10-24T00:00:00.0000000+00:00",
+      "version": 1
     }
   ]
 }

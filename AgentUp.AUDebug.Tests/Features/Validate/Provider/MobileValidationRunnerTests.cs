@@ -32,9 +32,9 @@ public sealed class MobileValidationRunnerTests
         var processes = new FakeProcessRunner();
         var runner = new MobileValidationRunner(processes, new FakePathValidator("/tmp/au-debug-tests"));
 
-        await runner.RunAsync(new MobileValidationRunDto("git", "/tmp/au-debug-tests/out"), CancellationToken.None);
+        await runner.RunAsync(new MobileValidationRunDto("git-review", "/tmp/au-debug-tests/out"), CancellationToken.None);
 
-        Assert.That(processes.Ran[0].Arguments, Does.Contain("git"));
+        Assert.That(processes.Ran[0].Arguments, Does.Contain("git-review"));
         Assert.That(processes.Ran[0].Arguments, Does.Contain("--flow"));
     }
 }

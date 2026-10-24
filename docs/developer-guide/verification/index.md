@@ -59,7 +59,7 @@ Receipts live outside the working tree so one cannot travel in a change proposal
 
 The export is evidence to read, not an input to a gate. Keep the two types distinct so the confusion cannot be expressed in code.
 
-The field contract is the [agent-up.json reference](/docs/configuration/reference#verification-object). Agent operating rules stay in `AGENTS.md`.
+The field contract is the [agent-up.json reference](/docs/configuration/reference#verification-object). Agent operating rules stay in `AGENTS.md`. Named QA journeys for Desktop and Mobile chrome live on the [QA coverage map](/developer-guide/verification/qa-coverage).
 
 ## Portable binary
 
