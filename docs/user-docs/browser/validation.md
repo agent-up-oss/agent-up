@@ -5,7 +5,7 @@ title: Validation
 # Validation
 
 <DocWhat>
-A validation check is a user-meaningful route through the GUI, not an implementation walkthrough. Most checks run in an application view. Checks can also name Agent-Up Desktop itself — connect, workspaces, Git, Agents — using stable control ids rather than a page in an app.
+A validation check is a user-meaningful route through the GUI, not an implementation walkthrough. Most checks run in an application view. Checks can also name Agent-Up Desktop or Mobile chrome — connect, workspaces, Git, Agents — using stable control names rather than a page in an app.
 </DocWhat>
 
 <DocSteps>

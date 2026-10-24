@@ -1,0 +1,59 @@
+{
+  "id": "agents",
+  "application": "Mobile",
+  "name": "Agents",
+  "description": "The Agents tab lists saved sessions for the connected workspace.",
+  "surface": "Mobile",
+  "initialPath": "/connect",
+  "initialExpectations": [
+    {
+      "kind": "Text",
+      "value": "Connect to server"
+    }
+  ],
+  "steps": [
+    {
+      "id": "fill-server-url",
+      "description": "Enter the Server URL",
+      "action": "Fill",
+      "target": { "label": "Server URL" },
+      "value": "{serverUrl}",
+      "expectations": [
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": { "role": "button", "name": "Try and save" }
+        }
+      ]
+    },
+    {
+      "id": "try-and-save",
+      "description": "Try and save the Server URL",
+      "action": "Click",
+      "target": { "role": "button", "name": "Try and save" },
+      "expectations": [
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": { "role": "tab", "name": "Agents" }
+        }
+      ]
+    },
+    {
+      "id": "open-agents",
+      "description": "Open the Agents tab",
+      "action": "Click",
+      "target": { "role": "tab", "name": "Agents" },
+      "expectations": [
+        {
+          "kind": "Url",
+          "value": "/workspace/{workspaceId}/agents"
+        },
+        {
+          "kind": "Text",
+          "value": "Workspace sessions"
+        }
+      ]
+    }
+  ]
+}

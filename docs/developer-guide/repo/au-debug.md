@@ -53,8 +53,11 @@ Cold Desktop compiles can exceed 30 seconds. Pass `--timeout 120` for those runs
 ./au-debug desktop start-workspace Agent-Up
 ./au-debug desktop open-agent
 ./au-debug mobile open-agent Agent-Up
+./au-debug validate --surface mobile
 ./au-debug down
 ```
+
+`au-debug validate --surface mobile` starts a real Server, serves the Mobile web export, and drives the connect, workspace, applications, Git, and Agents flows. Optional `--flow <id>` runs one fixture. Artifacts land in `artifacts/mobile-validation/` (`report.json` plus per-step PNGs) unless `--out` names another directory under the repository. Build the export first with `./au-debug build mobile`. Desktop surface replay is not implemented.
 
 `status` probes the hosted Server, Mobile, and docs URLs and checks that the Desktop window is present. Do not curl those ports or call `xdotool` from the shell; those checks belong inside `au-debug`.
 

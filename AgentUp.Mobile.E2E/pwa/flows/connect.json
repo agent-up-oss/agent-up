@@ -1,0 +1,56 @@
+{
+  "id": "connect",
+  "application": "Mobile",
+  "name": "Connect to a Server",
+  "description": "A person types a real Server URL and saves it, then lands in that Server's workspace.",
+  "surface": "Mobile",
+  "initialPath": "/connect",
+  "initialExpectations": [
+    {
+      "kind": "Url",
+      "value": "/connect"
+    },
+    {
+      "kind": "Text",
+      "value": "Connect to server"
+    },
+    {
+      "kind": "Visible",
+      "value": "true",
+      "target": { "role": "button", "name": "Try and save" }
+    }
+  ],
+  "steps": [
+    {
+      "id": "fill-server-url",
+      "description": "Enter the Server URL",
+      "action": "Fill",
+      "target": { "label": "Server URL" },
+      "value": "{serverUrl}",
+      "expectations": [
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": { "label": "Server URL" }
+        }
+      ]
+    },
+    {
+      "id": "try-and-save",
+      "description": "Try and save the Server URL",
+      "action": "Click",
+      "target": { "role": "button", "name": "Try and save" },
+      "expectations": [
+        {
+          "kind": "Url",
+          "value": "/workspace/{workspaceId}"
+        },
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": { "role": "button", "name": "Start workspace" }
+        }
+      ]
+    }
+  ]
+}

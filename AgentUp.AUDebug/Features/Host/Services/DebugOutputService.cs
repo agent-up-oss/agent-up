@@ -71,6 +71,12 @@ public sealed class DebugOutputService
               screens desktop [screen]   Only Desktop, or one Desktop screen.
               screens mobile [screen]    Only Mobile, or one Mobile screen.
 
+            Validate:
+              validate --surface mobile  Drive Mobile web flows against a real Server and write
+                                         report.json plus per-step screenshots.
+                                         Optional --flow <id> and --out <dir>.
+                                         Desktop surface replay is not implemented.
+
             Tests:
               test                       Run every visual-iteration suite.
               test all                   Same as test.
@@ -86,12 +92,15 @@ public sealed class DebugOutputService
             Options:
               --timeout <seconds>        Watchdog for readiness, tests, and one-shot commands.
                                          Default 30s; test, build, and screenshots persist/validate
-                                         default to 180s, screens and all to 600s.
+                                         default to 180s, screens, validate, and all to 600s.
               --detach                   After up is ready, return without following logs.
               --password <pw>            Admin password for login commands (else $AGENTUP_ADMIN_PASSWORD).
               --heading <text>           Scroll that heading into view (docs screenshot).
               --full-page                Capture the whole docs page, not just the viewport.
               --live                     Also probe hosted Mobile pages (screenshots validate).
+              --surface <mobile>         Validation surface (validate).
+              --flow <id>                Run one Mobile flow instead of every fixture.
+              --out <dir>                Artifact directory for validate (default artifacts/mobile-validation).
             """);
         return 0;
     }

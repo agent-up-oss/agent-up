@@ -1,0 +1,56 @@
+{
+  "id": "applications",
+  "application": "Mobile",
+  "name": "Applications",
+  "description": "Connecting lands on the Apps tab, where the workspace can be started and its applications are listed.",
+  "surface": "Mobile",
+  "initialPath": "/connect",
+  "initialExpectations": [
+    {
+      "kind": "Text",
+      "value": "Connect to server"
+    }
+  ],
+  "steps": [
+    {
+      "id": "fill-server-url",
+      "description": "Enter the Server URL",
+      "action": "Fill",
+      "target": { "label": "Server URL" },
+      "value": "{serverUrl}",
+      "expectations": [
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": { "role": "button", "name": "Try and save" }
+        }
+      ]
+    },
+    {
+      "id": "try-and-save",
+      "description": "Try and save the Server URL",
+      "action": "Click",
+      "target": { "role": "button", "name": "Try and save" },
+      "expectations": [
+        {
+          "kind": "Url",
+          "value": "/workspace/{workspaceId}"
+        },
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": { "role": "tab", "name": "Apps" }
+        },
+        {
+          "kind": "Text",
+          "value": "Applications"
+        },
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": { "role": "button", "name": "Start workspace" }
+        }
+      ]
+    }
+  ]
+}

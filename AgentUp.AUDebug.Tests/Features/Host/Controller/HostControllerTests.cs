@@ -16,6 +16,8 @@ using AgentUp.AUDebug.Features.Screenshots.Services;
 using AgentUp.AUDebug.Features.Test.Controllers;
 using AgentUp.AUDebug.Features.Test.Providers;
 using AgentUp.AUDebug.Features.Test.Services;
+using AgentUp.AUDebug.Features.Validate.Controllers;
+using AgentUp.AUDebug.Features.Validate.Services;
 using AgentUp.AUDebug.Tests.Fake;
 
 namespace AgentUp.AUDebug.Tests.Features.Host.Controller;
@@ -152,7 +154,35 @@ public sealed class HostControllerTests
         });
     }
 
-    private static HostController Controller(StringWriter output, FakeTestProcessRunner? tests = null)
+    [Test]
+    public async Task ValidateMobile_routesToTheMobileRunner()
+    {
+        using var output = new StringWriter();
+        var mobile = new FakeMobileValidationRunner();
+        var exit = await Controller(output, validate: mobile).RunAsync(["validate", "--surface", "mobile"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exit, Is.EqualTo(0));
+            Assert.That(output.ToString(), Does.Contain("Mobile validation passed."));
+            Assert.That(mobile.Ran, Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task ValidateDesktop_refusesReplay()
+    {
+        using var output = new StringWriter();
+        var exit = await Controller(output).RunAsync(["validate", "--surface", "desktop"]);
+
+        Assert.That(exit, Is.EqualTo(1));
+        Assert.That(output.ToString(), Does.Contain("Desktop surface replay is not implemented."));
+    }
+
+    private static HostController Controller(
+        StringWriter output,
+        FakeTestProcessRunner? tests = null,
+        FakeMobileValidationRunner? validate = null)
     {
         var sessions = new FakeSessionStore();
         var supervisor = new FakeSupervisor();
@@ -187,6 +217,8 @@ public sealed class HostControllerTests
                 new FakeScreenRunStore(),
                 new FakeDocumentedScreens(),
                 new ScreenComparisonProvider()));
-        return new HostController(host, desktop, mobile, docs, testController, screenshots, screens, new DebugArgParser(), debugOutput);
+        var validateController = new ValidateController(
+            new ValidateCommandService(validate ?? new FakeMobileValidationRunner(), new FakePathValidator("/tmp/au-debug-tests")));
+        return new HostController(host, desktop, mobile, docs, testController, screenshots, screens, validateController, new DebugArgParser(), debugOutput);
     }
 }
