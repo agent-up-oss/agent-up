@@ -15,7 +15,7 @@ public sealed class ValidationControllerTests
         var controller = new ValidationController(new ValidationCommandService(launch, new FakeEnvironment()));
 
         var result = await controller.RunAsync(
-            DebugDomain.Validate().WritingTo("/tmp/out").Build(),
+            DebugDomain.Validate(DebugDomain.DesktopSurface).WritingTo("/tmp/out").Build(),
             CancellationToken.None);
 
         Assert.Multiple(() =>
@@ -35,7 +35,7 @@ public sealed class ValidationControllerTests
         };
         var controller = new ValidationController(new ValidationCommandService(launch, new FakeEnvironment()));
 
-        var result = await controller.RunAsync(DebugDomain.Validate().Build(), CancellationToken.None);
+        var result = await controller.RunAsync(DebugDomain.Validate(DebugDomain.DesktopSurface).Build(), CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));
         Assert.That(result.Message, Does.Contain("flow failed"));

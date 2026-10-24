@@ -30,9 +30,9 @@ public sealed class ValidationCommandService(
     private async Task<CommandResultDto> RunCoreAsync(DebugCommandDto command, CancellationToken cancellationToken)
     {
         if (!string.Equals(command.Surface, DebugLayout.ValidateSurfaceDesktop, StringComparison.OrdinalIgnoreCase))
-            return CommandResultDto.Fail("Error: --surface must be desktop. Mobile surface replay is not implemented.");
+            return CommandResultDto.Fail("Error: --surface must be desktop.");
 
-        var output = launch.ResolveOutputPath(command.OutputPath);
+        var output = launch.ResolveOutputPath(command.OutDir);
         var result = await launch.RunAsync(
             new DesktopValidationLaunchSpec(
                 output,

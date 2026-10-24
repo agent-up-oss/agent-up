@@ -338,18 +338,24 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload, reload
         {writeAllowed ? (
           <>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Fetch"
               disabled={busy}
               onPress={() => confirmAction(gitBranchMutationConfirm('fetch', head), () => void runSync('fetch', () => fetchRemote(server!, workspaceId, null)))}
               style={styles.action}>
               <Text style={styles.actionText}>Fetch</Text>
             </Pressable>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Pull"
               disabled={busy}
               onPress={() => confirmAction(gitBranchMutationConfirm('pull', head), () => void runSync('pull', () => pullRemote(server!, workspaceId, false)))}
               style={styles.action}>
               <Text style={styles.actionText}>Pull</Text>
             </Pressable>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Push"
               disabled={busy}
               onPress={() => confirmAction(
                 gitBranchMutationConfirm('push', head),
@@ -395,6 +401,8 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload, reload
             style={styles.input}
           />
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Create"
             disabled={busy || !name.trim()}
             onPress={() => confirmAction(
               gitBranchMutationConfirm('create', head, name.trim()),
@@ -403,7 +411,11 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload, reload
             style={[styles.createButton, (!name.trim() || busy) && styles.disabled]}>
             <Text style={styles.createButtonText}>Create</Text>
           </Pressable>
-          <Pressable onPress={() => { setCreating(false); setName(''); }} style={styles.cancel}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Cancel"
+            onPress={() => { setCreating(false); setName(''); }}
+            style={styles.cancel}>
             <Text style={styles.cancelText}>Cancel</Text>
           </Pressable>
         </View>

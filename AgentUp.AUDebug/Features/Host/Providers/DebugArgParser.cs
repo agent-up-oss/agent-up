@@ -15,7 +15,7 @@ public sealed class DebugArgParser : IDebugArgParser
         string? heading = null;
         string? surface = null;
         string? flowId = null;
-        string? outputPath = null;
+        string? outDir = null;
         string? workspaceId = null;
         var positionals = new List<string>();
 
@@ -79,7 +79,7 @@ public sealed class DebugArgParser : IDebugArgParser
                 else if (arg == "--flow")
                     flowId = value;
                 else if (arg == "--out")
-                    outputPath = value;
+                    outDir = value;
                 else
                     workspaceId = value;
                 index++;
@@ -95,7 +95,7 @@ public sealed class DebugArgParser : IDebugArgParser
         if (timeoutSeconds > DebugLayout.MaxTimeoutSeconds)
             return (null, $"Error: --timeout must be between 1 and {DebugLayout.MaxTimeoutSeconds} seconds.");
 
-        return Build(positionals, password, timeoutSeconds, detach, heading, fullPage, live, surface, flowId, outputPath, workspaceId);
+        return Build(positionals, password, timeoutSeconds, detach, heading, fullPage, live, surface, flowId, outDir, workspaceId);
     }
 
     private static (string? Value, string? Error) ReadFlagValue(string flag, string[] args, int index)
@@ -118,24 +118,24 @@ public sealed class DebugArgParser : IDebugArgParser
         bool live,
         string? surface,
         string? flowId,
-        string? outputPath,
+        string? outDir,
         string? workspaceId)
     {
         if (positionals.Count == 0 || positionals[0] is "help" or "-h")
-            return FinishHelpOrHost("help", timeoutSeconds, password, detach, heading, fullPage, live, surface, flowId, outputPath, workspaceId);
+            return FinishHelpOrHost("help", timeoutSeconds, password, detach, heading, fullPage, live, surface, flowId, outDir, workspaceId);
 
         var verb = positionals[0];
         if (verb is "up" or "down" or "status")
         {
             if (positionals.Count > 1)
                 return (null, $"Error: '{verb}' does not take extra arguments.");
-            return FinishHelpOrHost(verb, timeoutSeconds, password, detach, heading, fullPage, live, surface, flowId, outputPath, workspaceId);
+            return FinishHelpOrHost(verb, timeoutSeconds, password, detach, heading, fullPage, live, surface, flowId, outDir, workspaceId);
         }
 
         if (verb == "validate")
-            return ParseValidate(positionals, password, timeoutSeconds, detach, heading, fullPage, live, surface, flowId, outputPath, workspaceId);
+            return ParseValidate(positionals, password, timeoutSeconds, detach, heading, fullPage, live, surface, flowId, outDir, workspaceId);
 
-        var validateFlagError = ValidateFlagsOnlyForValidate(surface, flowId, outputPath, workspaceId);
+        var validateFlagError = ValidateFlagsOnlyForValidate(surface, flowId, outDir, workspaceId);
         if (validateFlagError is not null)
             return (null, validateFlagError);
 
@@ -342,7 +342,7 @@ public sealed class DebugArgParser : IDebugArgParser
         bool live,
         string? surface,
         string? flowId,
-        string? outputPath,
+        string? outDir,
         string? workspaceId)
     {
         if (positionals.Count > 1)
@@ -352,35 +352,46 @@ public sealed class DebugArgParser : IDebugArgParser
         if (live)
             return (null, "Error: --live is only valid for screenshots validate.");
         if (string.IsNullOrWhiteSpace(surface))
-            return (null, "Error: 'validate' requires --surface desktop.");
-        if (!string.Equals(surface, DebugLayout.ValidateSurfaceDesktop, StringComparison.OrdinalIgnoreCase))
-            return (null, "Error: --surface must be desktop. Mobile surface replay is not implemented.");
+            return (null, "Error: 'validate' requires --surface desktop or --surface mobile.");
+
+        var canonical = CanonicalValidateSurface(surface);
+        if (canonical is null)
+            return (null, $"Error: unknown validation surface '{surface}'. Choose desktop or mobile.");
 
         return (
             new DebugCommandDto(
                 "validate",
-                DebugLayout.ValidateSurfaceDesktop,
+                canonical,
                 null,
                 workspaceId,
                 password,
                 TimeSpan.FromSeconds(timeoutSeconds ?? DebugLayout.ValidateTimeoutSeconds),
                 detach,
                 FlowId: flowId,
-                OutputPath: outputPath),
+                OutDir: outDir),
             null);
+    }
+
+    private static string? CanonicalValidateSurface(string surface)
+    {
+        if (string.Equals(surface, DebugLayout.ValidateSurfaceDesktop, StringComparison.OrdinalIgnoreCase))
+            return DebugLayout.ValidateSurfaceDesktop;
+        return string.Equals(surface, DebugLayout.ValidateSurfaceMobile, StringComparison.OrdinalIgnoreCase)
+            ? DebugLayout.ValidateSurfaceMobile
+            : null;
     }
 
     private static string? ValidateFlagsOnlyForValidate(
         string? surface,
         string? flowId,
-        string? outputPath,
+        string? outDir,
         string? workspaceId)
     {
         if (surface is not null)
             return "Error: --surface is only valid for validate.";
         if (flowId is not null)
             return "Error: --flow is only valid for validate.";
-        if (outputPath is not null)
+        if (outDir is not null)
             return "Error: --out is only valid for validate.";
         return workspaceId is null ? null : "Error: --workspace is only valid for validate.";
     }
@@ -395,14 +406,14 @@ public sealed class DebugArgParser : IDebugArgParser
         bool live,
         string? surface,
         string? flowId,
-        string? outputPath,
+        string? outDir,
         string? workspaceId)
     {
         if (heading is not null || fullPage)
             return (null, "Error: --heading and --full-page are only valid for docs screenshot.");
         if (live)
             return (null, "Error: --live is only valid for screenshots validate.");
-        var validateFlagError = ValidateFlagsOnlyForValidate(surface, flowId, outputPath, workspaceId);
+        var validateFlagError = ValidateFlagsOnlyForValidate(surface, flowId, outDir, workspaceId);
         if (validateFlagError is not null)
             return (null, validateFlagError);
 

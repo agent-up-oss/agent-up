@@ -449,19 +449,35 @@ public sealed class DebugArgParserTests
             Assert.That(command!.Verb, Is.EqualTo("validate"));
             Assert.That(command.Surface, Is.EqualTo("desktop"));
             Assert.That(command.FlowId, Is.EqualTo("open-git"));
-            Assert.That(command.OutputPath, Is.EqualTo("artifacts/qa"));
+            Assert.That(command.OutDir, Is.EqualTo("artifacts/qa"));
             Assert.That(command.WorkspaceName, Is.EqualTo("main"));
         });
     }
 
     [Test]
-    public void Parse_validate_requiresDesktopSurface()
+    public void Parse_validateMobile_usesTheLongWatchdog()
+    {
+        var (command, error) = _parser.Parse(["validate", "--surface", "mobile", "--flow", "git", "--out", "artifacts/mobile-validation"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(error, Is.Null);
+            Assert.That(command!.Verb, Is.EqualTo("validate"));
+            Assert.That(command.Surface, Is.EqualTo("mobile"));
+            Assert.That(command.FlowId, Is.EqualTo("git"));
+            Assert.That(command.OutDir, Is.EqualTo("artifacts/mobile-validation"));
+            Assert.That(command.Timeout, Is.EqualTo(TimeSpan.FromSeconds(DebugLayout.ValidateTimeoutSeconds)));
+        });
+    }
+
+    [Test]
+    public void Parse_validate_requiresDesktopOrMobileSurface()
     {
         var (_, missing) = _parser.Parse(["validate"]);
-        var (_, mobile) = _parser.Parse(["validate", "--surface", "mobile"]);
+        var (_, unknown) = _parser.Parse(["validate", "--surface", "tablet"]);
 
-        Assert.That(missing, Does.Contain("--surface desktop"));
-        Assert.That(mobile, Does.Contain("Mobile surface replay is not implemented"));
+        Assert.That(missing, Does.Contain("--surface desktop or --surface mobile"));
+        Assert.That(unknown, Does.Contain("unknown validation surface"));
     }
 
     [Test]

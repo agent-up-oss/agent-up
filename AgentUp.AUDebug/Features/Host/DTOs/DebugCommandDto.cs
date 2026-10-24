@@ -15,4 +15,4 @@ public sealed record DebugCommandDto(
     string? View = null,
     bool Live = false,
     string? FlowId = null,
-    string? OutputPath = null);
+    string? OutDir = null);

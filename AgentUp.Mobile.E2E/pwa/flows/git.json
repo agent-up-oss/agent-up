@@ -1,0 +1,79 @@
+{
+  "id": "git",
+  "application": "Mobile",
+  "name": "Git changes",
+  "description": "The Git tab shows working-tree actions, history, and repository hosting for the connected workspace.",
+  "surface": "Mobile",
+  "initialPath": "/connect",
+  "initialExpectations": [
+    {
+      "kind": "Text",
+      "value": "Connect to server"
+    }
+  ],
+  "steps": [
+    {
+      "id": "fill-server-url",
+      "description": "Enter the Server URL",
+      "action": "Fill",
+      "target": { "label": "Server URL" },
+      "value": "{serverUrl}",
+      "expectations": [
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": { "role": "button", "name": "Try and save" }
+        }
+      ]
+    },
+    {
+      "id": "try-and-save",
+      "description": "Try and save the Server URL",
+      "action": "Click",
+      "target": { "role": "button", "name": "Try and save" },
+      "expectations": [
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": { "role": "tab", "name": "Git" }
+        }
+      ]
+    },
+    {
+      "id": "open-git",
+      "description": "Open the Git tab",
+      "action": "Click",
+      "target": { "role": "tab", "name": "Git" },
+      "expectations": [
+        {
+          "kind": "Url",
+          "value": "/workspace/{workspaceId}/git"
+        },
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": { "role": "button", "name": "Fetch" }
+        },
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": { "role": "button", "name": "Pull" }
+        },
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": { "role": "button", "name": "Push" }
+        },
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": { "role": "button", "name": "History" }
+        },
+        {
+          "kind": "Text",
+          "value": "Changes"
+        }
+      ]
+    }
+  ]
+}

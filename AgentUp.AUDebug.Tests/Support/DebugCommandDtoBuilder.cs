@@ -25,7 +25,7 @@ internal sealed class DebugCommandDtoBuilder(string verb, string? surface = null
     private string? _view;
     private bool _live;
     private string? _flowId;
-    private string? _outputPath;
+    private string? _outDir;
 
     public DebugCommandDtoBuilder Doing(string? action)
     {
@@ -93,18 +93,18 @@ internal sealed class DebugCommandDtoBuilder(string verb, string? surface = null
         return this;
     }
 
-    public DebugCommandDtoBuilder WithFlow(string? flowId)
+    public DebugCommandDtoBuilder ForFlow(string? flowId)
     {
         _flowId = flowId;
         return this;
     }
 
-    public DebugCommandDtoBuilder WritingTo(string? outputPath)
+    public DebugCommandDtoBuilder WritingTo(string? outDir)
     {
-        _outputPath = outputPath;
+        _outDir = outDir;
         return this;
     }
 
     public DebugCommandDto Build()
-        => new(verb, surface, _action, _workspaceName, _password, _timeout, _detach, _suite, _pagePath, _heading, _fullPage, _view, _live, _flowId, _outputPath);
+        => new(verb, surface, _action, _workspaceName, _password, _timeout, _detach, _suite, _pagePath, _heading, _fullPage, _view, _live, _flowId, _outDir);
 }

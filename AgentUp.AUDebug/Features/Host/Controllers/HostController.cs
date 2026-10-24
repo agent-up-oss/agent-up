@@ -7,6 +7,7 @@ using AgentUp.AUDebug.Features.Mobile.Controllers;
 using AgentUp.AUDebug.Features.Screens.Controllers;
 using AgentUp.AUDebug.Features.Screenshots.Controllers;
 using AgentUp.AUDebug.Features.Test.Controllers;
+using AgentUp.AUDebug.Features.Validate.Controllers;
 using AgentUp.AUDebug.Features.Validation.Controllers;
 
 namespace AgentUp.AUDebug.Features.Host.Controllers;
@@ -21,6 +22,7 @@ public sealed class HostController
     private readonly ScreenshotsController _screenshots;
     private readonly ScreensController _screens;
     private readonly ValidationController _validation;
+    private readonly ValidateController _validate;
     private readonly IDebugArgParser _parser;
     private readonly DebugOutputService _output;
 
@@ -33,6 +35,7 @@ public sealed class HostController
         ScreenshotsController screenshots,
         ScreensController screens,
         ValidationController validation,
+        ValidateController validate,
         IDebugArgParser parser,
         DebugOutputService output)
     {
@@ -44,6 +47,7 @@ public sealed class HostController
         _screenshots = screenshots;
         _screens = screens;
         _validation = validation;
+        _validate = validate;
         _parser = parser;
         _output = output;
     }
@@ -57,7 +61,7 @@ public sealed class HostController
         if (error is not null)
             return _output.WriteError(error);
 
-        return await Route(_host, _desktop, _mobile, _docs, _tests, _screenshots, _screens, _validation, _output, command!, cancellationToken);
+        return await Route(_host, _desktop, _mobile, _docs, _tests, _screenshots, _screens, _validation, _validate, _output, command!, cancellationToken);
     }
 
     private static Task<int> Route(
@@ -69,6 +73,7 @@ public sealed class HostController
         ScreenshotsController screenshots,
         ScreensController screens,
         ValidationController validation,
+        ValidateController validate,
         DebugOutputService output,
         DebugCommandDto command,
         CancellationToken cancellationToken)
@@ -83,7 +88,9 @@ public sealed class HostController
             "docs" => WriteAsync(output, () => docs.ScreenshotAsync(command, cancellationToken)),
             "screenshots" => WriteAsync(output, () => screenshots.RunAsync(command, cancellationToken)),
             "screens" => WriteAsync(output, () => screens.RunAsync(command, cancellationToken)),
-            "validate" => WriteAsync(output, () => validation.RunAsync(command, cancellationToken)),
+            "validate" when string.Equals(command.Surface, DebugLayout.ValidateSurfaceDesktop, StringComparison.OrdinalIgnoreCase)
+                => WriteAsync(output, () => validation.RunAsync(command, cancellationToken)),
+            "validate" => WriteAsync(output, () => validate.RunAsync(command, cancellationToken)),
             "test" or "build" => WriteAsync(output, () => tests.RunAsync(command, cancellationToken)),
             _ => Task.FromResult(output.WriteError($"Error: unknown command '{command.Verb}'."))
         };

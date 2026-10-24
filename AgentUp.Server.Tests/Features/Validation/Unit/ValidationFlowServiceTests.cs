@@ -410,6 +410,184 @@ public sealed class ValidationFlowServiceTests
     }
 
     [Test]
+    public async Task Save_acceptsAMobileSurfaceFlow_withAnExpoRouteAndUrlExpectation()
+    {
+        var (service, workspaceId) = await CreateAsync();
+
+        var result = await service.SaveAsync(workspaceId, MobileRequest());
+
+        Assert.That(result.Succeeded, Is.True, result.Error);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Flow!.Surface, Is.EqualTo(ValidationSurface.Mobile));
+            Assert.That(result.Flow.Application, Is.EqualTo(MobileSurfaceFlowRules.ApplicationName));
+            Assert.That(result.Flow.InitialPath, Is.EqualTo(MobileSurfaceRoutes.Connect));
+        });
+    }
+
+    [Test]
+    public async Task Save_normalizesAMobileApplicationName()
+    {
+        var (service, workspaceId) = await CreateAsync();
+
+        var result = await service.SaveAsync(workspaceId, MobileRequest(application: " mobile "));
+
+        Assert.That(result.Succeeded, Is.True, result.Error);
+        Assert.That(result.Flow!.Application, Is.EqualTo(MobileSurfaceFlowRules.ApplicationName));
+    }
+
+    [Test]
+    public async Task Save_rejectsMobileSelectorAndCoordinateLocators()
+    {
+        var (service, workspaceId) = await CreateAsync();
+        var withSelector = MobileRequest(steps:
+        [
+            new ValidationStep("open", "Open Agents", ValidationAction.Click,
+                new(Role: "tab", Name: "Agents", Selector: "#agents"),
+                Expectations: [new ValidationAssertion(ValidationExpectation.Visible, "true")])
+        ]);
+        var withCoordinates = MobileRequest(steps:
+        [
+            new ValidationStep("open", "Open Agents", ValidationAction.Click,
+                new(Name: "Agents", X: 10, Y: 20),
+                Expectations: [new ValidationAssertion(ValidationExpectation.Visible, "true")])
+        ]);
+
+        var selector = await service.SaveAsync(workspaceId, withSelector);
+        var coordinates = await service.SaveAsync(workspaceId, withCoordinates);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(selector.Error, Does.Contain("reject Selector, X, and Y"));
+            Assert.That(coordinates.Error, Does.Contain("reject Selector, X, and Y"));
+        });
+    }
+
+    [Test]
+    public async Task Save_rejectsAMobileFlowBoundToAWorkspaceApplication()
+    {
+        var (service, workspaceId) = await CreateAsync();
+
+        var result = await service.SaveAsync(workspaceId, MobileRequest(application: "web"));
+
+        Assert.That(result.Error, Does.Contain("application 'Mobile'"));
+    }
+
+    [Test]
+    public async Task Save_rejectsMobileWhenTheNameIsMissing()
+    {
+        var (service, workspaceId) = await CreateAsync();
+
+        var result = await service.SaveAsync(workspaceId, MobileRequest(name: " "));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Does.Contain("Name is required"));
+    }
+
+    [Test]
+    public async Task Save_rejectsAnUnknownMobileExpoRoute()
+    {
+        var (service, workspaceId) = await CreateAsync();
+
+        var result = await service.SaveAsync(workspaceId, MobileRequest(initialPath: "/git"));
+
+        Assert.That(result.Succeeded, Is.False);
+        Assert.That(result.Error, Does.Contain("expo-router path"));
+    }
+
+    [Test]
+    public async Task Run_refusesMobileSurfaceReplay_withoutTouchingTheBrowser()
+    {
+        var (service, workspaceId) = await CreateAsync();
+        var saved = await service.SaveAsync(workspaceId, MobileRequest());
+        Assert.That(saved.Succeeded, Is.True, saved.Error);
+
+        var result = await service.RunAsync(workspaceId, saved.Flow!.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Is.EqualTo("Mobile surface flows run through au-debug validate --surface mobile."));
+        });
+    }
+
+    [Test]
+    public async Task Export_skipsPlaywright_forMobileSurfaceFlows()
+    {
+        var (service, workspaceId) = await CreateAsync();
+        var saved = await service.SaveAsync(workspaceId, MobileRequest());
+        Assert.That(saved.Succeeded, Is.True, saved.Error);
+
+        var export = await service.ExportAsync(workspaceId, saved.Flow!.Id);
+
+        Assert.That(export, Is.Null);
+    }
+
+    [Test]
+    public async Task List_returnsMobileSurfaceFlows_underTheMobileApplication()
+    {
+        var (service, workspaceId) = await CreateAsync();
+        await service.SaveAsync(workspaceId, Request(name: "Checkout"));
+        await service.SaveAsync(workspaceId, MobileRequest(name: "Connect"));
+
+        var mobile = await service.ListAsync(workspaceId, MobileSurfaceFlowRules.ApplicationName);
+        var web = await service.ListAsync(workspaceId, "web");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(mobile.Select(flow => flow.Name), Is.EqualTo(new[] { "Connect" }));
+            Assert.That(web.Select(flow => flow.Name), Is.EqualTo(new[] { "Checkout" }));
+        });
+    }
+
+    [Test]
+    public async Task Get_returnsAMobileSurfaceFlow()
+    {
+        var (service, workspaceId) = await CreateAsync();
+        var saved = await service.SaveAsync(workspaceId, MobileRequest());
+        Assert.That(saved.Succeeded, Is.True, saved.Error);
+
+        var loaded = await service.GetAsync(workspaceId, saved.Flow!.Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(loaded, Is.Not.Null);
+            Assert.That(loaded!.Surface, Is.EqualTo(ValidationSurface.Mobile));
+            Assert.That(loaded.Application, Is.EqualTo(MobileSurfaceFlowRules.ApplicationName));
+        });
+    }
+
+    [Test]
+    public async Task Save_replacesAnExistingMobileFlow_andIncrementsTheVersion()
+    {
+        var (service, workspaceId) = await CreateAsync();
+        var first = await service.SaveAsync(workspaceId, MobileRequest(name: "Connect"));
+        Assert.That(first.Succeeded, Is.True, first.Error);
+
+        var second = await service.SaveAsync(workspaceId, MobileRequest(id: first.Flow!.Id, name: "Connect again"));
+
+        Assert.That(second.Succeeded, Is.True, second.Error);
+        Assert.Multiple(() =>
+        {
+            Assert.That(second.Flow!.Id, Is.EqualTo(first.Flow.Id));
+            Assert.That(second.Flow.Name, Is.EqualTo("Connect again"));
+            Assert.That(second.Flow.Version, Is.EqualTo(first.Flow.Version + 1));
+            Assert.That(second.Flow.Surface, Is.EqualTo(ValidationSurface.Mobile));
+        });
+    }
+
+    [Test]
+    public async Task Save_acceptsABlankMobileApplicationName()
+    {
+        var (service, workspaceId) = await CreateAsync();
+
+        var result = await service.SaveAsync(workspaceId, MobileRequest(application: ""));
+
+        Assert.That(result.Succeeded, Is.True, result.Error);
+        Assert.That(result.Flow!.Application, Is.EqualTo(MobileSurfaceFlowRules.ApplicationName));
+    }
+
+    [Test]
     public async Task Export_skipsPlaywright_forDesktopSurfaceFlows()
     {
         var (service, workspaceId) = await CreateAsync();
@@ -641,6 +819,31 @@ public sealed class ValidationFlowServiceTests
             new MemoryRepository(), new WorkspaceQueryController(registry), null!, new PlaywrightFlowExporter());
         return (service, workspace.Id);
     }
+
+    private static SaveValidationFlowRequest MobileRequest(
+        string? id = null,
+        string? application = null,
+        string name = "Connect",
+        string initialPath = MobileSurfaceRoutes.Connect,
+        IReadOnlyList<ValidationAssertion>? initialExpectations = null,
+        IReadOnlyList<ValidationStep>? steps = null) =>
+        new(
+            id,
+            application ?? MobileSurfaceFlowRules.ApplicationName,
+            name,
+            "The connect form is visible.",
+            initialPath,
+            initialExpectations ?? [new ValidationAssertion(ValidationExpectation.Url, "/connect")],
+            steps ??
+            [
+                new ValidationStep(
+                    "save",
+                    "Try and save the Server URL",
+                    ValidationAction.Click,
+                    new(Role: "button", Name: "Try and save"),
+                    Expectations: [new ValidationAssertion(ValidationExpectation.Url, "/workspace/{workspaceId}")])
+            ],
+            ValidationSurface.Mobile);
 
     private static SaveValidationFlowRequest DesktopRequest(
         string? application = null,
