@@ -114,9 +114,7 @@ public static class AuDebugRunnerFactory
                     paths,
                     environment,
                     probe,
-                    new ValidationWorkspaceFixtureProvider(
-                        paths,
-                        new HttpClient { Timeout = TimeSpan.FromSeconds(30) })),
+                    new ValidationWorkspaceFixtureProvider(paths)),
                 environment));
         var validate = new ValidateController(
             new ValidateCommandService(

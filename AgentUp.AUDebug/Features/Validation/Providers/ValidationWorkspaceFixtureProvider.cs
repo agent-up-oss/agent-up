@@ -7,7 +7,7 @@ namespace AgentUp.AUDebug.Features.Validation.Providers;
 
 public sealed class ValidationWorkspaceFixtureProvider(
     IDebugPathValidator paths,
-    HttpClient http) : IValidationWorkspaceFixture
+    HttpMessageHandler? handler = null) : IValidationWorkspaceFixture
 {
     public const string WorkspaceDisplayName = "Agent Up";
     public const string ScriptedAgentId = "test-agent-scripted";
@@ -46,7 +46,14 @@ public sealed class ValidationWorkspaceFixtureProvider(
 
     public async Task PrepareAsync(string serverUrl, CancellationToken cancellationToken)
     {
-        http.BaseAddress = new Uri(serverUrl.TrimEnd('/') + "/");
+        var baseAddress = new Uri(serverUrl.TrimEnd('/') + "/");
+        using var http = handler is null
+            ? new HttpClient { Timeout = TimeSpan.FromSeconds(30), BaseAddress = baseAddress }
+            : new HttpClient(handler, disposeHandler: false)
+            {
+                Timeout = TimeSpan.FromSeconds(30),
+                BaseAddress = baseAddress
+            };
         using var content = new StringContent(RegistrationJson(), Encoding.UTF8, "application/json");
         using var response = await http.PostAsync("api/workspaces", content, cancellationToken);
         if (!response.IsSuccessStatusCode)

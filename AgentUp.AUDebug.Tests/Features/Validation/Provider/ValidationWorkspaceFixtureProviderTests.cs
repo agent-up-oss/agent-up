@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text;
 using AgentUp.AUDebug.Features.Validation.Providers;
@@ -12,8 +13,7 @@ public sealed class ValidationWorkspaceFixtureProviderTests
     public void CreateDataDirectory_createsAnIsolatedDataFolder()
     {
         var root = Path.Join(Path.GetTempPath(), "au-debug-fixture", Guid.NewGuid().ToString("N"));
-        using var http = new HttpClient();
-        var provider = new ValidationWorkspaceFixtureProvider(new FakePathValidator(root), http);
+        var provider = new ValidationWorkspaceFixtureProvider(new FakePathValidator(root));
 
         var data = provider.CreateDataDirectory();
 
@@ -31,8 +31,7 @@ public sealed class ValidationWorkspaceFixtureProviderTests
             Path.Join(root, "agent-up.json"),
             """{"name":"Agent Up","applications":[{"name":"Docs","command":"npm run start"}]}""");
         var handler = new RecordingHandler();
-        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://127.0.0.1:5001/") };
-        var provider = new ValidationWorkspaceFixtureProvider(new FakePathValidator(root), http);
+        var provider = new ValidationWorkspaceFixtureProvider(new FakePathValidator(root), handler);
 
         await provider.PrepareAsync("http://127.0.0.1:5001", CancellationToken.None);
 
@@ -57,8 +56,7 @@ public sealed class ValidationWorkspaceFixtureProviderTests
                 executable,
                 UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         }
-        using var http = new HttpClient();
-        var provider = new ValidationWorkspaceFixtureProvider(new FakePathValidator(root), http);
+        var provider = new ValidationWorkspaceFixtureProvider(new FakePathValidator(root));
         var data = provider.CreateDataDirectory();
 
         var environment = provider.ServerEnvironment(data);
@@ -75,8 +73,7 @@ public sealed class ValidationWorkspaceFixtureProviderTests
         var root = Path.Join(Path.GetTempPath(), "au-debug-fixture", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         var handler = new RecordingHandler();
-        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://127.0.0.1:5001/") };
-        var provider = new ValidationWorkspaceFixtureProvider(new FakePathValidator(root), http);
+        var provider = new ValidationWorkspaceFixtureProvider(new FakePathValidator(root), handler);
 
         await provider.PrepareAsync("http://127.0.0.1:5001", CancellationToken.None);
 
@@ -98,10 +95,14 @@ public sealed class ValidationWorkspaceFixtureProviderTests
             Path = request.RequestUri?.AbsolutePath;
             if (request.Content is not null)
                 Body = await request.Content.ReadAsStringAsync(cancellationToken);
-            return new HttpResponseMessage(HttpStatusCode.OK)
+            return CreateResponse();
+        }
+
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
+        private static HttpResponseMessage CreateResponse() =>
+            new(HttpStatusCode.OK)
             {
                 Content = new StringContent("{\"id\":\"ws\"}", Encoding.UTF8, "application/json")
             };
-        }
     }
 }

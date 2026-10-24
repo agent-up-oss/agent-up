@@ -64,6 +64,18 @@ public sealed class DesktopVisualTreeLocatorTests
     }
 
     [AvaloniaTest]
+    public void Resolve_returnsAHiddenMatchWhenNoneAreShown()
+    {
+        var hidden = new Button { Name = "only", Content = "Hidden", IsVisible = false };
+        var window = Show(new StackPanel { Children = { hidden } });
+        var locator = new DesktopVisualTreeLocator();
+
+        var resolved = locator.Resolve(window, DesktopDomain.Target().Named("only").Build(), out _);
+
+        Assert.That(resolved, Is.SameAs(hidden));
+    }
+
+    [AvaloniaTest]
     public void Nearby_listsControlsWhoseIdOrNameContainsTheWantedText()
     {
         var commit = new Button { Content = "Commit" };

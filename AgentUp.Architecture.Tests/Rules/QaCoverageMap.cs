@@ -172,22 +172,14 @@ public sealed class QaCoverageMap
         Converters = { new JsonStringEnumConverter() }
     };
 
-    private static IReadOnlyList<MapRow> ParseTable(string source)
-    {
-        var rows = new List<MapRow>();
-        foreach (var raw in source.Split('\n'))
-        {
-            var line = raw.Trim();
-            if (!line.StartsWith('|') || line.Contains("---", StringComparison.Ordinal))
-                continue;
-            var cells = line.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-            if (cells.Length < 4 || cells[0] is "Surface")
-                continue;
-            rows.Add(new MapRow(cells[0], cells[2], cells[3]));
-        }
-
-        return rows;
-    }
+    private static IReadOnlyList<MapRow> ParseTable(string source) =>
+        source.Split('\n')
+            .Select(raw => raw.Trim())
+            .Where(line => line.StartsWith('|') && !line.Contains("---", StringComparison.Ordinal))
+            .Select(line => line.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            .Where(cells => cells.Length >= 4 && cells[0] is not "Surface")
+            .Select(cells => new MapRow(cells[0], cells[2], cells[3]))
+            .ToList();
 
     private sealed record MapRow(string Surface, string Desktop, string Mobile);
 

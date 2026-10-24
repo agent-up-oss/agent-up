@@ -76,6 +76,37 @@ public sealed class DesktopControlInputTests
     }
 
     [AvaloniaTest]
+    public void Click_selectsTheListBoxItemWhenANestedChildIsClicked()
+    {
+        var list = new ListBox
+        {
+            Width = 280,
+            Height = 160,
+            ItemsSource = new[] { "Apps", "Git", "Agent" }
+        };
+        Show(list);
+        var item = list.GetVisualDescendants().OfType<ListBoxItem>().Skip(1).First();
+        var child = item.GetVisualDescendants().OfType<Control>().First();
+
+        new DesktopControlInput().Click(child);
+
+        Assert.That(list.SelectedItem, Is.EqualTo("Git"));
+    }
+
+    [AvaloniaTest]
+    public void Click_selectsTheListBoxItemWhenItHasNoDataContext()
+    {
+        var item = new ListBoxItem { Content = "Git", Width = 240, Height = 32 };
+        var list = new ListBox { Width = 280, Height = 160, ItemsSource = new[] { item } };
+        Show(list);
+        item.DataContext = null;
+
+        new DesktopControlInput().Click(item);
+
+        Assert.That(list.SelectedItem, Is.SameAs(item));
+    }
+
+    [AvaloniaTest]
     public void Click_togglesACheckBoxThroughPointerEvents()
     {
         var box = new CheckBox { Content = "On" };
@@ -84,6 +115,32 @@ public sealed class DesktopControlInputTests
         new DesktopControlInput().Click(box);
 
         Assert.That(box.IsChecked, Is.True);
+    }
+
+    [AvaloniaTest]
+    public void Click_raisesPointerEventsOnANonButton()
+    {
+        var pressed = false;
+        var border = new Border { Width = 80, Height = 32 };
+        border.PointerPressed += (_, _) => pressed = true;
+        Show(border);
+
+        new DesktopControlInput().Click(border);
+
+        Assert.That(pressed, Is.True);
+    }
+
+    [AvaloniaTest]
+    public void Click_raisesPointerEventsOnAListBoxItemOutsideAList()
+    {
+        var pressed = false;
+        var item = new ListBoxItem { Content = "Git", Width = 240, Height = 32 };
+        item.PointerPressed += (_, _) => pressed = true;
+        Show(item);
+
+        new DesktopControlInput().Click(item);
+
+        Assert.That(pressed, Is.True);
     }
 
     [AvaloniaTest]
