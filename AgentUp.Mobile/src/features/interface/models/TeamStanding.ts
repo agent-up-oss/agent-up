@@ -221,8 +221,21 @@ function identify(account: ForgeAccount | null | undefined): TeamIdentity | null
     : null;
 }
 
+/**
+ * Where an agent stands when no unattended loop is running. The loop is the autonomous run, and an
+ * agent can be working, held at a gate or stopped without one, so the session's own state is what
+ * says which. A session merely existing is not a run in flight: an agent that has finished and is
+ * sitting ready holds nothing.
+ */
+function withoutLoop(session: AgentSession | null): TeamStandingKind {
+  if (same(session?.state, 'running')) return 'working';
+  if (same(session?.state, 'awaiting_input')) return 'waiting';
+  if (same(session?.state, 'error')) return 'halted';
+  return 'idle';
+}
+
 function classify(session: AgentSession | null, loop: AgentSession['loop']): TeamStandingKind {
-  if (!loop) return session ? 'working' : 'idle';
+  if (!loop) return withoutLoop(session);
   if (isHalted(loop)) return 'halted';
   if (isWaiting(session, loop)) return 'waiting';
   return loop.active ? 'working' : 'idle';

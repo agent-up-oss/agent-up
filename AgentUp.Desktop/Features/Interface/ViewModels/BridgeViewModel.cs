@@ -14,6 +14,9 @@ namespace AgentUp.Desktop.Features.Interface.ViewModels;
 public sealed class BridgeViewModel : ReactiveObject
 {
     private readonly TeamStandingController _standings;
+    /// <summary>Counts reads so a superseded one can tell it is no longer the newest.</summary>
+    private int _reads;
+
     private bool _isLoading;
     private string? _errorMessage;
     private bool _hasRead;
@@ -89,26 +92,37 @@ public sealed class BridgeViewModel : ReactiveObject
     public string EmptyTeamHint => "This server has no workspaces yet.";
     public string EmptyNothingNeededHint => "Every agent needs something from you.";
 
+    /// <summary>
+    /// Reads the team. Reads overlap: the timer starts one every ten seconds, and the workspace
+    /// list starts one each time it changes — which a reorder does once per item, since rebuilding
+    /// the collection raises the change for every add. Nothing awaits them, so a slower earlier
+    /// read can finish last. Only the newest read is allowed to say what the team looks like, or
+    /// an older one would draw its stale list over the newer one and clear the loading flag while
+    /// a read is still out.
+    /// </summary>
     public async Task ReadAsync(IReadOnlyList<TeamMember>? members = null, CancellationToken cancellationToken = default)
     {
         var requested = members ?? Team.Select(row => row.Member).ToArray();
+        var read = ++_reads;
         IsLoading = true;
         ErrorMessage = null;
         try
         {
             var standings = await _standings.ReadAsync(requested, cancellationToken);
+            if (read != _reads) return;
             // Before Apply, which raises Headline: the headline reads HasRead.
             HasRead = true;
             Apply(standings);
         }
         catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
         {
+            if (read != _reads) return;
             ErrorMessage = exception.Message;
             this.RaisePropertyChanged(nameof(HasError));
         }
         finally
         {
-            IsLoading = false;
+            if (read == _reads) IsLoading = false;
         }
     }
 

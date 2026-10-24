@@ -24,7 +24,10 @@ export interface KeyValueStorage {
 export function browserInterfaceStorage(): KeyValueStorage | null {
   if (typeof window === 'undefined') return null;
   try {
-    return window.localStorage;
+    // React Native defines `window` but not `window.localStorage`, and reading it there throws
+    // nothing — it is simply undefined. Returning that would make the caller's `storage !== null`
+    // check report a preference as stored when nothing was.
+    return window.localStorage ?? null;
   } catch {
     return null;
   }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AgentUp.Desktop.Features.Agents.Controllers;
 using AgentUp.Desktop.Features.Agents.DTOs;
 using AgentUp.Desktop.Features.Git.Controllers;
@@ -91,7 +92,13 @@ public sealed class TeamStandingService
         {
             return await _agents.GetAsync(workspaceId, cancellationToken);
         }
-        catch (HttpRequestException)
+        // A refused or dropped request, a body the Server did not write properly, and a read that
+        // ran out of time are this workspace's own failure: these reads go out together, so
+        // anything that escapes here fails the whole team's read rather than leaving one agent
+        // unreported, which is the opposite of what this service promises. Cancellation the caller
+        // asked for belongs to everybody and keeps propagating.
+        catch (Exception failure) when (failure is HttpRequestException or JsonException
+            || (failure is OperationCanceledException && !cancellationToken.IsCancellationRequested))
         {
             return null;
         }
@@ -103,7 +110,9 @@ public sealed class TeamStandingService
         {
             return await _git.GetHostingAsync(workspaceId, cancellationToken);
         }
-        catch (HttpRequestException)
+        // One workspace's own failure, as above.
+        catch (Exception failure) when (failure is HttpRequestException or JsonException
+            || (failure is OperationCanceledException && !cancellationToken.IsCancellationRequested))
         {
             return null;
         }
@@ -173,11 +182,25 @@ public sealed class TeamStandingService
 
     private static TeamStandingKind Classify(AgentSessionDto? session, AgentLoopStatusDto? loop)
     {
-        if (loop is null) return session is null ? TeamStandingKind.Idle : TeamStandingKind.Working;
+        if (loop is null) return WithoutLoop(session);
         if (IsHalted(loop)) return TeamStandingKind.Halted;
         if (IsWaiting(session, loop)) return TeamStandingKind.WaitingOnYou;
         return loop.Active ? TeamStandingKind.Working : TeamStandingKind.Idle;
     }
+
+    /// <summary>
+    /// Where an agent stands when no unattended loop is running. The loop is the autonomous run,
+    /// and an agent can be working, held at a gate or stopped without one, so the session's own
+    /// state is what says which. A session merely existing is not a run in flight: an agent that
+    /// has finished and is sitting ready holds nothing.
+    /// </summary>
+    private static TeamStandingKind WithoutLoop(AgentSessionDto? session) => session?.State?.ToUpperInvariant() switch
+    {
+        "RUNNING" => TeamStandingKind.Working,
+        "AWAITING_INPUT" => TeamStandingKind.WaitingOnYou,
+        "ERROR" => TeamStandingKind.Halted,
+        _ => TeamStandingKind.Idle
+    };
 
     private static bool IsHalted(AgentLoopStatusDto loop)
         => Equals(loop.Phase, "failed")

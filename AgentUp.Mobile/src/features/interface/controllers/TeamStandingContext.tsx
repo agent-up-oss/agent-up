@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { TeamMember, TeamStanding } from '../models/TeamStanding';
 import { readStandings } from '../providers/TeamStandingProvider';
@@ -27,17 +27,26 @@ export function useTeamStanding(): TeamTriage & { loading: boolean; read: boolea
   );
   const signature = useMemo(() => JSON.stringify(members), [members]);
 
+  // Reads overlap: the server or the workspace list can change, and a pull starts one by hand.
+  // Nothing cancels the read already out, so a slower earlier one can land last and draw another
+  // server's team over the current one. Only the newest read may report.
+  const newest = useRef(0);
+
   const load = useCallback(async () => {
     if (!server) return;
+    const read = ++newest.current;
     setLoading(true);
     try {
-      setStandings(await readStandings(server, JSON.parse(signature) as TeamMember[]));
+      const standing = await readStandings(server, JSON.parse(signature) as TeamMember[]);
+      if (read !== newest.current) return;
+      setStandings(standing);
       setError(null);
       setRead(true);
     } catch (cause) {
+      if (read !== newest.current) return;
       setError(cause instanceof Error ? cause.message : 'Could not read the team.');
     } finally {
-      setLoading(false);
+      if (read === newest.current) setLoading(false);
     }
   }, [server, signature]);
 
