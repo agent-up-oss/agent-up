@@ -36,30 +36,28 @@ public static class AppComposition
         desktop.MainWindow = window;
         window.Closing += (_, _) => viewModel.Login.Cancel();
         window.Show();
-        if (viewModel.DesktopValidationLaunch is { } launch)
-        {
+        var launch = viewModel.DesktopValidationLaunch;
+        if (launch is not null)
             launch.Attach(window, viewModel);
-            if (launch.IsRequested)
-            {
-                if (!login.IsVisible)
-                    login.ShowPicker();
-                await login.CompleteUnattendedConnectAsync(launch.AdminPassword);
-                if (login.IsVisible)
-                {
-                    desktop.Shutdown(1);
-                    return;
-                }
-            }
-        }
 
-        if (login.IsVisible)
+        if (launch is { ShouldPromptInteractively: false })
+        {
+            if (!login.IsVisible)
+                login.ShowPicker();
+            await login.CompleteUnattendedConnectAsync(launch.AdminPassword);
+            if (login.IsVisible)
+            {
+                desktop.Shutdown(1);
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(login.AccessToken))
+                http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", login.AccessToken);
+        }
+        else
         {
             while (!await TryAuthenticateAsync(desktop, http, login))
                 continue;
-        }
-        else if (!string.IsNullOrWhiteSpace(login.AccessToken))
-        {
-            http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", login.AccessToken);
         }
 
         if (desktop.MainWindow is MainWindow mainWindow)

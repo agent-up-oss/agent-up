@@ -21,7 +21,21 @@ public sealed class DesktopValidationLaunchControllerTests
         var controller = Controller(host, http);
 
         Assert.That(controller.IsRequested, Is.False);
+        Assert.That(controller.ShouldPromptInteractively, Is.True);
         Assert.That(controller.AdminPassword, Is.Null);
+    }
+
+    [Test]
+    public void ShouldPromptInteractively_isFalseWhenValidateLaunchIsRequested()
+    {
+        using var surface = new Env(DesktopValidationKeys.Surface, DesktopValidationKeys.DesktopValue);
+        using var output = new Env(DesktopValidationKeys.Output, "/tmp/desktop-validation");
+        var host = new RecordingHost();
+        using var http = new HttpClient { BaseAddress = new Uri("http://server/") };
+        var controller = Controller(host, http);
+
+        Assert.That(controller.IsRequested, Is.True);
+        Assert.That(controller.ShouldPromptInteractively, Is.False);
     }
 
     [Test]
