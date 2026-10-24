@@ -111,7 +111,8 @@ public sealed class DesktopValidationLaunchServiceTests
             new DesktopVisualTreeLocator(),
             new DesktopControlInput(),
             new DesktopWindowCapture(),
-            new DesktopSurfaceNavigator());
+            new DesktopSurfaceNavigator(),
+            conditionAttempts: 2);
         host.Attach(app.Window, app.Window.DataContext!);
         var artifacts = new ValidationArtifactStore();
         var client = new ValidationFlowApiClient(http);

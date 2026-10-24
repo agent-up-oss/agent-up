@@ -186,7 +186,8 @@ public sealed class AvaloniaValidationReplayHostTests
             new DesktopVisualTreeLocator(),
             new DesktopControlInput(),
             new DesktopWindowCapture(),
-            new DesktopSurfaceNavigator());
+            new DesktopSurfaceNavigator(),
+            conditionAttempts: 2);
 
     private static ValidationFlowDto GitFlow()
         => new(

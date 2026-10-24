@@ -217,7 +217,8 @@ public sealed class DesktopValidationReplayTests
             new DesktopVisualTreeLocator(),
             new DesktopControlInput(),
             new DesktopWindowCapture(),
-            new DesktopSurfaceNavigator());
+            new DesktopSurfaceNavigator(),
+            conditionAttempts: 2);
 
     private static ValidationFlowReplayService Replay(
         AvaloniaValidationReplayHost host,

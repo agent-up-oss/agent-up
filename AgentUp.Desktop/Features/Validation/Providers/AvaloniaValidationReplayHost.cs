@@ -14,7 +14,8 @@ public sealed class AvaloniaValidationReplayHost(
     DesktopVisualTreeLocator locator,
     DesktopControlInput input,
     DesktopWindowCapture capture,
-    DesktopSurfaceNavigator navigator) : IDesktopValidationReplayHost
+    DesktopSurfaceNavigator navigator,
+    int conditionAttempts = ValidationConditionWait.DefaultAttempts) : IDesktopValidationReplayHost
 {
     private Window? _window;
     private MainViewModel? _viewModel;
@@ -73,7 +74,8 @@ public sealed class AvaloniaValidationReplayHost(
             },
             $"{assertion.Kind} '{assertion.Value}'",
             DelayAsync,
-            cancellationToken);
+            cancellationToken,
+            conditionAttempts);
 
         var last = await OnUi(() => EvaluateNow(assertion), cancellationToken);
         return new(
