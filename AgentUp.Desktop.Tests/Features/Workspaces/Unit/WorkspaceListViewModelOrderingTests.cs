@@ -25,6 +25,22 @@ public class WorkspaceListViewModelOrderingTests
     }
 
     [Test]
+    public void ApplyEvent_keepsTheOpenWorkspaceSelectedWhenTheOrderChanges()
+    {
+        var sidebar = new WorkspaceListViewModel(new WorkspacesController(new WorkspaceListService(new FakeWorkspaceApiProvider())));
+        sidebar.Workspaces.Add(new WorkspaceItemViewModel(
+            "ws-1", "agent1", "main", "/repo/agent1", "/worktrees/agent1", "Stopping"));
+        sidebar.Workspaces.Add(new WorkspaceItemViewModel(
+            "ws-2", "agent2", "main", "/repo/agent2", "/worktrees/agent2", "Running"));
+        sidebar.SelectedWorkspace = sidebar.Workspaces[0];
+
+        sidebar.ApplyEvent("ws-1", "Stopping", [], null);
+
+        Assert.That(sidebar.Workspaces.Select(w => w.Id).ToList(), Is.EqualTo(["ws-2", "ws-1"]));
+        Assert.That(sidebar.SelectedWorkspace?.Id, Is.EqualTo("ws-1"));
+    }
+
+    [Test]
     public async Task LoadAsync_keepsOwnWorkspacesAboveDerivedReviewWorkspaces()
     {
         var api = new FakeWorkspaceApiProvider

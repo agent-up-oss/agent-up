@@ -78,6 +78,66 @@
   },
   "workspaces": [
     {
+      "id": "hector",
+      "displayName": "Hector",
+      "repositoryPath": "/demo/harbor",
+      "worktreePath": "/demo/agents/hector",
+      "branch": "feat/44-restock",
+      "commit": "a1b2c3d",
+      "state": "Running",
+      "healthState": "Healthy",
+      "lastActivityAtUtc": "2026-09-22T07:31:00Z",
+      "applications": [
+        {
+          "name": "Storefront",
+          "command": "npm run dev",
+          "path": "apps/storefront",
+          "state": "Running",
+          "kind": "Process",
+          "database": false,
+          "page": "storefront",
+          "allocatedPorts": [
+            {
+              "variable": "WEB_PORT",
+              "defaultPort": 3000,
+              "allocatedPort": 9400,
+              "protocol": "http"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lucy",
+      "displayName": "Lucy",
+      "repositoryPath": "/demo/harbor",
+      "worktreePath": "/demo/agents/lucy",
+      "branch": "feat/44-restock",
+      "commit": "a1b2c3d",
+      "state": "Running",
+      "healthState": "Healthy",
+      "lastActivityAtUtc": "2026-09-22T07:52:00Z",
+      "applications": [
+        {
+          "name": "Storefront",
+          "command": "npm run dev",
+          "path": "apps/storefront",
+          "state": "Running",
+          "kind": "Process",
+          "database": false,
+          "page": "storefront",
+          "allocatedPorts": [
+            {
+              "variable": "WEB_PORT",
+              "defaultPort": 3000,
+              "allocatedPort": 9300,
+              "protocol": "http"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "bob",
       "displayName": "Bob",
       "repositoryPath": "/demo/harbor",
@@ -118,66 +178,6 @@
               "variable": "API_PORT",
               "defaultPort": 4000,
               "allocatedPort": 9101,
-              "protocol": "http"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "lucy",
-      "displayName": "Lucy",
-      "repositoryPath": "/demo/harbor",
-      "worktreePath": "/demo/agents/lucy",
-      "branch": "feat/44-restock",
-      "commit": "a1b2c3d",
-      "state": "Running",
-      "healthState": "Healthy",
-      "lastActivityAtUtc": "2026-09-22T08:00:00Z",
-      "applications": [
-        {
-          "name": "Storefront",
-          "command": "npm run dev",
-          "path": "apps/storefront",
-          "state": "Running",
-          "kind": "Process",
-          "database": false,
-          "page": "storefront",
-          "allocatedPorts": [
-            {
-              "variable": "WEB_PORT",
-              "defaultPort": 3000,
-              "allocatedPort": 9300,
-              "protocol": "http"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "hector",
-      "displayName": "Hector",
-      "repositoryPath": "/demo/harbor",
-      "worktreePath": "/demo/agents/hector",
-      "branch": "feat/44-restock",
-      "commit": "a1b2c3d",
-      "state": "Running",
-      "healthState": "Healthy",
-      "lastActivityAtUtc": "2026-09-22T08:00:00Z",
-      "applications": [
-        {
-          "name": "Storefront",
-          "command": "npm run dev",
-          "path": "apps/storefront",
-          "state": "Running",
-          "kind": "Process",
-          "database": false,
-          "page": "storefront",
-          "allocatedPorts": [
-            {
-              "variable": "WEB_PORT",
-              "defaultPort": 3000,
-              "allocatedPort": 9400,
               "protocol": "http"
             }
           ]

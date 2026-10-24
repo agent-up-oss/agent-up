@@ -15,9 +15,9 @@ public static class DesktopScreenGeometry
     /// <summary>Sign-in pane, centred in the content area under the 42px chrome.</summary>
     public const int SignInUrlFieldX = 720;
 
-    public const int SignInUrlFieldY = 485;
+    public const int SignInUrlFieldY = 465;
     public const int SignInDemoRowX = 716;
-    public const int SignInDemoRowY = 555;
+    public const int SignInDemoRowY = 536;
 
     /// <summary>Chrome bar: 46x32 buttons from a 10px left margin, vertically centred in 42px.</summary>
     public const int ChromeButtonY = 21;
