@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { ServerAutonomy } from '../models/AgentSession';
-import { canActivateLoop, canCancelLoop, canEnableAutonomy, preconditionLabel } from './LoopSurfaceProvider';
+import { canActivateLoop, canCancelLoop, canEnableAutonomy, preconditionLabel, shouldShowLoopControls } from './LoopSurfaceProvider';
 
 const readyToEnable: ServerAutonomy = {
   enabled: false,
@@ -45,4 +45,11 @@ test('canActivateLoop requires the full chain and a stopped loop', () => {
 test('canCancelLoop follows the typed active flag', () => {
   assert.equal(canCancelLoop({ active: true, phase: 'running' }), true);
   assert.equal(canCancelLoop({ active: false, phase: 'stopped', terminal: 'Cancelled' }), false);
+});
+
+test('shouldShowLoopControls hides the checklist while subscription sign-in owns the chrome', () => {
+  assert.equal(shouldShowLoopControls('authentication_required'), false);
+  assert.equal(shouldShowLoopControls('authenticating'), false);
+  assert.equal(shouldShowLoopControls('ready'), true);
+  assert.equal(shouldShowLoopControls(undefined), true);
 });

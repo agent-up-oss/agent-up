@@ -31,7 +31,7 @@ An empty rule list is byte-identical to today's human path: the client still dec
 
 ## Unattended loop
 
-Autonomy is a Server-level switch, off by default. Enablement is stored in `autonomy-settings.json`; `AGENTUP_AUTONOMY_ENABLED` still forces it on. `GET /api/autonomy` returns `{ enabled, preconditions }` in order: `forgeCapabilityEnabled`, `hostConnectionAuthorized`, `agentAvailable`, `autonomyEnabled`, each with a remedy when unsatisfied. `PUT /api/autonomy` still requires an authorized host connection. Desktop and Mobile render that chain and Activate/Cancel; they assert `LoopTerminal`, not transcript prose. Drive the loop with `test-agent-scripted`. Each workspace then activates separately. Preconditions are checked at activate and at every task boundary:
+Autonomy is a Server-level switch, off by default. Enablement is stored in `autonomy-settings.json`; `AGENTUP_AUTONOMY_ENABLED` still forces it on. `GET /api/autonomy` returns `{ enabled, preconditions }` in order: `forgeCapabilityEnabled`, `hostConnectionAuthorized`, `agentAvailable`, `autonomyEnabled`, each with a remedy when unsatisfied. `PUT /api/autonomy` still requires an authorized host connection. Desktop and Mobile render that chain and Activate/Cancel; they assert `LoopTerminal`, not transcript prose. Chat hides the checklist while session state is `authentication_required` or `authenticating`. Drive the loop with `test-agent-scripted`. Each workspace then activates separately. Preconditions are checked at activate and at every task boundary:
 
 - a bound agent that declares permission requests
 - a non-empty policy

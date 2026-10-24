@@ -134,10 +134,14 @@ describe('agent sign-in', () => {
         await device.disableSynchronization();
 
         // The pasted-code shape: the value travels back through the client, exactly as a user
-        // carries it out of the browser.
+        // carries it out of the browser. fill() taps first so Fabric onChangeText enables Finish;
+        // typeText alone leaves the button disabled. iOS then covers Finish with the keyboard.
         await waitFor(element(by.id('agent-signin-code-input'))).toBeVisible().withTimeout(30_000);
-        await element(by.id('agent-signin-code-input')).typeText(carriedCode);
-        await tap('agent-signin-submit-code');
+        await fill('agent-signin-code-input', carriedCode);
+        if (device.getPlatform() === 'ios') {
+          await device.dismissKeyboard();
+        }
+        await tap('agent-signin-submit-code', 60_000);
       }
 
       await harness.waitForAgentState(stack.serverUrl, stack.workspace.id, 'ready', { timeoutMs: 150_000 });

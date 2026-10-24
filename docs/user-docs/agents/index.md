@@ -42,7 +42,7 @@ Choosing an agent on Desktop or Mobile binds that module to the workspace, then 
 
 ## Unattended loop
 
-Autonomy is experimental and off by default. Enablement persists on the Server; the environment variable still wins when it is set. Desktop Agent and Mobile Agents show the ordered precondition checklist, Enable autonomy, Activate, Cancel, and the typed terminal for how the loop stopped. A message typed while a turn is running is steering for the next turn; it does not cancel the loop.
+Autonomy is experimental and off by default. Enablement persists on the Server; the environment variable still wins when it is set. Desktop Agent and Mobile Agents show the ordered precondition checklist, Enable autonomy, Activate, Cancel, and the typed terminal for how the loop stopped. Mobile chat hides that checklist while subscription sign-in is in progress so the paste-code field stays on screen. A message typed while a turn is running is steering for the next turn; it does not cancel the loop.
 
 <DocNext href="/docs/configuration" title="Configuration">
 How to declare `dotnet[]` and `docker[]` shims.
