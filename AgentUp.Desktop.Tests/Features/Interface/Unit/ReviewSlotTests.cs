@@ -2,6 +2,7 @@ using AgentUp.Desktop.Features.Agents.DTOs;
 using AgentUp.Desktop.Features.Git.DTOs;
 using AgentUp.Desktop.Features.Interface.Models;
 using AgentUp.Desktop.Features.Interface.ViewModels;
+using AgentUp.Desktop.Shared.Models;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Interface.Unit;
@@ -243,4 +244,98 @@ public sealed class TaskQueueTests
         await bridge.ReadAsync([.. team.Select(member => new TeamMember(member.Id, member.Id, "main", "Running"))]);
         return bridge;
     }
+}
+
+[TestFixture]
+public sealed class ReviewSlotPresentationTests
+{
+    [Test]
+    public void Slot_drawsItsMarkAndSaysWhatItMeans()
+    {
+        var approved = new ReviewSlotViewModel(new ReviewSlot(ReviewSlotKind.Dev, ReviewMark.Approved));
+        var warning = new ReviewSlotViewModel(new ReviewSlot(ReviewSlotKind.Pm, ReviewMark.Warning));
+        var blocked = new ReviewSlotViewModel(new ReviewSlot(ReviewSlotKind.Dev, ReviewMark.Blocked));
+        var empty = new ReviewSlotViewModel(new ReviewSlot(ReviewSlotKind.Pm, ReviewMark.None));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(approved.Glyph, Is.EqualTo("✓"));
+            Assert.That(warning.Glyph, Is.EqualTo("!"));
+            Assert.That(blocked.Glyph, Is.EqualTo("✗"));
+            Assert.That(empty.Glyph, Is.EqualTo("–"));
+            Assert.That(approved.ToolTip, Is.EqualTo("dev review: approved"));
+            Assert.That(warning.ToolTip, Is.EqualTo("pm review: findings that do not block"));
+            Assert.That(blocked.ToolTip, Is.EqualTo("dev review: changes requested"));
+            Assert.That(empty.ToolTip, Is.EqualTo("pm review: not given yet"));
+        });
+    }
+
+    [Test]
+    public void Slot_coloursItselfByWhatTheVerdictMeans()
+    {
+        var colours = new[] { ReviewMark.Approved, ReviewMark.Warning, ReviewMark.Blocked, ReviewMark.None }
+            .Select(mark => new ReviewSlotViewModel(new ReviewSlot(ReviewSlotKind.Dev, mark)).Color)
+            .ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(colours, Is.Unique, "each verdict must be told apart at a glance");
+            Assert.That(colours[0], Is.EqualTo(AgentUpThemeColors.AccentBright));
+            Assert.That(colours[2], Is.EqualTo(AgentUpThemeColors.StatusDanger));
+        });
+    }
+
+    [Test]
+    public void Slot_isLabelledForTheReviewItHolds()
+    {
+        Assert.That(new ReviewSlotViewModel(new ReviewSlot(ReviewSlotKind.Dev, ReviewMark.None)).Label, Is.EqualTo("dev"));
+        Assert.That(new ReviewSlotViewModel(new ReviewSlot(ReviewSlotKind.Pm, ReviewMark.None)).Label, Is.EqualTo("pm"));
+    }
+}
+
+[TestFixture]
+public sealed class ChecksPresentationTests
+{
+    [Test]
+    public void Checks_colourAndTooltipSayWhereTheRunStands()
+    {
+        var failed = Row(passed: 1, failed: 1, running: 1, skipped: 1);
+        var running = Row(passed: 1, running: 1);
+        var passed = Row(passed: 2);
+        var skipped = Row(skipped: 2);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(failed.ChecksColor, Is.EqualTo(AgentUpThemeColors.StatusDanger));
+            Assert.That(failed.ChecksToolTip, Is.EqualTo("1 of 4 checks failed"));
+            Assert.That(failed.ChecksCount, Is.EqualTo("(1/4)"));
+            Assert.That(running.ChecksColor, Is.EqualTo(AgentUpThemeColors.StatusWarning));
+            Assert.That(running.ChecksToolTip, Is.EqualTo("1 of 2 checks still running"));
+            Assert.That(passed.ChecksColor, Is.EqualTo(AgentUpThemeColors.AccentBright));
+            Assert.That(passed.ChecksToolTip, Is.EqualTo("all 2 checks passed"));
+            Assert.That(skipped.ChecksToolTip, Is.EqualTo("all 2 checks were skipped"));
+        });
+    }
+
+    [Test]
+    public void Checks_withNothingReportedSayNothingRatherThanZero()
+    {
+        var bare = new StandingRowViewModel(new TeamStanding(
+            "ws", "Agent", "main", "Stopped", null, TeamStandingKind.Idle,
+            null, null, null, null, [], ForgeStanding.None));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(bare.ChecksToolTip, Is.EqualTo("no checks reported"));
+            Assert.That(bare.ChecksColor, Is.EqualTo(AgentUpThemeColors.TextFaint));
+            Assert.That(bare.Verb, Is.EqualTo("working"));
+            Assert.That(bare.Reviews, Is.Empty);
+        });
+    }
+
+    private static StandingRowViewModel Row(int passed = 0, int failed = 0, int running = 0, int skipped = 0)
+        => new(new TeamStanding(
+            "ws", "Agent", "feat/44", "Running", "Claude", TeamStandingKind.Working,
+            44, "Restock", null, null, [],
+            new ForgeStanding("ready", "44", "Restock", "u", passed, failed, running, 0, "clean", null, skipped)));
 }
