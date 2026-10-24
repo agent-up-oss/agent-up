@@ -79,7 +79,7 @@ public sealed class DesktopControlInput
 
     private static void RaisePointer(Control control)
     {
-        var pointer = new Avalonia.Input.Pointer(Interlocked.Increment(ref _pointerId), PointerType.Mouse, true);
+        using var pointer = new Avalonia.Input.Pointer(Interlocked.Increment(ref _pointerId), PointerType.Mouse, true);
         var center = Center(control);
         var pressed = new PointerPressedEventArgs(
             control,

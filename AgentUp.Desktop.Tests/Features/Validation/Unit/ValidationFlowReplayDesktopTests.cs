@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -134,10 +135,14 @@ public sealed class ValidationFlowReplayDesktopTests
     private sealed class Handler(HttpStatusCode status, string json) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-            Task.FromResult(new HttpResponseMessage(status)
+            Task.FromResult(CreateResponse(status, json));
+
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
+        private static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, string body) =>
+            new(statusCode)
             {
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
-            });
+                Content = new StringContent(body, Encoding.UTF8, "application/json")
+            };
     }
 
     private sealed class FakeDesktopHost : IDesktopValidationReplayHost

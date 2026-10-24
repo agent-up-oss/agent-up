@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -24,7 +25,8 @@ public sealed class DesktopValidationReplayTests
         var host = CreateHost();
         host.Attach(app.Window, app.Window.DataContext!);
         var artifacts = new ValidationArtifactStore();
-        var replay = Replay(host, artifacts);
+        using var http = new HttpClient { BaseAddress = new Uri("http://server/") };
+        var replay = Replay(host, artifacts, new ValidationFlowApiClient(http));
 
         var result = await replay.RunFlowAsync(
             OpenGitFlow(DesktopDomain.WorkspaceId),
@@ -52,7 +54,8 @@ public sealed class DesktopValidationReplayTests
         var host = CreateHost();
         host.Attach(app.Window, viewModel);
         var artifacts = new ValidationArtifactStore();
-        var replay = Replay(host, artifacts);
+        using var http = new HttpClient { BaseAddress = new Uri("http://server/") };
+        var replay = Replay(host, artifacts, new ValidationFlowApiClient(http));
 
         var result = await replay.RunFlowAsync(
             OpenGitHistoryFlow(DesktopDomain.WorkspaceId),
@@ -219,16 +222,13 @@ public sealed class DesktopValidationReplayTests
     private static ValidationFlowReplayService Replay(
         AvaloniaValidationReplayHost host,
         ValidationArtifactStore artifacts,
-        ValidationFlowApiClient? client = null)
-    {
-        client ??= new ValidationFlowApiClient(new HttpClient { BaseAddress = new Uri("http://server/") });
-        return new ValidationFlowReplayService(
+        ValidationFlowApiClient client)
+        => new(
             client,
             new BrowserInteractionController(),
             host,
             artifacts,
             skipCosmeticStaging: true);
-    }
 
     private static string ArtifactRoot()
         => Path.Join(Path.GetTempPath(), "desktop-validation", Guid.NewGuid().ToString("N"));
@@ -282,10 +282,14 @@ public sealed class DesktopValidationReplayTests
             var json = JsonSerializer.Serialize(
                 flows,
                 new JsonSerializerOptions { Converters = { new JsonStringEnumConverter() } });
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
-            });
+            return Task.FromResult(CreateResponse(json));
         }
+
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
+        private static HttpResponseMessage CreateResponse(string body) =>
+            new(HttpStatusCode.OK)
+            {
+                Content = new StringContent(body, Encoding.UTF8, "application/json")
+            };
     }
 }

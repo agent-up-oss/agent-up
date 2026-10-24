@@ -10,9 +10,9 @@ public sealed class DesktopWindowCapture
     {
         var width = Math.Max(1, (int)Math.Ceiling(Math.Max(topLevel.Bounds.Width, 1) * Math.Max(topLevel.RenderScaling, 1)));
         var height = Math.Max(1, (int)Math.Ceiling(Math.Max(topLevel.Bounds.Height, 1) * Math.Max(topLevel.RenderScaling, 1)));
-        var bitmap = new RenderTargetBitmap(new PixelSize(width, height));
+        using var bitmap = new RenderTargetBitmap(new PixelSize(width, height));
         if (topLevel is Visual visual)
             bitmap.Render(visual);
-        bitmap.Save(path);
+        bitmap.Save(path, PngBitmapEncoderOptions.Default);
     }
 }
