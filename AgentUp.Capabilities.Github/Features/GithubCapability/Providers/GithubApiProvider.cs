@@ -39,8 +39,11 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
 
     /// <summary>
     /// The verdicts left on the proposal, one per reviewer. A host keeps every review a reviewer
-    /// ever submitted, so only their latest counts: an approval after changes were requested means
-    /// the changes landed.
+    /// ever submitted, so only their latest decisive one counts: an approval after changes were
+    /// requested means the changes landed. A plain comment is not decisive — the host leaves an
+    /// approval or a change request standing when the same reviewer comments again afterwards —
+    /// so a reviewer who approved and then commented still reads as approved, and one who asked
+    /// for changes still blocks.
     /// </summary>
     private static async Task<IReadOnlyList<ForgeReview>> ReadReviewsAsync(
         HttpClient client,
@@ -49,7 +52,9 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         CancellationToken cancellationToken)
     {
         var reviews = await client.GetFromJsonAsync<JsonElement>(
-            $"repos/{request.Owner}/{request.Repository}/pulls/{proposalNumber}/reviews",
+            // One page is 30 by default, and a reviewer's newest review on page two would be lost
+            // from the per-reviewer verdict, so ask for the largest page the host serves.
+            $"repos/{request.Owner}/{request.Repository}/pulls/{proposalNumber}/reviews?per_page=100",
             Json,
             cancellationToken);
         if (reviews.ValueKind != JsonValueKind.Array) return [];
@@ -58,9 +63,19 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
             .Select(ReadReview)
             .OfType<ForgeReview>()
             .GroupBy(review => review.Login, StringComparer.OrdinalIgnoreCase)
-            .Select(reviewer => reviewer.OrderBy(review => review.SubmittedAt).Last())
+            .Select(reviewer => Verdict([.. reviewer.OrderBy(review => review.SubmittedAt)]))
             .ToArray();
     }
+
+    /// <summary>
+    /// One reviewer's standing verdict: their latest decisive review, or their latest review of
+    /// any kind when they have only ever commented.
+    /// </summary>
+    private static ForgeReview Verdict(IReadOnlyList<ForgeReview> history)
+        => history.LastOrDefault(review => !IsComment(review)) ?? history[^1];
+
+    private static bool IsComment(ForgeReview review)
+        => string.Equals(review.State, "COMMENTED", StringComparison.OrdinalIgnoreCase);
 
     private static ForgeReview? ReadReview(JsonElement review)
     {

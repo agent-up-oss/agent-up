@@ -16,7 +16,7 @@ public sealed class GithubApiProviderTests
             ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
             ("GET /repos/acme/widgets/commits/abc123/check-runs", Checks),
             ("GET /repos/acme/widgets/pulls/42/comments", Comments),
-            ("GET /repos/acme/widgets/pulls/42/reviews", Reviews));
+            ("GET /repos/acme/widgets/pulls/42/reviews?per_page=100", Reviews));
         var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
 
         Assert.Multiple(() =>
@@ -46,7 +46,7 @@ public sealed class GithubApiProviderTests
             ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
             ("GET /repos/acme/widgets/commits/abc123/check-runs", Checks),
             ("GET /repos/acme/widgets/pulls/42/comments", Comments),
-            ("GET /repos/acme/widgets/pulls/42/reviews", Reviews));
+            ("GET /repos/acme/widgets/pulls/42/reviews?per_page=100", Reviews));
 
         var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
 
@@ -96,7 +96,7 @@ public sealed class GithubApiProviderTests
             ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
             ("GET /repos/acme/widgets/commits/abc123/check-runs", Checks),
             ("GET /repos/acme/widgets/pulls/42/comments", Comments),
-            ("GET /repos/acme/widgets/pulls/42/reviews", Reviews));
+            ("GET /repos/acme/widgets/pulls/42/reviews?per_page=100", Reviews));
 
         var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
 
@@ -112,7 +112,7 @@ public sealed class GithubApiProviderTests
             ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
             ("GET /repos/acme/widgets/commits/abc123/check-runs", Checks),
             ("GET /repos/acme/widgets/pulls/42/comments", Comments),
-            ("GET /repos/acme/widgets/pulls/42/reviews", Reviews));
+            ("GET /repos/acme/widgets/pulls/42/reviews?per_page=100", Reviews));
 
         var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
 
@@ -127,13 +127,36 @@ public sealed class GithubApiProviderTests
     }
 
     [Test]
+    public async Task ReadAsync_aLaterCommentDoesNotUnseatADecisiveVerdict()
+    {
+        var handler = Recorded(
+            ("GET /user", Account),
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/check-runs", Checks),
+            ("GET /repos/acme/widgets/pulls/42/comments", Comments),
+            ("GET /repos/acme/widgets/pulls/42/reviews?per_page=100", CommentedAfterVerdict));
+
+        var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
+
+        // The host leaves an approval or a change request standing when the same reviewer comments
+        // again, so taking the newest review outright would clear a slot that still blocks.
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.Reviews!.Single(review => review.Login == "hector-aup[bot]").State,
+                Is.EqualTo("APPROVED"), "a comment after approving does not withdraw the approval");
+            Assert.That(snapshot.Reviews!.Single(review => review.Login == "lucy-aup[bot]").State,
+                Is.EqualTo("CHANGES_REQUESTED"), "a comment after requesting changes still blocks");
+        });
+    }
+
+    [Test]
     public async Task ReadAsync_aProposalNobodyReviewedCarriesNoVerdicts()
     {
         var handler = Recorded(
             ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
             ("GET /repos/acme/widgets/commits/abc123/check-runs", Checks),
             ("GET /repos/acme/widgets/pulls/42/comments", Comments),
-            ("GET /repos/acme/widgets/pulls/42/reviews", "[]"));
+            ("GET /repos/acme/widgets/pulls/42/reviews?per_page=100", "[]"));
 
         var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
 
@@ -168,7 +191,7 @@ public sealed class GithubApiProviderTests
         var handler = Recorded(
             ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", pulls),
             ("GET /repos/acme/widgets/pulls/42/comments", "{}"),
-            ("GET /repos/acme/widgets/pulls/42/reviews", "{}"));
+            ("GET /repos/acme/widgets/pulls/42/reviews?per_page=100", "{}"));
         var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
 
         Assert.That(snapshot.Checks, Is.Empty);
@@ -183,7 +206,7 @@ public sealed class GithubApiProviderTests
             ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
             ("GET /repos/acme/widgets/commits/abc123/check-runs", "{}"),
             ("GET /repos/acme/widgets/pulls/42/comments", "[]"),
-            ("GET /repos/acme/widgets/pulls/42/reviews", "[]"));
+            ("GET /repos/acme/widgets/pulls/42/reviews?per_page=100", "[]"));
         var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
 
         Assert.That(snapshot.Checks, Is.Empty);
@@ -408,6 +431,14 @@ public sealed class GithubApiProviderTests
         [{"user":{"login":"hector-aup[bot]"},"state":"CHANGES_REQUESTED","submitted_at":"2026-09-22T06:00:00Z"},
          {"user":{"login":"hector-aup[bot]"},"state":"APPROVED","submitted_at":"2026-09-22T07:00:00Z"},
          {"user":{"login":"lucy-aup[bot]"},"state":"COMMENTED","submitted_at":"2026-09-22T07:30:00Z"}]
+        """;
+
+    /// <summary>Each reviewer leaves a decisive verdict and then comments again afterwards.</summary>
+    private const string CommentedAfterVerdict = """
+        [{"user":{"login":"hector-aup[bot]"},"state":"APPROVED","submitted_at":"2026-09-22T06:00:00Z"},
+         {"user":{"login":"hector-aup[bot]"},"state":"COMMENTED","submitted_at":"2026-09-22T08:00:00Z"},
+         {"user":{"login":"lucy-aup[bot]"},"state":"CHANGES_REQUESTED","submitted_at":"2026-09-22T06:30:00Z"},
+         {"user":{"login":"lucy-aup[bot]"},"state":"COMMENTED","submitted_at":"2026-09-22T08:30:00Z"}]
         """;
 
     private const string Account = """
