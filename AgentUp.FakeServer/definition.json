@@ -601,14 +601,14 @@
             "sessionId": "demo-agent",
             "agent": "Codex",
             "description": "Restock featured products",
-            "branch": "main",
+            "branch": "feat/44-restock",
             "lastUsedAt": "2026-04-11T15:30:00Z"
           },
           {
             "sessionId": "demo-prior",
             "agent": "Claude",
             "description": "Tighten checkout copy",
-            "branch": "main",
+            "branch": "feat/44-restock",
             "lastUsedAt": "2026-04-10T09:12:00Z"
           }
         ],
@@ -743,8 +743,8 @@
           {
             "sessionId": "demo-lucy",
             "agent": "Claude",
-            "description": "Review express checkout",
-            "branch": "feat/48-express-checkout",
+            "description": "Review restock featured products",
+            "branch": "feat/44-restock",
             "lastUsedAt": "2026-09-22T07:30:00Z"
           }
         ],
@@ -801,10 +801,10 @@
               "delayMs": 0,
               "type": "state",
               "payload": {
-                "workspaceId": "bob",
-                "agent": "Codex",
+                "workspaceId": "lucy",
+                "agent": "Claude",
                 "state": "running",
-                "sessionId": "demo-agent",
+                "sessionId": "demo-lucy",
                 "error": null,
                 "agents": [
                   {
@@ -832,7 +832,7 @@
                 "sessionUpdate": "agent_message_chunk",
                 "content": {
                   "type": "text",
-                  "text": "Harbor Shop is running locally. The storefront is showing three featured products, and the Orders API reports twelve open orders."
+                  "text": "I have read Bob's branch for #44. The restock copy reads well; I have left one note on the empty-cart wording and submitted the review. It is waiting on you."
                 }
               }
             },
@@ -840,10 +840,10 @@
               "delayMs": 0,
               "type": "state",
               "payload": {
-                "workspaceId": "bob",
-                "agent": "Codex",
-                "state": "ready",
-                "sessionId": "demo-agent",
+                "workspaceId": "lucy",
+                "agent": "Claude",
+                "state": "awaiting_input",
+                "sessionId": "demo-lucy",
                 "error": null,
                 "agents": [
                   {
@@ -880,8 +880,8 @@
           {
             "sessionId": "demo-hector",
             "agent": "Claude",
-            "description": "Review docs anchors",
-            "branch": "fix/51-broken-anchors",
+            "description": "Review restock featured products",
+            "branch": "feat/44-restock",
             "lastUsedAt": "2026-09-22T07:30:00Z"
           }
         ],
@@ -935,10 +935,10 @@
               "delayMs": 0,
               "type": "state",
               "payload": {
-                "workspaceId": "bob",
-                "agent": "Codex",
+                "workspaceId": "hector",
+                "agent": "Claude",
                 "state": "running",
-                "sessionId": "demo-agent",
+                "sessionId": "demo-hector",
                 "error": null,
                 "agents": [
                   {
@@ -966,7 +966,7 @@
                 "sessionUpdate": "agent_message_chunk",
                 "content": {
                   "type": "text",
-                  "text": "Harbor Shop is running locally. The storefront is showing three featured products, and the Orders API reports twelve open orders."
+                  "text": "I asked for changes on #44 and went back to re-read the thread, but the repository host stopped answering. I cannot confirm the review landed until it is reachable again."
                 }
               }
             },
@@ -974,10 +974,10 @@
               "delayMs": 0,
               "type": "state",
               "payload": {
-                "workspaceId": "bob",
-                "agent": "Codex",
-                "state": "ready",
-                "sessionId": "demo-agent",
+                "workspaceId": "hector",
+                "agent": "Claude",
+                "state": "error",
+                "sessionId": "demo-hector",
                 "error": null,
                 "agents": [
                   {
@@ -1171,13 +1171,13 @@
       "threads": [
         {
           "id": "t2",
-          "url": "https://github.com/harbor-oss/harbor/pull/48#discussion_t2",
+          "url": "https://github.com/harbor-oss/harbor/pull/44#discussion_t2",
           "summary": "Address form skips keyboard focus",
           "isResolved": false
         },
         {
           "id": "t3",
-          "url": "https://github.com/harbor-oss/harbor/pull/48#discussion_t3",
+          "url": "https://github.com/harbor-oss/harbor/pull/44#discussion_t3",
           "summary": "Totals rounding on discounts",
           "isResolved": false
         }

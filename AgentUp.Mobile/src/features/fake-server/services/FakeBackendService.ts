@@ -112,6 +112,15 @@ const defaultScheduler: FakeScheduler = (delayMs, work) => {
   return () => clearTimeout(timer);
 };
 
+/**
+ * Whether this workspace's agent reviews somebody else's work. The role's trigger and termination
+ * say so: a proposal awaiting review in, a review out.
+ */
+function reviewsOthersWork(session: unknown): boolean {
+  const role = (session as { role?: { trigger?: string; termination?: string } } | null)?.role;
+  return role?.trigger === 'ProposalAwaitingReview' && role?.termination === 'ReviewSubmitted';
+}
+
 export class FakeBackendService {
   private readonly template: FakeServerDefinition;
   private readonly schedule: FakeScheduler;
@@ -588,13 +597,19 @@ export class FakeBackendService {
     const git = this.git.get(workspaceId);
     if (!session) return notFound();
     const message = readJsonString(body, 'message') ?? '';
-    const added = git ? addAgentWorkingTreeFile(git) : null;
+    // A reviewer has the author's branch checked out to read it. Writing a file into it would put
+    // their name on work that is not theirs, so only a role that opens its own proposal touches
+    // the tree.
+    const reviewing = reviewsOthersWork(session.session);
+    const added = git && !reviewing ? addAgentWorkingTreeFile(git) : null;
     const snapshot = this.liveAgentSession(session.session);
     this.publishAgent(workspaceId, 'user_message', { text: message });
     this.publishAgent(workspaceId, 'state', { ...snapshot, state: 'running' });
     const text = added
       ? `I added \`${added.path}\` so the storefront can show the weekly harbor special. It is uncommitted in the working tree.`
-      : 'Harbor is running locally.';
+      : reviewing
+        ? 'I have read the branch for this proposal and left my notes on the thread. The review is submitted.'
+        : 'Harbor is running locally.';
     this.publishAgent(workspaceId, 'session_update', {
       sessionUpdate: 'agent_message_chunk',
       content: { type: 'text', text },

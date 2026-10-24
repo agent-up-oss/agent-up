@@ -681,6 +681,7 @@ public sealed class FakeBackendService
     private FakeBackendResponseDto SendAgentMessage(string workspaceId, string? body)
     {
         string? path;
+        bool reviewing;
         JsonObject snapshot;
         lock (_gate)
         {
@@ -688,7 +689,11 @@ public sealed class FakeBackendService
             var git = GitState(workspaceId);
             if (session is null)
                 return NotFound();
-            path = git is null ? null : FakeGitProvider.AddAgentFile(git);
+            // A reviewer has the author's branch checked out to read it. Writing a file into it
+            // would put their name on work that is not theirs, so only a role that opens its own
+            // proposal touches the tree.
+            path = git is null || ReviewsOthersWork(session["session"]) ? null : FakeGitProvider.AddAgentFile(git);
+            reviewing = ReviewsOthersWork(session["session"]);
             snapshot = LiveAgentSession(session["session"]);
         }
 
@@ -697,9 +702,11 @@ public sealed class FakeBackendService
         running["state"] = "running";
         PublishAgent(workspaceId, "user_message", new JsonObject { ["text"] = message });
         PublishAgent(workspaceId, "state", running);
-        var text = path is null
-            ? "Harbor is running locally."
-            : $"I added `{path}` so the storefront can show the weekly harbor special. It is uncommitted in the working tree.";
+        var text = path is not null
+            ? $"I added `{path}` so the storefront can show the weekly harbor special. It is uncommitted in the working tree."
+            : reviewing
+                ? "I have read the branch for this proposal and left my notes on the thread. The review is submitted."
+                : "Harbor is running locally.";
         PublishAgent(workspaceId, "session_update", new JsonObject
         {
             ["sessionUpdate"] = "agent_message_chunk",
@@ -709,6 +716,17 @@ public sealed class FakeBackendService
         ready["state"] = "ready";
         PublishAgent(workspaceId, "state", ready);
         return new FakeBackendResponseDto(204, "application/json");
+    }
+
+    /// <summary>
+    /// Whether this workspace's agent reviews somebody else's work. The role's trigger and
+    /// termination say so: a proposal awaiting review in, a review out.
+    /// </summary>
+    private static bool ReviewsOthersWork(JsonNode? session)
+    {
+        var role = session?["role"];
+        return string.Equals(role?["trigger"]?.GetValue<string>(), "ProposalAwaitingReview", StringComparison.OrdinalIgnoreCase)
+               && string.Equals(role?["termination"]?.GetValue<string>(), "ReviewSubmitted", StringComparison.OrdinalIgnoreCase);
     }
 
     private FakeBackendResponseDto AgentEventStream(string workspaceId, string query)
