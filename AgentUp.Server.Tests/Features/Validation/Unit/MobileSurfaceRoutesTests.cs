@@ -34,10 +34,18 @@ public sealed class MobileSurfaceRoutesTests
     [TestCase(MobileSurfaceRoutes.WorkspaceApplication)]
     [TestCase("/workspace/abc123")]
     [TestCase("/workspace/abc123/git")]
+    [TestCase("/workspace/abc123/git/review")]
+    [TestCase("/workspace/abc123/git/history")]
     [TestCase("/workspace/abc123/agents")]
+    [TestCase("/workspace/abc123/agent")]
+    [TestCase("/workspace/abc123/settings")]
     [TestCase("/workspace/abc123/application/Docs")]
     public void IsExpoRoute_acceptsCataloguedAndResolvedPaths(string path) =>
         Assert.That(MobileSurfaceRoutes.IsExpoRoute(path), Is.True);
+
+    [Test]
+    public void WorkspaceApplications_aliasesTheWorkspaceRoute() =>
+        Assert.That(MobileSurfaceRoutes.WorkspaceApplications, Is.EqualTo(MobileSurfaceRoutes.Workspace));
 
     [TestCase(null)]
     [TestCase("")]
@@ -48,6 +56,8 @@ public sealed class MobileSurfaceRoutesTests
     [TestCase("workspace/git")]
     [TestCase("/workspace/{workspaceId}/")]
     [TestCase("/workspace/abc/git/extra")]
+    [TestCase("/workspace\\git")]
+    [TestCase("\\connect")]
     public void IsExpoRoute_rejectsUnknownPaths(string? path) =>
         Assert.That(MobileSurfaceRoutes.IsExpoRoute(path), Is.False);
 }

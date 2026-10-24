@@ -109,6 +109,12 @@ public sealed class MobileSurfaceFlowRulesTests
             Does.Contain("reject Selector, X, and Y"));
 
     [Test]
+    public void Validate_rejectsAYOnlyCoordinateOnAStepTarget() =>
+        Assert.That(
+            MobileSurfaceFlowRules.Validate(Request(steps: [Step(target: new(Name: "Git", Y: 12))])),
+            Does.Contain("reject Selector, X, and Y"));
+
+    [Test]
     public void Validate_rejectsSelectorOnAStepExpectation() =>
         Assert.That(
             MobileSurfaceFlowRules.Validate(Request(steps: [Step(expectations: [new(ValidationExpectation.Visible, "true", new(Selector: "#ok"))])])),
@@ -135,6 +141,55 @@ public sealed class MobileSurfaceFlowRulesTests
     [Test]
     public void Validate_rejectsAWhitespaceOnlyLocator() =>
         Assert.That(MobileSurfaceFlowRules.Validate(Request(steps: [Step(target: new(TestId: "  "))])), Does.Contain("role, label, name, text, or testId"));
+
+    [Test]
+    public void Validate_rejectsClickWithANullTarget() =>
+        Assert.That(
+            MobileSurfaceFlowRules.Validate(Request(steps:
+            [
+                new ValidationStep(
+                    "open",
+                    "Open Agents",
+                    ValidationAction.Click,
+                    null,
+                    null,
+                    [new ValidationAssertion(ValidationExpectation.Visible, "true")])
+            ])),
+            Does.Contain("role, label, name, text, or testId"));
+
+    [Test]
+    public void Validate_rejectsFillWithANullTarget() =>
+        Assert.That(
+            MobileSurfaceFlowRules.Validate(Request(steps:
+            [
+                new ValidationStep(
+                    "fill",
+                    "Enter the Server URL",
+                    ValidationAction.Fill,
+                    null,
+                    "http://127.0.0.1:5001",
+                    [new ValidationAssertion(ValidationExpectation.Visible, "true")])
+            ])),
+            Does.Contain("role, label, name, text, or testId"));
+
+    [Test]
+    public void Validate_acceptsPressWithoutALocator() =>
+        Assert.That(
+            MobileSurfaceFlowRules.Validate(Request(steps:
+            [
+                new ValidationStep(
+                    "press",
+                    "Submit the Server URL",
+                    ValidationAction.Press,
+                    null,
+                    "Enter",
+                    [new ValidationAssertion(ValidationExpectation.Visible, "true")])
+            ])),
+            Is.Null);
+
+    [Test]
+    public void Validate_acceptsANameOf120Characters() =>
+        Assert.That(MobileSurfaceFlowRules.Validate(Request(name: new string('a', 120))), Is.Null);
 
     private static SaveValidationFlowRequest Request(
         string application = MobileSurfaceFlowRules.ApplicationName,
