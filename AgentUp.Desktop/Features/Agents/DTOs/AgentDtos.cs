@@ -1,4 +1,5 @@
 using System.Text.Json;
+using AgentUp.Desktop.Shared.Providers;
 
 namespace AgentUp.Desktop.Features.Agents.DTOs;
 
@@ -46,6 +47,26 @@ public sealed record AgentLoginChallengeDto(
     DateTimeOffset? ExpiresAt = null,
     string? RedirectUri = null);
 public sealed record AgentSessionSummaryDto(string SessionId, string Agent, string Description, string Branch, DateTimeOffset LastUsedAt);
+public sealed record AutonomyPreconditionDto(string Id, bool Satisfied, string? Remedy = null)
+{
+    public bool HasRemedy => !Satisfied && !string.IsNullOrWhiteSpace(Remedy);
+
+    public string Status => Satisfied ? "Ready" : Remedy ?? "Not ready";
+
+    public string AutomationId => DesktopAutomationIds.AgentLoopPrecondition(Id);
+
+    public string Label => Id switch
+    {
+        "forgeCapabilityEnabled" => "Forge capability",
+        "hostConnectionAuthorized" => "Host connection",
+        "agentAvailable" => "Agent available",
+        "autonomyEnabled" => "Autonomy enabled",
+        _ => Id
+    };
+}
+
+public sealed record ServerAutonomyDto(bool Enabled, IReadOnlyList<AutonomyPreconditionDto> Preconditions);
+
 public sealed record AgentLoopStatusDto(
     bool Active,
     string Phase,

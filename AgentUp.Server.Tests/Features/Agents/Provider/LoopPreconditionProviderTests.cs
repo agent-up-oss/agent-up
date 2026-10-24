@@ -25,7 +25,7 @@ public sealed class LoopPreconditionProviderTests
 
         var unmet = await host.Preconditions.UnmetAsync("missing", CancellationToken.None);
 
-        Assert.That(unmet, Does.Contain("not registered"));
+        Assert.That(unmet, Does.Contain("workspaceRegistered"));
     }
 
     [Test]
@@ -40,7 +40,7 @@ public sealed class LoopPreconditionProviderTests
 
         var unmet = await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None);
 
-        Assert.That(unmet, Does.Contain("host connection"));
+        Assert.That(unmet, Does.Contain("hostConnectionAuthorized"));
     }
 
     [Test]
@@ -50,7 +50,7 @@ public sealed class LoopPreconditionProviderTests
 
         var unmet = await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None);
 
-        Assert.That(unmet, Does.Contain("not bound"));
+        Assert.That(unmet, Does.Contain("boundAgent"));
     }
 
     [Test]
@@ -61,7 +61,7 @@ public sealed class LoopPreconditionProviderTests
 
         var unmet = await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None);
 
-        Assert.That(unmet, Does.Contain("permission policy"));
+        Assert.That(unmet, Does.Contain("permissionPolicy"));
     }
 
     [Test]
@@ -72,7 +72,7 @@ public sealed class LoopPreconditionProviderTests
 
         var unmet = await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None);
 
-        Assert.That(unmet, Does.Contain("permission requests"));
+        Assert.That(unmet, Does.Contain("permissionRequests"));
     }
 
     [Test]
@@ -124,7 +124,7 @@ public sealed class LoopPreconditionProviderTests
 
         var unmet = await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None);
 
-        Assert.That(unmet, Does.Contain("not assigned"));
+        Assert.That(unmet, Does.Contain("unassignedChanges"));
     }
 
     [Test]
@@ -134,6 +134,30 @@ public sealed class LoopPreconditionProviderTests
         await ReadyAsync(host);
 
         Assert.That(await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None), Is.Null);
+    }
+
+    [Test]
+    public async Task UnmetAsync_treatsInjectedHostPresenceAsAuthorization()
+    {
+        var host = await HostAsync(hostPresence: new FixedHostPresence(true));
+        await host.Workspaces.UpdateBoundAgentAsync(host.WorkspaceId, "codex");
+        host.Settings.Save(host.Settings.Get(host.WorkspaceId) with
+        {
+            PolicyRules = [new PermissionRule("all", PermissionRuleKind.WorktreeWrite, true)]
+        });
+
+        Assert.That(await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None), Is.Null);
+    }
+
+    [Test]
+    public async Task UnmetAsync_namesAMissingHostWhenInjectedPresenceIsAbsent()
+    {
+        var host = await HostAsync(hostPresence: new FixedHostPresence(false));
+        await ReadyAsync(host);
+
+        var unmet = await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None);
+
+        Assert.That(unmet, Does.Contain("hostConnectionAuthorized"));
     }
 
     private static async Task ReadyAsync(Host host)
@@ -146,7 +170,7 @@ public sealed class LoopPreconditionProviderTests
         });
     }
 
-    private static async Task<Host> HostAsync(bool supportsPermissions = true)
+    private static async Task<Host> HostAsync(bool supportsPermissions = true, IHostConnectionPresence? hostPresence = null)
     {
         var registry = ServerTestComposition.CreateRegistry();
         await registry.StartAsync(CancellationToken.None);
@@ -163,7 +187,8 @@ public sealed class LoopPreconditionProviderTests
             new GitQueryController(new GitChangeTreeService(workspaces, git, new FakeWorkspacePromptGuard())),
             commits,
             settings,
-            new FixedInspector(supportsPermissions));
+            new FixedInspector(supportsPermissions),
+            hostPresence);
         return new Host(workspace.Id, workspaces, git, settings, queue, commitsGit, preconditions);
     }
 
@@ -179,6 +204,12 @@ public sealed class LoopPreconditionProviderTests
     private sealed class FixedInspector(bool supported) : IEnabledAgentInspector
     {
         public bool SupportsPermissionRequests(string agentModuleId) => supported;
+    }
+
+    private sealed class FixedHostPresence(bool present) : IHostConnectionPresence
+    {
+        public bool IsPresent() => present;
+        public bool IsPresent(string workspaceId) => present;
     }
 
     private sealed class MemoryCommitsQueue : ICommitsQueueProvider

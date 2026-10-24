@@ -122,6 +122,8 @@ export class FakeBackendService {
   private readonly git = new Map<string, FakeGitState>();
   private readonly appTemplates = new Map<string, NonNullable<WorkspaceRecord['applications']>>();
   private agentSequence = 0;
+  private loopGeneration = 0;
+  private autonomyEnabled = false;
   private cancelLifecycle: (() => void) | null = null;
 
   constructor(definition: FakeServerDefinition, schedule: FakeScheduler = defaultScheduler) {
@@ -149,6 +151,8 @@ export class FakeBackendService {
     this.state = cloneDefinition(this.template);
     this.agentEvents.clear();
     this.agentSequence = 0;
+    this.autonomyEnabled = false;
+    this.loopGeneration += 1;
     this.hydrate();
   }
 
@@ -180,6 +184,11 @@ export class FakeBackendService {
       return this.refreshClone(path, request.body);
     if (method === 'POST' && path === '/api/apps/tickets') return this.issueTicket(request.body);
     if (method === 'POST' && path === '/api/audit/record') return { status: 204, contentType: 'application/json' };
+    if (method === 'GET' && path === '/api/autonomy') return json(this.autonomyStatus());
+    if (method === 'PUT' && path === '/api/autonomy') {
+      this.autonomyEnabled = readJsonBoolean(request.body, 'enabled');
+      return { status: 204, contentType: 'application/json' };
+    }
     if (method === 'GET' && path === '/api/capabilities') return json(this.capabilities());
     if (method === 'POST' && path === '/api/capabilities/enable') return this.enableCapability(request.body);
     if (method === 'POST' && path.startsWith('/api/capabilities/disable/'))
@@ -242,10 +251,12 @@ export class FakeBackendService {
     }
     if (method === 'GET' && rest.startsWith('git/file')) return this.gitDiff(workspaceId, request.query);
     if (method === 'POST' && rest.startsWith('git/')) return this.gitMutation(workspaceId, rest.slice('git/'.length), request.body);
+    if (method === 'GET' && rest === 'agent/loop') return this.agentLoop(workspaceId);
+    if (method === 'PUT' && rest === 'agent/autonomy') return this.setLoopActivation(workspaceId, request.body);
     if (method === 'GET' && rest === 'agent') return this.agentSession(workspaceId);
     if (method === 'POST' && rest === 'agent') return this.scheduleAgent(workspaceId, request.body);
     if (method === 'PUT' && rest === 'agent/binding') return this.bindAgent(workspaceId, request.body);
-    if (method === 'PUT' && (rest === 'agent/autonomy' || rest === 'agent/host-connection' || rest === 'agent/policy' || rest === 'agent/role' || rest === 'agent/queue-order'))
+    if (method === 'PUT' && (rest === 'agent/host-connection' || rest === 'agent/policy' || rest === 'agent/role' || rest === 'agent/queue-order'))
       return { status: 204, contentType: 'application/json' };
     if (method === 'POST' && rest === 'agent/messages') return this.sendAgentMessage(workspaceId, request.body);
     if (method === 'GET' && rest === 'agent/events') return this.agentEventStream(workspaceId, request.query);
@@ -416,6 +427,67 @@ export class FakeBackendService {
       return json(result);
     }
     return json({ found: true, succeeded: true, error: null });
+  }
+
+  private autonomyStatus() {
+    const agentAvailable = this.agentCatalogDescriptors().some(item => item.available);
+    const item = (id: string, satisfied: boolean, remedy: string) => ({
+      id,
+      satisfied,
+      remedy: satisfied ? null : remedy,
+    });
+    return {
+      enabled: this.autonomyEnabled,
+      preconditions: [
+        item('forgeCapabilityEnabled', true, 'Run: agent-up capabilities bootstrap'),
+        item('hostConnectionAuthorized', true, 'Sign in to your repository host.'),
+        item('agentAvailable', agentAvailable, 'Enable an agent capability'),
+        item('autonomyEnabled', this.autonomyEnabled, 'Enable autonomy for this Server'),
+      ],
+    };
+  }
+
+  private agentLoop(workspaceId: string): FakeBackendResponse {
+    const loop = (this.state.agents?.[workspaceId]?.session as { loop?: unknown } | undefined)?.loop;
+    return loop === undefined ? notFound() : json(loop);
+  }
+
+  private setLoopActivation(workspaceId: string, body: string | null): FakeBackendResponse {
+    const stored = this.state.agents?.[workspaceId];
+    if (!stored || !stored.session || typeof stored.session !== 'object') return notFound();
+    const session = stored.session as Record<string, unknown>;
+    const generation = ++this.loopGeneration;
+    if (readJsonBoolean(body, 'active')) {
+      session.loop = this.loopSnapshot(true, 'running', null, null);
+      this.schedule(fakeWorkspaceStartPhaseMs, () => this.completeLoop(workspaceId, generation));
+    } else {
+      session.loop = this.loopSnapshot(false, 'stopped', 'Cancelled', 'cancelled');
+    }
+    this.publishAgent(workspaceId, 'state', this.liveAgentSession(session));
+    return { status: 204, contentType: 'application/json' };
+  }
+
+  private completeLoop(workspaceId: string, generation: number) {
+    if (generation !== this.loopGeneration) return;
+    const stored = this.state.agents?.[workspaceId];
+    const session = stored?.session as { loop?: { active?: boolean } } | undefined;
+    if (!session?.loop?.active) return;
+    session.loop = this.loopSnapshot(false, 'idle', 'Completed', 'queue_empty');
+    this.publishAgent(workspaceId, 'state', this.liveAgentSession(session));
+  }
+
+  private loopSnapshot(active: boolean, phase: string, terminal: string | null, stopReason: string | null) {
+    return {
+      active,
+      phase,
+      taskId: '12',
+      taskNumber: 12,
+      taskTitle: 'Restock featured products',
+      terminal,
+      stopReason,
+      blockReason: null,
+      permissionRuleIds: [],
+    };
   }
 
   private agentSession(workspaceId: string): FakeBackendResponse {

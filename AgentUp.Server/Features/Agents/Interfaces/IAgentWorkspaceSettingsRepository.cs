@@ -11,4 +11,8 @@ public interface IAgentWorkspaceSettingsRepository
     void Remove(string workspaceId);
 
     IReadOnlyList<AgentWorkspaceSettings> List();
+
+    bool ServerEnabled { get; }
+
+    void SetServerEnabled(bool enabled);
 }

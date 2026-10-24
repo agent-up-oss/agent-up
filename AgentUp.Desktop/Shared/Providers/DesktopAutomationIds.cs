@@ -33,6 +33,13 @@ public static class DesktopAutomationIds
     public const string BrowserReload = "browser.reload";
     public const string BrowserAddress = "browser.address";
 
+    public const string AgentLoop = "agent.loop";
+    public const string AgentLoopChecklist = "agent.loop.checklist";
+    public const string AgentLoopEnable = "agent.loop.enable";
+    public const string AgentLoopActivate = "agent.loop.activate";
+    public const string AgentLoopCancel = "agent.loop.cancel";
+    public const string AgentLoopTerminal = "agent.loop.terminal";
+    public const string AgentLoopPhase = "agent.loop.phase";
     public const string AgentStop = "agent.stop";
     public const string AgentSessions = "agent.sessions";
     public const string AgentStartBound = "agent.start-bound";
@@ -98,6 +105,7 @@ public static class DesktopAutomationIds
     public static string WorkspaceRefresh(string id) => $"workspace.refresh.{id}";
     public static string WorkspaceRemove(string id) => $"workspace.remove.{id}";
     public static string ApplicationTab(string name) => $"app.tab.{name}";
+    public static string AgentLoopPrecondition(string id) => $"agent.loop.precondition.{id}";
     public static string AgentPickerRow(string agent) => $"agent.picker.{agent}";
     public static string AgentSession(string sessionId) => $"agent.session.{sessionId}";
     public static string AgentOption(string optionId) => $"agent.option.{optionId}";

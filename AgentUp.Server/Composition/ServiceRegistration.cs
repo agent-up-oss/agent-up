@@ -209,6 +209,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<AutonomousLoopController>();
         builder.Services.AddSingleton<IAgentWorkspaceSettingsRepository>(_ =>
             new JsonAgentWorkspaceSettingsRepository(dataDir));
+        builder.Services.AddSingleton<IHostConnectionPresence, HostConnectionPresenceProvider>();
         builder.Services.AddSingleton<IAutonomySettings, ConfiguredAutonomySettings>();
         builder.Services.AddSingleton<IForgeCredentialStore>(_ => new ForgeCredentialStore(dataDir));
         builder.Services.AddSingleton<IForgeGitRemoteResolver, ForgeGitRemoteResolver>();
@@ -235,7 +236,9 @@ public static class ServiceRegistration
                 sp.GetRequiredService<AgentSchedulingService>(),
                 sp.GetRequiredService<AutonomousLoopService>(),
                 sp.GetRequiredService<WorkspaceQueryController>(),
-                sp.GetRequiredService<IRoleToolFilter>()).ReconcileAfterRestart());
+                sp.GetRequiredService<IRoleToolFilter>(),
+                sp.GetService<IEnabledCapabilityPackages>(),
+                sp.GetService<IHostConnectionPresence>()).ReconcileAfterRestart());
         builder.Services.AddSingleton<LoopScenarioCatalog>();
         builder.Services.AddSingleton<LoopOutcomeBaselineStore>();
         builder.Services.AddSingleton<WorkspaceEventFrameProvider>();

@@ -3,6 +3,7 @@ using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Interfaces;
 using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Agents.Providers;
+using AgentUp.Server.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using ModelContextProtocol.Server;
 
@@ -18,7 +19,9 @@ public sealed class AutonomousWorkspaceService(
     AgentSchedulingService scheduling,
     AutonomousLoopService loop,
     WorkspaceQueryController workspaces,
-    IRoleToolFilter roleTools)
+    IRoleToolFilter roleTools,
+    IEnabledCapabilityPackages? packages = null,
+    IHostConnectionPresence? host = null)
 {
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _runs = new(StringComparer.Ordinal);
 
@@ -51,7 +54,22 @@ public sealed class AutonomousWorkspaceService(
 
     public bool ServerEnabled => autonomy.ServerEnabled;
 
-    public bool HostConnectionPresent => settings.List().Any(item => item.HostConnectionAuthorized);
+    public bool HostConnectionPresent =>
+        host?.IsPresent() ?? settings.List().Any(item => item.HostConnectionAuthorized);
+
+    public async Task<ServerAutonomyDto> GetStatusAsync(CancellationToken cancellationToken)
+    {
+        var forgeEnabled = packages?.ListForges().Count > 0;
+        var hostAuthorized = HostConnectionPresent;
+        var agentAvailable = await scheduling.HasAvailableAgentAsync(cancellationToken);
+        var enabled = autonomy.ServerEnabled;
+        return new ServerAutonomyDto(enabled, [
+            Item(AutonomyPreconditions.ForgeCapabilityEnabled, forgeEnabled),
+            Item(AutonomyPreconditions.HostConnectionAuthorized, hostAuthorized),
+            Item(AutonomyPreconditions.AgentAvailable, agentAvailable),
+            Item(AutonomyPreconditions.AutonomyEnabled, enabled)
+        ]);
+    }
 
     public bool TryEnableServer(out string? refusal) => autonomy.TryEnable(out refusal);
 
@@ -100,7 +118,7 @@ public sealed class AutonomousWorkspaceService(
         if (workspaces.GetById(workspaceId) is null)
             return AgentActionResult.NotFound();
         if (!autonomy.ServerEnabled)
-            return AgentActionResult.Failed("Autonomy is not enabled on this Server.");
+            return AgentActionResult.Failed(AutonomyPreconditions.Refusal(AutonomyPreconditions.AutonomyEnabled));
         var unmet = await preconditions.UnmetAsync(workspaceId, cancellationToken);
         if (unmet is not null)
             return AgentActionResult.Failed(unmet);
@@ -190,7 +208,7 @@ public sealed class AutonomousWorkspaceService(
                 var bound = workspaces.GetById(workspaceId)?.BoundAgentModuleId;
                 if (string.IsNullOrWhiteSpace(bound))
                 {
-                    Record(workspaceId, "blocked", task, LoopTerminal.BlockedPrecondition, "precondition", "An agent is not bound to the workspace.", []);
+                    Record(workspaceId, "blocked", task, LoopTerminal.BlockedPrecondition, "precondition", AutonomyPreconditions.Refusal(AutonomyPreconditions.BoundAgent), []);
                     return;
                 }
 
@@ -271,6 +289,9 @@ public sealed class AutonomousWorkspaceService(
         var assigned = await issues.ListAssignedAsync(workspaceId, current.QueueOrder, cancellationToken);
         issues.Replace(workspaceId, [.. assigned.Where(item => !completed.Contains(TaskKey(RoleTriggerKind.IssueAssigned, item.Id)))]);
     }
+
+    private static AutonomyPreconditionDto Item(string id, bool satisfied) =>
+        new(id, satisfied, satisfied ? null : AutonomyPreconditions.Remedy(id));
 
     private static string TaskKey(RoleTriggerKind? trigger, string id) =>
         trigger == RoleTriggerKind.ProposalAwaitingReview ? $"proposal:{id}" : $"issue:{id}";

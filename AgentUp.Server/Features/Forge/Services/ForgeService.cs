@@ -115,6 +115,20 @@ public sealed class ForgeService(
         return true;
     }
 
+    public bool HasCredential(string workspaceId)
+    {
+        var forge = packages.ListForges().FirstOrDefault();
+        return forge is not null && !string.IsNullOrWhiteSpace(credentials.Read(workspaceId, forge.Identity.Id));
+    }
+
+    public bool HasAnyCredential()
+    {
+        var forge = packages.ListForges().FirstOrDefault();
+        return forge is not null
+            && workspaces.GetAll().Any(workspace =>
+                !string.IsNullOrWhiteSpace(credentials.Read(workspace.Id, forge.Identity.Id)));
+    }
+
     public bool Logout(string workspaceId)
     {
         if (workspaces.GetById(workspaceId) is null)

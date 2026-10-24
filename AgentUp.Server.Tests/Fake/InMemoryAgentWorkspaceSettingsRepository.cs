@@ -16,4 +16,8 @@ internal sealed class InMemoryAgentWorkspaceSettingsRepository : IAgentWorkspace
     public void Remove(string workspaceId) => _settings.Remove(workspaceId);
 
     public IReadOnlyList<AgentWorkspaceSettings> List() => [.. _settings.Values];
+
+    public bool ServerEnabled { get; private set; }
+
+    public void SetServerEnabled(bool enabled) => ServerEnabled = enabled;
 }

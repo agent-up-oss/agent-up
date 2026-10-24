@@ -106,6 +106,46 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
+    public async Task HasAvailableAgentAsync_isTrueWhenAnEnabledModuleCanRun()
+    {
+        var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
+            .WithAgents(new StubAgentCapability());
+        var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
+        var service = new AgentSchedulingService(
+            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
+            new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(
+                new Dictionary<string, string?> { ["Agents:codex:Command"] = command }).Build(), packages),
+            _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
+            _payloads, _events, NullLogger<AgentSchedulingService>.Instance, packages);
+        try
+        {
+            Assert.That(await service.HasAvailableAgentAsync(CancellationToken.None), Is.True);
+        }
+        finally
+        {
+            await service.DisposeAsync();
+        }
+    }
+
+    [Test]
+    public async Task HasAvailableAgentAsync_isFalseWhenNoEnabledModuleCanRun()
+    {
+        var service = new AgentSchedulingService(
+            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
+            new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection().Build()),
+            _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
+            _payloads, _events, NullLogger<AgentSchedulingService>.Instance);
+        try
+        {
+            Assert.That(await service.HasAvailableAgentAsync(CancellationToken.None), Is.False);
+        }
+        finally
+        {
+            await service.DisposeAsync();
+        }
+    }
+
+    [Test]
     public async Task GetAsync_lists_unknown_agent_module_ids()
     {
         var packages = new FakeEnabledCapabilityPackages(new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityPackageManifest

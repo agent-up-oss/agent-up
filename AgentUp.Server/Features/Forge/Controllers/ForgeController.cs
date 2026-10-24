@@ -15,6 +15,12 @@ public sealed class ForgeController(ForgeService service)
     public Task<bool> CompleteLoginAsync(string code, string state, CancellationToken cancellationToken = default)
         => service.CompleteLoginAsync(code, state, cancellationToken);
 
+    public bool HasCredential(string workspaceId)
+        => service.HasCredential(workspaceId);
+
+    public bool HasAnyCredential()
+        => service.HasAnyCredential();
+
     public bool Logout(string workspaceId)
         => service.Logout(workspaceId);
 

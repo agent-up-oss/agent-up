@@ -1,6 +1,6 @@
 import type { ServerSession } from '@agent-up/server-client';
 import { ensureCredentialTransportAllowed, jsonBody, requestServerJson } from '@agent-up/server-client';
-import type { AgentEvent, AgentId, AgentSession } from '../models/AgentSession';
+import type { AgentEvent, AgentId, AgentLoopStatus, AgentSession, ServerAutonomy } from '../models/AgentSession';
 
 const root = (workspaceId: string) => `/api/workspaces/${encodeURIComponent(workspaceId)}/agent`;
 
@@ -76,6 +76,29 @@ export async function cancelAgent(server: ServerSession, workspaceId: string, re
 }
 export async function stopAgent(server: ServerSession, workspaceId: string, request: typeof fetch = fetch) {
   return requestServerJson<null>(server, root(workspaceId), { method: 'DELETE' }, undefined, request);
+}
+export async function getAutonomy(server: ServerSession, request: typeof fetch = fetch) {
+  return requestServerJson<ServerAutonomy>(server, '/api/autonomy', {}, undefined, request);
+}
+export async function putAutonomy(server: ServerSession, enabled: boolean, request: typeof fetch = fetch) {
+  return requestServerJson<null>(server, '/api/autonomy', { ...jsonBody({ enabled }), method: 'PUT' }, undefined, request);
+}
+export async function putLoopActivation(
+  server: ServerSession,
+  workspaceId: string,
+  active: boolean,
+  request: typeof fetch = fetch,
+) {
+  return requestServerJson<null>(
+    server,
+    `${root(workspaceId)}/autonomy`,
+    { ...jsonBody({ active }), method: 'PUT' },
+    undefined,
+    request,
+  );
+}
+export async function getLoop(server: ServerSession, workspaceId: string, request: typeof fetch = fetch) {
+  return requestServerJson<AgentLoopStatus>(server, `${root(workspaceId)}/loop`, {}, undefined, request);
 }
 
 export function parseSseFrames(buffer: string): { events: AgentEvent[]; rest: string } {

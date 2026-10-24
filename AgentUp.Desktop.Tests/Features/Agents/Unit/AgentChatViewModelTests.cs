@@ -446,6 +446,232 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
+    public async Task LoadAsync_loadsTheAutonomyChecklist()
+    {
+        var view = CreateView(new ChatApiFake());
+
+        await view.LoadAsync("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.HasAutonomy, Is.True);
+            Assert.That(view.Preconditions.Select(item => item.Id), Is.EqualTo(new[]
+            {
+                "forgeCapabilityEnabled",
+                "hostConnectionAuthorized",
+                "agentAvailable",
+                "autonomyEnabled"
+            }));
+            Assert.That(view.CanEnableAutonomy, Is.True);
+            Assert.That(view.CanActivateLoop, Is.False);
+        });
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task EnableAutonomyCommand_persistsServerEnablement()
+    {
+        var fake = new ChatApiFake();
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        var sawActivate = false;
+        view.PropertyChanged += (_, change) =>
+        {
+            if (change.PropertyName == nameof(AgentChatViewModel.CanActivateLoop) && view.CanActivateLoop)
+                sawActivate = true;
+        };
+        await view.EnableAutonomyCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fake.LastEnabled, Is.True);
+            Assert.That(view.CanEnableAutonomy, Is.False);
+            Assert.That(view.CanActivateLoop, Is.True);
+            Assert.That(sawActivate, Is.True);
+        });
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task ActivateThenCancel_exposesTheTypedLoopTerminal()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session().Ready().BoundTo("Codex").Build(),
+            Autonomy = new(true, [
+                new("forgeCapabilityEnabled", true),
+                new("hostConnectionAuthorized", true),
+                new("agentAvailable", true),
+                new("autonomyEnabled", true)
+            ])
+        };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+        await view.ActivateLoopCommand.Execute().FirstAsync();
+        await view.CancelLoopCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.LoopTerminal, Is.EqualTo("Cancelled"));
+            Assert.That(view.HasMessages, Is.False);
+            Assert.That(view.CanCancelLoop, Is.False);
+        });
+
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task LoadAsync_dropsAStaleAutonomyResponseAfterANewerLoad()
+    {
+        var hang = new TaskCompletionSource();
+        var fake = new ChatApiFake { AutonomyHang = hang };
+        var view = CreateView(fake);
+        var first = view.LoadAsync("ws-1");
+        while (fake.AutonomyReads == 0)
+            await Task.Delay(10);
+        await view.LoadAsync(null);
+        hang.SetResult();
+        await first;
+
+        Assert.That(view.HasAutonomy, Is.False);
+        Assert.That(view.Error, Is.Null);
+    }
+
+    [Test]
+    public async Task LoadAsync_reportsAutonomyFailuresWithoutClearingTheSession()
+    {
+        var fake = new ChatApiFake { AutonomyFailure = new HttpRequestException("autonomy down") };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+
+        Assert.That(view.Error, Is.EqualTo("autonomy down"));
+        Assert.That(view.HasAutonomy, Is.False);
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task EnableAutonomyCommand_surfacesATransportFailure()
+    {
+        var fake = new ChatApiFake { PutAutonomyFailure = new HttpRequestException("cannot enable") };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        await view.EnableAutonomyCommand.Execute().FirstAsync();
+
+        Assert.That(view.Error, Is.EqualTo("cannot enable"));
+        Assert.That(view.CanEnableAutonomy, Is.True);
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task CanEnableAutonomy_requiresTheFirstThreeStepsAndAnOutstandingEnablement()
+    {
+        var fake = new ChatApiFake
+        {
+            Autonomy = new(false, [
+                new("forgeCapabilityEnabled", false, "Run: agent-up capabilities bootstrap"),
+                new("hostConnectionAuthorized", true),
+                new("agentAvailable", true),
+                new("autonomyEnabled", false, "Enable autonomy for this Server")
+            ])
+        };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        Assert.That(view.CanEnableAutonomy, Is.False);
+        Assert.That(view.CanActivateLoop, Is.False);
+
+        fake.Autonomy = new(false, [
+            new("forgeCapabilityEnabled", true),
+            new("hostConnectionAuthorized", false, "Sign in to your repository host."),
+            new("agentAvailable", true),
+            new("autonomyEnabled", false, "Enable autonomy for this Server")
+        ]);
+        await view.LoadAsync("ws-1");
+        Assert.That(view.CanEnableAutonomy, Is.False);
+
+        fake.Autonomy = new(false, [
+            new("forgeCapabilityEnabled", true),
+            new("hostConnectionAuthorized", true),
+            new("agentAvailable", false, "Enable an agent capability"),
+            new("autonomyEnabled", false, "Enable autonomy for this Server")
+        ]);
+        await view.LoadAsync("ws-1");
+        Assert.That(view.CanEnableAutonomy, Is.False);
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task CanActivateLoop_staysFalseWhileTheLoopIsActive()
+    {
+        var fake = new ChatApiFake
+        {
+            Autonomy = new(true, [
+                new("forgeCapabilityEnabled", true),
+                new("hostConnectionAuthorized", true),
+                new("agentAvailable", true),
+                new("autonomyEnabled", true)
+            ]),
+            Session = DesktopDomain.Session()
+                .Ready()
+                .BoundTo("Codex")
+                .WithLoop(new AgentLoopStatusDto(true, "running", TaskTitle: "Restock featured products"))
+                .Build()
+        };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.CanEnableAutonomy, Is.False);
+            Assert.That(view.CanActivateLoop, Is.False);
+            Assert.That(view.CanCancelLoop, Is.True);
+            Assert.That(view.HasLoopPhase, Is.True);
+            Assert.That(view.HasLoopTerminal, Is.False);
+        });
+        view.IsVisible = true;
+        view.IsVisible = false;
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task LoadAsync_clearsTheChecklistWhenAutonomyIsAbsent()
+    {
+        var fake = new ChatApiFake { Autonomy = null };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        Assert.That(view.HasAutonomy, Is.False);
+        Assert.That(view.CanEnableAutonomy, Is.False);
+        Assert.That(view.CanActivateLoop, Is.False);
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task ActivateLoopCommand_surfacesALoopReadFailure()
+    {
+        var fake = new ChatApiFake
+        {
+            Autonomy = new(true, [
+                new("forgeCapabilityEnabled", true),
+                new("hostConnectionAuthorized", true),
+                new("agentAvailable", true),
+                new("autonomyEnabled", true)
+            ]),
+            LoopFailure = new HttpRequestException("loop down")
+        };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        await view.ActivateLoopCommand.Execute().FirstAsync();
+
+        Assert.That(view.Error, Is.EqualTo("loop down"));
+        await view.LoadAsync(null);
+    }
+
+    [Test]
     public async Task StartBoundCommand_schedulesTheBoundAgent()
     {
         var fake = new ChatApiFake
@@ -827,6 +1053,85 @@ internal sealed class ChatApiFake : IAgentApiProvider
     }
     public Task DecideAsync(string workspaceId, string requestId, string optionId, CancellationToken cancellationToken) => Task.CompletedTask;
     public Task StopAsync(string workspaceId, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public ServerAutonomyDto? Autonomy { get; set; } = new(false, [
+        new("forgeCapabilityEnabled", true),
+        new("hostConnectionAuthorized", true),
+        new("agentAvailable", true),
+        new("autonomyEnabled", false, "Enable autonomy for this Server")
+    ]);
+    public bool? LastEnabled { get; private set; }
+    public bool? LastActive { get; private set; }
+    public Exception? AutonomyFailure { get; set; }
+    public Exception? PutAutonomyFailure { get; set; }
+    public Exception? LoopFailure { get; set; }
+    public TaskCompletionSource? AutonomyHang { get; set; }
+    public TaskCompletionSource? LoopHang { get; set; }
+    public int IgnoreLoopReads { get; set; }
+    public Queue<AgentLoopStatusDto?> LoopPolls { get; } = new();
+
+    public int AutonomyReads { get; private set; }
+
+    public async Task<ServerAutonomyDto?> GetAutonomyAsync(CancellationToken cancellationToken)
+    {
+        AutonomyReads++;
+        if (AutonomyHang is not null)
+            await AutonomyHang.Task;
+        if (AutonomyFailure is not null)
+            throw AutonomyFailure;
+        return Autonomy;
+    }
+
+    public Task PutAutonomyAsync(bool enabled, CancellationToken cancellationToken)
+    {
+        if (PutAutonomyFailure is not null)
+            return Task.FromException(PutAutonomyFailure);
+        LastEnabled = enabled;
+        Autonomy = new(enabled, (Autonomy?.Preconditions ?? []).Select(item =>
+            item.Id == "autonomyEnabled"
+                ? item with { Satisfied = enabled, Remedy = enabled ? null : "Enable autonomy for this Server" }
+                : item).ToArray());
+        return Task.CompletedTask;
+    }
+
+    public Task PutLoopActivationAsync(string workspaceId, bool active, CancellationToken cancellationToken)
+    {
+        LastActive = active;
+        LastWorkspace = workspaceId;
+        if (Session is not null)
+        {
+            Session = Session with
+            {
+                Loop = active
+                    ? new AgentLoopStatusDto(true, "running", TaskTitle: "Restock featured products")
+                    : new AgentLoopStatusDto(false, "stopped", Terminal: "Cancelled", StopReason: "cancelled")
+            };
+        }
+        return Task.CompletedTask;
+    }
+
+    public async Task<AgentLoopStatusDto?> GetLoopAsync(string workspaceId, CancellationToken cancellationToken)
+    {
+        if (IgnoreLoopReads > 0)
+        {
+            IgnoreLoopReads--;
+            return Session?.Loop;
+        }
+
+        if (LoopHang is not null)
+            await LoopHang.Task;
+
+        if (LoopFailure is not null)
+        {
+            var failure = LoopFailure;
+            LoopFailure = null;
+            throw failure;
+        }
+
+        if (LoopPolls.Count > 0)
+            return LoopPolls.Dequeue();
+        return Session?.Loop;
+    }
 
     public async IAsyncEnumerable<AgentEventDto> EventsAsync(
         string workspaceId,
