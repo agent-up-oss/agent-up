@@ -38,6 +38,10 @@ using AgentUp.Desktop.Features.Ports.Services;
 using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.Services;
+using AgentUp.Desktop.Features.Interface.Controllers;
+using AgentUp.Desktop.Features.Interface.Services;
+using AgentUp.Desktop.Features.Interface.Providers;
+using AgentUp.Desktop.Features.Interface.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Browser.Controllers;
 using AgentUp.Desktop.Features.Capabilities.Controllers;
@@ -104,7 +108,8 @@ public static class MainViewModelFactory
         AgentApiClient? agentClient = null,
         LoginViewModel? login = null,
         CapabilityModulesApiClient? capabilityModulesClient = null,
-        HttpClient? entitlementsHttp = null)
+        HttpClient? entitlementsHttp = null,
+        CommandCenterViewModel? commandCenter = null)
     {
         var workspaces = new WorkspacesController(new WorkspaceListService(workspaceClient));
         var entitlements = new EntitlementsController(new EntitlementsService(
@@ -143,10 +148,17 @@ public static class MainViewModelFactory
             ports,
             new ValidationViewModel(validationApi, validationReplay),
             validationReplay,
-            modules);
+            modules,
+            commandCenter ?? new CommandCenterViewModel(
+                new InterfaceController(new FileInterfacePreferenceStore()),
+                new BridgeViewModel(new TeamStandingController(new TeamStandingService(agents, git)))));
     }
 
-    public static MainViewModel Create(HttpClient http, LoginViewModel? login = null, HttpClient? agentEventsHttp = null)
+    public static MainViewModel Create(
+        HttpClient http,
+        LoginViewModel? login = null,
+        HttpClient? agentEventsHttp = null,
+        CommandCenterViewModel? commandCenter = null)
     {
         return Create(
             new WorkspaceApiClient(http),
@@ -159,7 +171,8 @@ public static class MainViewModelFactory
             capabilityModulesClient: new CapabilityModulesApiClient(http),
             agentClient: new AgentApiClient(http, agentEventsHttp ?? http),
             login: login ?? CreateLogin(http),
-            entitlementsHttp: http);
+            entitlementsHttp: http,
+            commandCenter: commandCenter);
     }
 
     public static HostMetricsController CreateHostMetricsController(HttpClient http) =>

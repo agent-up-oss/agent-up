@@ -112,6 +112,15 @@ const defaultScheduler: FakeScheduler = (delayMs, work) => {
   return () => clearTimeout(timer);
 };
 
+/**
+ * Whether this workspace's agent reviews somebody else's work. The role's trigger and termination
+ * say so: a proposal awaiting review in, a review out.
+ */
+function reviewsOthersWork(session: unknown): boolean {
+  const role = (session as { role?: { trigger?: string; termination?: string } } | null)?.role;
+  return role?.trigger === 'ProposalAwaitingReview' && role?.termination === 'ReviewSubmitted';
+}
+
 export class FakeBackendService {
   private readonly template: FakeServerDefinition;
   private readonly schedule: FakeScheduler;
@@ -237,18 +246,7 @@ export class FakeBackendService {
     if (method === 'GET' && rest === 'git/head') return this.gitHead(workspaceId);
     if (method === 'GET' && rest === 'git/log') return this.gitLog(workspaceId);
     if (method === 'GET' && rest === 'commit-queue') return this.gitQueue(workspaceId);
-    if (method === 'GET' && rest === 'forge') {
-      return json({
-        availability: 'notInstalled',
-        moduleId: null,
-        proposal: null,
-        checks: [],
-        threads: [],
-        mergeability: null,
-        detail: 'No forge capability package is enabled.',
-        remedy: 'Run: agent-up capabilities bootstrap',
-      });
-    }
+    if (method === 'GET' && rest === 'forge') return json(this.forge(workspaceId));
     if (method === 'GET' && rest.startsWith('git/file')) return this.gitDiff(workspaceId, request.query);
     if (method === 'POST' && rest.startsWith('git/')) return this.gitMutation(workspaceId, rest.slice('git/'.length), request.body);
     if (method === 'GET' && rest === 'agent/loop') return this.agentLoop(workspaceId);
@@ -373,6 +371,24 @@ export class FakeBackendService {
       processCount: overview.processCount ?? 0,
       applicationCount: live.applications?.length ?? 0,
     });
+  }
+
+  /**
+   * What the repository host reports for this workspace. The Demo answers the same shape a real
+   * forge capability returns, so a client fills from it without a demo-only path; a workspace the
+   * definition says nothing about reads as no host connected.
+   */
+  private forge(workspaceId: string): unknown {
+    return this.state.forge?.[workspaceId] ?? {
+      availability: 'notInstalled',
+      moduleId: null,
+      proposal: null,
+      checks: [],
+      threads: [],
+      mergeability: null,
+      detail: 'No forge capability package is enabled.',
+      remedy: 'Run: agent-up capabilities bootstrap',
+    };
   }
 
   private gitChanges(workspaceId: string): FakeBackendResponse {
@@ -581,13 +597,19 @@ export class FakeBackendService {
     const git = this.git.get(workspaceId);
     if (!session) return notFound();
     const message = readJsonString(body, 'message') ?? '';
-    const added = git ? addAgentWorkingTreeFile(git) : null;
+    // A reviewer has the author's branch checked out to read it. Writing a file into it would put
+    // their name on work that is not theirs, so only a role that opens its own proposal touches
+    // the tree.
+    const reviewing = reviewsOthersWork(session.session);
+    const added = git && !reviewing ? addAgentWorkingTreeFile(git) : null;
     const snapshot = this.liveAgentSession(session.session);
     this.publishAgent(workspaceId, 'user_message', { text: message });
     this.publishAgent(workspaceId, 'state', { ...snapshot, state: 'running' });
     const text = added
       ? `I added \`${added.path}\` so the storefront can show the weekly harbor special. It is uncommitted in the working tree.`
-      : 'Harbor Shop is running locally.';
+      : reviewing
+        ? 'I have read the branch for this proposal and left my notes on the thread. The review is submitted.'
+        : 'Harbor is running locally.';
     this.publishAgent(workspaceId, 'session_update', {
       sessionUpdate: 'agent_message_chunk',
       content: { type: 'text', text },

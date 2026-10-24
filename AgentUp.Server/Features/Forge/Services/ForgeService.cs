@@ -40,8 +40,10 @@ public sealed class ForgeService(
             var snapshot = await forge.ReadAsync(
                 new ForgeRequest(token, remote.Owner, remote.Repository, remote.Branch),
                 cancellationToken);
+            // The workspace has an account whether or not a proposal is open, so both answers carry it.
+            var account = ToAccount(snapshot.Account);
             if (snapshot.Proposal is null)
-                return NoProposal(forge.Identity.Id);
+                return NoProposal(forge.Identity.Id, account);
 
             return Ready(
                 forge.Identity.Id,
@@ -50,7 +52,9 @@ public sealed class ForgeService(
                 [.. snapshot.Threads.Select(ToThread)],
                 snapshot.Mergeability is null
                     ? null
-                    : new ForgeMergeabilityDto(snapshot.Mergeability.Mergeable, snapshot.Mergeability.State));
+                    : new ForgeMergeabilityDto(snapshot.Mergeability.Mergeable, snapshot.Mergeability.State),
+                account,
+                [.. (snapshot.Reviews ?? []).Select(ToReview)]);
         }
         catch (HttpRequestException exception)
         {
@@ -300,7 +304,7 @@ public sealed class ForgeService(
             string.IsNullOrWhiteSpace(detail) ? ForgeHostingCopy.UnreachableDetail : detail,
             ForgeHostingCopy.UnreachableRemedy);
 
-    private static ForgeHostingDto NoProposal(string moduleId)
+    private static ForgeHostingDto NoProposal(string moduleId, ForgeAccountDto? account)
         => new(
             ForgeHostingCopy.NoProposal,
             moduleId,
@@ -309,15 +313,24 @@ public sealed class ForgeService(
             [],
             null,
             ForgeHostingCopy.NoProposalDetail,
-            null);
+            null,
+            account);
 
     private static ForgeHostingDto Ready(
         string moduleId,
         ForgeProposalDto proposal,
         IReadOnlyList<ForgeCheckDto> checks,
         IReadOnlyList<ForgeReviewThreadDto> threads,
-        ForgeMergeabilityDto? mergeability)
-        => new(ForgeHostingCopy.Ready, moduleId, proposal, checks, threads, mergeability, null, null);
+        ForgeMergeabilityDto? mergeability,
+        ForgeAccountDto? account,
+        IReadOnlyList<ForgeReviewDto> reviews)
+        => new(ForgeHostingCopy.Ready, moduleId, proposal, checks, threads, mergeability, null, null, account, reviews);
+
+    private static ForgeReviewDto ToReview(ForgeReview review)
+        => new(review.Login, review.State);
+
+    private static ForgeAccountDto? ToAccount(ForgeAccount? account)
+        => account is null ? null : new ForgeAccountDto(account.Login, account.DisplayName, account.IsBot, account.Url);
 
     private static ForgeProposalDto ToProposal(ForgeProposal proposal)
         => new(proposal.Id, proposal.Number, proposal.Title, proposal.Url, proposal.HeadRef, proposal.BaseRef, proposal.State);

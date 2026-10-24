@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Application — Agent-Up new UI</title>
+  <link rel="stylesheet" href="../new-ui.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
+    .aun-frame { width: 1440px; min-height: 900px; overflow: hidden; display: flex; }
+    .aun-frame > * { flex: 1 1 auto; min-width: 0; }
+  </style>
+</head>
+<body>
+<div class="aun-frame">
+<div class="aun">
+    <nav class="aun-rail" aria-label="Command center">
+    <div class="aun-rail__server">
+      <span class="aun-dot aun-dot--live"></span>
+      <span>
+        <span class="aun-rail__name">dev-box</span>
+        <span class="aun-rail__url">localhost:5000</span>
+      </span>
+    </div>
+    <a class="aun-rail__link" data-aun-nav="bridge" href="#bridge">Bridge</a>
+    <a class="aun-rail__link" data-aun-nav="tasks" href="#tasks">Tasks</a>
+    <p class="aun-rail__section">TEAM</p>
+    <a class="aun-rail__link" data-aun-nav="team" href="#team">All agents</a>
+    <a class="aun-rail__agent" data-aun-nav="lucy" aria-current="page" href="#lucy">
+      <span class="aun-avatar aun-avatar--sm">L</span>Lucy
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span>
+    </a>
+    <a class="aun-rail__agent" data-aun-nav="bob" href="#bob">
+      <span class="aun-avatar aun-avatar--sm">B</span>Bob
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span>
+    </a>
+    <a class="aun-rail__agent" data-aun-nav="hector" href="#hector">
+      <span class="aun-avatar aun-avatar--sm">H</span>Hector
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--halted">&#9650;</span>
+    </a>
+    <span class="aun-rail__spacer"></span>
+    <a class="aun-rail__link" data-aun-nav="settings" href="#settings">Settings</a>
+    <a class="aun-rail__link" data-aun-nav="signout" href="#signout">Sign out of server</a>
+  </nav>
+    <main class="aun-main" style="gap: 13px">
+      <div class="aun-wrap" style="gap: 10px; align-items: center">
+        <a href="#lucy" style="color: var(--au-color-text-info); font-size: var(--au-font-size-ui-sm)">&larr; Lucy</a>
+        <span class="aun-faint">/</span>
+        <span style="font-size: var(--au-font-size-ui-sm)">Example Web</span>
+        <span class="aun-rail__spacer"></span>
+        <span class="aun-glyph--done" style="font-size: var(--au-font-size-ui-sm)">&#9679; Running</span>
+      </div>
+
+      <nav class="aun-apptabs" aria-label="Applications">
+        <a class="aun-apptab" href="#docs">Docs</a>
+        <a class="aun-apptab" href="#web" aria-current="page">Example Web</a>
+        <a class="aun-apptab" href="#api">Example API</a>
+        <a class="aun-apptab" href="#db">Database</a>
+        <a class="aun-apptab" href="#desk">Sample Desktop</a>
+      </nav>
+
+      <div class="aun-wrap" style="gap: 14px; flex-grow: 1; min-height: 0">
+        <div class="aun-browser" style="flex: 999 1 32rem; min-width: 0">
+          <div class="aun-browser__bar">
+            <button type="button" class="aun-browser__icon" aria-label="Back">&larr;</button>
+            <button type="button" class="aun-browser__icon" aria-label="Forward">&rarr;</button>
+            <button type="button" class="aun-browser__icon" aria-label="Reload">&#8635;</button>
+            <span class="aun-browser__url">http://localhost:10301/checkout</span>
+            <button type="button" class="aun-browser__icon" aria-label="Open externally">&#8599;</button>
+          </div>
+          <div class="aun-browser__view">
+            <div style="padding: 26px 30px; font-family: var(--au-font-sans)">
+              <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e5e5e5; margin-bottom: 22px">
+                <span style="font-size: 17px; font-weight: 700">Harbor Shop</span>
+                <span style="font-size: 13px; color: #555">Basket &middot; 3</span>
+              </div>
+              <h2 style="margin: 0 0 18px; font-size: 22px; font-weight: 700">Checkout</h2>
+              <div style="display: flex; flex-wrap: wrap; gap: 22px">
+                <div style="flex: 1 1 17rem; min-width: 0">
+                  <label for="aun-em" style="display: block; font-size: 12px; font-weight: 600; color: #444; margin-bottom: 5px">Email</label>
+                  <input id="aun-em" type="email" value="ada@example.com" style="font: inherit; font-size: 13px; width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 14px" />
+                  <label for="aun-ad" style="display: block; font-size: 12px; font-weight: 600; color: #444; margin-bottom: 5px">Delivery address</label>
+                  <input id="aun-ad" type="text" value="14 Dock Road" style="font: inherit; font-size: 13px; width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 18px" />
+                  <button type="button" style="font: inherit; font-size: 13.5px; font-weight: 600; padding: 11px 20px; border-radius: 7px; border: none; background: #117a4a; color: #fff; cursor: pointer">Place order</button>
+                </div>
+                <div style="flex: 0 1 14rem; background: #f6f6f4; border-radius: 9px; padding: 16px 18px">
+                  <p style="font-size: 13px; font-weight: 700; margin: 0 0 12px">Summary</p>
+                  <p style="display: flex; justify-content: space-between; font-size: 12.5px; color: #444; margin: 0 0 7px"><span>Rope, 20m</span><span>&pound;18.00</span></p>
+                  <p style="display: flex; justify-content: space-between; font-size: 12.5px; color: #444; margin: 0 0 7px"><span>Shackle &times;2</span><span>&pound;12.40</span></p>
+                  <p style="display: flex; justify-content: space-between; font-size: 12.5px; color: #444; margin: 0 0 12px"><span>Delivery</span><span>&pound;4.95</span></p>
+                  <p style="display: flex; justify-content: space-between; font-size: 13.5px; font-weight: 700; padding-top: 11px; border-top: 1px solid #ddd; margin: 0"><span>Total</span><span>&pound;35.35</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="aun-stack" style="flex: 1 1 18rem; min-width: 16rem; gap: 13px">
+          <article class="aun-card" style="padding: 16px 18px">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px">
+              <h2 class="aun-card__title" style="margin: 0">Validation</h2>
+              <span class="aun-faint" style="font-size: var(--au-font-size-ui-sm)">5 flows</span>
+            </div>
+            <div class="aun-stack">
+              <p class="aun-kv" style="border: 1px solid var(--au-color-border-subtle); border-radius: 7px; padding: 9px 11px"><span class="aun-glyph--done">&#10003;</span><span style="flex-grow: 1">Browse the catalogue</span></p>
+              <p class="aun-kv" style="border: 1px solid var(--au-color-border-subtle); border-radius: 7px; padding: 9px 11px"><span class="aun-glyph--done">&#10003;</span><span style="flex-grow: 1">Add to basket</span></p>
+              <p class="aun-kv" style="border: 1px solid var(--au-color-border-danger); background: var(--au-color-surface-danger); border-radius: 7px; padding: 9px 11px"><span class="aun-glyph--halted">&#9650;</span><span style="flex-grow: 1">Check out as a returning customer</span></p>
+              <div class="aun-note" style="border-left-color: var(--au-color-status-danger)">
+                <strong style="color: var(--au-color-text-danger)">Step 4 &middot; Place order</strong><br>Expected text &ldquo;Order confirmed&rdquo; was not visible within 10s.
+              </div>
+              <p class="aun-kv" style="border: 1px solid var(--au-color-border-subtle); border-radius: 7px; padding: 9px 11px"><span class="aun-glyph--idle">&#9675;</span><span class="aun-muted" style="flex-grow: 1">Change delivery address</span></p>
+            </div>
+            <div class="aun-wrap" style="gap: 8px; margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--au-color-border-subtle)">
+              <button type="button" class="aun-btn aun-btn--primary">Replay all</button>
+              <button type="button" class="aun-btn">Record</button>
+            </div>
+          </article>
+
+          <article class="aun-card" style="padding: 16px 18px">
+            <h2 class="aun-card__title">Console</h2>
+            <div class="aun-console">
+              <p style="margin: 0">&gt; vite --host 0.0.0.0</p>
+              <p style="margin: 0; color: var(--au-color-accent-soft)">&#10140; Local: http://localhost:10301/</p>
+              <p style="margin: 0">12:04:11 [vite] page reload src/Checkout.tsx</p>
+              <p style="margin: 0; color: var(--au-color-text-danger)">12:04:19 POST /api/orders 500</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

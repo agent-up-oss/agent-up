@@ -1,0 +1,202 @@
+using AgentUp.Desktop.Features.Agents.Controllers;
+using AgentUp.Desktop.Features.Agents.DTOs;
+using AgentUp.Desktop.Features.Agents.Interfaces;
+using AgentUp.Desktop.Features.Agents.Services;
+using AgentUp.Desktop.Features.Git.Controllers;
+using AgentUp.Desktop.Features.Git.DTOs;
+using AgentUp.Desktop.Features.Git.Interfaces;
+using AgentUp.Desktop.Features.Git.Services;
+using AgentUp.Desktop.Features.Interface.Controllers;
+using AgentUp.Desktop.Features.Interface.Services;
+
+namespace AgentUp.Desktop.Tests.Support;
+
+/// <summary>
+/// The two reads the bridge composes, answered from a dictionary. Everything the bridge shows comes
+/// from these, so a test states the Server's answer and nothing else.
+/// </summary>
+internal sealed class StandingAgentFake : IAgentApiProvider
+{
+    public Dictionary<string, AgentSessionDto?> Sessions { get; } = [];
+
+    public Dictionary<string, Exception> Failures { get; } = [];
+
+    /// <summary>
+    /// Holds a workspace's read open until the test releases it, so two reads can be in flight at
+    /// once. Without this the fake answers synchronously and reads can never overlap.
+    /// </summary>
+    public Dictionary<string, TaskCompletionSource> Gates { get; } = [];
+
+    public async Task<AgentSessionDto?> GetAsync(string workspaceId, CancellationToken cancellationToken)
+    {
+        if (Gates.TryGetValue(workspaceId, out var gate)) await gate.Task;
+        if (Failures.TryGetValue(workspaceId, out var failure)) throw failure;
+        return Sessions.GetValueOrDefault(workspaceId);
+    }
+
+    public Task<AgentSessionDto?> BindAsync(string workspaceId, string agent, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+
+    public Task<AgentSessionDto?> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+
+    public Task<AgentSessionDto?> ResumeAsync(string workspaceId, string sessionId, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+
+    public Task SendAsync(string workspaceId, string message, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+
+    public Task AuthenticateAsync(string workspaceId, string methodId, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+
+    public Task SubmitLoginCodeAsync(string workspaceId, string code, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+
+    public Task DecideAsync(string workspaceId, string requestId, string optionId, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+
+    public Task StopAsync(string workspaceId, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+
+    public IAsyncEnumerable<AgentEventDto> EventsAsync(string workspaceId, long after, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+
+    public Task<ServerAutonomyDto?> GetAutonomyAsync(CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+
+    public Task PutAutonomyAsync(bool enabled, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+
+    public Task PutLoopActivationAsync(string workspaceId, bool active, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+
+    public Task<AgentLoopStatusDto?> GetLoopAsync(string workspaceId, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+}
+
+internal sealed class StandingForgeFake : IGitApiProvider
+{
+    public Dictionary<string, ForgeHostingDto?> Hosting { get; } = [];
+
+    public Dictionary<string, Exception> Failures { get; } = [];
+
+    public Task<ForgeHostingDto?> GetHostingAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => Failures.TryGetValue(workspaceId, out var failure)
+            ? Task.FromException<ForgeHostingDto?>(failure)
+            : Task.FromResult(Hosting.GetValueOrDefault(workspaceId));
+
+    public Task<GitChangeTreeDto?> GetChangesAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException();
+
+    public Task<CommitQueueDto?> GetCommitQueueAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException();
+
+    public Task<GitFileDiffDto?> GetFileDiffAsync(string workspaceId, string path, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException();
+
+    public Task<GitCommitResultDto> CommitAsync(string workspaceId, GitCommitRequestDto request, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException();
+
+    public Task<GitMutationResultDto> DiscardAsync(string workspaceId, GitFilesRequestDto request, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException();
+
+    public Task<GitMutationResultDto> SwitchBranchAsync(string workspaceId, GitBranchRequestDto request, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException();
+
+    public Task<GitMutationResultDto> CheckoutRemoteAsync(string workspaceId, GitCheckoutRequestDto request, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException();
+
+    public Task<GitSyncResultDto> FetchAsync(string workspaceId, GitFetchRequestDto request, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException();
+
+    public Task<GitSyncResultDto> PullAsync(string workspaceId, GitPullRequestDto request, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException();
+
+    public Task<GitSyncResultDto> PushAsync(string workspaceId, GitPushRequestDto request, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException();
+
+    public Task<GitLogDto?> GetLogAsync(string workspaceId, int max = 100, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException();
+
+    public Task<ForgeLoginStartDto> StartLoginAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException();
+}
+
+internal static class TeamStandingComposition
+{
+    public static TeamStandingController Controller(StandingAgentFake agents, StandingForgeFake forge)
+        => new(new TeamStandingService(
+            new AgentsController(new AgentChatService(agents)),
+            new GitController(new GitChangeListService(forge))));
+
+    /// <summary>A loop status with only the fields a test cares about set.</summary>
+    public static AgentSessionDto Session(
+        string workspaceId,
+        string? agent = "Claude",
+        string state = "ready",
+        AgentLoopStatusDto? loop = null,
+        AgentRoleDto? role = null)
+        => new(workspaceId, agent, state, null, null, [], null, Loop: loop, Role: role);
+
+    public static AgentRoleDto Role(string trigger, string termination, params string[] tools)
+        => new("prompt", tools, trigger, termination);
+
+    /// <summary>
+    /// A reviewer role that supplies a named review. Distinct from <see cref="Reviewer"/> on
+    /// purpose: one overload taking a string would bind ahead of the params one, so a caller
+    /// naming a tool would silently set the review instead.
+    /// </summary>
+    public static AgentRoleDto ReviewerOf(string review, params string[] tools)
+        => new("prompt", tools.Length == 0 ? ["play_validation_flow"] : tools,
+            "ProposalAwaitingReview", "ReviewSubmitted", review);
+
+    public static AgentRoleDto Developer(params string[] tools)
+        => Role("IssueAssigned", "ProposalOpened", tools.Length == 0 ? ["enqueue_commit"] : tools);
+
+    public static AgentRoleDto Reviewer(params string[] tools)
+        => Role("ProposalAwaitingReview", "ReviewSubmitted", tools.Length == 0 ? ["play_validation_flow"] : tools);
+
+    public static ForgeAccountDto Account(string login, bool isBot = true)
+        => new(login, login.Replace("-aup[bot]", string.Empty), isBot, $"https://github.com/apps/{login}");
+
+    public static AgentLoopStatusDto Loop(
+        bool active,
+        string phase,
+        int? taskNumber = null,
+        string? taskTitle = null,
+        string? terminal = null,
+        string? stopReason = null,
+        string? blockReason = null,
+        IReadOnlyList<string>? permissionRuleIds = null)
+        => new(active, phase, taskNumber?.ToString(), taskNumber, taskTitle, terminal, stopReason, blockReason, permissionRuleIds);
+
+    public static ForgeHostingDto Hosting(
+        string availability = "ready",
+        string? number = "44",
+        string? title = "Restock featured products",
+        IReadOnlyList<ForgeCheckDto>? checks = null,
+        IReadOnlyList<ForgeReviewThreadDto>? threads = null,
+        string? mergeState = "clean",
+        string? detail = null,
+        ForgeAccountDto? account = null,
+        IReadOnlyList<ForgeReviewDto>? reviews = null)
+        => new(
+            availability,
+            "github",
+            number is null ? null : new ForgeProposalDto("PR", number, title ?? string.Empty, "https://example/pull/" + number, "head", "main", "open"),
+            checks ?? [],
+            threads ?? [],
+            mergeState is null ? null : new ForgeMergeabilityDto(true, mergeState),
+            detail,
+            Remedy: null,
+            account,
+            reviews);
+
+    public static ForgeCheckDto Check(string name, string status, string conclusion)
+        => new(name, status, conclusion, "https://example/checks");
+
+    public static ForgeReviewDto Verdict(string login, string state) => new(login, state);
+
+    public static ForgeReviewThreadDto Thread(string id, bool resolved)
+        => new(id, "https://example/thread/" + id, id, resolved);
+}

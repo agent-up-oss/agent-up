@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tasks — Agent-Up new UI</title>
+  <link rel="stylesheet" href="../new-ui.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
+    .aun-frame { width: 1440px; min-height: 900px; overflow: hidden; display: flex; }
+    .aun-frame > * { flex: 1 1 auto; min-width: 0; }
+  </style>
+</head>
+<body>
+<div class="aun-frame">
+<div class="aun">
+    <nav class="aun-rail" aria-label="Command center">
+    <div class="aun-rail__server">
+      <span class="aun-dot aun-dot--live"></span>
+      <span>
+        <span class="aun-rail__name">dev-box</span>
+        <span class="aun-rail__url">localhost:5000</span>
+      </span>
+    </div>
+    <a class="aun-rail__link" data-aun-nav="bridge" href="#bridge">Bridge</a>
+    <a class="aun-rail__link" data-aun-nav="tasks" aria-current="page" href="#tasks">Tasks</a>
+    <p class="aun-rail__section">TEAM</p>
+    <a class="aun-rail__link" data-aun-nav="team" href="#team">All agents</a>
+    <a class="aun-rail__agent" data-aun-nav="lucy" href="#lucy">
+      <span class="aun-avatar aun-avatar--sm">L</span>Lucy
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span>
+    </a>
+    <a class="aun-rail__agent" data-aun-nav="bob" href="#bob">
+      <span class="aun-avatar aun-avatar--sm">B</span>Bob
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span>
+    </a>
+    <a class="aun-rail__agent" data-aun-nav="hector" href="#hector">
+      <span class="aun-avatar aun-avatar--sm">H</span>Hector
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--halted">&#9650;</span>
+    </a>
+    <span class="aun-rail__spacer"></span>
+    <a class="aun-rail__link" data-aun-nav="settings" href="#settings">Settings</a>
+    <a class="aun-rail__link" data-aun-nav="signout" href="#signout">Sign out of server</a>
+  </nav>
+    <main class="aun-main">
+      <header class="aun-head">
+        <div>
+          <h1 class="aun-title">Tasks</h1>
+          <p class="aun-subtitle">Mirrored from <span class="aun-mono">github.com/agent-up-oss</span> &middot; 7 open</p>
+        </div>
+        <span class="aun-conn"><span class="aun-dot aun-dot--info"></span>Polling<span class="aun-muted"> &middot; 60s &middot; last 12s ago</span></span>
+      </header>
+
+      <div class="aun-table__scroll">
+        <table class="aun-table">
+          <thead><tr><th>TASK</th><th>STATE</th><th>ASSIGNED TO</th><th>AGE</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><p style="font-weight: 600">#412 &middot; Agent tab dead end on both clients</p><p class="aun-row__meta">bug &middot; severity: priority</p></td>
+              <td><span class="aun-state aun-state--gate">&#9670; in review</span></td>
+              <td><span style="display: inline-flex; align-items: center; gap: 8px"><span class="aun-avatar aun-avatar--sm">L</span>Lucy</span></td>
+              <td class="aun-muted">2d</td>
+              <td><a href="#open" style="color: var(--au-color-text-info)">Open &rarr;</a></td>
+            </tr>
+            <tr>
+              <td><p style="font-weight: 600">#398 &middot; Promote capability bootstrap to a CLI verb</p><p class="aun-row__meta">first-run &middot; packaging</p></td>
+              <td><span class="aun-state aun-state--gate">&#9670; gate open</span></td>
+              <td><span style="display: inline-flex; align-items: center; gap: 8px"><span class="aun-avatar aun-avatar--sm">B</span>Bob</span></td>
+              <td class="aun-muted">4d</td>
+              <td><a href="#open" style="color: var(--au-color-text-info)">Open &rarr;</a></td>
+            </tr>
+            <tr>
+              <td><p style="font-weight: 600">#405 &middot; Forge surface renders nothing</p><p class="aun-row__meta">bug &middot; agents</p></td>
+              <td><span class="aun-state aun-state--halted">&#9650; halted</span></td>
+              <td><span style="display: inline-flex; align-items: center; gap: 8px"><span class="aun-avatar aun-avatar--sm">H</span>Hector</span></td>
+              <td class="aun-muted">1d</td>
+              <td><a href="#open" style="color: var(--au-color-text-info)">Open &rarr;</a></td>
+            </tr>
+            <tr>
+              <td><p style="font-weight: 600">#420 &middot; Console output is spliced and truncated</p><p class="aun-row__meta">bug &middot; diagnostics</p></td>
+              <td><span class="aun-state aun-state--running">&#9679; building</span></td>
+              <td><span style="display: inline-flex; align-items: center; gap: 8px"><span class="aun-avatar aun-avatar--sm">B</span>Bob</span></td>
+              <td class="aun-muted">6h</td>
+              <td><a href="#open" style="color: var(--au-color-text-info)">Open &rarr;</a></td>
+            </tr>
+            <tr>
+              <td><p style="font-weight: 600">#421 &middot; Application state never reaches Running</p><p class="aun-row__meta">bug &middot; workspaces</p></td>
+              <td><span class="aun-state">&#9675; unassigned</span></td>
+              <td class="aun-faint">&mdash;</td>
+              <td class="aun-muted">3h</td>
+              <td><button type="button" class="aun-btn aun-btn--primary">Assign</button></td>
+            </tr>
+            <tr>
+              <td><p style="font-weight: 600">#422 &middot; Start aborts and orphans processes</p><p class="aun-row__meta">bug &middot; workspaces</p></td>
+              <td><span class="aun-state">&#9675; unassigned</span></td>
+              <td class="aun-faint">&mdash;</td>
+              <td class="aun-muted">3h</td>
+              <td><button type="button" class="aun-btn aun-btn--primary">Assign</button></td>
+            </tr>
+            <tr>
+              <td><p style="font-weight: 600">#396 &middot; Mobile flow surface</p><p class="aun-row__meta">tests &middot; visual-review</p></td>
+              <td><span class="aun-state aun-state--done">&#10003; reviewed</span></td>
+              <td><span style="display: inline-flex; align-items: center; gap: 8px"><span class="aun-avatar aun-avatar--sm">L</span>Lucy</span></td>
+              <td class="aun-muted">1d</td>
+              <td><a href="#open" style="color: var(--au-color-text-info)">Open &rarr;</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

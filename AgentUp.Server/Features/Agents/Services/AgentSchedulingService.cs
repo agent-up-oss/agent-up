@@ -124,7 +124,8 @@ public sealed class AgentSchedulingService : IAsyncDisposable
                 Prompt = current.Role.Prompt,
                 Tools = current.Role.Tools,
                 Trigger = current.Role.Trigger,
-                Termination = current.Role.Termination
+                Termination = current.Role.Termination,
+                Review = current.Role.Review
             };
 
     public async Task<AgentScheduleResult> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken)

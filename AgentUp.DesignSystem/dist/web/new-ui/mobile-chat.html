@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mobile · Agent chat — Agent-Up new UI</title>
+  <link rel="stylesheet" href="../new-ui.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
+    .aun-frame { width: 390px; height: 844px; overflow: hidden; display: flex; }
+    .aun-frame > * { flex: 1 1 auto; min-width: 0; }
+  </style>
+</head>
+<body>
+<div class="aun-frame">
+<div class="aun-phone">
+    <header class="aun-phone__head" style="padding-bottom: 0">
+      <a href="#team" style="color: var(--au-color-text-info); font-size: var(--au-font-size-ui-sm); display: inline-block; margin-bottom: 9px">&larr; Team</a>
+      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 11px">
+        <span class="aun-avatar aun-avatar--md">L</span>
+        <span style="flex-grow: 1; min-width: 0">
+          <span style="font-size: var(--au-font-size-ui-lg); font-weight: 700; display: block">Lucy</span>
+          <span class="aun-rail__url">@lucy-aup[bot] &middot; agent-up-qa</span>
+        </span>
+        <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live</span>
+      </div>
+      <nav class="aun-tabs" aria-label="Agent sections" style="border-bottom: none">
+        <a class="aun-tab" href="#overview" style="flex: 1 1 0; text-align: center">Overview</a>
+        <a class="aun-tab" href="#chat" aria-current="page" style="flex: 1 1 0; text-align: center">Chat</a>
+        <a class="aun-tab" href="#git" style="flex: 1 1 0; text-align: center">Git</a>
+      </nav>
+    </header>
+    <div class="aun-phone__body">
+      <article class="aun-card aun-card--gate" style="padding: 14px">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 9px">
+          <span class="aun-glyph--gate">&#9670;</span>
+          <h2 class="aun-card__title" style="margin: 0; color: var(--au-color-text-warning)">Approval needed</h2>
+        </div>
+        <p class="aun-row__meta" style="margin-bottom: 11px">Submit a review on <strong>#412</strong> as <span class="aun-mono">@lucy-aup[bot]</span>.</p>
+        <div class="aun-wrap" style="gap: 14px; margin-bottom: 13px">
+          <span class="aun-row__meta"><strong style="color: var(--au-color-text-danger)">3</strong> blocking</span>
+          <span class="aun-row__meta"><strong style="color: var(--au-color-text-warning)">6</strong> should fix</span>
+          <span class="aun-row__meta"><strong class="aun-muted">5</strong> nits</span>
+        </div>
+        <div class="aun-stack">
+          <button type="button" class="aun-btn aun-btn--primary aun-btn--touch">Approve &amp; submit</button>
+          <div class="aun-wrap" style="gap: 8px">
+            <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">View draft</button>
+            <button type="button" class="aun-btn aun-btn--danger aun-btn--touch" style="flex: 1 1 0">Reject</button>
+          </div>
+        </div>
+      </article>
+
+      <section>
+        <h2 class="aun-section__head">REVIEW OF #412</h2>
+        <article class="aun-card" style="padding: 4px 13px 9px">
+          <div class="aun-event"><span class="aun-event__dot aun-muted">&#9644;</span><span class="aun-event__body">Workspace checked out <span class="aun-mono">feat/412</span></span><span class="aun-event__time">11m</span></div>
+          <div class="aun-event"><span class="aun-event__dot aun-glyph--running">&#9679;</span><span class="aun-event__body">Lucy started</span><span class="aun-event__time">11m</span></div>
+          <div class="aun-event"><span class="aun-event__dot aun-muted">&#9656;</span><span class="aun-event__body">Read 4 changed files</span><span class="aun-event__time">9m</span></div>
+          <div class="aun-event"><span class="aun-event__dot aun-muted">&#9656;</span><span class="aun-event__body">Replayed flow at 3 widths &middot; step 04 failed</span><span class="aun-event__time">6m</span></div>
+          <div class="aun-event"><span class="aun-event__dot aun-glyph--gate">&#9650;</span><span class="aun-event__body">14 findings, 3 blocking</span><span class="aun-event__time">3m</span></div>
+          <div class="aun-event"><span class="aun-event__dot aun-glyph--gate">&#9670;</span><span class="aun-event__body">Asked to submit</span><span class="aun-event__time">now</span></div>
+        </article>
+      </section>
+
+      <section>
+        <h2 class="aun-section__head">MESSAGE LUCY</h2>
+        <div class="aun-wrap" style="gap: 7px; margin-bottom: 9px">
+          <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">Preempt</button>
+          <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">Join</button>
+          <button type="button" class="aun-btn aun-btn--primary aun-btn--touch" style="flex: 1 1 0">Queue</button>
+        </div>
+        <label class="aun-rail__section" for="aun-mmsg" style="padding: 0 0 6px; display: block">MESSAGE</label>
+        <input id="aun-mmsg" class="aun-input" style="min-height: var(--au-control-height-touch)" type="text" placeholder="Also check the mobile Agents screen" />
+        <button type="button" class="aun-btn aun-btn--primary aun-btn--touch" style="margin-top: 9px; width: 100%">Send</button>
+      </section>
+
+      <div class="aun-degrade">
+        <p style="font-weight: 600; font-size: var(--au-font-size-ui-sm); margin: 0 0 4px">Not shown on phone</p>
+        <p class="aun-row__meta" style="margin: 0">The diff, the applications and the validation artefacts need width. Open Lucy on the desktop to see them.</p>
+      </div>
+    </div>
+    <nav class="aun-tabbar" aria-label="Sections">
+      <a class="aun-tabbar__item" href="#bridge"><span style="font-size: 15px">&#9632;</span>Bridge</a>
+      <a class="aun-tabbar__item" href="#tasks"><span style="font-size: 15px">&#9644;</span>Tasks</a>
+      <a class="aun-tabbar__item" href="#team" aria-current="page"><span style="font-size: 15px">&#9679;</span>Team</a>
+    </nav>
+  </div>
+</div>
+</body>
+</html>

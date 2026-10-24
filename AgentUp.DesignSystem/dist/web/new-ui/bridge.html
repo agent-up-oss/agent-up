@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bridge — Agent-Up new UI</title>
+  <link rel="stylesheet" href="../new-ui.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
+    .aun-frame { width: 1440px; min-height: 900px; overflow: hidden; display: flex; }
+    .aun-frame > * { flex: 1 1 auto; min-width: 0; }
+  </style>
+</head>
+<body>
+<div class="aun-frame">
+<div class="aun">
+    <nav class="aun-rail" aria-label="Command center">
+    <div class="aun-rail__server">
+      <span class="aun-dot aun-dot--live"></span>
+      <span>
+        <span class="aun-rail__name">dev-box</span>
+        <span class="aun-rail__url">localhost:5000</span>
+      </span>
+    </div>
+    <a class="aun-rail__link" data-aun-nav="bridge" aria-current="page" href="#bridge">Bridge</a>
+    <a class="aun-rail__link" data-aun-nav="tasks" href="#tasks">Tasks</a>
+    <p class="aun-rail__section">TEAM</p>
+    <a class="aun-rail__link" data-aun-nav="team" href="#team">All agents</a>
+    <a class="aun-rail__agent" data-aun-nav="lucy" href="#lucy">
+      <span class="aun-avatar aun-avatar--sm">L</span>Lucy
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span>
+    </a>
+    <a class="aun-rail__agent" data-aun-nav="bob" href="#bob">
+      <span class="aun-avatar aun-avatar--sm">B</span>Bob
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span>
+    </a>
+    <a class="aun-rail__agent" data-aun-nav="hector" href="#hector">
+      <span class="aun-avatar aun-avatar--sm">H</span>Hector
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--halted">&#9650;</span>
+    </a>
+    <span class="aun-rail__spacer"></span>
+    <a class="aun-rail__link" data-aun-nav="settings" href="#settings">Settings</a>
+    <a class="aun-rail__link" data-aun-nav="signout" href="#signout">Sign out of server</a>
+  </nav>
+    <main class="aun-main">
+      <header class="aun-head">
+        <div>
+          <h1 class="aun-title">Bridge</h1>
+          <p class="aun-subtitle">3 agents &middot; 2 waiting on you &middot; 1 halted</p>
+        </div>
+        <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live<span class="aun-muted"> &middot; 2s ago</span></span>
+      </header>
+
+      <section>
+        <h2 class="aun-section__head aun-section__head--gate"><span>&#9670;</span>WAITING ON YOU &middot; 2</h2>
+        <div class="aun-stack">
+          <div class="aun-row aun-row--gate">
+            <span class="aun-avatar">L</span>
+            <div class="aun-row__body">
+              <p class="aun-row__title">Lucy wants to submit her review on #412</p>
+              <p class="aun-row__meta">14 findings &middot; 3 blocking &middot; posts to the forge as <span class="aun-mono">@lucy-aup[bot]</span></p>
+              <p class="aun-row__time">waiting 8m</p>
+            </div>
+            <div class="aun-row__actions">
+              <button type="button" class="aun-btn aun-btn--primary">Approve</button>
+              <button type="button" class="aun-btn">Reject</button>
+              <a class="aun-btn" href="#open">Open</a>
+            </div>
+          </div>
+          <div class="aun-row aun-row--gate">
+            <span class="aun-avatar">B</span>
+            <div class="aun-row__body">
+              <p class="aun-row__title">Bob wants to open a pull request for #398</p>
+              <p class="aun-row__meta">11 files &middot; 240 insertions &middot; pushes <span class="aun-mono">feat/398-capabilities-cli</span></p>
+              <p class="aun-row__time">waiting 41m</p>
+            </div>
+            <div class="aun-row__actions">
+              <button type="button" class="aun-btn aun-btn--primary">Approve</button>
+              <button type="button" class="aun-btn">Reject</button>
+              <a class="aun-btn" href="#open">Open</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="aun-section__head aun-section__head--halted"><span>&#9650;</span>HALTED &middot; 1</h2>
+        <div class="aun-row aun-row--halted">
+          <span class="aun-avatar">H</span>
+          <div class="aun-row__body">
+            <p class="aun-row__title">Hector stopped on #405</p>
+            <div class="aun-diag" style="margin-top: 8px">
+              <span class="aun-diag__code">forge.unreachable</span>
+              <span> &mdash; the forge returned 502 on read. The run halted before its first write.</span>
+              <p class="aun-diag__remedy"><strong>Remedy:</strong> check the host connection, then resume.</p>
+            </div>
+            <p class="aun-row__time">stopped 52m ago &middot; attempt 2 of 3</p>
+          </div>
+          <div class="aun-row__actions">
+            <button type="button" class="aun-btn aun-btn--primary">Resume</button>
+            <a class="aun-btn" href="#open">Open</a>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="aun-section__head">TEAM</h2>
+        <div class="aun-wrap">
+          <a class="aun-row aun-row--gate" style="flex: 1 1 16rem; align-items: center" href="#lucy">
+            <span class="aun-avatar aun-avatar--md">L</span>
+            <div class="aun-row__body"><p class="aun-row__title">Lucy</p><p class="aun-row__meta">Reviewer &middot; interface</p></div>
+            <div style="text-align: right"><p class="aun-glyph--gate" style="font-weight: 600">&#9670; gate open</p><p class="aun-row__time">#412</p></div>
+          </a>
+          <a class="aun-row aun-row--gate" style="flex: 1 1 16rem; align-items: center" href="#bob">
+            <span class="aun-avatar aun-avatar--md">B</span>
+            <div class="aun-row__body"><p class="aun-row__title">Bob</p><p class="aun-row__meta">Developer</p></div>
+            <div style="text-align: right"><p class="aun-glyph--gate" style="font-weight: 600">&#9670; gate open</p><p class="aun-row__time">#398</p></div>
+          </a>
+          <a class="aun-row aun-row--halted" style="flex: 1 1 16rem; align-items: center" href="#hector">
+            <span class="aun-avatar aun-avatar--md">H</span>
+            <div class="aun-row__body"><p class="aun-row__title">Hector</p><p class="aun-row__meta">Reviewer &middot; code</p></div>
+            <div style="text-align: right"><p class="aun-glyph--halted" style="font-weight: 600">&#9650; halted</p><p class="aun-row__time">#405</p></div>
+          </a>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+</body>
+</html>

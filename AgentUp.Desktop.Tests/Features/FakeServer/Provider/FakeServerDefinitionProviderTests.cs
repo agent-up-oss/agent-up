@@ -62,7 +62,7 @@ public sealed class FakeServerMessageHandlerTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(body, Does.Contain("harbor-shop"));
+            Assert.That(body, Does.Contain("bob"));
             Assert.That(inner.Calls, Is.EqualTo(0));
         });
     }
@@ -103,7 +103,7 @@ public sealed class FakeServerMessageHandlerTests
         Assert.Multiple(() =>
         {
             Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("text/event-stream"));
-            Assert.That(Encoding.UTF8.GetString(buffer, 0, read), Does.Contain("harbor-shop"));
+            Assert.That(Encoding.UTF8.GetString(buffer, 0, read), Does.Contain("bob"));
             Assert.That(Encoding.UTF8.GetString(buffer, 0, read), Does.Contain("Healthy"));
         });
     }
@@ -119,10 +119,10 @@ public sealed class FakeServerMessageHandlerTests
 
         using var promptBody = new StringContent("""{"message":"status?"}""", Encoding.UTF8, "application/json");
         using var prompt = await http.PostAsync(
-            "/api/workspaces/harbor-shop/agent/messages",
+            "/api/workspaces/bob/agent/messages",
             promptBody);
         using var response = await http.GetAsync(
-            "/api/workspaces/harbor-shop/agent/events?after=0",
+            "/api/workspaces/bob/agent/events?after=0",
             HttpCompletionOption.ResponseHeadersRead);
         await using var stream = await response.Content.ReadAsStreamAsync();
         var buffer = new byte[2048];
@@ -159,7 +159,7 @@ public sealed class FakeServerMessageHandlerTests
             BaseAddress = new Uri(FakeServerIdentity.Url)
         };
 
-        using var html = await http.GetAsync("/apps/harbor-shop/storefront");
+        using var html = await http.GetAsync("/apps/bob/storefront");
         using var auditBody = new StringContent("{}");
         using var audit = await http.PostAsync("/api/audit/record", auditBody);
         var htmlBody = await html.Content.ReadAsStringAsync();
@@ -269,7 +269,7 @@ public sealed class FakeApplicationPageProviderTests
     public void Write_persistsHtmlUnderAFileUri()
     {
         var provider = new FakeApplicationPageProvider();
-        var uri = provider.Write("harbor-shop", "storefront", "<html>Harbor Mug</html>");
+        var uri = provider.Write("bob", "storefront", "<html>Harbor Mug</html>");
 
         Assert.That(uri.IsFile, Is.True);
         Assert.That(File.ReadAllText(uri.LocalPath), Does.Contain("Harbor Mug"));
@@ -280,8 +280,8 @@ public sealed class FakeApplicationPageProviderTests
     public void Write_reusesTheSamePathForTheSameTab()
     {
         var provider = new FakeApplicationPageProvider();
-        var first = provider.Write("harbor-shop", "storefront", "<html>one</html>");
-        var second = provider.Write("harbor-shop", "storefront", "<html>two</html>");
+        var first = provider.Write("bob", "storefront", "<html>one</html>");
+        var second = provider.Write("bob", "storefront", "<html>two</html>");
 
         Assert.That(second, Is.EqualTo(first));
         Assert.That(File.ReadAllText(second.LocalPath), Does.Contain("two"));

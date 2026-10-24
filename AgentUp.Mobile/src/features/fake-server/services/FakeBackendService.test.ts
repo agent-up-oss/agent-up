@@ -38,16 +38,20 @@ test('authentication and entitlements do not require a password', () => {
   assert.equal(entitlements.edition, 'community');
 });
 
-test('lists the bundled Harbor Shop workspace', () => {
+test('lists the bundled Bob workspace', () => {
   const service = backend();
   const workspaces = json(service, 'GET', '/api/workspaces');
-  assert.equal(workspaces[0].id, 'harbor-shop');
-  assert.equal(workspaces[0].state, 'Running');
+  // The definition lists the team in the reverse of the order a client shows them, because each
+  // arriving workspace event promotes its workspace to the top. Find Bob rather than taking the
+  // first entry: where he sits in the file is not what this is about.
+  const bob = workspaces.find((workspace: { id: string }) => workspace.id === 'bob');
+  assert.ok(bob, 'the Demo always carries Bob');
+  assert.equal(bob.state, 'Running');
 });
 
 test('binding records the workspace agent', () => {
   const service = backend();
-  const bound = json(service, 'PUT', '/api/workspaces/harbor-shop/agent/binding', JSON.stringify({ agent: 'codex' }));
+  const bound = json(service, 'PUT', '/api/workspaces/bob/agent/binding', JSON.stringify({ agent: 'codex' }));
   assert.equal(bound.boundAgent, 'codex');
 });
 
@@ -55,19 +59,19 @@ test('agent prompts add a working-tree file and say so', () => {
   const service = backend();
   const types: string[] = [];
   const texts: string[] = [];
-  const unsubscribe = service.subscribeAgent('harbor-shop', event => {
+  const unsubscribe = service.subscribeAgent('bob', event => {
     types.push(event.type);
     const payload = event.payload as { content?: { text?: string } };
     if (payload?.content?.text) texts.push(payload.content.text);
   });
   const result = service.handle({
     method: 'POST',
-    path: '/api/workspaces/harbor-shop/agent/messages',
+    path: '/api/workspaces/bob/agent/messages',
     query: '',
     body: JSON.stringify({ message: 'add a promo banner' }),
   });
   unsubscribe();
-  const changes = json(service, 'GET', '/api/workspaces/harbor-shop/git/changes');
+  const changes = json(service, 'GET', '/api/workspaces/bob/git/changes');
   assert.equal(result.status, 204);
   assert.ok(types.includes('user_message'));
   assert.ok(types.includes('session_update'));
@@ -77,10 +81,10 @@ test('agent prompts add a working-tree file and say so', () => {
 
 test('application tickets serve interactive storefront HTML', () => {
   const service = backend();
-  const ticket = json(service, 'POST', '/api/apps/tickets', JSON.stringify({ workspaceId: 'harbor-shop', allocatedPort: 9100 }));
+  const ticket = json(service, 'POST', '/api/apps/tickets', JSON.stringify({ workspaceId: 'bob', allocatedPort: 9100 }));
   const page = service.handle({ method: 'GET', path: ticket.bootstrapPath, query: '', body: null });
-  const orders = service.handle({ method: 'GET', path: '/apps/harbor-shop/orders-api', query: '', body: null });
-  assert.equal(ticket.bootstrapPath, '/apps/harbor-shop/storefront');
+  const orders = service.handle({ method: 'GET', path: '/apps/bob/orders-api', query: '', body: null });
+  assert.equal(ticket.bootstrapPath, '/apps/bob/storefront');
   assert.match(page.contentType, /^text\/html/);
   assert.match(page.body ?? '', /Place order/);
   assert.match(orders.body ?? '', /Create order/);
@@ -100,17 +104,17 @@ test('capability modules list first-party packages and toggle', () => {
 
 test('agent list follows enabled agent capabilities', () => {
   const service = backend();
-  const listed = json(service, 'GET', '/api/workspaces/harbor-shop/agent');
+  const listed = json(service, 'GET', '/api/workspaces/bob/agent');
   json(service, 'POST', '/api/capabilities/disable/claude');
-  const afterDisable = json(service, 'GET', '/api/workspaces/harbor-shop/agent');
+  const afterDisable = json(service, 'GET', '/api/workspaces/bob/agent');
   const rejected = service.handle({
     method: 'POST',
-    path: '/api/workspaces/harbor-shop/agent',
+    path: '/api/workspaces/bob/agent',
     query: '',
     body: JSON.stringify({ agent: 'claude' }),
   });
   json(service, 'POST', '/api/capabilities/enable', JSON.stringify({ id: 'claude' }));
-  const scheduled = json(service, 'POST', '/api/workspaces/harbor-shop/agent', JSON.stringify({ agent: 'claude' }));
+  const scheduled = json(service, 'POST', '/api/workspaces/bob/agent', JSON.stringify({ agent: 'claude' }));
   assert.deepEqual(listed.agents.map((item: { agent: string }) => item.agent), ['codex', 'cursor', 'claude']);
   const disabled = afterDisable.agents.find((item: { agent: string }) => item.agent === 'claude');
   assert.equal(disabled.available, false);
@@ -122,10 +126,10 @@ test('agent list follows enabled agent capabilities', () => {
 
 test('agent session exposes loop phase, task and stop reason', () => {
   const service = backend();
-  const session = json(service, 'GET', '/api/workspaces/harbor-shop/agent');
-  assert.equal(session.loop.phase, 'idle');
+  const session = json(service, 'GET', '/api/workspaces/bob/agent');
+  assert.equal(session.loop.phase, 'running');
   assert.equal(session.loop.taskTitle, 'Restock featured products');
-  assert.equal(session.loop.stopReason, 'queue_empty');
+  assert.equal(session.loop.stopReason, null);
   assert.equal(session.boundAgent, 'Codex');
 });
 
@@ -142,28 +146,28 @@ test('autonomy enable then activate exposes a typed terminal', () => {
   assert.equal(json(service, 'GET', '/api/autonomy').enabled, true);
   assert.equal(service.handle({
     method: 'PUT',
-    path: '/api/workspaces/harbor-shop/agent/autonomy',
+    path: '/api/workspaces/bob/agent/autonomy',
     query: '',
     body: '{"active":true}',
   }).status, 204);
-  assert.equal(json(service, 'GET', '/api/workspaces/harbor-shop/agent/loop').terminal, 'Completed');
+  assert.equal(json(service, 'GET', '/api/workspaces/bob/agent/loop').terminal, 'Completed');
   service.handle({
     method: 'PUT',
-    path: '/api/workspaces/harbor-shop/agent/autonomy',
+    path: '/api/workspaces/bob/agent/autonomy',
     query: '',
     body: '{"active":true}',
   });
   assert.equal(service.handle({
     method: 'PUT',
-    path: '/api/workspaces/harbor-shop/agent/autonomy',
+    path: '/api/workspaces/bob/agent/autonomy',
     query: '',
     body: '{"active":false}',
   }).status, 204);
-  assert.equal(json(service, 'GET', '/api/workspaces/harbor-shop/agent/loop').terminal, 'Cancelled');
+  assert.equal(json(service, 'GET', '/api/workspaces/bob/agent/loop').terminal, 'Cancelled');
 });
 
 test('agent session lists current and prior saved sessions', () => {
-  const session = json(backend(), 'GET', '/api/workspaces/harbor-shop/agent');
+  const session = json(backend(), 'GET', '/api/workspaces/bob/agent');
   assert.equal(session.sessions[0].sessionId, 'demo-agent');
   assert.equal(session.sessions[1].sessionId, 'demo-prior');
   assert.equal(session.sessions[1].agent, 'Claude');
@@ -171,14 +175,14 @@ test('agent session lists current and prior saved sessions', () => {
 
 test('resume makes the saved session current', () => {
   const service = backend();
-  const resumed = json(service, 'POST', '/api/workspaces/harbor-shop/agent/sessions/demo-prior/resume', '{}');
+  const resumed = json(service, 'POST', '/api/workspaces/bob/agent/sessions/demo-prior/resume', '{}');
   assert.equal(resumed.sessionId, 'demo-prior');
   assert.equal(resumed.agent, 'claude');
   assert.equal(resumed.state, 'ready');
   assert.equal(resumed.boundAgent, 'Codex');
   assert.equal(service.handle({
     method: 'POST',
-    path: '/api/workspaces/harbor-shop/agent/sessions/missing/resume',
+    path: '/api/workspaces/bob/agent/sessions/missing/resume',
     query: '',
     body: '{}',
   }).status, 404);
@@ -194,13 +198,13 @@ test('resume returns not found when the workspace or path is invalid', () => {
   }).status, 404);
   assert.equal(service.handle({
     method: 'POST',
-    path: '/api/workspaces/harbor-shop/agent/sessions/resume',
+    path: '/api/workspaces/bob/agent/sessions/resume',
     query: '',
     body: '{}',
   }).status, 404);
   assert.equal(service.handle({
     method: 'POST',
-    path: '/api/workspaces/harbor-shop/agent/sessions//resume',
+    path: '/api/workspaces/bob/agent/sessions//resume',
     query: '',
     body: '{}',
   }).status, 404);
@@ -208,9 +212,9 @@ test('resume returns not found when the workspace or path is invalid', () => {
 
 test('review snapshot exports the bundled workspace', () => {
   const service = backend();
-  const snapshot = json(service, 'GET', '/api/workspaces/harbor-shop/review-snapshot');
-  assert.equal(snapshot.workspaceId, 'harbor-shop');
-  assert.equal(snapshot.displayName, 'Harbor Shop');
+  const snapshot = json(service, 'GET', '/api/workspaces/bob/review-snapshot');
+  assert.equal(snapshot.workspaceId, 'bob');
+  assert.equal(snapshot.displayName, 'Bob');
   assert.deepEqual(snapshot.applications.map((item: { name: string }) => item.name), ['Storefront', 'Orders API']);
   assert.equal(snapshot.verification, null);
   assert.equal(service.handle({ method: 'GET', path: '/api/workspaces/missing/review-snapshot', query: '', body: null }).status, 404);
@@ -218,14 +222,14 @@ test('review snapshot exports the bundled workspace', () => {
 
 test('git head commit discard and fetch mutate the demo tree', () => {
   const service = backend();
-  const head = json(service, 'GET', '/api/workspaces/harbor-shop/git/head');
-  const committed = json(service, 'POST', '/api/workspaces/harbor-shop/git/commit', JSON.stringify({
+  const head = json(service, 'GET', '/api/workspaces/bob/git/head');
+  const committed = json(service, 'POST', '/api/workspaces/bob/git/commit', JSON.stringify({
     files: ['apps/storefront/ProductGrid.tsx'],
     message: 'fix(storefront): featured grid',
   }));
-  const afterCommit = json(service, 'GET', '/api/workspaces/harbor-shop/git/changes');
-  const fetched = json(service, 'POST', '/api/workspaces/harbor-shop/git/fetch', '{}');
-  assert.equal(head.branch, 'main');
+  const afterCommit = json(service, 'GET', '/api/workspaces/bob/git/changes');
+  const fetched = json(service, 'POST', '/api/workspaces/bob/git/fetch', '{}');
+  assert.equal(head.branch, 'feat/44-restock');
   assert.equal(committed.succeeded, true);
   assert.equal(committed.head.ahead, 1);
   assert.equal(committed.head.behind, 1);
@@ -235,11 +239,11 @@ test('git head commit discard and fetch mutate the demo tree', () => {
 
 test('git pull integrates the incoming remote commit only once', () => {
   const service = backend();
-  json(service, 'POST', '/api/workspaces/harbor-shop/git/fetch', '{}');
-  json(service, 'POST', '/api/workspaces/harbor-shop/git/pull', '{}');
-  const secondFetch = json(service, 'POST', '/api/workspaces/harbor-shop/git/fetch', '{}');
-  const secondPull = json(service, 'POST', '/api/workspaces/harbor-shop/git/pull', '{}');
-  const log = json(service, 'GET', '/api/workspaces/harbor-shop/git/log');
+  json(service, 'POST', '/api/workspaces/bob/git/fetch', '{}');
+  json(service, 'POST', '/api/workspaces/bob/git/pull', '{}');
+  const secondFetch = json(service, 'POST', '/api/workspaces/bob/git/fetch', '{}');
+  const secondPull = json(service, 'POST', '/api/workspaces/bob/git/pull', '{}');
+  const log = json(service, 'GET', '/api/workspaces/bob/git/log');
   assert.equal(secondFetch.head.behind, 0);
   assert.equal(secondPull.head.behind, 0);
   assert.equal(log.commits.filter((entry: { author: string }) => entry.author === 'origin').length, 1);
@@ -247,49 +251,50 @@ test('git pull integrates the incoming remote commit only once', () => {
 
 test('start walks starting checking then healthy and stop keeps apps offline', () => {
   const { service, step } = queuedBackend();
-  assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/harbor-shop/stop', query: '', body: null }).status, 204);
-  const stopped = json(service, 'GET', '/api/workspaces/harbor-shop');
+  assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/bob/stop', query: '', body: null }).status, 204);
+  const stopped = json(service, 'GET', '/api/workspaces/bob');
   assert.equal(stopped.state, 'Stopped');
   assert.equal(stopped.healthState, undefined);
   assert.equal(stopped.applications.length, 2);
   assert.equal(stopped.applications.every((item: { state: string }) => item.state === 'Stopped'), true);
 
-  assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/harbor-shop/start', query: '', body: null }).status, 204);
-  assert.equal(json(service, 'GET', '/api/workspaces/harbor-shop').state, 'Starting');
+  assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/bob/start', query: '', body: null }).status, 204);
+  assert.equal(json(service, 'GET', '/api/workspaces/bob').state, 'Starting');
   step();
-  const checking = json(service, 'GET', '/api/workspaces/harbor-shop');
+  const checking = json(service, 'GET', '/api/workspaces/bob');
   assert.equal(checking.state, 'Running');
   assert.equal(checking.healthState, 'Checking');
   step();
-  const healthy = json(service, 'GET', '/api/workspaces/harbor-shop');
+  const healthy = json(service, 'GET', '/api/workspaces/bob');
   assert.equal(healthy.healthState, 'Healthy');
   assert.equal(healthy.applications.length, 2);
 });
 
-test('reset restores the bundled workspace after a clone', () => {
+test('reset restores the bundled workspaces after a clone', () => {
   const service = backend();
+  const bundled = json(service, 'GET', '/api/workspaces').length;
   service.handle({
     method: 'POST',
     path: '/api/source-clones',
     query: '',
     body: JSON.stringify({ repository: 'https://git.example/widgets.git' }),
   });
-  assert.equal(json(service, 'GET', '/api/workspaces').length, 2);
+  assert.equal(json(service, 'GET', '/api/workspaces').length, bundled + 1);
   service.reset();
-  assert.equal(json(service, 'GET', '/api/workspaces').length, 1);
+  assert.equal(json(service, 'GET', '/api/workspaces').length, bundled);
 });
 
 test('git discard branch and checkout mutate the demo tree', () => {
   const service = backend();
-  const discarded = json(service, 'POST', '/api/workspaces/harbor-shop/git/discard', JSON.stringify({
+  const discarded = json(service, 'POST', '/api/workspaces/bob/git/discard', JSON.stringify({
     files: ['apps/api/orders.ts'],
   }));
-  const created = json(service, 'POST', '/api/workspaces/harbor-shop/git/branch', JSON.stringify({
+  const created = json(service, 'POST', '/api/workspaces/bob/git/branch', JSON.stringify({
     name: 'topic',
     create: true,
   }));
-  const empty = json(service, 'POST', '/api/workspaces/harbor-shop/git/branch', JSON.stringify({ name: ' ' }));
-  const remote = json(service, 'POST', '/api/workspaces/harbor-shop/git/checkout', JSON.stringify({
+  const empty = json(service, 'POST', '/api/workspaces/bob/git/branch', JSON.stringify({ name: ' ' }));
+  const remote = json(service, 'POST', '/api/workspaces/bob/git/checkout', JSON.stringify({
     name: 'origin/release',
   }));
   assert.equal(discarded.succeeded, true);
@@ -313,7 +318,7 @@ test('a derived clone is labelled as a review workspace and can be refreshed in 
   assert.equal(refreshed.commit, 'refreshed');
   const refused = service.handle({
     method: 'POST',
-    path: '/api/source-clones/harbor-shop/refresh',
+    path: '/api/source-clones/bob/refresh',
     query: '',
     body: null,
   });
@@ -361,19 +366,81 @@ test('missing workspace and capability ids return not found', () => {
 
 test('start then stop cancels the checking phase', () => {
   const { service, step } = queuedBackend();
-  assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/harbor-shop/stop', query: '', body: null }).status, 204);
-  assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/harbor-shop/start', query: '', body: null }).status, 204);
-  assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/harbor-shop/stop', query: '', body: null }).status, 204);
+  assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/bob/stop', query: '', body: null }).status, 204);
+  assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/bob/start', query: '', body: null }).status, 204);
+  assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/bob/stop', query: '', body: null }).status, 204);
   step();
-  assert.equal(json(service, 'GET', '/api/workspaces/harbor-shop').state, 'Stopped');
+  assert.equal(json(service, 'GET', '/api/workspaces/bob').state, 'Stopped');
 });
 
 test('unknown git action and empty commit bodies stay safe', () => {
   const service = backend();
-  const other = json(service, 'POST', '/api/workspaces/harbor-shop/git/status', '{}');
-  const emptyCommit = json(service, 'POST', '/api/workspaces/harbor-shop/git/commit', null);
-  const invalid = json(service, 'POST', '/api/workspaces/harbor-shop/git/commit', '{"files":"nope"}');
+  const other = json(service, 'POST', '/api/workspaces/bob/git/status', '{}');
+  const emptyCommit = json(service, 'POST', '/api/workspaces/bob/git/commit', null);
+  const invalid = json(service, 'POST', '/api/workspaces/bob/git/commit', '{"files":"nope"}');
   assert.equal(other.succeeded, true);
   assert.equal(emptyCommit.succeeded, false);
   assert.equal(invalid.succeeded, false);
+});
+
+test('forge answers what the definition says the host reports', () => {
+  const service = backend();
+  const shop = json(service, 'GET', '/api/workspaces/bob/forge');
+  const checkout = json(service, 'GET', '/api/workspaces/lucy/forge');
+  const docs = json(service, 'GET', '/api/workspaces/hector/forge');
+  assert.equal(shop.availability, 'ready');
+  assert.equal(shop.proposal.number, '44');
+  assert.equal(shop.mergeability.state, 'unstable');
+  assert.equal(shop.checks.length, 4, 'one passing, one failing, one running, one skipped');
+  assert.equal(shop.checks.filter((check: { conclusion: string }) => check.conclusion === 'skipped').length, 1);
+  assert.equal(checkout.proposal.number, '44', 'the reviewer reads the author\'s proposal');
+  assert.deepEqual(shop.reviews.map((review: { state: string }) => review.state), ['CHANGES_REQUESTED']);
+  assert.equal(docs.availability, 'unreachable');
+  assert.ok(docs.detail.includes('502'));
+});
+
+test('forge reads as not installed when the definition says nothing', () => {
+  const definition = loadFakeServerDefinition();
+  delete definition.forge;
+  const hosting = json(new FakeBackendService(definition), 'GET', '/api/workspaces/bob/forge');
+  assert.equal(hosting.availability, 'notInstalled');
+  assert.equal(hosting.proposal, null);
+  assert.match(hosting.remedy, /capabilities bootstrap/);
+});
+
+test('the agent loop reports the task and what blocks it', () => {
+  const service = backend();
+  const shop = json(service, 'GET', '/api/workspaces/bob/agent').loop;
+  const checkout = json(service, 'GET', '/api/workspaces/lucy/agent').loop;
+  const docs = json(service, 'GET', '/api/workspaces/hector/agent').loop;
+  assert.equal(shop.taskNumber, 44);
+  assert.equal(shop.active, true);
+  assert.ok(checkout.blockReason.includes('approve the review'));
+  assert.equal(checkout.permissionRuleIds[0], 'forge.submit_review');
+  assert.equal(docs.stopReason, 'forge.unreachable');
+  assert.equal(docs.active, false);
+});
+
+test('messaging a reviewer leaves the author\'s branch alone', () => {
+  const service = backend();
+  const before = json(service, 'GET', '/api/workspaces/lucy/git/changes').fileCount;
+  const texts: string[] = [];
+  const unsubscribe = service.subscribeAgent('lucy', event => {
+    if (event.type === 'session_update') texts.push(JSON.stringify(event.payload));
+  });
+  const result = service.handle({
+    method: 'POST',
+    path: '/api/workspaces/lucy/agent/messages',
+    query: '',
+    body: JSON.stringify({ message: 'how did it go?' }),
+  });
+  unsubscribe();
+  const after = json(service, 'GET', '/api/workspaces/lucy/git/changes').fileCount;
+
+  // Lucy reviews what Bob built: her tree is his branch checked out to read, so writing a file
+  // into it would put her name on his work.
+  assert.equal(result.status, 204);
+  assert.equal(after, before);
+  assert.match(texts.join('\n'), /review/);
+  assert.doesNotMatch(texts.join('\n'), /PromoBanner/);
 });
