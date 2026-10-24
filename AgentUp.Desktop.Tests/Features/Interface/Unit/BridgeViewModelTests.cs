@@ -8,6 +8,33 @@ namespace AgentUp.Desktop.Tests.Features.Interface.Unit;
 public sealed class BridgeViewModelTests
 {
     [Test]
+    public async Task ReadAsync_aSupersededReadDoesNotDrawOverTheNewerOne()
+    {
+        var agents = new StandingAgentFake();
+        var forge = new StandingForgeFake();
+        var held = new TaskCompletionSource();
+        agents.Gates["bob"] = held;
+        agents.Sessions["bob"] = TeamStandingComposition.Session("bob", state: "running");
+        var bridge = new BridgeViewModel(TeamStandingComposition.Controller(agents, forge));
+        var member = new[] { new TeamMember("bob", "Bob", "main", "Running") };
+
+        // The first read is held open, so the second one overtakes it and reports first.
+        var superseded = bridge.ReadAsync(member);
+        agents.Gates.Remove("bob");
+        agents.Sessions["bob"] = TeamStandingComposition.Session("bob", state: "error");
+        await bridge.ReadAsync(member);
+        held.SetResult();
+        await superseded;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(bridge.Team.Single().Standing.Kind, Is.EqualTo(TeamStandingKind.Halted),
+                "the newer read is what the team looks like");
+            Assert.That(bridge.IsLoading, Is.False, "the superseded read does not clear it early either");
+        });
+    }
+
+    [Test]
     public async Task ReadAsync_groupsTheTeamByWhatItNeedsFromYou()
     {
         var agents = new StandingAgentFake();

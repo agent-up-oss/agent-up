@@ -420,3 +420,27 @@ test('the agent loop reports the task and what blocks it', () => {
   assert.equal(docs.stopReason, 'forge.unreachable');
   assert.equal(docs.active, false);
 });
+
+test('messaging a reviewer leaves the author\'s branch alone', () => {
+  const service = backend();
+  const before = json(service, 'GET', '/api/workspaces/lucy/git/changes').fileCount;
+  const texts: string[] = [];
+  const unsubscribe = service.subscribeAgent('lucy', event => {
+    if (event.type === 'session_update') texts.push(JSON.stringify(event.payload));
+  });
+  const result = service.handle({
+    method: 'POST',
+    path: '/api/workspaces/lucy/agent/messages',
+    query: '',
+    body: JSON.stringify({ message: 'how did it go?' }),
+  });
+  unsubscribe();
+  const after = json(service, 'GET', '/api/workspaces/lucy/git/changes').fileCount;
+
+  // Lucy reviews what Bob built: her tree is his branch checked out to read, so writing a file
+  // into it would put her name on his work.
+  assert.equal(result.status, 204);
+  assert.equal(after, before);
+  assert.match(texts.join('\n'), /review/);
+  assert.doesNotMatch(texts.join('\n'), /PromoBanner/);
+});

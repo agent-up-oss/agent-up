@@ -172,6 +172,32 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_messagingAReviewerLeavesTheAuthorsBranchAlone()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var before = Json(backend, Get("/api/workspaces/lucy/git/changes"))["fileCount"]!.GetValue<int>();
+        var texts = new List<string>();
+        using var subscription = backend.SubscribeAgent("lucy", item =>
+        {
+            if (item.Type == "session_update") texts.Add(item.Payload?.ToJsonString() ?? "");
+        });
+
+        var result = Run(backend, Post("/api/workspaces/lucy/agent/messages", """{"message":"how did it go?"}"""));
+        var after = Json(backend, Get("/api/workspaces/lucy/git/changes"))["fileCount"]!.GetValue<int>();
+
+        // Lucy reviews what Bob built: her tree is his branch checked out to read, so writing a
+        // file into it would put her name on his work.
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Status, Is.EqualTo(204));
+            Assert.That(after, Is.EqualTo(before), "a reviewer adds nothing to the tree");
+            Assert.That(string.Join("\n", texts), Does.Contain("review"),
+                "she answers about the review she left");
+            Assert.That(string.Join("\n", texts), Does.Not.Contain("PromoBanner"));
+        });
+    }
+
+    [Test]
     public void Handle_issuesTicketsAndServesBundledHtml()
     {
         var backend = FakeServerTestComposition.Backend();

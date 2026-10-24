@@ -21,10 +21,18 @@ internal sealed class StandingAgentFake : IAgentApiProvider
 
     public Dictionary<string, Exception> Failures { get; } = [];
 
-    public Task<AgentSessionDto?> GetAsync(string workspaceId, CancellationToken cancellationToken)
-        => Failures.TryGetValue(workspaceId, out var failure)
-            ? Task.FromException<AgentSessionDto?>(failure)
-            : Task.FromResult(Sessions.GetValueOrDefault(workspaceId));
+    /// <summary>
+    /// Holds a workspace's read open until the test releases it, so two reads can be in flight at
+    /// once. Without this the fake answers synchronously and reads can never overlap.
+    /// </summary>
+    public Dictionary<string, TaskCompletionSource> Gates { get; } = [];
+
+    public async Task<AgentSessionDto?> GetAsync(string workspaceId, CancellationToken cancellationToken)
+    {
+        if (Gates.TryGetValue(workspaceId, out var gate)) await gate.Task;
+        if (Failures.TryGetValue(workspaceId, out var failure)) throw failure;
+        return Sessions.GetValueOrDefault(workspaceId);
+    }
 
     public Task<AgentSessionDto?> BindAsync(string workspaceId, string agent, CancellationToken cancellationToken)
         => throw new NotSupportedException();

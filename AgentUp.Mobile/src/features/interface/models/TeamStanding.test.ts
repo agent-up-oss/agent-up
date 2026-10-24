@@ -167,3 +167,15 @@ test('the module id stands in when no descriptor names the agent', () => {
   assert.equal(composeStanding(member, session({ agent: 'codex', agents: [] }), null).agent, 'codex');
   assert.equal(composeStanding(member, session({ agent: null, agents: [] }), null).agent, null);
 });
+
+test('without a loop the session state says where the agent stands', () => {
+  // The loop is the autonomous run. An agent can be working, held at a gate or stopped without
+  // one, and a session merely existing is not a run in flight.
+  const where = (state: string) => composeStanding(member, session({ state }), null).kind;
+
+  assert.equal(where('running'), 'working');
+  assert.equal(where('awaiting_input'), 'waiting');
+  assert.equal(where('error'), 'halted');
+  assert.equal(where('ready'), 'idle');
+  assert.equal(composeStanding(member, null, null).kind, 'idle');
+});
