@@ -142,6 +142,28 @@ public sealed class DesktopSurfaceFlowRulesTests
     public void Validate_rejectsAWhitespaceOnlyLocator() =>
         Assert.That(DesktopSurfaceFlowRules.Validate(Request(steps: [Step(target: new(TestId: "  "))])), Does.Contain("testId (AutomationId)"));
 
+    [Test]
+    public void Validate_rejectsAClickWhoseOnlyExpectationIsTheSameControl() =>
+        Assert.That(
+            DesktopSurfaceFlowRules.Validate(Request(steps:
+            [
+                Step(
+                    target: new(TestId: "login.connect"),
+                    expectations: [new(ValidationExpectation.Visible, "true", new(TestId: "login.connect"))])
+            ])),
+            Does.Contain("visible consequence"));
+
+    [Test]
+    public void Validate_acceptsAClickThatAssertsADifferentConsequence() =>
+        Assert.That(
+            DesktopSurfaceFlowRules.Validate(Request(steps:
+            [
+                Step(
+                    target: new(TestId: "login.connect"),
+                    expectations: [new(ValidationExpectation.Visible, "true", new(TestId: "workspace.list"))])
+            ])),
+            Is.Null);
+
     private static SaveValidationFlowRequest Request(
         string application = DesktopSurfaceFlowRules.ApplicationName,
         string name = "Open Git",

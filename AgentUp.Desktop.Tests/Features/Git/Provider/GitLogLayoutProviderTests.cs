@@ -1,5 +1,6 @@
 using AgentUp.Desktop.Features.Git.DTOs;
 using AgentUp.Desktop.Features.Git.Providers;
+using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Git.Provider;
@@ -81,6 +82,7 @@ public sealed class GitLogLayoutProviderTests
         Assert.That(new GitLogRefDto("main", "local").CanCheckout, Is.True);
         Assert.That(new GitLogRefDto("HEAD", "head").IsHead, Is.True);
         Assert.That(new GitLogRefDto("origin/main", "remote").IsRemote, Is.True);
+        Assert.That(new GitLogRefDto("origin/main", "remote").AutomationId, Is.EqualTo(DesktopAutomationIds.GitLogRef("origin/main")));
         Assert.That(new GitHeadStateDto("main", ["main"]).Ahead, Is.EqualTo(0));
     }
 

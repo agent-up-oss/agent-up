@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using AgentUp.Desktop.Features.Browser.Controllers;
 using AgentUp.Desktop.Features.Validation.DTOs;
@@ -9,7 +10,10 @@ namespace AgentUp.Desktop.Features.Validation.Services;
 
 public sealed class ValidationFlowReplayService(
     ValidationFlowApiClient client,
-    BrowserInteractionController browser) : IValidationReplayConnector
+    BrowserInteractionController browser,
+    IDesktopValidationReplayHost? desktopHost = null,
+    IValidationArtifactStore? artifacts = null,
+    bool skipCosmeticStaging = false) : IValidationReplayConnector
 {
     private IValidationReplayHost? _host;
 
@@ -29,6 +33,16 @@ public sealed class ValidationFlowReplayService(
         IValidationReplayHost? host,
         CancellationToken cancellationToken)
     {
+        var flow = await client.GetAsync(workspaceId, flowId, cancellationToken);
+        if (flow is null)
+        {
+            reporter.CompleteFlow(false, "Validation flow was not found.");
+            return new(false, "Validation flow was not found.");
+        }
+
+        if (flow.Surface == ValidationSurfaceDto.Desktop)
+            return await RunDesktopAsync(flow, reporter, artifactRoot: null, cancellationToken);
+
         if (host is null)
         {
             reporter.CompleteFlow(false, "Validation replay is not connected to the browser view.");
@@ -36,13 +50,6 @@ public sealed class ValidationFlowReplayService(
         }
 
         reporter.BeginFlow();
-
-        var flow = await client.GetAsync(workspaceId, flowId, cancellationToken);
-        if (flow is null)
-        {
-            reporter.CompleteFlow(false, "Validation flow was not found.");
-            return new(false, "Validation flow was not found.");
-        }
 
         var origin = host.ResolveApplicationOrigin(workspaceId, flow.Application);
         if (origin is null)
@@ -149,18 +156,22 @@ public sealed class ValidationFlowReplayService(
         string selector,
         CancellationToken cancellationToken)
     {
-        var moveError = await ExecuteScriptAsync(host, workspaceId, browser.BeginMouseMoveScript(selector), cancellationToken);
-        if (moveError is not null) return moveError;
-        await host.DelayAsync(TimeSpan.FromMilliseconds(browser.AnimationMs), cancellationToken);
+        if (!skipCosmeticStaging)
+        {
+            var moveError = await ExecuteScriptAsync(host, workspaceId, browser.BeginMouseMoveScript(selector), cancellationToken);
+            if (moveError is not null) return moveError;
+            await host.DelayAsync(TimeSpan.FromMilliseconds(browser.AnimationMs), cancellationToken);
 
-        var pingError = await ExecuteScriptAsync(host, workspaceId, browser.BeginAttentionPingScript(selector), cancellationToken);
-        if (pingError is not null) return pingError;
-        await host.DelayAsync(TimeSpan.FromMilliseconds(browser.AnimationMs), cancellationToken);
+            var pingError = await ExecuteScriptAsync(host, workspaceId, browser.BeginAttentionPingScript(selector), cancellationToken);
+            if (pingError is not null) return pingError;
+            await host.DelayAsync(TimeSpan.FromMilliseconds(browser.AnimationMs), cancellationToken);
+        }
 
         var clickError = await ExecuteScriptAsync(host, workspaceId, browser.CompleteClickScript(selector), cancellationToken);
         if (clickError is not null) return clickError;
 
-        await host.DelayAsync(TimeSpan.FromMilliseconds(browser.AnimationMs), cancellationToken);
+        if (!skipCosmeticStaging)
+            await host.DelayAsync(TimeSpan.FromMilliseconds(browser.AnimationMs), cancellationToken);
         await WaitForPageReadyAsync(host, workspaceId, cancellationToken);
         return null;
     }
@@ -172,16 +183,20 @@ public sealed class ValidationFlowReplayService(
         string text,
         CancellationToken cancellationToken)
     {
-        var moveError = await ExecuteScriptAsync(host, workspaceId, browser.BeginMouseMoveScript(selector), cancellationToken);
-        if (moveError is not null) return moveError;
-        await host.DelayAsync(TimeSpan.FromMilliseconds(browser.AnimationMs), cancellationToken);
+        if (!skipCosmeticStaging)
+        {
+            var moveError = await ExecuteScriptAsync(host, workspaceId, browser.BeginMouseMoveScript(selector), cancellationToken);
+            if (moveError is not null) return moveError;
+            await host.DelayAsync(TimeSpan.FromMilliseconds(browser.AnimationMs), cancellationToken);
 
-        var pingError = await ExecuteScriptAsync(host, workspaceId, browser.BeginAttentionPingScript(selector), cancellationToken);
-        if (pingError is not null) return pingError;
-        await host.DelayAsync(TimeSpan.FromMilliseconds(browser.AnimationMs), cancellationToken);
+            var pingError = await ExecuteScriptAsync(host, workspaceId, browser.BeginAttentionPingScript(selector), cancellationToken);
+            if (pingError is not null) return pingError;
+            await host.DelayAsync(TimeSpan.FromMilliseconds(browser.AnimationMs), cancellationToken);
+        }
 
         var fillError = await ExecuteScriptAsync(host, workspaceId, browser.FillScript(selector, text), cancellationToken);
-        await ExecuteScriptAsync(host, workspaceId, browser.RemoveAttentionPingScript(), cancellationToken);
+        if (!skipCosmeticStaging)
+            await ExecuteScriptAsync(host, workspaceId, browser.RemoveAttentionPingScript(), cancellationToken);
         return fillError;
     }
 
@@ -335,6 +350,187 @@ public sealed class ValidationFlowReplayService(
         }
 
         return null;
+    }
+
+    internal Task<ValidationReplayResult> RunFlowAsync(
+        ValidationFlowDto flow,
+        IValidationReplayReporter reporter,
+        string? artifactRoot,
+        CancellationToken cancellationToken)
+        => flow.Surface == ValidationSurfaceDto.Desktop
+            ? RunDesktopAsync(flow, reporter, artifactRoot, cancellationToken)
+            : RunAsync(flow.WorkspaceId, flow.Id, reporter, _host, cancellationToken);
+
+    private async Task<ValidationReplayResult> RunDesktopAsync(
+        ValidationFlowDto flow,
+        IValidationReplayReporter reporter,
+        string? artifactRoot,
+        CancellationToken cancellationToken)
+    {
+        if (desktopHost is null)
+        {
+            reporter.CompleteFlow(false, "Desktop validation replay is not attached to a window.");
+            return new(false, "Desktop validation replay is not attached to a window.");
+        }
+
+        reporter.BeginFlow();
+        reporter.BeginStage(ValidationFlowItemViewModel.InitialStageId);
+        var started = DateTimeOffset.UtcNow;
+        var timer = Stopwatch.StartNew();
+        var steps = new List<ValidationStepReportDto>();
+        var directory = artifactRoot is null || artifacts is null
+            ? null
+            : artifacts.FlowDirectory(artifactRoot, flow.Id);
+
+        var prepareError = await desktopHost.PrepareAsync(flow, cancellationToken);
+        var initialShot = await CaptureStepAsync(directory, "00-initial.png", cancellationToken);
+        var initialExpectations = await AssertDesktopAsync(
+            flow.InitialExpectations,
+            ValidationFlowItemViewModel.InitialStageId,
+            reporter,
+            cancellationToken);
+        steps.Add(InitialReport(flow, initialShot, initialExpectations, prepareError));
+        if (prepareError is not null || initialExpectations.Error is not null)
+        {
+            var message = prepareError ?? initialExpectations.Error!;
+            reporter.CompleteStage(ValidationFlowItemViewModel.InitialStageId, false, message);
+            reporter.CompleteFlow(false, message);
+            await WriteReportAsync(directory, flow, false, message, started, timer.ElapsedMilliseconds, steps, cancellationToken);
+            return new(false, message);
+        }
+
+        reporter.CompleteStage(ValidationFlowItemViewModel.InitialStageId, true);
+
+        var index = 1;
+        foreach (var step in flow.Steps)
+        {
+            reporter.BeginStage(step.Id);
+            var stepStarted = Stopwatch.StartNew();
+            var stepError = await desktopHost.ExecuteAsync(step, cancellationToken);
+            var resolution = desktopHost.LastResolution;
+            var candidates = desktopHost.LastCandidates;
+            var expectations = await AssertDesktopAsync(
+                step.Expectations ?? [],
+                step.Id,
+                reporter,
+                cancellationToken);
+            var shot = await CaptureStepAsync(directory, $"{index:00}-{SafeFile(step.Id)}.png", cancellationToken);
+            steps.Add(new ValidationStepReportDto(
+                step.Id,
+                step.Description,
+                step.Action.ToString(),
+                step.Target,
+                step.Value,
+                resolution,
+                candidates,
+                expectations.Reports,
+                stepError is null && expectations.Error is null,
+                stepStarted.ElapsedMilliseconds,
+                shot));
+            var failure = stepError ?? expectations.Error;
+            if (failure is not null)
+            {
+                reporter.CompleteStage(step.Id, false, failure);
+                reporter.CompleteFlow(false, failure);
+                await WriteReportAsync(directory, flow, false, failure, started, timer.ElapsedMilliseconds, steps, cancellationToken);
+                return new(false, failure, step.Id);
+            }
+
+            reporter.CompleteStage(step.Id, true);
+            index++;
+        }
+
+        var passed = $"Validation '{flow.Name}' passed.";
+        reporter.CompleteFlow(true, passed);
+        await WriteReportAsync(directory, flow, true, passed, started, timer.ElapsedMilliseconds, steps, cancellationToken);
+        return new(true, passed);
+    }
+
+    private async Task<(IReadOnlyList<ValidationExpectationReportDto> Reports, string? Error)> AssertDesktopAsync(
+        IReadOnlyList<ValidationAssertionDto> assertions,
+        string stageId,
+        IValidationReplayReporter reporter,
+        CancellationToken cancellationToken)
+    {
+        var reports = new List<ValidationExpectationReportDto>();
+        for (var index = 0; index < assertions.Count; index++)
+        {
+            reporter.BeginCheck(stageId, index);
+            var report = await desktopHost!.EvaluateAsync(assertions[index], cancellationToken);
+            reports.Add(report);
+            reporter.CompleteCheck(stageId, index, report.Passed, report.Error);
+            if (!report.Passed)
+                return (reports, report.Error ?? $"Expected {report.Kind} '{report.Value}'.");
+        }
+
+        return (reports, null);
+    }
+
+    private async Task<string> CaptureStepAsync(
+        string? directory,
+        string fileName,
+        CancellationToken cancellationToken)
+    {
+        if (directory is null || artifacts is null || desktopHost is null)
+            return fileName;
+
+        var path = Path.Join(directory, fileName);
+        await artifacts.WriteScreenshotAsync(path, desktopHost.CapturePngAsync, cancellationToken);
+        return fileName;
+    }
+
+    private async Task WriteReportAsync(
+        string? directory,
+        ValidationFlowDto flow,
+        bool passed,
+        string message,
+        DateTimeOffset started,
+        long durationMs,
+        IReadOnlyList<ValidationStepReportDto> steps,
+        CancellationToken cancellationToken)
+    {
+        if (directory is null || artifacts is null)
+            return;
+
+        await artifacts.WriteReportAsync(
+            directory,
+            new ValidationRunReportDto(
+                flow.Id,
+                flow.Name,
+                flow.Surface.ToString(),
+                passed,
+                message,
+                started,
+                durationMs,
+                steps),
+            cancellationToken);
+    }
+
+    private static ValidationStepReportDto InitialReport(
+        ValidationFlowDto flow,
+        string screenshot,
+        (IReadOnlyList<ValidationExpectationReportDto> Reports, string? Error) expectations,
+        string? prepareError)
+    {
+        return new(
+            ValidationFlowItemViewModel.InitialStageId,
+            "Initial surface",
+            ValidationActionDto.Navigate.ToString(),
+            null,
+            flow.InitialPath,
+            null,
+            [],
+            expectations.Reports,
+            prepareError is null && expectations.Error is null,
+            0,
+            screenshot);
+    }
+
+    private static string SafeFile(string stepId)
+    {
+        var chars = stepId.Select(ch => char.IsLetterOrDigit(ch) || ch is '-' or '_' ? ch : '_').ToArray();
+        var value = new string(chars);
+        return string.IsNullOrWhiteSpace(value) ? "step" : value;
     }
 }
 

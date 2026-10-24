@@ -8,6 +8,7 @@ import type { AgentActivityKind, AgentEvent, AgentId, AgentPermission, AgentSess
 import { authenticateAgent, bindAgent, cancelAgent, decideAgentPermission, enableAgentCapability, getAgent, getAutonomy, getLoop, putAutonomy, putLoopActivation, scheduleAgent, sendAgentMessage, stopAgent, streamAgentEvents, submitAgentLoginCallback, submitAgentLoginCode } from '../providers/AgentApiProvider';
 import { AgentLoopControls } from './AgentLoopControls';
 import { presentAgentRow } from '../providers/AgentAvailabilityProvider';
+import { shouldShowLoopControls } from '../providers/LoopSurfaceProvider';
 import { AgentSignIn } from './AgentSignIn';
 import {
   activityHint,
@@ -231,14 +232,14 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
               {session?.agent && <Pressable accessibilityRole="button" style={styles.stop} onPress={() => { if (!server) return; void stopAgent(server, workspace.id).then(() => { setSession(current => mergeAgentSession(current, null)); setItems([]); setContext({}); setPermission(null); setHint(null); }).catch(cause => setError(readError(cause))); }}><Text style={styles.stopText}>Stop</Text></Pressable>}
             </View>
           </View>
-          <AgentLoopControls
+          {shouldShowLoopControls(session?.state) && <AgentLoopControls
             autonomy={autonomy}
             loop={session?.loop}
             busy={busy}
             onEnable={enableAutonomy}
             onActivate={activateLoop}
             onCancel={cancelLoop}
-          />
+          />}
           {hasContext(context) && <View style={styles.chips}>
             {context.title ? <Text style={styles.chip}>{context.title}</Text> : null}
             {context.mode ? <Text style={styles.chip}>Mode · {context.mode}</Text> : null}

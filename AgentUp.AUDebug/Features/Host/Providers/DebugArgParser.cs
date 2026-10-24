@@ -13,6 +13,10 @@ public sealed class DebugArgParser : IDebugArgParser
         var live = false;
         string? password = null;
         string? heading = null;
+        string? surface = null;
+        string? flowId = null;
+        string? outDir = null;
+        string? workspaceId = null;
         var positionals = new List<string>();
 
         for (var index = 0; index < args.Length; index++)
@@ -65,6 +69,23 @@ public sealed class DebugArgParser : IDebugArgParser
                 continue;
             }
 
+            if (arg is "--surface" or "--flow" or "--out" or "--workspace")
+            {
+                var (value, flagError) = ReadFlagValue(arg, args, index);
+                if (flagError is not null)
+                    return (null, flagError);
+                if (arg == "--surface")
+                    surface = value;
+                else if (arg == "--flow")
+                    flowId = value;
+                else if (arg == "--out")
+                    outDir = value;
+                else
+                    workspaceId = value;
+                index++;
+                continue;
+            }
+
             if (arg.StartsWith("--", StringComparison.Ordinal))
                 return (null, $"Error: unknown argument '{arg}'.");
 
@@ -74,7 +95,17 @@ public sealed class DebugArgParser : IDebugArgParser
         if (timeoutSeconds > DebugLayout.MaxTimeoutSeconds)
             return (null, $"Error: --timeout must be between 1 and {DebugLayout.MaxTimeoutSeconds} seconds.");
 
-        return Build(positionals, password, timeoutSeconds, detach, heading, fullPage, live);
+        return Build(positionals, password, timeoutSeconds, detach, heading, fullPage, live, surface, flowId, outDir, workspaceId);
+    }
+
+    private static (string? Value, string? Error) ReadFlagValue(string flag, string[] args, int index)
+    {
+        if (index + 1 >= args.Length || args[index + 1].StartsWith("--", StringComparison.Ordinal))
+            return (null, $"Error: {flag} requires a value.");
+        var value = args[index + 1];
+        return string.IsNullOrWhiteSpace(value)
+            ? (null, $"Error: {flag} requires a value.")
+            : (value, null);
     }
 
     private static (DebugCommandDto? Command, string? Error) Build(
@@ -84,18 +115,29 @@ public sealed class DebugArgParser : IDebugArgParser
         bool detach,
         string? heading,
         bool fullPage,
-        bool live)
+        bool live,
+        string? surface,
+        string? flowId,
+        string? outDir,
+        string? workspaceId)
     {
         if (positionals.Count == 0 || positionals[0] is "help" or "-h")
-            return FinishHelpOrHost("help", timeoutSeconds, password, detach, heading, fullPage, live);
+            return FinishHelpOrHost("help", timeoutSeconds, password, detach, heading, fullPage, live, surface, flowId, outDir, workspaceId);
 
         var verb = positionals[0];
         if (verb is "up" or "down" or "status")
         {
             if (positionals.Count > 1)
                 return (null, $"Error: '{verb}' does not take extra arguments.");
-            return FinishHelpOrHost(verb, timeoutSeconds, password, detach, heading, fullPage, live);
+            return FinishHelpOrHost(verb, timeoutSeconds, password, detach, heading, fullPage, live, surface, flowId, outDir, workspaceId);
         }
+
+        if (verb == "validate")
+            return ParseValidate(positionals, password, timeoutSeconds, detach, heading, fullPage, live, surface, flowId, outDir, workspaceId);
+
+        var validateFlagError = ValidateFlagsOnlyForValidate(surface, flowId, outDir, workspaceId);
+        if (validateFlagError is not null)
+            return (null, validateFlagError);
 
         if (heading is not null || fullPage)
         {
@@ -290,6 +332,70 @@ public sealed class DebugArgParser : IDebugArgParser
             null);
     }
 
+    private static (DebugCommandDto? Command, string? Error) ParseValidate(
+        IReadOnlyList<string> positionals,
+        string? password,
+        int? timeoutSeconds,
+        bool detach,
+        string? heading,
+        bool fullPage,
+        bool live,
+        string? surface,
+        string? flowId,
+        string? outDir,
+        string? workspaceId)
+    {
+        if (positionals.Count > 1)
+            return (null, "Error: 'validate' does not take extra arguments.");
+        if (heading is not null || fullPage)
+            return (null, "Error: --heading and --full-page are only valid for docs screenshot.");
+        if (live)
+            return (null, "Error: --live is only valid for screenshots validate.");
+        if (string.IsNullOrWhiteSpace(surface))
+            return (null, "Error: 'validate' requires --surface desktop or --surface mobile.");
+
+        var canonical = CanonicalValidateSurface(surface);
+        if (canonical is null)
+            return (null, $"Error: unknown validation surface '{surface}'. Choose desktop or mobile.");
+
+        return (
+            new DebugCommandDto(
+                "validate",
+                canonical,
+                null,
+                workspaceId,
+                password,
+                TimeSpan.FromSeconds(timeoutSeconds ?? DebugLayout.ValidateTimeoutSeconds),
+                detach,
+                FlowId: flowId,
+                OutDir: outDir),
+            null);
+    }
+
+    private static string? CanonicalValidateSurface(string surface)
+    {
+        if (string.Equals(surface, DebugLayout.ValidateSurfaceDesktop, StringComparison.OrdinalIgnoreCase))
+            return DebugLayout.ValidateSurfaceDesktop;
+        return string.Equals(surface, DebugLayout.ValidateSurfaceMobile, StringComparison.OrdinalIgnoreCase)
+            ? DebugLayout.ValidateSurfaceMobile
+            : null;
+    }
+
+    private static string? ValidateFlagsOnlyForValidate(
+        string? surface,
+        string? flowId,
+        string? outDir,
+        string? workspaceId)
+    {
+        if (surface is not null)
+            return "Error: --surface is only valid for validate.";
+        if (flowId is not null)
+            return "Error: --flow is only valid for validate.";
+        if (outDir is not null)
+            return "Error: --out is only valid for validate.";
+        return workspaceId is null ? null : "Error: --workspace is only valid for validate.";
+    }
+
     private static (DebugCommandDto? Command, string? Error) FinishHelpOrHost(
         string verb,
         int? timeoutSeconds,
@@ -297,12 +403,19 @@ public sealed class DebugArgParser : IDebugArgParser
         bool detach,
         string? heading,
         bool fullPage,
-        bool live)
+        bool live,
+        string? surface,
+        string? flowId,
+        string? outDir,
+        string? workspaceId)
     {
         if (heading is not null || fullPage)
             return (null, "Error: --heading and --full-page are only valid for docs screenshot.");
         if (live)
             return (null, "Error: --live is only valid for screenshots validate.");
+        var validateFlagError = ValidateFlagsOnlyForValidate(surface, flowId, outDir, workspaceId);
+        if (validateFlagError is not null)
+            return (null, validateFlagError);
 
         return Command(verb, timeoutSeconds ?? DebugLayout.DefaultTimeoutSeconds, password, detach);
     }

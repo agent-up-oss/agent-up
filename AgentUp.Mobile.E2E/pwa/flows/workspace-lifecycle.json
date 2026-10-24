@@ -1,0 +1,42 @@
+{
+  "id": "workspace-lifecycle",
+  "application": "Mobile",
+  "name": "Start a workspace and stop it",
+  "description": "A person connects, starts the registered agent-up.json workspace from the Apps dashboard, and sees it leave Stopped. Fixture: isolated Server, workspace registered and stopped. Stop stays disabled until Running or Degraded; applications reaching Running is the Runtime capability E2E job.",
+  "surface": "Mobile",
+  "initialPath": "/connect",
+  "initialExpectations": [
+    { "kind": "Text", "value": "Connect to server" }
+  ],
+  "steps": [
+    {
+      "id": "enter-server-url",
+      "description": "Enter the Server URL",
+      "action": "Fill",
+      "target": { "label": "Server URL" },
+      "value": "{serverUrl}",
+      "expectations": [
+        { "kind": "Text", "value": "{serverUrl}", "target": { "label": "Server URL" } }
+      ]
+    },
+    {
+      "id": "try-and-save",
+      "description": "Save the Server URL and open the workspace",
+      "action": "Click",
+      "target": { "role": "button", "name": "Try and save" },
+      "expectations": [
+        { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Start workspace" } },
+        { "kind": "Text", "value": "Applications" }
+      ]
+    },
+    {
+      "id": "start-workspace",
+      "description": "Start the workspace",
+      "action": "Click",
+      "target": { "role": "button", "name": "Start workspace" },
+      "expectations": [
+        { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Stop workspace" } }
+      ]
+    }
+  ]
+}

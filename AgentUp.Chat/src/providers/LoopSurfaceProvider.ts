@@ -34,3 +34,8 @@ export function canActivateLoop(
 export function canCancelLoop(loop: AgentLoopStatus | null | undefined): boolean {
   return loop?.active === true;
 }
+
+/** Sign-in owns the chat chrome; the loop checklist would cover the paste-code field. */
+export function shouldShowLoopControls(state: string | null | undefined): boolean {
+  return state !== 'authentication_required' && state !== 'authenticating';
+}

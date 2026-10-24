@@ -176,4 +176,70 @@ public sealed class ProjectValidationFlowRepositoryTests
                 Directory.Delete(worktree, true);
         }
     }
+
+    [Test]
+    public void Mapping_roundTripsMobileSurfaceWithoutTouchingTheFilesystem()
+    {
+        var runtime = new ValidationFlow(
+            "id",
+            "ws",
+            "Mobile",
+            "Connect",
+            "The connect form is visible.",
+            "/connect",
+            [],
+            [new("save", "Try and save", ValidationAction.Click, new(Role: "button", Name: "Try and save"))],
+            DateTimeOffset.UnixEpoch,
+            Surface: ValidationSurface.Mobile);
+
+        var persisted = ProjectValidationFlowRepository.ToPersistedFlow(runtime);
+        var restored = ProjectValidationFlowRepository.ToRuntimeFlow("ws", persisted);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(persisted.Surface, Is.EqualTo(ValidationSurface.Mobile));
+            Assert.That(restored.Surface, Is.EqualTo(ValidationSurface.Mobile));
+            Assert.That(restored.Application, Is.EqualTo("Mobile"));
+        });
+    }
+
+    [Test]
+    public async Task Save_persistsMobileSurface()
+    {
+        var worktree = Path.Join(Path.GetTempPath(), "agent-up-validation-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(worktree);
+        try
+        {
+            var registry = ServerTestComposition.CreateRegistry();
+            var workspace = await registry.RegisterAsync(ServerDomain.Workspace().Named("Workspace").At(worktree).AtCommit("abc").Build());
+            var repository = new ProjectValidationFlowRepository(
+                new ValidationFlowPathProvider(new WorkspaceQueryController(registry)));
+            var flow = new ValidationFlow(
+                "id",
+                workspace.Id,
+                "Mobile",
+                "Connect",
+                "The connect form is visible.",
+                "/connect",
+                [],
+                [new("save", "Try and save", ValidationAction.Click, new(Role: "button", Name: "Try and save"))],
+                DateTimeOffset.UtcNow,
+                Surface: ValidationSurface.Mobile);
+
+            await repository.SaveAsync(workspace.Id, [flow]);
+            var loaded = await repository.LoadAsync(workspace.Id);
+            var json = await File.ReadAllTextAsync(Path.Join(worktree, ValidationFlowPathProvider.RelativeFlowFilePath));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(loaded.Single().Surface, Is.EqualTo(ValidationSurface.Mobile));
+                Assert.That(json, Does.Contain("\"surface\": \"Mobile\""));
+            });
+        }
+        finally
+        {
+            if (Directory.Exists(worktree))
+                Directory.Delete(worktree, true);
+        }
+    }
 }

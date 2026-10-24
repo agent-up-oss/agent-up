@@ -23,6 +23,7 @@ using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Interface.Models;
 using AgentUp.Desktop.Features.Interface.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome;
+using AgentUp.Desktop.Shared.Providers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -64,6 +65,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     /// <summary>Which shell the window draws. Null in hosts that never offer the command center.</summary>
     public CommandCenterViewModel? CommandCenter { get; }
     internal IValidationReplayConnector? ValidationReplay { get; }
+    internal DesktopValidationLaunchController? DesktopValidationLaunch { get; }
     public bool IsValidationOpen => ShowValidation && Validation is { IsCollapsed: false };
     public bool ShowValidation =>
         Login.Surfaces.Validation && Validation is not null && ShowApplicationChrome;
@@ -181,6 +183,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         ValidationViewModel? validation = null,
         IValidationReplayConnector? validationReplay = null,
         CapabilityModulesViewModel? modules = null,
+        DesktopValidationLaunchController? desktopValidationLaunch = null,
         CommandCenterViewModel? commandCenter = null)
     {
         Sidebar = sidebar;
@@ -198,6 +201,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         Validation = validation;
         ValidationReplay = validationReplay;
         Modules = modules;
+        DesktopValidationLaunch = desktopValidationLaunch;
         _validationController = validation is null ? null : new ValidationController(validation);
         if (validation is not null)
             validation.WhenAnyValue(x => x.IsCollapsed)
@@ -845,7 +849,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             "↺",
             15,
             Sidebar.RefreshCommand,
-            "Reload workspaces");
+            "Reload workspaces",
+            DesktopAutomationIds.ChromeReload);
         if (Modules is not null)
         {
             yield return new ChromeIconButtonViewModel(
@@ -853,7 +858,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
                 "⌘",
                 14,
                 Modules.OpenCommand,
-                "Capability modules");
+                "Capability modules",
+                DesktopAutomationIds.ChromeCapabilities);
         }
         if (CommandCenter is not null)
         {
@@ -862,7 +868,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
                 "◧",
                 14,
                 CommandCenter.ToggleCommand,
-                CommandCenter.ToggleToolTip);
+                CommandCenter.ToggleToolTip,
+                DesktopAutomationIds.ChromeCommandCenter);
         }
         yield return _chromeServerStatus;
     }

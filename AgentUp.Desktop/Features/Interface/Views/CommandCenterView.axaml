@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ids="using:AgentUp.Desktop.Shared.Providers"
              x:Class="AgentUp.Desktop.Features.Interface.Views.CommandCenterView"
              x:CompileBindings="False"
              Background="{DynamicResource AgentUpColorCanvasBrush}">
@@ -228,6 +229,7 @@
                 <StackPanel DockPanel.Dock="Bottom" Spacing="6">
                     <Button Command="{Binding CommandCenter.ToggleCommand}"
                             x:Name="SwitchBackButton"
+                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.CommandCenterSwitchBack}"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Left"
                             Padding="10,8"

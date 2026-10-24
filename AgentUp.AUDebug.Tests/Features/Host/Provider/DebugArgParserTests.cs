@@ -435,4 +435,82 @@ public sealed class DebugArgParserTests
 
         Assert.That(error, Does.Contain("at most a surface and one screen name"));
     }
+
+    [Test]
+    public void Parse_validate_readsDesktopSurfaceFlags()
+    {
+        var (command, error) = _parser.Parse([
+            "validate", "--surface", "desktop", "--flow", "open-git", "--out", "artifacts/qa", "--workspace", "main"
+        ]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(error, Is.Null);
+            Assert.That(command!.Verb, Is.EqualTo("validate"));
+            Assert.That(command.Surface, Is.EqualTo("desktop"));
+            Assert.That(command.FlowId, Is.EqualTo("open-git"));
+            Assert.That(command.OutDir, Is.EqualTo("artifacts/qa"));
+            Assert.That(command.WorkspaceName, Is.EqualTo("main"));
+        });
+    }
+
+    [Test]
+    public void Parse_validateMobile_usesTheLongWatchdog()
+    {
+        var (command, error) = _parser.Parse(["validate", "--surface", "mobile", "--flow", "git", "--out", "artifacts/mobile-validation"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(error, Is.Null);
+            Assert.That(command!.Verb, Is.EqualTo("validate"));
+            Assert.That(command.Surface, Is.EqualTo("mobile"));
+            Assert.That(command.FlowId, Is.EqualTo("git"));
+            Assert.That(command.OutDir, Is.EqualTo("artifacts/mobile-validation"));
+            Assert.That(command.Timeout, Is.EqualTo(TimeSpan.FromSeconds(DebugLayout.ValidateTimeoutSeconds)));
+        });
+    }
+
+    [Test]
+    public void Parse_validate_requiresDesktopOrMobileSurface()
+    {
+        var (_, missing) = _parser.Parse(["validate"]);
+        var (_, unknown) = _parser.Parse(["validate", "--surface", "tablet"]);
+
+        Assert.That(missing, Does.Contain("--surface desktop or --surface mobile"));
+        Assert.That(unknown, Does.Contain("unknown validation surface"));
+    }
+
+    [Test]
+    public void Parse_validateFlags_areRejectedOnOtherCommands()
+    {
+        var (_, surface) = _parser.Parse(["status", "--surface", "desktop"]);
+        var (_, flow) = _parser.Parse(["status", "--flow", "open-git"]);
+        var (_, output) = _parser.Parse(["status", "--out", "/tmp/out"]);
+        var (_, workspace) = _parser.Parse(["status", "--workspace", "main"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(surface, Does.Contain("--surface is only valid for validate"));
+            Assert.That(flow, Does.Contain("--flow is only valid for validate"));
+            Assert.That(output, Does.Contain("--out is only valid for validate"));
+            Assert.That(workspace, Does.Contain("--workspace is only valid for validate"));
+        });
+    }
+
+    [Test]
+    public void Parse_validate_rejectsExtraFlagsAndMissingValues()
+    {
+        var (_, extra) = _parser.Parse(["validate", "--surface", "desktop", "nope"]);
+        var (_, heading) = _parser.Parse(["validate", "--surface", "desktop", "--heading", "Git"]);
+        var (_, live) = _parser.Parse(["validate", "--surface", "desktop", "--live"]);
+        var (_, missing) = _parser.Parse(["validate", "--surface"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(extra, Does.Contain("does not take extra arguments"));
+            Assert.That(heading, Does.Contain("--heading and --full-page"));
+            Assert.That(live, Does.Contain("--live is only valid"));
+            Assert.That(missing, Does.Contain("--surface requires a value"));
+        });
+    }
 }

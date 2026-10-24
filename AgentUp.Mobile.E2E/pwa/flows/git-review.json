@@ -1,0 +1,46 @@
+{
+  "id": "git-review",
+  "application": "Mobile",
+  "name": "Review Git changes and repository hosting",
+  "description": "A person opens the Git tab and sees working-tree actions plus the hosting strip. Fixture: isolated Server with no forge module enabled; the registered workspace is this repository and may have a clean tree.",
+  "surface": "Mobile",
+  "initialPath": "/connect",
+  "initialExpectations": [
+    { "kind": "Text", "value": "Connect to server" }
+  ],
+  "steps": [
+    {
+      "id": "enter-server-url",
+      "description": "Enter the Server URL",
+      "action": "Fill",
+      "target": { "label": "Server URL" },
+      "value": "{serverUrl}",
+      "expectations": [
+        { "kind": "Text", "value": "{serverUrl}", "target": { "label": "Server URL" } }
+      ]
+    },
+    {
+      "id": "try-and-save",
+      "description": "Save the Server URL and open the workspace",
+      "action": "Click",
+      "target": { "role": "button", "name": "Try and save" },
+      "expectations": [
+        { "kind": "Visible", "value": "true", "target": { "role": "tab", "name": "Git" } }
+      ]
+    },
+    {
+      "id": "open-git",
+      "description": "Open the Git tab",
+      "action": "Click",
+      "target": { "role": "tab", "name": "Git" },
+      "expectations": [
+        { "kind": "Url", "value": "/workspace/{workspaceId}/git" },
+        { "kind": "Text", "value": "Changes" },
+        { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Fetch" } },
+        { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "History" } },
+        { "kind": "Text", "value": "No forge capability package is enabled." },
+        { "kind": "Text", "value": "Run: agent-up capabilities bootstrap" }
+      ]
+    }
+  ]
+}

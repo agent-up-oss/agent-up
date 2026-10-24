@@ -111,6 +111,9 @@ internal static class DesktopDomain
     /// <summary>An ACP agent row in the picker, available unless the call site says otherwise.</summary>
     public static AgentDescriptorDtoBuilder Agent() => new();
 
+    /// <summary>A Desktop validation locator; tests set the one field they match on.</summary>
+    public static ValidationTargetDtoBuilder Target() => new();
+
     public static AgentDescriptorDto AvailableAgent(string agent = "Codex", string? displayName = null)
         => Agent().Named(agent, displayName).Build();
 

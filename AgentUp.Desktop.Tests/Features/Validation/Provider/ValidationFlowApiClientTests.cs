@@ -38,6 +38,24 @@ public sealed class ValidationFlowApiClientTests
         });
     }
 
+    [Test]
+    public async Task Get_readsMobileSurface()
+    {
+        using var http = new HttpClient(new SurfaceHandler("""{"id":"flow","workspaceId":"ws","application":"Mobile","name":"Connect","description":"Connect","initialPath":"/connect","initialExpectations":[],"steps":[],"version":1,"surface":"Mobile"}"""))
+        {
+            BaseAddress = new Uri("http://server/")
+        };
+        var client = new ValidationFlowApiClient(http);
+
+        var flow = await client.GetAsync("ws", "flow");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(flow!.Surface, Is.EqualTo(ValidationSurfaceDto.Mobile));
+            Assert.That(flow.InitialPath, Is.EqualTo("/connect"));
+        });
+    }
+
     private sealed class SurfaceHandler(string json) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>

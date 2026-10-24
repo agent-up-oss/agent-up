@@ -32,6 +32,7 @@ public sealed class DebugOutputServiceTests
         Assert.That(output.ToString(), Does.Contain("mobile open-agent"));
         Assert.That(output.ToString(), Does.Contain("screenshots persist"));
         Assert.That(output.ToString(), Does.Contain("status"));
+        Assert.That(output.ToString(), Does.Contain("validate --surface desktop"));
     }
 
     [Test]
@@ -55,5 +56,16 @@ public sealed class DebugOutputServiceTests
         Assert.That(output.ToString(), Does.Contain("docs screenshot [path]"));
         Assert.That(output.ToString(), Does.Contain("--full-page"));
         Assert.That(output.ToString(), Does.Contain("--heading <text>"));
+    }
+
+    [Test]
+    public void WriteHelp_listsValidateCommand()
+    {
+        using var output = new StringWriter();
+        new DebugOutputService(output).WriteHelp();
+
+        Assert.That(output.ToString(), Does.Contain("validate --surface mobile"));
+        Assert.That(output.ToString(), Does.Contain("--flow <id>"));
+        Assert.That(output.ToString(), Does.Contain("artifacts/mobile-validation"));
     }
 }

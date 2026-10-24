@@ -11,7 +11,8 @@ public sealed class ValidationFlowReplayServiceTests
     [Test]
     public async Task RunAsync_reports_failure_when_host_is_not_connected()
     {
-        using var http = new HttpClient { BaseAddress = new Uri("http://server/") };
+        var handler = new ReplayHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://server/") };
         var service = CreateService(http);
         var reporter = new RecordingReporter();
 

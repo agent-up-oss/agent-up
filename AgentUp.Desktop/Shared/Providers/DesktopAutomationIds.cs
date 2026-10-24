@@ -5,6 +5,11 @@ public static class DesktopAutomationIds
     public const string WindowMinimize = "window.minimize";
     public const string WindowRestore = "window.restore";
     public const string WindowClose = "window.close";
+    public const string ChromeReload = "chrome.reload";
+    public const string ChromeCapabilities = "chrome.capabilities";
+    public const string ChromeCommandCenter = "chrome.command-center";
+    public const string CommandCenterSwitchBack = "command-center.switch-back";
+    public const string ChromeServerStatus = "chrome.server-status";
 
     public const string LoginBack = "login.back";
     public const string LoginServerUrl = "login.server-url";
@@ -50,6 +55,7 @@ public static class DesktopAutomationIds
     public const string AgentTranscript = "agent.transcript";
     public const string AgentMessage = "agent.message";
     public const string AgentSend = "agent.send";
+    public const string AgentRun = "agent.run";
 
     public const string GitPanel = "git.panel";
     public const string GitBranch = "git.branch";
@@ -97,6 +103,26 @@ public static class DesktopAutomationIds
     public const string AuditSearch = "audit.search";
     public const string AuditRefresh = "audit.refresh";
     public const string AuditStreaming = "audit.streaming";
+    public const string AuditFirstPage = "audit.page.first";
+    public const string AuditPreviousPage = "audit.page.previous";
+    public const string AuditNextPage = "audit.page.next";
+    public const string AuditLastPage = "audit.page.last";
+    public const string ConsoleShowMore = "console.show-more";
+    public const string AppSubtabConsole = "app.subtab.console";
+    public const string AppSubtabDiagnostics = "app.subtab.diagnostics";
+    public const string AppConsolePane = "app.console.pane";
+    public const string WorkspaceListItems = "workspace.list.items";
+    public const string WorkspaceListItemsCollapsed = "workspace.list.items.collapsed";
+    public const string DatabaseList = "database.list";
+    public const string DatabaseTables = "database.tables";
+    public const string DatabaseRun = "database.run";
+    public const string DatabaseSql = "database.sql";
+    public const string DatabaseCell = "database.cell";
+    public const string GitLog = "git.log";
+    public const string GitDiffGo = "git.diff.go";
+    public const string GitDiffLines = "git.diff.lines";
+    public const string GitDiffDismiss = "git.diff.dismiss";
+    public const string CapabilityClose = "capability.close";
 
     public static string LoginSaved(string id) => $"login.saved.{id}";
     public static string LoginRemoveSaved(string id) => $"login.remove.{id}";
@@ -107,8 +133,14 @@ public static class DesktopAutomationIds
     public static string ApplicationTab(string name) => $"app.tab.{name}";
     public static string AgentLoopPrecondition(string id) => $"agent.loop.precondition.{id}";
     public static string AgentPickerRow(string agent) => $"agent.picker.{agent}";
+    public static string AgentEnable(string agent) => $"agent.enable.{agent}";
     public static string AgentSession(string sessionId) => $"agent.session.{sessionId}";
     public static string AgentOption(string optionId) => $"agent.option.{optionId}";
+    public static string AgentThought(string id) => $"agent.thought.{id}";
+    public static string AuditPage(int page) => $"audit.page.{page}";
+    public static string AuditFilter(string kind) => $"audit.filter.{kind}";
+    public static string GitLogRef(string name) => $"git.log.ref.{name}";
+    public static string GitDiffJump(string label) => $"git.diff.jump.{label}";
     public static string GitSelect(string path) => $"git.select.{path}";
     public static string GitToggle(string path) => $"git.toggle.{path}";
     public static string GitOpen(string path) => $"git.open.{path}";

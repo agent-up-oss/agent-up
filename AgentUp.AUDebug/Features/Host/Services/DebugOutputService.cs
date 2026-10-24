@@ -71,6 +71,16 @@ public sealed class DebugOutputService
               screens desktop [screen]   Only Desktop, or one Desktop screen.
               screens mobile [screen]    Only Mobile, or one Mobile screen.
 
+            Validate:
+              validate --surface desktop [--flow <id>] [--out <dir>] [--workspace <id>]
+                                         Replay Desktop-surface flows against the real Desktop window.
+                                         Writes <out>/<flow-id>/report.json, per-step PNGs, and server.log.
+                                         Defaults --out to artifacts/desktop-validation.
+              validate --surface mobile [--flow <id>] [--out <dir>]
+                                         Drive Mobile web flows against a real Server and write
+                                         report.json plus per-step screenshots.
+                                         Defaults --out to artifacts/mobile-validation.
+
             Tests:
               test                       Run every visual-iteration suite.
               test all                   Same as test.
@@ -86,12 +96,16 @@ public sealed class DebugOutputService
             Options:
               --timeout <seconds>        Watchdog for readiness, tests, and one-shot commands.
                                          Default 30s; test, build, and screenshots persist/validate
-                                         default to 180s, screens and all to 600s.
+                                         default to 180s, screens, validate, and all to 600s.
               --detach                   After up is ready, return without following logs.
               --password <pw>            Admin password for login commands (else $AGENTUP_ADMIN_PASSWORD).
               --heading <text>           Scroll that heading into view (docs screenshot).
               --full-page                Capture the whole docs page, not just the viewport.
               --live                     Also probe hosted Mobile pages (screenshots validate).
+              --surface <desktop|mobile> Required for validate.
+              --flow <id>                Replay one saved flow instead of every matching flow.
+              --out <dir>                Artifact directory for validate.
+              --workspace <id>           Limit Desktop validate to one registered workspace id.
             """);
         return 0;
     }

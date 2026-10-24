@@ -40,10 +40,10 @@ public sealed class AgentPickerPanelTests
             Assert.That(text, Does.Contain("Executable not found"));
             Assert.That(text, Does.Contain("Install agent and keep it on PATH."));
             Assert.That(
-                ChromeTestSupport.FindDescendantByAutomationId<StackPanel>(app.Window, DesktopAutomationIds.AgentPickerRow("Codex")),
+                ChromeTestSupport.FindDescendantByAutomationId<Button>(app.Window, DesktopAutomationIds.AgentPickerRow("Codex")),
                 Is.Not.Null);
             Assert.That(
-                ChromeTestSupport.FindDescendantByAutomationId<StackPanel>(app.Window, DesktopAutomationIds.AgentPickerRow("Cursor")),
+                ChromeTestSupport.FindDescendantByAutomationId<Border>(app.Window, DesktopAutomationIds.AgentPickerRow("Cursor")),
                 Is.Not.Null);
         });
     }
@@ -69,7 +69,7 @@ public sealed class AgentPickerPanelTests
             Assert.That(text, Does.Contain("Claude is not enabled on this Server."));
             Assert.That(text, Does.Contain("Enable the Claude capability."));
             Assert.That(
-                ChromeTestSupport.FindDescendantByAutomationId<StackPanel>(app.Window, DesktopAutomationIds.AgentPickerRow("Claude")),
+                ChromeTestSupport.FindDescendantByAutomationId<Border>(app.Window, DesktopAutomationIds.AgentPickerRow("Claude")),
                 Is.Not.Null);
         });
     }

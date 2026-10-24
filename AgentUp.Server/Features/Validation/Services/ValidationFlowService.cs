@@ -33,9 +33,12 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
             var flows = (await repository.LoadAsync(workspaceId, ct)).ToList();
             var id = string.IsNullOrWhiteSpace(request.Id) ? Guid.NewGuid().ToString("N") : request.Id;
             var existing = flows.FindIndex(x => x.Id == id);
-            var application = request.Surface == ValidationSurface.Desktop
-                ? DesktopSurfaceFlowRules.ApplicationName
-                : request.Application.Trim();
+            var application = request.Surface switch
+            {
+                ValidationSurface.Desktop => DesktopSurfaceFlowRules.ApplicationName,
+                ValidationSurface.Mobile => MobileSurfaceFlowRules.ApplicationName,
+                _ => request.Application.Trim()
+            };
             var flow = new ValidationFlow(id!, workspaceId, application, request.Name.Trim(), request.Description.Trim(), request.InitialPath.Trim(), request.InitialExpectations ?? [], request.Steps, DateTimeOffset.UtcNow, existing < 0 ? 1 : flows[existing].Version + 1, request.Surface);
             if (existing < 0) flows.Add(flow); else flows[existing] = flow;
             await repository.SaveAsync(workspaceId, flows, ct);
@@ -61,7 +64,7 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
     public async Task<PlaywrightExport?> ExportAsync(string workspaceId, string id, CancellationToken ct = default)
     {
         var flow = (await repository.LoadAsync(workspaceId, ct)).SingleOrDefault(x => x.Id == id);
-        if (flow is null || flow.Surface == ValidationSurface.Desktop)
+        if (flow is null || flow.Surface is ValidationSurface.Desktop or ValidationSurface.Mobile)
             return null;
         return exporter.Export(flow);
     }
@@ -71,7 +74,9 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
         var flow = (await repository.LoadAsync(workspaceId, ct)).SingleOrDefault(x => x.Id == id);
         if (flow is null) return new(false, "Validation flow was not found.");
         if (flow.Surface == ValidationSurface.Desktop)
-            return new(false, "Desktop surface replay is not implemented.");
+            return new(false, "Desktop surface flows run on the Desktop client. Use au-debug validate --surface desktop.");
+        if (flow.Surface == ValidationSurface.Mobile)
+            return new(false, "Mobile surface flows run through au-debug validate --surface mobile.");
         var workspace = workspaces.GetById(workspaceId);
         var app = workspace?.Applications.SingleOrDefault(x => x.Name == flow.Application);
         if (app?.Kind == ApplicationKind.Desktop)
@@ -205,6 +210,8 @@ public sealed class ValidationFlowService(IValidationFlowRepository repository, 
             return "Workspace was not found.";
         if (request.Surface == ValidationSurface.Desktop)
             return DesktopSurfaceFlowRules.Validate(request);
+        if (request.Surface == ValidationSurface.Mobile)
+            return MobileSurfaceFlowRules.Validate(request);
         if (!workspaces.HasApplication(workspaceId, request.Application))
             return "Application was not found in this workspace.";
         if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length > 120)

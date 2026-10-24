@@ -72,6 +72,8 @@ export function GitHostingRow({
       {copy.canSignIn && server ? (
         <Pressable
           testID="git-hosting-sign-in"
+          accessibilityRole="button"
+          accessibilityLabel="Sign in"
           onPress={() => {
             const startedScope = scopeKey;
             setSignInError(null);
@@ -89,7 +91,11 @@ export function GitHostingRow({
         </Pressable>
       ) : null}
       {signInUrl ? (
-        <Pressable testID="git-hosting-open-sign-in" onPress={() => { void Linking.openURL(signInUrl); }}>
+        <Pressable
+          testID="git-hosting-open-sign-in"
+          accessibilityRole="button"
+          accessibilityLabel="Open sign-in page"
+          onPress={() => { void Linking.openURL(signInUrl); }}>
           <Text style={styles.link}>Open sign-in page</Text>
         </Pressable>
       ) : null}
@@ -104,7 +110,11 @@ export function GitHostingRow({
       {detail && hosting?.threads.length ? (
         <View style={styles.threads}>
           {hosting.threads.map(thread => (
-            <Pressable key={thread.id} onPress={() => { void Linking.openURL(thread.url); }}>
+            <Pressable
+              key={thread.id}
+              accessibilityRole="button"
+              accessibilityLabel={thread.summary || thread.id}
+              onPress={() => { void Linking.openURL(thread.url); }}>
               <Text style={styles.link}>{thread.summary || thread.id}</Text>
             </Pressable>
           ))}

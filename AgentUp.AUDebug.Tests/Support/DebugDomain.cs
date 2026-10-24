@@ -44,4 +44,8 @@ internal static class DebugDomain
 
     /// <summary>A command with no surface, such as <c>test</c> or <c>build</c>.</summary>
     public static DebugCommandDtoBuilder Verb(string verb) => new(verb, null);
+
+    /// <summary>A validation-flow run. Pass <see cref="DesktopSurface"/> or <see cref="MobileSurface"/>.</summary>
+    public static DebugCommandDtoBuilder Validate(string surface)
+        => new DebugCommandDtoBuilder("validate", surface);
 }
