@@ -4,6 +4,7 @@ using AgentUp.Sdk.Runtime;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Capabilities.DTOs;
 using AgentUp.Server.Features.Capabilities.Interfaces;
+using AgentUp.Server.Features.Capabilities.Models;
 using AgentUp.Server.Features.Ports.DTOs;
 using System.Text.Json;
 
@@ -11,7 +12,8 @@ namespace AgentUp.Server.Features.Capabilities.Services;
 
 public sealed class CapabilityReconciliationService(
     IEnabledCapabilityPackages? packages = null,
-    CapabilityPackageController? templates = null)
+    CapabilityPackageController? templates = null,
+    INixPresenceProvider? nix = null)
 {
     public Task<ApplicationInstance> ReconcileDotnetAsync(
         DotnetApplicationDefinition definition,
@@ -31,6 +33,17 @@ public sealed class CapabilityReconciliationService(
         IReadOnlyList<PortDeclaration> ports,
         IReadOnlyList<PortMapping> allocatedPorts)
     {
+        var nixBlock = NixBlock(moduleId);
+        if (nixBlock is not null)
+        {
+            return Task.FromResult(Unrunnable(
+                moduleId,
+                item,
+                ports,
+                allocatedPorts,
+                nixBlock));
+        }
+
         var bound = Bind(moduleId, item);
         if (bound is { IsValid: false })
         {
@@ -226,7 +239,7 @@ public sealed class CapabilityReconciliationService(
                 declaration.CapabilityId,
                 RequiredVersion(declaration),
                 false,
-                [$"Capability '{declaration.CapabilityId}' is not enabled."]);
+                CapabilityPrerequisiteMessages.NotEnabled(declaration.CapabilityId, declaration.Name));
             return new ResolvedCapability(new CapabilityLaunchPlan(""), status);
         }
 
@@ -303,4 +316,9 @@ public sealed class CapabilityReconciliationService(
 
     private static string? RequiredVersion(CapabilityDeclaration declaration)
         => declaration.Requirements.TryGetValue("sdk", out var sdk) ? sdk : null;
+
+    private IReadOnlyList<string>? NixBlock(string capabilityId)
+        => nix is { IsAvailable: false }
+            ? CapabilityPrerequisiteMessages.NixMissing(capabilityId)
+            : null;
 }

@@ -4,6 +4,7 @@ using AgentUp.Desktop.Features.Capabilities.DTOs;
 using AgentUp.Desktop.Features.Capabilities.Interfaces;
 using AgentUp.Desktop.Features.Capabilities.Services;
 using AgentUp.Desktop.Features.Capabilities.ViewModels;
+using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Tests.Features.Capabilities.Unit;
 
 namespace AgentUp.Desktop.Tests.Features.Capabilities.Unit;
@@ -103,6 +104,22 @@ public sealed class CapabilityModulesViewModelTests
     }
 
     [Test]
+    public async Task Cards_exposeStableEnableAndDisableAutomationIds()
+    {
+        var client = new FakeCapabilityModulesApiProvider
+        {
+            Modules = [CapabilityModulesCatalogServiceTests.DotnetModule(true)]
+        };
+        var viewModel = CreateViewModel(client);
+
+        await viewModel.OpenAsync();
+
+        var card = viewModel.Modules.Single();
+        Assert.That(card.EnableAutomationId, Is.EqualTo(DesktopAutomationIds.CapabilityEnable("dotnet")));
+        Assert.That(card.DisableAutomationId, Is.EqualTo(DesktopAutomationIds.CapabilityDisable("dotnet")));
+    }
+
+    [Test]
     public async Task Cards_carryTheServerVerdictForEachModule()
     {
         var client = new FakeCapabilityModulesApiProvider
@@ -129,6 +146,38 @@ public sealed class CapabilityModulesViewModelTests
             Assert.That(disabled.StatusLabel, Is.EqualTo("disabled"));
             Assert.That(disabled.Summary, Is.EqualTo("not enabled"));
             Assert.That(disabled.CanRun, Is.False);
+        });
+    }
+
+    [Test]
+    public async Task Cards_showTheNixInstallUrlWhenTheServerSaysNixIsMissing()
+    {
+        var client = new FakeCapabilityModulesApiProvider
+        {
+            Modules =
+            [
+                CapabilityModulesCatalogServiceTests.DotnetModule(true) with
+                {
+                    CanRun = false,
+                    State = "error",
+                    Messages =
+                    [
+                        "Capability 'dotnet' needs Nix to provide the .NET SDK, and Nix was not found.",
+                        "Install Nix: https://nixos.org/download"
+                    ]
+                }
+            ]
+        };
+        var viewModel = CreateViewModel(client);
+
+        await viewModel.OpenAsync();
+
+        var card = viewModel.Modules.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(card.Summary, Does.Contain("https://nixos.org/download"));
+            Assert.That(card.Summary, Does.Not.Contain("is not enabled"));
+            Assert.That(card.CanRun, Is.False);
         });
     }
 

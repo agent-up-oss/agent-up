@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { authenticateAgent, bindAgent, parseSseFrames, resumeAgent, scheduleAgent, streamAgentEvents } from './AgentApiProvider';
+import { authenticateAgent, bindAgent, enableAgentCapability, getAutonomy, getLoop, parseSseFrames, putAutonomy, putLoopActivation, resumeAgent, scheduleAgent, streamAgentEvents } from './AgentApiProvider';
 
 test('parses fragmented and multiline SSE events without losing the tail', () => {
   const first = parseSseFrames('id: 1\nevent: state\ndata: {"sequence":1,\n');
@@ -66,6 +66,18 @@ test('bind puts the workspace binding route', async () => {
   assert.equal(calls[0]?.url, 'https://server.example/api/workspaces/ws%20%2F1/agent/binding');
   assert.equal(calls[0]?.init?.method, 'PUT');
   assert.equal(session?.boundAgent, 'Codex');
+});
+
+test('enableAgentCapability posts the package identity', async () => {
+  const calls: { url: string; init?: RequestInit }[] = [];
+  const request = async (input: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(input), init });
+    return new Response(JSON.stringify({ id: 'claude', enabled: true }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  await enableAgentCapability({ url: 'https://server.example', accessToken: 'token' }, 'claude', request as typeof fetch);
+  assert.equal(calls[0]?.url, 'https://server.example/api/capabilities/enable');
+  assert.equal(calls[0]?.init?.body, '{"id":"claude"}');
 });
 
 test('schedule uses a workspace-scoped authenticated JSON request', async () => {
@@ -207,4 +219,31 @@ test('resume addresses a saved session within its workspace', async () => {
   };
   await resumeAgent({ url: 'https://server.example', accessToken: 'token' }, 'workspace/1', 'session/1', request as typeof fetch);
   assert.equal(url, 'https://server.example/api/workspaces/workspace%2F1/agent/sessions/session%2F1/resume');
+});
+
+test('autonomy routes enable the Server then activate a workspace loop', async () => {
+  const calls: { url: string; method?: string; body?: string }[] = [];
+  const request = async (input: string | URL | Request, init?: RequestInit) => {
+    calls.push({
+      url: String(input),
+      method: init?.method,
+      body: typeof init?.body === 'string' ? init.body : undefined,
+    });
+    if (String(input).endsWith('/api/autonomy') && !init?.method)
+      return new Response(JSON.stringify({ enabled: false, preconditions: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    if (String(input).endsWith('/loop'))
+      return new Response(JSON.stringify({ active: false, phase: 'stopped', terminal: 'Cancelled' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    return new Response(null, { status: 204 });
+  };
+  const server = { url: 'https://server.example', accessToken: 'token' };
+  await getAutonomy(server, request as typeof fetch);
+  await putAutonomy(server, true, request as typeof fetch);
+  await putLoopActivation(server, 'ws /1', true, request as typeof fetch);
+  const loop = await getLoop(server, 'ws /1', request as typeof fetch);
+  assert.equal(calls[0]?.url, 'https://server.example/api/autonomy');
+  assert.equal(calls[1]?.method, 'PUT');
+  assert.equal(calls[1]?.body, '{"enabled":true}');
+  assert.equal(calls[2]?.url, 'https://server.example/api/workspaces/ws%20%2F1/agent/autonomy');
+  assert.equal(calls[2]?.body, '{"active":true}');
+  assert.equal(loop?.terminal, 'Cancelled');
 });

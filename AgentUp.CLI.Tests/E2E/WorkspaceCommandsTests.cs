@@ -28,6 +28,7 @@ using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Interfaces;
+using AgentUp.Server.Features.Workspaces.Models;
 using AgentUp.Server.Features.Workspaces.Providers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Browser.Controllers;
@@ -454,6 +455,7 @@ public class WorkspaceCommandsTests
         Assert.That(text, Does.Contain("list"));
         Assert.That(text, Does.Contain("clear"));
         Assert.That(text, Does.Contain("status"));
+        Assert.That(text, Does.Contain("capabilities"));
         Assert.That(text, Does.Contain($"http://localhost:{_port}"));
         Assert.That(text, Does.Not.Contain("http://localhost:5000"));
         Assert.That(text, Does.Not.Contain("register"));
@@ -527,6 +529,11 @@ public class WorkspaceCommandsTests
         builder.Services.AddSingleton<IWorkspaceIdentityProvider, GitWorkspaceIdentityProvider>();
         builder.Services.AddSingleton<OrchestrationRegistrationService>();
         builder.Services.AddSingleton<OrchestrationRegistrationController>();
+        builder.Services.AddSingleton(ApplicationReadinessOptions.Immediate);
+        builder.Services.AddSingleton<IApplicationReadinessClock, ApplicationReadinessClock>();
+        builder.Services.AddSingleton<IApplicationReadinessProbe, LoopbackApplicationReadinessProbe>();
+        builder.Services.AddSingleton<WorkspaceReadinessService>();
+        builder.Services.AddSingleton<WorkspaceReadinessController>();
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
         builder.Services.AddSingleton<ApplicationLifecycleService>();
         builder.Logging.SetMinimumLevel(LogLevel.Warning);

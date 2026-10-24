@@ -18,9 +18,11 @@ public sealed class FakeBackendService
     private readonly List<Action<string>> _workspaceListeners = [];
     private readonly Dictionary<string, JsonArray> _appTemplates = new(StringComparer.Ordinal);
     private int _lifecycleGeneration;
+    private int _loopGeneration;
+    private bool _autonomyEnabled;
     private long _agentSequence;
 
-    public const int StartPhaseMilliseconds = 1000;
+    public const int StartPhaseMilliseconds = 10000;
 
     public FakeBackendService(
         FakeServerDefinition definition,
@@ -52,6 +54,8 @@ public sealed class FakeBackendService
             _state = _template.Clone();
             _agentEvents.Clear();
             _agentSequence = 0;
+            _autonomyEnabled = false;
+            _loopGeneration++;
             CancelLifecycle();
             CaptureTemplates();
         }
@@ -105,6 +109,10 @@ public sealed class FakeBackendService
             return IssueTicket(request.Body);
         if (method == "POST" && path == "/api/audit/record")
             return new FakeBackendResponseDto(204, "application/json");
+        if (method == "GET" && path == "/api/autonomy")
+            return AutonomyStatus();
+        if (method == "PUT" && path == "/api/autonomy")
+            return SetAutonomy(request.Body);
         if (method == "GET" && path == "/api/capabilities")
             return Json(Capabilities());
         if (method == "POST" && path == "/api/capabilities/enable")
@@ -202,13 +210,17 @@ public sealed class FakeBackendService
             return GitDiff(workspaceId, request.Query);
         if (method == "POST" && rest.StartsWith("git/", StringComparison.Ordinal))
             return GitMutation(workspaceId, rest["git/".Length..], request.Body);
+        if (method == "GET" && rest == "agent/loop")
+            return AgentLoop(workspaceId);
+        if (method == "PUT" && rest == "agent/autonomy")
+            return SetLoopActivation(workspaceId, request.Body);
         if (method == "GET" && rest == "agent")
             return AgentSession(workspaceId);
         if (method == "POST" && rest == "agent")
             return ScheduleAgent(workspaceId, request.Body);
         if (method == "PUT" && rest == "agent/binding")
             return BindAgent(workspaceId, request.Body);
-        if (method is "PUT" && rest is "agent/autonomy" or "agent/host-connection" or "agent/policy" or "agent/role" or "agent/queue-order")
+        if (method is "PUT" && rest is "agent/host-connection" or "agent/policy" or "agent/role" or "agent/queue-order")
             return new FakeBackendResponseDto(204, "application/json");
         if (method == "POST" && rest == "agent/messages")
             return SendAgentMessage(workspaceId, request.Body);
@@ -467,6 +479,107 @@ public sealed class FakeBackendService
         }
     }
 
+    private FakeBackendResponseDto AutonomyStatus()
+    {
+        lock (_gate)
+            return Json(AutonomyDto());
+    }
+
+    private FakeBackendResponseDto SetAutonomy(string? body)
+    {
+        lock (_gate)
+        {
+            _autonomyEnabled = ReadJsonBoolean(body, "enabled");
+            return new FakeBackendResponseDto(204, "application/json");
+        }
+    }
+
+    private FakeBackendResponseDto AgentLoop(string workspaceId)
+    {
+        lock (_gate)
+        {
+            var loop = _state.Agents?[workspaceId]?["session"]?["loop"];
+            return loop is null ? NotFound() : Json(loop.DeepClone());
+        }
+    }
+
+    private FakeBackendResponseDto SetLoopActivation(string workspaceId, string? body)
+    {
+        JsonObject snapshot;
+        lock (_gate)
+        {
+            var stored = _state.Agents?[workspaceId] as JsonObject;
+            var session = stored?["session"] as JsonObject;
+            if (session is null)
+                return NotFound();
+            var generation = ++_loopGeneration;
+            if (ReadJsonBoolean(body, "active"))
+            {
+                session["loop"] = LoopSnapshot(true, "running", null, null);
+                _schedule(StartPhaseMilliseconds, () => CompleteLoop(workspaceId, generation));
+            }
+            else
+                session["loop"] = LoopSnapshot(false, "stopped", "Cancelled", "cancelled");
+            snapshot = LiveAgentSession(session);
+        }
+
+        PublishAgent(workspaceId, "state", snapshot);
+        return new FakeBackendResponseDto(204, "application/json");
+    }
+
+    private void CompleteLoop(string workspaceId, int generation)
+    {
+        JsonObject snapshot;
+        lock (_gate)
+        {
+            if (generation != _loopGeneration)
+                return;
+            var session = _state.Agents?[workspaceId]?["session"] as JsonObject;
+            if (session is null || session["loop"]?["active"]?.GetValue<bool>() != true)
+                return;
+            session["loop"] = LoopSnapshot(false, "idle", "Completed", "queue_empty");
+            snapshot = LiveAgentSession(session);
+        }
+
+        PublishAgent(workspaceId, "state", snapshot);
+    }
+
+    private JsonObject AutonomyDto()
+    {
+        var agentAvailable = AgentCatalogDescriptors()
+            .OfType<JsonObject>()
+            .Any(item => item["available"]?.GetValue<bool>() == true);
+        return new JsonObject
+        {
+            ["enabled"] = _autonomyEnabled,
+            ["preconditions"] = new JsonArray(
+                Precondition("forgeCapabilityEnabled", true, "Run: agent-up capabilities bootstrap"),
+                Precondition("hostConnectionAuthorized", true, "Sign in to your repository host."),
+                Precondition("agentAvailable", agentAvailable, "Enable an agent capability"),
+                Precondition("autonomyEnabled", _autonomyEnabled, "Enable autonomy for this Server"))
+        };
+    }
+
+    private static JsonObject Precondition(string id, bool satisfied, string remedy) => new()
+    {
+        ["id"] = id,
+        ["satisfied"] = satisfied,
+        ["remedy"] = satisfied ? null : remedy
+    };
+
+    private static JsonObject LoopSnapshot(bool active, string phase, string? terminal, string? stopReason) => new()
+    {
+        ["active"] = active,
+        ["phase"] = phase,
+        ["taskId"] = "12",
+        ["taskNumber"] = 12,
+        ["taskTitle"] = "Restock featured products",
+        ["terminal"] = terminal,
+        ["stopReason"] = stopReason,
+        ["blockReason"] = null,
+        ["permissionRuleIds"] = new JsonArray()
+    };
+
     private FakeBackendResponseDto AgentSession(string workspaceId)
     {
         lock (_gate)
@@ -487,10 +600,11 @@ public sealed class FakeBackendService
             if (string.IsNullOrWhiteSpace(requested))
                 return Json(LiveAgentSession(stored["session"]));
 
-            var match = EnabledAgentDescriptors()
+            var match = AgentCatalogDescriptors()
                 .OfType<JsonObject>()
                 .FirstOrDefault(item =>
-                    string.Equals(item["agent"]?.GetValue<string>(), requested, StringComparison.OrdinalIgnoreCase));
+                    string.Equals(item["agent"]?.GetValue<string>(), requested, StringComparison.OrdinalIgnoreCase)
+                    && item["available"]?.GetValue<bool>() == true);
             if (match is null)
             {
                 var problem = new JsonObject
@@ -888,13 +1002,14 @@ public sealed class FakeBackendService
         => _state.Forge?[workspaceId]?.DeepClone()
            ?? new JsonObject
            {
-               ["availability"] = "none",
+               ["availability"] = "notInstalled",
                ["moduleId"] = null,
                ["proposal"] = null,
                ["checks"] = new JsonArray(),
                ["threads"] = new JsonArray(),
                ["mergeability"] = null,
-               ["detail"] = null
+               ["detail"] = "No forge capability package is enabled.",
+               ["remedy"] = "Run: agent-up capabilities bootstrap"
            };
 
     private JsonArray Capabilities()
@@ -922,13 +1037,13 @@ public sealed class FakeBackendService
     private JsonObject LiveAgentSession(JsonNode? session)
     {
         var snapshot = session is JsonObject obj ? obj.DeepClone().AsObject() : new JsonObject();
-        var agents = EnabledAgentDescriptors();
+        var agents = AgentCatalogDescriptors();
         var current = snapshot["agent"]?.GetValue<string>();
         var selected = agents
             .OfType<JsonObject>()
             .FirstOrDefault(item =>
-                string.Equals(item["agent"]?.GetValue<string>(), current, StringComparison.OrdinalIgnoreCase))
-            ?? agents.OfType<JsonObject>().FirstOrDefault();
+                string.Equals(item["agent"]?.GetValue<string>(), current, StringComparison.OrdinalIgnoreCase)
+                && item["available"]?.GetValue<bool>() == true);
         if (selected?["agent"] is JsonNode agent)
             snapshot["agent"] = agent.DeepClone();
         else
@@ -937,19 +1052,57 @@ public sealed class FakeBackendService
         return snapshot;
     }
 
-    private JsonArray EnabledAgentDescriptors()
+    private JsonArray AgentCatalogDescriptors()
         => new(
             [.. Capabilities()
                 .OfType<JsonObject>()
                 .Where(module =>
-                    string.Equals(module["kind"]?.GetValue<string>(), "agent", StringComparison.Ordinal)
-                    && module["enabled"]?.GetValue<bool>() == true)
-                .Select(module => new JsonObject
-                {
-                    ["agent"] = module["id"]?.DeepClone(),
-                    ["available"] = module["canRun"]?.DeepClone() ?? true,
-                    ["displayName"] = module["displayName"]?.DeepClone()
-                })]);
+                    string.Equals(module["kind"]?.GetValue<string>(), "agent", StringComparison.Ordinal))
+                .Select(DescribeFakeAgent)]);
+
+    private static JsonObject DescribeFakeAgent(JsonObject module)
+    {
+        var id = module["id"]?.GetValue<string>() ?? string.Empty;
+        var displayName = module["displayName"]?.GetValue<string>() ?? id;
+        var enabled = module["enabled"]?.GetValue<bool>() == true;
+        var canRun = module["canRun"]?.GetValue<bool>() ?? enabled;
+        var available = enabled && canRun;
+        if (available)
+        {
+            return new JsonObject
+            {
+                ["agent"] = id,
+                ["available"] = true,
+                ["displayName"] = displayName,
+                ["unavailability"] = null,
+                ["detail"] = null,
+                ["remedy"] = null
+            };
+        }
+
+        if (!enabled)
+        {
+            return new JsonObject
+            {
+                ["agent"] = id,
+                ["available"] = false,
+                ["displayName"] = displayName,
+                ["unavailability"] = "capabilityNotEnabled",
+                ["detail"] = $"{displayName} is not enabled on this Server.",
+                ["remedy"] = $"Enable the {id} capability."
+            };
+        }
+
+        return new JsonObject
+        {
+            ["agent"] = id,
+            ["available"] = false,
+            ["displayName"] = displayName,
+            ["unavailability"] = "executableNotFound",
+            ["detail"] = $"{id} ACP executable is not installed or is not on PATH.",
+            ["remedy"] = $"Install the {id} ACP executable and keep it on PATH."
+        };
+    }
 
     private JsonObject? GitState(string workspaceId)
         => _state.Git?[workspaceId] as JsonObject;

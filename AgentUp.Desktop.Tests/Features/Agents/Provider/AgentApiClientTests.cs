@@ -140,6 +140,24 @@ public sealed class AgentApiClientTests
     }
 
     [Test]
+    public async Task AutonomyRoutes_targetTheServerChainAndWorkspaceLoop()
+    {
+        const string autonomy = "{\"enabled\":false,\"preconditions\":[{\"id\":\"autonomyEnabled\",\"satisfied\":false}]}";
+        using var handler = new AgentHandler(HttpStatusCode.OK, autonomy, mediaType: "application/json");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new AgentApiClient(http);
+
+        var status = await client.GetAutonomyAsync(CancellationToken.None);
+        Assert.That(handler.Uri!.PathAndQuery, Is.EqualTo("/api/autonomy"));
+        await client.PutAutonomyAsync(true, CancellationToken.None);
+        await client.PutLoopActivationAsync("ws 1", true, CancellationToken.None);
+        Assert.That(handler.Uri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws%201/agent/autonomy"));
+        await client.GetLoopAsync("ws 1", CancellationToken.None);
+        Assert.That(handler.Uri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws%201/agent/loop"));
+        Assert.That(status!.Preconditions[0].Id, Is.EqualTo("autonomyEnabled"));
+    }
+
+    [Test]
     public async Task ResumeAsync_postsTheEscapedWorkspaceSessionRoute()
     {
         const string body = "{\"workspaceId\":\"ws\",\"agent\":\"Claude\",\"state\":\"ready\",\"sessionId\":\"session/1\",\"error\":null,\"agents\":[],\"authMethods\":[],\"sessions\":[]}";

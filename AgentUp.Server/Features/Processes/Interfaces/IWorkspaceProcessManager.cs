@@ -10,4 +10,5 @@ public interface IWorkspaceProcessManager
     Task KillAsync(string workspaceId);
     Task KillApplicationAsync(string workspaceId, string appName);
     WorkspaceRuntimeSnapshot GetRuntime(string workspaceId) => WorkspaceRuntimeSnapshot.Empty;
+    bool IsApplicationAlive(string workspaceId, string appName) => true;
 }

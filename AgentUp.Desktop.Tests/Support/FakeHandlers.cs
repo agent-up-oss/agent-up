@@ -61,7 +61,7 @@ internal sealed class FakeHttpMessageHandler(
         {
             var key = ExtractOutputKey(path);
             var lines = outputLines.GetValueOrDefault(key, []);
-            return Task.FromResult(Ok(lines));
+            return Task.FromResult(Ok(lines.Select(line => new { text = line, stream = "stdout" })));
         }
 
         if (ValidationRoutes.IsFlowListRoute(path))
@@ -291,8 +291,10 @@ internal static class GitRoutes
     public static CommitQueueDto EmptyQueue()
         => new([], [], null, null, null, 0);
 
-    public static ForgeHostingDto HiddenHosting()
-        => new("none", null, null, [], [], null, null);
+    public static ForgeHostingDto HiddenHosting() => NotInstalledHosting();
+
+    public static ForgeHostingDto NotInstalledHosting()
+        => DesktopDomain.Hosting().NotInstalled().Build();
 
     public static string WorkspaceId(string path)
     {

@@ -111,11 +111,14 @@ public sealed class MobileScreenSurfaceTests
         try
         {
             await surface.OpenAsync(CancellationToken.None);
+            Assert.That(debugger.Methods, Does.Contain("Page.navigate"));
+            Assert.That(debugger.Methods, Does.Contain("Runtime.evaluate"));
+
             await surface.RunAsync(
                 [
                     ScreenStepDto.Navigate("/apps", 0),
                     ScreenStepDto.Tap("Git", 0),
-                    ScreenStepDto.Fill("Server URL", "demo") with { DelayMs = 0 },
+                    ScreenStepDto.Fill(MobileScreenSurface.ConnectFieldLabel, "demo") with { DelayMs = 0 },
                     ScreenStepDto.Settle(0)
                 ],
                 CancellationToken.None);
@@ -125,8 +128,6 @@ public sealed class MobileScreenSurfaceTests
             Assert.Multiple(() =>
             {
                 Assert.That(debugger.Methods, Does.Contain("Emulation.setDeviceMetricsOverride"));
-                Assert.That(debugger.Methods, Does.Contain("Page.navigate"));
-                Assert.That(debugger.Methods, Does.Contain("Runtime.evaluate"));
                 Assert.That(debugger.Methods, Does.Contain("Input.dispatchMouseEvent"));
                 Assert.That(debugger.Methods, Does.Contain("Input.insertText"));
                 Assert.That(debugger.Methods, Does.Contain("Page.captureScreenshot"));
@@ -136,6 +137,38 @@ public sealed class MobileScreenSurfaceTests
         }
         finally
         {
+            TryKill(pid);
+        }
+    }
+
+    [Test]
+    public async Task Open_timesOutWhenTheConnectFieldNeverAppears()
+    {
+        using var debugger = new FakeChromiumDebugEndpoint { PointAvailable = false };
+        var processes = new FakeProcessRunner();
+        var environment = new FakeEnvironment();
+        environment.Executables["chromium"] = "/usr/bin/chromium";
+        var root = NewRoot();
+        using var browser = StartHeldBrowser();
+        processes.StartOverride = _ => browser;
+        var surface = new MobileScreenSurface(
+            processes,
+            environment,
+            new FakePathValidator(root),
+            debugger.Port,
+            firstPaintTimeout: TimeSpan.FromMilliseconds(400));
+        var pid = browser.Id;
+
+        try
+        {
+            Assert.That(
+                async () => await surface.OpenAsync(CancellationToken.None),
+                Throws.InvalidOperationException.With.Message.EqualTo(
+                    $"Mobile screens timed out waiting for '{MobileScreenSurface.ConnectFieldLabel}'."));
+        }
+        finally
+        {
+            await surface.DisposeAsync();
             TryKill(pid);
         }
     }

@@ -1,5 +1,6 @@
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.Controllers;
+using AgentUp.Server.Features.Processes.DTOs;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.DesktopApplications.Controllers;
@@ -12,17 +13,20 @@ public sealed class ApplicationLifecycleService
     private readonly WorkspaceStateController _states;
     private readonly ProcessesController _processes;
     private readonly DesktopApplicationsController _desktopApplications;
+    private readonly WorkspaceReadinessController _readiness;
 
     public ApplicationLifecycleService(
         WorkspaceQueryController workspaces,
         WorkspaceStateController states,
         ProcessesController processes,
-        DesktopApplicationsController desktopApplications)
+        DesktopApplicationsController desktopApplications,
+        WorkspaceReadinessController readiness)
     {
         _workspaces = workspaces;
         _states = states;
         _processes = processes;
         _desktopApplications = desktopApplications;
+        _readiness = readiness;
     }
 
     public IReadOnlyList<ApplicationInstance>? GetApplications(string workspaceId)
@@ -41,7 +45,11 @@ public sealed class ApplicationLifecycleService
             if (application.Kind == ApplicationKind.Desktop)
                 application.RuntimeEnvironment = await _desktopApplications.PrepareAsync(workspace, application, CancellationToken.None);
             await _processes.LaunchApplicationAsync(workspace, applicationName);
-            await _states.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Running);
+            if (IsFailed(workspaceId, applicationName))
+                return ApplicationLifecycleResult.Failed("Application could not be started.");
+            await _readiness.WatchAsync(workspaceId);
+            if (IsFailed(workspaceId, applicationName))
+                return ApplicationLifecycleResult.Failed("Application could not be started.");
             return ApplicationLifecycleResult.Success();
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
@@ -88,7 +96,11 @@ public sealed class ApplicationLifecycleService
             if (application.Kind == ApplicationKind.Desktop)
                 application.RuntimeEnvironment = await _desktopApplications.PrepareAsync(workspace, application, CancellationToken.None);
             await _processes.LaunchApplicationAsync(workspace, applicationName);
-            await _states.UpdateApplicationStateAsync(workspaceId, applicationName, ApplicationState.Running);
+            if (IsFailed(workspaceId, applicationName))
+                return ApplicationLifecycleResult.Failed("Application could not be restarted.");
+            await _readiness.WatchAsync(workspaceId);
+            if (IsFailed(workspaceId, applicationName))
+                return ApplicationLifecycleResult.Failed("Application could not be restarted.");
             return ApplicationLifecycleResult.Success();
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
@@ -114,6 +126,10 @@ public sealed class ApplicationLifecycleService
             ? null
             : workspace;
     }
+
+    private bool IsFailed(string workspaceId, string applicationName)
+        => _workspaces.GetById(workspaceId)?.Applications
+            .FirstOrDefault(app => app.Name == applicationName)?.State == ApplicationState.Failed;
 }
 
 public sealed record ApplicationLifecycleResult(bool Found, bool Succeeded, string? Error)
@@ -125,9 +141,9 @@ public sealed record ApplicationLifecycleResult(bool Found, bool Succeeded, stri
     public static ApplicationLifecycleResult Failed(string error) => new(true, false, error);
 }
 
-public sealed record ApplicationOutputResult(bool Found, IReadOnlyList<string> Lines)
+public sealed record ApplicationOutputResult(bool Found, IReadOnlyList<ProcessOutputLineDto> Lines)
 {
     public static ApplicationOutputResult NotFound() => new(false, []);
 
-    public static ApplicationOutputResult Success(IReadOnlyList<string> lines) => new(true, lines);
+    public static ApplicationOutputResult Success(IReadOnlyList<ProcessOutputLineDto> lines) => new(true, lines);
 }

@@ -47,7 +47,17 @@ public sealed class AutonomyHttpTests
         Assert.Multiple(() =>
         {
             Assert.That(status!.Enabled, Is.False);
-            Assert.That(status.HostConnectionPresent, Is.False);
+            Assert.That(status.Preconditions.Select(item => item.Id), Is.EqualTo(new[]
+            {
+                "forgeCapabilityEnabled",
+                "hostConnectionAuthorized",
+                "agentAvailable",
+                "autonomyEnabled"
+            }));
+            Assert.That(status.Preconditions.All(item => !item.Satisfied), Is.True);
+            Assert.That(
+                status.Preconditions.Single(item => item.Id == "hostConnectionAuthorized").Remedy,
+                Is.EqualTo("Sign in to your repository host."));
         });
     }
 
@@ -57,8 +67,14 @@ public sealed class AutonomyHttpTests
         await using var host = await HostAsync();
 
         using var response = await host.Client.PutAsJsonAsync("/api/autonomy", new { enabled = true });
+        var body = await response.Content.ReadAsStringAsync();
 
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+            Assert.That(body, Does.Contain("hostConnectionAuthorized"));
+            Assert.That(body, Does.Contain("Sign in to your repository host."));
+        });
     }
 
     [Test]
@@ -78,7 +94,9 @@ public sealed class AutonomyHttpTests
             Assert.That(authorized.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
             Assert.That(enabled.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
             Assert.That(status!.Enabled, Is.True);
-            Assert.That(status.HostConnectionPresent, Is.True);
+            Assert.That(status.Preconditions.Single(item => item.Id == "hostConnectionAuthorized").Satisfied, Is.True);
+            Assert.That(status.Preconditions.Single(item => item.Id == "autonomyEnabled").Satisfied, Is.True);
+            Assert.That(status.Preconditions.Single(item => item.Id == "autonomyEnabled").Remedy, Is.Null);
         });
     }
 
@@ -309,6 +327,7 @@ public sealed class AutonomyHttpTests
         builder.Services.AddSingleton<AgentSchedulingService>();
         builder.Services.AddSingleton<AgentsController>();
         builder.Services.AddSingleton<IAgentWorkspaceSettingsRepository, InMemoryAgentWorkspaceSettingsRepository>();
+        builder.Services.AddSingleton<IHostConnectionPresence, HostConnectionPresenceProvider>();
         builder.Services.AddSingleton<IAutonomySettings, ConfiguredAutonomySettings>();
         builder.Services.AddSingleton<IAssignedIssueQueue, MemoryAssignedIssueQueue>();
         builder.Services.AddSingleton<IAssignedProposalQueue, MemoryAssignedProposalQueue>();

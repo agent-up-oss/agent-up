@@ -9,9 +9,10 @@ namespace AgentUp.Capabilities.Github.Features.GithubCapability.Providers;
 /// Talks to the GitHub REST API. The handler is injectable so tests can replay recorded
 /// responses without a live account.
 /// </summary>
-public sealed class GithubApiProvider(HttpMessageHandler? handler = null)
+public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string? apiBaseUrl = null)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    private readonly string _apiBaseUrl = GithubHostConfigurationProvider.ApiBase(apiBaseUrl);
 
     public async Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken)
     {
@@ -253,7 +254,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null)
     private HttpClient CreateClient(string token)
     {
         var client = handler is null ? new HttpClient() : new HttpClient(handler, disposeHandler: false);
-        client.BaseAddress = new Uri("https://api.github.com/");
+        client.BaseAddress = new Uri(_apiBaseUrl);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         client.DefaultRequestHeaders.UserAgent.ParseAdd("agent-up");
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));

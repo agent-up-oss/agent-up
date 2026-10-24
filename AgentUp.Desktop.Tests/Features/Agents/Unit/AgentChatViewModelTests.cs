@@ -6,7 +6,13 @@ using AgentUp.Desktop.Features.Agents.DTOs;
 using AgentUp.Desktop.Features.Agents.Interfaces;
 using AgentUp.Desktop.Features.Agents.Services;
 using AgentUp.Desktop.Features.Agents.ViewModels;
+using AgentUp.Desktop.Features.Capabilities.Controllers;
+using AgentUp.Desktop.Features.Capabilities.DTOs;
+using AgentUp.Desktop.Features.Capabilities.Interfaces;
+using AgentUp.Desktop.Features.Capabilities.Services;
+using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Tests.Support;
+using ReactiveUI;
 
 namespace AgentUp.Desktop.Tests.Features.Agents.Unit;
 
@@ -32,7 +38,16 @@ public sealed class AgentChatViewModelTests
             Assert.That(view.HasSession, Is.True);
             Assert.That(view.SessionId, Is.EqualTo("saved-1"));
             Assert.That(fake.ResumedSessionId, Is.EqualTo("saved-1"));
+            Assert.That(view.Sessions.Single().AutomationId, Is.EqualTo(DesktopAutomationIds.AgentSession("saved-1")));
         });
+    }
+
+    [Test]
+    public void PermissionOption_usesAStableAutomationId()
+    {
+        var option = new AgentOptionViewModel("allow-once", "Allow once", ReactiveCommand.Create(() => { }));
+
+        Assert.That(option.AutomationId, Is.EqualTo(DesktopAutomationIds.AgentOption("allow-once")));
     }
 
     [Test]
@@ -67,7 +82,7 @@ public sealed class AgentChatViewModelTests
                 .WithAgent("Claude")
                 .InState("authentication_required")
                 .WithError("""{"code":-32000,"message":"Authentication required"}""")
-                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .IdleWith(DesktopDomain.AvailableAgent("Claude"))
                 .Build()
         };
         var view = CreateView(fake);
@@ -95,7 +110,7 @@ public sealed class AgentChatViewModelTests
                     "Paste the code",
                     AgentLoginTransport.Code,
                     true))
-                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .IdleWith(DesktopDomain.AvailableAgent("Claude"))
                 .Build()
         };
         var view = CreateView(fake);
@@ -125,7 +140,7 @@ public sealed class AgentChatViewModelTests
                     "Paste the code",
                     AgentLoginTransport.Code,
                     true))
-                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .IdleWith(DesktopDomain.AvailableAgent("Claude"))
                 .Build()
         };
         var view = CreateView(fake);
@@ -150,7 +165,7 @@ public sealed class AgentChatViewModelTests
                     "ABCD-EFGHI",
                     "Enter this code",
                     AgentLoginTransport.Code))
-                .IdleWith(new AgentDescriptorDto("Codex", true, "Codex"))
+                .IdleWith(DesktopDomain.AvailableAgent())
                 .Build()
         };
         var view = CreateView(fake);
@@ -176,7 +191,7 @@ public sealed class AgentChatViewModelTests
                 .WithAgent("Claude")
                 .InState("authentication_required")
                 .WithError("JSON-RPC -32000")
-                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .IdleWith(DesktopDomain.AvailableAgent("Claude"))
                 .Build()
         };
         var view = CreateView(fake);
@@ -196,7 +211,7 @@ public sealed class AgentChatViewModelTests
                 .WithAgent("Claude")
                 .InState("authentication_required")
                 .WithError("   ")
-                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .IdleWith(DesktopDomain.AvailableAgent("Claude"))
                 .Build()
         };
         var view = CreateView(fake);
@@ -216,7 +231,7 @@ public sealed class AgentChatViewModelTests
                 .WithAgent("Claude")
                 .InState("authentication_required")
                 .WithError("spawn failed")
-                .IdleWith(new AgentDescriptorDto("Claude", true, "Claude"))
+                .IdleWith(DesktopDomain.AvailableAgent("Claude"))
                 .Build()
         };
         var view = CreateView(fake);
@@ -319,8 +334,8 @@ public sealed class AgentChatViewModelTests
         var fake = new ChatApiFake
         {
             Session = DesktopDomain.Session().IdleWith(
-                new AgentDescriptorDto("Codex", true, "Codex"),
-                new AgentDescriptorDto("Cursor", false, "Cursor")).Build()
+                DesktopDomain.AvailableAgent(),
+                DesktopDomain.Agent().Named("Cursor").ExecutableMissing().Build()).Build()
         };
         var view = CreateView(fake);
 
@@ -363,7 +378,7 @@ public sealed class AgentChatViewModelTests
         var fake = new ChatApiFake
         {
             Session = DesktopDomain.Session()
-                .IdleWith(new AgentDescriptorDto("Codex", true, "Codex"))
+                .IdleWith(DesktopDomain.AvailableAgent())
                 .BoundTo("Codex")
                 .WithLoop(new AgentLoopStatusDto(false, "idle", Terminal: "Idle"))
                 .Build()
@@ -431,12 +446,238 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
+    public async Task LoadAsync_loadsTheAutonomyChecklist()
+    {
+        var view = CreateView(new ChatApiFake());
+
+        await view.LoadAsync("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.HasAutonomy, Is.True);
+            Assert.That(view.Preconditions.Select(item => item.Id), Is.EqualTo(new[]
+            {
+                "forgeCapabilityEnabled",
+                "hostConnectionAuthorized",
+                "agentAvailable",
+                "autonomyEnabled"
+            }));
+            Assert.That(view.CanEnableAutonomy, Is.True);
+            Assert.That(view.CanActivateLoop, Is.False);
+        });
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task EnableAutonomyCommand_persistsServerEnablement()
+    {
+        var fake = new ChatApiFake();
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        var sawActivate = false;
+        view.PropertyChanged += (_, change) =>
+        {
+            if (change.PropertyName == nameof(AgentChatViewModel.CanActivateLoop) && view.CanActivateLoop)
+                sawActivate = true;
+        };
+        await view.EnableAutonomyCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fake.LastEnabled, Is.True);
+            Assert.That(view.CanEnableAutonomy, Is.False);
+            Assert.That(view.CanActivateLoop, Is.True);
+            Assert.That(sawActivate, Is.True);
+        });
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task ActivateThenCancel_exposesTheTypedLoopTerminal()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session().Ready().BoundTo("Codex").Build(),
+            Autonomy = new(true, [
+                new("forgeCapabilityEnabled", true),
+                new("hostConnectionAuthorized", true),
+                new("agentAvailable", true),
+                new("autonomyEnabled", true)
+            ])
+        };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+        await view.ActivateLoopCommand.Execute().FirstAsync();
+        await view.CancelLoopCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.LoopTerminal, Is.EqualTo("Cancelled"));
+            Assert.That(view.HasMessages, Is.False);
+            Assert.That(view.CanCancelLoop, Is.False);
+        });
+
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task LoadAsync_dropsAStaleAutonomyResponseAfterANewerLoad()
+    {
+        var hang = new TaskCompletionSource();
+        var fake = new ChatApiFake { AutonomyHang = hang };
+        var view = CreateView(fake);
+        var first = view.LoadAsync("ws-1");
+        while (fake.AutonomyReads == 0)
+            await Task.Delay(10);
+        await view.LoadAsync(null);
+        hang.SetResult();
+        await first;
+
+        Assert.That(view.HasAutonomy, Is.False);
+        Assert.That(view.Error, Is.Null);
+    }
+
+    [Test]
+    public async Task LoadAsync_reportsAutonomyFailuresWithoutClearingTheSession()
+    {
+        var fake = new ChatApiFake { AutonomyFailure = new HttpRequestException("autonomy down") };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+
+        Assert.That(view.Error, Is.EqualTo("autonomy down"));
+        Assert.That(view.HasAutonomy, Is.False);
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task EnableAutonomyCommand_surfacesATransportFailure()
+    {
+        var fake = new ChatApiFake { PutAutonomyFailure = new HttpRequestException("cannot enable") };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        await view.EnableAutonomyCommand.Execute().FirstAsync();
+
+        Assert.That(view.Error, Is.EqualTo("cannot enable"));
+        Assert.That(view.CanEnableAutonomy, Is.True);
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task CanEnableAutonomy_requiresTheFirstThreeStepsAndAnOutstandingEnablement()
+    {
+        var fake = new ChatApiFake
+        {
+            Autonomy = new(false, [
+                new("forgeCapabilityEnabled", false, "Run: agent-up capabilities bootstrap"),
+                new("hostConnectionAuthorized", true),
+                new("agentAvailable", true),
+                new("autonomyEnabled", false, "Enable autonomy for this Server")
+            ])
+        };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        Assert.That(view.CanEnableAutonomy, Is.False);
+        Assert.That(view.CanActivateLoop, Is.False);
+
+        fake.Autonomy = new(false, [
+            new("forgeCapabilityEnabled", true),
+            new("hostConnectionAuthorized", false, "Sign in to your repository host."),
+            new("agentAvailable", true),
+            new("autonomyEnabled", false, "Enable autonomy for this Server")
+        ]);
+        await view.LoadAsync("ws-1");
+        Assert.That(view.CanEnableAutonomy, Is.False);
+
+        fake.Autonomy = new(false, [
+            new("forgeCapabilityEnabled", true),
+            new("hostConnectionAuthorized", true),
+            new("agentAvailable", false, "Enable an agent capability"),
+            new("autonomyEnabled", false, "Enable autonomy for this Server")
+        ]);
+        await view.LoadAsync("ws-1");
+        Assert.That(view.CanEnableAutonomy, Is.False);
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task CanActivateLoop_staysFalseWhileTheLoopIsActive()
+    {
+        var fake = new ChatApiFake
+        {
+            Autonomy = new(true, [
+                new("forgeCapabilityEnabled", true),
+                new("hostConnectionAuthorized", true),
+                new("agentAvailable", true),
+                new("autonomyEnabled", true)
+            ]),
+            Session = DesktopDomain.Session()
+                .Ready()
+                .BoundTo("Codex")
+                .WithLoop(new AgentLoopStatusDto(true, "running", TaskTitle: "Restock featured products"))
+                .Build()
+        };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.CanEnableAutonomy, Is.False);
+            Assert.That(view.CanActivateLoop, Is.False);
+            Assert.That(view.CanCancelLoop, Is.True);
+            Assert.That(view.HasLoopPhase, Is.True);
+            Assert.That(view.HasLoopTerminal, Is.False);
+        });
+        view.IsVisible = true;
+        view.IsVisible = false;
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task LoadAsync_clearsTheChecklistWhenAutonomyIsAbsent()
+    {
+        var fake = new ChatApiFake { Autonomy = null };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        Assert.That(view.HasAutonomy, Is.False);
+        Assert.That(view.CanEnableAutonomy, Is.False);
+        Assert.That(view.CanActivateLoop, Is.False);
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task ActivateLoopCommand_surfacesALoopReadFailure()
+    {
+        var fake = new ChatApiFake
+        {
+            Autonomy = new(true, [
+                new("forgeCapabilityEnabled", true),
+                new("hostConnectionAuthorized", true),
+                new("agentAvailable", true),
+                new("autonomyEnabled", true)
+            ]),
+            LoopFailure = new HttpRequestException("loop down")
+        };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        await view.ActivateLoopCommand.Execute().FirstAsync();
+
+        Assert.That(view.Error, Is.EqualTo("loop down"));
+        await view.LoadAsync(null);
+    }
+
+    [Test]
     public async Task StartBoundCommand_schedulesTheBoundAgent()
     {
         var fake = new ChatApiFake
         {
             Session = DesktopDomain.Session()
-                .IdleWith(new AgentDescriptorDto("Codex", true, "Codex"))
+                .IdleWith(DesktopDomain.AvailableAgent())
                 .BoundTo("Codex")
                 .Build(),
             NextSession = DesktopDomain.Session().Ready().BoundTo("Codex").Build()
@@ -470,7 +711,7 @@ public sealed class AgentChatViewModelTests
         var fake = new ChatApiFake
         {
             Session = DesktopDomain.Session()
-                .IdleWith(new AgentDescriptorDto("Codex", true, "Codex"))
+                .IdleWith(DesktopDomain.AvailableAgent())
                 .Build(),
             NextSession = DesktopDomain.Session().Ready().WithAgents().Build()
         };
@@ -630,12 +871,95 @@ public sealed class AgentChatViewModelTests
         new("Thought", "**Clarifying test meaning**");
 
     [Test]
+    public void AgentDescriptorDto_offersEnableWhenThePackageIsTheGap()
+    {
+        var agent = DesktopDomain.Agent().Named("claude", "Claude").PackageDisabled().Build();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(agent.CanEnable, Is.True);
+            Assert.That(agent.IsBlocked, Is.False);
+            Assert.That(agent.StatusLabel, Is.EqualTo("Not enabled"));
+            Assert.That(agent.HasDetail, Is.True);
+            Assert.That(agent.HasRemedy, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task EnableAgentCommand_reportsWhenCapabilitiesAreUnavailable()
+    {
+        var view = CreateView(new ChatApiFake());
+        await view.LoadAsync("ws-1");
+
+        await view.EnableAgentCommand.Execute("claude").FirstAsync();
+
+        Assert.That(view.Error, Does.Contain("cannot enable"));
+    }
+
+    [Test]
+    public async Task EnableAgentCommand_reloadsTheCatalogAfterEnabling()
+    {
+        var modules = new RecordingCapabilityModulesApi();
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session()
+                .IdleWith(DesktopDomain.Agent().Named("claude", "Claude").PackageDisabled().Build())
+                .Build()
+        };
+        var view = CreateView(fake, new CapabilityModulesController(new CapabilityModulesCatalogService(modules)));
+        await view.LoadAsync("ws-1");
+        fake.Session = DesktopDomain.Session()
+            .IdleWith(DesktopDomain.AvailableAgent("claude", "Claude"))
+            .Build();
+
+        await view.EnableAgentCommand.Execute("claude").FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(modules.EnabledId, Is.EqualTo("claude"));
+            Assert.That(view.Agents.Single().Available, Is.True);
+            Assert.That(view.Agents.Single().CanEnable, Is.False);
+        });
+    }
+
+    [Test]
+    public async Task EnableAgentCommand_reportsEnableFailures()
+    {
+        var modules = new RecordingCapabilityModulesApi
+        {
+            EnableFailure = new InvalidOperationException("The claude package is not in the registry.")
+        };
+        var view = CreateView(
+            new ChatApiFake(),
+            new CapabilityModulesController(new CapabilityModulesCatalogService(modules)));
+        await view.LoadAsync("ws-1");
+
+        await view.EnableAgentCommand.Execute("claude").FirstAsync();
+
+        Assert.That(view.Error, Does.Contain("not in the registry"));
+    }
+
+    [Test]
+    public async Task EnableAgentCommand_doesNothingUntilAWorkspaceIsLoaded()
+    {
+        var modules = new RecordingCapabilityModulesApi();
+        var view = CreateView(
+            new ChatApiFake(),
+            new CapabilityModulesController(new CapabilityModulesCatalogService(modules)));
+
+        await view.EnableAgentCommand.Execute("claude").FirstAsync();
+
+        Assert.That(modules.EnabledId, Is.Null);
+        Assert.That(view.Error, Is.Null);
+    }
+
+    [Test]
     public void AgentSessionDto_preservesASubscriptionLoginChallenge()
     {
         var session = DesktopDomain.Session()
             .WithAgent("Cursor")
             .InState("authenticating")
-            .IdleWith(new AgentDescriptorDto("Cursor", true, "Cursor"))
+            .IdleWith(DesktopDomain.AvailableAgent("Cursor"))
             .WithAuthMethods(new AgentAuthMethodDto("cursor_login", "Cursor Login", "Sign in"))
             .WithLoginChallenge(new AgentLoginChallengeDto("https://cursor.com/loginDeepControl?challenge=abc", "ABCD-EFGHI", "Open this link"))
             .Build();
@@ -674,8 +998,8 @@ public sealed class AgentChatViewModelTests
         Assert.That(challenge.RedirectUri, Is.Null);
     }
 
-    private static AgentChatViewModel CreateView(IAgentApiProvider provider)
-        => new(new AgentsController(new AgentChatService(provider)));
+    private static AgentChatViewModel CreateView(IAgentApiProvider provider, CapabilityModulesController? modules = null)
+        => new(new AgentsController(new AgentChatService(provider)), modules);
 }
 
 internal sealed class ChatApiFake : IAgentApiProvider
@@ -730,6 +1054,85 @@ internal sealed class ChatApiFake : IAgentApiProvider
     public Task DecideAsync(string workspaceId, string requestId, string optionId, CancellationToken cancellationToken) => Task.CompletedTask;
     public Task StopAsync(string workspaceId, CancellationToken cancellationToken) => Task.CompletedTask;
 
+    public ServerAutonomyDto? Autonomy { get; set; } = new(false, [
+        new("forgeCapabilityEnabled", true),
+        new("hostConnectionAuthorized", true),
+        new("agentAvailable", true),
+        new("autonomyEnabled", false, "Enable autonomy for this Server")
+    ]);
+    public bool? LastEnabled { get; private set; }
+    public bool? LastActive { get; private set; }
+    public Exception? AutonomyFailure { get; set; }
+    public Exception? PutAutonomyFailure { get; set; }
+    public Exception? LoopFailure { get; set; }
+    public TaskCompletionSource? AutonomyHang { get; set; }
+    public TaskCompletionSource? LoopHang { get; set; }
+    public int IgnoreLoopReads { get; set; }
+    public Queue<AgentLoopStatusDto?> LoopPolls { get; } = new();
+
+    public int AutonomyReads { get; private set; }
+
+    public async Task<ServerAutonomyDto?> GetAutonomyAsync(CancellationToken cancellationToken)
+    {
+        AutonomyReads++;
+        if (AutonomyHang is not null)
+            await AutonomyHang.Task;
+        if (AutonomyFailure is not null)
+            throw AutonomyFailure;
+        return Autonomy;
+    }
+
+    public Task PutAutonomyAsync(bool enabled, CancellationToken cancellationToken)
+    {
+        if (PutAutonomyFailure is not null)
+            return Task.FromException(PutAutonomyFailure);
+        LastEnabled = enabled;
+        Autonomy = new(enabled, (Autonomy?.Preconditions ?? []).Select(item =>
+            item.Id == "autonomyEnabled"
+                ? item with { Satisfied = enabled, Remedy = enabled ? null : "Enable autonomy for this Server" }
+                : item).ToArray());
+        return Task.CompletedTask;
+    }
+
+    public Task PutLoopActivationAsync(string workspaceId, bool active, CancellationToken cancellationToken)
+    {
+        LastActive = active;
+        LastWorkspace = workspaceId;
+        if (Session is not null)
+        {
+            Session = Session with
+            {
+                Loop = active
+                    ? new AgentLoopStatusDto(true, "running", TaskTitle: "Restock featured products")
+                    : new AgentLoopStatusDto(false, "stopped", Terminal: "Cancelled", StopReason: "cancelled")
+            };
+        }
+        return Task.CompletedTask;
+    }
+
+    public async Task<AgentLoopStatusDto?> GetLoopAsync(string workspaceId, CancellationToken cancellationToken)
+    {
+        if (IgnoreLoopReads > 0)
+        {
+            IgnoreLoopReads--;
+            return Session?.Loop;
+        }
+
+        if (LoopHang is not null)
+            await LoopHang.Task;
+
+        if (LoopFailure is not null)
+        {
+            var failure = LoopFailure;
+            LoopFailure = null;
+            throw failure;
+        }
+
+        if (LoopPolls.Count > 0)
+            return LoopPolls.Dequeue();
+        return Session?.Loop;
+    }
+
     public async IAsyncEnumerable<AgentEventDto> EventsAsync(
         string workspaceId,
         long after,
@@ -739,4 +1142,24 @@ internal sealed class ChatApiFake : IAgentApiProvider
             await EventsHang.Task.WaitAsync(cancellationToken);
         yield break;
     }
+}
+
+internal sealed class RecordingCapabilityModulesApi : ICapabilityModulesApiProvider
+{
+    public string? EnabledId { get; private set; }
+    public Exception? EnableFailure { get; set; }
+
+    public Task<IReadOnlyList<CapabilityModuleDto>> ListAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult<IReadOnlyList<CapabilityModuleDto>>([]);
+
+    public Task<CapabilityModuleDto> EnableAsync(string id, string? version, CancellationToken cancellationToken = default)
+    {
+        if (EnableFailure is not null)
+            return Task.FromException<CapabilityModuleDto>(EnableFailure);
+        EnabledId = id;
+        return Task.FromResult(new CapabilityModuleDto(id, "1.0.0", id, "agent-up", "agent", true, "ready", true, []));
+    }
+
+    public Task<CapabilityModuleDto> DisableAsync(string id, CancellationToken cancellationToken = default)
+        => Task.FromResult(new CapabilityModuleDto(id, "1.0.0", id, "agent-up", "agent", false, "disabled", false, []));
 }

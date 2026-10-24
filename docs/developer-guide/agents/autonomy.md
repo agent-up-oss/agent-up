@@ -9,7 +9,7 @@ A workspace can bind one agent, attach a permission policy, and drain assigned h
 </DocWhat>
 
 <DocFacts>
-<DocFact label="Server enable">AGENTUP_AUTONOMY_ENABLED or PUT /api/autonomy</DocFact>
+<DocFact label="Server enable">AGENTUP_AUTONOMY_ENABLED (wins) or persisted PUT /api/autonomy</DocFact>
 <DocFact label="Bind">{'PUT /api/workspaces/{id}/agent/binding'}</DocFact>
 <DocFact label="Activate">{'PUT /api/workspaces/{id}/agent/autonomy'}</DocFact>
 <DocFact label="Default">Off. No policy means the interactive permission path.</DocFact>
@@ -31,7 +31,7 @@ An empty rule list is byte-identical to today's human path: the client still dec
 
 ## Unattended loop
 
-Autonomy is a Server-level switch, off by default, and it needs a host connection on at least one workspace before `PUT /api/autonomy` can enable it. Each workspace then activates separately. Preconditions are checked at activate and at every task boundary:
+Autonomy is a Server-level switch, off by default. Enablement is stored in `autonomy-settings.json`; `AGENTUP_AUTONOMY_ENABLED` still forces it on. `GET /api/autonomy` returns `{ enabled, preconditions }` in order: `forgeCapabilityEnabled`, `hostConnectionAuthorized`, `agentAvailable`, `autonomyEnabled`, each with a remedy when unsatisfied. `PUT /api/autonomy` still requires an authorized host connection. Desktop and Mobile render that chain and Activate/Cancel; they assert `LoopTerminal`, not transcript prose. Drive the loop with `test-agent-scripted`. Each workspace then activates separately. Preconditions are checked at activate and at every task boundary:
 
 - a bound agent that declares permission requests
 - a non-empty policy

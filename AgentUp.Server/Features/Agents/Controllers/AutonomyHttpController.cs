@@ -9,8 +9,8 @@ namespace AgentUp.Server.Features.Agents.Controllers;
 public sealed class AutonomyHttpController(AutonomousWorkspaceService autonomy) : ControllerBase
 {
     [HttpGet]
-    public ActionResult<ServerAutonomyDto> Get() =>
-        Ok(new ServerAutonomyDto(autonomy.ServerEnabled, autonomy.HostConnectionPresent));
+    public async Task<ActionResult<ServerAutonomyDto>> Get(CancellationToken cancellationToken) =>
+        Ok(await autonomy.GetStatusAsync(cancellationToken));
 
     [HttpPut]
     public IActionResult Put(ServerAutonomyRequest request) =>

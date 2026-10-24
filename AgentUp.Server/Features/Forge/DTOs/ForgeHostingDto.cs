@@ -8,6 +8,7 @@ public sealed record ForgeHostingDto(
     IReadOnlyList<ForgeReviewThreadDto> Threads,
     ForgeMergeabilityDto? Mergeability,
     string? Detail,
+    string? Remedy,
     ForgeAccountDto? Account = null,
     IReadOnlyList<ForgeReviewDto>? Reviews = null);
 

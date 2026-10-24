@@ -43,6 +43,20 @@ public sealed class GitApiClient(HttpClient http) : IGitApiProvider
         return await response.Content.ReadFromJsonAsync<ForgeHostingDto>(Options, ct);
     }
 
+    public async Task<ForgeLoginStartDto> StartLoginAsync(string workspaceId, CancellationToken ct = default)
+    {
+        using var response = await http.PostAsync(
+            $"/api/workspaces/{Uri.EscapeDataString(workspaceId)}/forge/login", null, ct);
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException(await ReadProblemDetailAsync(response));
+
+        var started = await response.Content.ReadFromJsonAsync<ForgeLoginStartDto>(Options, ct)
+            ?? throw new InvalidOperationException("The server returned an empty sign-in URL.");
+        if (string.IsNullOrWhiteSpace(started.AuthorizationUrl))
+            throw new InvalidOperationException("The server returned an empty sign-in URL.");
+        return started;
+    }
+
     public async Task<GitFileDiffDto?> GetFileDiffAsync(string workspaceId, string path, CancellationToken ct = default)
     {
         using var response = await http.GetAsync(

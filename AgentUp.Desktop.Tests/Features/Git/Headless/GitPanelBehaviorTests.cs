@@ -1,6 +1,7 @@
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Git.DTOs;
 using AgentUp.Desktop.Features.Git.ViewModels;
+using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Tests.Support;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
@@ -102,7 +103,7 @@ public sealed class GitPanelBehaviorTests
     }
 
     [AvaloniaTest]
-    public async Task GitPanel_hidesHostingUntilAForgeIsEnabled()
+    public async Task GitPanel_showsNotInstalledUntilAProposalIsReady()
     {
         var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var viewModel = (MainViewModel)driver.Window.DataContext!;
@@ -110,16 +111,15 @@ public sealed class GitPanelBehaviorTests
         await HeadlessExtensions.FlushAsync();
 
         var strip = driver.Window.FindControl<Border>("GitHostingStrip")!;
-        Assert.That(strip.IsVisible, Is.False);
+        Assert.That(strip.IsVisible, Is.True);
+        Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text!.Contains("forge capability")), Is.True);
+        Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text!.Contains("capabilities bootstrap")), Is.True);
 
-        viewModel.Git.ApplyHosting(new ForgeHostingDto(
-            "ready",
-            "github",
-            new ForgeProposalDto("1", "42", "Ready", "https://example.test/42", "topic", "main", "open"),
-            [new ForgeCheckDto("ci", "completed", "success", "https://example.test/check")],
-            [new ForgeReviewThreadDto("PRRT_1", "https://example.test/thread", "nits", false)],
-            new ForgeMergeabilityDto(true, "clean"),
-            null));
+        viewModel.Git.ApplyHosting(DesktopDomain.Hosting().Ready()
+            .WithChecks(new ForgeCheckDto("ci", "completed", "success", "https://example.test/check"))
+            .WithThreads(new ForgeReviewThreadDto("PRRT_1", "https://example.test/thread", "nits", false))
+            .Mergeable()
+            .Build());
         await HeadlessExtensions.FlushAsync();
 
         Assert.That(strip.IsVisible, Is.True);
@@ -134,19 +134,42 @@ public sealed class GitPanelBehaviorTests
         var viewModel = (MainViewModel)driver.Window.DataContext!;
         viewModel.SelectedShellTab = WorkspaceShellTab.Git;
 
-        viewModel.Git.ApplyHosting(new ForgeHostingDto("needsCredential", "github", null, [], [], null, null));
+        viewModel.Git.ApplyHosting(DesktopDomain.Hosting().NeedsCredential().Build());
         await HeadlessExtensions.FlushAsync();
         var strip = driver.Window.FindControl<Border>("GitHostingStrip")!;
         Assert.That(strip.IsVisible, Is.True);
+        Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text!.Contains("credential")), Is.True);
         Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text!.Contains("Sign in")), Is.True);
 
-        viewModel.Git.ApplyHosting(new ForgeHostingDto("unreachable", "github", null, [], [], null, "Could not reach the host."));
+        viewModel.Git.ApplyHosting(DesktopDomain.Hosting().Unreachable().Build());
         await HeadlessExtensions.FlushAsync();
         Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == "Could not reach the host."), Is.True);
 
-        viewModel.Git.ApplyHosting(new ForgeHostingDto("noProposal", "github", null, [], [], null, null));
+        viewModel.Git.ApplyHosting(DesktopDomain.Hosting().NoProposal().Build());
         await HeadlessExtensions.FlushAsync();
         Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text!.Contains("No open proposal")), Is.True);
+    }
+
+    [AvaloniaTest]
+    public async Task GitPanel_keepsTheOpenSignInLinkAcrossAHostingPoll()
+    {
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
+        var viewModel = (MainViewModel)driver.Window.DataContext!;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Git;
+        viewModel.Git.ApplyHosting(DesktopDomain.Hosting().NeedsCredential().Build());
+        viewModel.Git.HostingSignInUrl = "https://example.test/login/oauth/authorize";
+        await HeadlessExtensions.FlushAsync();
+
+        var open = ChromeTestSupport.FindDescendantByAutomationId<HyperlinkButton>(
+            driver.Window, DesktopAutomationIds.GitHostingOpenSignIn);
+        Assert.That(open, Is.Not.Null);
+        Assert.That(open!.IsVisible, Is.True);
+
+        viewModel.Git.ApplyHosting(DesktopDomain.Hosting().NeedsCredential().Build());
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(viewModel.Git.HostingSignInUrl, Is.EqualTo("https://example.test/login/oauth/authorize"));
+        Assert.That(open.IsVisible, Is.True);
     }
 
     [AvaloniaTest]

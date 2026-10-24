@@ -10,17 +10,21 @@ namespace AgentUp.Server.Tests.Features.Forge.Provider;
 public sealed class ForgeOAuthExchangeProviderTests
 {
     [Test]
-    public async Task ExchangeAsync_readsTheAccessTokenFromJson()
+    public async Task ExchangeAsync_postsToTheModuleTokenUrl()
     {
-        var handler = new RecordedHandler(HttpStatusCode.OK, """{"access_token":"ghp_exchanged"}""");
+        var handler = new RecordedHandler(HttpStatusCode.OK, """{"access_token":"exchanged"}""");
         var provider = new ForgeOAuthExchangeProvider(
             new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback")),
             handler);
 
-        var token = await provider.ExchangeAsync("code", CancellationToken.None);
+        var token = await provider.ExchangeAsync(
+            "code",
+            "https://example.test/login/oauth/access_token",
+            CancellationToken.None);
 
-        Assert.That(token, Is.EqualTo("ghp_exchanged"));
-        Assert.That(handler.Requests.Single(), Does.Contain("https://github.com/login/oauth/access_token"));
+        Assert.That(token, Is.EqualTo("exchanged"));
+        Assert.That(handler.Requests.Single(), Does.Contain("https://example.test/login/oauth/access_token"));
+        Assert.That(handler.Requests.Single(), Does.Not.Contain("github.com"));
     }
 
     [Test]
@@ -30,7 +34,60 @@ public sealed class ForgeOAuthExchangeProviderTests
             new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback")),
             new RecordedHandler(HttpStatusCode.OK, "{}"));
 
-        Assert.ThrowsAsync<InvalidOperationException>(() => provider.ExchangeAsync("code", CancellationToken.None));
+        var error = Assert.ThrowsAsync<InvalidOperationException>(() =>
+            provider.ExchangeAsync("code", "https://example.test/login/oauth/access_token", CancellationToken.None));
+
+        Assert.That(error!.Message, Is.EqualTo(ForgeHostingCopy.MissingToken));
+    }
+
+    [Test]
+    public void ExchangeAsync_throwsWhenTheTokenUrlIsMissing()
+    {
+        var provider = new ForgeOAuthExchangeProvider(
+            new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback")),
+            new RecordedHandler(HttpStatusCode.OK, """{"access_token":"x"}"""));
+
+        Assert.ThrowsAsync<InvalidOperationException>(() =>
+            provider.ExchangeAsync("code", "", CancellationToken.None));
+    }
+
+    [Test]
+    public void ExchangeAsync_throwsWhenTheTokenIsEmpty()
+    {
+        var provider = new ForgeOAuthExchangeProvider(
+            new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback")),
+            new RecordedHandler(HttpStatusCode.OK, """{"access_token":null}"""));
+
+        var error = Assert.ThrowsAsync<InvalidOperationException>(() =>
+            provider.ExchangeAsync("code", "https://example.test/login/oauth/access_token", CancellationToken.None));
+
+        Assert.That(error!.Message, Is.EqualTo(ForgeHostingCopy.EmptyToken));
+    }
+
+    [Test]
+    public void ExchangeAsync_throwsWhenTheTokenUrlIsWhitespace()
+    {
+        var provider = new ForgeOAuthExchangeProvider(
+            new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback")),
+            new RecordedHandler(HttpStatusCode.OK, """{"access_token":"x"}"""));
+
+        var error = Assert.ThrowsAsync<InvalidOperationException>(() =>
+            provider.ExchangeAsync("code", "  ", CancellationToken.None));
+
+        Assert.That(error!.Message, Is.EqualTo(ForgeHostingCopy.OAuthMissingDetail));
+    }
+
+    [Test]
+    public void ExchangeAsync_throwsWhenTheAccessTokenIsAnEmptyString()
+    {
+        var provider = new ForgeOAuthExchangeProvider(
+            new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback")),
+            new RecordedHandler(HttpStatusCode.OK, """{"access_token":""}"""));
+
+        var error = Assert.ThrowsAsync<InvalidOperationException>(() =>
+            provider.ExchangeAsync("code", "https://example.test/login/oauth/access_token", CancellationToken.None));
+
+        Assert.That(error!.Message, Is.EqualTo(ForgeHostingCopy.EmptyToken));
     }
 
     private sealed class RecordedHandler(HttpStatusCode status, string body) : HttpMessageHandler

@@ -25,7 +25,13 @@ If the service starts and stops repeatedly or consumes CPU while failing to beco
 - Git.
 - Docker and Docker Compose when managed repositories declare Docker services.
 - Node.js and npm for the documentation site.
-- Nix on NixOS or Linux systems that need the provided native desktop dependency shell.
+- Nix on the host that runs the Server. Capability packages deliver toolchains through Nix. On Linux or macOS:
+
+```bash
+sh <(curl -L https://nixos.org/nix/install) --daemon
+```
+
+See [the Nix download page](https://nixos.org/download). On Windows, run the Server under WSL2 and install Nix there. Nix is also used on NixOS or Linux when you need the native desktop dependency shell.
 
 ## Clone and Build
 
@@ -79,9 +85,10 @@ To expose REST to the LAN, set `AGENTUP_ADMIN_PASSWORD` or
 protect it with HTTPS or a TLS-terminating reverse proxy. TLS encrypts the
 connection; it does not stop a LAN client from calling REST. Leave authentication
 off only if anonymous LAN access is intentional. Plain HTTP exposes the
-administrator password during login and bearer tokens on the wire. MCP has no
-login because it is intended for local tools, and the Server rejects MCP requests
-whose remote address is not loopback.
+administrator password during login and bearer tokens on the wire. MCP stays
+loopback-only until `AGENTUP_MCP_REMOTE_ENABLED=true` with `externalBearer`; a
+request from another address without a valid token still looks like nothing is
+there.
 
 Remote Desktop and Mobile clients must use HTTPS when the Server URL is not
 loopback. Loopback HTTP remains supported for local development on

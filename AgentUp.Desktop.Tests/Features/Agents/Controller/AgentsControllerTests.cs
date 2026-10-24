@@ -41,4 +41,23 @@ public sealed class AgentsControllerTests
         Assert.That(await controller.GetAsync("missing", CancellationToken.None), Is.Null);
         Assert.That(await controller.ScheduleAsync("missing", "Codex", CancellationToken.None), Is.Null);
     }
+
+    [Test]
+    public async Task AutonomyCalls_delegateAcrossTheSliceBoundary()
+    {
+        var provider = new FakeAgentApiProvider();
+        var controller = new AgentsController(new AgentChatService(provider));
+
+        await controller.GetAutonomyAsync(CancellationToken.None);
+        await controller.PutAutonomyAsync(true, CancellationToken.None);
+        await controller.PutLoopActivationAsync("ws-1", true, CancellationToken.None);
+        await controller.GetLoopAsync("ws-1", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(provider.AutonomyEnabled, Is.True);
+            Assert.That(provider.LoopActivation, Is.EqualTo(("ws-1", true)));
+            Assert.That(provider.LoopReads, Is.EqualTo("ws-1"));
+        });
+    }
 }

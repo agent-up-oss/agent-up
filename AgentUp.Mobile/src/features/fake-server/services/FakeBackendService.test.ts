@@ -112,7 +112,10 @@ test('agent list follows enabled agent capabilities', () => {
   json(service, 'POST', '/api/capabilities/enable', JSON.stringify({ id: 'claude' }));
   const scheduled = json(service, 'POST', '/api/workspaces/bob/agent', JSON.stringify({ agent: 'claude' }));
   assert.deepEqual(listed.agents.map((item: { agent: string }) => item.agent), ['codex', 'cursor', 'claude']);
-  assert.deepEqual(afterDisable.agents.map((item: { agent: string }) => item.agent), ['codex', 'cursor']);
+  const disabled = afterDisable.agents.find((item: { agent: string }) => item.agent === 'claude');
+  assert.equal(disabled.available, false);
+  assert.equal(disabled.unavailability, 'capabilityNotEnabled');
+  assert.match(disabled.remedy, /claude/);
   assert.equal(rejected.status, 409);
   assert.equal(scheduled.agent, 'claude');
 });
@@ -124,6 +127,39 @@ test('agent session exposes loop phase, task and stop reason', () => {
   assert.equal(session.loop.taskTitle, 'Restock featured products');
   assert.equal(session.loop.stopReason, null);
   assert.equal(session.boundAgent, 'Codex');
+});
+
+test('autonomy enable then activate exposes a typed terminal', () => {
+  const service = backend((_, work) => {
+    work();
+    return () => undefined;
+  });
+  const before = json(service, 'GET', '/api/autonomy');
+  assert.equal(before.enabled, false);
+  assert.equal(before.preconditions.map((item: { id: string }) => item.id).join(','),
+    'forgeCapabilityEnabled,hostConnectionAuthorized,agentAvailable,autonomyEnabled');
+  assert.equal(service.handle({ method: 'PUT', path: '/api/autonomy', query: '', body: '{"enabled":true}' }).status, 204);
+  assert.equal(json(service, 'GET', '/api/autonomy').enabled, true);
+  assert.equal(service.handle({
+    method: 'PUT',
+    path: '/api/workspaces/bob/agent/autonomy',
+    query: '',
+    body: '{"active":true}',
+  }).status, 204);
+  assert.equal(json(service, 'GET', '/api/workspaces/bob/agent/loop').terminal, 'Completed');
+  service.handle({
+    method: 'PUT',
+    path: '/api/workspaces/bob/agent/autonomy',
+    query: '',
+    body: '{"active":true}',
+  });
+  assert.equal(service.handle({
+    method: 'PUT',
+    path: '/api/workspaces/bob/agent/autonomy',
+    query: '',
+    body: '{"active":false}',
+  }).status, 204);
+  assert.equal(json(service, 'GET', '/api/workspaces/bob/agent/loop').terminal, 'Cancelled');
 });
 
 test('agent session lists current and prior saved sessions', () => {
@@ -359,12 +395,13 @@ test('forge answers what the definition says the host reports', () => {
   assert.ok(docs.detail.includes('502'));
 });
 
-test('forge reads as no host when the definition says nothing', () => {
+test('forge reads as not installed when the definition says nothing', () => {
   const definition = loadFakeServerDefinition();
   delete definition.forge;
   const hosting = json(new FakeBackendService(definition), 'GET', '/api/workspaces/bob/forge');
-  assert.equal(hosting.availability, 'none');
+  assert.equal(hosting.availability, 'notInstalled');
   assert.equal(hosting.proposal, null);
+  assert.match(hosting.remedy, /capabilities bootstrap/);
 });
 
 test('the agent loop reports the task and what blocks it', () => {

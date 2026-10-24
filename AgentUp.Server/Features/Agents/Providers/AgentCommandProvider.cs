@@ -8,8 +8,17 @@ public sealed class AgentCommandProvider(
     IConfiguration configuration,
     IEnabledCapabilityPackages? packages = null)
 {
-    public async Task<bool> IsAvailableAsync(string agent, CancellationToken cancellationToken) =>
-        await ResolveAsync(agent, cancellationToken) is not null;
+    public Task<bool> IsAvailableAsync(string agent, CancellationToken cancellationToken)
+        => Task.FromResult(IsLaunchExecutableAvailable(agent));
+
+    public string? LaunchCommandName(string agent)
+    {
+        var configured = ReadConfigured(agent);
+        if (configured is not null)
+            return Path.GetFileName(configured.FileName);
+
+        return RawLaunchCommand(agent);
+    }
 
     public Task<AgentCommand?> ResolveAsync(string agent, CancellationToken cancellationToken)
     {
@@ -21,8 +30,42 @@ public sealed class AgentCommandProvider(
         if (capability is not null)
             return Task.FromResult<AgentCommand?>(capability);
 
-        return Task.FromResult(configured is not null && IsAvailableCommand(configured.FileName) ? configured : null);
+        if (configured is not null && IsAvailableCommand(configured.FileName))
+            return Task.FromResult<AgentCommand?>(configured);
+
+        if (IsScriptedTestAgent(agent) && IsAvailableCommand(AgentUnavailability.ScriptedTestAgent))
+            return Task.FromResult<AgentCommand?>(new AgentCommand(AgentUnavailability.ScriptedTestAgent, []));
+
+        return Task.FromResult<AgentCommand?>(null);
     }
+
+    private bool IsLaunchExecutableAvailable(string agent)
+    {
+        var configured = ReadConfigured(agent);
+        if (configured is not null && Path.IsPathRooted(configured.FileName))
+            return IsAvailableCommand(configured.FileName);
+        if (ResolveCapability(agent) is null && configured is not null)
+            return IsAvailableCommand(configured.FileName);
+
+        var raw = RawLaunchCommand(agent);
+        return !string.IsNullOrWhiteSpace(raw) && IsAvailableCommand(raw);
+    }
+
+    private string? RawLaunchCommand(string agent)
+    {
+        var launched = packages?.GetAgent(agent)?.Launch();
+        if (launched is not null && !string.IsNullOrWhiteSpace(launched.FileName))
+            return launched.FileName;
+
+        var command = packages?.GetEnabled(agent)?.Launch?.Command;
+        if (!string.IsNullOrWhiteSpace(command))
+            return command;
+
+        return IsScriptedTestAgent(agent) ? AgentUnavailability.ScriptedTestAgent : null;
+    }
+
+    private static bool IsScriptedTestAgent(string agent) =>
+        agent.Equals(AgentUnavailability.ScriptedTestAgent, StringComparison.OrdinalIgnoreCase);
 
     private AgentCommand? ResolveCapability(string agent)
     {

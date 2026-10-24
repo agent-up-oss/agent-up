@@ -5,6 +5,7 @@ using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Features.Diagnostics.DTOs;
 using AgentUp.Server.Features.Processes.Controllers;
 using AgentUp.Server.Features.Workspaces.Controllers;
+using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Models;
 using AgentUp.Server.Shared.Providers;
 
@@ -46,8 +47,9 @@ public sealed class WorkspaceDiagnosticsService(
                 app.Name,
                 app.State.ToString(),
                 AggregateHealth(health.GetPortHealth(workspace.Id, app.Name)),
-                lines.Skip(Math.Max(0, lines.Count - normalizedLogLimit)).Select(redactor.Redact).ToList(),
-                lines.Count > normalizedLogLimit));
+                lines.Skip(Math.Max(0, lines.Count - normalizedLogLimit)).Select(line => redactor.Redact(line.Text)).ToList(),
+                lines.Count > normalizedLogLimit,
+                ApplicationReadinessDescription.For(app)));
         }
 
         var events = await audit.QueryAsync(

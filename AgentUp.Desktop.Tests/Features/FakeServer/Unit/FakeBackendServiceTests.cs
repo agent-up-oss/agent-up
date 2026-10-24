@@ -80,7 +80,8 @@ public sealed class FakeBackendServiceTests
         {
             Assert.That(changes["fileCount"]!.GetValue<int>(), Is.EqualTo(2));
             Assert.That(diff["path"]!.GetValue<string>(), Is.EqualTo("apps/storefront/ProductGrid.tsx"));
-            Assert.That(lines[1]!.GetValue<string>(), Does.Contain("Storefront listening"));
+            Assert.That(lines[3]!["text"]!.GetValue<string>(), Does.Contain("Storefront listening"));
+            Assert.That(lines[2]!["stream"]!.GetValue<string>(), Is.EqualTo("stderr"));
         });
     }
 
@@ -109,14 +110,18 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
-    public void Handle_forgeReadsAsNoHostWhenTheDefinitionSaysNothing()
+    public void Handle_forgeReadsAsNotInstalledWhenTheDefinitionSaysNothing()
     {
         var definition = new FakeServerDefinition(FakeServerTestComposition.Definition().Root.DeepClone());
         definition.Root.AsObject().Remove("forge");
         var hosting = Json(new FakeBackendService(definition), Get("/api/workspaces/bob/forge"));
 
-        Assert.That(hosting["availability"]!.GetValue<string>(), Is.EqualTo("none"));
+        Assert.That(hosting["availability"]!.GetValue<string>(), Is.EqualTo("notInstalled"));
+        Assert.That(hosting["detail"]!.GetValue<string>(), Does.Contain("forge capability"));
+        Assert.That(hosting["remedy"]!.GetValue<string>(), Does.Contain("capabilities bootstrap"));
         Assert.That(hosting["proposal"], Is.Null);
+        Assert.That(hosting["checks"]!.AsArray(), Is.Empty);
+        Assert.That(hosting["threads"]!.AsArray(), Is.Empty);
     }
 
     [Test]
@@ -313,9 +318,39 @@ public sealed class FakeBackendServiceTests
         var scheduled = Json(backend, Post("/api/workspaces/bob/agent", """{"agent":"claude"}"""));
 
         Assert.That(listed["agents"]!.AsArray().Select(item => item!["agent"]!.GetValue<string>()), Is.EqualTo(new[] { "codex", "cursor", "claude" }));
-        Assert.That(afterDisable["agents"]!.AsArray().Select(item => item!["agent"]!.GetValue<string>()), Is.EqualTo(new[] { "codex", "cursor" }));
+        var available = listed["agents"]!.AsArray().Single(item => item!["agent"]!.GetValue<string>() == "codex")!;
+        Assert.That(available["available"]!.GetValue<bool>(), Is.True);
+        Assert.That(available["unavailability"], Is.Null);
+        var disabled = afterDisable["agents"]!.AsArray().Single(item => item!["agent"]!.GetValue<string>() == "claude")!;
+        Assert.That(disabled["available"]!.GetValue<bool>(), Is.False);
+        Assert.That(disabled["unavailability"]!.GetValue<string>(), Is.EqualTo("capabilityNotEnabled"));
+        Assert.That(disabled["remedy"]!.GetValue<string>(), Does.Contain("claude"));
         Assert.That(rejected.Status, Is.EqualTo(409));
         Assert.That(scheduled["agent"]!.GetValue<string>(), Is.EqualTo("claude"));
+    }
+
+    [Test]
+    public void Handle_agentListReportsExecutableNotFoundWhenEnabledModuleCannotRun()
+    {
+        var json = """
+            {"id":"fake","url":"http://127.0.0.1:9","displayName":"Demo","connection":{},"authentication":{},"entitlements":{},"workspaces":[{"id":"bob","displayName":"Bob","state":"Running","applications":[]}],"agents":{"bob":{"session":{"agent":"claude","state":"ready"}}},"capabilities":[{"id":"claude","displayName":"Claude","kind":"agent","enabled":true,"canRun":false}]}
+            """;
+        var backend = new AgentUp.Desktop.Features.FakeServer.Services.FakeBackendService(
+            new AgentUp.Desktop.Features.FakeServer.Providers.FakeServerDefinitionProvider().LoadJson(json));
+        var session = Json(backend, Get("/api/workspaces/bob/agent"));
+        var claude = session["agents"]!.AsArray().Single()!;
+        var rejected = Run(backend, Post("/api/workspaces/bob/agent", """{"agent":"claude"}"""));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(claude["available"]!.GetValue<bool>(), Is.False);
+            Assert.That(claude["unavailability"]!.GetValue<string>(), Is.EqualTo("executableNotFound"));
+            Assert.That(claude["detail"]!.GetValue<string>(), Does.Contain("claude"));
+            Assert.That(claude["remedy"]!.GetValue<string>(), Does.Contain("PATH"));
+            Assert.That(session["agent"], Is.Null);
+            Assert.That(rejected.Status, Is.EqualTo(409));
+            Assert.That(rejected.Body, Does.Contain("not enabled"));
+        });
     }
 
     [Test]
@@ -607,7 +642,7 @@ public sealed class FakeBackendServiceTests
         Json(backend, Post("/api/capabilities/disable/claude"));
         var session = Json(backend, Get("/api/workspaces/bob/agent"));
 
-        Assert.That(session["agents"]!.AsArray(), Is.Empty);
+        Assert.That(session["agents"]!.AsArray().Select(item => item!["available"]!.GetValue<bool>()), Is.All.False);
         Assert.That(session["agent"], Is.Null);
     }
 
@@ -624,6 +659,86 @@ public sealed class FakeBackendServiceTests
             Assert.That(session["loop"]!["stopReason"], Is.Null);
             Assert.That(session["boundAgent"]!.GetValue<string>(), Is.EqualTo("Codex"));
         });
+    }
+
+    [Test]
+    public void Handle_autonomyChainEnableThenActivateExposesATypedTerminal()
+    {
+        var backend = FakeServerTestComposition.Backend((_, work) => work());
+        var before = Json(backend, Get("/api/autonomy"));
+        Assert.That(before["enabled"]!.GetValue<bool>(), Is.False);
+        Assert.That(Run(backend, Put("/api/autonomy", """{"enabled":true}""")).Status, Is.EqualTo(204));
+        var enabled = Json(backend, Get("/api/autonomy"));
+        Assert.That(enabled["enabled"]!.GetValue<bool>(), Is.True);
+        Assert.That(Run(backend, Put("/api/workspaces/bob/agent/autonomy", """{"active":true}""")).Status, Is.EqualTo(204));
+        var loop = Json(backend, Get("/api/workspaces/bob/agent/loop"));
+        Assert.That(loop["terminal"]!.GetValue<string>(), Is.EqualTo("Completed"));
+        Assert.That(Run(backend, Put("/api/workspaces/bob/agent/autonomy", """{"active":true}""")).Status, Is.EqualTo(204));
+        Assert.That(Run(backend, Put("/api/workspaces/bob/agent/autonomy", """{"active":false}""")).Status, Is.EqualTo(204));
+        var cancelled = Json(backend, Get("/api/workspaces/bob/agent/loop"));
+        Assert.That(cancelled["terminal"]!.GetValue<string>(), Is.EqualTo("Cancelled"));
+    }
+
+    [Test]
+    public void Handle_ignoresAStaleLoopCompletionAfterALaterActivation()
+    {
+        var queued = new Queue<Action>();
+        var backend = FakeServerTestComposition.Backend((_, work) => queued.Enqueue(work));
+        Assert.That(Run(backend, Put("/api/autonomy", """{"enabled":true}""")).Status, Is.EqualTo(204));
+        Assert.That(Run(backend, Put("/api/workspaces/bob/agent/autonomy", """{"active":true}""")).Status, Is.EqualTo(204));
+        Assert.That(Run(backend, Put("/api/workspaces/bob/agent/autonomy", """{"active":true}""")).Status, Is.EqualTo(204));
+        queued.Dequeue()();
+        Assert.That(Json(backend, Get("/api/workspaces/bob/agent/loop"))["active"]!.GetValue<bool>(), Is.True);
+        queued.Dequeue()();
+        Assert.That(Json(backend, Get("/api/workspaces/bob/agent/loop"))["terminal"]!.GetValue<string>(), Is.EqualTo("Completed"));
+    }
+
+    [Test]
+    public void Handle_ignoresLoopCompletionAfterCancel()
+    {
+        var queued = new Queue<Action>();
+        var backend = FakeServerTestComposition.Backend((_, work) => queued.Enqueue(work));
+        Assert.That(Run(backend, Put("/api/autonomy", """{"enabled":true}""")).Status, Is.EqualTo(204));
+        Assert.That(Run(backend, Put("/api/workspaces/bob/agent/autonomy", """{"active":true}""")).Status, Is.EqualTo(204));
+        Assert.That(Run(backend, Put("/api/workspaces/bob/agent/autonomy", """{"active":false}""")).Status, Is.EqualTo(204));
+        queued.Dequeue()();
+        Assert.That(Json(backend, Get("/api/workspaces/bob/agent/loop"))["terminal"]!.GetValue<string>(), Is.EqualTo("Cancelled"));
+    }
+
+    [Test]
+    public void Handle_autonomyLoopRoutesReturnNotFoundForUnknownWorkspaces()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Assert.That(Run(backend, Get("/api/workspaces/missing/agent/loop")).Status, Is.EqualTo(404));
+        Assert.That(Run(backend, Put("/api/workspaces/missing/agent/autonomy", """{"active":true}""")).Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public void Handle_autonomyEnablementReadsJsonBooleansAndResets()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Assert.That(Run(backend, Put("/api/autonomy", "")).Status, Is.EqualTo(204));
+        Assert.That(Json(backend, Get("/api/autonomy"))["enabled"]!.GetValue<bool>(), Is.False);
+        Assert.That(Run(backend, Put("/api/autonomy", "{not-json")).Status, Is.EqualTo(204));
+        Assert.That(Run(backend, Put("/api/autonomy", """{"enabled":true}""")).Status, Is.EqualTo(204));
+        Assert.That(Json(backend, Get("/api/autonomy"))["enabled"]!.GetValue<bool>(), Is.True);
+        backend.Reset();
+        Assert.That(Json(backend, Get("/api/autonomy"))["enabled"]!.GetValue<bool>(), Is.False);
+    }
+
+    [Test]
+    public void Handle_autonomyMarksAgentAvailableFalseWhenEveryAgentIsDisabled()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Json(backend, Post("/api/capabilities/disable/codex"));
+        Json(backend, Post("/api/capabilities/disable/cursor"));
+        Json(backend, Post("/api/capabilities/disable/claude"));
+        var status = Json(backend, Get("/api/autonomy"));
+        var agent = status["preconditions"]!.AsArray()
+            .Single(item => item!["id"]!.GetValue<string>() == "agentAvailable")!;
+
+        Assert.That(agent["satisfied"]!.GetValue<bool>(), Is.False);
+        Assert.That(agent["remedy"]!.GetValue<string>(), Is.EqualTo("Enable an agent capability"));
     }
 
     [Test]
@@ -769,6 +884,9 @@ public sealed class FakeBackendServiceTests
 
     private static FakeBackendRequestDtoBuilder Post(string path, string? body = null)
         => new FakeBackendRequestDtoBuilder().Post(path, body);
+
+    private static FakeBackendRequestDtoBuilder Put(string path, string? body = null)
+        => new FakeBackendRequestDtoBuilder().Put(path, body);
 
     private static AgentUp.Desktop.Features.FakeServer.DTOs.FakeBackendResponseDto Run(
         AgentUp.Desktop.Features.FakeServer.Services.FakeBackendService backend,

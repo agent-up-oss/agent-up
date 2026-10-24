@@ -70,7 +70,12 @@ public sealed class WorkspacesController(
         if (!result.Found)
             return controller.NotFound();
 
-        return result.Succeeded ? controller.NoContent() : controller.Problem(detail: result.Error, statusCode: 500);
+        var outcome = new WorkspaceStartOutcome(
+            result.State ?? (result.Succeeded ? WorkspaceState.Running : WorkspaceState.Failed),
+            result.Failures);
+        return result.Succeeded
+            ? controller.Ok(outcome)
+            : controller.Problem(detail: result.Error, statusCode: 500);
     }
 
     private static IActionResult FoundResult(ControllerBase controller, WorkspaceLifecycleResult result)

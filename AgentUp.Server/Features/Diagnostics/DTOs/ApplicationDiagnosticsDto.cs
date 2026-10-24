@@ -5,4 +5,5 @@ public sealed record ApplicationDiagnosticsDto(
     string ProcessState,
     string? Health,
     IReadOnlyList<string> Logs,
-    bool LogsTruncated);
+    bool LogsTruncated,
+    string Readiness);

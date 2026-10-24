@@ -3,6 +3,7 @@ using AgentUp.Server.Features.Capabilities.Interfaces;
 using Microsoft.AspNetCore.Http;
 using AgentUp.Server.Features.Forge.DTOs;
 using AgentUp.Server.Features.Forge.Interfaces;
+using AgentUp.Server.Features.Forge.Models;
 using AgentUp.Server.Features.Workspaces.Controllers;
 
 namespace AgentUp.Server.Features.Forge.Services;
@@ -24,43 +25,44 @@ public sealed class ForgeService(
 
         var forge = packages.ListForges().FirstOrDefault();
         if (forge is null)
-            return None();
+            return NotInstalled();
 
         var token = credentials.Read(workspaceId, forge.Identity.Id);
         if (string.IsNullOrWhiteSpace(token))
-            return new ForgeHostingDto("needsCredential", forge.Identity.Id, null, [], [], null, null);
+            return NeedsCredential(forge.Identity.Id, oauth.Read().IsConfigured);
 
         var remote = remotes.Resolve(workspace.WorktreePath);
         if (remote is null)
-            return new ForgeHostingDto("unreachable", forge.Identity.Id, null, [], [], null, "No GitHub origin is configured.");
+            return NoRemote(forge.Identity.Id);
 
         try
         {
             var snapshot = await forge.ReadAsync(
                 new ForgeRequest(token, remote.Owner, remote.Repository, remote.Branch),
                 cancellationToken);
+            // The workspace has an account whether or not a proposal is open, so both answers carry it.
             var account = ToAccount(snapshot.Account);
             if (snapshot.Proposal is null)
-                return new ForgeHostingDto("noProposal", forge.Identity.Id, null, [], [], null, null, account);
+                return NoProposal(forge.Identity.Id, account);
 
-            return new ForgeHostingDto(
-                "ready",
+            return Ready(
                 forge.Identity.Id,
                 ToProposal(snapshot.Proposal),
                 [.. snapshot.Checks.Select(ToCheck)],
                 [.. snapshot.Threads.Select(ToThread)],
-                snapshot.Mergeability is null ? null : new ForgeMergeabilityDto(snapshot.Mergeability.Mergeable, snapshot.Mergeability.State),
-                null,
+                snapshot.Mergeability is null
+                    ? null
+                    : new ForgeMergeabilityDto(snapshot.Mergeability.Mergeable, snapshot.Mergeability.State),
                 account,
                 [.. (snapshot.Reviews ?? []).Select(ToReview)]);
         }
         catch (HttpRequestException exception)
         {
-            return new ForgeHostingDto("unreachable", forge.Identity.Id, null, [], [], null, exception.Message);
+            return Unreachable(forge.Identity.Id, exception.Message);
         }
         catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
         {
-            return new ForgeHostingDto("unreachable", forge.Identity.Id, null, [], [], null, exception.Message);
+            return Unreachable(forge.Identity.Id, exception.Message);
         }
     }
 
@@ -69,16 +71,31 @@ public sealed class ForgeService(
         if (workspaces.GetById(workspaceId) is null)
             return new ForgeHttpOutcome(StatusCodes.Status404NotFound, null);
 
+        var forge = packages.ListForges().FirstOrDefault();
+        if (forge is null)
+            return new ForgeHttpOutcome(
+                StatusCodes.Status503ServiceUnavailable,
+                new { title = ForgeHostingCopy.OAuthUnavailableTitle, detail = ForgeHostingCopy.MissingForgeDetail });
+
         var configuration = oauth.Read();
         if (!configuration.IsConfigured)
             return new ForgeHttpOutcome(
                 StatusCodes.Status503ServiceUnavailable,
-                new { title = "OAuth unavailable", detail = "GitHub OAuth is not configured." });
+                new { title = ForgeHostingCopy.OAuthUnavailableTitle, detail = ForgeHostingCopy.OAuthMissingDetail });
+
+        var authorizeUrl = forge.Host.OAuthAuthorizeUrl;
+        if (string.IsNullOrWhiteSpace(authorizeUrl))
+            return new ForgeHttpOutcome(
+                StatusCodes.Status503ServiceUnavailable,
+                new { title = ForgeHostingCopy.OAuthUnavailableTitle, detail = ForgeHostingCopy.OAuthMissingDetail });
 
         var state = states.Issue(workspaceId);
+        var separator = authorizeUrl.Contains('?', StringComparison.Ordinal) ? "&" : "?";
         var url =
-            "https://github.com/login/oauth/authorize"
-            + $"?client_id={Uri.EscapeDataString(configuration.ClientId)}"
+            authorizeUrl
+            + separator
+            + "response_type=code"
+            + $"&client_id={Uri.EscapeDataString(configuration.ClientId)}"
             + $"&redirect_uri={Uri.EscapeDataString(configuration.RedirectUri)}"
             + $"&state={Uri.EscapeDataString(state)}"
             + "&scope=repo";
@@ -95,8 +112,25 @@ public sealed class ForgeService(
         if (forge is null)
             return false;
 
-        credentials.Write(workspaceId, forge.Identity.Id, await exchange.ExchangeAsync(code, cancellationToken));
+        credentials.Write(
+            workspaceId,
+            forge.Identity.Id,
+            await exchange.ExchangeAsync(code, forge.Host.OAuthTokenUrl, cancellationToken));
         return true;
+    }
+
+    public bool HasCredential(string workspaceId)
+    {
+        var forge = packages.ListForges().FirstOrDefault();
+        return forge is not null && !string.IsNullOrWhiteSpace(credentials.Read(workspaceId, forge.Identity.Id));
+    }
+
+    public bool HasAnyCredential()
+    {
+        var forge = packages.ListForges().FirstOrDefault();
+        return forge is not null
+            && workspaces.GetAll().Any(workspace =>
+                !string.IsNullOrWhiteSpace(credentials.Read(workspace.Id, forge.Identity.Id)));
     }
 
     public bool Logout(string workspaceId)
@@ -216,8 +250,81 @@ public sealed class ForgeService(
         return (forge, new ForgeRequest(token, remote.Owner, remote.Repository, remote.Branch));
     }
 
-    private static ForgeHostingDto None()
-        => new("none", null, null, [], [], null, null);
+    private static ForgeHostingDto NotInstalled()
+        => new(
+            ForgeHostingCopy.NotInstalled,
+            null,
+            null,
+            [],
+            [],
+            null,
+            ForgeHostingCopy.NotInstalledDetail,
+            ForgeHostingCopy.NotInstalledRemedy);
+
+    private static ForgeHostingDto NeedsCredential(string moduleId, bool oauthConfigured)
+        => oauthConfigured
+            ? new(
+                ForgeHostingCopy.NeedsCredential,
+                moduleId,
+                null,
+                [],
+                [],
+                null,
+                ForgeHostingCopy.NeedsCredentialDetail,
+                ForgeHostingCopy.NeedsCredentialRemedy)
+            : new(
+                ForgeHostingCopy.NeedsCredential,
+                moduleId,
+                null,
+                [],
+                [],
+                null,
+                ForgeHostingCopy.OAuthMissingDetail,
+                ForgeHostingCopy.OAuthMissingRemedy);
+
+    private static ForgeHostingDto NoRemote(string moduleId)
+        => new(
+            ForgeHostingCopy.NoRemote,
+            moduleId,
+            null,
+            [],
+            [],
+            null,
+            ForgeHostingCopy.NoRemoteDetail,
+            ForgeHostingCopy.NoRemoteRemedy);
+
+    private static ForgeHostingDto Unreachable(string? moduleId, string? detail)
+        => new(
+            ForgeHostingCopy.Unreachable,
+            moduleId,
+            null,
+            [],
+            [],
+            null,
+            string.IsNullOrWhiteSpace(detail) ? ForgeHostingCopy.UnreachableDetail : detail,
+            ForgeHostingCopy.UnreachableRemedy);
+
+    private static ForgeHostingDto NoProposal(string moduleId, ForgeAccountDto? account)
+        => new(
+            ForgeHostingCopy.NoProposal,
+            moduleId,
+            null,
+            [],
+            [],
+            null,
+            ForgeHostingCopy.NoProposalDetail,
+            null,
+            account);
+
+    private static ForgeHostingDto Ready(
+        string moduleId,
+        ForgeProposalDto proposal,
+        IReadOnlyList<ForgeCheckDto> checks,
+        IReadOnlyList<ForgeReviewThreadDto> threads,
+        ForgeMergeabilityDto? mergeability,
+        ForgeAccountDto? account,
+        IReadOnlyList<ForgeReviewDto> reviews)
+        => new(ForgeHostingCopy.Ready, moduleId, proposal, checks, threads, mergeability, null, null, account, reviews);
 
     private static ForgeReviewDto ToReview(ForgeReview review)
         => new(review.Login, review.State);

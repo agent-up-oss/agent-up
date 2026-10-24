@@ -73,6 +73,40 @@ type CapabilityRecord = {
   messages: string[];
 };
 
+function describeFakeAgent(module: CapabilityRecord) {
+  const available = module.enabled && module.canRun;
+  if (available) {
+    return {
+      agent: module.id,
+      available: true,
+      displayName: module.displayName,
+      unavailability: null,
+      detail: null,
+      remedy: null,
+    };
+  }
+
+  if (!module.enabled) {
+    return {
+      agent: module.id,
+      available: false,
+      displayName: module.displayName,
+      unavailability: 'capabilityNotEnabled',
+      detail: `${module.displayName} is not enabled on this Server.`,
+      remedy: `Enable the ${module.id} capability.`,
+    };
+  }
+
+  return {
+    agent: module.id,
+    available: false,
+    displayName: module.displayName,
+    unavailability: 'executableNotFound',
+    detail: `${module.id} ACP executable is not installed or is not on PATH.`,
+    remedy: `Install the ${module.id} ACP executable and keep it on PATH.`,
+  };
+}
+
 const defaultScheduler: FakeScheduler = (delayMs, work) => {
   const timer = setTimeout(work, delayMs);
   return () => clearTimeout(timer);
@@ -88,6 +122,8 @@ export class FakeBackendService {
   private readonly git = new Map<string, FakeGitState>();
   private readonly appTemplates = new Map<string, NonNullable<WorkspaceRecord['applications']>>();
   private agentSequence = 0;
+  private loopGeneration = 0;
+  private autonomyEnabled = false;
   private cancelLifecycle: (() => void) | null = null;
 
   constructor(definition: FakeServerDefinition, schedule: FakeScheduler = defaultScheduler) {
@@ -115,6 +151,8 @@ export class FakeBackendService {
     this.state = cloneDefinition(this.template);
     this.agentEvents.clear();
     this.agentSequence = 0;
+    this.autonomyEnabled = false;
+    this.loopGeneration += 1;
     this.hydrate();
   }
 
@@ -146,6 +184,11 @@ export class FakeBackendService {
       return this.refreshClone(path, request.body);
     if (method === 'POST' && path === '/api/apps/tickets') return this.issueTicket(request.body);
     if (method === 'POST' && path === '/api/audit/record') return { status: 204, contentType: 'application/json' };
+    if (method === 'GET' && path === '/api/autonomy') return json(this.autonomyStatus());
+    if (method === 'PUT' && path === '/api/autonomy') {
+      this.autonomyEnabled = readJsonBoolean(request.body, 'enabled');
+      return { status: 204, contentType: 'application/json' };
+    }
     if (method === 'GET' && path === '/api/capabilities') return json(this.capabilities());
     if (method === 'POST' && path === '/api/capabilities/enable') return this.enableCapability(request.body);
     if (method === 'POST' && path.startsWith('/api/capabilities/disable/'))
@@ -197,10 +240,12 @@ export class FakeBackendService {
     if (method === 'GET' && rest === 'forge') return json(this.forge(workspaceId));
     if (method === 'GET' && rest.startsWith('git/file')) return this.gitDiff(workspaceId, request.query);
     if (method === 'POST' && rest.startsWith('git/')) return this.gitMutation(workspaceId, rest.slice('git/'.length), request.body);
+    if (method === 'GET' && rest === 'agent/loop') return this.agentLoop(workspaceId);
+    if (method === 'PUT' && rest === 'agent/autonomy') return this.setLoopActivation(workspaceId, request.body);
     if (method === 'GET' && rest === 'agent') return this.agentSession(workspaceId);
     if (method === 'POST' && rest === 'agent') return this.scheduleAgent(workspaceId, request.body);
     if (method === 'PUT' && rest === 'agent/binding') return this.bindAgent(workspaceId, request.body);
-    if (method === 'PUT' && (rest === 'agent/autonomy' || rest === 'agent/host-connection' || rest === 'agent/policy' || rest === 'agent/role' || rest === 'agent/queue-order'))
+    if (method === 'PUT' && (rest === 'agent/host-connection' || rest === 'agent/policy' || rest === 'agent/role' || rest === 'agent/queue-order'))
       return { status: 204, contentType: 'application/json' };
     if (method === 'POST' && rest === 'agent/messages') return this.sendAgentMessage(workspaceId, request.body);
     if (method === 'GET' && rest === 'agent/events') return this.agentEventStream(workspaceId, request.query);
@@ -326,13 +371,14 @@ export class FakeBackendService {
    */
   private forge(workspaceId: string): unknown {
     return this.state.forge?.[workspaceId] ?? {
-      availability: 'none',
+      availability: 'notInstalled',
       moduleId: null,
       proposal: null,
       checks: [],
       threads: [],
       mergeability: null,
-      detail: null,
+      detail: 'No forge capability package is enabled.',
+      remedy: 'Run: agent-up capabilities bootstrap',
     };
   }
 
@@ -390,6 +436,67 @@ export class FakeBackendService {
     return json({ found: true, succeeded: true, error: null });
   }
 
+  private autonomyStatus() {
+    const agentAvailable = this.agentCatalogDescriptors().some(item => item.available);
+    const item = (id: string, satisfied: boolean, remedy: string) => ({
+      id,
+      satisfied,
+      remedy: satisfied ? null : remedy,
+    });
+    return {
+      enabled: this.autonomyEnabled,
+      preconditions: [
+        item('forgeCapabilityEnabled', true, 'Run: agent-up capabilities bootstrap'),
+        item('hostConnectionAuthorized', true, 'Sign in to your repository host.'),
+        item('agentAvailable', agentAvailable, 'Enable an agent capability'),
+        item('autonomyEnabled', this.autonomyEnabled, 'Enable autonomy for this Server'),
+      ],
+    };
+  }
+
+  private agentLoop(workspaceId: string): FakeBackendResponse {
+    const loop = (this.state.agents?.[workspaceId]?.session as { loop?: unknown } | undefined)?.loop;
+    return loop === undefined ? notFound() : json(loop);
+  }
+
+  private setLoopActivation(workspaceId: string, body: string | null): FakeBackendResponse {
+    const stored = this.state.agents?.[workspaceId];
+    if (!stored || !stored.session || typeof stored.session !== 'object') return notFound();
+    const session = stored.session as Record<string, unknown>;
+    const generation = ++this.loopGeneration;
+    if (readJsonBoolean(body, 'active')) {
+      session.loop = this.loopSnapshot(true, 'running', null, null);
+      this.schedule(fakeWorkspaceStartPhaseMs, () => this.completeLoop(workspaceId, generation));
+    } else {
+      session.loop = this.loopSnapshot(false, 'stopped', 'Cancelled', 'cancelled');
+    }
+    this.publishAgent(workspaceId, 'state', this.liveAgentSession(session));
+    return { status: 204, contentType: 'application/json' };
+  }
+
+  private completeLoop(workspaceId: string, generation: number) {
+    if (generation !== this.loopGeneration) return;
+    const stored = this.state.agents?.[workspaceId];
+    const session = stored?.session as { loop?: { active?: boolean } } | undefined;
+    if (!session?.loop?.active) return;
+    session.loop = this.loopSnapshot(false, 'idle', 'Completed', 'queue_empty');
+    this.publishAgent(workspaceId, 'state', this.liveAgentSession(session));
+  }
+
+  private loopSnapshot(active: boolean, phase: string, terminal: string | null, stopReason: string | null) {
+    return {
+      active,
+      phase,
+      taskId: '12',
+      taskNumber: 12,
+      taskTitle: 'Restock featured products',
+      terminal,
+      stopReason,
+      blockReason: null,
+      permissionRuleIds: [],
+    };
+  }
+
   private agentSession(workspaceId: string): FakeBackendResponse {
     const session = this.state.agents?.[workspaceId]?.session;
     return session === undefined ? notFound() : json(this.liveAgentSession(session));
@@ -400,8 +507,8 @@ export class FakeBackendService {
     if (!stored) return notFound();
     const requested = readJsonString(body, 'agent');
     if (!requested) return json(this.liveAgentSession(stored.session));
-    const enabled = this.enabledAgentDescriptors();
-    const match = enabled.find(item => item.agent.toLowerCase() === requested.toLowerCase());
+    const catalog = this.agentCatalogDescriptors();
+    const match = catalog.find(item => item.agent.toLowerCase() === requested.toLowerCase() && item.available);
     if (!match) {
       return {
         status: 409,
@@ -459,9 +566,10 @@ export class FakeBackendService {
 
   private liveAgentSession(session: unknown) {
     const snapshot = session && typeof session === 'object' ? session as Record<string, unknown> : {};
-    const agents = this.enabledAgentDescriptors();
+    const agents = this.agentCatalogDescriptors();
     const current = typeof snapshot.agent === 'string' ? snapshot.agent : null;
-    const selected = agents.find(item => item.agent.toLowerCase() === current?.toLowerCase()) ?? agents[0] ?? null;
+    const selected = agents.find(item =>
+      item.available && item.agent.toLowerCase() === current?.toLowerCase()) ?? null;
     return {
       ...snapshot,
       agent: selected?.agent ?? null,
@@ -469,14 +577,10 @@ export class FakeBackendService {
     };
   }
 
-  private enabledAgentDescriptors() {
+  private agentCatalogDescriptors() {
     return this.capabilities()
-      .filter(item => item.kind === 'agent' && item.enabled)
-      .map(item => ({
-        agent: item.id,
-        available: item.canRun,
-        displayName: item.displayName,
-      }));
+      .filter(item => item.kind === 'agent')
+      .map(item => describeFakeAgent(item));
   }
 
   private sendAgentMessage(workspaceId: string, body: string | null): FakeBackendResponse {

@@ -1,5 +1,6 @@
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Ports.DTOs;
+using AgentUp.Desktop.Shared.Providers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Applications.ViewModels;
@@ -10,6 +11,7 @@ public sealed class ApplicationViewModel : ReactiveObject
     private string _stateColor;
 
     public string Name { get; }
+    public string AutomationId => DesktopAutomationIds.ApplicationTab(Name);
     public string Command { get; }
     public bool Database { get; }
     public bool IsDesktop { get; }

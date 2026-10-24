@@ -1,4 +1,11 @@
-export type ForgeAvailability = 'none' | 'needsCredential' | 'unreachable' | 'noProposal' | 'ready';
+export type ForgeAvailability =
+  | 'none'
+  | 'notInstalled'
+  | 'needsCredential'
+  | 'noRemote'
+  | 'unreachable'
+  | 'noProposal'
+  | 'ready';
 
 export type ForgeProposal = {
   id: string;
@@ -48,6 +55,7 @@ export type ForgeHosting = {
   threads: ForgeReviewThread[];
   mergeability: ForgeMergeability | null;
   detail: string | null;
+  remedy: string | null;
   account?: ForgeAccount | null;
   reviews?: ForgeReview[] | null;
 };
@@ -56,4 +64,8 @@ export type ForgeHosting = {
 export type ForgeReview = {
   login: string;
   state: string;
+};
+
+export type ForgeLoginStart = {
+  authorizationUrl: string;
 };

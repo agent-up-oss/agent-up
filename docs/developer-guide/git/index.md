@@ -30,7 +30,7 @@ It is separate from `Commits`, which owns the agent-facing queue. Desktop Git an
 
 This slice still reads the local repository. A `forge` capability kind supplies hosting state, and the Git surfaces display it. Display only — the same discipline the surfaces already follow with the queue.
 
-Availability is `none`, `needsCredential`, `unreachable`, `noProposal`, or `ready`. A workspace with no forge enabled stays `none` and shows no hosting UI.
+Availability is `notInstalled`, `needsCredential`, `noRemote`, `unreachable`, `noProposal`, or `ready`. Every non-`ready` status carries `detail` and, when there is something to do, `remedy`. A workspace with no forge enabled is `notInstalled`; Desktop and Mobile still show the hosting strip.
 
 <DocFacts label="Boundaries">
 <DocFact label="Desktop">A strip above the change tree, not a new tab</DocFact>

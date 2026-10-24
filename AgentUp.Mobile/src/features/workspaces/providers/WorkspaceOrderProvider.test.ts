@@ -30,10 +30,12 @@ test('running own workspaces still beat stopped own workspaces, and beat derived
     workspace('zeta-review', 'Running', true),
     workspace('alpha-own', 'Stopped'),
     workspace('beta-own', 'Running'),
+    workspace('delta-own', 'Degraded'),
     workspace('gamma-review', 'Stopped', true),
   ]);
   assert.deepEqual(ordered.map(item => item.id), [
     'beta-own',
+    'delta-own',
     'alpha-own',
     'zeta-review',
     'gamma-review',

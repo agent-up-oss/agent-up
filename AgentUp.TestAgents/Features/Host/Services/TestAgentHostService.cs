@@ -17,7 +17,8 @@ public sealed class TestAgentHostService(
     IdentityProviderController identityProvider,
     InferenceAcpController inference,
     ScriptedAcpController scripted,
-    TestAgentConsole console)
+    TestAgentConsole console,
+    HttpClient? signInClient = null)
 {
     public async Task<int> RunAsync(TestAgentCommand command, CancellationToken cancellationToken)
     {
@@ -63,7 +64,10 @@ public sealed class TestAgentHostService(
             return 2;
         }
 
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        using var ownedClient = signInClient is null
+            ? new HttpClient { Timeout = TimeSpan.FromSeconds(30) }
+            : null;
+        var client = signInClient ?? ownedClient!;
         try
         {
             var token = await authentication.SignInAsync(
@@ -81,9 +85,16 @@ public sealed class TestAgentHostService(
             credentials.Write(token);
             return 0;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            // 128 plus SIGINT: the Server (or a harness) stopped this sign-in. HttpClient.Timeout
+            // also throws TaskCanceledException, and that is not an interrupt.
             return 130;
+        }
+        catch (OperationCanceledException exception)
+        {
+            await console.Error.WriteLineAsync($"Could not reach the identity provider: {exception.Message}");
+            return 3;
         }
         catch (HttpRequestException exception)
         {

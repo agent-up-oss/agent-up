@@ -45,6 +45,21 @@ public sealed class CapabilityModulesControllerTests
     }
 
     [Test]
+    public void List_names_nix_when_an_enabled_module_cannot_run()
+    {
+        var listed = new CapabilityModulesController(
+            CapabilityModuleHarness.CreateService(nixAvailable: false, enabled: true)).List().Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(listed.State, Is.EqualTo("error"));
+            Assert.That(listed.CanRun, Is.False);
+            Assert.That(listed.Messages, Has.Some.Contains("https://nixos.org/download"));
+            Assert.That(listed.Messages, Has.None.Contains("is not enabled"));
+        });
+    }
+
+    [Test]
     public void GetRuntime_returns_the_loaded_module()
     {
         var runtime = new StubRuntimeCapability();

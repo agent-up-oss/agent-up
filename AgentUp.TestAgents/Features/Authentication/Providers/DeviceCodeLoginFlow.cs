@@ -51,28 +51,46 @@ public sealed class DeviceCodeLoginFlow(HttpClient client, string identityProvid
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            using var request = new FormUrlEncodedContent([
-                new KeyValuePair<string, string>("client_id", ClientId),
-                new KeyValuePair<string, string>("device_code", deviceCode)
-            ]);
-            using var response = await client.PostAsync(
-                $"{identityProviderUrl}/oauth/device/token",
-                request,
-                cancellationToken);
-
-            var payload = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
-            if (response.IsSuccessStatusCode)
-                return payload.GetProperty("access_token").GetString();
-
-            var error = payload.TryGetProperty("error", out var value) ? value.GetString() : "unknown_error";
-            if (error == "authorization_pending")
+            try
             {
-                await Task.Delay(interval, cancellationToken);
-                continue;
-            }
+                using var request = new FormUrlEncodedContent([
+                    new KeyValuePair<string, string>("client_id", ClientId),
+                    new KeyValuePair<string, string>("device_code", deviceCode)
+                ]);
+                using var response = await client.PostAsync(
+                    $"{identityProviderUrl}/oauth/device/token",
+                    request,
+                    cancellationToken);
 
-            await output.WriteLineAsync($"Sign-in failed: {error}.");
-            return null;
+                var payload = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+                if (response.IsSuccessStatusCode)
+                    return payload.GetProperty("access_token").GetString();
+
+                var error = payload.TryGetProperty("error", out var value) ? value.GetString() : "unknown_error";
+                if (error == "authorization_pending")
+                {
+                    await Task.Delay(interval, cancellationToken);
+                    continue;
+                }
+
+                await output.WriteLineAsync($"Sign-in failed: {error}.");
+                return null;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (HttpRequestException)
+            {
+                // A dropped poll is not a refused grant. Keep waiting for approval.
+                await Task.Delay(interval, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // HttpClient.Timeout on one poll. The challenge is already printed; aborting here
+                // is what made a slow identity-provider round-trip look like SIGINT (exit 130).
+                await Task.Delay(interval, cancellationToken);
+            }
         }
 
         return null;

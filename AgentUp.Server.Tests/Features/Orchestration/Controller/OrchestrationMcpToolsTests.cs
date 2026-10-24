@@ -72,10 +72,15 @@ public sealed class OrchestrationMcpToolsTests
 
         Assert.That(result.Succeeded, Is.True);
         var workspace = _registry.GetAll().Single();
-        Assert.That(workspace.DisplayName, Is.EqualTo("Inventory"));
-        Assert.That(workspace.WorktreePath, Is.EqualTo("/repos/inventory"));
-        Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Running));
-        Assert.That(workspace.Applications.Single().State, Is.EqualTo(ApplicationState.Running));
+        var application = workspace.Applications.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(workspace.DisplayName, Is.EqualTo("Inventory"));
+            Assert.That(workspace.WorktreePath, Is.EqualTo("/repos/inventory"));
+            Assert.That(workspace.State, Is.EqualTo(WorkspaceState.Starting));
+            Assert.That(application.State, Is.EqualTo(ApplicationState.Starting));
+            Assert.That(application.AllocatedPorts.Single().Variable, Is.EqualTo("WEB_PORT"));
+        });
     }
 
     [Test]
@@ -111,6 +116,37 @@ public sealed class OrchestrationMcpToolsTests
         Assert.That(result.Message, Does.Contain("docs/user-docs/configuration/index.md"));
         Assert.That(result.Message, Does.Contain("ask the user"));
         Assert.That(_registry.GetAll(), Is.Empty);
+    }
+
+    [Test]
+    public async Task StartWorkspace_namesFailedApplicationsWhenTheWorkspaceIsDegraded()
+    {
+        _tools = new OrchestrationMcpTools(
+            CreateWorkspaceController(
+                _registry,
+                new PartialFailWorkspaceProcessManager(),
+                _configuration,
+                new FakeWorkspaceIdentityProvider()),
+            new OrchestrationContextController(new OrchestrationContextService(new AgentUpContextProvider())),
+            CreateConsoleController(
+                new ProcessesController(new PartialFailWorkspaceProcessManager(), _processOutput),
+                ServerTestComposition.CreateAuditController(_registry, _auditEvents)));
+        _configuration.Configuration = new AgentUpConfiguration(
+            "Shop",
+            [
+                new ApplicationDefinitionBuilder(ServerDomain.WebName, ServerDomain.WebCommand).At("/").Build(),
+                new ApplicationDefinitionBuilder(ServerDomain.ApiName, ServerDomain.ApiCommand).At("/api").Build()
+            ]);
+
+        var result = await _tools.StartWorkspace(worktreePath: "/repos/shop");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True, result.Message);
+            Assert.That(_registry.GetAll().Single().State, Is.EqualTo(WorkspaceState.Degraded));
+            Assert.That(result.Message, Does.Contain("Failed:"));
+            Assert.That(result.Message, Does.Contain(ServerDomain.ApiName));
+        });
     }
 
     [Test]

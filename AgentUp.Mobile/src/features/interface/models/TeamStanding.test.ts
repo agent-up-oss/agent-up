@@ -19,6 +19,7 @@ function hosting(partial: Partial<ForgeHosting> = {}): ForgeHosting {
     threads: [],
     mergeability: null,
     detail: null,
+    remedy: null,
     ...partial,
   };
 }

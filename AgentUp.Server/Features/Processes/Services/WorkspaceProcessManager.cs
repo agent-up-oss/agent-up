@@ -4,6 +4,7 @@ using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Processes.DTOs;
 using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Models;
+using AgentUp.Server.Features.Processes.Providers;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.DesktopApplications.Controllers;
@@ -22,6 +23,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     private readonly ProcessOutputService _output;
     private readonly ILocalProcessProvider _localProcesses;
     private readonly IDockerProcessProvider _docker;
+    private readonly IProcessOutputPump _outputPump;
     private readonly ILogger<WorkspaceProcessManager> _logger;
     private readonly DesktopApplicationsController? _desktopApplications;
     private readonly Func<bool> _isLinux;
@@ -31,6 +33,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         ProcessOutputService output,
         ILocalProcessProvider localProcesses,
         IDockerProcessProvider docker,
+        IProcessOutputPump outputPump,
         ILogger<WorkspaceProcessManager> logger,
         DesktopApplicationsController? desktopApplications = null,
         Func<bool>? isLinux = null)
@@ -39,6 +42,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         _output = output;
         _localProcesses = localProcesses;
         _docker = docker;
+        _outputPump = outputPump;
         _logger = logger;
         _desktopApplications = desktopApplications;
         _isLinux = isLinux ?? OperatingSystem.IsLinux;
@@ -48,7 +52,16 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     {
         await KillAsync(workspace.Id);
         foreach (var app in workspace.Applications)
-            await LaunchApplicationAsync(workspace, app.Name);
+        {
+            try
+            {
+                await LaunchApplicationAsync(workspace, app.Name);
+            }
+            catch (InvalidOperationException ex) when (!IsMissingApplication(ex, app.Name))
+            {
+                await FailApplicationAsync(workspace.Id, app.Name, ex.Message);
+            }
+        }
     }
 
     public async Task LaunchApplicationAsync(Workspace workspace, string appName)
@@ -65,7 +78,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
                 await _output.AppendAsync(workspace.Id, appName, "[err] " + message, ProcessOutputStream.Stderr);
 
             await _registry.UpdateApplicationStateAsync(workspace.Id, appName, ApplicationState.Failed);
-            throw new InvalidOperationException($"Capability '{app.CapabilityStatus.CapabilityId}' cannot run '{appName}'.");
+            return;
         }
 
         if (app.ServiceType == ServiceType.Docker)
@@ -85,27 +98,16 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             return;
         }
 
-        await RunInstallStepAsync(workspace, app);
+        if (!await RunInstallStepAsync(workspace, app))
+            return;
 
         var process = _localProcesses.CreateApplicationProcess(workspace, app);
         var workspaceId = workspace.Id;
         process.EnableRaisingEvents = false;
 
-        // Track AppendAsync work from stdout/stderr so FlushApplicationExitAsync can wait
-        // for those writes before disposing a fast-exiting command such as printenv.
+        // Track pump + AppendAsync work from stdout/stderr so FlushApplicationExitAsync
+        // can wait for those writes before disposing a fast-exiting command such as printenv.
         var pendingOutput = new ConcurrentBag<Task>();
-
-        process.OutputDataReceived += (_, e) =>
-        {
-            if (e.Data is not null)
-                pendingOutput.Add(_output.AppendAsync(workspaceId, appName, e.Data));
-        };
-
-        process.ErrorDataReceived += (_, e) =>
-        {
-            if (e.Data is not null)
-                pendingOutput.Add(_output.AppendAsync(workspaceId, appName, "[err] " + e.Data, ProcessOutputStream.Stderr));
-        };
 
         process.Exited += (sender, args) =>
         {
@@ -113,11 +115,10 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             if (!_processes.TryRemove(key, out var exited))
                 return; // KillApplicationAsync already removed this process; it manages the final state
             var exitCode = (sender as Process)?.ExitCode ?? -1;
-            var exitState = exitCode == 0 ? ApplicationState.Stopped : ApplicationState.Failed;
             // Leave the Exited thread before WaitForExit; that wait also blocks until Exited
             // handlers return, so running it here would deadlock.
             _ = Task.Run(() => FlushApplicationExitAsync(
-                workspaceId, appName, exited, pendingOutput, exitCode, exitState, app.Kind));
+                workspaceId, appName, exited, pendingOutput, exitCode, app.Kind));
         };
 
         var key = (workspaceId, appName);
@@ -127,20 +128,19 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         {
             // CreateApplicationProcess enables Exited before Start. A fast command can exit
             // during Start() and the Exited handler then disposes the process before
-            // BeginOutputReadLine runs, dropping stdout. Hold Exited until the async
-            // readers are attached; enabling it afterwards raises Exited immediately if
+            // the stream pumps attach, dropping stdout. Hold Exited until the readers
+            // are attached; enabling it afterwards raises Exited immediately if
             // the process has already exited.
             process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
+            AttachOutputPumps(process, workspaceId, appName, prefix: null, pendingOutput);
             process.EnableRaisingEvents = true;
         }
         catch (System.ComponentModel.Win32Exception ex)
         {
             _processes.TryRemove(key, out _);
             process.Dispose();
-            await _output.AppendAsync(workspaceId, appName, "[err] " + ex.Message, ProcessOutputStream.Stderr);
-            throw new InvalidOperationException($"Failed to start '{appName}': {ex.Message}", ex);
+            await FailApplicationAsync(workspaceId, appName, ex.Message);
+            return;
         }
 
         _logger.LogInformation("Started workspace application process with pid {Pid}", process.Id);
@@ -152,7 +152,6 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         Process exited,
         ConcurrentBag<Task> pendingOutput,
         int exitCode,
-        ApplicationState exitState,
         ApplicationKind kind)
     {
         try
@@ -169,7 +168,11 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             _logger.LogWarning(ex, "Failed to flush workspace application process output");
         }
 
-        await _registry.UpdateApplicationStateAsync(workspaceId, appName, exitState);
+        var current = _registry.GetApplicationState(workspaceId, appName);
+        var message = current == ApplicationState.Starting
+            ? $"exited with code {exitCode} while starting"
+            : $"exited with code {exitCode}";
+        await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed, message);
         if (kind == ApplicationKind.Desktop && _desktopApplications is not null)
             await _desktopApplications.StopAsync(workspaceId, appName, CancellationToken.None);
         _logger.LogInformation("Workspace application process exited with code {Code}", exitCode);
@@ -179,7 +182,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
     // Install commands (npm install, dotnet restore, etc.) are idempotent by design, so
     // running them unconditionally before every launch keeps dependencies current without
     // needing a completion marker to decide whether a run is "needed".
-    private async Task RunInstallStepAsync(Workspace workspace, ApplicationInstance app)
+    private async Task<bool> RunInstallStepAsync(Workspace workspace, ApplicationInstance app)
     {
         var workspaceId = workspace.Id;
         var appName = app.Name;
@@ -197,31 +200,19 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         {
             await _output.AppendAsync(workspaceId, appName, "[install] [err] " + ex.Message, ProcessOutputStream.Stderr);
             await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed);
-            throw;
+            return false;
         }
 
         if (created is null)
-            return;
+            return true;
 
         using var install = created;
 
-        // WaitForExitAsync only guarantees the process itself has exited, not that queued
-        // OutputDataReceived/ErrorDataReceived events have been raised or that the AppendAsync
-        // writes they start have completed; pendingOutput tracks those writes so they can be
+        // WaitForExitAsync only guarantees the process itself has exited, not that the
+        // stream pumps have flushed their carry buffers or that the AppendAsync writes
+        // they start have completed; pendingOutput tracks those writes so they can be
         // awaited before anything downstream (exit-code check, application launch) proceeds.
         var pendingOutput = new ConcurrentBag<Task>();
-
-        install.OutputDataReceived += (_, e) =>
-        {
-            if (e.Data is not null)
-                pendingOutput.Add(_output.AppendAsync(workspaceId, appName, "[install] " + e.Data));
-        };
-
-        install.ErrorDataReceived += (_, e) =>
-        {
-            if (e.Data is not null)
-                pendingOutput.Add(_output.AppendAsync(workspaceId, appName, "[install] [err] " + e.Data, ProcessOutputStream.Stderr));
-        };
 
         // Registering under the same key the application process later uses lets a concurrent
         // KillApplicationAsync (a Stop while this Start is still installing) actually terminate
@@ -233,12 +224,8 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         try
         {
             install.Start();
-            install.BeginOutputReadLine();
-            install.BeginErrorReadLine();
+            AttachOutputPumps(install, workspaceId, appName, prefix: "[install] ", pendingOutput);
             await install.WaitForExitAsync();
-            // Flushes any OutputDataReceived/ErrorDataReceived events still in flight now that
-            // the process has exited, per the documented WaitForExitAsync + WaitForExit pairing.
-            install.WaitForExit();
             exitCode = install.ExitCode;
         }
         catch (System.ComponentModel.Win32Exception ex)
@@ -246,7 +233,7 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             _processes.TryRemove(key, out _);
             await _output.AppendAsync(workspaceId, appName, "[install] [err] " + ex.Message, ProcessOutputStream.Stderr);
             await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed);
-            throw new InvalidOperationException($"Install step failed for '{appName}': {ex.Message}", ex);
+            return false;
         }
 
         await Task.WhenAll(pendingOutput);
@@ -260,10 +247,11 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         if (exitCode != 0)
         {
             await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed);
-            throw new InvalidOperationException($"Install step for '{appName}' exited with code {exitCode}.");
+            return false;
         }
 
         _logger.LogInformation("Install step for workspace application completed");
+        return true;
     }
 
     private async Task LaunchDockerServiceAsync(Workspace workspace, ApplicationInstance app)
@@ -294,7 +282,8 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
             if (run.ExitCode != 0)
             {
                 await AppendDockerErrorAsync(workspaceId, app.Name, run.Stderr);
-                throw new InvalidOperationException($"docker run failed for '{app.Name}': {run.Stderr.Trim()}");
+                await _registry.UpdateApplicationStateAsync(workspaceId, app.Name, ApplicationState.Failed);
+                return;
             }
 
             _logger.LogInformation("Started Docker container for workspace application");
@@ -302,65 +291,144 @@ public sealed partial class WorkspaceProcessManager : IWorkspaceProcessManager, 
         catch (System.ComponentModel.Win32Exception ex)
         {
             _containerNames.TryRemove((workspaceId, app.Name), out _);
-            await _output.AppendAsync(workspaceId, app.Name, "[err] " + ex.Message, ProcessOutputStream.Stderr);
-            throw new InvalidOperationException($"docker failed for '{app.Name}': {ex.Message}", ex);
+            await FailApplicationAsync(workspaceId, app.Name, ex.Message);
+            return;
         }
         catch (InvalidOperationException ex) when (ex.InnerException is System.ComponentModel.Win32Exception)
         {
             _containerNames.TryRemove((workspaceId, app.Name), out _);
-            await _output.AppendAsync(workspaceId, app.Name, "[err] " + ex.Message, ProcessOutputStream.Stderr);
-            throw;
+            await FailApplicationAsync(workspaceId, app.Name, ex.Message);
+            return;
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
         {
             _containerNames.TryRemove((workspaceId, app.Name), out _);
-            throw;
+            await FailApplicationAsync(workspaceId, app.Name, ex.Message);
+            return;
         }
 
         // Tail logs for output capture
         var appName = app.Name;
         var logProcess = _docker.CreateLogProcess(containerName);
-        logProcess.OutputDataReceived += (_, e) =>
-        {
-            if (e.Data is not null)
-                _ = _output.AppendAsync(workspaceId, appName, e.Data);
-        };
-        logProcess.ErrorDataReceived += (_, e) =>
-        {
-            if (e.Data is not null)
-                _ = _output.AppendAsync(workspaceId, appName, "[err] " + e.Data, ProcessOutputStream.Stderr);
-        };
+        logProcess.EnableRaisingEvents = false;
+        var pendingOutput = new ConcurrentBag<Task>();
         logProcess.Exited += (sender, args) =>
         {
             _processes.TryRemove((workspaceId, appName), out var exited);
-            exited?.Dispose();
 
             // Only update state for natural exits (not kills we initiated)
             if (!_containerNames.ContainsKey((workspaceId, appName)))
+            {
+                exited?.Dispose();
                 return;
+            }
 
             _ = Task.Run(async () =>
             {
+                try
+                {
+                    await Task.WhenAll(pendingOutput);
+                }
+                catch (Exception ex) when (ex is IOException or ObjectDisposedException or InvalidOperationException)
+                {
+                    _logger.LogWarning(ex, "Failed to flush Docker log output");
+                }
+
+                exited?.Dispose();
                 var containerExitCode = await _docker.GetExitCodeAsync(containerName);
                 _containerNames.TryRemove((workspaceId, appName), out _);
                 await _docker.RunAsync("rm", "-f", containerName);
 
-                var exitState = containerExitCode == 0 ? ApplicationState.Stopped : ApplicationState.Failed;
-                await _registry.UpdateApplicationStateAsync(workspaceId, appName, exitState);
+                var current = _registry.GetApplicationState(workspaceId, appName);
+                var message = current == ApplicationState.Starting
+                    ? $"exited with code {containerExitCode} while starting"
+                    : $"exited with code {containerExitCode}";
+                await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed, message);
                 _logger.LogInformation("Docker container for workspace application exited with code {Code}", containerExitCode);
             });
         };
 
         logProcess.Start();
-        logProcess.BeginOutputReadLine();
-        logProcess.BeginErrorReadLine();
+        AttachOutputPumps(logProcess, workspaceId, appName, prefix: null, pendingOutput);
+        logProcess.EnableRaisingEvents = true;
         _processes[(workspaceId, appName)] = logProcess;
+    }
+
+    private void AttachOutputPumps(
+        Process process,
+        string workspaceId,
+        string appName,
+        string? prefix,
+        ConcurrentBag<Task> pendingOutput)
+    {
+        pendingOutput.Add(PumpStream(
+            process.StandardOutput,
+            ProcessOutputStream.Stdout,
+            workspaceId,
+            appName,
+            prefix,
+            linePrefix: null));
+        pendingOutput.Add(PumpStream(
+            process.StandardError,
+            ProcessOutputStream.Stderr,
+            workspaceId,
+            appName,
+            prefix,
+            linePrefix: "[err] "));
+    }
+
+    private async Task PumpStream(
+        StreamReader reader,
+        ProcessOutputStream stream,
+        string workspaceId,
+        string appName,
+        string? prefix,
+        string? linePrefix)
+    {
+        try
+        {
+            await _outputPump.DrainAsync(reader, stream, (line, source, _) =>
+            {
+                var text = string.Concat(prefix, linePrefix, line);
+                return _output.AppendAsync(workspaceId, appName, text, source);
+            });
+        }
+        catch (Exception ex) when (ex is IOException or ObjectDisposedException or OperationCanceledException)
+        {
+            _logger.LogDebug(ex, "Process output pump ended for workspace application");
+        }
     }
 
     private async Task AppendDockerErrorAsync(string workspaceId, string appName, string stderr)
     {
         foreach (var line in stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             await _output.AppendAsync(workspaceId, appName, "[err] " + line.TrimEnd('\r'), ProcessOutputStream.Stderr);
+    }
+
+    private async Task FailApplicationAsync(string workspaceId, string appName, string reason)
+    {
+        await _output.AppendAsync(workspaceId, appName, "[err] " + reason, ProcessOutputStream.Stderr);
+        await _registry.UpdateApplicationStateAsync(workspaceId, appName, ApplicationState.Failed);
+    }
+
+    private static bool IsMissingApplication(InvalidOperationException ex, string appName)
+        => string.Equals(ex.Message, $"Application '{appName}' not found in workspace.", StringComparison.Ordinal);
+
+    public bool IsApplicationAlive(string workspaceId, string appName)
+    {
+        if (_processes.TryGetValue((workspaceId, appName), out var process))
+        {
+            try
+            {
+                return !process.HasExited;
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+            {
+                return false;
+            }
+        }
+
+        return _containerNames.ContainsKey((workspaceId, appName));
     }
 
     public WorkspaceRuntimeSnapshot GetRuntime(string workspaceId)

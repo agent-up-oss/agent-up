@@ -48,6 +48,8 @@ public sealed class WorkspaceCommandOutputService
         _output.WriteLine($"Started workspace \"{workspace.DisplayName}\"");
         _output.WriteLine($"  Branch:  {workspace.Branch}");
         _output.WriteLine($"  Commit:  {workspace.Commit}");
+        if (!string.IsNullOrWhiteSpace(started.State))
+            _output.WriteLine($"  State:   {started.State}");
 
         WriteSection("Applications", started.Applications, app => $"{app.Name}: {app.Command}");
         WriteSection("Desktop applications", started.DesktopApplications, app => $"{app.Name}: {app.Command}");
@@ -60,6 +62,9 @@ public sealed class WorkspaceCommandOutputService
         {
             WriteSection(section.ModuleId, section.Items, item => FormatRuntimeItem(item));
         }
+
+        WriteSection("Failed applications", started.FailedApplications ?? [],
+            failure => $"{failure.Name}: {failure.Reason}");
 
         return 0;
     }
@@ -96,7 +101,7 @@ public sealed class WorkspaceCommandOutputService
         _output.WriteLine($"Health:      {diagnostics.Health ?? "not configured"}");
         foreach (var app in diagnostics.Applications)
         {
-            _output.WriteLine($"Application: {app.Name} ({app.ProcessState}, {app.Health ?? "no health check"})");
+            _output.WriteLine($"Application: {app.Name} ({app.ProcessState}, {app.Readiness ?? app.Health ?? "process"})");
             foreach (var line in app.Logs)
                 _output.WriteLine($"  log: {line}");
             if (app.LogsTruncated)

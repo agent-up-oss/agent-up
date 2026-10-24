@@ -13,5 +13,9 @@ public interface IAgentApiProvider
     Task SubmitLoginCodeAsync(string workspaceId, string code, CancellationToken cancellationToken);
     Task DecideAsync(string workspaceId, string requestId, string optionId, CancellationToken cancellationToken);
     Task StopAsync(string workspaceId, CancellationToken cancellationToken);
+    Task<ServerAutonomyDto?> GetAutonomyAsync(CancellationToken cancellationToken);
+    Task PutAutonomyAsync(bool enabled, CancellationToken cancellationToken);
+    Task PutLoopActivationAsync(string workspaceId, bool active, CancellationToken cancellationToken);
+    Task<AgentLoopStatusDto?> GetLoopAsync(string workspaceId, CancellationToken cancellationToken);
     IAsyncEnumerable<AgentEventDto> EventsAsync(string workspaceId, long after, CancellationToken cancellationToken);
 }

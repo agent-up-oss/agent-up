@@ -4,8 +4,10 @@ import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ServerSession } from '@agent-up/server-client';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
-import type { AgentActivityKind, AgentEvent, AgentId, AgentPermission, AgentSession, SessionContext, TranscriptItem } from '../models/AgentSession';
-import { authenticateAgent, bindAgent, cancelAgent, decideAgentPermission, getAgent, scheduleAgent, sendAgentMessage, stopAgent, streamAgentEvents, submitAgentLoginCallback, submitAgentLoginCode } from '../providers/AgentApiProvider';
+import type { AgentActivityKind, AgentEvent, AgentId, AgentPermission, AgentSession, ServerAutonomy, SessionContext, TranscriptItem } from '../models/AgentSession';
+import { authenticateAgent, bindAgent, cancelAgent, decideAgentPermission, enableAgentCapability, getAgent, getAutonomy, getLoop, putAutonomy, putLoopActivation, scheduleAgent, sendAgentMessage, stopAgent, streamAgentEvents, submitAgentLoginCallback, submitAgentLoginCode } from '../providers/AgentApiProvider';
+import { AgentLoopControls } from './AgentLoopControls';
+import { presentAgentRow } from '../providers/AgentAvailabilityProvider';
 import { AgentSignIn } from './AgentSignIn';
 import {
   activityHint,
@@ -47,6 +49,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<AgentTab>('chat');
   const [session, setSession] = useState<AgentSession | null>(null);
+  const [autonomy, setAutonomy] = useState<ServerAutonomy | null>(null);
   const [items, setItems] = useState<TranscriptItem[]>([]);
   const [context, setContext] = useState<SessionContext>({});
   const [permission, setPermission] = useState<AgentPermission | null>(null);
@@ -89,7 +92,13 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
       while (!controller.signal.aborted) {
         try {
           const value = await getAgent(server, workspace.id);
-          if (!controller.signal.aborted) setSession(current => mergeAgentSession(current, value));
+          let status: ServerAutonomy | null = null;
+          try { status = await getAutonomy(server); }
+          catch { status = null; }
+          if (!controller.signal.aborted) {
+            setSession(current => mergeAgentSession(current, value));
+            setAutonomy(status);
+          }
           return;
         }
         catch (cause) {
@@ -121,6 +130,43 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
   );
   const copyToClipboard = useCallback((value: string) => Clipboard.setStringAsync(value), []);
 
+  useEffect(() => {
+    if (!server || !session?.loop?.active) return;
+    let cancelled = false;
+    const timer = setInterval(() => {
+      void getLoop(server, workspace.id)
+        .then(loop => { if (!cancelled) setSession(current => current ? { ...current, loop } : current); })
+        .catch(cause => { if (!cancelled) setError(readError(cause)); });
+    }, 500);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [server, workspace.id, session?.loop?.active]);
+
+  const runLoop = async (work: () => Promise<void>) => {
+    if (!server || busy) return;
+    setBusy(true); setError(null);
+    try { await work(); }
+    catch (cause) { setError(readError(cause)); }
+    finally { setBusy(false); }
+  };
+  const enableAutonomy = () => void runLoop(async () => {
+    if (!server) return;
+    await putAutonomy(server, true);
+    setAutonomy(await getAutonomy(server));
+  });
+  const activateLoop = () => void runLoop(async () => {
+    if (!server) return;
+    await putLoopActivation(server, workspace.id, true);
+    const loop = await getLoop(server, workspace.id);
+    setSession(current => current ? { ...current, loop } : current);
+    setAutonomy(await getAutonomy(server));
+  });
+  const cancelLoop = () => void runLoop(async () => {
+    if (!server) return;
+    await putLoopActivation(server, workspace.id, false);
+    const loop = await getLoop(server, workspace.id);
+    setSession(current => current ? { ...current, loop } : current);
+  });
+
   const activity = resolveActivity({ state: session?.state, error: session?.error, hasPermission: Boolean(permission), hint });
   const selectedAgentName = session?.agents.find(agent => agent.agent === session.agent)?.displayName ?? session?.agent ?? 'Agent';
   const waiting = busy || session?.state === 'running' || Boolean(permission) || session?.state === 'authentication_required' || session?.state === 'authenticating';
@@ -131,6 +177,16 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
     try {
       await bindAgent(server, workspace.id, agent);
       const next = await scheduleAgent(server, workspace.id, agent);
+      setSession(current => mergeAgentSession(current, next));
+    }
+    catch (cause) { setError(readError(cause)); }
+    finally { setBusy(false); }
+  };
+  const enable = async (agent: AgentId) => {
+    if (!server) return; setBusy(true); setError(null);
+    try {
+      await enableAgentCapability(server, agent);
+      const next = await getAgent(server, workspace.id);
       setSession(current => mergeAgentSession(current, next));
     }
     catch (cause) { setError(readError(cause)); }
@@ -175,6 +231,14 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
               {session?.agent && <Pressable accessibilityRole="button" style={styles.stop} onPress={() => { if (!server) return; void stopAgent(server, workspace.id).then(() => { setSession(current => mergeAgentSession(current, null)); setItems([]); setContext({}); setPermission(null); setHint(null); }).catch(cause => setError(readError(cause))); }}><Text style={styles.stopText}>Stop</Text></Pressable>}
             </View>
           </View>
+          <AgentLoopControls
+            autonomy={autonomy}
+            loop={session?.loop}
+            busy={busy}
+            onEnable={enableAutonomy}
+            onActivate={activateLoop}
+            onCancel={cancelLoop}
+          />
           {hasContext(context) && <View style={styles.chips}>
             {context.title ? <Text style={styles.chip}>{context.title}</Text> : null}
             {context.mode ? <Text style={styles.chip}>Mode · {context.mode}</Text> : null}
@@ -182,8 +246,23 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
             {context.compacting ? <Text style={styles.chip}>Compacting context</Text> : null}
           </View>}
           {session?.boundAgent && !session.agent && <Pressable testID="agent-start-bound" accessibilityRole="button" disabled={waiting} onPress={() => void choose(session.boundAgent!)} style={styles.agentButton}><Text style={styles.agentText}>Start {session.boundAgent}</Text></Pressable>}
-          {!session?.boundAgent && <View style={styles.picker}><Text testID="agent-picker-prompt" style={styles.prompt}>Choose an ACP agent</Text>{session?.agents?.map(agent =>
-            <Pressable key={agent.agent} testID={`agent-picker-${agent.agent}`} disabled={!agent.available || waiting} onPress={() => void choose(agent.agent)} style={[styles.agentButton, !agent.available && auBox('choiceDisabled')]}><Text style={styles.agentText}>{agent.displayName}</Text><Text style={agent.available ? styles.available : styles.unavailable}>{agent.available ? 'Available' : 'Not installed'}</Text></Pressable>)}</View>}
+          {!session?.boundAgent && <View style={styles.picker}><Text testID="agent-picker-prompt" style={styles.prompt}>Choose an ACP agent</Text>{session?.agents?.map(agent => {
+            const row = presentAgentRow(agent);
+            if (row.canSelect) {
+              return <Pressable key={agent.agent} testID={`agent-picker-${agent.agent}`} disabled={waiting} onPress={() => void choose(agent.agent)} style={styles.agentButton}><Text style={styles.agentText}>{agent.displayName}</Text><Text style={styles.available}>{row.status}</Text></Pressable>;
+            }
+            return (
+              <View key={agent.agent} style={[styles.agentUnavailable, row.isBlocked && auBox('choiceDisabled')]}>
+                <View style={styles.agentHeading}>
+                  <Text style={styles.agentText}>{agent.displayName}</Text>
+                  <Text style={styles.unavailable}>{row.status}</Text>
+                </View>
+                {row.detail ? <Text style={styles.unavailable}>{row.detail}</Text> : null}
+                {row.remedy ? <Text style={styles.unavailable}>{row.remedy}</Text> : null}
+                {row.canEnable ? <Pressable testID={`agent-enable-${agent.agent}`} accessibilityRole="button" disabled={waiting} onPress={() => void enable(agent.agent)}><Text style={styles.available}>Enable</Text></Pressable> : null}
+              </View>
+            );
+          })}</View>}
           {(session?.state === 'authentication_required' || session?.state === 'authenticating') && <View style={styles.auth}>
             <Text style={styles.permissionTitle}>Sign in to {session.agent}</Text>
             {session.state === 'authenticating' && loginApi && <AgentSignIn challenge={session.loginChallenge} api={loginApi} copy={copyToClipboard} onError={setError} />}
@@ -295,6 +374,8 @@ const styles = StyleSheet.create({
   picker: { gap: 8, marginTop: 8 },
   prompt: { ...auText('fieldLabel') },
   agentButton: { ...auBox('choice'), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  agentUnavailable: { ...auBox('choice'), gap: 6 },
+  agentHeading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 16 },
   agentText: auText('workspaceName'),
   available: auText('accent'),
   unavailable: auText('muted'),

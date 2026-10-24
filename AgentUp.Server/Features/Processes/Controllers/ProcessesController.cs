@@ -28,9 +28,15 @@ public sealed class ProcessesController
     public async Task KillApplicationAsync(string workspaceId, string applicationName)
         => await _processes.KillApplicationAsync(workspaceId, applicationName);
 
-    public async Task<IReadOnlyList<string>> GetOutputAsync(string workspaceId, string applicationName)
-        => await _output.GetAsync(workspaceId, applicationName);
+    public async Task<IReadOnlyList<ProcessOutputLineDto>> GetOutputAsync(string workspaceId, string applicationName)
+    {
+        var lines = await _output.GetAsync(workspaceId, applicationName);
+        return [.. lines.Select(line => new ProcessOutputLineDto(line.Text, line.StreamName))];
+    }
 
     public WorkspaceRuntimeSnapshot GetRuntime(string workspaceId)
         => _processes.GetRuntime(workspaceId);
+
+    public bool IsApplicationAlive(string workspaceId, string applicationName)
+        => _processes.IsApplicationAlive(workspaceId, applicationName);
 }

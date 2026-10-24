@@ -21,8 +21,8 @@ Desktop chrome for the live session is the **Agent** tab. Mobile chrome for the 
 <DocContract label="Chrome">Desktop Agent · Mobile Agents</DocContract>
 
 <DocSurfaces>
-<DocSurface desktop>The Agent tab lists saved sessions and streams the selected workspace session. The live session is labeled Current; every other row is Resume. Once an agent is bound, the picker hides and the tab shows that agent. When a pasted-code sign-in is waiting, the tab collects the code and sends it to the Server. An unattended loop's phase, current task, and stop reason appear under the status line; a prompt sent while it runs steers the next turn instead of stopping it.</DocSurface>
-<DocSurface mobile>Agents lists saved sessions and Server-discovered ACP agents, then opens the selected chat as an inner page. The live session is labeled Current; every other row is Resume. A bound workspace hides the picker and shows that agent. An unattended loop's phase, current task, and stop reason appear on the bound-agent card.</DocSurface>
+<DocSurface desktop>The Agent tab lists saved sessions and streams the selected workspace session. The live session is labeled Current; every other row is Resume. Once an agent is bound, the picker hides and the tab shows that agent. When a pasted-code sign-in is waiting, the tab collects the code and sends it to the Server. An unattended loop checklist, Enable autonomy, Activate, Cancel, and typed terminal appear on the Agent tab; a prompt sent while it runs steers the next turn instead of stopping it.</DocSurface>
+<DocSurface mobile>Agents lists saved sessions and Server-discovered ACP agents, then opens the selected chat as an inner page. The live session is labeled Current; every other row is Resume. A bound workspace hides the picker and shows that agent. The same unattended loop checklist, Enable autonomy, Activate, Cancel, and typed terminal appear on Agents and in chat.</DocSurface>
 </DocSurfaces>
 
 <p><img src="/desktop-agents.png" alt="Desktop Agent tab showing the agent bound to Bob's workspace" /></p>
@@ -32,9 +32,9 @@ Desktop chrome for the live session is the **Agent** tab. Mobile chrome for the 
 
 Saved sessions from every enabled ACP agent appear together within the current workspace. Each row shows the agent, the agent-generated short description, and the branch last associated with the session. The live session is labeled Current. Select any other row to resume it. Sessions from another workspace never appear in this list.
 
-Workspace agent chat uses ACP packages enabled on the Server. The picker lists those modules by id. The Server wraps those launches in Nix. Enable the package from Desktop capability-module chrome or Mobile Settings. Clients never call the remote registry.
+Workspace agent chat uses ACP packages enabled on the Server. The picker lists first-party agents even when their package is off, plus any other enabled agent module. The Server wraps those launches in Nix. Enable the package from the agent row, Desktop capability-module chrome, or Mobile Settings. Clients never call the remote registry.
 
-Sign in with the corresponding CLI's subscription login from Desktop or Mobile when the agent asks. Agent-Up runs that vendor's no-browser or device-code flow on the Server, shows the sign-in link (and Codex device code) in the client, and then starts ACP. An unavailable executable is disabled in the Desktop and Mobile agent picker.
+Sign in with the corresponding CLI's subscription login from Desktop or Mobile when the agent asks. Agent-Up runs that vendor's no-browser or device-code flow on the Server, shows the sign-in link (and Codex device code) in the client, and then starts ACP. An unavailable agent shows why: a disabled package offers Enable on the row, and a missing ACP executable names the command and how to install it.
 
 ## Workspace-bound agent
 
@@ -42,7 +42,7 @@ Choosing an agent on Desktop or Mobile binds that module to the workspace, then 
 
 ## Unattended loop
 
-Autonomy is experimental and off by default. When it is enabled on the Server and activated for a workspace, that bound agent works through assigned host issues under a permission policy without waiting on each prompt. Desktop shows the current task and how the loop stopped. A message typed while a turn is running is steering for the next turn; it does not cancel the loop.
+Autonomy is experimental and off by default. Enablement persists on the Server; the environment variable still wins when it is set. Desktop Agent and Mobile Agents show the ordered precondition checklist, Enable autonomy, Activate, Cancel, and the typed terminal for how the loop stopped. A message typed while a turn is running is steering for the next turn; it does not cancel the loop.
 
 <DocNext href="/docs/configuration" title="Configuration">
 How to declare `dotnet[]` and `docker[]` shims.

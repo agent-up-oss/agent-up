@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Features.Agents.DTOs;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 
 namespace AgentUp.Desktop.Tests.Support;
@@ -58,6 +59,9 @@ internal static class DesktopDomain
     /// <summary>A Git log commit; tests override the id, parents, and refs they care about.</summary>
     public static GitLogCommitDtoBuilder GitCommit() => new();
 
+    /// <summary>Git hosting state; tests pick availability rather than restating the DTO.</summary>
+    public static ForgeHostingDtoBuilder Hosting() => new();
+
     /// <summary>A second workspace, so "two different workspaces" has one spelling.</summary>
     public static WorkspaceDtoBuilder SecondWorkspace()
         => new WorkspaceDtoBuilder()
@@ -103,6 +107,12 @@ internal static class DesktopDomain
 
     /// <summary>The canonical idle agent session for the primary workspace.</summary>
     public static AgentSessionDtoBuilder Session() => new();
+
+    /// <summary>An ACP agent row in the picker, available unless the call site says otherwise.</summary>
+    public static AgentDescriptorDtoBuilder Agent() => new();
+
+    public static AgentDescriptorDto AvailableAgent(string agent = "Codex", string? displayName = null)
+        => Agent().Named(agent, displayName).Build();
 
     /// <summary>
     /// The canonical workspace running one application on an allocated HTTP port - the

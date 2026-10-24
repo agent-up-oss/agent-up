@@ -48,13 +48,13 @@ public sealed class MobileScreenScriptProviderTests
     [Test]
     public void FocusField_matchesPlaceholderOrAccessibleLabel()
     {
-        var script = MobileScreenScriptProvider.FocusField("Server URL");
+        var script = MobileScreenScriptProvider.FocusField(MobileScreenSurface.ConnectFieldLabel);
 
         Assert.Multiple(() =>
         {
             Assert.That(script, Does.Contain("placeholder"));
             Assert.That(script, Does.Contain("aria-label"));
-            Assert.That(script, Does.Contain("\"Server URL\""));
+            Assert.That(script, Does.Contain($"\"{MobileScreenSurface.ConnectFieldLabel}\""));
         });
     }
 }

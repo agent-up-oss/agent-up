@@ -8,6 +8,7 @@ public sealed record ForgeHostingDto(
     IReadOnlyList<ForgeReviewThreadDto> Threads,
     ForgeMergeabilityDto? Mergeability,
     string? Detail,
+    string? Remedy,
     ForgeAccountDto? Account = null,
     IReadOnlyList<ForgeReviewDto>? Reviews = null);
 
@@ -34,3 +35,5 @@ public sealed record ForgeCheckDto(string Name, string Status, string Conclusion
 public sealed record ForgeReviewThreadDto(string Id, string Url, string Summary, bool IsResolved);
 
 public sealed record ForgeMergeabilityDto(bool Mergeable, string State);
+
+public sealed record ForgeLoginStartDto(string AuthorizationUrl);

@@ -36,6 +36,25 @@ public sealed class AgentChatServiceTests
             Assert.That(streamed, Is.EqualTo(0));
         });
     }
+
+    [Test]
+    public async Task AutonomyCalls_forwardToTheProvider()
+    {
+        var provider = new FakeAgentApiProvider();
+        var service = new AgentChatService(provider);
+
+        await service.GetAutonomyAsync(CancellationToken.None);
+        await service.PutAutonomyAsync(true, CancellationToken.None);
+        await service.PutLoopActivationAsync("ws-1", true, CancellationToken.None);
+        await service.GetLoopAsync("ws-1", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(provider.AutonomyEnabled, Is.True);
+            Assert.That(provider.LoopActivation, Is.EqualTo(("ws-1", true)));
+            Assert.That(provider.LoopReads, Is.EqualTo("ws-1"));
+        });
+    }
 }
 
 internal sealed class FakeAgentApiProvider : IAgentApiProvider
@@ -45,6 +64,9 @@ internal sealed class FakeAgentApiProvider : IAgentApiProvider
     public (string, string)? SubmittedCode { get; private set; }
     public (string, string, string)? Decided { get; private set; }
     public string? Stopped { get; private set; }
+    public bool? AutonomyEnabled { get; private set; }
+    public (string, bool)? LoopActivation { get; private set; }
+    public string? LoopReads { get; private set; }
     public Task<AgentSessionDto?> GetAsync(string workspaceId, CancellationToken cancellationToken) => Task.FromResult<AgentSessionDto?>(null);
     public Task<AgentSessionDto?> BindAsync(string workspaceId, string agent, CancellationToken cancellationToken) => Task.FromResult<AgentSessionDto?>(null);
     public Task<AgentSessionDto?> ScheduleAsync(string workspaceId, string agent, CancellationToken cancellationToken) => Task.FromResult<AgentSessionDto?>(null);
@@ -54,5 +76,9 @@ internal sealed class FakeAgentApiProvider : IAgentApiProvider
     public Task SubmitLoginCodeAsync(string workspaceId, string code, CancellationToken cancellationToken) { SubmittedCode = (workspaceId, code); return Task.CompletedTask; }
     public Task DecideAsync(string workspaceId, string requestId, string optionId, CancellationToken cancellationToken) { Decided = (workspaceId, requestId, optionId); return Task.CompletedTask; }
     public Task StopAsync(string workspaceId, CancellationToken cancellationToken) { Stopped = workspaceId; return Task.CompletedTask; }
+    public Task<ServerAutonomyDto?> GetAutonomyAsync(CancellationToken cancellationToken) => Task.FromResult<ServerAutonomyDto?>(null);
+    public Task PutAutonomyAsync(bool enabled, CancellationToken cancellationToken) { AutonomyEnabled = enabled; return Task.CompletedTask; }
+    public Task PutLoopActivationAsync(string workspaceId, bool active, CancellationToken cancellationToken) { LoopActivation = (workspaceId, active); return Task.CompletedTask; }
+    public Task<AgentLoopStatusDto?> GetLoopAsync(string workspaceId, CancellationToken cancellationToken) { LoopReads = workspaceId; return Task.FromResult<AgentLoopStatusDto?>(null); }
     public async IAsyncEnumerable<AgentEventDto> EventsAsync(string workspaceId, long after, [EnumeratorCancellation] CancellationToken cancellationToken) { await Task.CompletedTask; yield break; }
 }

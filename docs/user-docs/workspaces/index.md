@@ -110,6 +110,15 @@ Switching servers drops that client's local workspace state.
 
 `start` searches the current directory and its parents for `agent-up.json`, then pushes the workspace definition to the Server: identity, legacy `applications` / `desktopApplications` / `services`, and every other root array as a runtime section. The Server binds those arrays to enabled runtime-kind modules. The directory containing `agent-up.json` is the workspace root. Running `start` again from the same workspace updates the existing workspace in place.
 
+<DocFacts label="Start outcomes">
+<DocFact label="Starting">Processes launched; Agent-Up is still waiting for ports, health checks, or a short settle window</DocFact>
+<DocFact label="Running">Every declared application is ready</DocFact>
+<DocFact label="Degraded">At least one application is running and at least one failed</DocFact>
+<DocFact label="Failed">Nothing started, or nothing became ready in time; leftover processes are stopped</DocFact>
+</DocFacts>
+
+`agent-up start` prints each failed application and its reason. It exits non-zero only when nothing started.
+
 ```bash
 agent-up start --server http://localhost:5001
 ```
@@ -119,6 +128,7 @@ agent-up start --server http://localhost:5001
 <DocFact label="list">Lists workspaces the Server knows</DocFact>
 <DocFact label="status">Shows workspace status</DocFact>
 <DocFact label="clear">Stops and removes all known workspaces</DocFact>
+<DocFact label="capabilities">List, enable, disable, or bootstrap Server capability modules</DocFact>
 </DocFacts>
 
 `auth` authenticates the CLI with a Server that requires the admin password. Tokens are stored locally per server URL. `auth` commands always require an explicit `--server` argument. They do not fall back to repository `.env` values or `AGENTUP_SERVER_URL`.

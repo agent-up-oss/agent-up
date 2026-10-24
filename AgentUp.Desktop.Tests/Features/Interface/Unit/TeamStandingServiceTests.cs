@@ -274,7 +274,7 @@ public sealed class TeamStandingAgentNameTests
         var agents = new StandingAgentFake();
         agents.Sessions["bob"] = TeamStandingComposition.Session("bob", agent: "claude") with
         {
-            Agents = [new AgentDescriptorDto("claude", true, "Claude")]
+            Agents = [new AgentDescriptorDtoBuilder().Named("claude", "Claude").Build()]
         };
 
         var standing = (await Read(agents, "bob")).Single();

@@ -153,6 +153,19 @@ The root comes from `AGENTUP_SOURCE_CLONES_ROOT` and otherwise defaults to a `so
 
 `POST /api/workspaces/tutorial/cleanup` stops and removes every registered workspace. Desktop and Mobile onboarding is the built-in Demo server, not this endpoint. The Desktop FirstRun tutorial overlay is gone; every launch is the server picker.
 
+## Start outcomes
+
+`WorkspaceLifecycleService` attempts every declared application. A per-application failure stays on that application. Launch does not wait for readiness: `POST /start` returns after processes are launched, and applications stay `Starting` until a health-check path succeeds, the allocated loopback port accepts a TCP connection, or a process with no ports survives a short settle window. A per-application deadline fails the application that never became ready. Those later transitions are published on `GET /api/workspaces/events`.
+
+<DocFacts>
+<DocFact label="Starting">Processes launched; readiness has not finished. `POST /start` returns 200 and the event stream carries the later state.</DocFact>
+<DocFact label="Running">Every application became ready. `POST /start` returns 200 when that is already true on the first probe.</DocFact>
+<DocFact label="Degraded">At least one application is running and at least one failed. `POST /start` returns 200 with `failedApplications`.</DocFact>
+<DocFact label="Failed">Nothing started, or every remaining application missed readiness. `POST /start` returns 500 when nothing started; a later all-failed readiness timeout is emitted on the event stream and `KillAsync` stops leftover processes.</DocFact>
+</DocFacts>
+
+Desktop and Mobile treat `Degraded` as an active workspace: the stop control stays available and the LED uses the warning role.
+
 ## Desktop and Mobile clients
 
 Desktop displays workspaces, connects to one Server at a time, and may remember additional Server URLs with their login tokens. Switching Servers drops Desktop-local workspace and browser state. The workspace list `+` button posts to the Server's source-clones endpoint. Desktop does not clone, validate remotes, or choose a destination directory.

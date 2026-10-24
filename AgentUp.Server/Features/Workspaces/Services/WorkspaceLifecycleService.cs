@@ -7,7 +7,9 @@ using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Server.Features.DesktopApplications.Controllers;
 using AgentUp.Server.Features.Orchestration.Controllers;
 using AgentUp.Server.Features.Processes.Controllers;
+using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Features.Workspaces.Models;
 using Microsoft.Extensions.Logging;
 
 namespace AgentUp.Server.Features.Workspaces.Services;
@@ -22,6 +24,7 @@ public sealed class WorkspaceLifecycleService
     private readonly AppMetricsController _metricsPulls;
     private readonly WorkspaceStreamStateController _streamState;
     private readonly OrchestrationRegistrationController _registration;
+    private readonly WorkspaceReadinessController _readiness;
     private readonly ILogger<WorkspaceLifecycleService> _logger;
     private readonly Func<bool> _isLinux;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _transitionLocks = new();
@@ -35,6 +38,7 @@ public sealed class WorkspaceLifecycleService
         AppMetricsController metricsPulls,
         WorkspaceStreamStateController streamState,
         OrchestrationRegistrationController registration,
+        WorkspaceReadinessController readiness,
         ILogger<WorkspaceLifecycleService> logger)
         : this(
             registry,
@@ -45,6 +49,7 @@ public sealed class WorkspaceLifecycleService
             metricsPulls,
             streamState,
             registration,
+            readiness,
             logger,
             OperatingSystem.IsLinux)
     {
@@ -59,6 +64,7 @@ public sealed class WorkspaceLifecycleService
         AppMetricsController metricsPulls,
         WorkspaceStreamStateController streamState,
         OrchestrationRegistrationController registration,
+        WorkspaceReadinessController readiness,
         ILogger<WorkspaceLifecycleService> logger,
         Func<bool> isLinux)
     {
@@ -70,6 +76,7 @@ public sealed class WorkspaceLifecycleService
         _metricsPulls = metricsPulls;
         _streamState = streamState;
         _registration = registration;
+        _readiness = readiness;
         _logger = logger;
         _isLinux = isLinux;
     }
@@ -84,7 +91,7 @@ public sealed class WorkspaceLifecycleService
             if (workspace is null)
                 return WorkspaceLifecycleResult.NotFound();
 
-            if (workspace.State is WorkspaceState.Running or WorkspaceState.Starting)
+            if (workspace.State is WorkspaceState.Running or WorkspaceState.Degraded or WorkspaceState.Starting)
             {
                 gate.Release();
                 WorkspaceLifecycleResult stopResult;
@@ -127,28 +134,43 @@ public sealed class WorkspaceLifecycleService
                              app.Kind == ApplicationKind.Desktop && _isLinux()))
                     app.RuntimeEnvironment = await _desktopApplications.PrepareAsync(workspace, app, CancellationToken.None);
                 await _processes.LaunchWorkspaceAsync(workspace);
-                await _registry.UpdateStateAsync(id, WorkspaceState.Running);
-                await _registry.UpdateLastErrorAsync(id, null);
-                foreach (var app in workspace.Applications)
-                {
-                    if (app.Kind == ApplicationKind.Desktop && !_isLinux())
-                    {
-                        await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Failed);
-                        continue;
-                    }
+                workspace = _registry.GetById(id)!;
+                foreach (var app in workspace.Applications.Where(app =>
+                             app.State != ApplicationState.Failed
+                             && app.Kind == ApplicationKind.Desktop
+                             && !_isLinux()))
+                    await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Failed);
 
-                    await _registry.UpdateApplicationStateAsync(id, app.Name, ApplicationState.Running);
+                workspace = _registry.GetById(id)!;
+                var launchFailures = WorkspaceStartEvaluation.Failures(workspace);
+                var launchState = WorkspaceStartEvaluation.StateFrom(workspace.Applications);
+                if (launchState == WorkspaceState.Failed)
+                {
+                    await _processes.KillWorkspaceAsync(id);
+                    await _desktopApplications.StopWorkspaceAsync(id, CancellationToken.None);
+                    var failedError = WorkspaceStartEvaluation.Summarize(launchFailures) ?? "Workspace could not be started.";
+                    await _registry.UpdateLastErrorAsync(id, failedError);
+                    await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
+                    return WorkspaceLifecycleResult.Failed(failedError, launchFailures);
                 }
 
                 _streamState.OnWorkspaceStarted(workspace);
                 _healthChecks.StartForWorkspace(workspace);
                 _metricsPulls.StartForWorkspace(workspace);
+                await _readiness.WatchAsync(id);
 
-                return WorkspaceLifecycleResult.Success();
+                workspace = _registry.GetById(id)!;
+                var failures = WorkspaceStartEvaluation.Failures(workspace);
+                var state = workspace.State;
+                await _registry.UpdateLastErrorAsync(id, state is WorkspaceState.Degraded or WorkspaceState.Failed
+                    ? WorkspaceStartEvaluation.Summarize(failures)
+                    : workspace.LastError);
+                return WorkspaceLifecycleResult.Success(state, failures);
             }
             catch (Exception ex) when (ex is InvalidOperationException or IOException or UnauthorizedAccessException)
             {
                 _logger.LogError(ex, "Workspace failed to start");
+                await _processes.KillWorkspaceAsync(id);
                 await _desktopApplications.StopWorkspaceAsync(id, CancellationToken.None);
                 await _registry.UpdateLastErrorAsync(id, ex.Message);
                 await _registry.UpdateStateAsync(id, WorkspaceState.Failed);
@@ -184,6 +206,7 @@ public sealed class WorkspaceLifecycleService
                 // Publish WorkspaceStopped early so any live desktop clients hide the WebView
                 // and show the correct banner before we start tearing down the session.
                 _streamState.OnWorkspaceStopped(id);
+                _readiness.Stop(id);
                 _healthChecks.StopForWorkspace(id);
                 _metricsPulls.StopForWorkspace(id);
                 await _processes.KillWorkspaceAsync(id);

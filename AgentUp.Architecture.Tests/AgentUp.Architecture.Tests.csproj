@@ -37,6 +37,7 @@
     <ProjectReference Include="..\AgentUp.Capabilities.Cursor\AgentUp.Capabilities.Cursor.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Claude\AgentUp.Capabilities.Claude.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Github\AgentUp.Capabilities.Github.csproj" />
+    <ProjectReference Include="..\AgentUp.Capabilities.Forgejo\AgentUp.Capabilities.Forgejo.csproj" />
     <ProjectReference Include="..\AgentUp.TestAgents\AgentUp.TestAgents.csproj" />
     <ProjectReference Include="..\AgentUp.Tray\AgentUp.Tray.csproj" />
   </ItemGroup>

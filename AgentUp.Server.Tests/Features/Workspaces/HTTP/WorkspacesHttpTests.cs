@@ -432,7 +432,10 @@ public class WorkspacesHttpTests
 
         var startResponse = await _client.PostAsync($"/api/workspaces/{created.Id}/start", null);
 
-        Assert.That(startResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        Assert.That(startResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var outcome = await startResponse.Content.ReadFromJsonAsync<WorkspaceStartOutcome>(JsonOptions);
+        Assert.That(outcome!.State, Is.EqualTo(WorkspaceState.Running));
+        Assert.That(outcome.FailedApplications, Is.Empty);
 
         var workspace = await _client.GetFromJsonAsync<Workspace>($"/api/workspaces/{created.Id}", JsonOptions);
         Assert.That(workspace!.State, Is.EqualTo(WorkspaceState.Running));
@@ -452,6 +455,45 @@ public class WorkspacesHttpTests
         var apps = await _client.GetFromJsonAsync<List<ApplicationInstance>>($"/api/workspaces/{created.Id}/applications", JsonOptions);
         Assert.That(apps![0].State, Is.EqualTo(ApplicationState.Running));
         Assert.That(apps[1].State, Is.EqualTo(ApplicationState.Running));
+    }
+
+    [Test]
+    public async Task PostStart_PublishesRunningOnTheEventStream()
+    {
+        var request = ServerDomain.Workspace()
+            .WithApplication(new ApplicationDefinitionBuilder("Frontend", ServerDomain.WebCommand).Build())
+            .Build();
+        var created = (await (await _client.PostAsJsonAsync("/api/workspaces", request)).Content.ReadFromJsonAsync<Workspace>(JsonOptions))!;
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var eventsTask = _client.GetAsync(
+            "/api/workspaces/events",
+            HttpCompletionOption.ResponseHeadersRead,
+            cts.Token);
+        await Task.Delay(50, cts.Token);
+
+        var startResponse = await _client.PostAsync($"/api/workspaces/{created.Id}/start", null);
+        using var eventsResponse = await eventsTask;
+        await using var stream = await eventsResponse.Content.ReadAsStreamAsync(cts.Token);
+        using var reader = new StreamReader(stream);
+        var lines = new List<string>();
+        while (lines.Count < 8)
+        {
+            var line = await reader.ReadLineAsync(cts.Token).AsTask().WaitAsync(TimeSpan.FromSeconds(2));
+            if (line is null)
+                break;
+            if (line.StartsWith("data: ", StringComparison.Ordinal))
+                lines.Add(line);
+            if (lines.Any(entry => entry.Contains("\"state\":\"Running\"", StringComparison.Ordinal)))
+                break;
+        }
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(startResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(lines, Has.Some.Contains("\"state\":\"Starting\""));
+            Assert.That(lines, Has.Some.Contains("\"state\":\"Running\""));
+        });
     }
 
     [Test]

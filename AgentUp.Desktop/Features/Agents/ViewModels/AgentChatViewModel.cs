@@ -1,10 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Text.Json;
+using Avalonia;
 using Avalonia.Threading;
 using AgentUp.Desktop.Features.Agents.Controllers;
 using AgentUp.Desktop.Features.Agents.DTOs;
 using AgentUp.Desktop.Features.Agents.Providers;
+using AgentUp.Desktop.Features.Capabilities.Controllers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Agents.ViewModels;
@@ -12,9 +14,12 @@ namespace AgentUp.Desktop.Features.Agents.ViewModels;
 public sealed class AgentChatViewModel : ReactiveObject
 {
     private readonly AgentsController _controller;
+    private readonly CapabilityModulesController? _modules;
     private string? _workspaceId, _selectedAgent, _boundAgent, _sessionId, _message, _error, _sessionTitle, _mode, _usage, _permissionTitle, _permissionDetail, _hintKind, _hintTool, _loginUrl, _loginCode, _loginInstructions, _loginCodeInput;
     private bool _canCollectLoginCode, _canSubmitLoginCode;
     private AgentLoopStatusDto? _loop;
+    private CancellationTokenSource? _loopPoll;
+    private Task? _loopPollLoop;
     private string _state = "idle";
     private string _activityLabel = "Idle";
     private bool _isVisible, _isBusy;
@@ -34,6 +39,24 @@ public sealed class AgentChatViewModel : ReactiveObject
     public string? SelectedAgent { get => _selectedAgent; private set => this.RaiseAndSetIfChanged(ref _selectedAgent, value); }
     public string? BoundAgent { get => _boundAgent; private set => this.RaiseAndSetIfChanged(ref _boundAgent, value); }
     public AgentLoopStatusDto? Loop { get => _loop; private set => this.RaiseAndSetIfChanged(ref _loop, value); }
+    public ObservableCollection<AutonomyPreconditionDto> Preconditions { get; } = [];
+    public bool HasAutonomy => Preconditions.Count > 0;
+    public bool CanEnableAutonomy =>
+        Satisfied("forgeCapabilityEnabled")
+        && Satisfied("hostConnectionAuthorized")
+        && Satisfied("agentAvailable")
+        && Preconditions.Any(item => item.Id == "autonomyEnabled" && !item.Satisfied)
+        && !IsBusy;
+    public bool CanActivateLoop =>
+        HasAutonomy
+        && Preconditions.All(item => item.Satisfied)
+        && Loop?.Active != true
+        && !IsBusy;
+    public bool CanCancelLoop => Loop?.Active == true && !IsBusy;
+    public string? LoopTerminal => Loop?.Terminal;
+    public string? LoopPhase => Loop?.Phase;
+    public bool HasLoopTerminal => !string.IsNullOrWhiteSpace(LoopTerminal);
+    public bool HasLoopPhase => !string.IsNullOrWhiteSpace(LoopPhase);
     public string State { get => _state; private set => this.RaiseAndSetIfChanged(ref _state, value); }
     public string ActivityLabel { get => _activityLabel; private set => this.RaiseAndSetIfChanged(ref _activityLabel, value); }
     public string? SessionTitle { get => _sessionTitle; private set => this.RaiseAndSetIfChanged(ref _sessionTitle, value); }
@@ -53,8 +76,27 @@ public sealed class AgentChatViewModel : ReactiveObject
     public string? ContextLine => string.Join("   ", new[] { SessionTitle, string.IsNullOrWhiteSpace(Mode) ? null : $"Mode · {Mode}", Usage }.Where(part => !string.IsNullOrWhiteSpace(part)));
     public string? Message { get => _message; set => this.RaiseAndSetIfChanged(ref _message, value); }
     public string? Error { get => _error; private set => this.RaiseAndSetIfChanged(ref _error, value); }
-    public bool IsVisible { get => _isVisible; set => this.RaiseAndSetIfChanged(ref _isVisible, value); }
-    public bool IsBusy { get => _isBusy; private set => this.RaiseAndSetIfChanged(ref _isBusy, value); }
+    public bool IsVisible
+    {
+        get => _isVisible;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _isVisible, value);
+            if (value)
+                TryStartLoopPoll();
+            else
+                _ = StopLoopPollAsync();
+        }
+    }
+    public bool IsBusy
+    {
+        get => _isBusy;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _isBusy, value);
+            NotifyLoopSurface();
+        }
+    }
     public bool HasAgent => SelectedAgent is not null;
     public bool HasBoundAgent => BoundAgent is not null;
     public bool CanStartBound => HasBoundAgent && !HasAgent;
@@ -80,23 +122,33 @@ public sealed class AgentChatViewModel : ReactiveObject
             ? $"{BoundAgentDisplayName} · {ActivityLabel}"
             : ActivityLabel;
     public ReactiveCommand<string, Unit> SelectAgentCommand { get; }
+    public ReactiveCommand<string, Unit> EnableAgentCommand { get; }
     public ReactiveCommand<Unit, Unit> StartBoundCommand { get; }
     public ReactiveCommand<string, Unit> ResumeSessionCommand { get; }
     public ReactiveCommand<Unit, Unit> SendCommand { get; }
     public ReactiveCommand<Unit, Unit> StopCommand { get; }
     public ReactiveCommand<Unit, Unit> SubmitLoginCodeCommand { get; }
+    public ReactiveCommand<Unit, Unit> EnableAutonomyCommand { get; }
+    public ReactiveCommand<Unit, Unit> ActivateLoopCommand { get; }
+    public ReactiveCommand<Unit, Unit> CancelLoopCommand { get; }
 
-    public AgentChatViewModel(AgentsController controller)
+    public AgentChatViewModel(AgentsController controller, CapabilityModulesController? modules = null)
     {
         _controller = controller;
+        _modules = modules;
         SelectAgentCommand = ReactiveCommand.CreateFromTask<string>(SelectAsync);
+        EnableAgentCommand = ReactiveCommand.CreateFromTask<string>(EnableAgentAsync);
         StartBoundCommand = ReactiveCommand.CreateFromTask(StartBoundAsync);
         ResumeSessionCommand = ReactiveCommand.CreateFromTask<string>(ResumeAsync);
         SendCommand = ReactiveCommand.CreateFromTask(SendAsync);
         StopCommand = ReactiveCommand.CreateFromTask(StopAsync);
         SubmitLoginCodeCommand = ReactiveCommand.CreateFromTask(SubmitLoginCodeAsync);
+        EnableAutonomyCommand = ReactiveCommand.CreateFromTask(EnableAutonomyAsync);
+        ActivateLoopCommand = ReactiveCommand.CreateFromTask(ActivateLoopAsync);
+        CancelLoopCommand = ReactiveCommand.CreateFromTask(CancelLoopAsync);
         Transcript.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(HasMessages));
         Sessions.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(HasNoSavedSessions));
+        Preconditions.CollectionChanged += (_, _) => NotifyLoopSurface();
     }
 
     public async Task LoadAsync(string? workspaceId)
@@ -108,9 +160,10 @@ public sealed class AgentChatViewModel : ReactiveObject
 
         _workspaceId = workspaceId;
         _lastSequence = 0;
+        await StopLoopPollAsync();
         Transcript.Clear();
         _currentRun = null;
-        PermissionOptions.Clear(); AuthenticationOptions.Clear(); SelectedAgent = null; BoundAgent = null; Loop = null; State = "idle"; Error = null; Agents.Clear(); Sessions.Clear();
+        PermissionOptions.Clear(); AuthenticationOptions.Clear(); SelectedAgent = null; BoundAgent = null; Loop = null; State = "idle"; Error = null; Agents.Clear(); Sessions.Clear(); Preconditions.Clear();
         SessionTitle = Mode = Usage = PermissionTitle = PermissionDetail = LoginUrl = LoginCode = LoginInstructions = LoginCodeInput = _hintKind = _hintTool = null;
         CanCollectLoginCode = CanSubmitLoginCode = false;
         NotifyComputedChatState();
@@ -121,6 +174,8 @@ public sealed class AgentChatViewModel : ReactiveObject
             var session = await _controller.GetAsync(workspaceId, CancellationToken.None);
             if (generation != _loadGeneration) return;
             Apply(session);
+            await LoadAutonomyAsync(generation);
+            if (generation != _loadGeneration) return;
             StartStream(workspaceId);
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException or TaskCanceledException)
@@ -135,6 +190,20 @@ public sealed class AgentChatViewModel : ReactiveObject
         Apply(await _controller.BindAsync(id, agent, CancellationToken.None));
         Apply(await _controller.ScheduleAsync(id, agent, CancellationToken.None));
     });
+    private async Task EnableAgentAsync(string agent)
+    {
+        if (_modules is null)
+        {
+            Error = "This Server cannot enable capability packages.";
+            return;
+        }
+
+        await RunAsync(async id =>
+        {
+            await _modules.EnableAsync(agent, version: null);
+            Apply(await _controller.GetAsync(id, CancellationToken.None));
+        });
+    }
     private async Task StartBoundAsync() => await RunAsync(async id =>
     {
         if (BoundAgent is null) return;
@@ -152,6 +221,24 @@ public sealed class AgentChatViewModel : ReactiveObject
         Transcript.Clear();
         _currentRun = null;
         Apply(null);
+    });
+    private async Task EnableAutonomyAsync() => await RunAsync(async _ =>
+    {
+        await _controller.PutAutonomyAsync(true, CancellationToken.None);
+        ApplyAutonomy(await _controller.GetAutonomyAsync(CancellationToken.None));
+    });
+    private async Task ActivateLoopAsync() => await RunAsync(async id =>
+    {
+        await _controller.PutLoopActivationAsync(id, true, CancellationToken.None);
+        ApplyLoop(await _controller.GetLoopAsync(id, CancellationToken.None));
+        ApplyAutonomy(await _controller.GetAutonomyAsync(CancellationToken.None));
+        TryStartLoopPoll();
+    });
+    private async Task CancelLoopAsync() => await RunAsync(async id =>
+    {
+        await _controller.PutLoopActivationAsync(id, false, CancellationToken.None);
+        await StopLoopPollAsync();
+        ApplyLoop(await _controller.GetLoopAsync(id, CancellationToken.None));
     });
     private async Task RunAsync(Func<string, Task> action)
     {
@@ -431,6 +518,7 @@ public sealed class AgentChatViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(BoundAgentDisplayName));
         this.RaisePropertyChanged(nameof(LoopLine));
         this.RaisePropertyChanged(nameof(HasLoop));
+        NotifyLoopSurface();
         this.RaisePropertyChanged(nameof(StatusLine));
         this.RaisePropertyChanged(nameof(ContextLine));
         this.RaisePropertyChanged(nameof(HasContext));
@@ -440,6 +528,125 @@ public sealed class AgentChatViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(HasNoSavedSessions));
         this.RaisePropertyChanged(nameof(CanCollectLoginCode));
         this.RaisePropertyChanged(nameof(CanSubmitLoginCode));
+        NotifyLoopSurface();
+    }
+
+    private bool Satisfied(string id) => Preconditions.Any(item => item.Id == id && item.Satisfied);
+
+    private async Task LoadAutonomyAsync(int generation)
+    {
+        try
+        {
+            var autonomy = await _controller.GetAutonomyAsync(CancellationToken.None);
+            if (generation != _loadGeneration)
+                return;
+            ApplyAutonomy(autonomy);
+            TryStartLoopPoll();
+        }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException or TaskCanceledException)
+        {
+            if (generation == _loadGeneration && Error is null)
+                Error = exception.Message;
+        }
+    }
+
+    private void ApplyAutonomy(ServerAutonomyDto? autonomy)
+    {
+        Preconditions.Clear();
+        foreach (var item in autonomy?.Preconditions ?? [])
+            Preconditions.Add(item);
+        NotifyLoopSurface();
+    }
+
+    private void ApplyLoop(AgentLoopStatusDto? loop)
+    {
+        Loop = loop;
+        NotifyLoopSurface();
+    }
+
+    private void NotifyLoopSurface()
+    {
+        this.RaisePropertyChanged(nameof(HasAutonomy));
+        this.RaisePropertyChanged(nameof(CanEnableAutonomy));
+        this.RaisePropertyChanged(nameof(CanActivateLoop));
+        this.RaisePropertyChanged(nameof(CanCancelLoop));
+        this.RaisePropertyChanged(nameof(LoopTerminal));
+        this.RaisePropertyChanged(nameof(LoopPhase));
+        this.RaisePropertyChanged(nameof(HasLoopTerminal));
+        this.RaisePropertyChanged(nameof(HasLoopPhase));
+        this.RaisePropertyChanged(nameof(LoopLine));
+        this.RaisePropertyChanged(nameof(HasLoop));
+    }
+
+    private void TryStartLoopPoll()
+    {
+        if (!IsVisible || Application.Current is null || Loop?.Active != true || _workspaceId is null)
+            return;
+        _loopPoll?.Cancel();
+        _loopPoll = new CancellationTokenSource();
+        _loopPollLoop = PollLoopAsync(_workspaceId, _loopPoll.Token);
+    }
+
+    private async Task PollLoopAsync(string id, CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                var loop = await _controller.GetLoopAsync(id, cancellationToken);
+                if (cancellationToken.IsCancellationRequested)
+                    return;
+                Dispatch(() => ApplyLoop(loop));
+                if (loop?.Active != true)
+                    return;
+                await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+            }
+        }
+    }
+
+    private static void Dispatch(Action action)
+    {
+        if (Application.Current is null || Dispatcher.UIThread.CheckAccess())
+        {
+            action();
+            return;
+        }
+
+        Dispatcher.UIThread.Post(action);
+    }
+
+    private Task StopLoopPollAsync()
+    {
+        var poll = _loopPoll;
+        var loop = _loopPollLoop;
+        _loopPoll = null;
+        _loopPollLoop = null;
+        if (poll is null)
+            return Task.CompletedTask;
+        return StopCapturedLoopPollAsync(poll, loop);
+    }
+
+    private static async Task StopCapturedLoopPollAsync(CancellationTokenSource poll, Task? loop)
+    {
+        await poll.CancelAsync();
+        if (loop is not null)
+        {
+            try { await loop; }
+            catch (OperationCanceledException)
+            {
+                loop = null;
+            }
+        }
+
+        poll.Dispose();
     }
     private static string Text(JsonElement value)
     {

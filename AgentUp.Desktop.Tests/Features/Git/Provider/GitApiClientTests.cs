@@ -83,13 +83,14 @@ public sealed class GitApiClientTests
     public async Task GetHostingAsync_requestsTheWorkspaceScopedForgeRoute()
     {
         using var handler = new RecordingGitHandler(HttpStatusCode.OK,
-            """{"availability":"none","moduleId":null,"proposal":null,"checks":[],"threads":[],"mergeability":null,"detail":null}""");
+            """{"availability":"notInstalled","moduleId":null,"proposal":null,"checks":[],"threads":[],"mergeability":null,"detail":"No forge capability package is enabled.","remedy":"Run: agent-up capabilities bootstrap"}""");
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var client = new GitApiClient(http);
 
         var hosting = await client.GetHostingAsync("ws 1");
 
-        Assert.That(hosting!.Availability, Is.EqualTo("none"));
+        Assert.That(hosting!.Availability, Is.EqualTo("notInstalled"));
+        Assert.That(hosting.Remedy, Does.Contain("capabilities bootstrap"));
         Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws%201/forge"));
     }
 
@@ -104,7 +105,7 @@ public sealed class GitApiClientTests
     }
 
     [Test]
-    public async Task GetHostingAsync_readsNoneFromTheWorkspaceFakeHandler()
+    public async Task GetHostingAsync_readsNotInstalledFromTheWorkspaceFakeHandler()
     {
         using var handler = new FakeHttpMessageHandler([DesktopDomain.Workspace().Build()]);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000") };
@@ -113,7 +114,96 @@ public sealed class GitApiClientTests
         var hosting = await client.GetHostingAsync("ws-1");
 
         Assert.That(hosting, Is.Not.Null);
-        Assert.That(hosting!.Availability, Is.EqualTo("none"));
+        Assert.That(hosting!.Availability, Is.EqualTo("notInstalled"));
+        Assert.That(hosting.Remedy, Does.Contain("capabilities bootstrap"));
+    }
+
+    [Test]
+    public async Task StartLoginAsync_postsTheWorkspaceScopedLoginRoute()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK,
+            """{"authorizationUrl":"https://example.test/login/oauth/authorize?client_id=client"}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var started = await client.StartLoginAsync("ws 1");
+
+        Assert.That(started.AuthorizationUrl, Does.StartWith("https://example.test/login/oauth/authorize"));
+        Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws%201/forge/login"));
+        Assert.That(handler.LastMethod, Is.EqualTo(HttpMethod.Post));
+    }
+
+    [Test]
+    public async Task StartLoginAsync_throwsTheServerDetailWhenSignInIsRejected()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.ServiceUnavailable,
+            """{"detail":"Repository host OAuth is not configured."}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.StartLoginAsync("ws-1"));
+
+        Assert.That(error!.Message, Does.Contain("OAuth is not configured"));
+    }
+
+    [Test]
+    public async Task StartLoginAsync_throwsWhenTheServerReturnsNoUrl()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK, "null");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => client.StartLoginAsync("ws-1"));
+
+        Assert.That(error!.Message, Does.Contain("empty sign-in URL"));
+    }
+
+    [Test]
+    public async Task StartLoginAsync_throwsWhenTheAuthorizationUrlIsBlank()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.OK, """{"authorizationUrl":""}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => client.StartLoginAsync("ws-1"));
+
+        Assert.That(error!.Message, Does.Contain("empty sign-in URL"));
+    }
+
+    [Test]
+    public async Task StartLoginAsync_throwsHttpStatusWhenTheBodyIsNotJson()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.ServiceUnavailable, "nope");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.StartLoginAsync("ws-1"));
+
+        Assert.That(error!.Message, Is.EqualTo("HTTP 503"));
+    }
+
+    [Test]
+    public async Task StartLoginAsync_throwsTheRawBodyWhenDetailIsMissing()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.ServiceUnavailable, """{"title":"unavailable"}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.StartLoginAsync("ws-1"));
+
+        Assert.That(error!.Message, Does.Contain("unavailable"));
+    }
+
+    [Test]
+    public async Task StartLoginAsync_throwsTheBodyWhenDetailIsNull()
+    {
+        using var handler = new RecordingGitHandler(HttpStatusCode.BadRequest, """{"detail":null}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new GitApiClient(http);
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.StartLoginAsync("ws-1"));
+
+        Assert.That(error!.Message, Does.Contain("detail"));
     }
 
     [Test]
@@ -344,11 +434,14 @@ internal sealed class RecordingGitHandler(HttpStatusCode status, string body) : 
 {
     public Uri? LastUri { get; private set; }
 
+    public HttpMethod? LastMethod { get; private set; }
+
     public string? LastRequestBody { get; private set; }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
         LastUri = request.RequestUri;
+        LastMethod = request.Method;
         if (request.Content is not null)
             LastRequestBody = await request.Content.ReadAsStringAsync(ct);
 

@@ -52,6 +52,18 @@ internal sealed class StandingAgentFake : IAgentApiProvider
 
     public IAsyncEnumerable<AgentEventDto> EventsAsync(string workspaceId, long after, CancellationToken cancellationToken)
         => throw new NotSupportedException();
+
+    public Task<ServerAutonomyDto?> GetAutonomyAsync(CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+
+    public Task PutAutonomyAsync(bool enabled, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+
+    public Task PutLoopActivationAsync(string workspaceId, bool active, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+
+    public Task<AgentLoopStatusDto?> GetLoopAsync(string workspaceId, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
 }
 
 internal sealed class StandingForgeFake : IGitApiProvider
@@ -96,6 +108,9 @@ internal sealed class StandingForgeFake : IGitApiProvider
         => throw new NotSupportedException();
 
     public Task<GitLogDto?> GetLogAsync(string workspaceId, int max = 100, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException();
+
+    public Task<ForgeLoginStartDto> StartLoginAsync(string workspaceId, CancellationToken cancellationToken = default)
         => throw new NotSupportedException();
 }
 
@@ -160,6 +175,7 @@ internal static class TeamStandingComposition
             threads ?? [],
             mergeState is null ? null : new ForgeMergeabilityDto(true, mergeState),
             detail,
+            Remedy: null,
             account,
             reviews);
 

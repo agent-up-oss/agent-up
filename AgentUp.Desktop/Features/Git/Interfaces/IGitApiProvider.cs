@@ -10,6 +10,8 @@ public interface IGitApiProvider
 
     Task<ForgeHostingDto?> GetHostingAsync(string workspaceId, CancellationToken cancellationToken = default);
 
+    Task<ForgeLoginStartDto> StartLoginAsync(string workspaceId, CancellationToken cancellationToken = default);
+
     Task<GitFileDiffDto?> GetFileDiffAsync(string workspaceId, string path, CancellationToken cancellationToken = default);
 
     Task<GitCommitResultDto> CommitAsync(string workspaceId, GitCommitRequestDto request, CancellationToken cancellationToken = default);

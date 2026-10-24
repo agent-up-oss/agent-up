@@ -1,4 +1,4 @@
-using AgentUp.Server.Features.Processes.Repositories;
+using System.Collections.Concurrent;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Features.Processes.Interfaces;
@@ -14,6 +14,7 @@ public sealed class ProcessOutputService
     private readonly AuditController? _audit;
     private readonly ILogger<ProcessOutputService>? _logger;
     private readonly ConsoleSecretRedactor _redactor;
+    private readonly ConcurrentDictionary<(string, string), SemaphoreSlim> _gates = new();
 
     public ProcessOutputService(IOutputRepository output)
     {
@@ -55,11 +56,24 @@ public sealed class ProcessOutputService
         ProcessOutputStream stream,
         CancellationToken cancellationToken = default)
     {
-        await _output.AppendAsync(workspaceId, applicationName, line, cancellationToken);
-        await RecordAuditEventAsync(workspaceId, applicationName, line, stream);
+        var gate = _gates.GetOrAdd((workspaceId, applicationName), _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            await _output.AppendAsync(
+                workspaceId,
+                applicationName,
+                new ProcessOutputLine(line, stream),
+                cancellationToken);
+            await RecordAuditEventAsync(workspaceId, applicationName, line, stream);
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
-    public async Task<IReadOnlyList<string>> GetAsync(string workspaceId, string applicationName)
+    public async Task<IReadOnlyList<ProcessOutputLine>> GetAsync(string workspaceId, string applicationName)
         => await _output.GetAsync(workspaceId, applicationName);
 
     public async Task ClearAsync(

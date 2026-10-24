@@ -94,6 +94,7 @@ using AgentUp.Server.Features.Validation.Providers;
 using AgentUp.Server.Features.Validation.Repositories;
 using AgentUp.Server.Features.Validation.Services;
 using AgentUp.Server.Features.Workspaces.Interfaces;
+using AgentUp.Server.Features.Workspaces.Models;
 using AgentUp.Server.Features.Workspaces.Providers;
 using AgentUp.Server.Features.Workspaces.Repositories;
 using AgentUp.Server.Features.Workspaces.Services;
@@ -208,6 +209,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<AutonomousLoopController>();
         builder.Services.AddSingleton<IAgentWorkspaceSettingsRepository>(_ =>
             new JsonAgentWorkspaceSettingsRepository(dataDir));
+        builder.Services.AddSingleton<IHostConnectionPresence, HostConnectionPresenceProvider>();
         builder.Services.AddSingleton<IAutonomySettings, ConfiguredAutonomySettings>();
         builder.Services.AddSingleton<IForgeCredentialStore>(_ => new ForgeCredentialStore(dataDir));
         builder.Services.AddSingleton<IForgeGitRemoteResolver, ForgeGitRemoteResolver>();
@@ -234,7 +236,9 @@ public static class ServiceRegistration
                 sp.GetRequiredService<AgentSchedulingService>(),
                 sp.GetRequiredService<AutonomousLoopService>(),
                 sp.GetRequiredService<WorkspaceQueryController>(),
-                sp.GetRequiredService<IRoleToolFilter>()).ReconcileAfterRestart());
+                sp.GetRequiredService<IRoleToolFilter>(),
+                sp.GetService<IEnabledCapabilityPackages>(),
+                sp.GetService<IHostConnectionPresence>()).ReconcileAfterRestart());
         builder.Services.AddSingleton<LoopScenarioCatalog>();
         builder.Services.AddSingleton<LoopOutcomeBaselineStore>();
         builder.Services.AddSingleton<WorkspaceEventFrameProvider>();
@@ -351,9 +355,15 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<WorkspaceTargetController>();
         builder.Services.AddSingleton<IWorkspaceDiskUsageProvider, WorkspaceDiskUsageProvider>();
         builder.Services.AddSingleton<WorkspaceOverviewService>();
+        builder.Services.AddSingleton<IProcessOutputPump, ProcessOutputPump>();
         builder.Services.AddSingleton<WorkspaceProcessManager>();
         builder.Services.AddSingleton<IWorkspaceProcessManager>(sp => sp.GetRequiredService<WorkspaceProcessManager>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceProcessManager>());
+        builder.Services.AddSingleton(ApplicationReadinessOptions.Production);
+        builder.Services.AddSingleton<IApplicationReadinessClock, ApplicationReadinessClock>();
+        builder.Services.AddSingleton<IApplicationReadinessProbe, LoopbackApplicationReadinessProbe>();
+        builder.Services.AddSingleton<WorkspaceReadinessService>();
+        builder.Services.AddSingleton<WorkspaceReadinessController>();
         builder.Services.AddSingleton<WorkspaceLifecycleService>();
         builder.Services.AddSingleton<WorkspaceLifecycleController>();
         builder.Services.AddSingleton<ApplicationLifecycleService>();

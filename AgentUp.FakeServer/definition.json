@@ -539,20 +539,52 @@
   },
   "console": {
     "bob/Storefront": [
-      "[install] npm install",
-      "Storefront listening on WEB_PORT"
+      {
+        "text": "[install] npm install",
+        "stream": "stdout"
+      },
+      {
+        "text": "added 1278 packages in 17s",
+        "stream": "stdout"
+      },
+      {
+        "text": "[err] 4 vulnerabilities",
+        "stream": "stderr"
+      },
+      {
+        "text": "Storefront listening on WEB_PORT",
+        "stream": "stdout"
+      }
     ],
     "bob/Orders API": [
-      "[install] npm install",
-      "Orders API listening on API_PORT"
+      {
+        "text": "[install] npm install",
+        "stream": "stdout"
+      },
+      {
+        "text": "Orders API listening on API_PORT",
+        "stream": "stdout"
+      }
     ],
     "lucy/Storefront": [
-      "[install] npm install",
-      "Storefront listening on WEB_PORT"
+      {
+        "text": "[install] npm install",
+        "stream": "stdout"
+      },
+      {
+        "text": "Storefront listening on WEB_PORT",
+        "stream": "stdout"
+      }
     ],
     "hector/Storefront": [
-      "[install] npm install",
-      "Storefront listening on WEB_PORT"
+      {
+        "text": "[install] npm install",
+        "stream": "stdout"
+      },
+      {
+        "text": "Storefront listening on WEB_PORT",
+        "stream": "stdout"
+      }
     ]
   },
   "agents": {
@@ -1095,7 +1127,8 @@
           "login": "hector-aup[bot]",
           "state": "CHANGES_REQUESTED"
         }
-      ]
+      ],
+      "remedy": null
     },
     "lucy": {
       "availability": "ready",
@@ -1165,7 +1198,8 @@
           "login": "hector-aup[bot]",
           "state": "CHANGES_REQUESTED"
         }
-      ]
+      ],
+      "remedy": null
     },
     "hector": {
       "availability": "unreachable",
@@ -1181,7 +1215,8 @@
         "isBot": true,
         "url": "https://github.com/apps/hector-aup"
       },
-      "reviews": []
+      "reviews": [],
+      "remedy": "Check the host connection, then resume the run."
     }
   }
 }

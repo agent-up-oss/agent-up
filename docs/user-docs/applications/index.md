@@ -48,7 +48,7 @@ Docker containers can call host-run applications in the same workspace through `
 
 ## Console and metrics
 
-Application output is a selectable console surface. Prefix install output with `[install]`. Metrics are declared on a port in `agent-up.json` (`ports[].metrics`) and shown as summary cards and time-series charts.
+Application output is a selectable console surface. Prefix install output with `[install]`. The Server frames process output on newlines, serialises stdout and stderr appends per application, and records stream identity on each console entry. A bounded buffer inserts an explicit `[truncated]` marker when older lines are dropped. Metrics are declared on a port in `agent-up.json` (`ports[].metrics`) and shown as summary cards and time-series charts.
 
 <DocNext href="/docs/configuration" title="Configuration">
 The JSON that declares applications.

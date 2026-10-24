@@ -87,7 +87,7 @@ public sealed class AgentChatViewModelStreamTests
             Session = DesktopDomain.Session()
                 .WithAgent("Codex")
                 .InState("authentication_required")
-                .IdleWith(new AgentDescriptorDto("Codex", true, "Codex"))
+                .IdleWith(DesktopDomain.AvailableAgent())
                 .WithAuthMethods(new AgentAuthMethodDto("chatgpt", "ChatGPT", "Use a subscription."))
                 .Build()
         };
@@ -136,7 +136,7 @@ public sealed class AgentChatViewModelStreamTests
             Session = DesktopDomain.Session()
                 .WithAgent("Cursor")
                 .InState("authenticating")
-                .IdleWith(new AgentDescriptorDto("Cursor", true, "Cursor"))
+                .IdleWith(DesktopDomain.AvailableAgent("Cursor"))
                 .WithAuthMethods(new AgentAuthMethodDto("cursor_login", "Cursor Login", "Sign in"))
                 .WithLoginChallenge(new AgentLoginChallengeDto("https://cursor.com/loginDeepControl?challenge=abc", "ABCD-EFGHI", "Open this link"))
                 .Build()
@@ -380,14 +380,14 @@ internal sealed class StreamApiFake : IAgentApiProvider
         if (GetFailure is not null) return Task.FromException<AgentSessionDto?>(GetFailure);
         return Task.FromResult<AgentSessionDto?>(Session ?? DesktopDomain.Session()
             .ForWorkspace(workspaceId)
-            .IdleWith(new AgentDescriptorDto("Codex", true, "Codex"))
+            .IdleWith(DesktopDomain.AvailableAgent())
             .Build());
     }
 
     public Task<AgentSessionDto?> BindAsync(string workspaceId, string agent, CancellationToken cancellationToken)
         => Task.FromResult<AgentSessionDto?>(DesktopDomain.Session()
             .ForWorkspace(workspaceId)
-            .IdleWith(new AgentDescriptorDto(agent, true, agent))
+            .IdleWith(DesktopDomain.AvailableAgent(agent))
             .BoundTo(agent)
             .Build());
 
@@ -429,6 +429,13 @@ internal sealed class StreamApiFake : IAgentApiProvider
         Stopped = workspaceId;
         return Task.CompletedTask;
     }
+
+    public Task<ServerAutonomyDto?> GetAutonomyAsync(CancellationToken cancellationToken)
+        => Task.FromResult<ServerAutonomyDto?>(null);
+    public Task PutAutonomyAsync(bool enabled, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task PutLoopActivationAsync(string workspaceId, bool active, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task<AgentLoopStatusDto?> GetLoopAsync(string workspaceId, CancellationToken cancellationToken)
+        => Task.FromResult(Session?.Loop);
 
     public async IAsyncEnumerable<AgentEventDto> EventsAsync(
         string workspaceId,

@@ -6,6 +6,7 @@ using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Features.Agents.Services;
 using ModelContextProtocol.Server;
 using AgentUp.Server.Features.Capabilities.Controllers;
+using AgentUp.Server.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Capabilities.Services;
 using AgentUp.Server.Features.Ports.Controllers;
 using AgentUp.Server.Features.Workspaces.Controllers;
@@ -21,13 +22,79 @@ namespace AgentUp.Server.Tests.Features.Agents.Unit;
 public sealed class AutonomousWorkspaceServiceTests
 {
     [Test]
+    public async Task GetStatusAsync_returnsTheOrderedPreconditionChain()
+    {
+        var host = await HostAsync();
+
+        var status = await host.Autonomy.GetStatusAsync(CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(status.Enabled, Is.False);
+            Assert.That(status.Preconditions.Select(item => item.Id), Is.EqualTo(new[]
+            {
+                "forgeCapabilityEnabled",
+                "hostConnectionAuthorized",
+                "agentAvailable",
+                "autonomyEnabled"
+            }));
+            Assert.That(status.Preconditions.Single(item => item.Id == "hostConnectionAuthorized").Satisfied, Is.False);
+            Assert.That(status.Preconditions.Single(item => item.Id == "autonomyEnabled").Satisfied, Is.False);
+        });
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task GetStatusAsync_marksHostAndAutonomyAfterEnablement()
+    {
+        var host = await HostAsync();
+        host.Settings.Save(host.Settings.Get(host.WorkspaceId) with { HostConnectionAuthorized = true });
+        Assert.That(host.Autonomy.TryEnableServer(out _), Is.True);
+
+        var status = await host.Autonomy.GetStatusAsync(CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(status.Enabled, Is.True);
+            Assert.That(status.Preconditions.Single(item => item.Id == "hostConnectionAuthorized").Satisfied, Is.True);
+            Assert.That(status.Preconditions.Single(item => item.Id == "autonomyEnabled").Satisfied, Is.True);
+            Assert.That(status.Preconditions.Single(item => item.Id == "autonomyEnabled").Remedy, Is.Null);
+        });
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task GetStatusAsync_marksForgeWhenAPackageIsEnabled()
+    {
+        var host = await HostAsync(packages: new FakeEnabledCapabilityPackages().WithForges(new StubForgeCapability()));
+
+        var status = await host.Autonomy.GetStatusAsync(CancellationToken.None);
+
+        Assert.That(status.Preconditions.Single(item => item.Id == "forgeCapabilityEnabled").Satisfied, Is.True);
+        Assert.That(status.Preconditions.Single(item => item.Id == "forgeCapabilityEnabled").Remedy, Is.Null);
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task GetStatusAsync_readsInjectedHostPresence()
+    {
+        var host = await HostAsync(hostPresence: new FixedHostPresence(true));
+
+        var status = await host.Autonomy.GetStatusAsync(CancellationToken.None);
+
+        Assert.That(host.Autonomy.HostConnectionPresent, Is.True);
+        Assert.That(status.Preconditions.Single(item => item.Id == "hostConnectionAuthorized").Satisfied, Is.True);
+        await host.DisposeAsync();
+    }
+
+    [Test]
     public async Task ActivateAsync_refusesWhenTheServerIsNotEnabled()
     {
         var host = await HostAsync();
 
         var result = await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
 
-        Assert.That(result.Error, Does.Contain("not enabled"));
+        Assert.That(result.Error, Does.Contain("autonomyEnabled"));
         await host.DisposeAsync();
     }
 
@@ -40,7 +107,7 @@ public sealed class AutonomousWorkspaceServiceTests
 
         var result = await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
 
-        Assert.That(result.Error, Does.Contain("not bound"));
+        Assert.That(result.Error, Does.Contain("boundAgent"));
         await host.DisposeAsync();
     }
 
@@ -333,7 +400,9 @@ public sealed class AutonomousWorkspaceServiceTests
 
     private static async Task<Host> HostAsync(
         IAssignedIssueQueue? issues = null,
-        InMemoryAgentWorkspaceSettingsRepository? settings = null)
+        InMemoryAgentWorkspaceSettingsRepository? settings = null,
+        IEnabledCapabilityPackages? packages = null,
+        IHostConnectionPresence? hostPresence = null)
     {
         var registry = new WorkspaceRegistry(
             new InMemoryWorkspaceRepository(),
@@ -375,7 +444,7 @@ public sealed class AutonomousWorkspaceServiceTests
             settings,
             new AlwaysSupportedInspector());
         var autonomy = new AutonomousWorkspaceService(
-            new ConfiguredAutonomySettings(new ConfigurationBuilder().AddInMemoryCollection().Build(), settings),
+            new ConfiguredAutonomySettings(new ConfigurationBuilder().AddInMemoryCollection().Build(), settings, hostPresence),
             settings,
             preconditions,
             issues,
@@ -384,7 +453,9 @@ public sealed class AutonomousWorkspaceServiceTests
             scheduling,
             new AutonomousLoopService(scheduling, new LoopInvariantGuard(), new ImmediateLoopBackoff()),
             workspaces,
-            new RoleToolFilterProvider());
+            new RoleToolFilterProvider(),
+            packages,
+            hostPresence);
         return new Host(workspace.Id, workspaces, settings, process, issues, proposals, progress, autonomy, scheduling);
     }
 
@@ -468,6 +539,12 @@ public sealed class AutonomousWorkspaceServiceTests
     private sealed class AlwaysSupportedInspector : AgentUp.Server.Features.Agents.Interfaces.IEnabledAgentInspector
     {
         public bool SupportsPermissionRequests(string agentModuleId) => true;
+    }
+
+    private sealed class FixedHostPresence(bool present) : IHostConnectionPresence
+    {
+        public bool IsPresent() => present;
+        public bool IsPresent(string workspaceId) => present;
     }
 
     private sealed class EmptyCommitsQueue : AgentUp.Server.Features.Commits.Interfaces.ICommitsQueueProvider
