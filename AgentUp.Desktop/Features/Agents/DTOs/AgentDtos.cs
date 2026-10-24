@@ -23,6 +23,10 @@ public sealed record AgentDescriptorDto(
 
     public bool HasRemedy => !string.IsNullOrWhiteSpace(Remedy);
 
+    public string AutomationId => DesktopAutomationIds.AgentPickerRow(Agent);
+
+    public string EnableAutomationId => DesktopAutomationIds.AgentEnable(Agent);
+
     public string StatusLabel => Available
         ? "Available"
         : CanEnable

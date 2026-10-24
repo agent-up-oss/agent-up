@@ -405,7 +405,7 @@ public sealed class ValidationFlowServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(result.Succeeded, Is.False);
-            Assert.That(result.Message, Is.EqualTo("Desktop surface replay is not implemented."));
+            Assert.That(result.Message, Is.EqualTo("Desktop surface flows run on the Desktop client. Use au-debug validate --surface desktop."));
         });
     }
 
@@ -507,7 +507,7 @@ public sealed class ValidationFlowServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(result.Succeeded, Is.False);
-            Assert.That(result.Message, Is.EqualTo("Mobile surface replay is not implemented."));
+            Assert.That(result.Message, Is.EqualTo("Mobile surface flows run through au-debug validate --surface mobile."));
         });
     }
 

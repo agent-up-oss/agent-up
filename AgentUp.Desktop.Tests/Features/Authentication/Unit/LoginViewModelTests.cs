@@ -103,6 +103,44 @@ public sealed class LoginViewModelTests
     }
 
     [Test]
+    public async Task CompleteUnattendedConnectAsync_connectsWhenAuthenticationIsDisabled()
+    {
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var store = new InMemoryServerConnectionStore();
+        var login = new LoginViewModel(AuthenticationTestController.Create(http, store));
+        login.Show();
+        login.ServerUrl = "http://127.0.0.1:5100";
+
+        await login.CompleteUnattendedConnectAsync(null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.IsVisible, Is.False);
+            Assert.That(login.ErrorMessage, Is.Null);
+            Assert.That(store.Load().Servers[0].Url, Is.EqualTo("http://127.0.0.1:5100"));
+        });
+    }
+
+    [Test]
+    public async Task CompleteUnattendedConnectAsync_signsInWithTheAdminPassword()
+    {
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":true,\"accessToken\":\"token-1\"}"));
+        var login = new LoginViewModel(CreateController(http));
+        login.Show();
+
+        await login.CompleteUnattendedConnectAsync("secret");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.AccessToken, Is.EqualTo("token-1"));
+            Assert.That(login.IsVisible, Is.False);
+            Assert.That(login.ErrorMessage, Is.Null);
+        });
+    }
+
+    [Test]
     public async Task ConnectCommand_SavesServerAndHidesLoginWhenAuthenticationIsDisabled()
     {
         using var http = new DisposableTestHttpClient(request =>

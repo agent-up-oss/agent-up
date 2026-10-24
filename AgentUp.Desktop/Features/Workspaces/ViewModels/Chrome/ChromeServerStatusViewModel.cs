@@ -1,5 +1,6 @@
 using System.Reactive.Linq;
 using System.Windows.Input;
+using AgentUp.Desktop.Shared.Providers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome;
@@ -19,6 +20,8 @@ public sealed class ChromeServerStatusViewModel : ReactiveObject
     }
 
     public ICommand OpenConnectionsCommand { get; }
+
+    public string AutomationId => DesktopAutomationIds.ChromeServerStatus;
 
     public string ServerStatusText => _sidebar.ServerStatusText;
 

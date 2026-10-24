@@ -11,19 +11,19 @@ public sealed class ValidateControllerTests
     [Test]
     public async Task Run_mobile_succeeds()
     {
-        var result = await Controller().RunAsync(DebugDomain.Validate().Build(), CancellationToken.None);
+        var result = await Controller().RunAsync(DebugDomain.Validate(DebugDomain.MobileSurface).Build(), CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(0));
         Assert.That(result.Message, Does.Contain("Mobile validation passed."));
     }
 
     [Test]
-    public async Task Run_desktop_refusesReplay()
+    public async Task Run_desktop_doesNotRunTheMobileRunner()
     {
-        var result = await Controller().RunAsync(DebugDomain.Validate("desktop").Build(), CancellationToken.None);
+        var result = await Controller().RunAsync(DebugDomain.Validate(DebugDomain.DesktopSurface).Build(), CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));
-        Assert.That(result.Message, Does.Contain("Desktop surface replay is not implemented."));
+        Assert.That(result.Message, Does.Contain("unknown validation surface"));
     }
 
     private static ValidateController Controller()

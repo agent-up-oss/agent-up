@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Reactive;
 using AgentUp.Desktop.Features.Agents.Providers;
+using AgentUp.Desktop.Shared.Providers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Agents.ViewModels;
@@ -18,6 +19,7 @@ public sealed class AgentRunViewModel : ReactiveObject
     }
 
     public ObservableCollection<AgentChatItemViewModel> Items { get; } = [];
+    public string AutomationId { get; } = DesktopAutomationIds.AgentRun;
     public ReactiveCommand<Unit, Unit> ToggleCommand { get; }
     public bool IsLive => _live;
     public bool IsExpanded => _expanded ?? _live;

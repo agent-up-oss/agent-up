@@ -53,13 +53,17 @@ Cold Desktop compiles can exceed 30 seconds. Pass `--timeout 120` for those runs
 ./au-debug desktop start-workspace Agent-Up
 ./au-debug desktop open-agent
 ./au-debug mobile open-agent Agent-Up
+./au-debug validate --surface desktop
+./au-debug validate --surface desktop --flow open-git --out artifacts/desktop-validation
 ./au-debug validate --surface mobile
 ./au-debug down
 ```
 
-`au-debug validate --surface mobile` starts a real Server, serves the Mobile web export, and drives the connect, workspace, applications, Git, and Agents flows. Optional `--flow <id>` runs one fixture. Artifacts land in `artifacts/mobile-validation/` (`report.json` plus per-step PNGs) unless `--out` names another directory under the repository. Build the export first with `./au-debug build mobile`. Desktop surface replay is not implemented.
+`au-debug validate --surface mobile` starts a real Server, serves the Mobile web export, and drives the connect, workspace, applications, Git, and Agents flows. Optional `--flow <id>` runs one fixture. Artifacts land in `artifacts/mobile-validation/` (`report.json` plus per-step PNGs) unless `--out` names another directory under the repository. Build the export first with `./au-debug build mobile`.
 
 `status` probes the hosted Server, Mobile, and docs URLs and checks that the Desktop window is present. Do not curl those ports or call `xdotool` from the shell; those checks belong inside `au-debug`.
+
+`validate --surface desktop` launches Desktop against the repository Server and replays Desktop-surface flows. It writes `<out>/<flow-id>/report.json`, per-step PNGs, and `server.log`. `--out` defaults to `artifacts/desktop-validation`. `--flow` and `--workspace` select one flow or workspace; omitted, every Desktop-surface flow on listed workspaces runs. Cosmetic mouse staging is off. Exit 1 if any flow fails.
 
 `docs screenshot` captures the hosted Docusaurus site after `up` is ready. With no path it captures `/docs/`. Pass `/` for the marketing homepage, or a site path under `/docs/`, `/developer-guide/`, or `/design-system` to inspect one page. `--heading` scrolls that heading into the 1440x900 viewport before capture. Viewport captures always emulate that size so a 100% zoom check is the same on every host. `--full-page` captures the whole document. Both flags can be used together.
 

@@ -36,14 +36,39 @@ public static class AppComposition
         desktop.MainWindow = window;
         window.Closing += (_, _) => viewModel.Login.Cancel();
         window.Show();
+        var launch = viewModel.DesktopValidationLaunch;
+        if (launch is not null)
+            launch.Attach(window, viewModel);
 
-        while (!await TryAuthenticateAsync(desktop, http, login))
-            continue;
+        if (launch is { ShouldPromptInteractively: false })
+        {
+            if (!login.IsVisible)
+                login.ShowPicker();
+            await login.CompleteUnattendedConnectAsync(launch.AdminPassword);
+            if (login.IsVisible)
+            {
+                desktop.Shutdown(1);
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(login.AccessToken))
+                http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", login.AccessToken);
+        }
+        else
+        {
+            while (!await TryAuthenticateAsync(desktop, http, login))
+                continue;
+        }
 
         if (desktop.MainWindow is MainWindow mainWindow)
             mainWindow.StartAuthenticatedServices();
 
         await viewModel.InitializeAsync();
+
+        var validateExit = await (viewModel.DesktopValidationLaunch?.RunIfRequestedAsync(window, viewModel, CancellationToken.None)
+                                  ?? Task.FromResult<int?>(null));
+        if (validateExit is int exitCode)
+            desktop.Shutdown(exitCode);
     }
 
     private static async Task<bool> TryAuthenticateAsync(

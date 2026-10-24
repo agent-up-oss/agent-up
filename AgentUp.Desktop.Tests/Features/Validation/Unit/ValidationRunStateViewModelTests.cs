@@ -3,6 +3,7 @@ using AgentUp.Desktop.Features.Validation.DTOs;
 using AgentUp.Desktop.Features.Validation.Models;
 using AgentUp.Desktop.Features.Validation.ViewModels;
 using AgentUp.Desktop.Shared.Providers;
+using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Validation.Unit;
 
@@ -64,7 +65,7 @@ public sealed class ValidationRunStateViewModelTests
             new ValidationAssertionDto(ValidationExpectationDto.Text, "Cart"),
             new ValidationAssertionDto(ValidationExpectationDto.Url, "/cart"),
             new ValidationAssertionDto(ValidationExpectationDto.Title, "Shop"),
-            new ValidationAssertionDto(ValidationExpectationDto.Visible, "ignored", new ValidationTargetDto(Selector: "#cart")),
+            new ValidationAssertionDto(ValidationExpectationDto.Visible, "ignored", DesktopDomain.Target().WithSelector("#cart").Build()),
             new ValidationAssertionDto(ValidationExpectationDto.Visible, "fallback")
         ]);
 
@@ -306,10 +307,10 @@ public sealed class ValidationRunStateViewModelTests
                 [new ValidationAssertionDto(ValidationExpectationDto.Text, "Cart")],
                 [
                     new ValidationStepDto("click", "Click the button", ValidationActionDto.Click,
-                        new ValidationTargetDto(Selector: "#buy"), null,
+                        DesktopDomain.Target().WithSelector("#buy").Build(), null,
                         [new ValidationAssertionDto(ValidationExpectationDto.Text, "Done")]),
                     new ValidationStepDto("type", "Type the email", ValidationActionDto.Fill,
-                        new ValidationTargetDto(Selector: "#email"), "a@b.test")
+                        DesktopDomain.Target().WithSelector("#email").Build(), "a@b.test")
                 ],
                 1),
             run ?? (_ => Task.CompletedTask));

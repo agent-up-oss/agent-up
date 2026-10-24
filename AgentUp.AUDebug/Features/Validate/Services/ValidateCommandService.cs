@@ -18,9 +18,7 @@ public sealed class ValidateCommandService
 
     public async Task<CommandResultDto> RunAsync(DebugCommandDto command, CancellationToken cancellationToken)
     {
-        if (string.Equals(command.Surface, "desktop", StringComparison.OrdinalIgnoreCase))
-            return CommandResultDto.Fail("Desktop surface replay is not implemented.");
-        if (!string.Equals(command.Surface, "mobile", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(command.Surface, DebugLayout.ValidateSurfaceMobile, StringComparison.OrdinalIgnoreCase))
             return CommandResultDto.Fail($"Error: unknown validation surface '{command.Surface}'. Choose mobile.");
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

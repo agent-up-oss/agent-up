@@ -24,15 +24,15 @@ public sealed class ValidateCommandServiceTests
     }
 
     [Test]
-    public async Task DesktopSurface_refusesReplay()
+    public async Task DesktopSurface_doesNotRunTheMobileRunner()
     {
         var runner = new FakeMobileValidationRunner();
-        var result = await Service(runner).RunAsync(DebugDomain.Validate("desktop").Build(), CancellationToken.None);
+        var result = await Service(runner).RunAsync(DebugDomain.Validate(DebugDomain.DesktopSurface).Build(), CancellationToken.None);
 
         Assert.Multiple(() =>
         {
             Assert.That(result.ExitCode, Is.EqualTo(1));
-            Assert.That(result.Message, Does.Contain("Desktop surface replay is not implemented."));
+            Assert.That(result.Message, Does.Contain("unknown validation surface"));
             Assert.That(runner.Ran, Is.Empty);
         });
     }
@@ -42,7 +42,7 @@ public sealed class ValidateCommandServiceTests
     {
         var runner = new FakeMobileValidationRunner();
         var result = await Service(runner).RunAsync(
-            DebugDomain.Validate().ForFlow("git").Build(),
+            DebugDomain.Validate(DebugDomain.MobileSurface).ForFlow("git").Build(),
             CancellationToken.None);
 
         Assert.Multiple(() =>
@@ -62,7 +62,7 @@ public sealed class ValidateCommandServiceTests
         {
             NextResult = new ProcessResult(1, "", "locator not found")
         };
-        var result = await Service(runner).RunAsync(DebugDomain.Validate().Build(), CancellationToken.None);
+        var result = await Service(runner).RunAsync(DebugDomain.Validate(DebugDomain.MobileSurface).Build(), CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));
         Assert.That(result.Message, Does.Contain("locator not found"));
@@ -73,7 +73,7 @@ public sealed class ValidateCommandServiceTests
     {
         var runner = new FakeMobileValidationRunner { DelayUntilCanceled = true };
         var result = await Service(runner).RunAsync(
-            DebugDomain.Validate().TimingOutAfter(TimeSpan.FromMilliseconds(40)).Build(),
+            DebugDomain.Validate(DebugDomain.MobileSurface).TimingOutAfter(TimeSpan.FromMilliseconds(40)).Build(),
             CancellationToken.None);
 
         Assert.That(result.ExitCode, Is.EqualTo(1));

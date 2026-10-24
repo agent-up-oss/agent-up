@@ -32,6 +32,7 @@ public sealed class DebugOutputServiceTests
         Assert.That(output.ToString(), Does.Contain("mobile open-agent"));
         Assert.That(output.ToString(), Does.Contain("screenshots persist"));
         Assert.That(output.ToString(), Does.Contain("status"));
+        Assert.That(output.ToString(), Does.Contain("validate --surface desktop"));
     }
 
     [Test]

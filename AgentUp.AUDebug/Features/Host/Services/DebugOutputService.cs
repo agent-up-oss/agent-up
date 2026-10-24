@@ -72,10 +72,14 @@ public sealed class DebugOutputService
               screens mobile [screen]    Only Mobile, or one Mobile screen.
 
             Validate:
-              validate --surface mobile  Drive Mobile web flows against a real Server and write
+              validate --surface desktop [--flow <id>] [--out <dir>] [--workspace <id>]
+                                         Replay Desktop-surface flows against the real Desktop window.
+                                         Writes <out>/<flow-id>/report.json, per-step PNGs, and server.log.
+                                         Defaults --out to artifacts/desktop-validation.
+              validate --surface mobile [--flow <id>] [--out <dir>]
+                                         Drive Mobile web flows against a real Server and write
                                          report.json plus per-step screenshots.
-                                         Optional --flow <id> and --out <dir>.
-                                         Desktop surface replay is not implemented.
+                                         Defaults --out to artifacts/mobile-validation.
 
             Tests:
               test                       Run every visual-iteration suite.
@@ -98,9 +102,10 @@ public sealed class DebugOutputService
               --heading <text>           Scroll that heading into view (docs screenshot).
               --full-page                Capture the whole docs page, not just the viewport.
               --live                     Also probe hosted Mobile pages (screenshots validate).
-              --surface <mobile>         Validation surface (validate).
-              --flow <id>                Run one Mobile flow instead of every fixture.
-              --out <dir>                Artifact directory for validate (default artifacts/mobile-validation).
+              --surface <desktop|mobile> Required for validate.
+              --flow <id>                Replay one saved flow instead of every matching flow.
+              --out <dir>                Artifact directory for validate.
+              --workspace <id>           Limit Desktop validate to one registered workspace id.
             """);
         return 0;
     }

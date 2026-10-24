@@ -224,6 +224,16 @@ public sealed class LoginViewModel : ReactiveObject
     public Task<string?> WaitForSignInAsync()
         => _signIn?.Task ?? Task.FromResult<string?>(null);
 
+    public async Task CompleteUnattendedConnectAsync(string? adminPassword)
+    {
+        await ConnectAsync();
+        if (!NeedsPassword || string.IsNullOrWhiteSpace(adminPassword))
+            return;
+
+        Password = adminPassword;
+        await SignInAsync();
+    }
+
     private void BeginPrompt(bool switcher)
     {
         Password = "";
