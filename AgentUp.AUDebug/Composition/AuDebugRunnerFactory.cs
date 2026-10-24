@@ -114,7 +114,8 @@ public static class AuDebugRunnerFactory
                     paths,
                     environment,
                     probe,
-                    new ValidationWorkspaceFixtureProvider(paths)),
+                    new ValidationWorkspaceFixtureProvider(paths),
+                    new LoopbackEndpointOccupancyProvider()),
                 environment));
         var validate = new ValidateController(
             new ValidateCommandService(

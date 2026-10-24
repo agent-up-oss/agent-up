@@ -25,8 +25,10 @@ The first suite runs from `au-debug validate --surface desktop` and `au-debug va
 | Git history | Commit history | gap | gap |
 | Commits | Commit queue / proposal queue | gap | gap |
 | Agents | Agent availability, remedies, start a session, transcript | covered | covered |
-| Autonomous loop | Precondition checklist, activate, terminal state | covered | covered |
-| Forge review | Proposal, checks, review threads | covered | covered |
+| Autonomous loop / checklist | Precondition checklist | covered | covered |
+| Autonomous loop / activate | Activate after a satisfied checklist, typed terminal | gap | gap |
+| Forge review / hosting | Hosting strip notInstalled with bootstrap remedy | covered | covered |
+| Forge review / proposal | Open a proposal, checks, review threads | gap | gap |
 | Capabilities | List modules, enable one | gap | gap |
 | Validation panel | List flows for an application, replay one | covered | n/a |
 | Browser isolation | Two workspaces, two profiles, no shared session | gap | n/a |
@@ -43,7 +45,8 @@ Every `n/a` is a surface that does not exist on that client:
 - **Diagnostics (Mobile).** Mobile has no Diagnostics / audit tab.
 - **Validation panel (Mobile).** The Validation sidebar is Desktop-only and appears once an application is selected.
 - **Browser isolation (Mobile).** The PWA does not host per-workspace Desktop-style WebView profiles.
-- **Example Web app (Mobile) and Example API (Mobile).** Those journeys are Application-surface flows against hosted HTTP apps, not Mobile chrome.
+- **Example Web app (Mobile).** That journey is an Application-surface flow against a hosted HTTP app, not Mobile chrome.
+- **Example API (Mobile).** API-backed pages are Application-surface flows, not Mobile chrome.
 - **Installer (Mobile).** LocalInstaller is a desktop dashboard. It is not a Mobile surface. Desktop stays `blocked by #527`.
 
 Workspace lifecycle is not `n/a` on Mobile: the Apps dashboard exposes Start workspace and Stop workspace.
@@ -60,8 +63,8 @@ Workspace lifecycle is not `n/a` on Mobile: the Apps dashboard exposes Start wor
 | Git review | `git-review` | `git-review` |
 | Validation panel | `validation-panel` | n/a |
 | Agents (#529 merged) | `agents` | `agents` |
-| Autonomous loop (#526 merged) | `autonomous-loop` | `autonomous-loop` |
-| Forge review (#525 merged) | `forge-hosting` | `git-review` |
+| Autonomous loop / checklist (#526 merged) | `autonomous-loop` | `autonomous-loop` |
+| Forge review / hosting (#525 merged) | `forge-hosting` | `git-review` |
 | Example Web | `b6e1c8a04f5d4e2f9a7c3d1e8b0f2468` (Application) | n/a |
 
 Agents, autonomous loop, and forge are no longer blocked. The isolated Server has no forge module and no host credential, so those flows cover the shipping empty states: agent availability and remedies, the unattended-loop checklist, and the Git hosting strip's `notInstalled` copy with `Run: agent-up capabilities bootstrap`. Starting `test-agent-scripted` covers a live session on a Development Server. The isolated Server puts that executable on PATH through a fixture shim. Opening a forge proposal, activating a loop through a satisfied checklist, and Demo remain gaps.
@@ -70,7 +73,7 @@ Workspace start in this suite asserts the workspace leaves Stopped (Stop workspa
 
 ## Authoring
 
-A flow names a user's intent, not a click path. Each step has one action and at least one expectation of the visible consequence. Server save rejects Selector/X/Y on Desktop and Mobile surfaces, and rejects a click or fill whose only Visible/Enabled expectation is the same control. Flows are independently runnable and start at the connect surface; they do not deep-link past chrome.
+A flow names a user's intent, not a click path. Each step has one action and at least one expectation of the visible consequence. Server save rejects Selector/X/Y on Desktop and Mobile surfaces, and rejects a click or fill whose only Visible/Enabled expectation is that the same control still exists. Visible or Enabled with value `false` is a hidden or disabled outcome, not that warning. Flows are independently runnable and start at the connect surface; they do not deep-link past chrome.
 
 <DocNext href="/developer-guide/browser/validation" title="Playwright generation">
 How Application, Desktop, and Mobile flows are stored and replayed.

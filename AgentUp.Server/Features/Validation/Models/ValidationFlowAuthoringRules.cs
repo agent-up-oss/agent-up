@@ -19,6 +19,8 @@ public static class ValidationFlowAuthoringRules
     {
         if (expectation.Kind is not (ValidationExpectation.Visible or ValidationExpectation.Enabled))
             return false;
+        if (string.Equals(expectation.Value.Trim(), "false", StringComparison.OrdinalIgnoreCase))
+            return false;
         return expectation.Target is not null && SameLocator(expectation.Target, target);
     }
 

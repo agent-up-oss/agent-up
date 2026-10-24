@@ -12,8 +12,11 @@ public sealed class DesktopValidationLaunchProvider(
     IDebugPathValidator paths,
     IDebugEnvironment environment,
     IHostReadyProbe probe,
-    IValidationWorkspaceFixture fixture) : IDesktopValidationLaunch
+    IValidationWorkspaceFixture fixture,
+    ILoopbackEndpointOccupancy occupancy) : IDesktopValidationLaunch
 {
+    private readonly object _logGate = new();
+
     public string ResolveOutputPath(string? outputPath)
     {
         if (string.IsNullOrWhiteSpace(outputPath))
@@ -27,6 +30,12 @@ public sealed class DesktopValidationLaunchProvider(
         DesktopValidationLaunchSpec spec,
         CancellationToken cancellationToken)
     {
+        if (await occupancy.IsOccupiedAsync(DebugLayout.ServerUrl, cancellationToken))
+        {
+            throw new InvalidOperationException(
+                $"Isolated Desktop validation needs {DebugLayout.ServerUrl} free. Something is already listening there.");
+        }
+
         Directory.CreateDirectory(spec.OutputPath);
         var logPath = Path.Join(spec.OutputPath, "server.log");
         var dataDirectory = fixture.CreateDataDirectory();
@@ -88,7 +97,7 @@ public sealed class DesktopValidationLaunchProvider(
             environmentVariables);
     }
 
-    private static void AttachServerLog(System.Diagnostics.Process process, string logPath)
+    private void AttachServerLog(System.Diagnostics.Process process, string logPath)
     {
         try
         {
@@ -103,10 +112,18 @@ public sealed class DesktopValidationLaunchProvider(
         }
     }
 
-    private static void AppendLog(string logPath, string? line)
+    private void AppendLog(string logPath, string? line)
     {
         if (string.IsNullOrEmpty(line))
             return;
-        File.AppendAllText(logPath, line + Environment.NewLine);
+        try
+        {
+            lock (_logGate)
+                File.AppendAllText(logPath, line + Environment.NewLine);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            System.Diagnostics.Trace.WriteLine(exception.Message);
+        }
     }
 }

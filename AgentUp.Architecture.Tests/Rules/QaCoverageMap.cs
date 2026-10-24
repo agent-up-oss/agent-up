@@ -23,8 +23,10 @@ public sealed class QaCoverageMap
         "Git history",
         "Commits",
         "Agents",
-        "Autonomous loop",
-        "Forge review",
+        "Autonomous loop / checklist",
+        "Autonomous loop / activate",
+        "Forge review / hosting",
+        "Forge review / proposal",
         "Capabilities",
         "Validation panel",
         "Browser isolation",
@@ -37,6 +39,10 @@ public sealed class QaCoverageMap
     private static readonly Regex Status = new(
         "^(covered|gap|blocked by #\\d+|n/a)$",
         RegexOptions.CultureInvariant);
+
+    private static readonly Regex NaEntry = new(
+        @"^-\s+\*\*(.+?)\*\*",
+        RegexOptions.Multiline | RegexOptions.CultureInvariant);
 
     private static readonly string[] FirstSuiteDesktop =
     [
@@ -83,16 +89,32 @@ public sealed class QaCoverageMap
             .Select(item => $"{item.Surface}: '{item.status}'")
             .ToArray();
         Assert.That(invalid, Is.Empty, "Every cell must be covered, gap, blocked by #N, or n/a.");
-        var justification = source.Contains("## n/a", StringComparison.Ordinal)
-            ? source[source.IndexOf("## n/a", StringComparison.Ordinal)..]
-            : "";
-        var unjustified = rows
-            .Where(row => string.Equals(row.Desktop, "n/a", StringComparison.Ordinal)
-                          || string.Equals(row.Mobile, "n/a", StringComparison.Ordinal))
-            .Select(row => row.Surface)
-            .Where(surface => !justification.Contains(surface, StringComparison.Ordinal))
-            .ToArray();
-        Assert.That(unjustified, Is.Empty, "Every n/a cell needs a justification that names the surface.");
+        Assert.That(
+            UnjustifiedNaSurfaces(source),
+            Is.Empty,
+            "Every n/a cell needs its own list entry under ## n/a.");
+    }
+
+    [Test]
+    public void Na_justification_uses_each_surface_entry_and_stops_at_the_next_heading()
+    {
+        const string laterHeading =
+            """
+            | Surface | Journey | Desktop | Mobile |
+            |---|---|---|---|
+            | Console | output | covered | n/a |
+            | Diagnostics | audit | covered | n/a |
+
+            ## n/a
+
+            - **Console (Mobile).** No console tab. Diagnostics is named in this body.
+
+            ## First-suite flows
+
+            Diagnostics appears here, and Console and diagnostics is a later heading row.
+            """;
+
+        Assert.That(UnjustifiedNaSurfaces(laterHeading), Is.EqualTo(new[] { "Diagnostics" }));
     }
 
     [Test]
@@ -171,6 +193,31 @@ public sealed class QaCoverageMap
         PropertyNameCaseInsensitive = true,
         Converters = { new JsonStringEnumConverter() }
     };
+
+    private static string[] UnjustifiedNaSurfaces(string source)
+    {
+        var section = NaSection(source);
+        return ParseTable(source)
+            .Where(row => string.Equals(row.Desktop, "n/a", StringComparison.Ordinal)
+                          || string.Equals(row.Mobile, "n/a", StringComparison.Ordinal))
+            .Select(row => row.Surface)
+            .Where(surface => !HasOwnNaJustification(section, surface))
+            .ToArray();
+    }
+
+    private static string NaSection(string source)
+    {
+        var start = source.IndexOf("## n/a", StringComparison.Ordinal);
+        if (start < 0)
+            return "";
+        var next = source.IndexOf("\n## ", start + "## n/a".Length, StringComparison.Ordinal);
+        return next < 0 ? source[start..] : source[start..next];
+    }
+
+    private static bool HasOwnNaJustification(string section, string surface) =>
+        NaEntry.Matches(section)
+            .Select(match => match.Groups[1].Value)
+            .Any(lead => lead.Contains(surface, StringComparison.Ordinal));
 
     private static IReadOnlyList<MapRow> ParseTable(string source) =>
         source.Split('\n')

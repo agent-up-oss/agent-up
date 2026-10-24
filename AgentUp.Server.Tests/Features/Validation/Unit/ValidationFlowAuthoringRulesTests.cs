@@ -34,6 +34,22 @@ public sealed class ValidationFlowAuthoringRulesTests
     }
 
     [Test]
+    public void SameTargetOnlyVisible_allowsHiddenOrDisabledOnTheSameControl()
+    {
+        var hidden = Step(
+            ValidationAction.Click,
+            new(TestId: "login.connect"),
+            [new(ValidationExpectation.Visible, "false", new(TestId: "login.connect"))]);
+        var disabled = Step(
+            ValidationAction.Fill,
+            new(TestId: "login.connect"),
+            [new(ValidationExpectation.Enabled, " FALSE ", new(TestId: "login.connect"))]);
+
+        Assert.That(ValidationFlowAuthoringRules.SameTargetOnlyVisible(hidden), Is.Null);
+        Assert.That(ValidationFlowAuthoringRules.SameTargetOnlyVisible(disabled), Is.Null);
+    }
+
+    [Test]
     public void SameTargetOnlyVisible_allowsADifferentControlKindOrMixedConsequence()
     {
         var otherControl = Step(

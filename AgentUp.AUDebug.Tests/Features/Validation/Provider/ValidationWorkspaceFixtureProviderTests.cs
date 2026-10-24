@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text;
+using AgentUp.AUDebug.Features.Validation.Interfaces;
 using AgentUp.AUDebug.Features.Validation.Providers;
 using AgentUp.AUDebug.Tests.Fake;
 
@@ -115,11 +116,11 @@ public sealed class ValidationWorkspaceFixtureProviderTests
     {
         var root = Path.Join(Path.GetTempPath(), "au-debug-fixture", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
-        var path = Path.Join(root, "agent-up.json");
-        File.WriteAllText(path, "{}");
-        File.SetUnixFileMode(path, UnixFileMode.None);
         var handler = new RecordingHandler();
-        var provider = new ValidationWorkspaceFixtureProvider(new FakePathValidator(root), handler);
+        var provider = new ValidationWorkspaceFixtureProvider(
+            new FakePathValidator(root),
+            handler,
+            new ThrowingConfigFile());
 
         Assert.That(
             async () => await provider.PrepareAsync("http://127.0.0.1:5001", CancellationToken.None),
@@ -212,5 +213,12 @@ public sealed class ValidationWorkspaceFixtureProviderTests
                     Encoding.UTF8,
                     "application/json")
             };
+    }
+
+    private sealed class ThrowingConfigFile : IValidationConfigFile
+    {
+        public bool Exists(string path) => true;
+
+        public string ReadAllText(string path) => throw new IOException("locked");
     }
 }

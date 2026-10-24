@@ -87,6 +87,68 @@ public sealed class DesktopValidationLaunchProviderTests
     }
 
     [Test]
+    public void RunAsync_failsWhenTheServerUrlIsAlreadyOccupied()
+    {
+        var root = Path.Join(Path.GetTempPath(), "au-debug-validate", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Join(root, "AgentUp.Server"));
+        Directory.CreateDirectory(Path.Join(root, "AgentUp.Desktop"));
+        var processes = new FakeProcessRunner();
+        var occupancy = new FakeLoopbackEndpointOccupancy { Occupied = true };
+        var provider = Provider(root, processes, new FakeReadyProbe(), new FakeValidationWorkspaceFixture(), occupancy);
+
+        Assert.That(
+            async () => await provider.RunAsync(
+                new DesktopValidationLaunchSpec("/tmp/out", null, null, null),
+                CancellationToken.None),
+            Throws.InvalidOperationException.With.Message.Contains(DebugLayout.ServerUrl));
+        Assert.That(processes.Started, Is.Empty);
+        Assert.That(occupancy.LastUrl, Is.EqualTo(DebugLayout.ServerUrl));
+    }
+
+    [Test]
+    public async Task RunAsync_continuesWhenTheServerLogCannotBeWritten()
+    {
+        var root = Path.Join(Path.GetTempPath(), "au-debug-validate", Guid.NewGuid().ToString("N"));
+        var output = Path.Join(root, "out");
+        Directory.CreateDirectory(Path.Join(root, "AgentUp.Server"));
+        Directory.CreateDirectory(Path.Join(root, "AgentUp.Desktop"));
+        Directory.CreateDirectory(Path.Join(output, "server.log"));
+        Process? server = null;
+        var processes = new FakeProcessRunner
+        {
+            StartOverride = _ =>
+            {
+                server = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "sh",
+                    Arguments = "-c 'echo hello-from-server; exec sleep 1'",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false
+                })!;
+                return server;
+            }
+        };
+        var provider = Provider(root, processes, new FakeReadyProbe(), new FakeValidationWorkspaceFixture());
+
+        try
+        {
+            await provider.RunAsync(
+                new DesktopValidationLaunchSpec(output, null, null, null),
+                CancellationToken.None);
+
+            Assert.That(processes.Ran, Is.Not.Empty);
+            Assert.That(processes.Killed, Is.Not.Empty);
+        }
+        finally
+        {
+            if (server is { HasExited: false })
+                server.Kill(entireProcessTree: true);
+            server?.Dispose();
+        }
+    }
+
+    [Test]
     public async Task RunAsync_omitsBlankLaunchOverrides()
     {
         var root = Path.Join(Path.GetTempPath(), "au-debug-validate", Guid.NewGuid().ToString("N"));
@@ -182,6 +244,7 @@ public sealed class DesktopValidationLaunchProviderTests
         string root,
         FakeProcessRunner processes,
         FakeReadyProbe probe,
-        FakeValidationWorkspaceFixture fixture)
-        => new(processes, new FakePathValidator(root), new FakeEnvironment(), probe, fixture);
+        FakeValidationWorkspaceFixture fixture,
+        FakeLoopbackEndpointOccupancy? occupancy = null)
+        => new(processes, new FakePathValidator(root), new FakeEnvironment(), probe, fixture, occupancy ?? new FakeLoopbackEndpointOccupancy());
 }

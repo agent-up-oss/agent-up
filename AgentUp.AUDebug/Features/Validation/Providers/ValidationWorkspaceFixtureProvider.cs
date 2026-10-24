@@ -7,7 +7,8 @@ namespace AgentUp.AUDebug.Features.Validation.Providers;
 
 public sealed class ValidationWorkspaceFixtureProvider(
     IDebugPathValidator paths,
-    HttpMessageHandler? handler = null) : IValidationWorkspaceFixture
+    HttpMessageHandler? handler = null,
+    IValidationConfigFile? configFile = null) : IValidationWorkspaceFixture
 {
     public const string WorkspaceDisplayName = "Agent Up";
     public const string ScriptedAgentId = "test-agent-scripted";
@@ -83,13 +84,13 @@ public sealed class ValidationWorkspaceFixtureProvider(
     private void WriteConfigArrays(Utf8JsonWriter writer)
     {
         var path = paths.JoinUnderRoot("agent-up.json");
-        if (!File.Exists(path))
+        if (!ConfigExists(path))
             return;
 
         JsonDocument document;
         try
         {
-            document = JsonDocument.Parse(File.ReadAllText(path));
+            document = JsonDocument.Parse(ReadConfig(path));
         }
         catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
         {
@@ -150,4 +151,8 @@ public sealed class ValidationWorkspaceFixtureProvider(
 
         return shim;
     }
+
+    private bool ConfigExists(string path) => configFile?.Exists(path) ?? File.Exists(path);
+
+    private string ReadConfig(string path) => configFile?.ReadAllText(path) ?? File.ReadAllText(path);
 }
