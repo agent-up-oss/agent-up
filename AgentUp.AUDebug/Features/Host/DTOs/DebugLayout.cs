@@ -7,6 +7,7 @@ public static class DebugLayout
     public const int TestAllTimeoutSeconds = 600;
     public const int ScreenshotsTimeoutSeconds = 180;
     public const int ScreensTimeoutSeconds = 600;
+    public const int ValidateTimeoutSeconds = 600;
     public const int MaxTimeoutSeconds = 600;
     public const int ScreenshotMaxChannelDelta = 0;
     public const int DesktopScreenshotWidth = 1440;
@@ -39,6 +40,7 @@ public static class DebugLayout
     public const string DemoWorkspaceId = "harbor-shop";
 
     public const string ProductScreensDirectory = "artifacts/product-screens";
+    public const string MobileValidationDirectory = "artifacts/mobile-validation";
     public const string ProductScreensManifestFile = "screens.json";
     public const int ProductScreensDebuggingPort = 19224;
     public const int MobileScreenWidth = 390;

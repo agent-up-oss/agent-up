@@ -13,6 +13,9 @@ public sealed class DebugArgParser : IDebugArgParser
         var live = false;
         string? password = null;
         string? heading = null;
+        string? surface = null;
+        string? flowId = null;
+        string? outDir = null;
         var positionals = new List<string>();
 
         for (var index = 0; index < args.Length; index++)
@@ -65,6 +68,23 @@ public sealed class DebugArgParser : IDebugArgParser
                 continue;
             }
 
+            if (arg is "--surface" or "--flow" or "--out")
+            {
+                if (index + 1 >= args.Length || args[index + 1].StartsWith("--", StringComparison.Ordinal))
+                    return (null, $"Error: {arg} requires a value.");
+                var value = args[index + 1];
+                if (string.IsNullOrWhiteSpace(value))
+                    return (null, $"Error: {arg} requires a value.");
+                if (arg == "--surface")
+                    surface = value;
+                else if (arg == "--flow")
+                    flowId = value;
+                else
+                    outDir = value;
+                index++;
+                continue;
+            }
+
             if (arg.StartsWith("--", StringComparison.Ordinal))
                 return (null, $"Error: unknown argument '{arg}'.");
 
@@ -74,7 +94,7 @@ public sealed class DebugArgParser : IDebugArgParser
         if (timeoutSeconds > DebugLayout.MaxTimeoutSeconds)
             return (null, $"Error: --timeout must be between 1 and {DebugLayout.MaxTimeoutSeconds} seconds.");
 
-        return Build(positionals, password, timeoutSeconds, detach, heading, fullPage, live);
+        return Build(positionals, password, timeoutSeconds, detach, heading, fullPage, live, surface, flowId, outDir);
     }
 
     private static (DebugCommandDto? Command, string? Error) Build(
@@ -84,17 +104,20 @@ public sealed class DebugArgParser : IDebugArgParser
         bool detach,
         string? heading,
         bool fullPage,
-        bool live)
+        bool live,
+        string? surface,
+        string? flowId,
+        string? outDir)
     {
         if (positionals.Count == 0 || positionals[0] is "help" or "-h")
-            return FinishHelpOrHost("help", timeoutSeconds, password, detach, heading, fullPage, live);
+            return FinishHelpOrHost("help", timeoutSeconds, password, detach, heading, fullPage, live, surface, flowId, outDir);
 
         var verb = positionals[0];
         if (verb is "up" or "down" or "status")
         {
             if (positionals.Count > 1)
                 return (null, $"Error: '{verb}' does not take extra arguments.");
-            return FinishHelpOrHost(verb, timeoutSeconds, password, detach, heading, fullPage, live);
+            return FinishHelpOrHost(verb, timeoutSeconds, password, detach, heading, fullPage, live, surface, flowId, outDir);
         }
 
         if (heading is not null || fullPage)
@@ -114,6 +137,15 @@ public sealed class DebugArgParser : IDebugArgParser
             if (!screenshotsValidate)
                 return (null, "Error: --live is only valid for screenshots validate.");
         }
+
+        if (surface is not null || flowId is not null || outDir is not null)
+        {
+            if (verb != "validate")
+                return (null, "Error: --surface, --flow, and --out are only valid for validate.");
+        }
+
+        if (verb == "validate")
+            return ParseValidate(positionals, password, timeoutSeconds, detach, surface, flowId, outDir);
 
         if (verb is "test" or "build")
         {
@@ -290,6 +322,36 @@ public sealed class DebugArgParser : IDebugArgParser
             null);
     }
 
+    private static (DebugCommandDto? Command, string? Error) ParseValidate(
+        IReadOnlyList<string> positionals,
+        string? password,
+        int? timeoutSeconds,
+        bool detach,
+        string? surface,
+        string? flowId,
+        string? outDir)
+    {
+        if (positionals.Count > 1)
+            return (null, "Error: 'validate' does not take extra arguments.");
+        if (string.IsNullOrWhiteSpace(surface))
+            return (null, "Error: 'validate' requires --surface mobile.");
+        if (surface is not ("mobile" or "desktop"))
+            return (null, $"Error: unknown validation surface '{surface}'. Choose mobile.");
+
+        return (
+            new DebugCommandDto(
+                "validate",
+                surface,
+                "validate",
+                null,
+                password,
+                TimeSpan.FromSeconds(timeoutSeconds ?? DebugLayout.ValidateTimeoutSeconds),
+                detach,
+                FlowId: flowId,
+                OutDir: outDir),
+            null);
+    }
+
     private static (DebugCommandDto? Command, string? Error) FinishHelpOrHost(
         string verb,
         int? timeoutSeconds,
@@ -297,12 +359,17 @@ public sealed class DebugArgParser : IDebugArgParser
         bool detach,
         string? heading,
         bool fullPage,
-        bool live)
+        bool live,
+        string? surface = null,
+        string? flowId = null,
+        string? outDir = null)
     {
         if (heading is not null || fullPage)
             return (null, "Error: --heading and --full-page are only valid for docs screenshot.");
         if (live)
             return (null, "Error: --live is only valid for screenshots validate.");
+        if (surface is not null || flowId is not null || outDir is not null)
+            return (null, "Error: --surface, --flow, and --out are only valid for validate.");
 
         return Command(verb, timeoutSeconds ?? DebugLayout.DefaultTimeoutSeconds, password, detach);
     }

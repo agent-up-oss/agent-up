@@ -435,4 +435,36 @@ public sealed class DebugArgParserTests
 
         Assert.That(error, Does.Contain("at most a surface and one screen name"));
     }
+
+    [Test]
+    public void Parse_validateMobile_usesTheLongWatchdog()
+    {
+        var (command, error) = _parser.Parse(["validate", "--surface", "mobile", "--flow", "git", "--out", "artifacts/mobile-validation"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(error, Is.Null);
+            Assert.That(command!.Verb, Is.EqualTo("validate"));
+            Assert.That(command.Surface, Is.EqualTo("mobile"));
+            Assert.That(command.FlowId, Is.EqualTo("git"));
+            Assert.That(command.OutDir, Is.EqualTo("artifacts/mobile-validation"));
+            Assert.That(command.Timeout, Is.EqualTo(TimeSpan.FromSeconds(DebugLayout.ValidateTimeoutSeconds)));
+        });
+    }
+
+    [Test]
+    public void Parse_validate_requiresSurfaceMobile()
+    {
+        var (_, missing) = _parser.Parse(["validate"]);
+        var (_, unknown) = _parser.Parse(["validate", "--surface", "tablet"]);
+        Assert.That(missing, Does.Contain("requires --surface mobile"));
+        Assert.That(unknown, Does.Contain("unknown validation surface"));
+    }
+
+    [Test]
+    public void Parse_validateFlags_areOnlyValidForValidate()
+    {
+        var (_, status) = _parser.Parse(["status", "--surface", "mobile"]);
+        Assert.That(status, Does.Contain("only valid for validate"));
+    }
 }
