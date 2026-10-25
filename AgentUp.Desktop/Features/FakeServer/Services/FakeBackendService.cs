@@ -1063,14 +1063,12 @@ public sealed class FakeBackendService
                 .OfType<JsonObject>()
                 .Select(task => task["id"]?.GetValue<string>())
                 .ToHashSet(StringComparer.Ordinal);
-            var offered = new JsonArray();
-            foreach (var issue in (_state.Issues?[workspaceId]?.AsArray() ?? []).OfType<JsonObject>())
-            {
-                if (!queued.Contains(issue["id"]?.GetValue<string>()))
-                    offered.Add(issue.DeepClone());
-            }
-
-            return offered;
+            return new JsonArray(
+            [
+                .. (_state.Issues?[workspaceId]?.AsArray() ?? []).OfType<JsonObject>()
+                    .Where(issue => !queued.Contains(issue["id"]?.GetValue<string>()))
+                    .Select(issue => issue.DeepClone())
+            ]);
         }
     }
 
