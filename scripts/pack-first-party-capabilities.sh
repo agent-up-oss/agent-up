@@ -9,11 +9,16 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 configuration="${CONFIGURATION:-Release}"
 mkdir -p "$registry/packages"
 
+run_arguments=(--configuration "$configuration" --no-launch-profile)
+if [[ "${AGENTUP_CAPABILITY_PACK_NO_BUILD:-}" == "1" ]]; then
+  run_arguments+=(--no-build)
+fi
+
 pack_one() {
   local project="$1"
   local staged
   staged="$(mktemp -d "${TMPDIR:-/tmp}/agent-up-pack.XXXXXX")"
-  dotnet run --project "$root/$project" --configuration "$configuration" --no-launch-profile -- "$staged"
+  dotnet run --project "$root/$project" "${run_arguments[@]}" -- "$staged"
   python3 - "$staged" "$registry" <<'PY'
 import json, pathlib, shutil, sys
 staged = pathlib.Path(sys.argv[1])

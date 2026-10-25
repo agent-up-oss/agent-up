@@ -18,6 +18,7 @@ HTTP routes owned by the Agents slice.
 | `GET` | `/api/workspaces/{workspaceId}/agent` | Get |
 | `POST` | `/api/workspaces/{workspaceId}/agent` | Schedule |
 | `POST` | `/api/workspaces/{workspaceId}/agent/authenticate` | Authenticate |
+| `GET` | `/api/workspaces/{workspaceId}/agent/autonomy` | GetAutonomy |
 | `PUT` | `/api/workspaces/{workspaceId}/agent/autonomy` | PutAutonomy |
 | `DELETE` | `/api/workspaces/{workspaceId}/agent/binding` | Unbind |
 | `PUT` | `/api/workspaces/{workspaceId}/agent/binding` | Bind |

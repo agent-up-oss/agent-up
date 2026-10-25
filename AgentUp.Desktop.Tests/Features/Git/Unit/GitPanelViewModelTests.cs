@@ -1342,7 +1342,7 @@ public sealed class GitPanelViewModelTests
 
         await panel.SignInCommand.Execute().FirstAsync();
 
-        Assert.That(panel.ErrorMessage, Does.Contain("sign-in"));
+        Assert.That(panel.ErrorMessage, Does.Contain("repository host setup"));
         Assert.That(panel.ErrorMessage, Does.Contain("denied"));
         Assert.That(panel.HasHostingSignInUrl, Is.False);
     }
@@ -1444,7 +1444,7 @@ public sealed class GitPanelViewModelTests
 
         await panel.SignInCommand.Execute().FirstAsync();
 
-        Assert.That(panel.ErrorMessage, Does.Contain("sign-in"));
+        Assert.That(panel.ErrorMessage, Does.Contain("repository host setup"));
         Assert.That(panel.ErrorMessage, Does.Contain("timed out"));
     }
 

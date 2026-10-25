@@ -8,7 +8,8 @@ export const styles = StyleSheet.create({
   primaryText: auText('button', 'buttonCompact'),
   secondary: { ...auBox('button', 'buttonSecondary', 'buttonCompact'), alignItems: 'center' },
   secondaryText: auText('buttonSecondary', 'buttonCompact'),
-  url: { ...auText('muted'), color: agentUpTheme.colors.textInfo, textDecorationLine: 'underline' },
+  codeBlock: { gap: 6 },
+  codeLabel: auText('muted'),
   code: {
     ...auText('mono'),
     color: agentUpTheme.colors.accentSoft,

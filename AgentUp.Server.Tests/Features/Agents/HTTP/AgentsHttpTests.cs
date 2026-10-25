@@ -21,6 +21,7 @@ using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace AgentUp.Server.Tests.Features.Agents.HTTP;
 
@@ -34,7 +35,11 @@ public sealed class AgentsHttpTests
     [SetUp]
     public async Task SetUp()
     {
-        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = ["--urls=http://127.0.0.1:0"] });
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
+            Args = ["--urls=http://127.0.0.1:0"],
+            EnvironmentName = Environments.Development
+        });
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> {
             ["Agents:Codex:Command"] = "/definitely-missing/codex-acp"
         });
@@ -112,7 +117,14 @@ public sealed class AgentsHttpTests
     {
         var workspace = await RegisterAsync();
         var session = await _client.GetFromJsonAsync<AgentSessionDto>($"/api/workspaces/{workspace.Id}/agent", JsonOptions);
-        Assert.Multiple(() => { Assert.That(session!.State, Is.EqualTo("idle")); Assert.That(session.Agent, Is.Null); Assert.That(session.Agents, Has.Count.EqualTo(3)); });
+        Assert.Multiple(() =>
+        {
+            Assert.That(session!.State, Is.EqualTo("idle"));
+            Assert.That(session.Agent, Is.Null);
+            Assert.That(
+                session.Agents.Select(agent => agent.Agent),
+                Is.EqualTo(new[] { "codex", "cursor", "claude", AgentUnavailability.ScriptedTestAgent }));
+        });
     }
 
     [Test]

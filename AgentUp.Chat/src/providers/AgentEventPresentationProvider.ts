@@ -39,9 +39,29 @@ export function mergeAgentSession(previous: AgentSession | null, next: AgentSess
  * stream already delivered. Keep the URL only while both snapshots are still `authenticating`.
  */
 function keepAuthenticatingChallenge(previous: AgentSession | null, next: AgentSession): AgentSession {
-  if (next.state !== 'authenticating' || next.loginChallenge?.url || !previous?.loginChallenge?.url) return next;
-  if (previous.state !== 'authenticating') return next;
-  return { ...next, loginChallenge: previous.loginChallenge };
+  if (next.state !== 'authenticating' || previous?.state !== 'authenticating' || !previous.loginChallenge?.url) return next;
+  if (!next.loginChallenge?.url) return { ...next, loginChallenge: previous.loginChallenge };
+  if (next.loginChallenge.url !== previous.loginChallenge.url) return next;
+
+  // Authentication updates arrive through both GET and the event stream. A GET started when the
+  // CLI had printed only its URL can finish after the event containing its device code. Merge
+  // same-challenge fields monotonically so that stale response cannot put the UI back into the
+  // incomplete (and historically wrong pasted-code) state.
+  return {
+    ...next,
+    loginChallenge: {
+      ...next.loginChallenge,
+      code: next.loginChallenge.code ?? previous.loginChallenge.code,
+      instructions: next.loginChallenge.code
+        ? next.loginChallenge.instructions
+        : previous.loginChallenge.code
+          ? previous.loginChallenge.instructions
+          : next.loginChallenge.instructions ?? previous.loginChallenge.instructions,
+      canSubmitCode: next.loginChallenge.canSubmitCode === true || previous.loginChallenge.canSubmitCode === true,
+      expiresAt: next.loginChallenge.expiresAt ?? previous.loginChallenge.expiresAt,
+      redirectUri: next.loginChallenge.redirectUri ?? previous.loginChallenge.redirectUri,
+    },
+  };
 }
 
 export function sessionUpdateKind(update: unknown): string {

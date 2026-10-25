@@ -118,6 +118,17 @@ public sealed class ForgeHttpTests
     }
 
     [Test]
+    public async Task GithubRegister_returnsNotFoundForAnUnknownState()
+    {
+        using var host = await HostAsync();
+        using var client = host.Factory.CreateClient();
+
+        using var response = await client.GetAsync("/api/forge/github/register?state=missing");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
     public async Task Callback_returnsNotFoundForAnUnknownState()
     {
         using var host = await HostAsync();

@@ -811,6 +811,17 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
+    public async Task PromptWaitAsync_returnsWhenTheAgentEmitsInvalidJson()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        _process.PromptFailure = new JsonException("Truncated JSON mid-message.");
+
+        var queued = await _service.PromptWaitAsync(_workspace.Id, "hello", CancellationToken.None);
+
+        Assert.That(queued.Error, Does.Contain("Truncated JSON"));
+    }
+
+    [Test]
     public void InspectLoop_reportsNotFoundWhenTheWorkspaceHasNoSession()
     {
         var snapshot = _service.InspectLoop("missing-workspace");

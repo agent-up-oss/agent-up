@@ -3,10 +3,10 @@ import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import { workspaceScopeKey } from '@/features/workspaces/providers/WorkspaceScopeKeyProvider';
-import { agentUpTheme, auText } from '@agent-up/design-system/native';
+import { auBox, auText } from '@agent-up/design-system/native';
 import type { ForgeHosting } from '../models/ForgeHosting';
 import { getForgeHosting, startForgeLogin } from '../providers/GitApiProvider';
-import { hostingCopy } from '../providers/GitHostingCopyProvider';
+import { hostingCopy, type GitHostingCopy } from '../providers/GitHostingCopyProvider';
 import { signInUrlAfterScopeChange, signInUrlForCurrentScope } from '../providers/GitHostingSignInProvider';
 
 export function GitHostingRow({
@@ -57,12 +57,6 @@ export function GitHostingRow({
   const copy = hostingCopy(hosting);
   if (!copy.visible) return null;
 
-  const checkColor = copy.checksTone === 'danger'
-    ? agentUpTheme.colors.statusDanger
-    : copy.checksTone === 'warning'
-      ? agentUpTheme.colors.statusWarning
-      : agentUpTheme.colors.statusHealthy;
-
   return (
     <View style={styles.row} testID="git-hosting">
       <Text style={styles.title} testID="git-hosting-title">{copy.title}</Text>
@@ -73,7 +67,7 @@ export function GitHostingRow({
         <Pressable
           testID="git-hosting-sign-in"
           accessibilityRole="button"
-          accessibilityLabel="Sign in"
+          accessibilityLabel="Connect repository host"
           onPress={() => {
             const startedScope = scopeKey;
             setSignInError(null);
@@ -83,26 +77,26 @@ export function GitHostingRow({
               setSignInUrl(url);
               return Linking.openURL(url);
             }).catch((error: unknown) => {
-              setSignInError(error instanceof Error ? error.message : 'Could not start repository host sign-in.');
+              setSignInError(error instanceof Error ? error.message : 'Could not start repository host setup.');
             });
           }}
         >
-          <Text style={styles.link}>Sign in</Text>
+          <Text style={styles.link}>Connect</Text>
         </Pressable>
       ) : null}
       {signInUrl ? (
         <Pressable
           testID="git-hosting-open-sign-in"
           accessibilityRole="button"
-          accessibilityLabel="Open sign-in page"
+          accessibilityLabel="Continue repository host setup"
           onPress={() => { void Linking.openURL(signInUrl); }}>
-          <Text style={styles.link}>Open sign-in page</Text>
+          <Text style={styles.link}>Continue setup</Text>
         </Pressable>
       ) : null}
       {signInError ? <Text style={styles.error}>{signInError}</Text> : null}
       {copy.checks ? (
         <View style={styles.facts}>
-          <Text style={[styles.fact, { color: checkColor }]}>{copy.checks}</Text>
+              <Text style={checksStyle(copy.checksTone)}>{copy.checks}</Text>
           <Text style={styles.muted}>{copy.threads}</Text>
           <Text style={styles.muted}>{copy.mergeability}</Text>
         </View>
@@ -124,18 +118,19 @@ export function GitHostingRow({
   );
 }
 
+function checksStyle(tone: GitHostingCopy['checksTone']) {
+  if (tone === 'danger') return auText('badgeDanger');
+  if (tone === 'warning') return auText('badgeWarning');
+  if (tone === 'healthy') return auText('accent');
+  return auText('fieldLabel');
+}
+
 const styles = StyleSheet.create({
-  row: {
-    gap: 6,
-    padding: agentUpTheme.spacing[3],
-    backgroundColor: agentUpTheme.colors.surfaceRaised,
-    borderRadius: agentUpTheme.radii.md,
-  },
+  row: { ...auBox('card'), gap: 6 },
   title: auText('fieldLabel'),
   facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  fact: auText('fieldLabel'),
-  muted: { ...auText('fieldLabel'), color: agentUpTheme.colors.textMuted },
-  error: { ...auText('fieldLabel'), color: agentUpTheme.colors.statusDanger },
+  muted: auText('muted'),
+  error: auText('badgeDanger'),
   threads: { gap: 4 },
-  link: { ...auText('fieldLabel'), color: agentUpTheme.colors.accent },
+  link: auText('accent'),
 });

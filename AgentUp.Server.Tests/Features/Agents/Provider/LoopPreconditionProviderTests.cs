@@ -65,6 +65,23 @@ public sealed class LoopPreconditionProviderTests
     }
 
     [Test]
+    public async Task StatusAsync_reportsEveryWorkspaceActivationRequirement()
+    {
+        var host = await HostAsync();
+        await host.Workspaces.UpdateBoundAgentAsync(host.WorkspaceId, "codex");
+
+        var status = await host.Preconditions.StatusAsync(host.WorkspaceId, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(status.Select(item => item.Id), Does.Contain("permissionPolicy"));
+            Assert.That(status.Select(item => item.Id), Does.Contain("gitBranch"));
+            Assert.That(status.Single(item => item.Id == "permissionPolicy").Satisfied, Is.False);
+            Assert.That(status.Single(item => item.Id == "gitBranch").Satisfied, Is.True);
+        });
+    }
+
+    [Test]
     public async Task UnmetAsync_refusesAnAgentThatDoesNotSupportPermissionRequests()
     {
         var host = await HostAsync(supportsPermissions: false);

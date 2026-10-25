@@ -50,6 +50,7 @@ public static class OperationPermissionMap
         [("AgentsHttp", "PutHostConnection")] = OperationPermissions.AgentPrompt,
         [("AgentsHttp", "PutQueueOrder")] = OperationPermissions.AgentPrompt,
         [("AgentsHttp", "PutAutonomy")] = OperationPermissions.AgentPrompt,
+        [("AgentsHttp", "GetAutonomy")] = OperationPermissions.AgentRead,
         [("AgentsHttp", "GetLoop")] = OperationPermissions.AgentRead,
         [("AgentsHttp", "Resume")] = OperationPermissions.AgentPrompt,
         [("AgentsHttp", "Prompt")] = OperationPermissions.AgentPrompt,

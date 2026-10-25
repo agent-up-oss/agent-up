@@ -42,6 +42,24 @@ public sealed class AgentSubscriptionLoginParserTests
         });
     }
 
+    [Test]
+    public void Append_readsTheCurrentCodexCliDeviceOutput()
+    {
+        var parser = new AgentSubscriptionLoginParser(AgentLoginFlow.DeviceCode());
+        parser.Append("Follow these steps to sign in with ChatGPT using device code authorization:");
+        parser.Append("   \u001b[94mhttps://auth.openai.com/codex/device\u001b[0m");
+        parser.Append("2. Enter this one-time code \u001b[90m(expires in 15 minutes)\u001b[0m");
+        parser.Append("   \u001b[94mGGV7-L15JX\u001b[0m");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(parser.Challenge.Url, Is.EqualTo("https://auth.openai.com/codex/device"));
+            Assert.That(parser.Challenge.Code, Is.EqualTo("GGV7-L15JX"));
+            Assert.That(parser.Challenge.Instructions, Does.Contain("enter the code shown here"));
+            Assert.That(parser.Challenge.ExpiresAt, Is.Not.Null);
+        });
+    }
+
     // Colour and cursor control sequences are normal in these CLIs, and a link wrapped in them
     // used to come back with escape bytes still attached.
     [Test]

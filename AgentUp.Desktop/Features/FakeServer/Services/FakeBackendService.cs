@@ -212,6 +212,8 @@ public sealed class FakeBackendService
             return GitMutation(workspaceId, rest["git/".Length..], request.Body);
         if (method == "GET" && rest == "agent/loop")
             return AgentLoop(workspaceId);
+        if (method == "GET" && rest == "agent/autonomy")
+            return Json(AutonomyDto(workspace: true));
         if (method == "PUT" && rest == "agent/autonomy")
             return SetLoopActivation(workspaceId, request.Body);
         if (method == "GET" && rest == "agent")
@@ -544,19 +546,31 @@ public sealed class FakeBackendService
         PublishAgent(workspaceId, "state", snapshot);
     }
 
-    private JsonObject AutonomyDto()
+    private JsonObject AutonomyDto(bool workspace = false)
     {
         var agentAvailable = AgentCatalogDescriptors()
             .OfType<JsonObject>()
             .Any(item => item["available"]?.GetValue<bool>() == true);
+        var preconditions = new JsonArray(
+            Precondition("forgeCapabilityEnabled", true, "Run: agent-up capabilities bootstrap"),
+            Precondition("hostConnectionAuthorized", true, "Sign in to your repository host."),
+            Precondition("agentAvailable", agentAvailable, "Enable an agent capability"),
+            Precondition("autonomyEnabled", _autonomyEnabled, "Enable autonomy for this Server"));
+        if (workspace)
+        {
+            preconditions.Add(Precondition("workspaceRegistered", true, "Register the workspace before activating the loop."));
+            preconditions.Add(Precondition("boundAgent", true, "Bind an agent to the workspace."));
+            preconditions.Add(Precondition("permissionRequests", true, "Bind an agent that supports permission requests."));
+            preconditions.Add(Precondition("permissionPolicy", true, "Add a permission policy before activating the loop."));
+            preconditions.Add(Precondition("gitBranch", true, "Check out a git branch before activating the loop."));
+            preconditions.Add(Precondition("unpushedCommits", true, "Push or remove unpushed commits before activating the loop."));
+            preconditions.Add(Precondition("commitQueueEdit", true, "Finish or abort the commit queue edit session."));
+            preconditions.Add(Precondition("unassignedChanges", true, "Assign working-tree changes to a queued proposal."));
+        }
         return new JsonObject
         {
             ["enabled"] = _autonomyEnabled,
-            ["preconditions"] = new JsonArray(
-                Precondition("forgeCapabilityEnabled", true, "Run: agent-up capabilities bootstrap"),
-                Precondition("hostConnectionAuthorized", true, "Sign in to your repository host."),
-                Precondition("agentAvailable", agentAvailable, "Enable an agent capability"),
-                Precondition("autonomyEnabled", _autonomyEnabled, "Enable autonomy for this Server"))
+            ["preconditions"] = preconditions
         };
     }
 

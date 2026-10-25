@@ -15,7 +15,7 @@ public static class ForgeHostingCopy
     public const string NotInstalledDetail = "No forge capability package is enabled.";
     public const string NotInstalledRemedy = "Run: agent-up capabilities bootstrap";
     public const string NeedsCredentialDetail = "This workspace has no repository host credential.";
-    public const string NeedsCredentialRemedy = "Sign in to your repository host.";
+    public const string NeedsCredentialRemedy = "Connect this workspace to its repository host.";
     public const string OAuthMissingDetail = "Repository host OAuth is not configured.";
     public const string OAuthMissingRemedy =
         "Set AGENTUP_FORGE_CLIENT_ID, AGENTUP_FORGE_CLIENT_SECRET, and AGENTUP_FORGE_REDIRECT_URI.";

@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.Agents.DTOs;
+using AgentUp.Server.Features.Agents.Interfaces;
 using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Capabilities.Interfaces;
 
@@ -6,7 +7,8 @@ namespace AgentUp.Server.Features.Agents.Providers;
 
 public sealed class AgentCommandProvider(
     IConfiguration configuration,
-    IEnabledCapabilityPackages? packages = null)
+    IEnabledCapabilityPackages? packages = null,
+    IAgentRuntimePathProvider? runtime = null)
 {
     public Task<bool> IsAvailableAsync(string agent, CancellationToken cancellationToken)
         => Task.FromResult(IsLaunchExecutableAvailable(agent));
@@ -85,7 +87,7 @@ public sealed class AgentCommandProvider(
         return new AgentCommand(configured, arguments);
     }
 
-    private static bool IsAvailableCommand(string command)
+    private bool IsAvailableCommand(string command)
     {
         if (Path.IsPathRooted(command))
             return IsExecutable(command);
@@ -93,8 +95,11 @@ public sealed class AgentCommandProvider(
         var extensions = OperatingSystem.IsWindows()
             ? (Environment.GetEnvironmentVariable("PATHEXT") ?? ".COM;.EXE;.BAT;.CMD").Split(';', StringSplitOptions.RemoveEmptyEntries)
             : [string.Empty];
-        return (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
+        var current = (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Concat(runtime?.PathPrefixes() ?? [])
+            .Distinct(StringComparer.Ordinal);
+        return current
             .SelectMany(path => extensions.Select(extension => Path.Join(
                 path,
                 command.EndsWith(extension, StringComparison.OrdinalIgnoreCase) ? command : command + extension)))

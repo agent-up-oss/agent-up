@@ -9,8 +9,21 @@ public sealed class ForgeController(ForgeService service)
     public Task<ForgeHostingDto?> GetHostingAsync(string workspaceId, CancellationToken cancellationToken = default)
         => service.GetHostingAsync(workspaceId, cancellationToken);
 
-    public ForgeHttpOutcome StartLogin(string workspaceId)
-        => service.StartLogin(workspaceId);
+    public Task<ForgeHttpOutcome> StartLoginAsync(
+        string workspaceId,
+        string callbackOrigin,
+        CancellationToken cancellationToken = default)
+        => service.StartLoginAsync(workspaceId, callbackOrigin, cancellationToken);
+
+    public string? GithubRegistrationPage(string state)
+        => service.GithubRegistrationPage(state);
+
+    public Task<string?> CompleteGithubManifestAsync(string code, string state, CancellationToken cancellationToken = default)
+        => service.CompleteGithubManifestAsync(code, state, cancellationToken);
+
+    public Task<bool> CompleteGithubInstallationAsync(
+        string key, long installationId, CancellationToken cancellationToken = default)
+        => service.CompleteGithubInstallationAsync(key, installationId, cancellationToken);
 
     public Task<bool> CompleteLoginAsync(string code, string state, CancellationToken cancellationToken = default)
         => service.CompleteLoginAsync(code, state, cancellationToken);

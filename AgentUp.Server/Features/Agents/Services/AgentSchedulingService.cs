@@ -530,7 +530,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             await state.PromptCompletion.Task.WaitAsync(cancellationToken);
             return AgentActionResult.Success();
         }
-        catch (Exception exception) when (exception is InvalidOperationException or IOException or OperationCanceledException)
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or OperationCanceledException or JsonException)
         {
             return AgentActionResult.Failed(exception.Message);
         }
@@ -596,7 +596,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             events.Publish(workspaceId, "state", Get(workspaceId)!);
             succeeded = true;
         }
-        catch (Exception exception) when (exception is InvalidOperationException or IOException or OperationCanceledException)
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or OperationCanceledException or JsonException)
         {
             failure = exception;
             if (!state.Lifetime.IsCancellationRequested)

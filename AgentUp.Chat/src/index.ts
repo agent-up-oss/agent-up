@@ -25,6 +25,7 @@ export type { AgentLoopControlsProps } from './components/AgentLoopControls';
 export {
   getAgent,
   bindAgent,
+  unbindAgent,
   scheduleAgent,
   resumeAgent,
   enableAgentCapability,
@@ -32,4 +33,6 @@ export {
   putAutonomy,
   putLoopActivation,
   getLoop,
+  getPermissionPolicy,
+  putPermissionPolicy,
 } from './providers/AgentApiProvider';

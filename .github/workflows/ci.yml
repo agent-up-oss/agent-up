@@ -3,10 +3,13 @@ name: Agent-Up CI
 on:
   push:
     branches:
-      - '**'
+      - 'main'
     tags-ignore:
       - android-v*
       - ios-v*
+  pull_request:
+    branches:
+      - '**'
 
 # Runs on main share one group and never cancel, so every commit that can release is built.
 # Everywhere else the newest push wins: a branch run that a later push has already superseded

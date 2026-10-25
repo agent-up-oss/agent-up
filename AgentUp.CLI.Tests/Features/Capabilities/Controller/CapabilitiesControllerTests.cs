@@ -107,7 +107,8 @@ public sealed class CapabilitiesControllerTests
                 CliDomain.Capability().Named("codex").Build(),
                 CliDomain.Capability().Named("cursor").Build(),
                 CliDomain.Capability().Named("claude").Build(),
-                CliDomain.Capability().Named("github").Build()
+                CliDomain.Capability().Named("github").Build(),
+                CliDomain.Capability().Named("forgejo").Build()
             ]
         };
         var packer = new FakeCapabilityPacker();
@@ -120,6 +121,7 @@ public sealed class CapabilitiesControllerTests
             Assert.That(packer.Calls, Is.EqualTo(1));
             Assert.That(output.ToString(), Does.Contain("Packed first-party capabilities"));
             Assert.That(output.ToString(), Does.Contain("Enabled github"));
+            Assert.That(output.ToString(), Does.Contain("Enabled forgejo"));
         });
     }
 

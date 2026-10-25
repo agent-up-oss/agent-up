@@ -52,6 +52,14 @@ export type ServerAutonomy = {
   enabled: boolean;
   preconditions: AutonomyPrecondition[];
 };
+export type PermissionRuleKind = 'WorktreeRead' | 'WorktreeWrite' | 'Execute' | 'Network';
+export type PermissionRule = {
+  id: string;
+  kind: PermissionRuleKind;
+  allow: boolean;
+  scope?: string | null;
+};
+export type PermissionPolicy = { rules: PermissionRule[] };
 export type AgentSession = {
   workspaceId: string;
   agent: AgentId | null;

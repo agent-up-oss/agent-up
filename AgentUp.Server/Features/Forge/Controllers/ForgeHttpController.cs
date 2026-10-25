@@ -15,9 +15,10 @@ public sealed class ForgeHttpController(ForgeController forge) : ControllerBase
     }
 
     [HttpPost("login")]
-    public IActionResult Login(string workspaceId)
+    public async Task<IActionResult> Login(string workspaceId, CancellationToken cancellationToken)
     {
-        var outcome = forge.StartLogin(workspaceId);
+        var origin = $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
+        var outcome = await forge.StartLoginAsync(workspaceId, origin, cancellationToken);
         return StatusCode(outcome.StatusCode, outcome.Body);
     }
 

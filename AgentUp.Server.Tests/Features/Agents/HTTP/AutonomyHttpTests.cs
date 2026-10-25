@@ -164,6 +164,29 @@ public sealed class AutonomyHttpTests
     }
 
     [Test]
+    public async Task GetAutonomy_forAWorkspaceIncludesThePolicyAndGitPreconditions()
+    {
+        await using var host = await HostAsync();
+        var workspace = await host.RegisterAsync();
+
+        var before = await host.Client.GetFromJsonAsync<ServerAutonomyDto>(
+            $"/api/workspaces/{workspace.Id}/agent/autonomy", Json);
+        await host.Client.PutAsJsonAsync(
+            $"/api/workspaces/{workspace.Id}/agent/policy",
+            new { rules = new[] { new { id = "read", kind = "WorktreeRead", allow = true } } });
+        var after = await host.Client.GetFromJsonAsync<ServerAutonomyDto>(
+            $"/api/workspaces/{workspace.Id}/agent/autonomy", Json);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(before!.Preconditions.Single(item => item.Id == "permissionPolicy").Satisfied, Is.False);
+            Assert.That(after!.Preconditions.Single(item => item.Id == "permissionPolicy").Satisfied, Is.True);
+            Assert.That(after.Preconditions.Select(item => item.Id), Does.Contain("gitBranch"));
+            Assert.That(after.Preconditions.Select(item => item.Id), Does.Contain("unassignedChanges"));
+        });
+    }
+
+    [Test]
     public async Task RoleRoundTrip_storesAndClearsTheWorkspaceRole()
     {
         await using var host = await HostAsync();
@@ -216,6 +239,16 @@ public sealed class AutonomyHttpTests
             new { active = true });
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+    }
+
+    [Test]
+    public async Task GetAutonomy_unknownWorkspaceReturnsNotFound()
+    {
+        await using var host = await HostAsync();
+
+        using var response = await host.Client.GetAsync("/api/workspaces/missing/agent/autonomy");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
     [Test]

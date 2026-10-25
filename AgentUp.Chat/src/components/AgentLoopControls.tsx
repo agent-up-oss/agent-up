@@ -10,6 +10,7 @@ export type AgentLoopControlsProps = {
   onEnable: () => void;
   onActivate: () => void;
   onCancel: () => void;
+  onConfigurePolicy?: () => void;
 };
 
 export function AgentLoopControls({
@@ -19,18 +20,22 @@ export function AgentLoopControls({
   onEnable,
   onActivate,
   onCancel,
+  onConfigurePolicy,
 }: AgentLoopControlsProps) {
   const items = autonomy?.preconditions ?? [];
+  const serverItems = new Set(['forgeCapabilityEnabled', 'hostConnectionAuthorized', 'agentAvailable', 'autonomyEnabled']);
+  const visibleItems = items.filter(item => serverItems.has(item.id) || !item.satisfied);
   if (items.length === 0 && !loop) return null;
   const enable = !busy && canEnableAutonomy(autonomy);
   const activate = !busy && canActivateLoop(autonomy, loop);
   const cancel = !busy && canCancelLoop(loop);
+  const needsPolicy = items.some(item => item.id === 'permissionPolicy' && !item.satisfied);
   return (
     <View testID="agent-loop" style={styles.panel}>
       <Text style={styles.heading}>Unattended loop</Text>
-      {items.length > 0 && (
+      {visibleItems.length > 0 && (
         <View testID="agent-loop-checklist" style={styles.checklist}>
-          {items.map(item => (
+          {visibleItems.map(item => (
             <View key={item.id} testID={`agent-loop-precondition-${item.id}`} style={styles.row}>
               <Text style={styles.label}>{preconditionLabel(item.id)}</Text>
               <Text style={item.satisfied ? styles.ok : styles.muted}>
@@ -50,6 +55,15 @@ export function AgentLoopControls({
             accessibilityLabel="Enable autonomy"
             onPress={onEnable}>
             <Text style={styles.action}>Enable autonomy</Text>
+          </Pressable>
+        ) : null}
+        {needsPolicy && onConfigurePolicy ? (
+          <Pressable
+            testID="agent-loop-configure-policy"
+            accessibilityRole="button"
+            accessibilityLabel="Configure permissions"
+            onPress={onConfigurePolicy}>
+            <Text style={styles.action}>Configure permissions</Text>
           </Pressable>
         ) : null}
         {activate ? (

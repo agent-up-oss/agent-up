@@ -1,13 +1,12 @@
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Interfaces;
-using AgentUp.Server.Features.Capabilities.Controllers;
 
 namespace AgentUp.Server.Features.Agents.Providers;
 
 public sealed class AgentProcessEnvironmentProvider(
     AgentCliHomeProvider home,
     IAgentClaudeCredentialStore credentials,
-    IEnumerable<CapabilityModulesController>? modules = null) : IAgentProcessEnvironmentProvider
+    IAgentRuntimePathProvider? runtime = null) : IAgentProcessEnvironmentProvider
 {
     public IReadOnlyDictionary<string, string> EnvironmentFor(string agent)
     {
@@ -18,15 +17,14 @@ public sealed class AgentProcessEnvironmentProvider(
         {
             ["HOME"] = home.HomePath
         };
-        var controller = modules?.FirstOrDefault();
-        var prefixes = controller?.RuntimePathPrefixes() ?? [];
+        var prefixes = runtime?.PathPrefixes() ?? [];
         if (prefixes.Count > 0)
         {
             var current = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
             environment["PATH"] = string.Join(Path.PathSeparator, prefixes.Append(current));
         }
 
-        var runtimeRoot = controller?.RuntimeRoot();
+        var runtimeRoot = runtime?.RuntimeRoot();
         if (!string.IsNullOrWhiteSpace(runtimeRoot))
             environment["AGENT_UP_DEV_ROOT"] = runtimeRoot;
 

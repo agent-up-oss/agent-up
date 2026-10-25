@@ -10,6 +10,22 @@ export function preconditionLabel(id: string): string {
       return 'Agent available';
     case 'autonomyEnabled':
       return 'Autonomy enabled';
+    case 'workspaceRegistered':
+      return 'Workspace registered';
+    case 'boundAgent':
+      return 'Bound agent';
+    case 'permissionRequests':
+      return 'Permission support';
+    case 'permissionPolicy':
+      return 'Permission policy';
+    case 'gitBranch':
+      return 'Git branch';
+    case 'unpushedCommits':
+      return 'Commits pushed';
+    case 'commitQueueEdit':
+      return 'Commit queue';
+    case 'unassignedChanges':
+      return 'Working-tree changes';
     default:
       return id;
   }
@@ -19,7 +35,6 @@ export function canEnableAutonomy(autonomy: ServerAutonomy | null | undefined): 
   const items = autonomy?.preconditions ?? [];
   return items.some(item => item.id === 'forgeCapabilityEnabled' && item.satisfied)
     && items.some(item => item.id === 'hostConnectionAuthorized' && item.satisfied)
-    && items.some(item => item.id === 'agentAvailable' && item.satisfied)
     && items.some(item => item.id === 'autonomyEnabled' && !item.satisfied);
 }
 

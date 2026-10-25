@@ -222,16 +222,16 @@ public sealed class AgentChatViewModel : ReactiveObject
         _currentRun = null;
         Apply(null);
     });
-    private async Task EnableAutonomyAsync() => await RunAsync(async _ =>
+    private async Task EnableAutonomyAsync() => await RunAsync(async id =>
     {
         await _controller.PutAutonomyAsync(true, CancellationToken.None);
-        ApplyAutonomy(await _controller.GetAutonomyAsync(CancellationToken.None));
+        ApplyAutonomy(await _controller.GetAutonomyAsync(id, CancellationToken.None));
     });
     private async Task ActivateLoopAsync() => await RunAsync(async id =>
     {
         await _controller.PutLoopActivationAsync(id, true, CancellationToken.None);
         ApplyLoop(await _controller.GetLoopAsync(id, CancellationToken.None));
-        ApplyAutonomy(await _controller.GetAutonomyAsync(CancellationToken.None));
+        ApplyAutonomy(await _controller.GetAutonomyAsync(id, CancellationToken.None));
         TryStartLoopPoll();
     });
     private async Task CancelLoopAsync() => await RunAsync(async id =>
@@ -273,8 +273,9 @@ public sealed class AgentChatViewModel : ReactiveObject
             LoginInstructions = session.LoginChallenge?.Instructions;
             CanCollectLoginCode = session.State == "authenticating"
                 && session.LoginChallenge?.Transport == AgentLoginTransport.Code
-                && string.IsNullOrWhiteSpace(session.LoginChallenge.Code);
-            CanSubmitLoginCode = CanCollectLoginCode && session.LoginChallenge?.CanSubmitCode == true;
+                && string.IsNullOrWhiteSpace(session.LoginChallenge.Code)
+                && session.LoginChallenge.CanSubmitCode;
+            CanSubmitLoginCode = CanCollectLoginCode;
         }
         else
         {
@@ -537,7 +538,9 @@ public sealed class AgentChatViewModel : ReactiveObject
     {
         try
         {
-            var autonomy = await _controller.GetAutonomyAsync(CancellationToken.None);
+            if (_workspaceId is null)
+                return;
+            var autonomy = await _controller.GetAutonomyAsync(_workspaceId, CancellationToken.None);
             if (generation != _loadGeneration)
                 return;
             ApplyAutonomy(autonomy);

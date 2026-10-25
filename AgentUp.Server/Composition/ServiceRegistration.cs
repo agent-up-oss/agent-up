@@ -188,6 +188,7 @@ public static class ServiceRegistration
 #pragma warning restore MCP9004
 
         builder.Services.AddSingleton<WorkspaceEventBus>();
+        builder.Services.AddSingleton<IAgentRuntimePathProvider, AgentRuntimePathProvider>();
         builder.Services.AddSingleton<AgentCommandProvider>();
         builder.Services.AddSingleton<AgentSubscriptionAuth>();
         builder.Services.AddSingleton(provider => new AgentCliHomeProvider(dataDir));
@@ -212,6 +213,9 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IHostConnectionPresence, HostConnectionPresenceProvider>();
         builder.Services.AddSingleton<IAutonomySettings, ConfiguredAutonomySettings>();
         builder.Services.AddSingleton<IForgeCredentialStore>(_ => new ForgeCredentialStore(dataDir));
+        builder.Services.AddSingleton<IGithubAppConnectionStore>(_ => new GithubAppConnectionStore(dataDir));
+        builder.Services.AddSingleton<GithubAppApiProvider>();
+        builder.Services.AddSingleton<GithubAppConnectionService>();
         builder.Services.AddSingleton<IForgeGitRemoteResolver, ForgeGitRemoteResolver>();
         builder.Services.AddSingleton<IForgeOAuthSettings, ForgeOAuthSettingsProvider>();
         builder.Services.AddSingleton<IForgeOAuthStateStore, ForgeOAuthStateStore>();

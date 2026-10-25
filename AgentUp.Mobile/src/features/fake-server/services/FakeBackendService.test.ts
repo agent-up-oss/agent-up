@@ -53,6 +53,8 @@ test('binding records the workspace agent', () => {
   const service = backend();
   const bound = json(service, 'PUT', '/api/workspaces/bob/agent/binding', JSON.stringify({ agent: 'codex' }));
   assert.equal(bound.boundAgent, 'codex');
+  const unbound = json(service, 'DELETE', '/api/workspaces/harbor-shop/agent/binding');
+  assert.equal(unbound.boundAgent, null);
 });
 
 test('agent prompts add a working-tree file and say so', () => {
@@ -164,6 +166,19 @@ test('autonomy enable then activate exposes a typed terminal', () => {
     body: '{"active":false}',
   }).status, 204);
   assert.equal(json(service, 'GET', '/api/workspaces/bob/agent/loop').terminal, 'Cancelled');
+});
+
+test('workspace autonomy reflects the saved permission policy', () => {
+  const service = backend();
+  const status = () => json(service, 'GET', '/api/workspaces/harbor-shop/agent/autonomy');
+
+  assert.equal(status().preconditions.find((item: { id: string }) => item.id === 'permissionPolicy').satisfied, false);
+  assert.equal(service.handle({
+    method: 'PUT', path: '/api/workspaces/harbor-shop/agent/policy', query: '',
+    body: '{"rules":[{"id":"allow-execute","kind":"Execute","allow":true}]}',
+  }).status, 204);
+  assert.equal(status().preconditions.find((item: { id: string }) => item.id === 'permissionPolicy').satisfied, true);
+  assert.equal(json(service, 'GET', '/api/workspaces/harbor-shop/agent/policy').rules.length, 1);
 });
 
 test('agent session lists current and prior saved sessions', () => {

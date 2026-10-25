@@ -1,5 +1,6 @@
 using AgentUp.Sdk.Forge;
 using AgentUp.Server.Features.Forge.DTOs;
+using AgentUp.Server.Features.Forge.Interfaces;
 using AgentUp.Server.Features.Forge.Models;
 using AgentUp.Server.Features.Forge.Providers;
 using AgentUp.Server.Features.Forge.Services;
@@ -49,7 +50,21 @@ public sealed class ForgeServiceTests
 
         Assert.That(hosting!.Availability, Is.EqualTo("needsCredential"));
         Assert.That(hosting.Detail, Does.Contain("credential"));
-        Assert.That(hosting.Remedy, Does.Contain("Sign in"));
+        Assert.That(hosting.Remedy, Does.Contain("Connect"));
+    }
+
+    [Test]
+    public async Task GetHostingAsync_offersGithubAppSetupWithoutSharedOAuthSettings()
+    {
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability(),
+            githubApps: GithubApps());
+
+        var hosting = await service.GetHostingAsync(workspaceId, CancellationToken.None);
+
+        Assert.That(hosting!.Availability, Is.EqualTo("needsCredential"));
+        Assert.That(hosting.Detail, Does.Not.Contain("OAuth is not configured"));
+        Assert.That(hosting.Remedy, Does.Contain("Connect"));
     }
 
     [Test]
@@ -147,7 +162,7 @@ public sealed class ForgeServiceTests
             oauth: new ForgeOAuthConfiguration("client", "secret", "http://localhost/api/forge/callback"),
             states: states);
 
-        var started = service.StartLogin(workspaceId);
+        var started = await service.StartLoginAsync(workspaceId);
 
         Assert.That(started.StatusCode, Is.EqualTo(200));
         Assert.That(((ForgeLoginStartDto)started.Body!).AuthorizationUrl, Does.StartWith("https://example.test/login/oauth/authorize"));
@@ -158,12 +173,64 @@ public sealed class ForgeServiceTests
     }
 
     [Test]
+    public async Task StartLogin_startsTheGithubManifestFlowWithoutAClientSecret()
+    {
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability(),
+            githubApps: GithubApps());
+
+        var started = await service.StartLoginAsync(workspaceId, "http://localhost:5000");
+
+        Assert.That(started.StatusCode, Is.EqualTo(200));
+        Assert.That(
+            ((ForgeLoginStartDto)started.Body!).AuthorizationUrl,
+            Does.StartWith("http://localhost:5000/api/forge/github/register?state="));
+    }
+
+    [Test]
+    public async Task GithubRegistrationPage_returnsNullWhenGithubAppsAreUnavailable()
+    {
+        var (service, _) = await ArrangeAsync();
+
+        Assert.That(service.GithubRegistrationPage("state"), Is.Null);
+    }
+
+    [Test]
+    public async Task GithubRegistrationPage_returnsTheManifestPage()
+    {
+        var store = new MemoryGithubAppStore();
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability(),
+            githubApps: new GithubAppConnectionService(store, new GithubAppApiProvider(new GithubOwnerHandler())));
+
+        await service.StartLoginAsync(workspaceId, "http://localhost:5000");
+
+        Assert.That(service.GithubRegistrationPage(store.Value!.State), Does.Contain("manifest"));
+    }
+
+    [Test]
+    public async Task CompleteGithubManifestAsync_returnsNullWhenGithubAppsAreUnavailable()
+    {
+        var (service, _) = await ArrangeAsync();
+
+        Assert.That(await service.CompleteGithubManifestAsync("code", "state"), Is.Null);
+    }
+
+    [Test]
+    public async Task CompleteGithubInstallationAsync_returnsFalseWhenGithubAppsAreUnavailable()
+    {
+        var (service, _) = await ArrangeAsync();
+
+        Assert.That(await service.CompleteGithubInstallationAsync("key", 1), Is.False);
+    }
+
+    [Test]
     public async Task StartLogin_returnsUnavailableWhenNoForgeIsEnabled()
     {
         var (service, workspaceId) = await ArrangeAsync(
             oauth: new ForgeOAuthConfiguration("client", "secret", "http://localhost/api/forge/callback"));
 
-        var started = service.StartLogin(workspaceId);
+        var started = await service.StartLoginAsync(workspaceId);
 
         Assert.That(started.StatusCode, Is.EqualTo(503));
     }
@@ -275,7 +342,7 @@ public sealed class ForgeServiceTests
     {
         var (service, _) = await ArrangeAsync(new StubForgeCapability());
 
-        Assert.That(service.StartLogin("missing").StatusCode, Is.EqualTo(404));
+        Assert.That((await service.StartLoginAsync("missing")).StatusCode, Is.EqualTo(404));
     }
 
     [Test]
@@ -283,7 +350,7 @@ public sealed class ForgeServiceTests
     {
         var (service, workspaceId) = await ArrangeAsync(new StubForgeCapability());
 
-        var started = service.StartLogin(workspaceId);
+        var started = await service.StartLoginAsync(workspaceId);
 
         Assert.That(started.StatusCode, Is.EqualTo(503));
         Assert.That(started.Body!.ToString(), Does.Contain("OAuth is not configured"));
@@ -299,7 +366,7 @@ public sealed class ForgeServiceTests
             },
             oauth: new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback"));
 
-        Assert.That(service.StartLogin(workspaceId).StatusCode, Is.EqualTo(503));
+        Assert.That((await service.StartLoginAsync(workspaceId)).StatusCode, Is.EqualTo(503));
     }
 
     [Test]
@@ -315,7 +382,7 @@ public sealed class ForgeServiceTests
             },
             oauth: new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback"));
 
-        var url = ((ForgeLoginStartDto)service.StartLogin(workspaceId).Body!).AuthorizationUrl;
+        var url = ((ForgeLoginStartDto)(await service.StartLoginAsync(workspaceId)).Body!).AuthorizationUrl;
 
         Assert.That(url, Does.Contain("authorize?prompt=consent&response_type=code&client_id=client"));
     }
@@ -508,7 +575,7 @@ public sealed class ForgeServiceTests
         var hosting = await service.GetHostingAsync(workspaceId, CancellationToken.None);
 
         Assert.That(hosting!.Availability, Is.EqualTo("needsCredential"));
-        Assert.That(hosting.Remedy, Does.Contain("Sign in"));
+        Assert.That(hosting.Remedy, Does.Contain("Connect"));
     }
 
     [Test]
@@ -543,7 +610,8 @@ public sealed class ForgeServiceTests
         bool noRemote = false,
         ForgeOAuthConfiguration? oauth = null,
         ForgeOAuthStateStore? states = null,
-        FixedForgeOAuthExchange? exchange = null)
+        FixedForgeOAuthExchange? exchange = null,
+        GithubAppConnectionService? githubApps = null)
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
         var workspace = await workspaces.RegisterAsync(ServerDomain.Workspace().Build());
@@ -560,7 +628,32 @@ public sealed class ForgeServiceTests
             new FixedForgeGitRemoteResolver(resolved),
             new FixedForgeOAuthSettings(oauth ?? new ForgeOAuthConfiguration("", "", "")),
             states ?? new ForgeOAuthStateStore(),
-            exchange ?? new FixedForgeOAuthExchange("exchanged"));
+            exchange ?? new FixedForgeOAuthExchange("exchanged"),
+            githubApps);
         return (service, workspace.Id);
+    }
+
+    private static GithubAppConnectionService GithubApps()
+        => new(new MemoryGithubAppStore(), new GithubAppApiProvider(new GithubOwnerHandler()));
+
+    private sealed class MemoryGithubAppStore : IGithubAppConnectionStore
+    {
+        public GithubAppConnection? Value { get; private set; }
+        public GithubAppConnection? Read(string workspaceId) => Value?.WorkspaceId == workspaceId ? Value : null;
+        public GithubAppConnection? FindByState(string state) => Value?.State == state ? Value : null;
+        public GithubAppConnection? FindBySetupKey(string setupKey) => Value?.SetupKey == setupKey ? Value : null;
+        public void Write(GithubAppConnection connection) => Value = connection;
+        public void Delete(string workspaceId) => Value = null;
+    }
+
+    private sealed class GithubOwnerHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"type\":\"User\"}")
+            });
     }
 }

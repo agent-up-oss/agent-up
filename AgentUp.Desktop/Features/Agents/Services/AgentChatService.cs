@@ -15,6 +15,7 @@ public sealed class AgentChatService(IAgentApiProvider provider)
     public Task DecideAsync(string id, string request, string option, CancellationToken cancellationToken) => provider.DecideAsync(id, request, option, cancellationToken);
     public Task StopAsync(string id, CancellationToken cancellationToken) => provider.StopAsync(id, cancellationToken);
     public Task<ServerAutonomyDto?> GetAutonomyAsync(CancellationToken cancellationToken) => provider.GetAutonomyAsync(cancellationToken);
+    public Task<ServerAutonomyDto?> GetAutonomyAsync(string id, CancellationToken cancellationToken) => provider.GetAutonomyAsync(id, cancellationToken);
     public Task PutAutonomyAsync(bool enabled, CancellationToken cancellationToken) => provider.PutAutonomyAsync(enabled, cancellationToken);
     public Task PutLoopActivationAsync(string id, bool active, CancellationToken cancellationToken) => provider.PutLoopActivationAsync(id, active, cancellationToken);
     public Task<AgentLoopStatusDto?> GetLoopAsync(string id, CancellationToken cancellationToken) => provider.GetLoopAsync(id, cancellationToken);

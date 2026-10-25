@@ -1,6 +1,6 @@
 import type { ServerSession } from '@agent-up/server-client';
 import { ensureCredentialTransportAllowed, jsonBody, requestServerJson } from '@agent-up/server-client';
-import type { AgentEvent, AgentId, AgentLoopStatus, AgentSession, ServerAutonomy } from '../models/AgentSession';
+import type { AgentEvent, AgentId, AgentLoopStatus, AgentSession, PermissionPolicy, ServerAutonomy } from '../models/AgentSession';
 
 const root = (workspaceId: string) => `/api/workspaces/${encodeURIComponent(workspaceId)}/agent`;
 
@@ -16,6 +16,9 @@ export async function enableAgentCapability(
 }
 export async function bindAgent(server: ServerSession, workspaceId: string, agent: AgentId, request: typeof fetch = fetch) {
   return requestServerJson<AgentSession>(server, `${root(workspaceId)}/binding`, { ...jsonBody({ agent }), method: 'PUT' }, 120_000, request);
+}
+export async function unbindAgent(server: ServerSession, workspaceId: string, request: typeof fetch = fetch) {
+  return requestServerJson<AgentSession>(server, `${root(workspaceId)}/binding`, { method: 'DELETE' }, 120_000, request);
 }
 export async function scheduleAgent(server: ServerSession, workspaceId: string, agent: AgentId, request: typeof fetch = fetch) {
   return requestServerJson<AgentSession>(server, root(workspaceId), jsonBody({ agent }), 120_000, request);
@@ -52,10 +55,17 @@ async function waitForSignInChallenge(
   const started = Date.now();
   while (true) {
     const session = await getAgent(server, workspaceId, request);
-    if (session?.loginChallenge?.url || session?.state !== 'authenticating') return session;
+    if (isActionableChallenge(session) || session?.state !== 'authenticating') return session;
     if (Date.now() - started >= timeoutMs) return session;
     await pause(50);
   }
+}
+
+function isActionableChallenge(session: AgentSession | null): boolean {
+  const challenge = session?.loginChallenge;
+  if (!challenge?.url) return false;
+  if (challenge.transport !== 'code') return true;
+  return Boolean(challenge.code) || challenge.canSubmitCode === true;
 }
 /** A code the user copied out of the provider page, for an agent CLI waiting on one. */
 export async function submitAgentLoginCode(server: ServerSession, workspaceId: string, code: string, request: typeof fetch = fetch) {
@@ -77,8 +87,15 @@ export async function cancelAgent(server: ServerSession, workspaceId: string, re
 export async function stopAgent(server: ServerSession, workspaceId: string, request: typeof fetch = fetch) {
   return requestServerJson<null>(server, root(workspaceId), { method: 'DELETE' }, undefined, request);
 }
-export async function getAutonomy(server: ServerSession, request: typeof fetch = fetch) {
-  return requestServerJson<ServerAutonomy>(server, '/api/autonomy', {}, undefined, request);
+export async function getAutonomy(
+  server: ServerSession,
+  workspaceIdOrRequest?: string | typeof fetch,
+  request: typeof fetch = fetch,
+) {
+  const workspaceId = typeof workspaceIdOrRequest === 'string' ? workspaceIdOrRequest : undefined;
+  const send = typeof workspaceIdOrRequest === 'function' ? workspaceIdOrRequest : request;
+  const path = workspaceId ? `${root(workspaceId)}/autonomy` : '/api/autonomy';
+  return requestServerJson<ServerAutonomy>(server, path, {}, undefined, send);
 }
 export async function putAutonomy(server: ServerSession, enabled: boolean, request: typeof fetch = fetch) {
   return requestServerJson<null>(server, '/api/autonomy', { ...jsonBody({ enabled }), method: 'PUT' }, undefined, request);
@@ -99,6 +116,12 @@ export async function putLoopActivation(
 }
 export async function getLoop(server: ServerSession, workspaceId: string, request: typeof fetch = fetch) {
   return requestServerJson<AgentLoopStatus>(server, `${root(workspaceId)}/loop`, {}, undefined, request);
+}
+export async function getPermissionPolicy(server: ServerSession, workspaceId: string, request: typeof fetch = fetch) {
+  return requestServerJson<PermissionPolicy>(server, `${root(workspaceId)}/policy`, {}, undefined, request);
+}
+export async function putPermissionPolicy(server: ServerSession, workspaceId: string, policy: PermissionPolicy, request: typeof fetch = fetch) {
+  return requestServerJson<null>(server, `${root(workspaceId)}/policy`, { ...jsonBody(policy), method: 'PUT' }, undefined, request);
 }
 
 export function parseSseFrames(buffer: string): { events: AgentEvent[]; rest: string } {

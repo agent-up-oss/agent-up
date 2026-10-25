@@ -139,7 +139,7 @@ public sealed class GitPanelBehaviorTests
         var strip = driver.Window.FindControl<Border>("GitHostingStrip")!;
         Assert.That(strip.IsVisible, Is.True);
         Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text!.Contains("credential")), Is.True);
-        Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text!.Contains("Sign in")), Is.True);
+        Assert.That(strip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text!.Contains("Connect")), Is.True);
 
         viewModel.Git.ApplyHosting(DesktopDomain.Hosting().Unreachable().Build());
         await HeadlessExtensions.FlushAsync();
