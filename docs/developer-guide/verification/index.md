@@ -57,7 +57,7 @@ Receipts live outside the working tree so one cannot travel in a change proposal
 <DocFact label="Guard">Must not be satisfiable by an exported document</DocFact>
 </DocFacts>
 
-The export is evidence to read, not an input to a gate. Keep the two types distinct so the confusion cannot be expressed in code. The workspace review snapshot embeds this same export as its `verification` section rather than inventing a second report.
+The export is evidence to read, not an input to a gate. Keep the two types distinct so the confusion cannot be expressed in code. The HTML workspace report embeds this same export as its verification section rather than inventing a second report.
 
 The field contract is the [agent-up.json reference](/docs/configuration/reference#verification-object). Agent operating rules stay in `AGENTS.md`. Named QA journeys for Desktop and Mobile chrome live on the [QA coverage map](/developer-guide/verification/qa-coverage).
 

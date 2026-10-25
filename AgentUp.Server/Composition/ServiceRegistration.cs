@@ -61,6 +61,7 @@ using AgentUp.Server.Features.DesktopApplications.Interfaces;
 using AgentUp.Server.Features.DesktopApplications.Providers;
 using AgentUp.Server.Features.DesktopApplications.Services;
 using AgentUp.Server.Features.Diagnostics.Controllers;
+using AgentUp.Server.Features.Diagnostics.Providers;
 using AgentUp.Server.Features.Diagnostics.Services;
 using AgentUp.Server.Features.Forge.Controllers;
 using AgentUp.Server.Features.Forge.Interfaces;
@@ -265,6 +266,9 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<WorkspaceDiagnosticsService>();
         builder.Services.AddSingleton<WorkspaceDiagnosticsController>();
         builder.Services.AddSingleton<BrowserSessionController>();
+        builder.Services.AddSingleton<ReviewSnapshotCssProvider>();
+        builder.Services.AddSingleton<ReviewSnapshotHtmlProvider>();
+        builder.Services.AddSingleton<WorkspaceOverviewController>();
         builder.Services.AddSingleton<WorkspaceReviewSnapshotService>();
         builder.Services.AddSingleton<WorkspaceReviewSnapshotController>();
         builder.Services.AddHostedService<WorkspaceAuditSubscriber>();

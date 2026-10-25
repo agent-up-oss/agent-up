@@ -99,7 +99,7 @@ public sealed class WorkspacesController
         output.WriteLine("  list     List all workspaces on the server");
         output.WriteLine("  status   Show status of the current workspace");
         output.WriteLine("  diagnostics  Show workspace process, log, health, and browser diagnostics");
-        output.WriteLine("  review-snapshot  Export a workspace review snapshot as JSON");
+        output.WriteLine("  review-snapshot  Export an HTML workspace report");
         output.WriteLine("  auth     Authenticate with the server (login, logout, status)");
         output.WriteLine("  capabilities  List, enable, disable, or bootstrap capability modules");
         output.WriteLine("  commits  Manage the vertical-slice commit queue");

@@ -333,35 +333,7 @@ export class FakeBackendService {
   private reviewSnapshot(workspaceId: string): FakeBackendResponse {
     const workspace = this.findWorkspace(workspaceId);
     if (!workspace) return notFound();
-    return json({
-      workspaceId,
-      displayName: workspace.displayName,
-      repositoryPath: workspace.repositoryPath,
-      worktreePath: workspace.worktreePath,
-      branch: workspace.branch,
-      commit: workspace.commit,
-      state: workspace.state,
-      health: workspace.healthState ?? null,
-      capturedAt: '2026-04-11T15:30:00Z',
-      browserUrl: null,
-      applications: (workspace.applications ?? []).map(app => ({
-        name: app.name,
-        kind: app.kind ?? 'Process',
-        processState: app.state,
-        health: workspace.healthState ?? null,
-        ports: (app.allocatedPorts ?? []).map(port => ({
-          variable: port.variable ?? null,
-          allocatedPort: port.allocatedPort,
-          protocol: port.protocol ?? 'http',
-        })),
-        logs: [],
-        logsTruncated: false,
-      })),
-      entries: [],
-      recentActions: [],
-      screenshots: [],
-      verification: null,
-    });
+    return html(renderFakeReviewReport(workspace));
   }
 
   private overview(workspaceId: string): FakeBackendResponse {
@@ -906,6 +878,29 @@ function workspaceIdOf(item: unknown): string | undefined {
 
 function json(body: unknown): FakeBackendResponse {
   return { status: 200, contentType: 'application/json', body: JSON.stringify(body) };
+}
+
+function html(body: string): FakeBackendResponse {
+  return { status: 200, contentType: 'text/html; charset=utf-8', body };
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
+function renderFakeReviewReport(workspace: WorkspaceRecord): string {
+  const applications = workspace.applications ?? [];
+  const appMarkup = applications.map(app => {
+    const ports = (app.allocatedPorts ?? []).map(port =>
+      `<p class="au-mono">${escapeHtml(port.variable ?? 'port')} = ${port.allocatedPort} (${escapeHtml(port.protocol ?? 'http')})</p>`
+    ).join('');
+    return `<article class="au-card"><h3>${escapeHtml(app.name)}</h3><p class="au-muted">${escapeHtml(app.kind ?? 'Process')} · ${escapeHtml(app.state)}</p>${ports}</article>`;
+  }).join('');
+  return `<!DOCTYPE html><html lang="en" class="au-theme"><head><meta charset="utf-8"><title>Export Report — ${escapeHtml(workspace.displayName)}</title></head><body class="au-theme"><article class="au-overview au-report"><p class="au-eyebrow">Export Report</p><h1 class="au-page-title">${escapeHtml(workspace.displayName)}</h1><p class="au-muted">${escapeHtml(workspace.state)}</p><p class="au-mono">${escapeHtml(workspace.repositoryPath)}</p><h2>Applications</h2>${appMarkup}<h2>Screenshots</h2><p class="au-muted">No screenshots.</p><h2>Verification</h2><p class="au-muted">Verification could not run for this worktree.</p></article></body></html>`;
 }
 
 function notFound(): FakeBackendResponse {

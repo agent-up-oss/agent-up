@@ -36,6 +36,7 @@ using AgentUp.Desktop.Features.Metrics.ViewModels;
 using AgentUp.Desktop.Features.Ports.Controllers;
 using AgentUp.Desktop.Features.Ports.Services;
 using AgentUp.Desktop.Features.Workspaces.Controllers;
+using AgentUp.Desktop.Features.Workspaces.Interfaces;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.Services;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -105,7 +106,8 @@ public static class MainViewModelFactory
         AgentApiClient? agentClient = null,
         LoginViewModel? login = null,
         CapabilityModulesApiClient? capabilityModulesClient = null,
-        HttpClient? entitlementsHttp = null)
+        HttpClient? entitlementsHttp = null,
+        IReviewReportSavePrompt? reviewReportSave = null)
     {
         var workspaces = new WorkspacesController(new WorkspaceListService(workspaceClient));
         var entitlements = new EntitlementsController(new EntitlementsService(
@@ -154,7 +156,7 @@ public static class MainViewModelFactory
                 new ApplicationAuditStreamClient(auditApi.Http)),
             new GitPanelViewModel(git),
             new AgentChatViewModel(agents, modulesController),
-            new WorkspaceOverviewViewModel(workspaces),
+            new WorkspaceOverviewViewModel(workspaces, reviewReportSave),
             login ?? CreateLogin(DefaultAuthHttpClient),
             ports,
             new ValidationViewModel(validationApi, validationReplay),
@@ -163,7 +165,11 @@ public static class MainViewModelFactory
             desktopLaunch);
     }
 
-    public static MainViewModel Create(HttpClient http, LoginViewModel? login = null, HttpClient? agentEventsHttp = null)
+    public static MainViewModel Create(
+        HttpClient http,
+        LoginViewModel? login = null,
+        HttpClient? agentEventsHttp = null,
+        IReviewReportSavePrompt? reviewReportSave = null)
     {
         return Create(
             new WorkspaceApiClient(http),
@@ -176,7 +182,8 @@ public static class MainViewModelFactory
             capabilityModulesClient: new CapabilityModulesApiClient(http),
             agentClient: new AgentApiClient(http, agentEventsHttp ?? http),
             login: login ?? CreateLogin(http),
-            entitlementsHttp: http);
+            entitlementsHttp: http,
+            reviewReportSave: reviewReportSave);
     }
 
     public static HostMetricsController CreateHostMetricsController(HttpClient http) =>

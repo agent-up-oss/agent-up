@@ -38,4 +38,7 @@ public sealed class WorkspaceListService
 
     public async Task<WorkspaceOverviewDto?> GetOverviewAsync(string workspaceId, CancellationToken cancellationToken = default)
         => await _client.GetOverviewAsync(workspaceId, cancellationToken);
+
+    public async Task<string?> GetReviewReportHtmlAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => await _client.GetReviewReportHtmlAsync(workspaceId, cancellationToken);
 }

@@ -7,6 +7,9 @@ using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Server.Features.Diagnostics.Controllers;
 using AgentUp.Server.Features.Diagnostics.DTOs;
+using AgentUp.Server.Features.Diagnostics.Models;
+using AgentUp.Server.Features.Diagnostics.Providers;
+using AgentUp.Server.Features.Git.Controllers;
 using AgentUp.Server.Features.Verification.Controllers;
 using AgentUp.Server.Features.Verification.DTOs;
 using AgentUp.Verification.Features.Verification.Models;
@@ -20,14 +23,23 @@ public sealed class WorkspaceReviewSnapshotService(
     WorkspaceDiagnosticsController diagnostics,
     BrowserSessionController browser,
     AuditController audit,
-    VerificationExportController? verification = null)
+    ReviewSnapshotHtmlProvider html,
+    VerificationExportController? verification = null,
+    WorkspaceOverviewController? overview = null,
+    GitQueryController? git = null)
 {
     private const int RecentActionLimit = 20;
     private const int ScreenshotQueryLimit = 50;
     private const int ScreenshotLimit = 10;
     private const string BrowserScreenshotAction = "browser_screenshot";
 
-    public async Task<WorkspaceReviewSnapshotDto?> GetAsync(string workspaceId, CancellationToken cancellationToken)
+    public async Task<string?> GetAsync(string workspaceId, CancellationToken cancellationToken)
+    {
+        var snapshot = await CaptureAsync(workspaceId, cancellationToken);
+        return snapshot is null ? null : html.Render(snapshot);
+    }
+
+    private async Task<WorkspaceReviewSnapshot?> CaptureAsync(string workspaceId, CancellationToken cancellationToken)
     {
         var workspace = workspaces.GetById(workspaceId);
         if (workspace is null)
@@ -36,17 +48,25 @@ public sealed class WorkspaceReviewSnapshotService(
         var diagnostic = await diagnostics.GetAsync(workspaceId, null, 200, 100, cancellationToken);
         var actions = await RecentActionsAsync(workspace.Id, cancellationToken);
         var screenshots = await ScreenshotsAsync(workspace.Id, cancellationToken);
-        return new WorkspaceReviewSnapshotDto(
+        var metrics = overview?.Get(workspace.Id);
+        var head = git is null ? null : await git.GetHeadAsync(workspace.Id, cancellationToken);
+        var branch = !string.IsNullOrWhiteSpace(head?.Branch) ? head.Branch : workspace.Branch;
+        var commit = !string.IsNullOrWhiteSpace(head?.Commit) ? head.Commit : workspace.Commit;
+        return new WorkspaceReviewSnapshot(
             workspace.Id,
             workspace.DisplayName,
             workspace.RepositoryPath,
             workspace.WorktreePath,
-            workspace.Branch,
-            workspace.Commit,
+            branch,
+            commit,
             workspace.State.ToString(),
             diagnostic?.Health,
             DateTimeOffset.UtcNow,
             browser.ReadCurrentUrl(workspace.Id),
+            metrics?.CpuPercent,
+            metrics?.MemoryBytes,
+            metrics?.StorageBytes,
+            metrics?.ProcessCount,
             Applications(workspace, diagnostic),
             diagnostic?.Entries ?? [],
             actions,
@@ -54,7 +74,7 @@ public sealed class WorkspaceReviewSnapshotService(
             await TryVerificationAsync(workspace.WorktreePath, cancellationToken));
     }
 
-    private static IReadOnlyList<ReviewApplicationSnapshotDto> Applications(
+    private static IReadOnlyList<ReviewApplicationSnapshot> Applications(
         Workspace workspace,
         WorkspaceDiagnosticsDto? diagnostic)
     {
@@ -65,7 +85,7 @@ public sealed class WorkspaceReviewSnapshotService(
             .ToArray();
     }
 
-    private static ReviewApplicationSnapshotDto ToApplication(
+    private static ReviewApplicationSnapshot ToApplication(
         ApplicationInstance app,
         ApplicationDiagnosticsDto? diagnostic)
         => new(
@@ -73,13 +93,14 @@ public sealed class WorkspaceReviewSnapshotService(
             app.ServiceType == ServiceType.Docker ? "Docker" : $"{app.Kind}",
             diagnostic?.ProcessState ?? $"{app.State}",
             diagnostic?.Health,
+            diagnostic?.Readiness ?? ApplicationReadinessDescription.For(app),
             app.AllocatedPorts
-                .Select(port => new ReviewPortSnapshotDto(port.Variable, port.AllocatedPort, port.Protocol))
+                .Select(port => new ReviewPortSnapshot(port.Variable, port.AllocatedPort, port.Protocol))
                 .ToArray(),
             diagnostic?.Logs ?? [],
             diagnostic?.LogsTruncated ?? false);
 
-    private async Task<IReadOnlyList<ReviewActionSnapshotDto>> RecentActionsAsync(
+    private async Task<IReadOnlyList<ReviewActionSnapshot>> RecentActionsAsync(
         string workspaceId,
         CancellationToken cancellationToken)
     {
@@ -87,39 +108,50 @@ public sealed class WorkspaceReviewSnapshotService(
             new AuditEventQuery(workspaceId, null, null, null, null, null, null, null, null, null, RecentActionLimit),
             cancellationToken);
         return events
-            .Select(evt => new ReviewActionSnapshotDto(
+            .Select(evt => new ReviewActionSnapshot(
                 evt.EventId,
                 evt.Timestamp,
                 evt.Kind,
                 evt.Source,
                 evt.Action,
-                evt.Outcome))
+                evt.Outcome,
+                Detail(evt, "message", "error", "url") ?? evt.Action))
             .ToArray();
     }
 
-    private async Task<IReadOnlyList<ReviewScreenshotSnapshotDto>> ScreenshotsAsync(
+    private async Task<IReadOnlyList<ReviewScreenshotSnapshot>> ScreenshotsAsync(
         string workspaceId,
         CancellationToken cancellationToken)
     {
         var events = await audit.QueryAsync(
             new AuditEventQuery(workspaceId, null, null, null, null, "browser", null, null, null, null, ScreenshotQueryLimit),
             cancellationToken);
-        return events
-            .Where(evt =>
-                string.Equals(evt.Action, BrowserScreenshotAction, StringComparison.Ordinal)
-                && evt.ArtifactIds.Count > 0)
-            .Take(ScreenshotLimit)
-            .Select(evt => new ReviewScreenshotSnapshotDto(
+        var shots = new List<ReviewScreenshotSnapshot>();
+        foreach (var evt in events)
+        {
+            if (shots.Count >= ScreenshotLimit)
+                break;
+            if (!string.Equals(evt.Action, BrowserScreenshotAction, StringComparison.Ordinal) || evt.ArtifactIds.Count == 0)
+                continue;
+
+            var artifactId = evt.ArtifactIds[0];
+            var artifact = await audit.LoadArtifactAsync(artifactId, includeImage: true, cancellationToken);
+            shots.Add(new ReviewScreenshotSnapshot(
                 evt.EventId,
-                evt.ArtifactIds[0],
+                artifactId,
                 evt.Timestamp,
                 Detail(evt, "url"),
-                Detail(evt, "mimeType")))
-            .ToArray();
+                artifact?.MimeType ?? Detail(evt, "mimeType"),
+                artifact?.ImageBase64));
+        }
+
+        return shots;
     }
 
-    private static string? Detail(AuditEvent evt, string key)
-        => evt.Details.TryGetValue(key, out var value) ? value : null;
+    private static string? Detail(AuditEvent evt, params string[] keys)
+        => keys
+            .Select(key => evt.Details.TryGetValue(key, out var value) ? value : null)
+            .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
 
     private async Task<VerificationExportDto?> TryVerificationAsync(
         string worktreePath,

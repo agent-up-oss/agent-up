@@ -1,8 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using AgentUp.Server.Features.Applications.DTOs;
-using AgentUp.Server.Features.Diagnostics.DTOs;
 using AgentUp.Server.Features.Verification.DTOs;
 using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Hosting;
@@ -14,7 +12,7 @@ namespace AgentUp.Server.Tests.Features.Diagnostics.HTTP;
 public sealed class WorkspaceReviewSnapshotHttpTests
 {
     [Test]
-    public async Task Get_ReturnsWorkspaceIdentityWhenVerificationCannotRun()
+    public async Task Get_ReturnsHtmlWorkspaceIdentityWhenVerificationCannotRun()
     {
         using var host = CreateHost();
         using var client = host.Factory.CreateClient();
@@ -25,27 +23,23 @@ public sealed class WorkspaceReviewSnapshotHttpTests
             .WithApplication(new ApplicationDefinitionBuilder("web", "npm start").At(".").Build())
             .Build());
         registrationResponse.EnsureSuccessStatusCode();
-        using var registration = await JsonDocument.ParseAsync(await registrationResponse.Content.ReadAsStreamAsync());
+        using var registration = await System.Text.Json.JsonDocument.ParseAsync(await registrationResponse.Content.ReadAsStreamAsync());
         var workspaceId = registration.RootElement.GetProperty("id").GetString()!;
 
         using var snapshotResponse = await client.GetAsync($"/api/workspaces/{workspaceId}/review-snapshot");
-        var snapshotBody = await snapshotResponse.Content.ReadAsStringAsync();
-        Assert.That(snapshotResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK), snapshotBody);
-        var snapshot = JsonSerializer.Deserialize<WorkspaceReviewSnapshotDto>(snapshotBody, new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        });
+        var html = await snapshotResponse.Content.ReadAsStringAsync();
 
         Assert.Multiple(() =>
         {
-            Assert.That(snapshot!.WorkspaceId, Is.EqualTo(workspaceId));
-            Assert.That(snapshot.DisplayName, Is.EqualTo("Shop"));
-            Assert.That(snapshot.Commit, Is.EqualTo("abc"));
-            Assert.That(snapshot.Applications.Select(app => app.Name), Is.EqualTo(["web"]));
-            Assert.That(snapshot.Screenshots, Is.Empty);
-            Assert.That(snapshot.Verification, Is.Null);
-            Assert.That(snapshotBody, Does.Contain("\"screenshots\""));
-            Assert.That(snapshotBody, Does.Contain("\"verification\""));
+            Assert.That(snapshotResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK), html);
+            Assert.That(snapshotResponse.Content.Headers.ContentType?.MediaType, Is.EqualTo("text/html"));
+            Assert.That(snapshotResponse.Content.Headers.ContentDisposition?.FileName, Is.EqualTo("agent-up-report.html"));
+            Assert.That(html, Does.Contain("Shop"));
+            Assert.That(html, Does.Contain("abc"));
+            Assert.That(html, Does.Contain("web"));
+            Assert.That(html, Does.Contain("<h2>Screenshots</h2>"));
+            Assert.That(html, Does.Contain("<h2>Verification</h2>"));
+            Assert.That(html, Does.Contain("Verification could not run"));
         });
     }
 
@@ -65,18 +59,14 @@ public sealed class WorkspaceReviewSnapshotHttpTests
                 .AtCommit("abc")
                 .Build());
             registrationResponse.EnsureSuccessStatusCode();
-            using var registration = await JsonDocument.ParseAsync(await registrationResponse.Content.ReadAsStreamAsync());
+            using var registration = await System.Text.Json.JsonDocument.ParseAsync(await registrationResponse.Content.ReadAsStreamAsync());
             var workspaceId = registration.RootElement.GetProperty("id").GetString()!;
 
             using var snapshotResponse = await client.GetAsync($"/api/workspaces/{workspaceId}/review-snapshot");
-            var snapshotBody = await snapshotResponse.Content.ReadAsStringAsync();
-            Assert.That(snapshotResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK), snapshotBody);
-            var snapshot = JsonSerializer.Deserialize<WorkspaceReviewSnapshotDto>(snapshotBody, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            var html = await snapshotResponse.Content.ReadAsStringAsync();
 
-            Assert.That(snapshot!.Verification, Is.Null);
+            Assert.That(snapshotResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK), html);
+            Assert.That(html, Does.Contain("Verification could not run"));
         }
         finally
         {
@@ -104,7 +94,7 @@ public sealed class WorkspaceReviewSnapshotHttpTests
             .AtCommit("abc")
             .Build());
         registrationResponse.EnsureSuccessStatusCode();
-        using var registration = await JsonDocument.ParseAsync(await registrationResponse.Content.ReadAsStreamAsync());
+        using var registration = await System.Text.Json.JsonDocument.ParseAsync(await registrationResponse.Content.ReadAsStreamAsync());
         var workspaceId = registration.RootElement.GetProperty("id").GetString()!;
         using var recordResponse = await client.PostAsJsonAsync("/api/audit/record", ServerDomain.AuditRecord()
             .OfKind("browser")
@@ -119,17 +109,13 @@ public sealed class WorkspaceReviewSnapshotHttpTests
         recordResponse.EnsureSuccessStatusCode();
 
         using var snapshotResponse = await client.GetAsync($"/api/workspaces/{workspaceId}/review-snapshot");
-        var snapshot = JsonSerializer.Deserialize<WorkspaceReviewSnapshotDto>(
-            await snapshotResponse.Content.ReadAsStringAsync(),
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        var screenshot = snapshot!.Screenshots.Single();
+        var html = await snapshotResponse.Content.ReadAsStringAsync();
 
         Assert.Multiple(() =>
         {
             Assert.That(snapshotResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(screenshot.ArtifactId, Is.EqualTo("shot1"));
-            Assert.That(screenshot.Url, Is.EqualTo("http://127.0.0.1:4010/"));
-            Assert.That(screenshot.MimeType, Is.EqualTo("image/png"));
+            Assert.That(html, Does.Contain("shot1"));
+            Assert.That(html, Does.Contain("http://127.0.0.1:4010/"));
         });
     }
 
@@ -144,34 +130,22 @@ public sealed class WorkspaceReviewSnapshotHttpTests
             .AtCommit("abc")
             .Build());
         registrationResponse.EnsureSuccessStatusCode();
-        using var registration = await JsonDocument.ParseAsync(await registrationResponse.Content.ReadAsStreamAsync());
+        using var registration = await System.Text.Json.JsonDocument.ParseAsync(await registrationResponse.Content.ReadAsStreamAsync());
         var workspaceId = registration.RootElement.GetProperty("id").GetString()!;
 
         using var snapshotResponse = await client.GetAsync($"/api/workspaces/{workspaceId}/review-snapshot");
-        var snapshotBody = await snapshotResponse.Content.ReadAsStringAsync();
-        Assert.That(snapshotResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK), snapshotBody);
-        var snapshot = JsonSerializer.Deserialize<WorkspaceReviewSnapshotDto>(snapshotBody, new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        });
+        var html = await snapshotResponse.Content.ReadAsStringAsync();
+        Assert.That(snapshotResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK), html);
 
         var export = await client.GetFromJsonAsync<VerificationExportDto>(
             $"/api/workspaces/{workspaceId}/verification/export");
 
         Assert.Multiple(() =>
         {
-            Assert.That(snapshot!.Verification, Is.Not.Null);
             Assert.That(export, Is.Not.Null);
-            Assert.That(snapshot.Verification!.CoveredDigest, Does.StartWith("sha256:"));
-            Assert.That(snapshot.Verification.CoveredDigest, Is.EqualTo(export!.CoveredDigest));
-            Assert.That(snapshot.Verification.Revision, Is.EqualTo(export.Revision));
-            Assert.That(snapshot.Verification.ChangedFileCount, Is.EqualTo(export.ChangedFileCount));
-            Assert.That(
-                snapshot.Verification.Checks.Select(check => (check.CheckId, check.Status, check.ExitCode)),
-                Is.EqualTo(export.Checks.Select(check => (check.CheckId, check.Status, check.ExitCode))));
-            Assert.That(
-                typeof(VerificationExportDto).GetProperties().Select(property => property.Name),
-                Does.Not.Contain("Covered"));
+            Assert.That(html, Does.Contain(export!.CoveredDigest));
+            Assert.That(html, Does.Contain(export.Revision));
+            Assert.That(export.Checks.Select(check => check.CheckId).All(html.Contains), Is.True);
         });
     }
 

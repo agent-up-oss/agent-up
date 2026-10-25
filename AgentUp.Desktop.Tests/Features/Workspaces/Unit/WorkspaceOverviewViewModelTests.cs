@@ -117,9 +117,60 @@ public sealed class WorkspaceOverviewViewModelTests
         Assert.That(view.Cpu, Is.EqualTo("20.0%"));
     }
 
+    [Test]
+    public void FileName_slugifiesTheWorkspaceDisplayName()
+    {
+        Assert.That(WorkspaceOverviewViewModel.FileName("Harbor Shop"), Is.EqualTo("agent-up-report-Harbor-Shop.html"));
+        Assert.That(WorkspaceOverviewViewModel.FileName("   "), Is.EqualTo("agent-up-report.html"));
+    }
+
+    [Test]
+    public async Task ExportReportAsync_savesTheHtmlReport()
+    {
+        var fake = new OverviewApiFake { ReportHtml = "<html>Harbor Shop</html>" };
+        var save = new RecordingSavePrompt();
+        var view = new WorkspaceOverviewViewModel(new WorkspacesController(new WorkspaceListService(fake)), save);
+        await view.LoadAsync("ws-1");
+
+        await view.ExportReportAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(save.FileName, Is.EqualTo("agent-up-report-Agent-Up.html"));
+            Assert.That(save.Html, Is.EqualTo("<html>Harbor Shop</html>"));
+            Assert.That(view.ErrorMessage, Is.Null);
+            Assert.That(view.IsExporting, Is.False);
+        });
+    }
+
+    [Test]
+    public async Task ExportReportAsync_reportsWhenSavingIsUnavailable()
+    {
+        var view = new WorkspaceOverviewViewModel(new WorkspacesController(new WorkspaceListService(new OverviewApiFake())));
+        await view.LoadAsync("ws-1");
+
+        await view.ExportReportAsync();
+
+        Assert.That(view.ErrorMessage, Is.EqualTo("Saving a report is not available."));
+    }
+
+    private sealed class RecordingSavePrompt : IReviewReportSavePrompt
+    {
+        public string? FileName { get; private set; }
+        public string? Html { get; private set; }
+
+        public Task<bool> SaveAsync(string suggestedFileName, string html, CancellationToken cancellationToken = default)
+        {
+            FileName = suggestedFileName;
+            Html = html;
+            return Task.FromResult(true);
+        }
+    }
+
     private sealed class OverviewApiFake : IWorkspaceApiProvider
     {
         public Task<WorkspaceOverviewDto?>? NextOverview { get; set; }
+        public string? ReportHtml { get; set; }
         public Task<List<WorkspaceDto>> ListAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<List<WorkspaceDto>>([]);
 
@@ -164,5 +215,8 @@ public sealed class WorkspaceOverviewViewModelTests
                 3,
                 4));
         }
+
+        public Task<string?> GetReviewReportHtmlAsync(string workspaceId, CancellationToken cancellationToken = default)
+            => Task.FromResult(ReportHtml);
     }
 }

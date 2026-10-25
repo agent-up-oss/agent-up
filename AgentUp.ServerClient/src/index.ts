@@ -6,6 +6,7 @@ export {
   jsonBody,
   readProblemDetail,
   requestServerJson,
+  requestServerText,
   toReadableError,
 } from './ServerRequestProvider';
 export type { ServerSession } from './ServerRequestProvider';

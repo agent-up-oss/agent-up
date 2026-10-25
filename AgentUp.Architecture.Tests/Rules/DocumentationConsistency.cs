@@ -185,7 +185,7 @@ public sealed class DocumentationConsistency
 
         if (!developer)
         {
-            if (source.Contains("Avalonia", StringComparison.Ordinal) || source.Contains("Expo", StringComparison.Ordinal))
+            if (Regex.IsMatch(source, @"\bAvalonia\b") || Regex.IsMatch(source, @"\bExpo\b"))
                 return $"{relative}: User Generals must not explain Avalonia or Expo.";
             if (source.Contains("**Owner:**", StringComparison.Ordinal))
                 return $"{relative}: User Generals must not include owner/tests meta.";

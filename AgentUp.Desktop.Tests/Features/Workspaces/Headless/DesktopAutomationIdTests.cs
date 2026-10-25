@@ -41,6 +41,19 @@ public sealed class DesktopAutomationIdTests
     }
 
     [AvaloniaTest]
+    public async Task OverviewExportReport_isAddressableByAutomationId()
+    {
+        var app = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
+
+        var export = ChromeTestSupport.FindDescendantByAutomationId<Button>(
+            app.Window, DesktopAutomationIds.OverviewExportReport);
+
+        Assert.That(export, Is.Not.Null);
+        Assert.That(export!.Content, Is.EqualTo("Export Report"));
+        Assert.That(export.IsVisible, Is.True);
+    }
+
+    [AvaloniaTest]
     public async Task GitCommit_isAddressableByAutomationId()
     {
         var app = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());

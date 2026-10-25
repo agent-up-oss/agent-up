@@ -297,11 +297,14 @@ public sealed class OrchestrationMcpHostingTests
         builder.Services.AddSingleton(sp => new HeadlessBrowserSessionAccessor(
             sp.GetRequiredService<HeadlessBrowserSessionManager>()));
         builder.Services.AddSingleton<BrowserSessionController>();
+        builder.Services.AddSingleton<AgentUp.Server.Features.Diagnostics.Providers.ReviewSnapshotCssProvider>();
+        builder.Services.AddSingleton<AgentUp.Server.Features.Diagnostics.Providers.ReviewSnapshotHtmlProvider>();
         builder.Services.AddSingleton(sp => new WorkspaceReviewSnapshotService(
             sp.GetRequiredService<WorkspaceQueryController>(),
             sp.GetRequiredService<WorkspaceDiagnosticsController>(),
             sp.GetRequiredService<BrowserSessionController>(),
-            sp.GetRequiredService<AuditController>()));
+            sp.GetRequiredService<AuditController>(),
+            sp.GetRequiredService<AgentUp.Server.Features.Diagnostics.Providers.ReviewSnapshotHtmlProvider>()));
         builder.Services.AddSingleton<WorkspaceReviewSnapshotController>();
         builder.Services.AddSingleton<McpEndpointSessionProvider>();
 
