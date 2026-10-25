@@ -38,7 +38,7 @@ public sealed record ForgeReviewThread(string Id, string Url, string Summary, bo
 
 public sealed record ForgeMergeability(bool Mergeable, string State);
 
-public sealed record ForgeAssignedIssue(
+public sealed record ForgeIssue(
     string Id,
     int Number,
     string Title,

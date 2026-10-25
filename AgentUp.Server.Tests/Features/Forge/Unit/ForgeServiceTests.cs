@@ -294,6 +294,44 @@ public sealed class ForgeServiceTests
     }
 
     [Test]
+    public async Task ListIssuesAsync_returnsTheRepositorysOpenIssues()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var issue = new ForgeIssue("7", 3, "Restock", "do it", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example.test/3");
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability { Issues = [issue] },
+            credentials);
+        credentials.Write(workspaceId, "github", "token");
+
+        var issues = await service.ListIssuesAsync(workspaceId, CancellationToken.None);
+
+        Assert.That(issues.Single().Number, Is.EqualTo(3));
+    }
+
+    [Test]
+    public async Task ListIssuesAsync_returnsEmptyWhenTheHostFails()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability { ListIssuesFailure = new HttpRequestException("offline") },
+            credentials);
+        credentials.Write(workspaceId, "github", "token");
+
+        Assert.That(await service.ListIssuesAsync(workspaceId, CancellationToken.None), Is.Empty);
+    }
+
+    [Test]
+    public async Task ListIssuesAsync_returnsEmptyWithoutACredential()
+    {
+        var (service, workspaceId) = await ArrangeAsync(new StubForgeCapability
+        {
+            Issues = [new ForgeIssue("7", 3, "Restock", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example.test/3")]
+        });
+
+        Assert.That(await service.ListIssuesAsync(workspaceId, CancellationToken.None), Is.Empty);
+    }
+
+    [Test]
     public async Task UpdateRefAsync_returnsNotFoundWhenTheRequestCannotBeBuilt()
     {
         var (service, workspaceId) = await ArrangeAsync();

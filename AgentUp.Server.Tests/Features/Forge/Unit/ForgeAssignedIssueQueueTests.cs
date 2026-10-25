@@ -11,14 +11,14 @@ using AgentUp.Server.Tests.Support;
 namespace AgentUp.Server.Tests.Features.Forge.Unit;
 
 [TestFixture]
-public sealed class ForgeAssignedIssueQueueTests
+public sealed class ForgeIssueQueueTests
 {
     [Test]
     public async Task ListAssignedAsync_ordersByCreatedWhenAsked()
     {
         var (queue, workspaceId) = await QueueAsync(
-            new ForgeAssignedIssue("2", 2, "later", "", DateTimeOffset.Parse("2026-02-01Z"), DateTimeOffset.Parse("2026-02-02Z"), "u2"),
-            new ForgeAssignedIssue("1", 1, "earlier", "", DateTimeOffset.Parse("2026-01-01Z"), DateTimeOffset.Parse("2026-03-01Z"), "u1"));
+            new ForgeIssue("2", 2, "later", "", DateTimeOffset.Parse("2026-02-01Z"), DateTimeOffset.Parse("2026-02-02Z"), "u2"),
+            new ForgeIssue("1", 1, "earlier", "", DateTimeOffset.Parse("2026-01-01Z"), DateTimeOffset.Parse("2026-03-01Z"), "u1"));
 
         var listed = await queue.ListAssignedAsync(workspaceId, AssignedIssueOrder.CreatedAsc, CancellationToken.None);
 
@@ -29,8 +29,8 @@ public sealed class ForgeAssignedIssueQueueTests
     public async Task ListAssignedAsync_ordersByUpdatedWhenAsked()
     {
         var (queue, workspaceId) = await QueueAsync(
-            new ForgeAssignedIssue("2", 2, "later-created", "", DateTimeOffset.Parse("2026-02-01Z"), DateTimeOffset.Parse("2026-02-02Z"), "u2"),
-            new ForgeAssignedIssue("1", 1, "earlier-created", "", DateTimeOffset.Parse("2026-01-01Z"), DateTimeOffset.Parse("2026-03-01Z"), "u1"));
+            new ForgeIssue("2", 2, "later-created", "", DateTimeOffset.Parse("2026-02-01Z"), DateTimeOffset.Parse("2026-02-02Z"), "u2"),
+            new ForgeIssue("1", 1, "earlier-created", "", DateTimeOffset.Parse("2026-01-01Z"), DateTimeOffset.Parse("2026-03-01Z"), "u1"));
 
         var listed = await queue.ListAssignedAsync(workspaceId, AssignedIssueOrder.UpdatedAsc, CancellationToken.None);
 
@@ -41,8 +41,8 @@ public sealed class ForgeAssignedIssueQueueTests
     public async Task ListAssignedAsync_ordersByNumberForAnUnknownOrder()
     {
         var (queue, workspaceId) = await QueueAsync(
-            new ForgeAssignedIssue("2", 2, "two", "", DateTimeOffset.Parse("2026-01-01Z"), DateTimeOffset.Parse("2026-01-01Z"), "u2"),
-            new ForgeAssignedIssue("1", 1, "one", "", DateTimeOffset.Parse("2026-02-01Z"), DateTimeOffset.Parse("2026-02-01Z"), "u1"));
+            new ForgeIssue("2", 2, "two", "", DateTimeOffset.Parse("2026-01-01Z"), DateTimeOffset.Parse("2026-01-01Z"), "u2"),
+            new ForgeIssue("1", 1, "one", "", DateTimeOffset.Parse("2026-02-01Z"), DateTimeOffset.Parse("2026-02-01Z"), "u1"));
 
         var listed = await queue.ListAssignedAsync(workspaceId, (AssignedIssueOrder)99, CancellationToken.None);
 
@@ -53,7 +53,7 @@ public sealed class ForgeAssignedIssueQueueTests
     public async Task Replace_isANoOp()
     {
         var (queue, workspaceId) = await QueueAsync(
-            new ForgeAssignedIssue("1", 1, "one", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "u"));
+            new ForgeIssue("1", 1, "one", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "u"));
 
         queue.Replace(workspaceId, []);
 
@@ -70,21 +70,21 @@ public sealed class ForgeAssignedIssueQueueTests
             workspaces,
             new FakeEnabledCapabilityPackages().WithForges(new StubForgeCapability
             {
-                Assigned = [new ForgeAssignedIssue("1", 1, "one", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "u")]
+                Assigned = [new ForgeIssue("1", 1, "one", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "u")]
             }),
             new MemoryForgeCredentialStore(),
             new FixedForgeGitRemoteResolver(new ForgeGitRemote("acme", "widgets", "main", "https://github.com/acme/widgets.git")),
             new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("", "", "")),
             new ForgeOAuthStateStore(),
             new FixedForgeOAuthExchange("token"));
-        var queue = new ForgeAssignedIssueQueue(new ForgeController(service));
+        var queue = new ForgeIssueQueue(new ForgeController(service));
 
         var listed = await queue.ListAssignedAsync(workspace.Id, AssignedIssueOrder.CreatedAsc, CancellationToken.None);
 
         Assert.That(listed, Is.Empty);
     }
 
-    private static async Task<(ForgeAssignedIssueQueue Queue, string WorkspaceId)> QueueAsync(params ForgeAssignedIssue[] issues)
+    private static async Task<(ForgeIssueQueue Queue, string WorkspaceId)> QueueAsync(params ForgeIssue[] issues)
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
         var workspace = await workspaces.RegisterAsync(ServerDomain.Workspace().Build());
@@ -98,6 +98,6 @@ public sealed class ForgeAssignedIssueQueueTests
             new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("", "", "")),
             new ForgeOAuthStateStore(),
             new FixedForgeOAuthExchange("token"));
-        return (new ForgeAssignedIssueQueue(new ForgeController(service)), workspace.Id);
+        return (new ForgeIssueQueue(new ForgeController(service)), workspace.Id);
     }
 }

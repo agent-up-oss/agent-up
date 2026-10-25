@@ -61,6 +61,27 @@ public sealed class ForgejoApiProviderTests
     }
 
     [Test]
+    public async Task ListIssuesAsync_readsTheRepositoryWithoutTheAssignedFilter()
+    {
+        var issues = await new ForgejoForgeCapability(Recorded(
+                ("GET /repos/acme/widgets/issues?state=open&type=issues&sort=recentupdate&limit=100", Assigned)))
+            .ListIssuesAsync(Request());
+
+        Assert.That(issues.Single().Number, Is.EqualTo(3));
+        Assert.That(issues.Single().Id, Is.EqualTo("7"));
+    }
+
+    [Test]
+    public async Task ListIssuesAsync_returnsEmptyWhenThePayloadIsNotAnArray()
+    {
+        var issues = await new ForgejoForgeCapability(Recorded(
+                ("GET /repos/acme/widgets/issues?state=open&type=issues&sort=recentupdate&limit=100", "{}")))
+            .ListIssuesAsync(Request());
+
+        Assert.That(issues, Is.Empty);
+    }
+
+    [Test]
     public async Task ReadAsync_skipsStatusesWhenTheHeadShaIsMissing()
     {
         const string pulls = """

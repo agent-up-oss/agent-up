@@ -33,6 +33,16 @@ public sealed record ForgeReviewThreadDto(string Id, string Url, string Summary,
 
 public sealed record ForgeMergeabilityDto(bool Mergeable, string State);
 
+/// <summary>An open issue on the workspace's repository, offered for picking into the queue.</summary>
+public sealed record ForgeIssueDto(
+    string Id,
+    int Number,
+    string Title,
+    string Body,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    string Url);
+
 public sealed record ForgeLoginStartDto(string AuthorizationUrl);
 
 public sealed record ForgeHttpOutcome(int StatusCode, object? Body);

@@ -191,7 +191,7 @@ public sealed class ForgeService(
         return true;
     }
 
-    public async Task<IReadOnlyList<ForgeAssignedIssue>> ListAssignedAsync(
+    public async Task<IReadOnlyList<ForgeIssue>> ListAssignedAsync(
         string workspaceId,
         CancellationToken cancellationToken)
     {
@@ -202,6 +202,28 @@ public sealed class ForgeService(
         try
         {
             return await request.Value.Forge.ListAssignedAsync(request.Value.Request, cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Every open issue on the workspace's own repository. This is what the Tasks tab offers to
+    /// pick from; nothing here is worked on until it is put in the queue.
+    /// </summary>
+    public async Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
+        string workspaceId,
+        CancellationToken cancellationToken)
+    {
+        var request = await RequestForAsync(workspaceId, cancellationToken);
+        if (request is null)
+            return [];
+
+        try
+        {
+            return await request.Value.Forge.ListIssuesAsync(request.Value.Request, cancellationToken);
         }
         catch (HttpRequestException)
         {

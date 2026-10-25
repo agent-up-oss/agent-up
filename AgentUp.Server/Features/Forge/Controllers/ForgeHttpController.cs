@@ -14,6 +14,20 @@ public sealed class ForgeHttpController(ForgeController forge) : ControllerBase
         return hosting is null ? NotFound() : Ok(hosting);
     }
 
+    [HttpGet("issues")]
+    public async Task<IActionResult> Issues(string workspaceId, CancellationToken cancellationToken)
+    {
+        var issues = await forge.ListIssuesAsync(workspaceId, cancellationToken);
+        return Ok(issues.Select(issue => new ForgeIssueDto(
+            issue.Id,
+            issue.Number,
+            issue.Title,
+            issue.Body,
+            issue.CreatedAt,
+            issue.UpdatedAt,
+            issue.Url)));
+    }
+
     [HttpPost("login")]
     public async Task<IActionResult> Login(string workspaceId, CancellationToken cancellationToken)
     {

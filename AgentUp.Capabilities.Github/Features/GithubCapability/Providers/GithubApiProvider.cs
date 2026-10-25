@@ -118,7 +118,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         }
     }
 
-    public async Task<IReadOnlyList<ForgeAssignedIssue>> ListAssignedAsync(
+    public async Task<IReadOnlyList<ForgeIssue>> ListAssignedAsync(
         ForgeRequest request,
         CancellationToken cancellationToken)
     {
@@ -127,11 +127,31 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
             "issues?filter=assigned&state=open&per_page=100",
             Json,
             cancellationToken);
+        return Issues(issues);
+    }
+
+    public async Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
+        ForgeRequest request,
+        CancellationToken cancellationToken)
+    {
+        using var client = CreateClient(request.Token);
+        var issues = await client.GetFromJsonAsync<JsonElement>(
+            $"repos/{request.Owner}/{request.Repository}/issues?state=open&sort=updated&direction=desc&per_page=100",
+            Json,
+            cancellationToken);
+        return Issues(issues);
+    }
+
+    private static IReadOnlyList<ForgeIssue> Issues(JsonElement issues)
+    {
         if (issues.ValueKind != JsonValueKind.Array)
             return [];
 
         return issues.EnumerateArray()
-            .Select(issue => new ForgeAssignedIssue(
+            // GitHub serves pull requests from the issues route as well, and a proposal is not a
+            // task to pick up. Only an entry without the pull_request member is a real issue.
+            .Where(issue => !issue.TryGetProperty("pull_request", out _))
+            .Select(issue => new ForgeIssue(
                 issue.GetProperty("id").GetRawText(),
                 issue.GetProperty("number").GetInt32(),
                 issue.GetProperty("title").GetString() ?? "",

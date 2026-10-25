@@ -8,7 +8,7 @@ namespace AgentUp.Server.Features.Forge.Services;
 /// The assigned-issue queue when a forge module is enabled. Without a credential or remote
 /// the list is empty — the loop then has nothing to do and can say so.
 /// </summary>
-public sealed class ForgeAssignedIssueQueue(ForgeController forge) : IAssignedIssueQueue
+public sealed class ForgeIssueQueue(ForgeController forge) : IAssignedIssueQueue
 {
     public async Task<IReadOnlyList<AssignedIssue>> ListAssignedAsync(
         string workspaceId,

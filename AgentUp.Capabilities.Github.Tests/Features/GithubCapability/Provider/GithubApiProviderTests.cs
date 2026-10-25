@@ -183,6 +183,40 @@ public sealed class GithubApiProviderTests
     }
 
     [Test]
+    public async Task ListIssuesAsync_readsTheWorkspacesOwnRepositoryRatherThanWhatIsAssigned()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/issues?state=open&sort=updated&direction=desc&per_page=100", RepositoryIssues));
+
+        var issues = await new GithubForgeCapability(handler).ListIssuesAsync(Request());
+
+        Assert.That(issues.Single().Number, Is.EqualTo(3));
+        Assert.That(issues.Single().Id, Is.EqualTo("7"));
+    }
+
+    [Test]
+    public async Task ListIssuesAsync_leavesOutPullRequests()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/issues?state=open&sort=updated&direction=desc&per_page=100", RepositoryIssues));
+
+        var issues = await new GithubForgeCapability(handler).ListIssuesAsync(Request());
+
+        Assert.That(issues.Select(issue => issue.Number), Has.None.EqualTo(5));
+    }
+
+    [Test]
+    public async Task ListIssuesAsync_returnsEmptyWhenThePayloadIsNotAnArray()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/issues?state=open&sort=updated&direction=desc&per_page=100", "{}"));
+
+        var issues = await new GithubForgeCapability(handler).ListIssuesAsync(Request());
+
+        Assert.That(issues, Is.Empty);
+    }
+
+    [Test]
     public async Task ReadAsync_skipsChecksWhenTheHeadShaIsMissing()
     {
         const string pulls = """
@@ -451,6 +485,13 @@ public sealed class GithubApiProviderTests
 
     private const string Assigned = """
         [{"id":7,"number":3,"title":"Assigned","body":"do it","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://github.com/acme/widgets/issues/3"}]
+        """;
+
+    // The repository issues route serves pull requests alongside issues; only the second entry
+    // here is a real issue, and the first carries the pull_request member that marks it.
+    private const string RepositoryIssues = """
+        [{"id":9,"number":5,"title":"A proposal","body":"","created_at":"2026-01-03T00:00:00Z","updated_at":"2026-01-04T00:00:00Z","html_url":"https://github.com/acme/widgets/pull/5","pull_request":{"url":"https://api.github.com/repos/acme/widgets/pulls/5"}},
+         {"id":7,"number":3,"title":"Restock","body":"do it","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://github.com/acme/widgets/issues/3"}]
         """;
 
     private const string Opened = """

@@ -222,7 +222,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IForgeOAuthExchange, ForgeOAuthExchangeProvider>();
         builder.Services.AddSingleton<ForgeService>();
         builder.Services.AddSingleton<ForgeController>();
-        builder.Services.AddSingleton<IAssignedIssueQueue, ForgeAssignedIssueQueue>();
+        builder.Services.AddSingleton<IAssignedIssueQueue, ForgeIssueQueue>();
         builder.Services.AddSingleton<IAssignedProposalQueue, MemoryAssignedProposalQueue>();
         builder.Services.AddSingleton<IRoleProgress, MemoryRoleProgress>();
         builder.Services.AddSingleton<ILoopBackoff, LoopBackoffProvider>();
