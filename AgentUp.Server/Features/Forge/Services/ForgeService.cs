@@ -304,6 +304,20 @@ public sealed class ForgeService(
             return true;
         }, cancellationToken);
 
+    /// <summary>
+    /// The repository this workspace's checkout points at. No credential is needed: the queue has
+    /// to tell whose tasks a workspace may take even while the host is signed out.
+    /// </summary>
+    public ForgeRepositoryDto? ResolveRepository(string workspaceId)
+    {
+        var workspace = workspaces.GetById(workspaceId);
+        if (workspace is null)
+            return null;
+
+        var remote = remotes.Resolve(workspace.WorktreePath);
+        return remote is null ? null : new ForgeRepositoryDto(remote.Owner, remote.Repository);
+    }
+
     private async Task<(IForgeCapability Forge, ForgeRequest Request)?> RequestForAsync(
         string workspaceId,
         CancellationToken cancellationToken)

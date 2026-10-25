@@ -222,7 +222,12 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IForgeOAuthExchange, ForgeOAuthExchangeProvider>();
         builder.Services.AddSingleton<ForgeService>();
         builder.Services.AddSingleton<ForgeController>();
-        builder.Services.AddSingleton<IAssignedIssueQueue, ForgeIssueQueue>();
+        builder.Services.AddSingleton<ITaskQueueStore>(_ => new JsonTaskQueueStore(dataDir));
+        builder.Services.AddSingleton<TaskQueueService>();
+        builder.Services.AddSingleton<TaskPickingService>();
+        builder.Services.AddSingleton<TaskQueueController>();
+        // The loop draws from the picked queue, never from whatever the host happens to have open.
+        builder.Services.AddSingleton<IAssignedIssueQueue, CuratedIssueQueue>();
         builder.Services.AddSingleton<IAssignedProposalQueue, MemoryAssignedProposalQueue>();
         builder.Services.AddSingleton<IRoleProgress, MemoryRoleProgress>();
         builder.Services.AddSingleton<ILoopBackoff, LoopBackoffProvider>();

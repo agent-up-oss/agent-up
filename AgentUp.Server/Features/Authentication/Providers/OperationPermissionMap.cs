@@ -79,12 +79,21 @@ public static class OperationPermissionMap
         [("WorkspaceCommitQueue", "Get")] = OperationPermissions.GitRead,
         [("VerificationHttp", "Export")] = OperationPermissions.GitRead,
         [("ForgeHttp", "Get")] = OperationPermissions.GitRead,
+        [("ForgeHttp", "Issues")] = OperationPermissions.GitRead,
         [("ForgeHttp", "Login")] = OperationPermissions.GitWrite,
         [("ForgeHttp", "Logout")] = OperationPermissions.GitWrite,
         [("ForgeHttp", "OpenProposal")] = OperationPermissions.GitWrite,
         [("ForgeHttp", "UpdateRef")] = OperationPermissions.GitWrite,
         [("ForgeHttp", "Comment")] = OperationPermissions.GitWrite,
         [("ForgeHttp", "SubmitReview")] = OperationPermissions.GitWrite,
+        // The queue decides what the agents work on, so arranging it is a Server-level say rather
+        // than a read of the repository.
+        [("TaskQueueHttp", "Get")] = OperationPermissions.ServerRead,
+        [("TaskQueueHttp", "Enqueue")] = OperationPermissions.AgentPrompt,
+        [("TaskQueueHttp", "Remove")] = OperationPermissions.AgentPrompt,
+        [("TaskQueueHttp", "Move")] = OperationPermissions.AgentPrompt,
+        [("TaskQueueHttp", "Target")] = OperationPermissions.AgentPrompt,
+        [("TaskQueueHttp", "Release")] = OperationPermissions.AgentPrompt,
 
         [("WorkspaceDiagnosticsHttp", "Get")] = OperationPermissions.DiagnosticsRead,
         [("WorkspaceReviewSnapshotHttp", "Get")] = OperationPermissions.DiagnosticsRead,

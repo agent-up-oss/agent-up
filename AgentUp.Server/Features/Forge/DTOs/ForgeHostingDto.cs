@@ -43,6 +43,9 @@ public sealed record ForgeIssueDto(
     DateTimeOffset UpdatedAt,
     string Url);
 
+/// <summary>The owner and repository a workspace's checkout points at.</summary>
+public sealed record ForgeRepositoryDto(string Owner, string Repository);
+
 public sealed record ForgeLoginStartDto(string AuthorizationUrl);
 
 public sealed record ForgeHttpOutcome(int StatusCode, object? Body);

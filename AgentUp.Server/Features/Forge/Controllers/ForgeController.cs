@@ -42,6 +42,9 @@ public sealed class ForgeController(ForgeService service)
         CancellationToken cancellationToken = default)
         => service.ListAssignedAsync(workspaceId, cancellationToken);
 
+    public ForgeRepositoryDto? ResolveRepository(string workspaceId)
+        => service.ResolveRepository(workspaceId);
+
     public Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
         string workspaceId,
         CancellationToken cancellationToken = default)
