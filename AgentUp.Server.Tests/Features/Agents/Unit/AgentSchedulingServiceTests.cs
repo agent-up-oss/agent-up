@@ -316,6 +316,33 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
+    public async Task GetAsync_namesBothDevelopmentAgentsWhenTheHostIsDevelopment()
+    {
+        var service = new AgentSchedulingService(
+            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
+            new AgentCommandProvider(new ConfigurationBuilder().Build()),
+            _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
+            _payloads, _events, NullLogger<AgentSchedulingService>.Instance,
+            host: new StubHostEnvironment(Environments.Development));
+        try
+        {
+            var session = await service.GetAsync(_workspace.Id, CancellationToken.None);
+            var listed = session!.Agents.ToDictionary(agent => agent.Agent, StringComparer.Ordinal);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(listed[AgentUnavailability.ScriptedTestAgent].DisplayName, Is.EqualTo(AgentUnavailability.ScriptedTestAgentDisplayName));
+                Assert.That(listed[AgentUnavailability.LocalInferenceTestAgent].DisplayName, Is.EqualTo(AgentUnavailability.LocalInferenceTestAgentDisplayName));
+                Assert.That(listed[AgentUnavailability.LocalInferenceTestAgent].Unavailability, Is.EqualTo(AgentUnavailability.ExecutableNotFound));
+            });
+        }
+        finally
+        {
+            await service.DisposeAsync();
+        }
+    }
+
+    [Test]
     public async Task GetAsync_listsLocalInferenceTestAgentWhenTheHostIsDevelopment()
     {
         var commands = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(

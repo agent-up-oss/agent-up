@@ -46,4 +46,44 @@ public sealed class AgentUnavailabilityTests
                 Is.EqualTo("Install the claude ACP executable and keep it on PATH."));
         });
     }
+
+    [Test]
+    public void DevelopmentAgents_listsScriptedThenLocalInference()
+    {
+        Assert.That(
+            AgentUnavailability.DevelopmentAgents,
+            Is.EqualTo(new[]
+            {
+                AgentUnavailability.ScriptedTestAgent,
+                AgentUnavailability.LocalInferenceTestAgent
+            }));
+    }
+
+    [Test]
+    public void IsDevelopmentAgent_recognizesBothDevelopmentAgents()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(AgentUnavailability.IsDevelopmentAgent(AgentUnavailability.ScriptedTestAgent), Is.True);
+            Assert.That(AgentUnavailability.IsDevelopmentAgent(AgentUnavailability.LocalInferenceTestAgent), Is.True);
+            Assert.That(AgentUnavailability.IsDevelopmentAgent("TEST-AGENT-INFER"), Is.True);
+            Assert.That(AgentUnavailability.IsDevelopmentAgent("codex"), Is.False);
+            Assert.That(AgentUnavailability.IsDevelopmentAgent(""), Is.False);
+        });
+    }
+
+    [Test]
+    public void DevelopmentAgentId_returnsTheCanonicalId()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(
+                AgentUnavailability.DevelopmentAgentId("TEST-AGENT-SCRIPTED"),
+                Is.EqualTo(AgentUnavailability.ScriptedTestAgent));
+            Assert.That(
+                AgentUnavailability.DevelopmentAgentId("Test-Agent-Infer"),
+                Is.EqualTo(AgentUnavailability.LocalInferenceTestAgent));
+            Assert.That(AgentUnavailability.DevelopmentAgentId("claude"), Is.Null);
+        });
+    }
 }

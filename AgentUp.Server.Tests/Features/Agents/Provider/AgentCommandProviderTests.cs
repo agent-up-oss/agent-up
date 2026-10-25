@@ -262,6 +262,14 @@ public sealed class AgentCommandProviderTests
         Assert.That(provider.LaunchCommandName("claude"), Is.Null);
     }
 
+    [Test]
+    public void LaunchCommandName_resolvesAMixedCaseLocalInferenceAgentId()
+    {
+        var provider = new AgentCommandProvider(new ConfigurationBuilder().Build());
+
+        Assert.That(provider.LaunchCommandName("TEST-AGENT-INFER"), Is.EqualTo(AgentUnavailability.LocalInferenceTestAgent));
+    }
+
     [TestCase(AgentUnavailability.ScriptedTestAgent)]
     [TestCase(AgentUnavailability.LocalInferenceTestAgent)]
     public Task ResolveAsync_isNullWhenTheDevelopmentTestAgentIsMissingFromPath(string name)
