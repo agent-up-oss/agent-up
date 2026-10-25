@@ -31,6 +31,38 @@ export async function requestServerJson<T>(
   timeoutMs: number = DEFAULT_TIMEOUT_MS,
   request: typeof fetch = fetch,
 ): Promise<T | null> {
+  return await sendServerRequest(server, path, init, timeoutMs, request, 'application/json', async response => {
+    if (!response.ok) throw new ServerRequestError(await readProblemDetail(response), response.status);
+    return await readJsonBody<T>(response);
+  });
+}
+
+/** Performs one authenticated Server text request with timeout and caller cancellation. */
+export async function requestServerText(
+  server: ServerSession,
+  path: string,
+  init: RequestInit = {},
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+  request: typeof fetch = fetch,
+): Promise<string | null> {
+  return await sendServerRequest(server, path, init, timeoutMs, request, 'text/html', async response => {
+    if (response.status === 404) return null;
+    if (!response.ok) throw new ServerRequestError(await readProblemDetail(response), response.status);
+    if (response.status === 204) return null;
+    const body = await response.text();
+    return body || null;
+  });
+}
+
+async function sendServerRequest<T>(
+  server: ServerSession,
+  path: string,
+  init: RequestInit,
+  timeoutMs: number,
+  request: typeof fetch,
+  accept: string,
+  read: (response: Response) => Promise<T>,
+): Promise<T> {
   if (server.accessToken) ensureCredentialTransportAllowed(server.url);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -41,14 +73,13 @@ export async function requestServerJson<T>(
     const response = await request(`${server.url}${path}`, {
       ...init,
       headers: {
-        Accept: 'application/json',
+        Accept: accept,
         ...authorizationHeader(server.accessToken),
         ...(init.headers ?? {}),
       },
       signal: controller.signal,
     });
-    if (!response.ok) throw new ServerRequestError(await readProblemDetail(response), response.status);
-    return await readJsonBody<T>(response);
+    return await read(response);
   } catch (error) {
     if (init.signal?.aborted && error instanceof Error && error.name === 'AbortError')
       throw new Error('The request was cancelled.');

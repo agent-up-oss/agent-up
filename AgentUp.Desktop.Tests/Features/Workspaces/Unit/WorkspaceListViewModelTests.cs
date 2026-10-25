@@ -224,6 +224,9 @@ public sealed class WorkspaceListViewModelTests
 
         public Task<WorkspaceOverviewDto?> GetOverviewAsync(string workspaceId, CancellationToken cancellationToken = default)
             => Task.FromResult<WorkspaceOverviewDto?>(null);
+
+        public Task<string?> GetReviewReportHtmlAsync(string workspaceId, CancellationToken cancellationToken = default)
+            => Task.FromResult<string?>(null);
     }
 
     private sealed class EmptyWorkspaceApi : IWorkspaceApiProvider
@@ -255,6 +258,9 @@ public sealed class WorkspaceListViewModelTests
 
         public Task<WorkspaceOverviewDto?> GetOverviewAsync(string workspaceId, CancellationToken cancellationToken = default)
             => Task.FromResult<WorkspaceOverviewDto?>(null);
+
+        public Task<string?> GetReviewReportHtmlAsync(string workspaceId, CancellationToken cancellationToken = default)
+            => Task.FromResult<string?>(null);
     }
 
     private sealed class UnauthorizedWorkspaceApi : IWorkspaceApiProvider
@@ -287,5 +293,8 @@ public sealed class WorkspaceListViewModelTests
 
         public Task<WorkspaceOverviewDto?> GetOverviewAsync(string workspaceId, CancellationToken cancellationToken = default)
             => Task.FromResult<WorkspaceOverviewDto?>(null);
+
+        public Task<string?> GetReviewReportHtmlAsync(string workspaceId, CancellationToken cancellationToken = default)
+            => Task.FromResult<string?>(null);
     }
 }

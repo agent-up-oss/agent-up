@@ -3,7 +3,7 @@ using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Applications.Services;
 using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Server.Features.Diagnostics.Controllers;
-using AgentUp.Server.Features.Diagnostics.DTOs;
+using AgentUp.Server.Features.Diagnostics.Providers;
 using AgentUp.Server.Features.Diagnostics.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.Services;
@@ -28,14 +28,17 @@ public sealed class WorkspaceReviewSnapshotMcpToolsTests
 
         Assert.Multiple(() =>
         {
+            Assert.That(description, Does.Contain("HTML"));
             Assert.That(description, Does.Contain("allocated ports"));
             Assert.That(description, Does.Contain("browser URL"));
             Assert.That(description, Does.Contain("recent MCP"));
+            Assert.That(description, Does.Contain("export_verification"));
+            Assert.That(description, Does.Contain("verify guard"));
         });
     }
 
     [Test]
-    public async Task ExportWorkspaceReviewSnapshot_ReturnsTheSnapshotForARegisteredWorkspace()
+    public async Task ExportWorkspaceReviewSnapshot_ReturnsHtmlForARegisteredWorkspace()
     {
         var registry = ServerTestComposition.CreateRegistry();
         await registry.StartAsync(CancellationToken.None);
@@ -51,8 +54,9 @@ public sealed class WorkspaceReviewSnapshotMcpToolsTests
         Assert.Multiple(() =>
         {
             Assert.That(result.Succeeded, Is.True);
-            Assert.That(result.Message, Does.Contain("Shop"));
-            Assert.That(result.Data, Is.TypeOf<WorkspaceReviewSnapshotDto>());
+            Assert.That(result.Message, Does.Contain("HTML"));
+            Assert.That(result.Data, Is.TypeOf<string>());
+            Assert.That(result.Data as string, Does.Contain("Shop").And.Contain("<!DOCTYPE html>"));
         });
     }
 
@@ -90,7 +94,8 @@ public sealed class WorkspaceReviewSnapshotMcpToolsTests
             new WorkspaceQueryController(registry),
             diagnostics,
             new BrowserSessionController(new BrowserSessionStore(), new HeadlessBrowserSessionAccessor(null)),
-            audit));
+            audit,
+            new ReviewSnapshotHtmlProvider(new ReviewSnapshotCssProvider())));
         return new WorkspaceReviewSnapshotMcpTools(snapshots);
     }
 }

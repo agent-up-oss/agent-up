@@ -19,4 +19,6 @@ public interface IWorkspaceApiProvider
     Task DeleteAsync(string workspaceId, CancellationToken cancellationToken = default);
 
     Task<WorkspaceOverviewDto?> GetOverviewAsync(string workspaceId, CancellationToken cancellationToken = default);
+
+    Task<string?> GetReviewReportHtmlAsync(string workspaceId, CancellationToken cancellationToken = default);
 }

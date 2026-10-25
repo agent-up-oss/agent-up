@@ -102,6 +102,25 @@ public sealed class McpSessionInstructionTests
     }
 
     [Test]
+    public async Task ConfigureAsync_AuditInstructionsTreatTheReviewSnapshotAsOneDocument()
+    {
+        var options = new McpServerOptions();
+
+        await new McpEndpointSessionProvider().ConfigureAsync(
+            RequestFor("/mcp/audit", IPAddress.Loopback),
+            options,
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(options.ServerInstructions, Does.Contain("export_workspace_review_snapshot"));
+            Assert.That(options.ServerInstructions, Does.Contain("verification section"));
+            Assert.That(options.ServerInstructions, Does.Contain("export_verification"));
+            Assert.That(options.ServerInstructions, Does.Contain("never an input to the guard"));
+        });
+    }
+
+    [Test]
     public async Task ConfigureAsync_FallsBackToTheRootInstructionsForAnUnrecognizedPath()
     {
         var options = new McpServerOptions();

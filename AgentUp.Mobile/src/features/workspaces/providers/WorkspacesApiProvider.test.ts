@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { cloneSourceRepository, listWorkspaces, refreshClone, removeWorkspace, startWorkspace, stopWorkspace } from './WorkspacesApiProvider';
+import { cloneSourceRepository, getReviewReportHtml, listWorkspaces, refreshClone, removeWorkspace, startWorkspace, stopWorkspace } from './WorkspacesApiProvider';
 
 type Recorded = { url: string; init: RequestInit };
 
@@ -154,6 +154,19 @@ test('removeWorkspace deletes the workspace', async () => {
 
   assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws%201');
   assert.equal(recorded[0].init.method, 'DELETE');
+});
+
+test('getReviewReportHtml reads the HTML report route', async () => {
+  const recorded: Recorded[] = [];
+  const fetcher = (async (url: string | URL | Request, init: RequestInit = {}) => {
+    recorded.push({ url: String(url), init });
+    return new Response('<html>Harbor Shop</html>', { status: 200, headers: { 'Content-Type': 'text/html' } });
+  }) as unknown as typeof fetch;
+
+  const html = await getReviewReportHtml({ url: 'http://localhost:5000' }, 'ws 1', fetcher);
+
+  assert.equal(html, '<html>Harbor Shop</html>');
+  assert.equal(recorded[0].url, 'http://localhost:5000/api/workspaces/ws%201/review-snapshot');
 });
 
 test('startWorkspace and stopWorkspace escape the workspace id', async () => {

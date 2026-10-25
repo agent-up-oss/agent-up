@@ -14,7 +14,7 @@ namespace AgentUp.CLI.Tests.Features.Workspaces.Controller;
 public sealed class ReviewSnapshotCommandTests
 {
     [Test]
-    public async Task RunAsync_WritesJsonForResolvedWorkspace()
+    public async Task RunAsync_WritesHtmlForResolvedWorkspace()
     {
         var workspaceRoot = Path.Join(Path.GetTempPath(), "AgentUp-ReviewSnapshotCommandTests", Guid.NewGuid().ToString());
         Directory.CreateDirectory(workspaceRoot);
@@ -23,7 +23,7 @@ public sealed class ReviewSnapshotCommandTests
         {
             using var writer = new StringWriter();
             var output = new WorkspaceCommandOutputService(writer);
-            const string snapshot = """{"workspaceId":"w1","displayName":"Shop"}""";
+            const string snapshot = "<html>Export Report — Shop</html>";
             var client = ClientReturning(
                 [CliDomain.Workspace()
                     .WithId("w1")
@@ -42,7 +42,7 @@ public sealed class ReviewSnapshotCommandTests
             Assert.Multiple(() =>
             {
                 Assert.That(exitCode, Is.Zero);
-                Assert.That(writer.ToString(), Does.Contain("\"displayName\":\"Shop\""));
+                Assert.That(writer.ToString(), Does.Contain("Export Report — Shop"));
             });
         }
         finally
@@ -91,6 +91,7 @@ public sealed class ReviewSnapshotCommandTests
         {
             Assert.That(exitCode, Is.Zero);
             Assert.That(writer.ToString(), Does.Contain("review-snapshot"));
+            Assert.That(writer.ToString(), Does.Contain("HTML workspace report"));
         });
     }
 

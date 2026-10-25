@@ -1,4 +1,4 @@
-import { jsonBody, requestServerJson, type ServerSession } from '@/features/servers/providers/ServerRequestProvider';
+import { jsonBody, requestServerJson, requestServerText, type ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import type { CloneSourceRequest, Workspace } from '../models/Workspace';
 
 // Cloning a repository can take minutes on a large remote, so it gets its own timeout.
@@ -6,6 +6,20 @@ const CLONE_TIMEOUT_MS = 180000;
 
 export async function listWorkspaces(server: ServerSession, request: typeof fetch = fetch): Promise<Workspace[]> {
   return (await requestServerJson<Workspace[]>(server, '/api/workspaces', { method: 'GET' }, undefined, request)) ?? [];
+}
+
+export async function getReviewReportHtml(
+  server: ServerSession,
+  workspaceId: string,
+  request: typeof fetch = fetch,
+): Promise<string | null> {
+  return await requestServerText(
+    server,
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/review-snapshot`,
+    { method: 'GET' },
+    undefined,
+    request,
+  );
 }
 
 export async function startWorkspace(server: ServerSession, workspaceId: string, request: typeof fetch = fetch): Promise<void> {

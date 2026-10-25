@@ -1,4 +1,3 @@
-using AgentUp.Server.Features.Diagnostics.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgentUp.Server.Features.Diagnostics.Controllers;
@@ -8,11 +7,14 @@ namespace AgentUp.Server.Features.Diagnostics.Controllers;
 public sealed class WorkspaceReviewSnapshotHttpController(WorkspaceReviewSnapshotController snapshots) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<WorkspaceReviewSnapshotDto>> Get(
-        string workspaceId,
-        CancellationToken cancellationToken)
+    [Produces("text/html")]
+    public async Task<IActionResult> Get(string workspaceId, CancellationToken cancellationToken)
     {
-        var snapshot = await snapshots.GetAsync(workspaceId, cancellationToken);
-        return snapshot is null ? NotFound() : Ok(snapshot);
+        var html = await snapshots.GetAsync(workspaceId, cancellationToken);
+        if (html is null)
+            return NotFound();
+
+        Response.Headers.ContentDisposition = "attachment; filename=\"agent-up-report.html\"";
+        return Content(html, "text/html; charset=utf-8");
     }
 }

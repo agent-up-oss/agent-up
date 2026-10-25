@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { requestServerJson, ServerRequestError, isUnauthorized } from './ServerRequestProvider';
+import { requestServerJson, requestServerText, ServerRequestError, isUnauthorized } from './ServerRequestProvider';
 
 // Mimics fetch: it resolves once headers exist, and its body stream fails when the request signal
 // aborts. A server that stalls the body must therefore still hit the request timeout.
@@ -124,6 +124,22 @@ test('a session without an access token sends no authorization header', async ()
   await requestServerJson({ url: 'http://localhost:5000' }, '/api/workspaces', { method: 'GET' }, 2000, recordingFetch);
 
   assert.equal('Authorization' in (recorded[0].headers as Record<string, string>), false);
+});
+
+test('requestServerText returns HTML and treats 404 as missing', async () => {
+  const htmlFetch = (async () =>
+    new Response('<html>Export Report</html>', { status: 200, headers: { 'Content-Type': 'text/html' } })
+  ) as unknown as typeof fetch;
+  const missingFetch = (async () => new Response('missing', { status: 404 })) as unknown as typeof fetch;
+
+  assert.equal(
+    await requestServerText({ url: 'http://localhost:5000' }, '/api/workspaces/w1/review-snapshot', { method: 'GET' }, 2000, htmlFetch),
+    '<html>Export Report</html>',
+  );
+  assert.equal(
+    await requestServerText({ url: 'http://localhost:5000' }, '/api/workspaces/missing/review-snapshot', { method: 'GET' }, 2000, missingFetch),
+    null,
+  );
 });
 
 test('isUnauthorized is true only for HTTP 401', () => {

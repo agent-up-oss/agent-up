@@ -18,6 +18,7 @@ The first suite runs from `au-debug validate --surface desktop` and `au-debug va
 | First run / Demo | Connect to the built-in Demo server | gap | gap |
 | Workspace list | Empty state, then a registered workspace appears | covered | covered |
 | Workspace lifecycle | Start, applications reach Running, stop | covered | covered |
+| Workspace overview / export | Download the HTML workspace report | gap | gap |
 | Application tabs | Select an application, see its port and state | covered | covered |
 | Console | Open an application console, see real output | covered | n/a |
 | Diagnostics | See entries for a failed application | covered | n/a |

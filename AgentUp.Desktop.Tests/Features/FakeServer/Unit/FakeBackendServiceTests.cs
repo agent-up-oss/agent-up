@@ -739,17 +739,31 @@ public sealed class FakeBackendServiceTests
     public void Handle_reviewSnapshotExportsTheBundledWorkspace()
     {
         var backend = FakeServerTestComposition.Backend();
-        var snapshot = Json(backend, Get("/api/workspaces/harbor-shop/review-snapshot"));
+        var response = Run(backend, Get("/api/workspaces/harbor-shop/review-snapshot"));
 
         Assert.Multiple(() =>
         {
-            Assert.That(snapshot["workspaceId"]!.GetValue<string>(), Is.EqualTo("harbor-shop"));
-            Assert.That(snapshot["displayName"]!.GetValue<string>(), Is.EqualTo("Harbor Shop"));
-            Assert.That(
-                snapshot["applications"]!.AsArray().Select(item => item!["name"]!.GetValue<string>()),
-                Is.EqualTo(new[] { "Storefront", "Orders API" }));
-            Assert.That(snapshot["verification"], Is.Null);
+            Assert.That(response.Status, Is.EqualTo(200));
+            Assert.That(response.ContentType, Does.StartWith("text/html"));
+            Assert.That(response.Body, Does.Contain("Harbor Shop"));
+            Assert.That(response.Body, Does.Contain("Storefront"));
+            Assert.That(response.Body, Does.Contain("Orders API"));
+            Assert.That(response.Body, Does.Contain("<h2>Screenshots</h2>"));
+            Assert.That(response.Body, Does.Contain("<h2>Verification</h2>"));
             Assert.That(Run(backend, Get("/api/workspaces/missing/review-snapshot")).Status, Is.EqualTo(404));
+        });
+    }
+
+    [Test]
+    public void Handle_reviewSnapshotExposesAnEmptyScreenshotsSection()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var response = Run(backend, Get("/api/workspaces/harbor-shop/review-snapshot"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Body, Does.Contain("<h2>Screenshots</h2>"));
+            Assert.That(response.Body, Does.Contain("No screenshots."));
         });
     }
 
@@ -761,15 +775,14 @@ public sealed class FakeBackendServiceTests
             """;
         var backend = new AgentUp.Desktop.Features.FakeServer.Services.FakeBackendService(
             new AgentUp.Desktop.Features.FakeServer.Providers.FakeServerDefinitionProvider().LoadJson(json));
-        var snapshot = Json(backend, Get("/api/workspaces/harbor-shop/review-snapshot"));
-        var app = snapshot["applications"]!.AsArray().Single()!.AsObject();
-        var port = app["ports"]!.AsArray().Single()!.AsObject();
+        var html = Run(backend, Get("/api/workspaces/harbor-shop/review-snapshot")).Body;
 
         Assert.Multiple(() =>
         {
-            Assert.That(app["kind"]!.GetValue<string>(), Is.EqualTo("Process"));
-            Assert.That(port["protocol"]!.GetValue<string>(), Is.EqualTo("http"));
-            Assert.That(port["allocatedPort"]!.GetValue<int>(), Is.EqualTo(9100));
+            Assert.That(html, Does.Contain("Process"));
+            Assert.That(html, Does.Contain("http"));
+            Assert.That(html, Does.Contain("9100"));
+            Assert.That(html, Does.Contain("WEB_PORT"));
         });
     }
 

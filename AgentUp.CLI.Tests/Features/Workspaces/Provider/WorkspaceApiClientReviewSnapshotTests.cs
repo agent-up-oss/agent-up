@@ -7,18 +7,18 @@ namespace AgentUp.CLI.Tests.Features.Workspaces.Provider;
 public sealed class WorkspaceApiClientReviewSnapshotTests
 {
     [Test]
-    public async Task GetReviewSnapshotAsync_ReturnsJsonForKnownWorkspace()
+    public async Task GetReviewSnapshotAsync_ReturnsHtmlForKnownWorkspace()
     {
         using var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent("""{"workspaceId":"w1"}""")
+            Content = new StringContent("<html>w1</html>", System.Text.Encoding.UTF8, "text/html")
         });
         using var http = new HttpClient(handler, disposeHandler: false) { BaseAddress = new Uri("http://localhost") };
         var client = new WorkspaceApiClient(http);
 
         var result = await client.GetReviewSnapshotAsync("w1");
 
-        Assert.That(result, Does.Contain("w1"));
+        Assert.That(result, Does.Contain("<html>w1</html>"));
     }
 
     [Test]
