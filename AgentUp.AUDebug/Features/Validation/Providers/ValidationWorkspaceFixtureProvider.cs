@@ -13,6 +13,8 @@ public sealed class ValidationWorkspaceFixtureProvider(
     public const string WorkspaceDisplayName = "Agent Up";
     public const string ScriptedAgentId = "test-agent-scripted";
     public const string ScriptedAgentCommandKey = "Agents__test-agent-scripted__Command";
+    public const string InferAgentId = "test-agent-infer";
+    public const string InferAgentCommandKey = "Agents__test-agent-infer__Command";
 
     private static readonly HashSet<string> ReservedConfigKeys = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -36,12 +38,15 @@ public sealed class ValidationWorkspaceFixtureProvider(
     {
         var bin = Path.Join(Directory.GetParent(dataDirectory)?.FullName ?? dataDirectory, "bin");
         Directory.CreateDirectory(bin);
-        var shim = WriteScriptedAgentShim(bin, FindTestAgentsExecutable());
+        var executable = FindTestAgentsExecutable();
+        var scripted = WriteDevelopmentAgentShim(bin, executable, ScriptedAgentId);
+        var infer = WriteDevelopmentAgentShim(bin, executable, InferAgentId);
         var path = bin + Path.PathSeparator + (Environment.GetEnvironmentVariable("PATH") ?? "");
         return new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["PATH"] = path,
-            [ScriptedAgentCommandKey] = shim
+            [ScriptedAgentCommandKey] = scripted,
+            [InferAgentCommandKey] = infer
         };
     }
 
@@ -127,14 +132,14 @@ public sealed class ValidationWorkspaceFixtureProvider(
         return found;
     }
 
-    private static string WriteScriptedAgentShim(string bin, string executable)
+    private static string WriteDevelopmentAgentShim(string bin, string executable, string agentId)
     {
-        var shim = Path.Join(bin, OperatingSystem.IsWindows() ? $"{ScriptedAgentId}.cmd" : ScriptedAgentId);
+        var shim = Path.Join(bin, OperatingSystem.IsWindows() ? $"{agentId}.cmd" : agentId);
         try
         {
             File.WriteAllText(shim, OperatingSystem.IsWindows()
-                ? $"@echo off{Environment.NewLine}set AGENTUP_TEST_AGENT={ScriptedAgentId}{Environment.NewLine}\"{executable}\" %*{Environment.NewLine}"
-                : $"#!/bin/sh{Environment.NewLine}set -e{Environment.NewLine}export AGENTUP_TEST_AGENT='{ScriptedAgentId}'{Environment.NewLine}exec '{executable}' \"$@\"{Environment.NewLine}");
+                ? $"@echo off{Environment.NewLine}set AGENTUP_TEST_AGENT={agentId}{Environment.NewLine}\"{executable}\" %*{Environment.NewLine}"
+                : $"#!/bin/sh{Environment.NewLine}set -e{Environment.NewLine}export AGENTUP_TEST_AGENT='{agentId}'{Environment.NewLine}exec '{executable}' \"$@\"{Environment.NewLine}");
             if (!OperatingSystem.IsWindows())
             {
                 File.SetUnixFileMode(
@@ -146,7 +151,7 @@ public sealed class ValidationWorkspaceFixtureProvider(
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            throw new InvalidOperationException($"Could not write {ScriptedAgentId} shim: {exception.Message}", exception);
+            throw new InvalidOperationException($"Could not write {agentId} shim: {exception.Message}", exception);
         }
 
         return shim;

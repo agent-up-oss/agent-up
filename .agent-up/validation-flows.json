@@ -970,6 +970,138 @@
       "version": 1
     },
     {
+      "id": "agents-infer",
+      "application": "Desktop",
+      "name": "Pick the local inference test agent and send a prompt",
+      "description": "A person opens the Agent tab, starts test-agent-infer without sign-in, and sends a prompt. Fixture: isolated Development Server with test-agent-infer on PATH, listed as Available. session/new is immediate. The prompt appearing in the transcript is the chat consequence; a llama.cpp completion is not required.",
+      "surface": "Desktop",
+      "initialPath": "login",
+      "initialExpectations": [
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": {
+            "testId": "login.connect"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "enter-server-url",
+          "description": "Enter the Server URL",
+          "action": "Fill",
+          "target": {
+            "testId": "login.server-url"
+          },
+          "value": "http://127.0.0.1:5001",
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "http://127.0.0.1:5001",
+              "target": {
+                "testId": "login.server-url"
+              }
+            }
+          ]
+        },
+        {
+          "id": "connect",
+          "description": "Connect to the Server",
+          "action": "Click",
+          "target": {
+            "testId": "login.connect"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "shell.tab.agent"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-agent",
+          "description": "Open the Agent tab",
+          "action": "Click",
+          "target": {
+            "testId": "shell.tab.agent"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "text": "Local inference test agent"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "agent.picker.test-agent-infer"
+              }
+            }
+          ]
+        },
+        {
+          "id": "start-infer",
+          "description": "Start a test-agent-infer session",
+          "action": "Click",
+          "target": {
+            "testId": "agent.picker.test-agent-infer"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "agent.message"
+              }
+            }
+          ]
+        },
+        {
+          "id": "fill-prompt",
+          "description": "Type a prompt",
+          "action": "Fill",
+          "target": {
+            "testId": "agent.message"
+          },
+          "value": "Say only hi.",
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Say only hi.",
+              "target": {
+                "testId": "agent.message"
+              }
+            }
+          ]
+        },
+        {
+          "id": "send-prompt",
+          "description": "Send the prompt",
+          "action": "Click",
+          "target": {
+            "testId": "agent.send"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "text": "Say only hi."
+              }
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-10-25T00:00:00.0000000+00:00",
+      "version": 1
+    },
+    {
       "id": "autonomous-loop",
       "application": "Desktop",
       "name": "Read the unattended loop checklist",

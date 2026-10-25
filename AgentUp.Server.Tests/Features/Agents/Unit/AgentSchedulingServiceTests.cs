@@ -257,7 +257,9 @@ public sealed class AgentSchedulingServiceTests
         {
             var session = await service.GetAsync(_workspace.Id, CancellationToken.None);
 
-            Assert.That(session!.Agents.Select(agent => agent.Agent), Does.Not.Contain(AgentUnavailability.ScriptedTestAgent));
+            Assert.That(
+                session!.Agents.Select(agent => agent.Agent),
+                Does.Not.Contain(AgentUnavailability.ScriptedTestAgent).And.Not.Contain(AgentUnavailability.LocalInferenceTestAgent));
         }
         finally
         {
@@ -303,7 +305,67 @@ public sealed class AgentSchedulingServiceTests
         {
             var session = await service.GetAsync(_workspace.Id, CancellationToken.None);
 
-            Assert.That(session!.Agents.Select(agent => agent.Agent), Does.Contain(AgentUnavailability.ScriptedTestAgent));
+            Assert.That(
+                session!.Agents.Select(agent => agent.Agent),
+                Does.Contain(AgentUnavailability.ScriptedTestAgent).And.Contain(AgentUnavailability.LocalInferenceTestAgent));
+        }
+        finally
+        {
+            await service.DisposeAsync();
+        }
+    }
+
+    [Test]
+    public async Task GetAsync_listsLocalInferenceTestAgentWhenTheHostIsDevelopment()
+    {
+        var commands = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["Agents:test-agent-infer:Command"] = $"/definitely-missing/{AgentUnavailability.LocalInferenceTestAgent}"
+            }).Build());
+        var service = new AgentSchedulingService(
+            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
+            commands,
+            _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
+            _payloads, _events, NullLogger<AgentSchedulingService>.Instance,
+            host: new StubHostEnvironment(Environments.Development));
+        try
+        {
+            var session = await service.GetAsync(_workspace.Id, CancellationToken.None);
+            var infer = session!.Agents.Single(agent => agent.Agent == AgentUnavailability.LocalInferenceTestAgent);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(infer.DisplayName, Is.EqualTo(AgentUnavailability.LocalInferenceTestAgentDisplayName));
+                Assert.That(infer.Available, Is.False);
+                Assert.That(infer.Unavailability, Is.EqualTo(AgentUnavailability.ExecutableNotFound));
+                Assert.That(infer.Remedy, Does.Contain("test-agent-infer"));
+            });
+        }
+        finally
+        {
+            await service.DisposeAsync();
+        }
+    }
+
+    [Test]
+    public async Task GetAsync_marksLocalInferenceTestAgentAvailableWhenItsCommandExists()
+    {
+        var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
+        var commands = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?> { ["Agents:test-agent-infer:Command"] = command }).Build());
+        var service = new AgentSchedulingService(
+            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
+            commands, _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
+            _payloads, _events, NullLogger<AgentSchedulingService>.Instance,
+            host: new StubHostEnvironment(Environments.Development));
+        try
+        {
+            var session = await service.GetAsync(_workspace.Id, CancellationToken.None);
+            var infer = session!.Agents.Single(agent => agent.Agent == AgentUnavailability.LocalInferenceTestAgent);
+
+            Assert.That(infer.Available, Is.True);
+            Assert.That(infer.Unavailability, Is.Null);
         }
         finally
         {

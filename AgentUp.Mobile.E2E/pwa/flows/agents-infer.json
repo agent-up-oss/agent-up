@@ -1,0 +1,83 @@
+{
+  "id": "agents-infer",
+  "application": "Mobile",
+  "name": "Pick the local inference test agent and send a prompt",
+  "description": "A person opens the Agents tab, starts test-agent-infer without sign-in, and sends a prompt. Fixture: isolated Development Server with test-agent-infer on PATH, listed as Available. session/new is immediate. The prompt appearing in the transcript is the chat consequence; a llama.cpp completion is not required.",
+  "surface": "Mobile",
+  "initialPath": "/connect",
+  "initialExpectations": [
+    { "kind": "Text", "value": "Connect to server" }
+  ],
+  "steps": [
+    {
+      "id": "enter-server-url",
+      "description": "Enter the Server URL",
+      "action": "Fill",
+      "target": { "label": "Server URL" },
+      "value": "{serverUrl}",
+      "expectations": [
+        { "kind": "Text", "value": "{serverUrl}", "target": { "label": "Server URL" } }
+      ]
+    },
+    {
+      "id": "try-and-save",
+      "description": "Save the Server URL and open the workspace",
+      "action": "Click",
+      "target": { "role": "button", "name": "Try and save" },
+      "expectations": [
+        { "kind": "Visible", "value": "true", "target": { "role": "tab", "name": "Agents" } }
+      ]
+    },
+    {
+      "id": "open-agents",
+      "description": "Open the Agents tab",
+      "action": "Click",
+      "target": { "role": "tab", "name": "Agents" },
+      "expectations": [
+        { "kind": "Url", "value": "/workspace/{workspaceId}/agents" },
+        { "kind": "Visible", "value": "true", "target": { "testId": "agent-create" } }
+      ]
+    },
+    {
+      "id": "open-create",
+      "description": "Open the create-agent page",
+      "action": "Click",
+      "target": { "testId": "agent-create" },
+      "expectations": [
+        { "kind": "Url", "value": "/workspace/{workspaceId}/agent-create" },
+        { "kind": "Text", "value": "Local inference test agent" },
+        { "kind": "Text", "value": "Ready", "target": { "testId": "agent-create-test-agent-infer" } },
+        { "kind": "Visible", "value": "true", "target": { "testId": "agent-create-test-agent-infer" } }
+      ]
+    },
+    {
+      "id": "start-infer",
+      "description": "Start a test-agent-infer session",
+      "action": "Click",
+      "target": { "testId": "agent-create-test-agent-infer" },
+      "expectations": [
+        { "kind": "Url", "value": "/workspace/{workspaceId}/agent" },
+        { "kind": "Visible", "value": "true", "target": { "testId": "agent-message" } }
+      ]
+    },
+    {
+      "id": "fill-prompt",
+      "description": "Type a prompt",
+      "action": "Fill",
+      "target": { "testId": "agent-message" },
+      "value": "Say only hi.",
+      "expectations": [
+        { "kind": "Text", "value": "Say only hi.", "target": { "testId": "agent-message" } }
+      ]
+    },
+    {
+      "id": "send-prompt",
+      "description": "Send the prompt",
+      "action": "Click",
+      "target": { "testId": "agent-send" },
+      "expectations": [
+        { "kind": "Text", "value": "Say only hi.", "target": { "testId": "agent-transcript-user" } }
+      ]
+    }
+  ]
+}

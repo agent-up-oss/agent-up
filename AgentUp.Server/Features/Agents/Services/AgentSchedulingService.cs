@@ -806,7 +806,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         var enabledAgents = packages?.ListAgents() ?? [];
         var listed = FirstPartyAgents
             .Concat(enabledAgents.Select(agent => agent.Identity.Id))
-            .Concat(IncludeDevelopmentAgents ? [AgentUnavailability.ScriptedTestAgent] : [])
+            .Concat(IncludeDevelopmentAgents ? AgentUnavailability.DevelopmentAgents : [])
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -824,7 +824,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         var module = enabledAgents.FirstOrDefault(agent =>
             agent.Identity.Id.Equals(agentId, StringComparison.OrdinalIgnoreCase));
         var packageEnabled = module is not null || packages?.GetEnabled(agentId) is not null;
-        var developmentAgent = agentId.Equals(AgentUnavailability.ScriptedTestAgent, StringComparison.OrdinalIgnoreCase);
+        var developmentAgent = AgentUnavailability.IsDevelopmentAgent(agentId);
         var displayName = module?.Identity.DisplayName
             ?? packages?.GetEnabled(agentId)?.DisplayName
             ?? DisplayName(agentId);
@@ -880,6 +880,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         "cursor" => "Cursor",
         "claude" => "Claude",
         AgentUnavailability.ScriptedTestAgent => AgentUnavailability.ScriptedTestAgentDisplayName,
+        AgentUnavailability.LocalInferenceTestAgent => AgentUnavailability.LocalInferenceTestAgentDisplayName,
         _ => agent
     };
 

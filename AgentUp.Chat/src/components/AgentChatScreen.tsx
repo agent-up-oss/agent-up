@@ -275,7 +275,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
           <ScrollView style={styles.messages} contentContainerStyle={styles.messageContent}>
             {blocks.map(block => {
               if (block.type === 'user') {
-                return <View key={block.item.id} style={styles.userBubble}><Text style={styles.userText}>{visibleText(block.item.text)}</Text></View>;
+                return <View key={block.item.id} testID="agent-transcript-user" style={styles.userBubble}><Text style={styles.userText}>{visibleText(block.item.text)}</Text></View>;
               }
               if (block.type === 'reply') {
                 return <View key={block.item.id} style={styles.bubble}><Text style={styles.role}>{selectedAgentName}</Text><Text style={styles.body}>{visibleText(block.item.text)}</Text></View>;
@@ -304,8 +304,8 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
           </View>}
           {error && <Text style={styles.error}>{error}</Text>}
           {session?.sessionId && <View style={styles.composer}>
-            <TextInput accessibilityLabel="Message the agent" multiline value={message} onChangeText={setMessage} editable={!waiting} placeholder={permission ? 'Choose an option to continue…' : 'Ask the agent…'} placeholderTextColor={agentUpTheme.colors.textFaint} style={styles.input}/>
-            <Pressable accessibilityRole="button" disabled={waiting || !message.trim()} onPress={() => void send()} style={[styles.send, (waiting || !message.trim()) && styles.disabled]}>{session?.state === 'running' && !permission ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.sendText}>Send</Text>}</Pressable>
+            <TextInput testID="agent-message" accessibilityLabel="Message the agent" multiline value={message} onChangeText={setMessage} editable={!waiting} placeholder={permission ? 'Choose an option to continue…' : 'Ask the agent…'} placeholderTextColor={agentUpTheme.colors.textFaint} style={styles.input}/>
+            <Pressable testID="agent-send" accessibilityRole="button" accessibilityLabel="Send" disabled={waiting || !message.trim()} onPress={() => void send()} style={[styles.send, (waiting || !message.trim()) && styles.disabled]}>{session?.state === 'running' && !permission ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.sendText}>Send</Text>}</Pressable>
           </View>}
         </View>}
     </View>

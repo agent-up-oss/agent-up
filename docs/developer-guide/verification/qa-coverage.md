@@ -63,11 +63,12 @@ Workspace lifecycle is not `n/a` on Mobile: the Apps dashboard exposes Start wor
 | Git review | `git-review` | `git-review` |
 | Validation panel | `validation-panel` | n/a |
 | Agents (#529 merged) | `agents` | `agents` |
+| Agents / local inference (#392) | `agents-infer` | `agents-infer` |
 | Autonomous loop / checklist (#526 merged) | `autonomous-loop` | `autonomous-loop` |
 | Forge review / hosting (#525 merged) | `forge-hosting` | `git-review` |
 | Example Web | `b6e1c8a04f5d4e2f9a7c3d1e8b0f2468` (Application) | n/a |
 
-Agents, autonomous loop, and forge are no longer blocked. The isolated Server has no forge module and no host credential, so those flows cover the shipping empty states: agent availability and remedies, the unattended-loop checklist, and the Git hosting strip's `notInstalled` copy with `Run: agent-up capabilities bootstrap`. Starting `test-agent-scripted` covers a live session on a Development Server. The isolated Server puts that executable on PATH through a fixture shim. Opening a forge proposal, activating a loop through a satisfied checklist, and Demo remain gaps.
+Agents, autonomous loop, and forge are no longer blocked. The isolated Server has no forge module and no host credential, so those flows cover the shipping empty states: agent availability and remedies, the unattended-loop checklist, and the Git hosting strip's `notInstalled` copy with `Run: agent-up capabilities bootstrap`. Starting `test-agent-scripted` covers a live session on a Development Server. `agents-infer` picks `test-agent-infer` (no auth; `session/new` is immediate) and sends a prompt; the user text in the transcript is the chat consequence. The isolated Server puts those executables on PATH through fixture shims. Opening a forge proposal, activating a loop through a satisfied checklist, and Demo remain gaps.
 
 Workspace start in this suite asserts the workspace leaves Stopped (Stop workspace is visible). Stop is disabled until Running or Degraded, and every application reaching `Running` is the Runtime capability E2E job; a cold start of this repository exceeds the validation wait. Console, diagnostics, and the Validation sidebar select Docs without starting processes.
 

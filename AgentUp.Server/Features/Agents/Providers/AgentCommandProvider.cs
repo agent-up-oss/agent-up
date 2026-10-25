@@ -35,8 +35,9 @@ public sealed class AgentCommandProvider(
         if (configured is not null && IsAvailableCommand(configured.FileName))
             return Task.FromResult<AgentCommand?>(configured);
 
-        if (IsScriptedTestAgent(agent) && IsAvailableCommand(AgentUnavailability.ScriptedTestAgent))
-            return Task.FromResult<AgentCommand?>(new AgentCommand(AgentUnavailability.ScriptedTestAgent, []));
+        var developmentId = AgentUnavailability.DevelopmentAgentId(agent);
+        if (developmentId is not null && IsAvailableCommand(developmentId))
+            return Task.FromResult<AgentCommand?>(new AgentCommand(developmentId, []));
 
         return Task.FromResult<AgentCommand?>(null);
     }
@@ -63,11 +64,8 @@ public sealed class AgentCommandProvider(
         if (!string.IsNullOrWhiteSpace(command))
             return command;
 
-        return IsScriptedTestAgent(agent) ? AgentUnavailability.ScriptedTestAgent : null;
+        return AgentUnavailability.DevelopmentAgentId(agent);
     }
-
-    private static bool IsScriptedTestAgent(string agent) =>
-        agent.Equals(AgentUnavailability.ScriptedTestAgent, StringComparison.OrdinalIgnoreCase);
 
     private AgentCommand? ResolveCapability(string agent)
     {

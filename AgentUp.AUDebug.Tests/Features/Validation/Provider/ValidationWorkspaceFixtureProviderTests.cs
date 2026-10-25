@@ -63,8 +63,11 @@ public sealed class ValidationWorkspaceFixtureProviderTests
         var environment = provider.ServerEnvironment(data);
 
         var shim = environment[ValidationWorkspaceFixtureProvider.ScriptedAgentCommandKey];
+        var infer = environment[ValidationWorkspaceFixtureProvider.InferAgentCommandKey];
         Assert.That(File.Exists(shim), Is.True);
-        Assert.That(File.ReadAllText(shim), Does.Contain(executable));
+        Assert.That(File.ReadAllText(shim), Does.Contain(executable).And.Contain(ValidationWorkspaceFixtureProvider.ScriptedAgentId));
+        Assert.That(File.Exists(infer), Is.True);
+        Assert.That(File.ReadAllText(infer), Does.Contain(executable).And.Contain(ValidationWorkspaceFixtureProvider.InferAgentId));
         Assert.That(environment["PATH"], Does.StartWith(Path.GetDirectoryName(shim)!));
     }
 

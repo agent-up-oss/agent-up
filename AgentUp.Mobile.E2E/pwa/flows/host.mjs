@@ -123,19 +123,26 @@ async function assertExport(exportDir) {
 export async function scriptedAgentEnvironment(repoRoot, binDir) {
   const executable = await findTestAgentsExecutable(repoRoot);
   await mkdir(binDir, { recursive: true });
-  const shim = join(binDir, 'test-agent-scripted');
+  const scripted = await writeDevelopmentAgentShim(binDir, executable, 'test-agent-scripted');
+  const infer = await writeDevelopmentAgentShim(binDir, executable, 'test-agent-infer');
+  return {
+    PATH: `${binDir}${pathDelimiter}${process.env.PATH ?? ''}`,
+    'Agents__test-agent-scripted__Command': scripted,
+    'Agents__test-agent-infer__Command': infer,
+  };
+}
+
+async function writeDevelopmentAgentShim(binDir, executable, agentId) {
+  const shim = join(binDir, agentId);
   await writeFile(shim, [
     '#!/bin/sh',
     'set -e',
-    "export AGENTUP_TEST_AGENT='test-agent-scripted'",
+    `export AGENTUP_TEST_AGENT='${agentId}'`,
     `exec '${executable}' "$@"`,
     '',
   ].join('\n'));
   await chmod(shim, 0o755);
-  return {
-    PATH: `${binDir}${pathDelimiter}${process.env.PATH ?? ''}`,
-    'Agents__test-agent-scripted__Command': shim,
-  };
+  return shim;
 }
 
 async function findTestAgentsExecutable(repoRoot) {

@@ -195,14 +195,14 @@ public sealed class AgentCommandProviderTests
         Assert.That(result!.FileName, Is.EqualTo(command));
     }
 
-    [Test]
-    public async Task IsAvailableAsync_findsTheScriptedTestAgentOnPath()
+    [TestCase(AgentUnavailability.ScriptedTestAgent)]
+    [TestCase(AgentUnavailability.LocalInferenceTestAgent)]
+    public async Task IsAvailableAsync_findsTheDevelopmentTestAgentOnPath(string name)
     {
         var directory = Directory.CreateTempSubdirectory();
         var previous = Environment.GetEnvironmentVariable("PATH");
         try
         {
-            var name = AgentUnavailability.ScriptedTestAgent;
             var file = Path.Join(directory.FullName, OperatingSystem.IsWindows() ? name + ".exe" : name);
             await File.WriteAllBytesAsync(file, [0x23, 0x21]);
             if (!OperatingSystem.IsWindows())
@@ -258,15 +258,17 @@ public sealed class AgentCommandProviderTests
         var provider = new AgentCommandProvider(new ConfigurationBuilder().Build());
 
         Assert.That(provider.LaunchCommandName(AgentUnavailability.ScriptedTestAgent), Is.EqualTo(AgentUnavailability.ScriptedTestAgent));
+        Assert.That(provider.LaunchCommandName(AgentUnavailability.LocalInferenceTestAgent), Is.EqualTo(AgentUnavailability.LocalInferenceTestAgent));
         Assert.That(provider.LaunchCommandName("claude"), Is.Null);
     }
 
-    [Test]
-    public Task ResolveAsync_isNullWhenTheScriptedTestAgentIsMissingFromPath()
+    [TestCase(AgentUnavailability.ScriptedTestAgent)]
+    [TestCase(AgentUnavailability.LocalInferenceTestAgent)]
+    public Task ResolveAsync_isNullWhenTheDevelopmentTestAgentIsMissingFromPath(string name)
         => WithEmptyPathAsync(async () =>
         {
             var result = await new AgentCommandProvider(new ConfigurationBuilder().Build())
-                .ResolveAsync(AgentUnavailability.ScriptedTestAgent, CancellationToken.None);
+                .ResolveAsync(name, CancellationToken.None);
 
             Assert.That(result, Is.Null);
         });

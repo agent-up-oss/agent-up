@@ -123,7 +123,14 @@ public sealed class AgentsHttpTests
             Assert.That(session.Agent, Is.Null);
             Assert.That(
                 session.Agents.Select(agent => agent.Agent),
-                Is.EqualTo(new[] { "codex", "cursor", "claude", AgentUnavailability.ScriptedTestAgent }));
+                Is.EqualTo(new[]
+                {
+                    "codex",
+                    "cursor",
+                    "claude",
+                    AgentUnavailability.ScriptedTestAgent,
+                    AgentUnavailability.LocalInferenceTestAgent
+                }));
         });
     }
 

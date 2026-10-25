@@ -52,6 +52,7 @@ public sealed class QaCoverageMap
         "git-review",
         "validation-panel",
         "agents",
+        "agents-infer",
         "autonomous-loop",
         "forge-hosting"
     ];
@@ -62,6 +63,7 @@ public sealed class QaCoverageMap
         "workspace-lifecycle",
         "git-review",
         "agents",
+        "agents-infer",
         "autonomous-loop"
     ];
 

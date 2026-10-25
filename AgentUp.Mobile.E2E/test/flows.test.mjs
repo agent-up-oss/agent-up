@@ -92,7 +92,11 @@ test('scriptedAgentEnvironment writes an executable shim onto PATH', async () =>
     const bin = join(repo, 'bin');
     const env = await scriptedAgentEnvironment(repo, bin);
     const shim = env['Agents__test-agent-scripted__Command'];
+    const infer = env['Agents__test-agent-infer__Command'];
     assert.equal((await readFile(shim, 'utf8')).includes(executable), true);
+    assert.equal((await readFile(shim, 'utf8')).includes("AGENTUP_TEST_AGENT='test-agent-scripted'"), true);
+    assert.equal((await readFile(infer, 'utf8')).includes(executable), true);
+    assert.equal((await readFile(infer, 'utf8')).includes("AGENTUP_TEST_AGENT='test-agent-infer'"), true);
     assert.equal(env.PATH.startsWith(bin), true);
   } finally {
     await rm(repo, { recursive: true, force: true });
