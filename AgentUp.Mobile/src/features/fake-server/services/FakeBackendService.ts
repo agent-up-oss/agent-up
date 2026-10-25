@@ -1,4 +1,4 @@
-import { cloneDefinition, type FakeServerDefinition } from '../models/FakeServerDefinition';
+import { cloneDefinition, type FakeOfferedIssue, type FakeQueuedTask, type FakeServerDefinition } from '../models/FakeServerDefinition';
 import { fakeServerEventFrame, type FakeServerEvent } from '../models/FakeServerEvent';
 import { fakeServerId, fakeServerUrl, isFakeServerUrl } from '../models/FakeServerIdentity';
 import {
@@ -204,6 +204,9 @@ export class FakeBackendService {
     if (method === 'POST' && path === '/api/capabilities/enable') return this.enableCapability(request.body);
     if (method === 'POST' && path.startsWith('/api/capabilities/disable/'))
       return this.disableCapability(decodeURIComponent(path.slice('/api/capabilities/disable/'.length)));
+    if (method === 'GET' && path === '/api/tasks') return json(this.taskQueue());
+    if (method === 'POST' && path === '/api/tasks') return this.enqueueTask(request.body);
+    if (path.startsWith('/api/tasks/')) return this.taskMutation(method, path.slice('/api/tasks/'.length));
     if (method === 'GET' && path.startsWith('/apps/')) return this.appPage(path);
 
     const workspacePath = parseWorkspacePath(path);
@@ -249,6 +252,7 @@ export class FakeBackendService {
     if (method === 'GET' && rest === 'git/log') return this.gitLog(workspaceId);
     if (method === 'GET' && rest === 'commit-queue') return this.gitQueue(workspaceId);
     if (method === 'GET' && rest === 'forge') return json(this.forge(workspaceId));
+    if (method === 'GET' && rest === 'forge/issues') return json(this.openIssues(workspaceId));
     if (method === 'GET' && rest.startsWith('git/file')) return this.gitDiff(workspaceId, request.query);
     if (method === 'POST' && rest.startsWith('git/')) return this.gitMutation(workspaceId, rest.slice('git/'.length), request.body);
     if (method === 'GET' && rest === 'agent/loop') return this.agentLoop(workspaceId);
@@ -387,6 +391,83 @@ export class FakeBackendService {
    * forge capability returns, so a client fills from it without a demo-only path; a workspace the
    * definition says nothing about reads as no host connected.
    */
+  /**
+   * The Demo's one repository. Every demo workspace is a worktree of it, which is why one queue
+   * serves them all.
+   */
+  private static readonly demoOwner = 'harbor-oss';
+  private static readonly demoRepository = 'harbor';
+
+  /**
+   * The picked queue, shared by every workspace. The Demo answers the shape the Server serves, so
+   * the Tasks tab arranges it here exactly as it would against a real Server.
+   */
+  private taskQueue(): FakeQueuedTask[] {
+    return this.state.taskQueue ?? [];
+  }
+
+  /**
+   * Open issues on a workspace's repository, minus the ones already queued. A queued issue is not
+   * offered again, which is what the Server's own picker does.
+   */
+  private openIssues(workspaceId: string): FakeOfferedIssue[] {
+    const queued = new Set(this.taskQueue().map(task => task.id));
+    return (this.state.issues?.[workspaceId] ?? []).filter(issue => !queued.has(issue.id));
+  }
+
+  private enqueueTask(body: string | null): FakeBackendResponse {
+    const workspaceId = readJsonString(body, 'workspaceId');
+    const issueId = readJsonString(body, 'issueId');
+    if (!workspaceId || !issueId) return notFound();
+
+    const issue = (this.state.issues?.[workspaceId] ?? []).find(item => item.id === issueId);
+    if (!issue) return notFound();
+
+    const task: FakeQueuedTask = {
+      id: issue.id,
+      owner: FakeBackendService.demoOwner,
+      repository: FakeBackendService.demoRepository,
+      number: issue.number,
+      title: issue.title,
+      body: issue.body,
+      url: issue.url,
+      queuedAt: new Date().toISOString(),
+      targetWorkspaceId: readJsonString(body, 'targetWorkspaceId'),
+      heldByWorkspaceId: null,
+    };
+    this.state.taskQueue = [...this.taskQueue(), task];
+    return json(task);
+  }
+
+  /**
+   * Changes to one queued task. The path carries owner and repository the way the Server's routes
+   * do, so only the trailing id and verb decide what happens.
+   */
+  private taskMutation(method: string, rest: string): FakeBackendResponse {
+    const segments = rest.split('/').filter(segment => segment.length > 0);
+    if (segments.length < 3) return notFound();
+
+    const id = decodeURIComponent(segments[2]);
+    const verb = segments[3];
+    const task = this.taskQueue().find(item => item.id === id);
+    if (!task) return notFound();
+
+    if (method === 'DELETE' && verb === undefined) {
+      // A task a workspace is carrying stays, the same refusal the Server gives.
+      if (task.heldByWorkspaceId !== null) return { status: 409, contentType: 'application/json' };
+      this.state.taskQueue = this.taskQueue().filter(item => item.id !== id);
+      return { status: 204, contentType: 'application/json' };
+    }
+
+    if (method === 'POST' && verb === 'release') {
+      this.state.taskQueue = this.taskQueue().map(item =>
+        item.id === id ? { ...item, heldByWorkspaceId: null } : item);
+      return { status: 204, contentType: 'application/json' };
+    }
+
+    return { status: 204, contentType: 'application/json' };
+  }
+
   private forge(workspaceId: string): unknown {
     return this.state.forge?.[workspaceId] ?? {
       availability: 'notInstalled',

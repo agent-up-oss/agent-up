@@ -53,7 +53,7 @@ test('binding records the workspace agent', () => {
   const service = backend();
   const bound = json(service, 'PUT', '/api/workspaces/bob/agent/binding', JSON.stringify({ agent: 'codex' }));
   assert.equal(bound.boundAgent, 'codex');
-  const unbound = json(service, 'DELETE', '/api/workspaces/harbor-shop/agent/binding');
+  const unbound = json(service, 'DELETE', '/api/workspaces/bob/agent/binding');
   assert.equal(unbound.boundAgent, null);
 });
 
@@ -170,15 +170,15 @@ test('autonomy enable then activate exposes a typed terminal', () => {
 
 test('workspace autonomy reflects the saved permission policy', () => {
   const service = backend();
-  const status = () => json(service, 'GET', '/api/workspaces/harbor-shop/agent/autonomy');
+  const status = () => json(service, 'GET', '/api/workspaces/bob/agent/autonomy');
 
   assert.equal(status().preconditions.find((item: { id: string }) => item.id === 'permissionPolicy').satisfied, false);
   assert.equal(service.handle({
-    method: 'PUT', path: '/api/workspaces/harbor-shop/agent/policy', query: '',
+    method: 'PUT', path: '/api/workspaces/bob/agent/policy', query: '',
     body: '{"rules":[{"id":"allow-execute","kind":"Execute","allow":true}]}',
   }).status, 204);
   assert.equal(status().preconditions.find((item: { id: string }) => item.id === 'permissionPolicy').satisfied, true);
-  assert.equal(json(service, 'GET', '/api/workspaces/harbor-shop/agent/policy').rules.length, 1);
+  assert.equal(json(service, 'GET', '/api/workspaces/bob/agent/policy').rules.length, 1);
 });
 
 test('agent session lists current and prior saved sessions', () => {
@@ -458,4 +458,38 @@ test('messaging a reviewer leaves the author\'s branch alone', () => {
   assert.equal(after, before);
   assert.match(texts.join('\n'), /review/);
   assert.doesNotMatch(texts.join('\n'), /PromoBanner/);
+});
+
+test('the demo serves the picked queue in the order it will be worked', () => {
+  const service = backend();
+  const queue = json(service, 'GET', '/api/tasks');
+  assert.deepEqual(queue.map((task: { number: number }) => task.number), [44, 51, 48]);
+  assert.equal(queue[0].heldByWorkspaceId, 'bob');
+  assert.equal(queue[1].targetWorkspaceId, 'hector');
+});
+
+test('the demo offers only the open issues that are not queued yet', () => {
+  const service = backend();
+  const offered = json(service, 'GET', '/api/workspaces/bob/forge/issues');
+  assert.deepEqual(offered.map((issue: { number: number }) => issue.number), [57, 58, 61]);
+});
+
+test('picking an issue puts it at the back of the queue and stops offering it', () => {
+  const service = backend();
+  json(service, 'POST', '/api/tasks', JSON.stringify({ workspaceId: 'bob', issueId: 'I-57' }));
+  const queue = json(service, 'GET', '/api/tasks');
+  const offered = json(service, 'GET', '/api/workspaces/bob/forge/issues');
+  assert.equal(queue[queue.length - 1].number, 57);
+  assert.deepEqual(offered.map((issue: { number: number }) => issue.number), [58, 61]);
+});
+
+test('a task a workspace is carrying is not removed, but can be released first', () => {
+  const service = backend();
+  const refused = service.handle({ method: 'DELETE', path: '/api/tasks/harbor-oss/harbor/I-44', query: '', body: null });
+  assert.equal(refused.status, 409);
+
+  service.handle({ method: 'POST', path: '/api/tasks/harbor-oss/harbor/I-44/release', query: '', body: null });
+  const removed = service.handle({ method: 'DELETE', path: '/api/tasks/harbor-oss/harbor/I-44', query: '', body: null });
+  assert.equal(removed.status, 204);
+  assert.equal(json(service, 'GET', '/api/tasks').length, 2);
 });

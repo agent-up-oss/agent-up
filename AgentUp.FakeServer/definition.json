@@ -1218,5 +1218,132 @@
       "reviews": [],
       "remedy": "Check the host connection, then resume the run."
     }
+  },
+  "taskQueue": [
+    {
+      "id": "I-44",
+      "owner": "harbor-oss",
+      "repository": "harbor",
+      "number": 44,
+      "title": "Restock featured products",
+      "body": "The featured rail empties when a promo ends. Refill it from the catalogue.",
+      "url": "https://github.com/harbor-oss/harbor/issues/44",
+      "queuedAt": "2026-03-02T09:00:00Z",
+      "targetWorkspaceId": null,
+      "heldByWorkspaceId": "bob"
+    },
+    {
+      "id": "I-51",
+      "owner": "harbor-oss",
+      "repository": "harbor",
+      "number": 51,
+      "title": "Broken anchors in the docs nav",
+      "body": "Several in-page anchors scroll to the wrong heading.",
+      "url": "https://github.com/harbor-oss/harbor/issues/51",
+      "queuedAt": "2026-03-02T09:04:00Z",
+      "targetWorkspaceId": "hector",
+      "heldByWorkspaceId": null
+    },
+    {
+      "id": "I-48",
+      "owner": "harbor-oss",
+      "repository": "harbor",
+      "number": 48,
+      "title": "Express checkout drops the promo code",
+      "body": "Applying a promo code then switching to express checkout loses it.",
+      "url": "https://github.com/harbor-oss/harbor/issues/48",
+      "queuedAt": "2026-03-02T09:07:00Z",
+      "targetWorkspaceId": null,
+      "heldByWorkspaceId": null
+    }
+  ],
+  "issues": {
+    "bob": [
+      {
+        "id": "I-57",
+        "number": 57,
+        "title": "Cart badge lags behind the cart",
+        "body": "",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T08:00:00Z",
+        "url": "https://github.com/harbor-oss/harbor/issues/57"
+      },
+      {
+        "id": "I-58",
+        "number": 58,
+        "title": "Search ignores a trailing space",
+        "body": "",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T08:00:00Z",
+        "url": "https://github.com/harbor-oss/harbor/issues/58"
+      },
+      {
+        "id": "I-61",
+        "number": 61,
+        "title": "Order confirmation email omits tax",
+        "body": "",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T08:00:00Z",
+        "url": "https://github.com/harbor-oss/harbor/issues/61"
+      }
+    ],
+    "lucy": [
+      {
+        "id": "I-57",
+        "number": 57,
+        "title": "Cart badge lags behind the cart",
+        "body": "",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T08:00:00Z",
+        "url": "https://github.com/harbor-oss/harbor/issues/57"
+      },
+      {
+        "id": "I-58",
+        "number": 58,
+        "title": "Search ignores a trailing space",
+        "body": "",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T08:00:00Z",
+        "url": "https://github.com/harbor-oss/harbor/issues/58"
+      },
+      {
+        "id": "I-61",
+        "number": 61,
+        "title": "Order confirmation email omits tax",
+        "body": "",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T08:00:00Z",
+        "url": "https://github.com/harbor-oss/harbor/issues/61"
+      }
+    ],
+    "hector": [
+      {
+        "id": "I-57",
+        "number": 57,
+        "title": "Cart badge lags behind the cart",
+        "body": "",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T08:00:00Z",
+        "url": "https://github.com/harbor-oss/harbor/issues/57"
+      },
+      {
+        "id": "I-58",
+        "number": 58,
+        "title": "Search ignores a trailing space",
+        "body": "",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T08:00:00Z",
+        "url": "https://github.com/harbor-oss/harbor/issues/58"
+      },
+      {
+        "id": "I-61",
+        "number": 61,
+        "title": "Order confirmation email omits tax",
+        "body": "",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T08:00:00Z",
+        "url": "https://github.com/harbor-oss/harbor/issues/61"
+      }
+    ]
   }
 }

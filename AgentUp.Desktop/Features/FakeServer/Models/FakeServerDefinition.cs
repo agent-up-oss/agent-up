@@ -40,6 +40,12 @@ public sealed class FakeServerDefinition
     /// <summary>What a connected repository host reports, per workspace.</summary>
     public JsonNode? Forge => Root["forge"];
 
+    /// <summary>The tasks picked for the agents, in the order they will be worked.</summary>
+    public JsonArray TaskQueue => Root["taskQueue"]?.AsArray() ?? [];
+
+    /// <summary>The open issues each workspace's repository offers, per workspace.</summary>
+    public JsonNode? Issues => Root["issues"];
+
     public FakeServerDefinition Clone()
         => new(Root.DeepClone());
 

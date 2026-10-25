@@ -119,6 +119,12 @@ public sealed class FakeBackendService
             return EnableCapability(request.Body);
         if (method == "POST" && path.StartsWith("/api/capabilities/disable/", StringComparison.Ordinal))
             return DisableCapability(Uri.UnescapeDataString(path["/api/capabilities/disable/".Length..]));
+        if (method == "GET" && path == "/api/tasks")
+            return Json(TaskQueue());
+        if (method == "POST" && path == "/api/tasks")
+            return EnqueueTask(request.Body);
+        if (path.StartsWith("/api/tasks/", StringComparison.Ordinal))
+            return TaskMutation(method, path["/api/tasks/".Length..]);
         if (method == "GET" && path.StartsWith("/apps/", StringComparison.Ordinal))
             return AppPage(path);
 
@@ -206,6 +212,8 @@ public sealed class FakeBackendService
             return GitNode(workspaceId, "queue");
         if (method == "GET" && rest == "forge")
             return Json(Forge(workspaceId));
+        if (method == "GET" && rest == "forge/issues")
+            return Json(OpenIssues(workspaceId));
         if (method == "GET" && rest.StartsWith("git/file", StringComparison.Ordinal))
             return GitDiff(workspaceId, request.Query);
         if (method == "POST" && rest.StartsWith("git/", StringComparison.Ordinal))
@@ -1022,6 +1030,119 @@ public sealed class FakeBackendService
                 return NotFound();
             SetCapability(module, enabled: false);
             return Json(module);
+        }
+    }
+
+
+    /// <summary>
+    /// The Demo's one repository. Every demo workspace is a worktree of it, which is why one queue
+    /// serves them all.
+    /// </summary>
+    private const string DemoOwner = "harbor-oss";
+    private const string DemoRepository = "harbor";
+
+    /// <summary>
+    /// The picked queue, shared by every workspace. The Demo keeps it in the same shape the Server
+    /// serves, so the Tasks tab arranges it here exactly as it would against a real Server.
+    /// </summary>
+    private JsonArray TaskQueue()
+    {
+        lock (_gate)
+            return _state.TaskQueue.DeepClone().AsArray();
+    }
+
+    /// <summary>
+    /// Open issues on a workspace's repository, minus the ones already queued. A queued issue is
+    /// not offered again, which is what the Server's own picker does.
+    /// </summary>
+    private JsonArray OpenIssues(string workspaceId)
+    {
+        lock (_gate)
+        {
+            var queued = _state.TaskQueue
+                .OfType<JsonObject>()
+                .Select(task => task["id"]?.GetValue<string>())
+                .ToHashSet(StringComparer.Ordinal);
+            var offered = new JsonArray();
+            foreach (var issue in (_state.Issues?[workspaceId]?.AsArray() ?? []).OfType<JsonObject>())
+            {
+                if (!queued.Contains(issue["id"]?.GetValue<string>()))
+                    offered.Add(issue.DeepClone());
+            }
+
+            return offered;
+        }
+    }
+
+    private FakeBackendResponseDto EnqueueTask(string? body)
+    {
+        var workspaceId = ReadJsonString(body, "workspaceId");
+        var issueId = ReadJsonString(body, "issueId");
+        var target = ReadJsonString(body, "targetWorkspaceId");
+        if (workspaceId is null || issueId is null)
+            return NotFound();
+
+        lock (_gate)
+        {
+            var issue = (_state.Issues?[workspaceId]?.AsArray() ?? [])
+                .OfType<JsonObject>()
+                .FirstOrDefault(item => item["id"]?.GetValue<string>() == issueId);
+            if (issue is null)
+                return NotFound();
+
+            var task = new JsonObject
+            {
+                ["id"] = issueId,
+                ["owner"] = DemoOwner,
+                ["repository"] = DemoRepository,
+                ["number"] = issue["number"]?.DeepClone(),
+                ["title"] = issue["title"]?.DeepClone(),
+                ["body"] = issue["body"]?.DeepClone(),
+                ["url"] = issue["url"]?.DeepClone(),
+                ["queuedAt"] = DateTimeOffset.UtcNow.ToString("o"),
+                ["targetWorkspaceId"] = target,
+                ["heldByWorkspaceId"] = null
+            };
+            _state.TaskQueue.Add(task);
+            return Json(task.DeepClone());
+        }
+    }
+
+    /// <summary>
+    /// Changes to one queued task. The path carries owner and repository the way the Server's
+    /// routes do, so only the trailing id and verb decide what happens.
+    /// </summary>
+    private FakeBackendResponseDto TaskMutation(string method, string rest)
+    {
+        var segments = rest.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length < 3)
+            return NotFound();
+
+        var id = Uri.UnescapeDataString(segments[2]);
+        var verb = segments.Length > 3 ? segments[3] : null;
+        lock (_gate)
+        {
+            var queue = _state.TaskQueue;
+            var task = queue.OfType<JsonObject>().FirstOrDefault(item => item["id"]?.GetValue<string>() == id);
+            if (task is null)
+                return NotFound();
+
+            if (method == "DELETE" && verb is null)
+            {
+                // A task a workspace is carrying stays, the same refusal the Server gives.
+                if (task["heldByWorkspaceId"] is not null)
+                    return new FakeBackendResponseDto(409, "application/json");
+                queue.Remove(task);
+                return new FakeBackendResponseDto(204, "application/json");
+            }
+
+            if (method == "POST" && verb == "release")
+            {
+                task["heldByWorkspaceId"] = null;
+                return new FakeBackendResponseDto(204, "application/json");
+            }
+
+            return new FakeBackendResponseDto(204, "application/json");
         }
     }
 

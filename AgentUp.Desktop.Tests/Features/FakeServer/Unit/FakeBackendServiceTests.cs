@@ -912,6 +912,81 @@ public sealed class FakeBackendServiceTests
             Has.Some.Contain("Harbor is running locally."));
     }
 
+    [Test]
+    public void Handle_servesThePickedQueueInTheOrderItWillBeWorked()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        var queue = Json(backend, Get("/api/tasks")).AsArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(queue.Select(task => task!["number"]!.GetValue<int>()), Is.EqualTo(new[] { 44, 51, 48 }));
+            Assert.That(queue[0]!["heldByWorkspaceId"]!.GetValue<string>(), Is.EqualTo("bob"));
+            Assert.That(queue[1]!["targetWorkspaceId"]!.GetValue<string>(), Is.EqualTo("hector"));
+        });
+    }
+
+    [Test]
+    public void Handle_offersOnlyTheOpenIssuesThatAreNotQueuedYet()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        var offered = Json(backend, Get("/api/workspaces/bob/forge/issues")).AsArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(offered.Select(issue => issue!["number"]!.GetValue<int>()), Is.EqualTo(new[] { 57, 58, 61 }));
+            Assert.That(offered.Select(issue => issue!["id"]!.GetValue<string>()), Has.None.EqualTo("I-44"));
+        });
+    }
+
+    [Test]
+    public void Handle_picksAnIssueOntoTheBackOfTheQueueAndStopsOfferingIt()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Run(backend, Post("/api/tasks", """{"workspaceId":"bob","issueId":"I-57"}"""));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Json(backend, Get("/api/tasks")).AsArray()[^1]!["number"]!.GetValue<int>(), Is.EqualTo(57));
+            Assert.That(
+                Json(backend, Get("/api/workspaces/bob/forge/issues")).AsArray()
+                    .Select(issue => issue!["number"]!.GetValue<int>()),
+                Is.EqualTo(new[] { 58, 61 }));
+        });
+    }
+
+    [Test]
+    public void Handle_refusesToRemoveATaskAWorkspaceIsCarrying()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        var refused = Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/tasks/harbor-oss/harbor/I-44"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(refused.Status, Is.EqualTo(409));
+            Assert.That(Json(backend, Get("/api/tasks")).AsArray(), Has.Count.EqualTo(3));
+        });
+    }
+
+    [Test]
+    public void Handle_releasesAHeldTaskAndThenLetsItBeRemoved()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Run(backend, Post("/api/tasks/harbor-oss/harbor/I-44/release"));
+        var removed = Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/tasks/harbor-oss/harbor/I-44"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(removed.Status, Is.EqualTo(204));
+            Assert.That(Json(backend, Get("/api/tasks")).AsArray(), Has.Count.EqualTo(2));
+        });
+    }
+
     private static FakeBackendRequestDtoBuilder Get(string path) => new FakeBackendRequestDtoBuilder().Get(path);
 
     private static FakeBackendRequestDtoBuilder Post(string path, string? body = null)

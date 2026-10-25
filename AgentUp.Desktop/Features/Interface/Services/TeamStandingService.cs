@@ -9,9 +9,10 @@ namespace AgentUp.Desktop.Features.Interface.Services;
 
 /// <summary>
 /// Composes the team's standing from the reads a Server already answers: one agent session and one
-/// forge read per workspace. There is no cross-workspace queue endpoint, so the queue this produces
-/// is the set of tasks the agents themselves report — which is also why it works unchanged against
-/// the Demo, whose definition answers the same two routes.
+/// forge read per workspace. What it produces is the set of tasks the agents report holding, which
+/// is what the team is doing now — the queue of what they will do next is a separate read, because
+/// a task nobody has started yet belongs to no agent's standing. It works unchanged against the
+/// Demo, whose definition answers the same two routes.
 /// </summary>
 public sealed class TeamStandingService
 {

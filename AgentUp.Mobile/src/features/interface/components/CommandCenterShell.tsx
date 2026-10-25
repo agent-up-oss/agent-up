@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { agentUpTheme, auBox } from '@agent-up/design-system/native';
+import { useTaskQueue, type TaskQueueState } from '../controllers/TaskQueueContext';
 import { useTeamStanding } from '../controllers/TeamStandingContext';
+import { holderLabel, issueLabel, targetLabel, taskLabel } from '../models/TaskQueue';
 import type { TeamStanding } from '../models/TeamStanding';
 import {
   checksCount,
@@ -30,6 +32,7 @@ type Surface = 'bridge' | 'tasks' | 'team' | 'settings';
  */
 export function CommandCenterShell() {
   const standing = useTeamStanding();
+  const tasks = useTaskQueue();
   const { activeServer, logout } = useServers();
   const [surface, setSurface] = useState<Surface>('bridge');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -57,7 +60,7 @@ export function CommandCenterShell() {
 
       <ScrollView contentContainerStyle={styles.body}>
         {surface === 'bridge' ? <Bridge standing={standing} /> : null}
-        {surface === 'tasks' ? <Tasks standing={standing} /> : null}
+        {surface === 'tasks' ? <Tasks standing={standing} tasks={tasks} /> : null}
         {surface === 'team' ? <Team standing={standing} /> : null}
         {surface === 'settings' ? <Settings onSignOut={logout} serverLabel={serverLabel} /> : null}
       </ScrollView>
@@ -127,13 +130,46 @@ function Bridge({ standing }: { standing: Standing }) {
   );
 }
 
-function Tasks({ standing }: { standing: Standing }) {
+function Tasks({ standing, tasks }: { standing: Standing; tasks: TaskQueueState }) {
   if (standing.error) return <Empty title="Could not reach the Server" note={standing.error} action="Retry" onPress={standing.refresh} />;
   if (!standing.read && standing.loading) return <Empty title="Loading" note="Reading the queue from the Server." />;
 
   return (
     <>
-      <Section title={`TASKS · ${standing.tasks.length}`} tone="muted" />
+      <Section title={`QUEUE · ${tasks.queue.length}`} tone="muted" />
+      <Text style={styles.note}>The agents work these, in this order. Nothing else on the host is touched.</Text>
+      {tasks.error ? <Text style={[styles.note, styles.danger]}>{tasks.error}</Text> : null}
+      {tasks.queue.length
+        ? tasks.queue.map(task => (
+          <View key={`${task.owner}/${task.repository}/${task.id}`} style={styles.card}>
+            <Text style={styles.cardTitle}>{taskLabel(task)}</Text>
+            <Text style={styles.note}>{task.owner}/{task.repository}</Text>
+            <Text style={styles.note}>for {targetLabel(task, tasks.names)} · held by {holderLabel(task, tasks.names)}</Text>
+            <View style={styles.rowActions}>
+              <QueueAction label="Sooner" onPress={() => tasks.move(task, -1)} />
+              <QueueAction label="Later" onPress={() => tasks.move(task, 1)} />
+              {task.heldByWorkspaceId === null
+                ? <QueueAction label="Remove" onPress={() => tasks.remove(task)} />
+                : <QueueAction label="Release" onPress={() => tasks.release(task)} />}
+            </View>
+          </View>
+        ))
+        : <Text style={styles.note}>Nothing is queued, so the agents have nothing to take. Pick an issue below.</Text>}
+
+      <Section title={`OPEN ISSUES · ${tasks.offered.length}`} tone="muted" />
+      {tasks.offered.length
+        ? tasks.offered.map(issue => (
+          <View key={issue.id} style={styles.card}>
+            <Text style={styles.cardTitle}>{issueLabel(issue)}</Text>
+            <View style={styles.rowActions}>
+              <QueueAction label="Queue" onPress={() => tasks.pick(issue)} />
+            </View>
+          </View>
+        ))
+        : <Text style={styles.note}>Every open issue on this repository is already queued.</Text>}
+
+      <Section title={`REPORTED · ${standing.tasks.length}`} tone="muted" />
+      <Text style={styles.note}>What each agent says it is holding right now.</Text>
       {standing.tasks.length
         ? standing.tasks.map(task => (
           <View key={task.number} style={styles.card}>
@@ -147,14 +183,15 @@ function Tasks({ standing }: { standing: Standing }) {
           </View>
         ))
         : <Text style={styles.note}>No agent reports a task in hand.</Text>}
-      <View style={styles.degrade}>
-        <Text style={styles.degradeTitle}>Why the list can be short</Text>
-        <Text style={styles.note}>
-          These are the tasks the agents report holding. Unassigned issues live on the repository host;
-          this Server does not expose its queue to clients, so they are not listed here.
-        </Text>
-      </View>
     </>
+  );
+}
+
+function QueueAction({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} style={styles.rowAction} onPress={onPress}>
+      <Text style={styles.buttonText}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -301,6 +338,9 @@ const styles = StyleSheet.create({
   sectionDanger: { color: agentUpTheme.colors.textDanger },
   sectionWarning: { color: agentUpTheme.colors.textWarning },
   card: { ...auBox('card'), gap: 4 },
+  rowActions: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  rowAction: { ...auBox('button', 'buttonSecondary'), paddingHorizontal: 12, paddingVertical: 6 },
+  danger: { color: agentUpTheme.colors.statusDanger },
   cardDanger: auBox('cardDanger'),
   cardWarning: { borderColor: agentUpTheme.colors.borderStrong },
   code: { color: agentUpTheme.colors.textMuted, fontSize: 12, fontFamily: agentUpTheme.fonts.mono },
