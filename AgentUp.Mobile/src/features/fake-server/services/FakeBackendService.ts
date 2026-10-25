@@ -124,6 +124,7 @@ export class FakeBackendService {
   private agentSequence = 0;
   private loopGeneration = 0;
   private autonomyEnabled = false;
+  private readonly permissionPolicies = new Map<string, unknown[]>();
   private cancelLifecycle: (() => void) | null = null;
 
   constructor(definition: FakeServerDefinition, schedule: FakeScheduler = defaultScheduler) {
@@ -152,6 +153,7 @@ export class FakeBackendService {
     this.agentEvents.clear();
     this.agentSequence = 0;
     this.autonomyEnabled = false;
+    this.permissionPolicies.clear();
     this.loopGeneration += 1;
     this.hydrate();
   }
@@ -252,12 +254,18 @@ export class FakeBackendService {
     if (method === 'GET' && rest.startsWith('git/file')) return this.gitDiff(workspaceId, request.query);
     if (method === 'POST' && rest.startsWith('git/')) return this.gitMutation(workspaceId, rest.slice('git/'.length), request.body);
     if (method === 'GET' && rest === 'agent/loop') return this.agentLoop(workspaceId);
+    if (method === 'GET' && rest === 'agent/autonomy') return json(this.autonomyStatus(workspaceId));
+    if (method === 'GET' && rest === 'agent/policy') return json({ rules: this.permissionPolicies.get(workspaceId) ?? [] });
+    if (method === 'PUT' && rest === 'agent/policy') {
+      this.permissionPolicies.set(workspaceId, readJsonArray(request.body, 'rules'));
+      return { status: 204, contentType: 'application/json' };
+    }
     if (method === 'PUT' && rest === 'agent/autonomy') return this.setLoopActivation(workspaceId, request.body);
     if (method === 'GET' && rest === 'agent') return this.agentSession(workspaceId);
     if (method === 'POST' && rest === 'agent') return this.scheduleAgent(workspaceId, request.body);
     if (method === 'PUT' && rest === 'agent/binding') return this.bindAgent(workspaceId, request.body);
     if (method === 'DELETE' && rest === 'agent/binding') return this.unbindAgent(workspaceId);
-    if (method === 'PUT' && (rest === 'agent/host-connection' || rest === 'agent/policy' || rest === 'agent/role' || rest === 'agent/queue-order'))
+    if (method === 'PUT' && (rest === 'agent/host-connection' || rest === 'agent/role' || rest === 'agent/queue-order'))
       return { status: 204, contentType: 'application/json' };
     if (method === 'POST' && rest === 'agent/messages') return this.sendAgentMessage(workspaceId, request.body);
     if (method === 'GET' && rest === 'agent/events') return this.agentEventStream(workspaceId, request.query);
@@ -430,13 +438,23 @@ export class FakeBackendService {
     return json({ found: true, succeeded: true, error: null });
   }
 
-  private autonomyStatus() {
+  private autonomyStatus(workspaceId?: string) {
     const agentAvailable = this.agentCatalogDescriptors().some(item => item.available);
     const item = (id: string, satisfied: boolean, remedy: string) => ({
       id,
       satisfied,
       remedy: satisfied ? null : remedy,
     });
+    const workspaceItems = workspaceId ? [
+      item('workspaceRegistered', true, 'Register the workspace before activating the loop.'),
+      item('boundAgent', true, 'Bind an agent to the workspace.'),
+      item('permissionRequests', true, 'Bind an agent that supports permission requests.'),
+      item('permissionPolicy', (this.permissionPolicies.get(workspaceId)?.length ?? 0) > 0, 'Add a permission policy before activating the loop.'),
+      item('gitBranch', true, 'Check out a git branch before activating the loop.'),
+      item('unpushedCommits', true, 'Push or remove unpushed commits before activating the loop.'),
+      item('commitQueueEdit', true, 'Finish or abort the commit queue edit session.'),
+      item('unassignedChanges', true, 'Assign working-tree changes to a queued proposal.'),
+    ] : [];
     return {
       enabled: this.autonomyEnabled,
       preconditions: [
@@ -444,6 +462,7 @@ export class FakeBackendService {
         item('hostConnectionAuthorized', true, 'Sign in to your repository host.'),
         item('agentAvailable', agentAvailable, 'Enable an agent capability'),
         item('autonomyEnabled', this.autonomyEnabled, 'Enable autonomy for this Server'),
+        ...workspaceItems,
       ],
     };
   }
@@ -873,6 +892,11 @@ function readJsonBoolean(body: string | null, name: string): boolean {
 function readJsonStringArray(body: string | null, name: string): string[] {
   const parsed = parseBody(body);
   return Array.isArray(parsed?.[name]) ? parsed[name].filter((item): item is string => typeof item === 'string') : [];
+}
+
+function readJsonArray(body: string | null, name: string): unknown[] {
+  const parsed = parseBody(body);
+  return Array.isArray(parsed?.[name]) ? structuredClone(parsed[name]) : [];
 }
 
 function workspaceIdOf(item: unknown): string | undefined {

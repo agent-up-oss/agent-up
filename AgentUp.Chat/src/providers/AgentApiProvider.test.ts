@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { authenticateAgent, bindAgent, enableAgentCapability, getAutonomy, getLoop, parseSseFrames, putAutonomy, putLoopActivation, resumeAgent, scheduleAgent, streamAgentEvents, unbindAgent } from './AgentApiProvider';
+import { authenticateAgent, bindAgent, enableAgentCapability, getAutonomy, getLoop, getPermissionPolicy, parseSseFrames, putAutonomy, putLoopActivation, putPermissionPolicy, resumeAgent, scheduleAgent, streamAgentEvents, unbindAgent } from './AgentApiProvider';
 
 test('parses fragmented and multiline SSE events without losing the tail', () => {
   const first = parseSseFrames('id: 1\nevent: state\ndata: {"sequence":1,\n');
@@ -293,4 +293,28 @@ test('autonomy routes enable the Server then activate a workspace loop', async (
   assert.equal(calls[2]?.url, 'https://server.example/api/workspaces/ws%20%2F1/agent/autonomy');
   assert.equal(calls[2]?.body, '{"active":true}');
   assert.equal(loop?.terminal, 'Cancelled');
+});
+
+test('workspace autonomy and permission policy use the workspace-scoped contract', async () => {
+  const calls: { url: string; method: string; body?: string }[] = [];
+  const request = async (input: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(input), method: init?.method ?? 'GET', body: typeof init?.body === 'string' ? init.body : undefined });
+    if (String(input).includes('/policy') && init?.method !== 'PUT')
+      return new Response(JSON.stringify({ rules: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    if (init?.method === 'PUT') return new Response(null, { status: 204 });
+    return new Response(JSON.stringify({ enabled: true, preconditions: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  const server = { url: 'https://server.example' };
+
+  await getAutonomy(server, 'ws /1', request as typeof fetch);
+  await getPermissionPolicy(server, 'ws /1', request as typeof fetch);
+  await putPermissionPolicy(server, 'ws /1', {
+    rules: [{ id: 'allow-execute', kind: 'Execute', allow: true }],
+  }, request as typeof fetch);
+
+  assert.deepEqual(calls, [
+    { url: 'https://server.example/api/workspaces/ws%20%2F1/agent/autonomy', method: 'GET', body: undefined },
+    { url: 'https://server.example/api/workspaces/ws%20%2F1/agent/policy', method: 'GET', body: undefined },
+    { url: 'https://server.example/api/workspaces/ws%20%2F1/agent/policy', method: 'PUT', body: '{"rules":[{"id":"allow-execute","kind":"Execute","allow":true}]}' },
+  ]);
 });

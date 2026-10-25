@@ -65,6 +65,14 @@ public sealed record AutonomyPreconditionDto(string Id, bool Satisfied, string? 
         "hostConnectionAuthorized" => "Host connection",
         "agentAvailable" => "Agent available",
         "autonomyEnabled" => "Autonomy enabled",
+        "workspaceRegistered" => "Workspace registered",
+        "boundAgent" => "Bound agent",
+        "permissionRequests" => "Permission support",
+        "permissionPolicy" => "Permission policy",
+        "gitBranch" => "Git branch",
+        "unpushedCommits" => "Commits pushed",
+        "commitQueueEdit" => "Commit queue",
+        "unassignedChanges" => "Working-tree changes",
         _ => Id
     };
 }

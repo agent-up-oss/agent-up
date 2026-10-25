@@ -44,9 +44,11 @@ export type AgentChatScreenProps = {
   changesPanel?: ReactNode;
   /** Lets a host title its own chrome while this screen is mounted. */
   onPresent?: (presentation: { title: string }) => void;
+  /** Opens the host's workspace permission-policy editor when autonomy needs one. */
+  onConfigurePolicy?: () => void;
 };
 
-export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: AgentChatScreenProps) {
+export function AgentChatScreen({ workspace, server, changesPanel, onPresent, onConfigurePolicy }: AgentChatScreenProps) {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<AgentTab>('chat');
   const [session, setSession] = useState<AgentSession | null>(null);
@@ -94,7 +96,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
         try {
           const value = await getAgent(server, workspace.id);
           let status: ServerAutonomy | null = null;
-          try { status = await getAutonomy(server); }
+          try { status = await getAutonomy(server, workspace.id); }
           catch { status = null; }
           if (!controller.signal.aborted) {
             setSession(current => mergeAgentSession(current, value));
@@ -152,14 +154,14 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
   const enableAutonomy = () => void runLoop(async () => {
     if (!server) return;
     await putAutonomy(server, true);
-    setAutonomy(await getAutonomy(server));
+    setAutonomy(await getAutonomy(server, workspace.id));
   });
   const activateLoop = () => void runLoop(async () => {
     if (!server) return;
     await putLoopActivation(server, workspace.id, true);
     const loop = await getLoop(server, workspace.id);
     setSession(current => current ? { ...current, loop } : current);
-    setAutonomy(await getAutonomy(server));
+    setAutonomy(await getAutonomy(server, workspace.id));
   });
   const cancelLoop = () => void runLoop(async () => {
     if (!server) return;
@@ -239,6 +241,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent }: 
             onEnable={enableAutonomy}
             onActivate={activateLoop}
             onCancel={cancelLoop}
+            onConfigurePolicy={onConfigurePolicy}
           />}
           {hasContext(context) && <View style={styles.chips}>
             {context.title ? <Text style={styles.chip}>{context.title}</Text> : null}

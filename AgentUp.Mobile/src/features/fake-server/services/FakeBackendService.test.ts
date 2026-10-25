@@ -164,6 +164,19 @@ test('autonomy enable then activate exposes a typed terminal', () => {
   assert.equal(json(service, 'GET', '/api/workspaces/harbor-shop/agent/loop').terminal, 'Cancelled');
 });
 
+test('workspace autonomy reflects the saved permission policy', () => {
+  const service = backend();
+  const status = () => json(service, 'GET', '/api/workspaces/harbor-shop/agent/autonomy');
+
+  assert.equal(status().preconditions.find((item: { id: string }) => item.id === 'permissionPolicy').satisfied, false);
+  assert.equal(service.handle({
+    method: 'PUT', path: '/api/workspaces/harbor-shop/agent/policy', query: '',
+    body: '{"rules":[{"id":"allow-execute","kind":"Execute","allow":true}]}',
+  }).status, 204);
+  assert.equal(status().preconditions.find((item: { id: string }) => item.id === 'permissionPolicy').satisfied, true);
+  assert.equal(json(service, 'GET', '/api/workspaces/harbor-shop/agent/policy').rules.length, 1);
+});
+
 test('agent session lists current and prior saved sessions', () => {
   const session = json(backend(), 'GET', '/api/workspaces/harbor-shop/agent');
   assert.equal(session.sessions[0].sessionId, 'demo-agent');

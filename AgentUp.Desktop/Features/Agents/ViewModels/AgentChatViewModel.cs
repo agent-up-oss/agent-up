@@ -222,16 +222,16 @@ public sealed class AgentChatViewModel : ReactiveObject
         _currentRun = null;
         Apply(null);
     });
-    private async Task EnableAutonomyAsync() => await RunAsync(async _ =>
+    private async Task EnableAutonomyAsync() => await RunAsync(async id =>
     {
         await _controller.PutAutonomyAsync(true, CancellationToken.None);
-        ApplyAutonomy(await _controller.GetAutonomyAsync(CancellationToken.None));
+        ApplyAutonomy(await _controller.GetAutonomyAsync(id, CancellationToken.None));
     });
     private async Task ActivateLoopAsync() => await RunAsync(async id =>
     {
         await _controller.PutLoopActivationAsync(id, true, CancellationToken.None);
         ApplyLoop(await _controller.GetLoopAsync(id, CancellationToken.None));
-        ApplyAutonomy(await _controller.GetAutonomyAsync(CancellationToken.None));
+        ApplyAutonomy(await _controller.GetAutonomyAsync(id, CancellationToken.None));
         TryStartLoopPoll();
     });
     private async Task CancelLoopAsync() => await RunAsync(async id =>
@@ -538,7 +538,9 @@ public sealed class AgentChatViewModel : ReactiveObject
     {
         try
         {
-            var autonomy = await _controller.GetAutonomyAsync(CancellationToken.None);
+            if (_workspaceId is null)
+                return;
+            var autonomy = await _controller.GetAutonomyAsync(_workspaceId, CancellationToken.None);
             if (generation != _loadGeneration)
                 return;
             ApplyAutonomy(autonomy);

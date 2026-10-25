@@ -4,6 +4,7 @@ import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesConte
 import { useInnerShell } from '@/features/shell/hooks/useInnerShell';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useCallback, useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
 
 export default function WorkspaceAgentRoute() {
   const { server } = useWorkspaces();
@@ -23,6 +24,7 @@ function WorkspaceAgentChat({
   displayName: string;
   server: ReturnType<typeof useWorkspaces>['server'];
 }) {
+  const router = useRouter();
   const [title, setTitle] = useState('Workspace agent');
   const present = useCallback((value: { title: string }) => setTitle(value.title), []);
   const inner = useInnerShell(title, `/(main)/workspace/${workspaceId}/agents`);
@@ -33,5 +35,6 @@ function WorkspaceAgentChat({
     workspace={{ id: workspaceId, displayName }}
     server={server}
     onPresent={present}
+    onConfigurePolicy={() => router.push(`/(main)/workspace/${workspaceId}/agent-policy`)}
   />;
 }

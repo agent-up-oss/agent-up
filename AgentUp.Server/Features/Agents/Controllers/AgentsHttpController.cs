@@ -73,6 +73,16 @@ public sealed class AgentsHttpController(
             ? current.ActivateAsync(workspaceId, HttpContext.RequestAborted)
             : Task.FromResult(current.Deactivate(workspaceId)));
 
+    [HttpGet("autonomy")]
+    public async Task<IActionResult> GetAutonomy(string workspaceId)
+    {
+        if (autonomy is null)
+            return Problem(statusCode: 409, title: "Agent operation failed", detail: "Autonomy is not configured.");
+        if (agents.Get(workspaceId) is null)
+            return NotFound();
+        return Ok(await autonomy.GetStatusAsync(workspaceId, HttpContext.RequestAborted));
+    }
+
     [HttpGet("loop")]
     public IActionResult GetLoop(string workspaceId) =>
         agents.Get(workspaceId) is null ? NotFound() : Ok(LoopPayload(workspaceId));

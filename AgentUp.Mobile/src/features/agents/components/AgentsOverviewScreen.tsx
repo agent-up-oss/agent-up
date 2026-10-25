@@ -43,7 +43,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
     if (!server) return;
     try {
       setSession(await getAgent(server, workspaceId));
-      try { setAutonomy(await getAutonomy(server)); }
+      try { setAutonomy(await getAutonomy(server, workspaceId)); }
       catch { setAutonomy(null); }
       setError(null);
     } catch (cause) {
@@ -90,14 +90,14 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
           onEnable={() => void runLoop(async () => {
             if (!server) return;
             await putAutonomy(server, true);
-            setAutonomy(await getAutonomy(server));
+            setAutonomy(await getAutonomy(server, workspaceId));
           }, 'Could not enable autonomy.')}
           onActivate={() => void runLoop(async () => {
             if (!server) return;
             await putLoopActivation(server, workspaceId, true);
             const loop = await getLoop(server, workspaceId);
             setSession(current => current ? { ...current, loop } : current);
-            setAutonomy(await getAutonomy(server));
+            setAutonomy(await getAutonomy(server, workspaceId));
           }, 'Could not activate the loop.')}
           onCancel={() => void runLoop(async () => {
             if (!server) return;
@@ -105,6 +105,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
             const loop = await getLoop(server, workspaceId);
             setSession(current => current ? { ...current, loop } : current);
           }, 'Could not cancel the loop.')}
+          onConfigurePolicy={() => router.push(`/(main)/workspace/${workspaceId}/agent-policy`)}
         />
 
         {session?.boundAgent && hasCreatedBoundAgent ? (

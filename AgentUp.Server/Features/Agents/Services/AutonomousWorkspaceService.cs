@@ -57,18 +57,30 @@ public sealed class AutonomousWorkspaceService(
     public bool HostConnectionPresent =>
         host?.IsPresent() ?? settings.List().Any(item => item.HostConnectionAuthorized);
 
-    public async Task<ServerAutonomyDto> GetStatusAsync(CancellationToken cancellationToken)
+    public Task<ServerAutonomyDto> GetStatusAsync(CancellationToken cancellationToken) =>
+        GetStatusAsync(null, cancellationToken);
+
+    public async Task<ServerAutonomyDto> GetStatusAsync(string? workspaceId, CancellationToken cancellationToken)
     {
         var forgeEnabled = packages?.ListForges().Count > 0;
         var hostAuthorized = HostConnectionPresent;
         var agentAvailable = await scheduling.HasAvailableAgentAsync(cancellationToken);
         var enabled = autonomy.ServerEnabled;
-        return new ServerAutonomyDto(enabled, [
+        var items = new List<AutonomyPreconditionDto> {
             Item(AutonomyPreconditions.ForgeCapabilityEnabled, forgeEnabled),
             Item(AutonomyPreconditions.HostConnectionAuthorized, hostAuthorized),
             Item(AutonomyPreconditions.AgentAvailable, agentAvailable),
             Item(AutonomyPreconditions.AutonomyEnabled, enabled)
-        ]);
+        };
+        if (!string.IsNullOrWhiteSpace(workspaceId))
+        {
+            var workspaceItems = await preconditions.StatusAsync(workspaceId, cancellationToken);
+            var workspaceHost = workspaceItems.FirstOrDefault(item => item.Id == AutonomyPreconditions.HostConnectionAuthorized);
+            if (workspaceHost is not null)
+                items[1] = workspaceHost;
+            items.AddRange(workspaceItems.Where(item => item.Id != AutonomyPreconditions.HostConnectionAuthorized));
+        }
+        return new ServerAutonomyDto(enabled, items);
     }
 
     public bool TryEnableServer(out string? refusal) => autonomy.TryEnable(out refusal);

@@ -10,6 +10,22 @@ export function preconditionLabel(id: string): string {
       return 'Agent available';
     case 'autonomyEnabled':
       return 'Autonomy enabled';
+    case 'workspaceRegistered':
+      return 'Workspace registered';
+    case 'boundAgent':
+      return 'Bound agent';
+    case 'permissionRequests':
+      return 'Permission support';
+    case 'permissionPolicy':
+      return 'Permission policy';
+    case 'gitBranch':
+      return 'Git branch';
+    case 'unpushedCommits':
+      return 'Commits pushed';
+    case 'commitQueueEdit':
+      return 'Commit queue';
+    case 'unassignedChanges':
+      return 'Working-tree changes';
     default:
       return id;
   }

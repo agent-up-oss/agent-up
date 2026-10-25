@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.Agents.Interfaces;
+using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Commits.Controllers;
 using AgentUp.Server.Features.Git.Controllers;
@@ -16,35 +17,51 @@ public sealed class LoopPreconditionProvider(
 {
     public async Task<string?> UnmetAsync(string workspaceId, CancellationToken cancellationToken)
     {
+        var status = await StatusAsync(workspaceId, cancellationToken);
+        var unmet = status.FirstOrDefault(item => !item.Satisfied);
+        return unmet is null ? null : AutonomyPreconditions.Refusal(unmet.Id);
+    }
+
+    public async Task<IReadOnlyList<AutonomyPreconditionDto>> StatusAsync(
+        string workspaceId,
+        CancellationToken cancellationToken)
+    {
         var workspace = workspaces.GetById(workspaceId);
         if (workspace is null)
-            return AutonomyPreconditions.Refusal(AutonomyPreconditions.WorkspaceRegistered);
-        if (string.IsNullOrWhiteSpace(workspace.BoundAgentModuleId))
-            return AutonomyPreconditions.Refusal(AutonomyPreconditions.BoundAgent);
-        if (!agents.SupportsPermissionRequests(workspace.BoundAgentModuleId))
-            return AutonomyPreconditions.Refusal(AutonomyPreconditions.PermissionRequests);
+            return [Item(AutonomyPreconditions.WorkspaceRegistered, false)];
+
+        var bound = !string.IsNullOrWhiteSpace(workspace.BoundAgentModuleId);
+        var supportsPermissions = bound && agents.SupportsPermissionRequests(workspace.BoundAgentModuleId!);
         var current = settings.Get(workspaceId);
-        if (current.PolicyRules.Count == 0)
-            return AutonomyPreconditions.Refusal(AutonomyPreconditions.PermissionPolicy);
-        if (!HostAuthorized(workspaceId, current.HostConnectionAuthorized))
-            return AutonomyPreconditions.Refusal(AutonomyPreconditions.HostConnectionAuthorized);
+        var policy = current.PolicyRules.Count > 0;
+        var hostAuthorized = HostAuthorized(workspaceId, current.HostConnectionAuthorized);
 
         var head = await git.GetHeadAsync(workspaceId, cancellationToken);
-        if (head is null
-            || string.IsNullOrWhiteSpace(head.Branch)
-            || string.Equals(head.Branch, "not on a git branch", StringComparison.Ordinal))
-            return AutonomyPreconditions.Refusal(AutonomyPreconditions.GitBranch);
-        if (head.Ahead > 0)
-            return AutonomyPreconditions.Refusal(AutonomyPreconditions.UnpushedCommits);
+        var branch = head is not null
+            && !string.IsNullOrWhiteSpace(head.Branch)
+            && !string.Equals(head.Branch, "not on a git branch", StringComparison.Ordinal);
+        var pushed = branch && head!.Ahead == 0;
 
         var changes = await git.GetChangesAsync(workspaceId, cancellationToken);
-        var status = await commits.GetStatusAsync(workspace.WorktreePath, cancellationToken);
-        if (status.ActiveSession is not null)
-            return AutonomyPreconditions.Refusal(AutonomyPreconditions.CommitQueueEdit);
-        if (changes is { FileCount: > 0 } && status.UnassignedFiles.Count > 0)
-            return AutonomyPreconditions.Refusal(AutonomyPreconditions.UnassignedChanges);
-        return null;
+        var commitStatus = await commits.GetStatusAsync(workspace.WorktreePath, cancellationToken);
+        var noEdit = commitStatus.ActiveSession is null;
+        var assigned = changes is not { FileCount: > 0 } || commitStatus.UnassignedFiles.Count == 0;
+
+        return [
+            Item(AutonomyPreconditions.WorkspaceRegistered, true),
+            Item(AutonomyPreconditions.BoundAgent, bound),
+            Item(AutonomyPreconditions.PermissionRequests, supportsPermissions),
+            Item(AutonomyPreconditions.PermissionPolicy, policy),
+            Item(AutonomyPreconditions.HostConnectionAuthorized, hostAuthorized),
+            Item(AutonomyPreconditions.GitBranch, branch),
+            Item(AutonomyPreconditions.UnpushedCommits, pushed),
+            Item(AutonomyPreconditions.CommitQueueEdit, noEdit),
+            Item(AutonomyPreconditions.UnassignedChanges, assigned)
+        ];
     }
+
+    private static AutonomyPreconditionDto Item(string id, bool satisfied) =>
+        new(id, satisfied, satisfied ? null : AutonomyPreconditions.Remedy(id));
 
     private bool HostAuthorized(string workspaceId, bool flagged) =>
         host?.IsPresent(workspaceId) ?? flagged;

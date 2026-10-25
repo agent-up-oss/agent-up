@@ -24,6 +24,8 @@ test('preconditionLabel uses the Server chain names', () => {
   assert.equal(preconditionLabel('hostConnectionAuthorized'), 'Host connection');
   assert.equal(preconditionLabel('agentAvailable'), 'Agent available');
   assert.equal(preconditionLabel('autonomyEnabled'), 'Autonomy enabled');
+  assert.equal(preconditionLabel('permissionPolicy'), 'Permission policy');
+  assert.equal(preconditionLabel('unassignedChanges'), 'Working-tree changes');
 });
 
 test('canEnableAutonomy requires forge and host readiness but not a runnable agent', () => {
@@ -45,6 +47,10 @@ test('canActivateLoop requires the full chain and a stopped loop', () => {
   assert.equal(canActivateLoop(readyToActivate, { active: false, phase: 'idle' }), true);
   assert.equal(canActivateLoop(readyToActivate, { active: true, phase: 'running' }), false);
   assert.equal(canActivateLoop(readyToEnable, { active: false, phase: 'idle' }), false);
+  assert.equal(canActivateLoop({
+    ...readyToActivate,
+    preconditions: [...readyToActivate.preconditions, { id: 'permissionPolicy', satisfied: false }],
+  }, { active: false, phase: 'idle' }), false);
 });
 
 test('canCancelLoop follows the typed active flag', () => {
