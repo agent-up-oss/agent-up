@@ -755,6 +755,19 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_reviewSnapshotExposesAnEmptyScreenshotsSection()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var snapshot = Json(backend, Get("/api/workspaces/harbor-shop/review-snapshot"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot["screenshots"], Is.Not.Null);
+            Assert.That(snapshot["screenshots"]!.AsArray(), Is.Empty);
+        });
+    }
+
+    [Test]
     public void Handle_reviewSnapshotDefaultsKindAndProtocolWhenTheyAreOmitted()
     {
         const string json = """

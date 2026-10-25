@@ -118,6 +118,28 @@ public sealed class WorkspaceReviewSnapshotServiceTests
     }
 
     [Test]
+    public async Task GetAsync_CapsScreenshotsAtTen()
+    {
+        var (registry, audit, workspace) = await CreateAsync();
+        for (var index = 0; index < 11; index++)
+        {
+            await audit.RecordAsync(ServerDomain.AuditRecord()
+                .OfKind("browser")
+                .From("mcp")
+                .Doing("browser_screenshot")
+                .Outcome("success")
+                .ForWorkspace(workspace.Id)
+                .WithArtifacts($"shot{index:D2}")
+                .WithDetail("url", $"http://127.0.0.1/{index}")
+                .Build(), CancellationToken.None);
+        }
+
+        var snapshot = await Snapshot(registry, audit).GetAsync(workspace.Id, CancellationToken.None);
+
+        Assert.That(snapshot!.Screenshots, Has.Count.EqualTo(10));
+    }
+
+    [Test]
     public void Verification_IsTheExistingExportTypeNotASecondFormat()
     {
         Assert.That(

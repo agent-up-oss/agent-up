@@ -94,6 +94,46 @@ public sealed class WorkspaceReviewSnapshotHttpTests
     }
 
     [Test]
+    public async Task Get_IncludesScreenshotArtifactIdsFromAudit()
+    {
+        using var host = CreateHost();
+        using var client = host.Factory.CreateClient();
+        using var registrationResponse = await client.PostAsJsonAsync("/api/workspaces", ServerDomain.Workspace()
+            .Named("Shop")
+            .At("/repo")
+            .AtCommit("abc")
+            .Build());
+        registrationResponse.EnsureSuccessStatusCode();
+        using var registration = await JsonDocument.ParseAsync(await registrationResponse.Content.ReadAsStreamAsync());
+        var workspaceId = registration.RootElement.GetProperty("id").GetString()!;
+        using var recordResponse = await client.PostAsJsonAsync("/api/audit/record", ServerDomain.AuditRecord()
+            .OfKind("browser")
+            .From("mcp")
+            .Doing("browser_screenshot")
+            .Outcome("success")
+            .ForWorkspace(workspaceId)
+            .WithArtifacts("shot1")
+            .WithDetail("url", "http://127.0.0.1:4010/")
+            .WithDetail("mimeType", "image/png")
+            .Build());
+        recordResponse.EnsureSuccessStatusCode();
+
+        using var snapshotResponse = await client.GetAsync($"/api/workspaces/{workspaceId}/review-snapshot");
+        var snapshot = JsonSerializer.Deserialize<WorkspaceReviewSnapshotDto>(
+            await snapshotResponse.Content.ReadAsStringAsync(),
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        var screenshot = snapshot!.Screenshots.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshotResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(screenshot.ArtifactId, Is.EqualTo("shot1"));
+            Assert.That(screenshot.Url, Is.EqualTo("http://127.0.0.1:4010/"));
+            Assert.That(screenshot.MimeType, Is.EqualTo("image/png"));
+        });
+    }
+
+    [Test]
     public async Task Get_IncludesVerificationWhenTheWorktreeCanExport()
     {
         using var host = await CreateHostWithRepositoryAsync();
