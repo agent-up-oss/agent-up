@@ -16,6 +16,7 @@ public sealed record WorkspaceReviewSnapshotDto(
     IReadOnlyList<ReviewApplicationSnapshotDto> Applications,
     IReadOnlyList<DiagnosticEntryDto> Entries,
     IReadOnlyList<ReviewActionSnapshotDto> RecentActions,
+    IReadOnlyList<ReviewScreenshotSnapshotDto> Screenshots,
     VerificationExportDto? Verification);
 
 public sealed record ReviewApplicationSnapshotDto(
@@ -36,3 +37,10 @@ public sealed record ReviewActionSnapshotDto(
     string Source,
     string Action,
     string Outcome);
+
+public sealed record ReviewScreenshotSnapshotDto(
+    string EventId,
+    string ArtifactId,
+    DateTimeOffset Timestamp,
+    string? Url,
+    string? MimeType);

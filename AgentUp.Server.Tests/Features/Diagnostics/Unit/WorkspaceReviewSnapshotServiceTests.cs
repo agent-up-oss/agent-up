@@ -2,9 +2,12 @@ using AgentUp.Browser.Streaming;
 using AgentUp.Server.Features.Applications.Controllers;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Applications.Services;
+using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Server.Features.Diagnostics.Controllers;
+using AgentUp.Server.Features.Diagnostics.DTOs;
 using AgentUp.Server.Features.Diagnostics.Services;
+using AgentUp.Server.Features.Verification.DTOs;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Features.Workspaces.DTOs;
 using AgentUp.Server.Features.Workspaces.Services;
@@ -40,8 +43,86 @@ public sealed class WorkspaceReviewSnapshotServiceTests
             Assert.That(snapshot.Commit, Is.EqualTo("abc"));
             Assert.That(snapshot.Applications.Single().Ports.Single().AllocatedPort, Is.EqualTo(4010));
             Assert.That(snapshot.RecentActions.Select(action => action.Action), Does.Contain("start_workspace"));
+            Assert.That(snapshot.Screenshots, Is.Empty);
             Assert.That(snapshot.Verification, Is.Null);
         });
+    }
+
+    [Test]
+    public async Task GetAsync_IncludesScreenshotArtifactIdsWithoutImageBytes()
+    {
+        var (registry, audit, workspace) = await CreateAsync();
+        await audit.RecordAsync(ServerDomain.AuditRecord()
+            .OfKind("browser")
+            .From("mcp")
+            .Doing("browser_navigate")
+            .Outcome("success")
+            .ForWorkspace(workspace.Id)
+            .Build(), CancellationToken.None);
+        await audit.RecordAsync(ServerDomain.AuditRecord()
+            .OfKind("browser")
+            .From("mcp")
+            .Doing("browser_screenshot")
+            .Outcome("success")
+            .ForWorkspace(workspace.Id)
+            .Build(), CancellationToken.None);
+        var recorded = await audit.RecordScreenshotAsync(
+            new AuditScreenshot(
+                workspace.Id,
+                "http://127.0.0.1:4010/",
+                "image/png",
+                Convert.ToBase64String([1, 2, 3]),
+                1280,
+                720),
+            CancellationToken.None);
+
+        var snapshot = await Snapshot(registry, audit).GetAsync(workspace.Id, CancellationToken.None);
+        var screenshot = snapshot!.Screenshots.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.Screenshots, Has.Count.EqualTo(1));
+            Assert.That(screenshot.ArtifactId, Is.EqualTo(recorded.Artifact.ArtifactId));
+            Assert.That(screenshot.EventId, Is.EqualTo(recorded.Event.EventId));
+            Assert.That(screenshot.Timestamp, Is.EqualTo(recorded.Event.Timestamp));
+            Assert.That(screenshot.Url, Is.EqualTo("http://127.0.0.1:4010/"));
+            Assert.That(screenshot.MimeType, Is.EqualTo("image/png"));
+            Assert.That(
+                typeof(ReviewScreenshotSnapshotDto).GetProperties().Select(property => property.Name),
+                Does.Not.Contain("ImageBase64").And.Not.Contain("Bytes"));
+        });
+    }
+
+    [Test]
+    public async Task GetAsync_KeepsScreenshotRefsWhenUrlAndMimeAreMissing()
+    {
+        var (registry, audit, workspace) = await CreateAsync();
+        await audit.RecordAsync(ServerDomain.AuditRecord()
+            .OfKind("browser")
+            .From("mcp")
+            .Doing("browser_screenshot")
+            .Outcome("success")
+            .ForWorkspace(workspace.Id)
+            .WithArtifacts("abc123")
+            .Build(), CancellationToken.None);
+
+        var snapshot = await Snapshot(registry, audit).GetAsync(workspace.Id, CancellationToken.None);
+        var screenshot = snapshot!.Screenshots.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(screenshot.ArtifactId, Is.EqualTo("abc123"));
+            Assert.That(screenshot.Url, Is.Null);
+            Assert.That(screenshot.MimeType, Is.Null);
+        });
+    }
+
+    [Test]
+    public void Verification_IsTheExistingExportTypeNotASecondFormat()
+    {
+        Assert.That(
+            typeof(WorkspaceReviewSnapshotDto).GetProperty(nameof(WorkspaceReviewSnapshotDto.Verification))!.PropertyType,
+            Is.EqualTo(typeof(VerificationExportDto)));
     }
 
     [Test]

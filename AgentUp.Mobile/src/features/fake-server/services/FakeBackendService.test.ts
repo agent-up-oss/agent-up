@@ -227,6 +227,7 @@ test('review snapshot exports the bundled workspace', () => {
   assert.equal(snapshot.workspaceId, 'harbor-shop');
   assert.equal(snapshot.displayName, 'Harbor Shop');
   assert.deepEqual(snapshot.applications.map((item: { name: string }) => item.name), ['Storefront', 'Orders API']);
+  assert.deepEqual(snapshot.screenshots, []);
   assert.equal(snapshot.verification, null);
   assert.equal(service.handle({ method: 'GET', path: '/api/workspaces/missing/review-snapshot', query: '', body: null }).status, 404);
 });

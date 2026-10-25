@@ -359,6 +359,7 @@ export class FakeBackendService {
       })),
       entries: [],
       recentActions: [],
+      screenshots: [],
       verification: null,
     });
   }

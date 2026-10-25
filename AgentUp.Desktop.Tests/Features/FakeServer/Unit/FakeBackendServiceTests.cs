@@ -748,6 +748,7 @@ public sealed class FakeBackendServiceTests
             Assert.That(
                 snapshot["applications"]!.AsArray().Select(item => item!["name"]!.GetValue<string>()),
                 Is.EqualTo(new[] { "Storefront", "Orders API" }));
+            Assert.That(snapshot["screenshots"]!.AsArray(), Is.Empty);
             Assert.That(snapshot["verification"], Is.Null);
             Assert.That(Run(backend, Get("/api/workspaces/missing/review-snapshot")).Status, Is.EqualTo(404));
         });

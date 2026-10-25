@@ -63,7 +63,7 @@ Returns full details for one audit event.
 Loads a Server-managed artifact by opaque artifact id and can return inline image data when requested.
 </DocStep>
 <DocStep title="export_workspace_review_snapshot">
-Exports a shareable snapshot of one workspace after an agent task: identity and revision, allocated ports, running processes and Docker services, health and diagnostics, the open browser URL, recent logs, and recent MCP and workspace actions. Verification is included when the worktree can produce an export; missing verification does not fail the snapshot. Evidence to share, never a substitute for living on the original machine. The same payload is `GET /api/workspaces/{workspaceId}/review-snapshot` and `agent-up review-snapshot`.
+Exports one shareable document of a workspace after an agent task: identity and revision, allocated ports, running processes and Docker services, health and diagnostics, the open browser URL, recent logs, recent MCP and workspace actions, and screenshot artifact ids (load bytes with `audit_load_artifact`). `verification` is the same `export_verification` report nested as a section when the worktree can produce it — not a second format. Missing verification does not fail the snapshot. Evidence to share, never a substitute for living on the original machine, and never an input to `verify guard`. The same payload is `GET /api/workspaces/{workspaceId}/review-snapshot` and `agent-up review-snapshot`.
 </DocStep>
 </DocSteps>
 

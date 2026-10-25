@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Diagnostics.DTOs;
+using AgentUp.Server.Features.Verification.DTOs;
 using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -41,7 +42,10 @@ public sealed class WorkspaceReviewSnapshotHttpTests
             Assert.That(snapshot.DisplayName, Is.EqualTo("Shop"));
             Assert.That(snapshot.Commit, Is.EqualTo("abc"));
             Assert.That(snapshot.Applications.Select(app => app.Name), Is.EqualTo(["web"]));
+            Assert.That(snapshot.Screenshots, Is.Empty);
             Assert.That(snapshot.Verification, Is.Null);
+            Assert.That(snapshotBody, Does.Contain("\"screenshots\""));
+            Assert.That(snapshotBody, Does.Contain("\"verification\""));
         });
     }
 
@@ -111,8 +115,24 @@ public sealed class WorkspaceReviewSnapshotHttpTests
             PropertyNameCaseInsensitive = true
         });
 
-        Assert.That(snapshot!.Verification, Is.Not.Null);
-        Assert.That(snapshot.Verification!.CoveredDigest, Does.StartWith("sha256:"));
+        var export = await client.GetFromJsonAsync<VerificationExportDto>(
+            $"/api/workspaces/{workspaceId}/verification/export");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot!.Verification, Is.Not.Null);
+            Assert.That(export, Is.Not.Null);
+            Assert.That(snapshot.Verification!.CoveredDigest, Does.StartWith("sha256:"));
+            Assert.That(snapshot.Verification.CoveredDigest, Is.EqualTo(export!.CoveredDigest));
+            Assert.That(snapshot.Verification.Revision, Is.EqualTo(export.Revision));
+            Assert.That(snapshot.Verification.ChangedFileCount, Is.EqualTo(export.ChangedFileCount));
+            Assert.That(
+                snapshot.Verification.Checks.Select(check => (check.CheckId, check.Status, check.ExitCode)),
+                Is.EqualTo(export.Checks.Select(check => (check.CheckId, check.Status, check.ExitCode))));
+            Assert.That(
+                typeof(VerificationExportDto).GetProperties().Select(property => property.Name),
+                Does.Not.Contain("Covered"));
+        });
     }
 
     private static HostContext CreateHost()

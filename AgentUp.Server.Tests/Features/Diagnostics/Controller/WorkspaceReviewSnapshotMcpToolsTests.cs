@@ -31,6 +31,8 @@ public sealed class WorkspaceReviewSnapshotMcpToolsTests
             Assert.That(description, Does.Contain("allocated ports"));
             Assert.That(description, Does.Contain("browser URL"));
             Assert.That(description, Does.Contain("recent MCP"));
+            Assert.That(description, Does.Contain("export_verification"));
+            Assert.That(description, Does.Contain("verify guard"));
         });
     }
 

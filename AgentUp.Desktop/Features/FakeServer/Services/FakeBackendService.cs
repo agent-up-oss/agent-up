@@ -399,6 +399,7 @@ public sealed class FakeBackendService
                 ["applications"] = applications,
                 ["entries"] = new JsonArray(),
                 ["recentActions"] = new JsonArray(),
+                ["screenshots"] = new JsonArray(),
                 ["verification"] = null
             });
         }

@@ -3,6 +3,7 @@ using System.Text.Json;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Audit.Controllers;
 using AgentUp.Server.Features.Audit.DTOs;
+using AgentUp.Server.Features.Audit.Models;
 using AgentUp.Server.Features.Browser.Controllers;
 using AgentUp.Server.Features.Diagnostics.Controllers;
 using AgentUp.Server.Features.Diagnostics.DTOs;
@@ -22,6 +23,9 @@ public sealed class WorkspaceReviewSnapshotService(
     VerificationExportController? verification = null)
 {
     private const int RecentActionLimit = 20;
+    private const int ScreenshotQueryLimit = 50;
+    private const int ScreenshotLimit = 10;
+    private const string BrowserScreenshotAction = "browser_screenshot";
 
     public async Task<WorkspaceReviewSnapshotDto?> GetAsync(string workspaceId, CancellationToken cancellationToken)
     {
@@ -31,6 +35,7 @@ public sealed class WorkspaceReviewSnapshotService(
 
         var diagnostic = await diagnostics.GetAsync(workspaceId, null, 200, 100, cancellationToken);
         var actions = await RecentActionsAsync(workspace.Id, cancellationToken);
+        var screenshots = await ScreenshotsAsync(workspace.Id, cancellationToken);
         return new WorkspaceReviewSnapshotDto(
             workspace.Id,
             workspace.DisplayName,
@@ -45,6 +50,7 @@ public sealed class WorkspaceReviewSnapshotService(
             Applications(workspace, diagnostic),
             diagnostic?.Entries ?? [],
             actions,
+            screenshots,
             await TryVerificationAsync(workspace.WorktreePath, cancellationToken));
     }
 
@@ -90,6 +96,30 @@ public sealed class WorkspaceReviewSnapshotService(
                 evt.Outcome))
             .ToArray();
     }
+
+    private async Task<IReadOnlyList<ReviewScreenshotSnapshotDto>> ScreenshotsAsync(
+        string workspaceId,
+        CancellationToken cancellationToken)
+    {
+        var events = await audit.QueryAsync(
+            new AuditEventQuery(workspaceId, null, null, null, null, "browser", null, null, null, null, ScreenshotQueryLimit),
+            cancellationToken);
+        return events
+            .Where(evt =>
+                string.Equals(evt.Action, BrowserScreenshotAction, StringComparison.Ordinal)
+                && evt.ArtifactIds.Count > 0)
+            .Take(ScreenshotLimit)
+            .Select(evt => new ReviewScreenshotSnapshotDto(
+                evt.EventId,
+                evt.ArtifactIds[0],
+                evt.Timestamp,
+                Detail(evt, "url"),
+                Detail(evt, "mimeType")))
+            .ToArray();
+    }
+
+    private static string? Detail(AuditEvent evt, string key)
+        => evt.Details.TryGetValue(key, out var value) ? value : null;
 
     private async Task<VerificationExportDto?> TryVerificationAsync(
         string worktreePath,
