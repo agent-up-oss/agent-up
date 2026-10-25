@@ -123,6 +123,21 @@ public sealed class ForgeService(
         return new ForgeHttpOutcome(StatusCodes.Status200OK, new ForgeLoginStartDto(url));
     }
 
+    public string? GithubRegistrationPage(string state)
+        => githubApps?.RegistrationPage(state);
+
+    public Task<string?> CompleteGithubManifestAsync(
+        string code, string state, CancellationToken cancellationToken = default)
+        => githubApps is null
+            ? Task.FromResult<string?>(null)
+            : githubApps.CompleteManifestAsync(code, state, cancellationToken);
+
+    public Task<bool> CompleteGithubInstallationAsync(
+        string key, long installationId, CancellationToken cancellationToken = default)
+        => githubApps is null
+            ? Task.FromResult(false)
+            : githubApps.CompleteInstallationAsync(key, installationId, cancellationToken);
+
     public async Task<bool> CompleteLoginAsync(string code, string state, CancellationToken cancellationToken)
     {
         var workspaceId = states.Consume(state);

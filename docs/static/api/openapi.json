@@ -879,6 +879,17 @@
       }
     },
     "/api/workspaces/{workspaceId}/agent/autonomy": {
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_GetAutonomy",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
       "put": {
         "tags": [
           "Agents"

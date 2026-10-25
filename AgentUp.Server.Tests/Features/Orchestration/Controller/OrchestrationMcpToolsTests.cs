@@ -10,6 +10,7 @@ using AgentUp.Server.Features.Processes.Interfaces;
 using AgentUp.Server.Features.Processes.Models;
 using AgentUp.Server.Features.Processes.Services;
 using AgentUp.Server.Features.Workspaces.DTOs;
+using AgentUp.Server.Features.Workspaces.Interfaces;
 using AgentUp.Server.Features.Workspaces.Services;
 using AgentUp.Server.Tests.Fake;
 using AgentUp.Server.Shared.Interfaces;
@@ -384,7 +385,12 @@ public sealed class OrchestrationMcpToolsTests
         IWorkspaceProcessManager processManager,
         IAgentUpConfigurationProvider configuration,
         IWorkspaceIdentityProvider identity)
-        => ServerTestComposition.CreateOrchestrationWorkspaceController(registry, processManager, configuration, identity);
+        => ServerTestComposition.CreateOrchestrationWorkspaceController(
+            registry,
+            processManager,
+            configuration,
+            identity,
+            new ClosedReadinessProbe());
 
     private OrchestrationConsoleController CreateConsoleController(
         ProcessesController processes,
@@ -424,5 +430,14 @@ public sealed class OrchestrationMcpToolsTests
         public Task LaunchApplicationAsync(Workspace workspace, string appName) => Task.CompletedTask;
         public Task KillAsync(string workspaceId) => throw new InvalidOperationException("stop failed");
         public Task KillApplicationAsync(string workspaceId, string appName) => Task.CompletedTask;
+    }
+
+    private sealed class ClosedReadinessProbe : IApplicationReadinessProbe
+    {
+        public Task<bool> TcpReadyAsync(int port, CancellationToken cancellationToken)
+            => Task.FromResult(false);
+
+        public Task<bool> HttpReadyAsync(int port, string path, CancellationToken cancellationToken)
+            => Task.FromResult(false);
     }
 }

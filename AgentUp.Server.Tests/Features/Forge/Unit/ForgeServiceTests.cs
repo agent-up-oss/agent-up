@@ -1,5 +1,6 @@
 using AgentUp.Sdk.Forge;
 using AgentUp.Server.Features.Forge.DTOs;
+using AgentUp.Server.Features.Forge.Interfaces;
 using AgentUp.Server.Features.Forge.Models;
 using AgentUp.Server.Features.Forge.Providers;
 using AgentUp.Server.Features.Forge.Services;
@@ -184,6 +185,43 @@ public sealed class ForgeServiceTests
         Assert.That(
             ((ForgeLoginStartDto)started.Body!).AuthorizationUrl,
             Does.StartWith("http://localhost:5000/api/forge/github/register?state="));
+    }
+
+    [Test]
+    public async Task GithubRegistrationPage_returnsNullWhenGithubAppsAreUnavailable()
+    {
+        var (service, _) = await ArrangeAsync();
+
+        Assert.That(service.GithubRegistrationPage("state"), Is.Null);
+    }
+
+    [Test]
+    public async Task GithubRegistrationPage_returnsTheManifestPage()
+    {
+        var store = new MemoryGithubAppStore();
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability(),
+            githubApps: new GithubAppConnectionService(store, new GithubAppApiProvider(new GithubOwnerHandler())));
+
+        await service.StartLoginAsync(workspaceId, "http://localhost:5000");
+
+        Assert.That(service.GithubRegistrationPage(store.Value!.State), Does.Contain("manifest"));
+    }
+
+    [Test]
+    public async Task CompleteGithubManifestAsync_returnsNullWhenGithubAppsAreUnavailable()
+    {
+        var (service, _) = await ArrangeAsync();
+
+        Assert.That(await service.CompleteGithubManifestAsync("code", "state"), Is.Null);
+    }
+
+    [Test]
+    public async Task CompleteGithubInstallationAsync_returnsFalseWhenGithubAppsAreUnavailable()
+    {
+        var (service, _) = await ArrangeAsync();
+
+        Assert.That(await service.CompleteGithubInstallationAsync("key", 1), Is.False);
     }
 
     [Test]
@@ -596,10 +634,17 @@ public sealed class ForgeServiceTests
     }
 
     private static GithubAppConnectionService GithubApps()
-        => new(
-            new GithubAppConnectionStore(
-                Directory.CreateTempSubdirectory("agent-up-github-app-service-").FullName),
-            new GithubAppApiProvider(new GithubOwnerHandler()));
+        => new(new MemoryGithubAppStore(), new GithubAppApiProvider(new GithubOwnerHandler()));
+
+    private sealed class MemoryGithubAppStore : IGithubAppConnectionStore
+    {
+        public GithubAppConnection? Value { get; private set; }
+        public GithubAppConnection? Read(string workspaceId) => Value?.WorkspaceId == workspaceId ? Value : null;
+        public GithubAppConnection? FindByState(string state) => Value?.State == state ? Value : null;
+        public GithubAppConnection? FindBySetupKey(string setupKey) => Value?.SetupKey == setupKey ? Value : null;
+        public void Write(GithubAppConnection connection) => Value = connection;
+        public void Delete(string workspaceId) => Value = null;
+    }
 
     private sealed class GithubOwnerHandler : HttpMessageHandler
     {

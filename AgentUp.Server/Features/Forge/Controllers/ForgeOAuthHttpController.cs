@@ -11,14 +11,8 @@ public sealed class ForgeOAuthHttpController(ForgeController forge) : Controller
     [HttpGet("github/register")]
     public IActionResult GithubRegister([FromQuery] string state)
     {
-        try
-        {
-            return Content(forge.GithubRegistrationPage(state), "text/html; charset=utf-8");
-        }
-        catch (InvalidOperationException)
-        {
-            return NotFound();
-        }
+        var html = forge.GithubRegistrationPage(state);
+        return html is null ? NotFound() : Content(html, "text/html; charset=utf-8");
     }
 
     [HttpGet("github/manifest/callback")]

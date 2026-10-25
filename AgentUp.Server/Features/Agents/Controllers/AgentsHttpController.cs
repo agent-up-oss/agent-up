@@ -74,14 +74,8 @@ public sealed class AgentsHttpController(
             : Task.FromResult(current.Deactivate(workspaceId)));
 
     [HttpGet("autonomy")]
-    public async Task<IActionResult> GetAutonomy(string workspaceId)
-    {
-        if (autonomy is null)
-            return Problem(statusCode: 409, title: "Agent operation failed", detail: "Autonomy is not configured.");
-        if (agents.Get(workspaceId) is null)
-            return NotFound();
-        return Ok(await autonomy.GetStatusAsync(workspaceId, HttpContext.RequestAborted));
-    }
+    public Task<IActionResult> GetAutonomy(string workspaceId) =>
+        AutonomyStatusAsync(this, agents, autonomy, workspaceId, HttpContext.RequestAborted);
 
     [HttpGet("loop")]
     public IActionResult GetLoop(string workspaceId) =>
@@ -115,6 +109,20 @@ public sealed class AgentsHttpController(
     [HttpPost("login/callback")]
     public IActionResult SubmitLoginCallback(string workspaceId, AgentLoginCallbackRequest request) =>
         ActionResult(this, agents.SubmitLoginCallback(workspaceId, request.Url), accepted: true);
+
+    private static async Task<IActionResult> AutonomyStatusAsync(
+        AgentsHttpController controller,
+        AgentsController agents,
+        AutonomousWorkspaceService? autonomy,
+        string workspaceId,
+        CancellationToken cancellationToken)
+    {
+        if (autonomy is null)
+            return controller.Problem(statusCode: 409, title: "Agent operation failed", detail: "Autonomy is not configured.");
+        if (agents.Get(workspaceId) is null)
+            return controller.NotFound();
+        return controller.Ok(await autonomy.GetStatusAsync(workspaceId, cancellationToken));
+    }
 
     private static async Task<IActionResult> PromptRequestAsync(
         AgentsHttpController controller,

@@ -242,6 +242,16 @@ public sealed class AutonomyHttpTests
     }
 
     [Test]
+    public async Task GetAutonomy_unknownWorkspaceReturnsNotFound()
+    {
+        await using var host = await HostAsync();
+
+        using var response = await host.Client.GetAsync("/api/workspaces/missing/agent/autonomy");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
     public async Task GetLoop_unknownWorkspaceReturnsNotFound()
     {
         await using var host = await HostAsync();

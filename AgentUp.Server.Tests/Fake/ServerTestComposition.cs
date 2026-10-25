@@ -107,11 +107,24 @@ internal static class ServerTestComposition
         IWorkspaceProcessManager processes,
         IAgentUpConfigurationProvider configuration,
         IWorkspaceIdentityProvider identity)
+        => CreateOrchestrationWorkspaceController(
+            registry,
+            processes,
+            configuration,
+            identity,
+            new LoopbackApplicationReadinessProbe());
+
+    public static OrchestrationWorkspaceController CreateOrchestrationWorkspaceController(
+        WorkspaceRegistry registry,
+        IWorkspaceProcessManager processes,
+        IAgentUpConfigurationProvider configuration,
+        IWorkspaceIdentityProvider identity,
+        IApplicationReadinessProbe probe)
         => new(new OrchestrationWorkspaceService(
             new WorkspaceQueryController(registry),
             new WorkspaceStateController(registry, new WorkspaceEventBus()),
             new WorkspaceLifecycleController(CreateWorkspaceLifecycleService(
-                registry, processes, configuration, identity, OperatingSystem.IsLinux)),
+                registry, processes, configuration, identity, OperatingSystem.IsLinux, probe)),
             new OrchestrationRegistrationService(
                 configuration,
                 identity),

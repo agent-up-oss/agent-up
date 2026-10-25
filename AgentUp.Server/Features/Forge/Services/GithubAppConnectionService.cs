@@ -45,10 +45,11 @@ public sealed class GithubAppConnectionService(
             $"{pending.CallbackOrigin}/api/forge/github/register?state={Uri.EscapeDataString(pending.State)}");
     }
 
-    public string RegistrationPage(string state)
+    public string? RegistrationPage(string state)
     {
-        var pending = connections.FindByState(state)
-                      ?? throw new InvalidOperationException("The GitHub App registration request is invalid or expired.");
+        var pending = connections.FindByState(state);
+        if (pending is null)
+            return null;
         var manifest = JsonSerializer.Serialize(new
         {
             name = pending.AppName,

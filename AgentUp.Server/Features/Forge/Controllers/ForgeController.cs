@@ -4,7 +4,7 @@ using AgentUp.Server.Features.Forge.Services;
 
 namespace AgentUp.Server.Features.Forge.Controllers;
 
-public sealed class ForgeController(ForgeService service, GithubAppConnectionService? githubApps = null)
+public sealed class ForgeController(ForgeService service)
 {
     public Task<ForgeHostingDto?> GetHostingAsync(string workspaceId, CancellationToken cancellationToken = default)
         => service.GetHostingAsync(workspaceId, cancellationToken);
@@ -15,18 +15,15 @@ public sealed class ForgeController(ForgeService service, GithubAppConnectionSer
         CancellationToken cancellationToken = default)
         => service.StartLoginAsync(workspaceId, callbackOrigin, cancellationToken);
 
-    public string GithubRegistrationPage(string state)
-        => RequireGithubApps().RegistrationPage(state);
+    public string? GithubRegistrationPage(string state)
+        => service.GithubRegistrationPage(state);
 
     public Task<string?> CompleteGithubManifestAsync(string code, string state, CancellationToken cancellationToken = default)
-        => RequireGithubApps().CompleteManifestAsync(code, state, cancellationToken);
+        => service.CompleteGithubManifestAsync(code, state, cancellationToken);
 
     public Task<bool> CompleteGithubInstallationAsync(
         string key, long installationId, CancellationToken cancellationToken = default)
-        => RequireGithubApps().CompleteInstallationAsync(key, installationId, cancellationToken);
-
-    private GithubAppConnectionService RequireGithubApps()
-        => githubApps ?? throw new InvalidOperationException("GitHub App connections are unavailable.");
+        => service.CompleteGithubInstallationAsync(key, installationId, cancellationToken);
 
     public Task<bool> CompleteLoginAsync(string code, string state, CancellationToken cancellationToken = default)
         => service.CompleteLoginAsync(code, state, cancellationToken);

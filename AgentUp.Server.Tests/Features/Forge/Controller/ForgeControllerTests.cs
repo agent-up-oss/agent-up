@@ -70,6 +70,14 @@ public sealed class ForgeControllerTests
     }
 
     [Test]
+    public async Task GithubRegistrationPage_returnsNullWhenGithubAppsAreUnavailable()
+    {
+        var (controller, _, _) = await ArrangeAsync();
+
+        Assert.That(controller.GithubRegistrationPage("state"), Is.Null);
+    }
+
+    [Test]
     public async Task HasCredential_forwardsTheStoredForgeToken()
     {
         var (controller, workspaceId, _) = await ArrangeAsync();

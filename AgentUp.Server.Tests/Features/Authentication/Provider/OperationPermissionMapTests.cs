@@ -23,6 +23,10 @@ public sealed class OperationPermissionMapTests
         => Assert.That(OperationPermissionMap.For("SourceClones", "Refresh"), Is.EqualTo(OperationPermissions.WorkspaceCreate));
 
     [Test]
+    public void For_RequiresAgentReadToGetWorkspaceAutonomy()
+        => Assert.That(OperationPermissionMap.For("AgentsHttp", "GetAutonomy"), Is.EqualTo(OperationPermissions.AgentRead));
+
+    [Test]
     public void EntitlementsStayAuthenticatedWithoutAPermission()
     {
         Assert.Multiple(() =>

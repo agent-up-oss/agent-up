@@ -61,6 +61,14 @@ public sealed class GithubAppConnectionServiceTests
     }
 
     [Test]
+    public void RegistrationPage_returnsNullForAnUnknownState()
+    {
+        var service = new GithubAppConnectionService(new MemoryStore(), new GithubAppApiProvider());
+
+        Assert.That(service.RegistrationPage("missing"), Is.Null);
+    }
+
+    [Test]
     public void Disconnect_preservesTheAppRegistrationForReinstallation()
     {
         var store = new MemoryStore { Value = Connection() with { InstallationId = 99 } };
