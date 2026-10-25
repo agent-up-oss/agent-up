@@ -22,9 +22,13 @@ export function resolveAction(challenge) {
         // A code the Server already knows is one the user types into the page, so nothing comes back.
         if (challenge.code)
             return { kind: 'openWithCode', url, code: challenge.code, message };
-        // Otherwise the code travels the other way, and `canSubmitCode` says whether the CLI is
-        // actually waiting for it yet.
-        return { kind: 'collectCode', url, message, ready: challenge.canSubmitCode === true };
+        // A missing code does not by itself mean the user has to paste one back. Device-code CLIs
+        // print the URL first and the code in a following output segment. Only render code entry once
+        // the Server says the CLI is actually waiting on stdin; otherwise this is an intermediate
+        // challenge and the next session update will contain the device code.
+        if (challenge.canSubmitCode !== true)
+            return { kind: 'wait', message };
+        return { kind: 'collectCode', url, message, ready: true };
     }
     if (challenge.code)
         return { kind: 'openWithCode', url, code: challenge.code, message };

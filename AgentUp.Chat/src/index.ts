@@ -25,6 +25,7 @@ export type { AgentLoopControlsProps } from './components/AgentLoopControls';
 export {
   getAgent,
   bindAgent,
+  unbindAgent,
   scheduleAgent,
   resumeAgent,
   enableAgentCapability,

@@ -49,6 +49,8 @@ test('binding records the workspace agent', () => {
   const service = backend();
   const bound = json(service, 'PUT', '/api/workspaces/harbor-shop/agent/binding', JSON.stringify({ agent: 'codex' }));
   assert.equal(bound.boundAgent, 'codex');
+  const unbound = json(service, 'DELETE', '/api/workspaces/harbor-shop/agent/binding');
+  assert.equal(unbound.boundAgent, null);
 });
 
 test('agent prompts add a working-tree file and say so', () => {

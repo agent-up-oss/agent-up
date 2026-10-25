@@ -22,7 +22,7 @@ Desktop chrome for the live session is the **Agent** tab. Mobile chrome for the 
 
 <DocSurfaces>
 <DocSurface desktop>The Agent tab lists saved sessions and streams the selected workspace session. The live session is labeled Current; every other row is Resume. Once an agent is bound, the picker hides and the tab shows that agent. When a pasted-code sign-in is waiting, the tab collects the code and sends it to the Server. An unattended loop checklist, Enable autonomy, Activate, Cancel, and typed terminal appear on the Agent tab; a prompt sent while it runs steers the next turn instead of stopping it.</DocSurface>
-<DocSurface mobile>Agents lists saved sessions and Server-discovered ACP agents, then opens the selected chat as an inner page. The live session is labeled Current; every other row is Resume. A bound workspace hides the picker and shows that agent. The same unattended loop checklist, Enable autonomy, Activate, Cancel, and typed terminal appear on Agents and in chat.</DocSurface>
+<DocSurface mobile>Agents shows the workspace's bound agent and opens its chat as an inner page. An unbound workspace shows a + action whose creation page lists agent capabilities already enabled on the Server. The same unattended loop checklist, Enable autonomy, Activate, Cancel, and typed terminal appear on Agents and in chat.</DocSurface>
 </DocSurfaces>
 
 <p><img src="/desktop-agents.png" alt="Desktop Agent tab showing Codex and Harbor Shop" /></p>
@@ -38,7 +38,7 @@ Sign in with the corresponding CLI's subscription login from Desktop or Mobile w
 
 ## Workspace-bound agent
 
-Choosing an agent on Desktop or Mobile binds that module to the workspace, then starts the session. The picker stays hidden while the bind is set. A workspace with no bound agent is normal interactive chat, not an error.
+Choosing an agent on Desktop binds that module to the workspace, then starts the session. On Mobile, the Agents + action opens a creation page of enabled modules; a successful start creates the bind, while a failed start stays on that page without leaving a stale bind. A workspace with no bound agent is normal, not an error.
 
 ## Unattended loop
 

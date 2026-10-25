@@ -19,7 +19,7 @@ A workspace can bind one agent, attach a permission policy, and drain assigned h
 
 `Workspace.BoundAgentModuleId` is the agent that owns the workspace. `PUT .../agent/binding` sets it. `DELETE .../agent/binding` clears it when the live session is stopped or idle. Binding a different module while a session is live is refused with a typed error that names that session.
 
-An unbound workspace is not an error. Desktop hides the Agent-tab picker once a bind is present and shows the bound module instead. Mobile Agents does the same. Selecting an agent from the picker binds, then schedules. Saved session history stays keyed by workspace; a resume that names a different module than the bind is refused.
+An unbound workspace is not an error. Desktop hides the Agent-tab picker once a bind is present and shows the bound module instead. Mobile Agents shows only a created bound agent; otherwise its + action opens the enabled-module creation page. Mobile schedules from that page so a missing executable does not leave a new bind, and clears an existing bind that has no live agent before another choice. Saved session history stays keyed by workspace; a resume that names a different module than the bind is refused.
 
 `IAgentCapability.SupportsPermissionRequests` is required before autonomy will activate for that bind. Codex, Cursor, and Claude declare it true.
 
@@ -31,7 +31,7 @@ An empty rule list is byte-identical to today's human path: the client still dec
 
 ## Unattended loop
 
-Autonomy is a Server-level switch, off by default. Enablement is stored in `autonomy-settings.json`; `AGENTUP_AUTONOMY_ENABLED` still forces it on. `GET /api/autonomy` returns `{ enabled, preconditions }` in order: `forgeCapabilityEnabled`, `hostConnectionAuthorized`, `agentAvailable`, `autonomyEnabled`, each with a remedy when unsatisfied. `PUT /api/autonomy` still requires an authorized host connection. Desktop and Mobile render that chain and Activate/Cancel; they assert `LoopTerminal`, not transcript prose. Chat hides the checklist while subscription sign-in is in progress so the paste-code field stays on screen. Drive the loop with `test-agent-scripted`. Each workspace then activates separately. Preconditions are checked at activate and at every task boundary:
+Autonomy is a Server-level switch, off by default. Enablement is stored in `autonomy-settings.json`; `AGENTUP_AUTONOMY_ENABLED` still forces it on. `GET /api/autonomy` returns `{ enabled, preconditions }` in order: `forgeCapabilityEnabled`, `hostConnectionAuthorized`, `agentAvailable`, `autonomyEnabled`, each with a remedy when unsatisfied. `PUT /api/autonomy` still requires an authorized host connection. Desktop and Mobile offer Enable autonomy once forge and host connection are ready, even while agent availability remains unmet; activation still requires the full chain. They render that chain and Activate/Cancel, and assert `LoopTerminal`, not transcript prose. Chat hides the checklist while subscription sign-in is in progress so the paste-code field stays on screen. Drive the loop with `test-agent-scripted`. Each workspace then activates separately. Preconditions are checked at activate and at every task boundary:
 
 - a bound agent that declares permission requests
 - a non-empty policy

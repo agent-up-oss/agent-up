@@ -26,9 +26,14 @@ test('preconditionLabel uses the Server chain names', () => {
   assert.equal(preconditionLabel('autonomyEnabled'), 'Autonomy enabled');
 });
 
-test('canEnableAutonomy requires the first three preconditions', () => {
+test('canEnableAutonomy requires forge and host readiness but not a runnable agent', () => {
   assert.equal(canEnableAutonomy(readyToEnable), true);
   assert.equal(canEnableAutonomy(readyToActivate), false);
+  assert.equal(canEnableAutonomy({
+    ...readyToEnable,
+    preconditions: readyToEnable.preconditions.map(item =>
+      item.id === 'agentAvailable' ? { ...item, satisfied: false } : item),
+  }), true);
   assert.equal(canEnableAutonomy({
     ...readyToEnable,
     preconditions: readyToEnable.preconditions.map(item =>

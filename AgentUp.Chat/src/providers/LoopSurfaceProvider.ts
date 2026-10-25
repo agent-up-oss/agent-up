@@ -19,7 +19,6 @@ export function canEnableAutonomy(autonomy: ServerAutonomy | null | undefined): 
   const items = autonomy?.preconditions ?? [];
   return items.some(item => item.id === 'forgeCapabilityEnabled' && item.satisfied)
     && items.some(item => item.id === 'hostConnectionAuthorized' && item.satisfied)
-    && items.some(item => item.id === 'agentAvailable' && item.satisfied)
     && items.some(item => item.id === 'autonomyEnabled' && !item.satisfied);
 }
 

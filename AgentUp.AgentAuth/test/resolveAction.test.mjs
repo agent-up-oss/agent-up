@@ -33,7 +33,7 @@ test('a device code is shown alongside the link and never sent back', () => {
   assert.equal(action.code, 'ABCD-EFGH');
 });
 
-test('a pasted-code sign-in collects a code, and says whether the agent is ready for it', () => {
+test('a code flow waits until it has a device code or the CLI requests pasted input', () => {
   const challenge = {
     url: 'https://claude.ai/oauth/authorize?code=true',
     code: null,
@@ -42,13 +42,12 @@ test('a pasted-code sign-in collects a code, and says whether the agent is ready
     canSubmitCode: false,
   };
 
-  assert.deepEqual(
-    { kind: resolveAction(challenge).kind, ready: resolveAction(challenge).ready },
-    { kind: 'collectCode', ready: false },
-    'the agent has not written its prompt yet',
-  );
+  assert.equal(resolveAction(challenge).kind, 'wait', 'the agent has not written its prompt yet');
 
-  assert.equal(resolveAction({ ...challenge, canSubmitCode: true }).ready, true);
+  assert.deepEqual(
+    { kind: resolveAction({ ...challenge, canSubmitCode: true }).kind, ready: resolveAction({ ...challenge, canSubmitCode: true }).ready },
+    { kind: 'collectCode', ready: true },
+  );
 });
 
 test('a redirect sign-in asks the client to watch for the loopback address', () => {

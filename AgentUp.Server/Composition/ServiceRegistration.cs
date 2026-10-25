@@ -188,6 +188,7 @@ public static class ServiceRegistration
 #pragma warning restore MCP9004
 
         builder.Services.AddSingleton<WorkspaceEventBus>();
+        builder.Services.AddSingleton<IAgentRuntimePathProvider, AgentRuntimePathProvider>();
         builder.Services.AddSingleton<AgentCommandProvider>();
         builder.Services.AddSingleton<AgentSubscriptionAuth>();
         builder.Services.AddSingleton(provider => new AgentCliHomeProvider(dataDir));

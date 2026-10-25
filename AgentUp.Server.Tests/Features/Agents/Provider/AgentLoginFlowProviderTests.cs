@@ -47,6 +47,33 @@ public sealed class AgentLoginFlowProviderTests
     }
 
     [Test]
+    public void Resolve_treatsTheLegacyCodexCodeDeclarationAsDeviceCode()
+    {
+        var packages = new FakeEnabledCapabilityPackages().WithAgents(new StubAgentCapability
+        {
+            Identity = new CapabilityIdentity("codex", "1.0.0", "Codex", "agent-up"),
+            Login = new AgentLoginSpec("codex", ["login", "--device-auth"], "code")
+        });
+
+        var flow = new AgentLoginFlowProvider(Configuration(), packages).Resolve("codex");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(flow.Transport, Is.EqualTo(AgentLoginTransport.Code));
+            Assert.That(flow.NeedsCodeInput, Is.False);
+        });
+    }
+
+    [Test]
+    public void Resolve_treatsALegacyConfiguredCodexCodeFlowAsDeviceCode()
+    {
+        var flow = new AgentLoginFlowProvider(
+            Configuration(("Agents:Codex:LoginTransport", "code"))).Resolve("codex");
+
+        Assert.That(flow.NeedsCodeInput, Is.False);
+    }
+
+    [Test]
     public void Resolve_honoursAConfiguredTransport()
     {
         var provider = new AgentLoginFlowProvider(Configuration(("Agents:Codex:LoginTransport", "redirect")));

@@ -20,7 +20,8 @@ public sealed class CodexAgentCapabilityTests
         var login = new CodexAgentCapability().Login;
 
         Assert.That(login!.FileName, Is.EqualTo("codex"));
-        Assert.That(login.Transport, Is.EqualTo("code"));
+        Assert.That(login.Arguments, Is.EqualTo(new[] { "login", "--device-auth" }));
+        Assert.That(login.Transport, Is.EqualTo("device"));
     }
 
     [Test]

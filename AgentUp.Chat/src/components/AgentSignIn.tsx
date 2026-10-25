@@ -85,24 +85,19 @@ export function AgentSignIn({ challenge, api, copy, onError }: AgentSignInProps)
         <Text style={styles.primaryText}>Open the sign-in page</Text>
       </Pressable>
 
-      <Pressable
-        testID="agent-signin-copy-link"
-        accessibilityRole="button"
-        style={styles.secondary}
-        onPress={() => void copy(action.url)}
-      >
-        <Text testID="agent-signin-url" style={styles.url} numberOfLines={2}>{action.url}</Text>
-      </Pressable>
-
       {action.kind === 'openWithCode' && (
-        <Pressable
-          testID="agent-signin-copy-code"
-          accessibilityRole="button"
-          style={styles.secondary}
-          onPress={() => void copy(action.code)}
-        >
-          <Text testID="agent-signin-code" style={styles.code}>{action.code}</Text>
-        </Pressable>
+        <View style={styles.codeBlock}>
+          <Text style={styles.codeLabel}>Enter this code on the sign-in page</Text>
+          <Pressable
+            testID="agent-signin-copy-code"
+            accessibilityRole="button"
+            accessibilityLabel="Copy sign-in code"
+            style={styles.secondary}
+            onPress={() => void copy(action.code)}
+          >
+            <Text testID="agent-signin-code" style={styles.code}>{action.code}</Text>
+          </Pressable>
+        </View>
       )}
 
       {action.kind === 'collectCode' && (

@@ -17,6 +17,9 @@ export async function enableAgentCapability(
 export async function bindAgent(server: ServerSession, workspaceId: string, agent: AgentId, request: typeof fetch = fetch) {
   return requestServerJson<AgentSession>(server, `${root(workspaceId)}/binding`, { ...jsonBody({ agent }), method: 'PUT' }, 120_000, request);
 }
+export async function unbindAgent(server: ServerSession, workspaceId: string, request: typeof fetch = fetch) {
+  return requestServerJson<AgentSession>(server, `${root(workspaceId)}/binding`, { method: 'DELETE' }, 120_000, request);
+}
 export async function scheduleAgent(server: ServerSession, workspaceId: string, agent: AgentId, request: typeof fetch = fetch) {
   return requestServerJson<AgentSession>(server, root(workspaceId), jsonBody({ agent }), 120_000, request);
 }
@@ -52,10 +55,17 @@ async function waitForSignInChallenge(
   const started = Date.now();
   while (true) {
     const session = await getAgent(server, workspaceId, request);
-    if (session?.loginChallenge?.url || session?.state !== 'authenticating') return session;
+    if (isActionableChallenge(session) || session?.state !== 'authenticating') return session;
     if (Date.now() - started >= timeoutMs) return session;
     await pause(50);
   }
+}
+
+function isActionableChallenge(session: AgentSession | null): boolean {
+  const challenge = session?.loginChallenge;
+  if (!challenge?.url) return false;
+  if (challenge.transport !== 'code') return true;
+  return Boolean(challenge.code) || challenge.canSubmitCode === true;
 }
 /** A code the user copied out of the provider page, for an agent CLI waiting on one. */
 export async function submitAgentLoginCode(server: ServerSession, workspaceId: string, code: string, request: typeof fetch = fetch) {

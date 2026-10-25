@@ -273,8 +273,9 @@ public sealed class AgentChatViewModel : ReactiveObject
             LoginInstructions = session.LoginChallenge?.Instructions;
             CanCollectLoginCode = session.State == "authenticating"
                 && session.LoginChallenge?.Transport == AgentLoginTransport.Code
-                && string.IsNullOrWhiteSpace(session.LoginChallenge.Code);
-            CanSubmitLoginCode = CanCollectLoginCode && session.LoginChallenge?.CanSubmitCode == true;
+                && string.IsNullOrWhiteSpace(session.LoginChallenge.Code)
+                && session.LoginChallenge.CanSubmitCode;
+            CanSubmitLoginCode = CanCollectLoginCode;
         }
         else
         {

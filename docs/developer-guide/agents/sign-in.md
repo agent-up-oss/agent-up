@@ -17,9 +17,9 @@ The Server declares which shape an agent CLI implements and reports it on the si
 
 Defaults come from that agent module's `Login` spec when present. First-party Codex, Cursor, and Claude module ids keep a CLI fallback when that spec is absent. Listing stays by module id; there is no public `AgentKind` on either side of the wire - the client's own type is `AgentId`, a module id. Those defaults live in `AgentLoginFlowProvider`, matching the login command `AgentLoginCommandProvider` runs:
 
-- **Codex** — `codex login --device-auth`, so `code` with a user code.
+- **Codex** — `codex login --device-auth`, declared as `device`: the Server shows its user code and the user enters it on the provider page.
 - **Cursor** — `agent login` on the ACP binary, so `poll`.
-- **Claude** — `claude setup-token`, so `code` with a pasted code.
+- **Claude** — `claude setup-token`, declared as `code`: the user pastes the provider's authorization code back into Agent-Up.
 
 `Agents:{agent}:LoginTransport` overrides this when a deployment points a module at a different CLI or
 a different login subcommand. `Agents:{agent}:LoginChallengeTimeoutSeconds` and

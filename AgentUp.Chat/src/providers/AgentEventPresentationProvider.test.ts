@@ -174,6 +174,33 @@ test('keeps an authenticating sign-in URL when a later snapshot omits it', () =>
   assert.equal(failed?.state, 'authentication_required');
 });
 
+test('does not let a stale URL-only snapshot erase a device code', () => {
+  const complete = mergeAgentSession(null, {
+    workspaceId: 'ws-1', agent: 'codex', state: 'authenticating', sessionId: 's', error: null, agents: [],
+    loginChallenge: {
+      transport: 'code',
+      url: 'https://auth.openai.com/codex/device',
+      code: 'GGV7-L15JX',
+      instructions: 'Open this link, then enter the code shown here.',
+      expiresAt: '2026-10-25T10:15:00Z',
+    },
+  });
+  const stale = mergeAgentSession(complete, {
+    workspaceId: 'ws-1', agent: 'codex', state: 'authenticating', sessionId: 's', error: null, agents: [],
+    loginChallenge: {
+      transport: 'code',
+      url: 'https://auth.openai.com/codex/device',
+      code: null,
+      instructions: 'Open this link and enter the code it asks for.',
+      canSubmitCode: false,
+    },
+  });
+
+  assert.equal(stale?.loginChallenge?.code, 'GGV7-L15JX');
+  assert.equal(stale?.loginChallenge?.instructions, 'Open this link, then enter the code shown here.');
+  assert.equal(stale?.loginChallenge?.expiresAt, '2026-10-25T10:15:00Z');
+});
+
 test('keeps the agent catalog when a later snapshot omits it', () => {
   const catalog: AgentSession['agents'] = [
     { agent: 'Codex', available: true, displayName: 'Codex' },

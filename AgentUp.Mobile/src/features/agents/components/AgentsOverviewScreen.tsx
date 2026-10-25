@@ -3,18 +3,11 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useRouter } from 'expo-router';
 import {
   AgentLoopControls,
-  agentRowDetail,
-  bindAgent,
-  enableAgentCapability,
   getAgent,
   getAutonomy,
   getLoop,
-  presentAgentRow,
   putAutonomy,
   putLoopActivation,
-  resumeAgent,
-  scheduleAgent,
-  type AgentId,
   type AgentSession,
   type ServerAutonomy,
 } from '@agent-up/chat';
@@ -34,6 +27,10 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
   const [autonomy, setAutonomy] = useState<ServerAutonomy | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const agents = session?.agents ?? [];
+  const boundAgent = agents.find(item => item.agent.toLowerCase() === session?.boundAgent?.toLowerCase());
+  const hasCreatedBoundAgent = Boolean(boundAgent && session?.agent
+    && boundAgent.agent.toLowerCase() === session.agent.toLowerCase());
 
   const shellConfig = useMemo(() => ({
     title: 'Agents',
@@ -81,46 +78,6 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
 
   const openChat = () => router.push(`/(main)/workspace/${workspaceId}/agent`);
 
-  const start = async (agent: AgentId) => {
-    if (!server || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await bindAgent(server, workspaceId, agent);
-      const next = await scheduleAgent(server, workspaceId, agent);
-      setSession(next);
-      openChat();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not start the agent.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const enable = async (agent: AgentId) => {
-    if (!server || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await enableAgentCapability(server, agent);
-      setSession(await getAgent(server, workspaceId));
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not enable the agent.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const resume = async (sessionId: string) => {
-    if (!server || busy) return;
-    setBusy(true); setError(null);
-    try { setSession(await resumeAgent(server, workspaceId, sessionId)); openChat(); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not resume the session.'); }
-    finally { setBusy(false); }
-  };
-
-  const agents = session?.agents ?? [];
-
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -150,22 +107,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
           }, 'Could not cancel the loop.')}
         />
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Workspace sessions</Text>
-          {(session?.sessions ?? []).length === 0 && <Text style={styles.detail}>No saved sessions yet.</Text>}
-          {(session?.sessions ?? []).map(item => {
-            const active = item.sessionId === session?.sessionId && session?.state !== 'stopped';
-            return <Pressable key={item.sessionId} testID={`agent-session-${item.sessionId}`} accessibilityRole="button"
-              accessibilityLabel={`${active ? 'Open' : 'Resume'} ${item.agent} session`} disabled={busy}
-              onPress={() => active ? openChat() : void resume(item.sessionId)} style={styles.current}>
-              <View style={styles.sessionHeading}><Text style={styles.tag}>{item.agent}</Text><Text style={styles.branch}>{item.branch}</Text></View>
-              <Text style={styles.currentTitle}>{item.description}</Text>
-              <Text style={styles.action}>{active ? `Current · ${session?.state}` : 'Resume session →'}</Text>
-            </Pressable>;
-          })}
-        </View>
-
-        {session?.boundAgent ? (
+        {session?.boundAgent && hasCreatedBoundAgent ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Bound agent</Text>
             <Pressable
@@ -173,60 +115,22 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
               accessibilityRole="button"
               accessibilityLabel={boundAgentActionLabel(session.boundAgent, session.agent, agents) ?? `Open ${session.boundAgent}`}
               disabled={busy}
-              onPress={() => {
-                const bound = session.boundAgent;
-                if (!bound) return;
-                session.agent === bound ? openChat() : void start(bound);
-              }}
+              onPress={openChat}
               style={styles.card}>
-              <Text style={styles.title}>{session.boundAgent}</Text>
+              <Text style={styles.title}>{boundAgent?.displayName ?? session.boundAgent}</Text>
               <Text style={styles.detail}>{formatLoopLine(session.loop) ?? (session.agent ? 'Open existing session' : 'Start the bound agent')}</Text>
             </Pressable>
           </View>
         ) : (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{session?.agent ? 'Start another session' : 'Start a session'}</Text>
-          {agents.length === 0 && !error && <Text style={styles.detail}>Loading available agents…</Text>}
-          {agents.map(agent => {
-            const currentAgent = agent.agent === session?.agent;
-            const row = presentAgentRow(agent);
-            if (currentAgent || row.canSelect) {
-              return (
-                <Pressable
-                  key={agent.agent}
-                  testID={`agent-start-${agent.agent}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={currentAgent ? `Open ${agent.displayName}` : `Start ${agent.displayName}`}
-                  disabled={busy}
-                  onPress={() => currentAgent ? openChat() : void start(agent.agent)}
-                  style={styles.card}>
-                  <Text style={styles.title}>{agent.displayName}</Text>
-                  <Text style={styles.detail}>
-                    {currentAgent ? 'Open existing session' : agentRowDetail(agent)}
-                  </Text>
-                </Pressable>
-              );
-            }
-            return (
-              <View key={agent.agent} style={[styles.card, row.isBlocked && styles.disabled]}>
-                <Text style={styles.title}>{agent.displayName}</Text>
-                <Text style={styles.detail}>{row.status}</Text>
-                {row.detail ? <Text style={styles.detail}>{row.detail}</Text> : null}
-                {row.remedy ? <Text style={styles.detail}>{row.remedy}</Text> : null}
-                {row.canEnable ? (
-                  <Pressable
-                    testID={`agent-enable-${agent.agent}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Enable ${agent.displayName}`}
-                    disabled={busy}
-                    onPress={() => void enable(agent.agent)}>
-                    <Text style={styles.action}>Enable</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            );
-          })}
-        </View>
+          session && <Pressable
+            testID="agent-create"
+            accessibilityRole="button"
+            accessibilityLabel="Create bound agent"
+            disabled={busy}
+            onPress={() => router.push(`/(main)/workspace/${workspaceId}/agent-create`)}
+            style={styles.createButton}>
+            <Text style={styles.createIcon}>+</Text>
+          </Pressable>
         )}
       </ScrollView>
       <WorkspaceTabBar workspaceId={workspaceId} active="agents" />
@@ -237,17 +141,12 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
   content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: 16, maxWidth: 672, width: '100%', alignSelf: 'center' },
-  current: { ...auBox('card'), gap: agentUpTheme.spacing[2] },
-  currentTitle: auText('pageTitle'),
-  action: auText('accent'),
   section: { gap: 10 },
   sectionTitle: auText('fieldLabel'),
   card: { ...auBox('choice'), gap: 2 },
+  createButton: { ...auBox('titleTool'), alignItems: 'center', justifyContent: 'center' },
+  createIcon: { ...auText('accent'), fontSize: 20, fontWeight: '700', lineHeight: 22 },
   title: auText('workspaceName'),
   detail: auText('muted'),
   error: auText('badgeDanger'),
-  disabled: { opacity: 0.38 },
-  sessionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  tag: { ...auText('badge'), color: agentUpTheme.colors.accent },
-  branch: auText('muted'),
 });

@@ -14,7 +14,7 @@ public sealed class AgentLoginFlowProvider(IConfiguration configuration, IEnable
     public AgentLoginFlow Resolve(string agent)
     {
         var configured = configuration[$"Agents:{agent}:LoginTransport"];
-        var flow = string.IsNullOrWhiteSpace(configured) ? Default(agent) : FromName(configured);
+        var flow = string.IsNullOrWhiteSpace(configured) ? Default(agent) : FromDeclaration(agent, configured);
         return flow with
         {
             ChallengeTimeout = ReadTimeout($"Agents:{agent}:LoginChallengeTimeoutSeconds") ?? flow.ChallengeTimeout,
@@ -26,7 +26,13 @@ public sealed class AgentLoginFlowProvider(IConfiguration configuration, IEnable
     {
         var transport = packages?.GetAgent(agent)?.Login?.Transport;
         if (!string.IsNullOrWhiteSpace(transport))
-            return FromName(transport);
+        {
+            // Codex 1.0.0 called its device flow "code", the same legacy spelling Claude uses
+            // for a code pasted back into stdin. Preserve installed 1.0.0 packages while making
+            // the direction unambiguous: Codex's --device-auth always prints the code for the
+            // user to enter on the website.
+            return FromDeclaration(agent, transport);
+        }
 
         // First-party module ids only, used when an enabled module has no Login spec.
         return agent.ToLowerInvariant() switch
@@ -36,6 +42,14 @@ public sealed class AgentLoginFlowProvider(IConfiguration configuration, IEnable
             "claude" => AgentLoginFlow.PastedCode(),
             _ => AgentLoginFlow.Poll()
         };
+    }
+
+    private static AgentLoginFlow FromDeclaration(string agent, string transport)
+    {
+        if (agent.Equals("codex", StringComparison.OrdinalIgnoreCase)
+            && transport.Trim().Equals("code", StringComparison.OrdinalIgnoreCase))
+            return AgentLoginFlow.DeviceCode();
+        return FromName(transport);
     }
 
     private TimeSpan? ReadTimeout(string key)

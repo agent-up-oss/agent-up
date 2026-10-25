@@ -256,6 +256,7 @@ export class FakeBackendService {
     if (method === 'GET' && rest === 'agent') return this.agentSession(workspaceId);
     if (method === 'POST' && rest === 'agent') return this.scheduleAgent(workspaceId, request.body);
     if (method === 'PUT' && rest === 'agent/binding') return this.bindAgent(workspaceId, request.body);
+    if (method === 'DELETE' && rest === 'agent/binding') return this.unbindAgent(workspaceId);
     if (method === 'PUT' && (rest === 'agent/host-connection' || rest === 'agent/policy' || rest === 'agent/role' || rest === 'agent/queue-order'))
       return { status: 204, contentType: 'application/json' };
     if (method === 'POST' && rest === 'agent/messages') return this.sendAgentMessage(workspaceId, request.body);
@@ -552,6 +553,17 @@ export class FakeBackendService {
     const next = {
       ...(stored.session && typeof stored.session === 'object' ? stored.session as Record<string, unknown> : {}),
       boundAgent: requested,
+    };
+    stored.session = next;
+    return json(this.liveAgentSession(next));
+  }
+
+  private unbindAgent(workspaceId: string): FakeBackendResponse {
+    const stored = this.state.agents?.[workspaceId];
+    if (!stored) return notFound();
+    const next = {
+      ...(stored.session && typeof stored.session === 'object' ? stored.session as Record<string, unknown> : {}),
+      boundAgent: null,
     };
     stored.session = next;
     return json(this.liveAgentSession(next));

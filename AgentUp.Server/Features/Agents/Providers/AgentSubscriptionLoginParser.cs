@@ -197,7 +197,7 @@ public sealed class AgentSubscriptionLoginParser(AgentLoginFlow flow)
             AgentLoginTransport.Code when code is not null =>
                 "Open this link, then enter the code shown here. This uses your subscription, not an API key.",
             AgentLoginTransport.Code =>
-                "Open this link and enter the code it asks for. This uses your subscription, not an API key.",
+                "Waiting for the agent CLI to print the device code.",
             AgentLoginTransport.Redirect =>
                 "Open this link and sign in. Agent-Up will pick the sign-in up automatically when it finishes.",
             _ => "Open this link and sign in with your subscription."

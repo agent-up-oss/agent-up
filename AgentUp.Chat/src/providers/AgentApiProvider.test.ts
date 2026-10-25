@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { authenticateAgent, bindAgent, enableAgentCapability, getAutonomy, getLoop, parseSseFrames, putAutonomy, putLoopActivation, resumeAgent, scheduleAgent, streamAgentEvents } from './AgentApiProvider';
+import { authenticateAgent, bindAgent, enableAgentCapability, getAutonomy, getLoop, parseSseFrames, putAutonomy, putLoopActivation, resumeAgent, scheduleAgent, streamAgentEvents, unbindAgent } from './AgentApiProvider';
 
 test('parses fragmented and multiline SSE events without losing the tail', () => {
   const first = parseSseFrames('id: 1\nevent: state\ndata: {"sequence":1,\n');
@@ -68,6 +68,19 @@ test('bind puts the workspace binding route', async () => {
   assert.equal(session?.boundAgent, 'Codex');
 });
 
+test('unbind deletes the workspace binding route', async () => {
+  const calls: { url: string; init?: RequestInit }[] = [];
+  const request = async (input: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(input), init });
+    return new Response(JSON.stringify({ workspaceId: 'ws', agent: null, state: 'idle', sessionId: null, error: null, agents: [], authMethods: [], boundAgent: null }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  const session = await unbindAgent({ url: 'https://server.example', accessToken: 'token' }, 'ws /1', request as typeof fetch);
+  assert.equal(calls[0]?.url, 'https://server.example/api/workspaces/ws%20%2F1/agent/binding');
+  assert.equal(calls[0]?.init?.method, 'DELETE');
+  assert.equal(session?.boundAgent, null);
+});
+
 test('enableAgentCapability posts the package identity', async () => {
   const calls: { url: string; init?: RequestInit }[] = [];
   const request = async (input: string | URL | Request, init?: RequestInit) => {
@@ -106,7 +119,7 @@ test('authenticate posts the method and returns the session that call created', 
     error: null,
     agents: [],
     authMethods: [],
-    loginChallenge: { transport: 'code', url: 'https://idp.example/login' },
+    loginChallenge: { transport: 'code', url: 'https://idp.example/login', canSubmitCode: true },
   };
   const request = async (input: string | URL | Request, init?: RequestInit) => {
     calls.push({ url: String(input), method: init?.method ?? 'GET', body: typeof init?.body === 'string' ? init.body : undefined });
@@ -166,6 +179,40 @@ test('authenticate rereads until the login CLI prints a sign-in URL', async () =
   assert.deepEqual(pauses, [50]);
   assert.equal(returned?.loginChallenge?.url, 'https://idp.example/authorize');
   assert.equal(calls[0], 'POST https://server.example/api/workspaces/ws/agent/authenticate');
+});
+
+test('authenticate does not return a Codex device challenge before its code arrives', async () => {
+  const pending = {
+    workspaceId: 'ws', agent: 'Codex', state: 'authenticating', sessionId: 's', error: null, agents: [], authMethods: [],
+    loginChallenge: {
+      url: 'https://auth.openai.com/codex/device', code: null,
+      instructions: 'Waiting for the agent CLI to print the device code.', transport: 'code', canSubmitCode: false,
+    },
+  };
+  const ready = {
+    ...pending,
+    loginChallenge: {
+      ...pending.loginChallenge, code: 'GGV7-L15JX',
+      instructions: 'Open this link, then enter the code shown here.',
+    },
+  };
+  let reads = 0;
+  const request = async (_input: string | URL | Request, init?: RequestInit) => {
+    if (init?.method === 'POST') return new Response(null, { status: 202 });
+    reads += 1;
+    return new Response(JSON.stringify(reads === 1 ? pending : ready), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+
+  const returned = await authenticateAgent(
+    { url: 'https://server.example' }, 'ws', 'chatgpt', request as typeof fetch,
+    { pause: async () => {} },
+  );
+
+  assert.equal(reads, 2);
+  assert.equal(returned?.loginChallenge?.code, 'GGV7-L15JX');
 });
 
 test('authenticate returns the last snapshot when the challenge URL never arrives', async () => {

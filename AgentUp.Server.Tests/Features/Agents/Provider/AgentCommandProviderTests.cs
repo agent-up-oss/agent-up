@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.Agents.DTOs;
+using AgentUp.Server.Features.Agents.Interfaces;
 using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Tests.Support;
@@ -147,6 +148,28 @@ public sealed class AgentCommandProviderTests
             .IsAvailableAsync("codex", CancellationToken.None);
 
         Assert.That(available, Is.True);
+    }
+
+    [Test]
+    public async Task IsAvailableAsync_searchesTheCapabilityRuntimePath()
+    {
+        var directory = Directory.CreateTempSubdirectory();
+        try
+        {
+            var command = OperatingSystem.IsWindows() ? "codex-acp.exe" : "codex-acp";
+            var file = Path.Join(directory.FullName, command);
+            await File.WriteAllBytesAsync(file, [0x23, 0x21]);
+            if (!OperatingSystem.IsWindows())
+                File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserExecute);
+            var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex());
+            var provider = new AgentCommandProvider(
+                new ConfigurationBuilder().Build(),
+                packages,
+                new StubRuntimePathProvider(directory.FullName));
+
+            Assert.That(await provider.IsAvailableAsync("codex", CancellationToken.None), Is.True);
+        }
+        finally { directory.Delete(true); }
     }
 
     [Test]
@@ -314,5 +337,12 @@ public sealed class AgentCommandProviderTests
             Environment.SetEnvironmentVariable("PATH", previous);
             directory.Delete(true);
         }
+    }
+
+    private sealed class StubRuntimePathProvider(string path) : IAgentRuntimePathProvider
+    {
+        public IReadOnlyList<string> PathPrefixes() => [path];
+
+        public string? RuntimeRoot() => null;
     }
 }
