@@ -9,6 +9,11 @@ public static class DesktopAutomationIds
     public const string ChromeCapabilities = "chrome.capabilities";
     public const string ChromeCommandCenter = "chrome.command-center";
     public const string CommandCenterSwitchBack = "command-center.switch-back";
+    public const string QueueMoveUp = "queue.move-up";
+    public const string QueueMoveDown = "queue.move-down";
+    public const string QueueRelease = "queue.release";
+    public const string QueueRemove = "queue.remove";
+    public const string QueuePick = "queue.pick";
     public const string ChromeServerStatus = "chrome.server-status";
 
     public const string LoginBack = "login.back";

@@ -17,11 +17,15 @@ public sealed class CommandCenterViewModel : ReactiveObject
     private bool _active;
     private bool _persists = true;
 
-    public CommandCenterViewModel(InterfaceController controller, BridgeViewModel? bridge = null)
+    public CommandCenterViewModel(
+        InterfaceController controller,
+        BridgeViewModel? bridge = null,
+        TaskQueueViewModel? tasks = null)
     {
         _controller = controller;
         _active = controller.UsesCommandCenter;
         Bridge = bridge;
+        Tasks = tasks;
         ToggleCommand = ReactiveCommand.Create(Toggle);
     }
 
@@ -30,6 +34,12 @@ public sealed class CommandCenterViewModel : ReactiveObject
     /// (the headless tests). The classic shell never touches it.
     /// </summary>
     public BridgeViewModel? Bridge { get; }
+
+    /// <summary>
+    /// The queue the agents work from, or null where the shell was composed without the reads
+    /// behind it (the headless tests). The classic shell never touches it.
+    /// </summary>
+    public TaskQueueViewModel? Tasks { get; }
 
     /// <summary>True while the command center is the shell on screen.</summary>
     public bool Active

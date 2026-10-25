@@ -170,6 +170,76 @@
                 </ItemsControl>
             </Grid>
         </DataTemplate>
+        <DataTemplate x:Key="QueuedTaskRowTemplate">
+            <Grid ColumnDefinitions="*,110,110,136"
+                  ColumnSpacing="12"
+                  Margin="0,0,0,1"
+                  Background="{DynamicResource AgentUpColorTransparentBrush}">
+                <StackPanel Grid.Column="0" Margin="0,8" Spacing="2">
+                    <TextBlock Text="{Binding TaskLabel}"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                    <TextBlock Text="{Binding RepositoryLabel}"
+                               FontSize="11"
+                               Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                </StackPanel>
+                <TextBlock Grid.Column="1"
+                           Text="{Binding TargetLabel}"
+                           FontSize="12"
+                           Margin="0,8"
+                           VerticalAlignment="Top"
+                           Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                <TextBlock Grid.Column="2"
+                           Text="{Binding HolderLabel}"
+                           FontSize="12"
+                           Margin="0,8"
+                           VerticalAlignment="Top"
+                           Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" Margin="0,6" VerticalAlignment="Top">
+                    <Button Content="&#8593;"
+                            Command="{Binding MoveUpCommand}"
+                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueueMoveUp}"
+                            ToolTip.Tip="Work this sooner"/>
+                    <Button Content="&#8595;"
+                            Command="{Binding MoveDownCommand}"
+                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueueMoveDown}"
+                            ToolTip.Tip="Work this later"/>
+                    <Button Content="Release"
+                            Command="{Binding ReleaseCommand}"
+                            IsVisible="{Binding IsHeld}"
+                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueueRelease}"
+                            ToolTip.Tip="Hand this back so another agent can take it"/>
+                    <Button Content="Remove"
+                            Command="{Binding RemoveCommand}"
+                            IsVisible="{Binding !IsHeld}"
+                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueueRemove}"
+                            ToolTip.Tip="Take this out of the queue"/>
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="OfferedIssueRowTemplate">
+            <Grid ColumnDefinitions="*,Auto"
+                  ColumnSpacing="12"
+                  Margin="0,0,0,1"
+                  Background="{DynamicResource AgentUpColorTransparentBrush}">
+                <TextBlock Grid.Column="0"
+                           Text="{Binding IssueLabel}"
+                           FontSize="13"
+                           TextWrapping="Wrap"
+                           Margin="0,8"
+                           Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                <Button Grid.Column="1"
+                        Content="Queue"
+                        Margin="0,6"
+                        VerticalAlignment="Top"
+                        Command="{Binding PickCommand}"
+                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueuePick}"
+                        ToolTip.Tip="Put this issue in the queue"/>
+            </Grid>
+        </DataTemplate>
     </UserControl.Resources>
 
     <Grid ColumnDefinitions="208,*">
@@ -340,6 +410,59 @@
                         <TextBlock Text="{Binding CommandCenter.Bridge.TasksCaveat}"
                                    FontSize="11"
                                    TextWrapping="Wrap"
+                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="{DynamicResource AgentUpColorSurfaceBrush}"
+                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="20"
+                        IsVisible="{Binding CommandCenter.Tasks, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="QUEUE"
+                                   FontSize="10"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                        <TextBlock Text="The agents work these, in this order. Nothing else on the host is touched."
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                        <Grid ColumnDefinitions="*,110,110,136" ColumnSpacing="12">
+                            <TextBlock Grid.Column="0" Text="TASK" FontSize="10"
+                                       Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                            <TextBlock Grid.Column="1" Text="FOR" FontSize="10"
+                                       Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                            <TextBlock Grid.Column="2" Text="HELD BY" FontSize="10"
+                                       Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                        </Grid>
+                        <ItemsControl x:Name="QueueList"
+                                      ItemsSource="{Binding CommandCenter.Tasks.Queue}"
+                                      ItemTemplate="{StaticResource QueuedTaskRowTemplate}"/>
+                        <TextBlock Text="{Binding CommandCenter.Tasks.EmptyQueueHint}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding !CommandCenter.Tasks.HasQueue}"
+                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                        <TextBlock Text="{Binding CommandCenter.Tasks.ErrorMessage}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding CommandCenter.Tasks.HasError}"
+                                   Foreground="{DynamicResource AgentUpColorStatusDangerBrush}"/>
+
+                        <TextBlock Text="OPEN ISSUES"
+                                   FontSize="10"
+                                   FontWeight="Bold"
+                                   Margin="0,10,0,0"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                        <ItemsControl x:Name="OfferedList"
+                                      ItemsSource="{Binding CommandCenter.Tasks.Offered}"
+                                      ItemTemplate="{StaticResource OfferedIssueRowTemplate}"/>
+                        <TextBlock Text="{Binding CommandCenter.Tasks.EmptyOfferedHint}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding !CommandCenter.Tasks.HasOffered}"
                                    Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
                     </StackPanel>
                 </Border>

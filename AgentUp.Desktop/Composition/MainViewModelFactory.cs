@@ -38,6 +38,7 @@ using AgentUp.Desktop.Features.Ports.Services;
 using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.Services;
+using AgentUp.Desktop.Features.Interface.Interfaces;
 using AgentUp.Desktop.Features.Interface.Controllers;
 using AgentUp.Desktop.Features.Interface.Services;
 using AgentUp.Desktop.Features.Interface.Providers;
@@ -110,7 +111,8 @@ public static class MainViewModelFactory
         LoginViewModel? login = null,
         CapabilityModulesApiClient? capabilityModulesClient = null,
         HttpClient? entitlementsHttp = null,
-        CommandCenterViewModel? commandCenter = null)
+        CommandCenterViewModel? commandCenter = null,
+        ITaskQueueApiProvider? taskQueueClient = null)
     {
         var workspaces = new WorkspacesController(new WorkspaceListService(workspaceClient));
         var entitlements = new EntitlementsController(new EntitlementsService(
@@ -168,7 +170,8 @@ public static class MainViewModelFactory
             desktopLaunch,
             commandCenter ?? new CommandCenterViewModel(
                 new InterfaceController(new FileInterfacePreferenceStore()),
-                new BridgeViewModel(new TeamStandingController(new TeamStandingService(agents, git)))));
+                new BridgeViewModel(new TeamStandingController(new TeamStandingService(agents, git))),
+                taskQueueClient is null ? null : new TaskQueueViewModel(new TaskQueueController(new TaskQueueService(taskQueueClient)))));
     }
 
     public static MainViewModel Create(
@@ -189,7 +192,8 @@ public static class MainViewModelFactory
             agentClient: new AgentApiClient(http, agentEventsHttp ?? http),
             login: login ?? CreateLogin(http),
             entitlementsHttp: http,
-            commandCenter: commandCenter);
+            commandCenter: commandCenter,
+            taskQueueClient: new TaskQueueApiClient(http));
     }
 
     public static HostMetricsController CreateHostMetricsController(HttpClient http) =>

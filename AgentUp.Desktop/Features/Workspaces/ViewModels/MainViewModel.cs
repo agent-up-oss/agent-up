@@ -366,7 +366,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     /// </summary>
     private void SubscribeCommandCenter()
     {
-        if (CommandCenter?.Bridge is null) return;
+        if (CommandCenter?.Bridge is null && CommandCenter?.Tasks is null) return;
         CommandCenter.WhenAnyValue(x => x.Active)
             .Select(active => active
                 ? Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(10), RxApp.TaskpoolScheduler)
@@ -392,6 +392,12 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             .Select(workspace => new TeamMember(workspace.Id, workspace.DisplayName, workspace.Branch, workspace.State))
             .ToArray();
         _ = bridge.ReadAsync(members);
+
+        // The queue rides the same tick: it names the workspaces holding and targeted by a task,
+        // so it needs the same team the bridge was just given.
+        if (CommandCenter?.Tasks is not { } tasks) return;
+        tasks.Attach(members);
+        _ = tasks.ReadAsync();
     }
 
     private void LoadMetricsIfPossible()
