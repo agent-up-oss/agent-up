@@ -31,7 +31,8 @@ The first suite runs from `au-debug validate --surface desktop` and `au-debug va
 | Forge review / hosting | Hosting strip notInstalled with bootstrap remedy | covered | covered |
 | Forge review / proposal | Open a proposal, checks, review threads | gap | gap |
 | Capabilities | List modules, enable one | gap | gap |
-| Validation panel | List flows for an application, replay one | covered | n/a |
+| Validation panel | List flows for an application, replay one | covered | covered |
+| Database explorer | Open a database application and inspect tables | covered | covered |
 | Browser isolation | Two workspaces, two profiles, no shared session | gap | n/a |
 | Settings | Server switch, sign-out | gap | gap |
 | Example Web app | The existing recorded Application-surface flow | covered | n/a |
@@ -44,7 +45,6 @@ Every `n/a` is a surface that does not exist on that client:
 
 - **Console (Mobile).** Mobile has no application console tab. Output stays on Desktop.
 - **Diagnostics (Mobile).** Mobile has no Diagnostics / audit tab.
-- **Validation panel (Mobile).** The Validation sidebar is Desktop-only and appears once an application is selected.
 - **Browser isolation (Mobile).** The PWA does not host per-workspace Desktop-style WebView profiles.
 - **Example Web app (Mobile).** That journey is an Application-surface flow against a hosted HTTP app, not Mobile chrome.
 - **Example API (Mobile).** API-backed pages are Application-surface flows, not Mobile chrome.
@@ -62,7 +62,8 @@ Workspace lifecycle is not `n/a` on Mobile: the Apps dashboard exposes Start wor
 | Application tabs | `console-diagnostics` | `workspace-lifecycle` |
 | Console and diagnostics | `console-diagnostics` | n/a |
 | Git review | `git-review` | `git-review` |
-| Validation panel | `validation-panel` | n/a |
+| Validation panel | `validation-panel` | `validation-panel` |
+| Database explorer | n/a | `database-explorer` |
 | Agents (#529 merged) | `agents` | `agents` |
 | Autonomous loop / checklist (#526 merged) | `autonomous-loop` | `autonomous-loop` |
 | Forge review / hosting (#525 merged) | `forge-hosting` | `git-review` |
@@ -70,7 +71,7 @@ Workspace lifecycle is not `n/a` on Mobile: the Apps dashboard exposes Start wor
 
 Agents, autonomous loop, and forge are no longer blocked. The isolated Server has no forge module and no host credential, so those flows cover the shipping empty states: agent availability and remedies, the unattended-loop checklist, and the Git hosting strip's `notInstalled` copy with `Run: agent-up capabilities bootstrap`. Starting `test-agent-scripted` covers a live session on a Development Server. The isolated Server puts that executable on PATH through a fixture shim. Opening a forge proposal, activating a loop through a satisfied checklist, and Demo remain gaps.
 
-Workspace start in this suite asserts the workspace leaves Stopped (Stop workspace is visible). Stop is disabled until Running or Degraded, and every application reaching `Running` is the Runtime capability E2E job; a cold start of this repository exceeds the validation wait. Console, diagnostics, and the Validation sidebar select Docs without starting processes.
+Workspace start in this suite asserts the workspace leaves Stopped (Stop workspace is visible). Stop is disabled until Running or Degraded, and every application reaching `Running` is the Runtime capability E2E job; a cold start of this repository exceeds the validation wait. Console, diagnostics, and the Desktop Validation sidebar select Docs without starting processes. Mobile Validation and Database explorer open those applications from the Apps list without waiting for every process to become Running.
 
 ## Authoring
 

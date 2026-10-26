@@ -156,7 +156,8 @@ Desktop is the reference rendering:
   selected commit. Ref chips stay in that header. Lanes use `--au-color-git-lane-*`.
   Do not render ASCII `| * |` glyphs.
 - Validation is `.au-validation-sidebar`, a right rail on the selected
-  application, not a full-screen pane. `.au-validation-flow` cards nest
+  application, not a full-screen pane. Mobile opens that rail from a Navbar
+  checkmark on the HTTP application page. `.au-validation-flow` cards nest
   `.au-validation-stage` greater steps and `.au-validation-check` micro-checks.
   Glyphs use `.au-validation-glyph` with `--passed`, `--running`, and
   `--failed`; pending stays muted. Play is `.au-validation-play`, a

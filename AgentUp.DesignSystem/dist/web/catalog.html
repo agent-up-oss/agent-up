@@ -275,6 +275,7 @@
       <div class="au-cluster">
         <button class="au-app-tab au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
         <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
+        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Inventory</button>
       </div>
     </article>
     <article data-au-component="workspace-tabs" data-au-title="Workspace tabs" data-au-note="Overview, Agent, and Git sit with the application tabs. Overview is selected. A hairline separates workspace chrome from running apps." data-au-avalonia="Border" data-au-class="au-app-tab" data-au-states="selected=au-app-tab/au-app-tab--selected" data-au-state-examples="selected:1|Agent tab selected|The live ACP session is the primary selection when Agent is open.;selected:2|Git tab selected|Working-tree review is the primary selection when Git is open.;selected:3|Application tab selected|Storefront is the primary selection when the running app is open.">
@@ -285,6 +286,7 @@
         <span class="au-tab-sep"></span>
         <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
         <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
+        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Inventory</button>
       </div>
     </article>
     <article data-au-component="subtab" data-au-title="Port and tool tabs" data-au-note="The second row is secondary to the application tabs, so its selected state stays neutral: the active state layer, not the accent. Desktop builds the allocated port, then Console, Diagnostics, Metrics and Database." data-au-avalonia="Border" data-au-class="au-subtab" data-au-desktop-class="subTab" data-au-desktop-host="ListBoxItem" data-au-states="selected=au-subtab/au-subtab--selected" data-au-state-examples="selected:1|Console subtab selected|Console is still a secondary selection. It uses the active layer, not the accent underline.;selected:2|Diagnostics subtab selected|The audit trail for the selected application sits beside Console.;selected:3|Metrics subtab selected|CPU, memory and request duration for the selected application.;selected:4|Database subtab selected|The database explorer for the selected application.">
@@ -872,7 +874,7 @@ Storefront listening on WEB_PORT</pre>
   </section>
 
   <section data-au-surface="database" data-au-title="Database explorer" data-au-intro="SQL and result grids are monospace technical surfaces with the same quiet borders as the rest of Desktop.">
-    <article data-au-component="db-list" data-au-title="Object list" data-au-note="Selected objects use the accent tint. Hover stays neutral." data-au-avalonia="Border" data-au-class="au-list-item" data-au-desktop-class="dbListItem" data-au-desktop-host="ListBoxItem">
+    <article data-au-component="db-list" data-au-title="Object list" data-au-note="Selected objects use the accent tint. Hover stays neutral." data-au-avalonia="Border" data-au-class="au-list-item" data-au-desktop-class="dbListItem" data-au-desktop-host="ListBoxItem" data-au-states="selected=au-list-item/au-list-item--selected" data-au-state-examples="selected:0|Selected table|The open table takes the accent tint.">
       <div class="au-stack">
         <div class="au-list-item au-list-item--selected">orders</div>
         <div class="au-list-item">customers</div>
@@ -893,12 +895,13 @@ Storefront listening on WEB_PORT</pre>
   </section>
 
   <section data-au-surface="mobile" data-au-title="Mobile" data-au-intro="Mobile uses the same catalog components as Desktop. Primary actions stay 44px; compact chrome keeps catalog size.">
-    <article data-au-component="mobile-bar" data-au-title="Top bar" data-au-note="The PWA and native chrome stay on the canonical canvas with a subtle divider, not a floating card. A screen names the title it shows and which controls it carries; AppNavBar takes the same title as a prop." data-au-avalonia="Border" data-au-class="au-mobile-bar" data-au-parts="menu title reload" data-au-props-examples="title=Git; parts=menu title|Git top bar|Inner Git pages keep the hamburger and the Git title.;;title=Changes; parts=back title|Back bar|Inner Git Review and History return through the nav-bar back control.;;title=History; parts=back title|History back bar|History is an inner page. Back returns to Git.;;parts=menu|Agents top bar|The picker chrome is the hamburger only until a session is open.;;title=Settings; parts=menu title reload|Settings top bar|Settings keeps Reload next to the title.">
+    <article data-au-component="mobile-bar" data-au-title="Top bar" data-au-note="The PWA and native chrome stay on the canonical canvas with a subtle divider, not a floating card. A screen names the title it shows and which controls it carries; AppNavBar takes the same title as a prop." data-au-avalonia="Border" data-au-class="au-mobile-bar" data-au-parts="menu title reload" data-au-props-examples="title=Git; parts=menu title|Git top bar|Inner Git pages keep the hamburger and the Git title.;;title=Changes; parts=back title|Back bar|Inner Git Review and History return through the nav-bar back control.;;title=History; parts=back title|History back bar|History is an inner page. Back returns to Git.;;parts=menu|Agents top bar|The picker chrome is the hamburger only until a session is open.;;title=Settings; parts=menu title reload|Settings top bar|Settings keeps Reload next to the title.;;title=Storefront; parts=back title check|Application bar|HTTP application pages keep a checkmark that opens Validation.">
       <div class="au-mobile-bar">
         <span class="au-title-tool au-chrome-icon" data-au-part="menu"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></span>
         <span class="au-title-tool au-chrome-icon" data-au-part="back">‹</span>
         <strong data-au-part="title" data-au-text="title">Harbor Shop</strong>
         <button class="au-button au-button--secondary au-button--compact" type="button" data-au-part="reload">Reload</button>
+        <button class="au-title-tool au-chrome-icon" type="button" data-au-part="check">✓</button>
       </div>
     </article>
     <article data-au-component="drawer" data-au-title="Navigation drawer" data-au-note="The Mobile overlay rail uses the same canvas as the Desktop rail. Contrast comes from the selected workspace row and a hairline edge, not a raised grey panel. Server shows only the signed-in host plus Logout." data-au-avalonia="Border" data-au-class="au-drawer">
@@ -969,6 +972,13 @@ Storefront listening on WEB_PORT</pre>
           <span class="au-status-dot au-status-dot--healthy"></span>
           <span>
             <strong class="au-workspace-name">Orders API</strong>
+            <small class="au-workspace-branch">Running</small>
+          </span>
+        </div>
+        <div class="au-workspace">
+          <span class="au-status-dot au-status-dot--healthy"></span>
+          <span>
+            <strong class="au-workspace-name">Inventory</strong>
             <small class="au-workspace-branch">Running</small>
           </span>
         </div>

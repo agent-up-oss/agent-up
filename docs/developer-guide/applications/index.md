@@ -97,6 +97,11 @@ The `DesktopApplications` slice starts a dedicated Xvfb display, creates a priva
 For applications with configured ports, the second tab row starts with ports in `agent-up.json` order. Console and Metrics remain available after the port tabs. The Metrics tab shows summary cards and time-series charts from Server-pulled application metrics (`ports[].metrics`) every 30 seconds while selected. When an application sets `database: true`, Desktop adds a Database explorer tab. The Server owns the queries at `/api/workspaces/{id}/applications/{name}/database/...`.
 
 </DocSurface>
+<DocSurface mobile>
+
+HTTP application pages keep a Navbar checkmark that opens Validation. When an application sets `database: true`, Mobile replaces the webview with the same Server-owned explorer at `/api/workspaces/{id}/applications/{name}/database/...`.
+
+</DocSurface>
 </DocSurfaces>
 
 <DocNext href="/developer-guide/applications/hosting-assessment" title="Hosting assessment">

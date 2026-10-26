@@ -60,12 +60,12 @@
   <section data-au-screen="agents" data-au-title="Agents" data-au-intro="Desktop Agent is the live ACP session. Mobile Agents is the picker that opens that session." data-au-desktop="desktop-agents" data-au-mobile="mobile-agents"></section>
   <section data-au-screen="diagnostics" data-au-title="Diagnostics" data-au-intro="Paginated audit rows for the selected application: process, browser, and health evidence. Desktop hosts this next to Console and Metrics." data-au-desktop="desktop-diagnostics"></section>
   <section data-au-screen="metrics" data-au-title="Metrics" data-au-intro="CPU, memory, and request duration for the selected application, on quieter metrics cards rather than a dashboard theme." data-au-desktop="desktop-metrics"></section>
-  <section data-au-screen="validation" data-au-title="Validation" data-au-intro="Recorded GUI flows live in a right sidebar on the selected application. Greater steps nest micro-checks; pass and fail roll up. The rail starts collapsed." data-au-desktop="desktop-validation"></section>
-  <section data-au-screen="database" data-au-title="Database" data-au-intro="Query the application database from the same application chrome, with a selected table and a run control." data-au-desktop="desktop-database"></section>
+  <section data-au-screen="validation" data-au-title="Validation" data-au-intro="Recorded GUI flows live in a right sidebar on the selected application. Greater steps nest micro-checks; pass and fail roll up. Desktop starts the rail collapsed. Mobile opens it from a Navbar checkmark on the HTTP application page." data-au-desktop="desktop-validation"></section>
+  <section data-au-screen="database" data-au-title="Database" data-au-intro="Query the application database from the same application chrome, with a selected table and a run control. Mobile replaces the webview when the application declares database true." data-au-desktop="desktop-database" data-au-mobile="mobile-database"></section>
   <section data-au-screen="capabilities" data-au-title="Capabilities" data-au-intro="Enable Server-owned modules. Desktop uses an overlay; Mobile Settings is the same list on the workspace tab. Clients never talk to the remote registry." data-au-desktop="desktop-capabilities" data-au-mobile="mobile-settings"></section>
 
   <section data-au-screen="agent-chat" data-au-title="Agent chat" data-au-intro="The live transcript. Desktop hosts it in the Agent tab; Mobile opens it as an inner page from the Agents picker, mounting the same AgentUp.Chat module the sign-in harness drives." data-au-mobile="mobile-agent"></section>
-  <section data-au-screen="application-space" data-au-title="Application space" data-au-intro="One application's own interface. Desktop connects a WebView to the allocated port; Mobile reaches the same surface through the Server's authenticated proxy." data-au-mobile="mobile-application"></section>
+  <section data-au-screen="application-space" data-au-title="Application space" data-au-intro="One application's own interface. Desktop connects a WebView to the allocated port; Mobile reaches the same surface through the Server's authenticated proxy. HTTP pages keep a Navbar checkmark for Validation." data-au-mobile="mobile-application"></section>
   <section data-au-screen="workspace-list" data-au-title="Workspace list" data-au-intro="Every registered checkout on one screen, with the clone action. Mobile gives this its own route; Desktop keeps the same rows on the rail." data-au-mobile="mobile-workspace-list"></section>
 
   <section data-au-scene="desktop-sign-in" data-au-platform="desktop" data-au-view="sign-in" data-au-title="Desktop sign-in" data-au-layout="desktop-center">
@@ -214,8 +214,14 @@
     <div data-au-region="pane" data-au-use="agent-prompt"></div>
   </section>
   <section data-au-scene="mobile-application" data-au-platform="mobile" data-au-view="application" data-au-title="Mobile application space" data-au-layout="mobile-list" data-au-live="/workspace/harbor-shop/application/Storefront">
-    <div data-au-region="bar" data-au-use="mobile-bar" data-au-props="title=Storefront; parts=back title"></div>
+    <div data-au-region="bar" data-au-use="mobile-bar" data-au-props="title=Storefront; parts=back title check"></div>
     <div data-au-region="pane" data-au-use="storefront"></div>
+  </section>
+  <section data-au-scene="mobile-database" data-au-platform="mobile" data-au-view="database" data-au-title="Mobile database" data-au-layout="mobile-list" data-au-live="/workspace/harbor-shop/application/Inventory">
+    <div data-au-region="bar" data-au-use="mobile-bar" data-au-props="title=Inventory; parts=back title"></div>
+    <div data-au-region="pane" data-au-use="db-list" data-au-state="selected:0"></div>
+    <div data-au-region="pane" data-au-use="sql-editor"></div>
+    <div data-au-region="pane" data-au-use="db-run"></div>
   </section>
   <section data-au-scene="mobile-workspace-list" data-au-platform="mobile" data-au-view="workspace-list" data-au-title="Mobile workspace list" data-au-layout="mobile-list" data-au-live="/workspace">
     <div data-au-region="bar" data-au-use="mobile-bar" data-au-props="title=Workspaces; parts=menu title reload"></div>

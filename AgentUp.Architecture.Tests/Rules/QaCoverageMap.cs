@@ -30,6 +30,7 @@ public sealed class QaCoverageMap
         "Forge review / proposal",
         "Capabilities",
         "Validation panel",
+        "Database explorer",
         "Browser isolation",
         "Settings",
         "Example Web app",
@@ -63,7 +64,9 @@ public sealed class QaCoverageMap
         "workspace-lifecycle",
         "git-review",
         "agents",
-        "autonomous-loop"
+        "autonomous-loop",
+        "validation-panel",
+        "database-explorer"
     ];
 
     [Test]
