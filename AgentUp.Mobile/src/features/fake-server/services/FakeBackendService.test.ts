@@ -269,7 +269,7 @@ test('start walks starting checking then healthy and stop keeps apps offline', (
   const stopped = json(service, 'GET', '/api/workspaces/harbor-shop');
   assert.equal(stopped.state, 'Stopped');
   assert.equal(stopped.healthState, undefined);
-  assert.equal(stopped.applications.length, 2);
+  assert.equal(stopped.applications.length, 3);
   assert.equal(stopped.applications.every((item: { state: string }) => item.state === 'Stopped'), true);
 
   assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/harbor-shop/start', query: '', body: null }).status, 204);
@@ -281,7 +281,7 @@ test('start walks starting checking then healthy and stop keeps apps offline', (
   step();
   const healthy = json(service, 'GET', '/api/workspaces/harbor-shop');
   assert.equal(healthy.healthState, 'Healthy');
-  assert.equal(healthy.applications.length, 2);
+  assert.equal(healthy.applications.length, 3);
 });
 
 test('reset restores the bundled workspace after a clone', () => {
@@ -384,6 +384,60 @@ test('start then stop cancels the checking phase', () => {
   assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/harbor-shop/stop', query: '', body: null }).status, 204);
   step();
   assert.equal(json(service, 'GET', '/api/workspaces/harbor-shop').state, 'Stopped');
+});
+
+test('lists Storefront validation flows and loads one by id', () => {
+  const service = backend();
+  const listed = JSON.parse(service.handle({
+    method: 'GET',
+    path: '/api/workspaces/harbor-shop/validation-flows',
+    query: 'application=Storefront',
+    body: null,
+  }).body!);
+  const orders = JSON.parse(service.handle({
+    method: 'GET',
+    path: '/api/workspaces/harbor-shop/validation-flows',
+    query: 'application=Orders%20API',
+    body: null,
+  }).body!);
+  const flow = json(service, 'GET', '/api/workspaces/harbor-shop/validation-flows/checkout-featured-goods');
+  const missing = service.handle({
+    method: 'GET',
+    path: '/api/workspaces/harbor-shop/validation-flows/missing',
+    query: '',
+    body: null,
+  });
+  assert.equal(listed.length, 1);
+  assert.equal(listed[0].name, 'Checkout featured goods');
+  assert.equal(orders.length, 0);
+  assert.equal(flow.id, 'checkout-featured-goods');
+  assert.equal(missing.status, 404);
+});
+
+test('serves Inventory database catalog and default table query', () => {
+  const service = backend();
+  const names = json(service, 'GET', '/api/workspaces/harbor-shop/applications/Inventory/database/databases');
+  const tables = JSON.parse(service.handle({
+    method: 'GET',
+    path: '/api/workspaces/harbor-shop/applications/Inventory/database/tables',
+    query: 'database=harbor',
+    body: null,
+  }).body!);
+  const query = json(service, 'POST', '/api/workspaces/harbor-shop/applications/Inventory/database/query', JSON.stringify({
+    database: 'harbor',
+    sql: 'SELECT * FROM "products" LIMIT 50',
+  }));
+  const storefront = service.handle({
+    method: 'GET',
+    path: '/api/workspaces/harbor-shop/applications/Storefront/database/databases',
+    query: '',
+    body: null,
+  });
+  assert.deepEqual(names.databases, ['harbor']);
+  assert.deepEqual(tables.tables, ['products', 'orders']);
+  assert.deepEqual(query.columns, ['id', 'name', 'price']);
+  assert.equal(query.rows.length, 3);
+  assert.equal(storefront.status, 404);
 });
 
 test('unknown git action and empty commit bodies stay safe', () => {
