@@ -1626,7 +1626,7 @@
     {
       "id": "validation",
       "title": "Validation",
-      "intro": "Validation is a right sidebar on the selected application, not a full-screen tab. A flow is greater steps; each step nests micro-checks. Glyph color is the only status paint: healthy, warning, and danger. Pass and fail roll up.",
+      "intro": "Desktop Validation is a right sidebar on the selected application. Mobile uses a 50px dock under the webview. A flow is greater steps; each step nests micro-checks. Glyph color is the only status paint: healthy, warning, and danger. Pass and fail roll up.",
       "components": [
         {
           "id": "validation-sidebar",
@@ -1684,6 +1684,29 @@
             "au-workspace-add"
           ],
           "html": "<aside class=\"au-validation-sidebar au-validation-sidebar--collapsed\">\n        <button class=\"au-workspace-add\" type=\"button\">‹</button>\n      </aside>"
+        },
+        {
+          "id": "validation-dock",
+          "title": "Mobile dock",
+          "note": "Mobile HTTP application pages keep a 50px full-width dock under the webview. Play is on the left. The selected scenario is two compact lines: name, then only the current substep. The menu opens the scenario list. Do not restore a right sidebar on Mobile.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-validation-dock",
+          "classes": [
+            "au-validation-dock",
+            "au-title-tool",
+            "au-chrome-icon",
+            "au-validation-dock-copy",
+            "au-muted",
+            "au-nav-icon"
+          ],
+          "html": "<div class=\"au-validation-dock\">\n        <button class=\"au-title-tool au-chrome-icon\" type=\"button\">▶</button>\n        <div class=\"au-validation-dock-copy\">\n          <strong>Checkout featured goods</strong>\n          <p class=\"au-muted\">Starting page</p>\n        </div>\n        <button class=\"au-title-tool au-chrome-icon\" type=\"button\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></button>\n      </div>"
         },
         {
           "id": "validation-flow",
@@ -2072,10 +2095,10 @@
               "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n        <strong>Settings</strong>\n        <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Reload</button>\n      </div>"
             },
             {
-              "props": "title=Storefront; parts=back title check",
+              "props": "title=Storefront; parts=back title",
               "title": "Application bar",
-              "note": "HTTP application pages keep a checkmark that opens Validation.",
-              "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\">‹</span>\n        <strong>Storefront</strong>\n        <button class=\"au-title-tool au-chrome-icon\" type=\"button\">✓</button>\n      </div>"
+              "note": "HTTP application pages keep Back and the application title. Validation lives in the dock under the webview.",
+              "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\">‹</span>\n        <strong>Storefront</strong>\n      </div>"
             }
           ],
           "modifierClasses": "",
@@ -2203,13 +2226,14 @@
             "au-app-list",
             "au-workspace",
             "au-lifecycle-button",
+            "au-nav-icon",
             "au-status-dot",
             "au-status-dot--healthy",
             "au-workspace-name",
             "au-workspace-branch",
             "au-field-label"
           ],
-          "html": "<div class=\"au-app-list\">\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Harbor Shop</strong>\n            <small class=\"au-workspace-branch\">Healthy</small>\n          </span>\n        </div>\n        <span class=\"au-field-label\">Applications</span>\n        <div class=\"au-workspace\">\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Storefront</strong>\n            <small class=\"au-workspace-branch\">Running</small>\n          </span>\n        </div>\n        <div class=\"au-workspace\">\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Orders API</strong>\n            <small class=\"au-workspace-branch\">Running</small>\n          </span>\n        </div>\n        <div class=\"au-workspace\">\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Inventory</strong>\n            <small class=\"au-workspace-branch\">Running</small>\n          </span>\n        </div>\n      </div>"
+          "html": "<div class=\"au-app-list\">\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n          <button class=\"au-lifecycle-button\" type=\"button\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3v12\"></path><path d=\"M7 10l5 5 5-5\"></path><path d=\"M5 21h14\"></path></svg></button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Harbor Shop</strong>\n            <small class=\"au-workspace-branch\">Healthy</small>\n          </span>\n        </div>\n        <span class=\"au-field-label\">Applications</span>\n        <div class=\"au-workspace\">\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Storefront</strong>\n            <small class=\"au-workspace-branch\">Running</small>\n          </span>\n        </div>\n        <div class=\"au-workspace\">\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Orders API</strong>\n            <small class=\"au-workspace-branch\">Running</small>\n          </span>\n        </div>\n        <div class=\"au-workspace\">\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Inventory</strong>\n            <small class=\"au-workspace-branch\">Running</small>\n          </span>\n        </div>\n      </div>"
         }
       ]
     },

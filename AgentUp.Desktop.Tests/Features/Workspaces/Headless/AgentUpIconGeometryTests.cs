@@ -8,7 +8,7 @@ namespace AgentUp.Desktop.Tests.Features.Workspaces.Headless;
 /// The icon geometry the design system emits, parsed by the renderer that has to draw it.
 /// </summary>
 /// <remarks>
-/// Desktop draws its icons as Unicode glyphs in TextBlocks, Mobile names Ionicons, and the
+/// Desktop draws its icons as Unicode glyphs in TextBlocks, Mobile hosts public SVGs, and the
 /// design system drew its own SVG, so none of the three agreed. The geometry is declared once
 /// now and emitted for each surface; this is what stops that emission being a string Avalonia
 /// cannot actually take.

@@ -634,7 +634,7 @@ Storefront listening on WEB_PORT</pre>
     </article>
   </section>
 
-  <section data-au-surface="validation" data-au-title="Validation" data-au-intro="Validation is a right sidebar on the selected application, not a full-screen tab. A flow is greater steps; each step nests micro-checks. Glyph color is the only status paint: healthy, warning, and danger. Pass and fail roll up.">
+  <section data-au-surface="validation" data-au-title="Validation" data-au-intro="Desktop Validation is a right sidebar on the selected application. Mobile uses a 50px dock under the webview. A flow is greater steps; each step nests micro-checks. Glyph color is the only status paint: healthy, warning, and danger. Pass and fail roll up.">
     <article data-au-component="validation-sidebar" data-au-title="Sidebar" data-au-note="The rail sits beside the running app. Play is a selected-strong pill; collapse uses the workspace-add control. Status lives on the glyphs. Desktop starts this rail collapsed." data-au-avalonia="Border" data-au-class="au-validation-sidebar" data-au-desktop-class="validationSidebar">
       <aside class="au-validation-sidebar">
         <div class="au-validation-sidebar-head">
@@ -726,6 +726,16 @@ Storefront listening on WEB_PORT</pre>
       <aside class="au-validation-sidebar au-validation-sidebar--collapsed">
         <button class="au-workspace-add" type="button">‹</button>
       </aside>
+    </article>
+    <article data-au-component="validation-dock" data-au-title="Mobile dock" data-au-note="Mobile HTTP application pages keep a 50px full-width dock under the webview. Play is on the left. The selected scenario is two compact lines: name, then only the current substep. The menu opens the scenario list. Do not restore a right sidebar on Mobile." data-au-avalonia="Border" data-au-class="au-validation-dock">
+      <div class="au-validation-dock">
+        <button class="au-title-tool au-chrome-icon" type="button">▶</button>
+        <div class="au-validation-dock-copy">
+          <strong>Checkout featured goods</strong>
+          <p class="au-muted">Starting page</p>
+        </div>
+        <button class="au-title-tool au-chrome-icon" type="button"><span data-au-icon="menu"></span></button>
+      </div>
     </article>
     <article data-au-component="validation-flow" data-au-title="Flow" data-au-note="One recorded journey. The glyph is the rolled-up state of its greater steps. Play is a selected-strong pill." data-au-avalonia="Border" data-au-class="au-validation-flow" data-au-desktop-class="validationFlow">
       <div class="au-validation-flow">
@@ -891,7 +901,7 @@ Storefront listening on WEB_PORT</pre>
   </section>
 
   <section data-au-surface="mobile" data-au-title="Mobile" data-au-intro="Mobile uses the same catalog components as Desktop. Primary actions stay 44px; compact chrome keeps catalog size.">
-    <article data-au-component="mobile-bar" data-au-title="Top bar" data-au-note="The PWA and native chrome stay on the canonical canvas with a subtle divider, not a floating card. A screen names the title it shows and which controls it carries; AppNavBar takes the same title as a prop." data-au-avalonia="Border" data-au-class="au-mobile-bar" data-au-parts="menu title reload" data-au-props-examples="title=Git; parts=menu title|Git top bar|Inner Git pages keep the hamburger and the Git title.;;title=Changes; parts=back title|Back bar|Inner Git Review and History return through the nav-bar back control.;;title=History; parts=back title|History back bar|History is an inner page. Back returns to Git.;;parts=menu|Agents top bar|The picker chrome is the hamburger only until a session is open.;;title=Settings; parts=menu title reload|Settings top bar|Settings keeps Reload next to the title.;;title=Storefront; parts=back title check|Application bar|HTTP application pages keep a checkmark that opens Validation.">
+    <article data-au-component="mobile-bar" data-au-title="Top bar" data-au-note="The PWA and native chrome stay on the canonical canvas with a subtle divider, not a floating card. A screen names the title it shows and which controls it carries; AppNavBar takes the same title as a prop." data-au-avalonia="Border" data-au-class="au-mobile-bar" data-au-parts="menu title reload" data-au-props-examples="title=Git; parts=menu title|Git top bar|Inner Git pages keep the hamburger and the Git title.;;title=Changes; parts=back title|Back bar|Inner Git Review and History return through the nav-bar back control.;;title=History; parts=back title|History back bar|History is an inner page. Back returns to Git.;;parts=menu|Agents top bar|The picker chrome is the hamburger only until a session is open.;;title=Settings; parts=menu title reload|Settings top bar|Settings keeps Reload next to the title.;;title=Storefront; parts=back title|Application bar|HTTP application pages keep Back and the application title. Validation lives in the dock under the webview.">
       <div class="au-mobile-bar">
         <span class="au-title-tool au-chrome-icon" data-au-part="menu"><span data-au-icon="menu"></span></span>
         <span class="au-title-tool au-chrome-icon" data-au-part="back">‹</span>
@@ -950,6 +960,7 @@ Storefront listening on WEB_PORT</pre>
       <div class="au-app-list">
         <div class="au-workspace">
           <button class="au-lifecycle-button" type="button">■</button>
+          <button class="au-lifecycle-button" type="button"><span data-au-icon="download"></span></button>
           <span class="au-status-dot au-status-dot--healthy"></span>
           <span>
             <strong class="au-workspace-name">Harbor Shop</strong>
