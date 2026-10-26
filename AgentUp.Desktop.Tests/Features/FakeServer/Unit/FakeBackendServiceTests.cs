@@ -874,6 +874,29 @@ public sealed class FakeBackendServiceTests
         Assert.That(Run(backend, Get("/api/workspaces/harbor-shop/applications/Storefront/database/databases")).Status, Is.EqualTo(404));
     }
 
+    [Test]
+    public void Handle_listsNestedValidationFlowsAndQuotedInventoryQueries()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var nested = Json(backend, Get("/api/workspaces/harbor-shop/applications/Storefront/validation-flows")).AsArray();
+        var all = Json(backend, Get("/api/workspaces/harbor-shop/validation-flows")).AsArray();
+        var quoted = Json(backend, Post(
+            "/api/workspaces/harbor-shop/applications/Inventory/database/query",
+            """{"database":"harbor","sql":"SELECT * FROM \"orders\" LIMIT 50"}"""));
+        var missingTable = Json(backend, Post(
+            "/api/workspaces/harbor-shop/applications/Inventory/database/query",
+            """{"database":"harbor","sql":"SELECT 1"}"""));
+
+        Assert.That(nested, Has.Count.EqualTo(1));
+        Assert.That(all, Has.Count.EqualTo(1));
+        Assert.That(quoted["columns"]!.AsArray()[1]!.GetValue<string>(), Is.EqualTo("status"));
+        Assert.That(quoted["rows"]!.AsArray(), Has.Count.EqualTo(2));
+        Assert.That(missingTable["columns"]!.AsArray(), Is.Empty);
+        Assert.That(Run(backend, Get("/api/workspaces/harbor-shop/applications/Inventory/database/query")).Status, Is.EqualTo(404));
+        var unknownDb = Json(backend, Get("/api/workspaces/harbor-shop/applications/Inventory/database/tables").WithQuery("database=missing"));
+        Assert.That(unknownDb["tables"]!.AsArray(), Is.Empty);
+    }
+
     private static FakeBackendRequestDtoBuilder Get(string path) => new FakeBackendRequestDtoBuilder().Get(path);
 
     private static FakeBackendRequestDtoBuilder Post(string path, string? body = null)
