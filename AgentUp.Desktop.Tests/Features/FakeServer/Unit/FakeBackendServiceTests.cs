@@ -957,8 +957,8 @@ public sealed class FakeBackendServiceTests
         var other = Json(backend, Get("/api/workspaces/harbor-shop/other/validation-flows")).AsArray();
         var encoded = Json(backend, Get("/api/workspaces/harbor-shop/applications/Orders%20API/validation-flows")).AsArray();
 
-        Assert.That(bare, Has.Count.EqualTo(1));
-        Assert.That(other, Has.Count.EqualTo(1));
+        Assert.That(bare, Has.Count.EqualTo(2));
+        Assert.That(other, Has.Count.EqualTo(2));
         Assert.That(encoded, Is.Empty);
     }
 
