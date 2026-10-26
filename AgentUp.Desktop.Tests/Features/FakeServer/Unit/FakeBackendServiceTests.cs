@@ -974,6 +974,30 @@ public sealed class FakeBackendServiceTests
             Is.EqualTo("books"));
     }
 
+    [Test]
+    public void Handle_treatsIncompleteDefinitionRowsAsMissing()
+    {
+        var backend = BackendFromJson("""
+            {"id":"fake","url":"http://127.0.0.1:9","displayName":"Demo","connection":{},"authentication":{},"entitlements":{},"workspaces":[{"id":"harbor-shop","displayName":"Harbor Shop","state":"Running","applications":[{"name":"Inventory","database":true},{"name":"Bare"},{}]},{"id":"empty-apps","displayName":"Empty"}],"validationFlows":[{},{"id":"orphan","workspaceId":"other"},{"workspaceId":"harbor-shop"}],"databases":[{},{"workspaceId":"harbor-shop","application":"Inventory","names":["harbor"]}]}
+            """);
+
+        Assert.That(Run(backend, Get("/api/workspaces/harbor-shop/applications/Bare/database/databases")).Status, Is.EqualTo(404));
+        Assert.That(Run(backend, Get("/api/workspaces/empty-apps/applications/Inventory/database/databases")).Status, Is.EqualTo(404));
+        Assert.That(Json(backend, Get("/api/workspaces/harbor-shop/validation-flows").WithQuery("application=Storefront")).AsArray(), Is.Empty);
+        Assert.That(Run(backend, Get("/api/workspaces/harbor-shop/validation-flows/orphan")).Status, Is.EqualTo(404));
+        Assert.That(
+            Json(backend, Get("/api/workspaces/harbor-shop/applications/Inventory/database/tables").WithQuery("database=harbor"))["tables"]!.AsArray(),
+            Is.Empty);
+        Assert.That(
+            Json(backend, Post("/api/workspaces/harbor-shop/applications/Inventory/database/query", "{}"))["columns"]!.AsArray(),
+            Is.Empty);
+        Assert.That(
+            Json(backend, Post(
+                "/api/workspaces/harbor-shop/applications/Inventory/database/query",
+                """{"database":"harbor","sql":"SELECT * FROM products"}"""))["columns"]!.AsArray(),
+            Is.Empty);
+    }
+
     private static AgentUp.Desktop.Features.FakeServer.Services.FakeBackendService BackendFromJson(string json)
         => new(new AgentUp.Desktop.Features.FakeServer.Providers.FakeServerDefinitionProvider().LoadJson(json));
 
