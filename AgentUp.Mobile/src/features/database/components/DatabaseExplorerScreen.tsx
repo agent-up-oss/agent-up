@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import { executeQuery, listDatabases, listTables } from '../providers/DatabaseApiProvider';
-import { buildDefaultQuery } from '../providers/DatabaseExplorerProvider';
+import { buildColumnWidths, buildDefaultQuery } from '../providers/DatabaseExplorerProvider';
 
 type DatabaseExplorerScreenProps = {
   workspaceId: string;
@@ -89,6 +89,8 @@ export function DatabaseExplorerScreen({ workspaceId, applicationName }: Databas
     return () => { active = false; };
   }, [applicationName, selectDatabase, server, workspaceId]);
 
+  const widths = buildColumnWidths(columns, rows);
+
   return (
     <View testID="database-explorer" style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -139,26 +141,31 @@ export function DatabaseExplorerScreen({ workspaceId, applicationName }: Databas
         </Pressable>
 
         {columns.length > 0 && (
-          <ScrollView horizontal>
-            <View>
-              <View style={styles.row}>
-                {columns.map(column => (
-                  <View key={column} style={styles.headerCell}>
-                    <Text style={styles.headerText}>{column}</Text>
-                  </View>
-                ))}
-              </View>
-              {rows.map((row, index) => (
-                <View key={index} style={styles.row}>
-                  {row.map((cell, cellIndex) => (
-                    <View key={`${index}-${cellIndex}`} style={styles.dataCell}>
-                      <Text style={styles.dataText}>{cell}</Text>
+          <>
+            <Text style={styles.sectionTitle}>Results</Text>
+            <ScrollView horizontal contentContainerStyle={styles.resultsScroll}>
+              <View style={styles.results}>
+                <View style={styles.row}>
+                  {columns.map((column, index) => (
+                    <View key={column} style={[styles.headerCell, { minWidth: widths[index], flexGrow: 1, flexBasis: widths[index] }]}>
+                      <Text numberOfLines={1} style={styles.headerText}>{column}</Text>
                     </View>
                   ))}
                 </View>
-              ))}
-            </View>
-          </ScrollView>
+                {rows.map((row, index) => (
+                  <View key={index} style={styles.row}>
+                    {row.map((cell, cellIndex) => (
+                      <View
+                        key={`${index}-${cellIndex}`}
+                        style={[styles.dataCell, { minWidth: widths[cellIndex], flexGrow: 1, flexBasis: widths[cellIndex] }]}>
+                        <Text numberOfLines={1} style={styles.dataText}>{cell}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          </>
         )}
       </ScrollView>
     </View>
@@ -178,9 +185,16 @@ const styles = StyleSheet.create({
   editor: auBox('codeEditor'),
   run: { ...auBox('dbRun'), alignSelf: 'flex-start', marginTop: agentUpTheme.spacing[2] },
   runLabel: auText('dbRun'),
+  resultsScroll: { flexGrow: 1, minWidth: '100%' },
+  results: {
+    minWidth: '100%',
+    borderLeftWidth: 1,
+    borderTopWidth: 1,
+    borderColor: agentUpTheme.colors.borderSubtle,
+  },
   row: { flexDirection: 'row' },
   headerCell: auBox('dbHeaderCell'),
   headerText: auText('dbHeaderCell'),
   dataCell: auBox('dbDataCell'),
-  dataText: auText('dbDataCell'),
+  dataText: { ...auText('dbDataCell'), fontFamily: 'monospace' },
 });
