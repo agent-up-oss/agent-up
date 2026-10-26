@@ -124,7 +124,7 @@ public sealed class FakeBackendService
         if (method == "POST" && path == "/api/tasks")
             return EnqueueTask(request.Body);
         if (path.StartsWith("/api/tasks/", StringComparison.Ordinal))
-            return TaskMutation(method, path["/api/tasks/".Length..]);
+            return TaskMutation(method, path["/api/tasks/".Length..], request.Body);
         if (method == "GET" && path.StartsWith("/apps/", StringComparison.Ordinal))
             return AppPage(path);
 
@@ -1067,7 +1067,7 @@ public sealed class FakeBackendService
     /// Changes to one queued task. The path carries owner and repository the way the Server's
     /// routes do, so only the trailing id and verb decide what happens.
     /// </summary>
-    private FakeBackendResponseDto TaskMutation(string method, string rest)
+    private FakeBackendResponseDto TaskMutation(string method, string rest, string? body)
     {
         var segments = rest.Split('/', StringSplitOptions.RemoveEmptyEntries);
         if (segments.Length < 3)
@@ -1097,8 +1097,33 @@ public sealed class FakeBackendService
                 return new FakeBackendResponseDto(204, "application/json");
             }
 
-            return new FakeBackendResponseDto(204, "application/json");
+            if (method == "PUT" && verb == "position")
+                return MoveTask(queue, task, ReadJsonInt(body, "index"));
+
+            if (method == "PUT" && verb == "target")
+            {
+                task["targetWorkspaceId"] = ReadJsonString(body, "workspaceId");
+                return new FakeBackendResponseDto(204, "application/json");
+            }
+
+            return NotFound();
         }
+    }
+
+    /// <summary>
+    /// Lifts one task out of the queue and puts it back at a position, the way the Server rewrites
+    /// the order. The position is clamped, so a drag that overshoots either end parks the task
+    /// there rather than dropping it out of the queue.
+    /// </summary>
+    private static FakeBackendResponseDto MoveTask(JsonArray queue, JsonObject task, int? index)
+    {
+        if (index is null)
+            return NotFound();
+
+        var moved = task.DeepClone();
+        queue.Remove(task);
+        queue.Insert(Math.Clamp(index.Value, 0, queue.Count), moved);
+        return new FakeBackendResponseDto(204, "application/json");
     }
 
     /// <summary>

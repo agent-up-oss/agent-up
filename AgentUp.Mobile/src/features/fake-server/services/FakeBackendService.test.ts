@@ -496,3 +496,52 @@ test('a task a workspace is carrying is not removed, but can be released first',
   assert.equal(removed.status, 204);
   assert.equal(json(service, 'GET', '/api/tasks').length, 2);
 });
+
+test('dragging a task to a position rewrites the order the demo serves', () => {
+  const service = backend();
+  const moved = service.handle({
+    method: 'PUT', path: '/api/tasks/example/repository/I-44/position', query: '',
+    body: JSON.stringify({ index: 2 }),
+  });
+
+  assert.equal(moved.status, 204);
+  assert.deepEqual(
+    json(service, 'GET', '/api/tasks').map((task: { number: number }) => task.number),
+    [51, 48, 44],
+  );
+});
+
+test('a position past the end of the queue parks the task at the end', () => {
+  const service = backend();
+  service.handle({
+    method: 'PUT', path: '/api/tasks/example/repository/I-51/position', query: '',
+    body: JSON.stringify({ index: 99 }),
+  });
+
+  assert.deepEqual(
+    json(service, 'GET', '/api/tasks').map((task: { number: number }) => task.number),
+    [44, 48, 51],
+  );
+});
+
+test('a move with no position is refused rather than silently doing nothing', () => {
+  // The demo answered 204 to every unknown verb once, so a reorder it never applied still read as
+  // a success and the queue simply did not move.
+  const service = backend();
+  const refused = service.handle({
+    method: 'PUT', path: '/api/tasks/example/repository/I-44/position', query: '', body: null,
+  });
+
+  assert.equal(refused.status, 404);
+});
+
+test('pointing a task at a workspace is served back on the queue', () => {
+  const service = backend();
+  service.handle({
+    method: 'PUT', path: '/api/tasks/example/repository/I-48/target', query: '',
+    body: JSON.stringify({ workspaceId: 'lucy' }),
+  });
+
+  const task = json(service, 'GET', '/api/tasks').find((item: { number: number }) => item.number === 48);
+  assert.equal(task.targetWorkspaceId, 'lucy');
+});

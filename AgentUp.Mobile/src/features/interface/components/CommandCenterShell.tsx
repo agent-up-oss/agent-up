@@ -1,10 +1,18 @@
-import { useRef, useState } from 'react';
-import { Animated, PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { agentUpTheme, auBox } from '@agent-up/design-system/native';
 import { useTaskQueue, type TaskQueueState } from '../controllers/TaskQueueContext';
 import { useTeamStanding } from '../controllers/TeamStandingContext';
-import { issueLabel, repositoryLabel, reorderTarget, taskLabel, type QueuedTask } from '../models/TaskQueue';
+import {
+  issueLabel,
+  reorderTarget,
+  repositoryLabel,
+  restingOffset,
+  rowShift,
+  taskLabel,
+  type QueuedTask,
+} from '../models/TaskQueue';
 import type { TeamStanding } from '../models/TeamStanding';
 import {
   checksCount,
@@ -36,6 +44,9 @@ export function CommandCenterShell() {
   const { activeServer, logout } = useServers();
   const [surface, setSurface] = useState<Surface>('bridge');
   const [menuOpen, setMenuOpen] = useState(false);
+  // A drag and a scroll are the same downward swipe, so the list cannot scroll while a row is
+  // being carried: the gesture has to mean one thing at a time.
+  const [dragging, setDragging] = useState(false);
 
   const serverLabel = activeServer?.url ?? 'No server';
 
@@ -58,9 +69,9 @@ export function CommandCenterShell() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView contentContainerStyle={styles.body} scrollEnabled={!dragging}>
         {surface === 'bridge' ? <Bridge standing={standing} /> : null}
-        {surface === 'tasks' ? <Tasks standing={standing} tasks={tasks} /> : null}
+        {surface === 'tasks' ? <Tasks standing={standing} tasks={tasks} onDragging={setDragging} /> : null}
         {surface === 'team' ? <Team standing={standing} /> : null}
         {surface === 'settings' ? <Settings onSignOut={logout} serverLabel={serverLabel} /> : null}
       </ScrollView>
@@ -130,7 +141,15 @@ function Bridge({ standing }: { standing: Standing }) {
   );
 }
 
-function Tasks({ standing, tasks }: { standing: Standing; tasks: TaskQueueState }) {
+function Tasks({
+  standing,
+  tasks,
+  onDragging,
+}: {
+  standing: Standing;
+  tasks: TaskQueueState;
+  onDragging: (dragging: boolean) => void;
+}) {
   if (standing.error) return <Empty title="Could not reach the Server" note={standing.error} action="Retry" onPress={standing.refresh} />;
   if (!standing.read && standing.loading) return <Empty title="Loading" note="Reading the queue from the Server." />;
 
@@ -140,17 +159,15 @@ function Tasks({ standing, tasks }: { standing: Standing; tasks: TaskQueueState 
       <Text style={styles.note}>The agents work these, in this order. Nothing else on the host is touched.</Text>
       {tasks.error ? <Text style={[styles.note, styles.danger]}>{tasks.error}</Text> : null}
       {tasks.queue.length
-        ? tasks.queue.map((task, index) => (
-          <QueueRow
-            key={`${task.owner}/${task.repository}/${task.id}`}
-            task={task}
-            index={index}
-            count={tasks.queue.length}
-            onDrop={tasks.moveTo}
+        ? (
+          <QueueList
+            queue={tasks.queue}
+            onMove={tasks.moveTo}
             onRemove={tasks.remove}
             onRelease={tasks.release}
+            onDragging={onDragging}
           />
-        ))
+        )
         : <Text style={styles.note}>Nothing is queued, so the agents have nothing to take. Pick an issue below.</Text>}
 
       <Section title={`OPEN ISSUES · ${tasks.offered.length}`} tone="muted" />
@@ -184,61 +201,279 @@ function Tasks({ standing, tasks }: { standing: Standing; tasks: TaskQueueState 
   );
 }
 
-/** The height one queue row occupies, which is what turns a drag distance into whole positions. */
-const queueRowHeight = 64;
+/**
+ * The gap the body puts under each row, which the pitch between two rows includes. A row's own
+ * height is measured rather than assumed; only the gap is a constant, because it is one.
+ */
+const queueRowGap = 10;
+
+/** What a row falls back to before it has been measured, matching the row's own minimum height. */
+const queueRowMinHeight = 64;
+
+/**
+ * How far a finger travels before the gesture counts as a drag rather than a touch. Below this a
+ * press is still a press, so resting a thumb on the grip does not pick the row up.
+ */
+const dragThreshold = 4;
+
+type Drag = {
+  id: string;
+  from: number;
+  to: number;
+  /** Set once the finger has lifted: the row rests in its chosen slot until the new order lands. */
+  settled: boolean;
+};
+
+/**
+ * The queue, reorderable by dragging a row's grip.
+ *
+ * The drag lives here rather than in the row because reordering is a fact about the list: the row
+ * under the finger follows it, and the rows it passes step aside to open the slot it would land
+ * in. A row that owned its own drag could only move itself, which is what made the order impossible
+ * to predict before letting go.
+ *
+ * The queue is told once, on release, so a drag costs one write rather than one per position
+ * crossed, and the Server stays the one that decides the order.
+ */
+function QueueList({
+  queue,
+  onMove,
+  onRemove,
+  onRelease,
+  onDragging,
+}: {
+  queue: QueuedTask[];
+  onMove: (task: QueuedTask, index: number) => void;
+  onRemove: (task: QueuedTask) => void;
+  onRelease: (task: QueuedTask) => void;
+  onDragging: (dragging: boolean) => void;
+}) {
+  const [rowHeight, setRowHeight] = useState(queueRowMinHeight);
+  const [drag, setDrag] = useState<Drag | null>(null);
+  const pitch = rowHeight + queueRowGap;
+
+  // The gesture ends outside React's own flow, so the drag is mirrored here and read back on
+  // release. Deciding the move inside a state updater instead would put the write to the Server in
+  // a function React is free to call more than once, or not when the finger actually lifted.
+  const live = useRef<Drag | null>(null);
+
+  // The queue this row was dropped against. Holding it lets the gap stay open until the Server
+  // answers: clearing the drag on release instead would snap the row back to where it started and
+  // move it a second time when the re-read lands.
+  const settledAgainst = useRef<QueuedTask[] | null>(null);
+
+  useEffect(() => {
+    if (settledAgainst.current === null || settledAgainst.current === queue) return;
+    settledAgainst.current = null;
+    live.current = null;
+    setDrag(null);
+  }, [queue]);
+
+  // The shell stops scrolling while a row is carried. Reporting it in an effect keeps that to a
+  // state change the shell can act on, rather than a write during the gesture's own render.
+  const carrying = drag !== null && !drag.settled;
+  useEffect(() => {
+    onDragging(carrying);
+    return () => onDragging(false);
+  }, [carrying, onDragging]);
+
+  const start = useCallback((index: number) => {
+    const next = { id: queue[index].id, from: index, to: index, settled: false };
+    live.current = next;
+    setDrag(next);
+  }, [queue]);
+
+  const move = useCallback((dy: number) => {
+    const current = live.current;
+    if (current === null || current.settled) return;
+    const to = reorderTarget(current.from, dy, pitch, queue.length);
+    if (to === current.to) return;
+    const next = { ...current, to };
+    live.current = next;
+    setDrag(next);
+  }, [pitch, queue.length]);
+
+  const drop = useCallback((dy: number) => {
+    const current = live.current;
+    if (current === null) return;
+    const to = reorderTarget(current.from, dy, pitch, queue.length);
+    if (to === current.from) {
+      live.current = null;
+      setDrag(null);
+      return;
+    }
+    const settled = { ...current, to, settled: true };
+    live.current = settled;
+    settledAgainst.current = queue;
+    setDrag(settled);
+    onMove(queue[current.from], to);
+  }, [onMove, pitch, queue]);
+
+  const cancel = useCallback(() => {
+    settledAgainst.current = null;
+    live.current = null;
+    setDrag(null);
+  }, []);
+
+  return (
+    <>
+      {queue.map((task, index) => (
+        <QueueRow
+          key={`${task.owner}/${task.repository}/${task.id}`}
+          task={task}
+          index={index}
+          count={queue.length}
+          pitch={pitch}
+          drag={drag}
+          onMeasure={index === 0 ? setRowHeight : undefined}
+          onStart={start}
+          onMove={move}
+          onDrop={drop}
+          onCancel={cancel}
+          onStep={onMove}
+          onRemove={onRemove}
+          onRelease={onRelease}
+        />
+      ))}
+    </>
+  );
+}
 
 /**
  * One queued task: its number and title on one line, the repository under it, and the grip that
  * reorders it.
  *
  * The grip is dragged rather than tapped because the order is the point of this list and stepping
- * a task through it one press at a time says nothing about where it will land. Dragging shows the
- * row moving; the queue is only told once, on release, so a drag costs one write rather than one
- * per position crossed.
+ * a task through it one press at a time says nothing about where it will land. It still answers
+ * the accessibility actions, because a drag is reachable by neither a screen reader nor a keyboard
+ * and the order must not be something only a pointer can change.
  */
 function QueueRow({
   task,
   index,
   count,
+  pitch,
+  drag,
+  onMeasure,
+  onStart,
+  onMove,
   onDrop,
+  onCancel,
+  onStep,
   onRemove,
   onRelease,
 }: {
   task: QueuedTask;
   index: number;
   count: number;
-  onDrop: (task: QueuedTask, index: number) => void;
+  pitch: number;
+  drag: Drag | null;
+  onMeasure?: (height: number) => void;
+  onStart: (index: number) => void;
+  onMove: (dy: number) => void;
+  onDrop: (dy: number) => void;
+  onCancel: () => void;
+  onStep: (task: QueuedTask, index: number) => void;
   onRemove: (task: QueuedTask) => void;
   onRelease: (task: QueuedTask) => void;
 }) {
-  const offset = useRef(new Animated.Value(0)).current;
-  const [dragging, setDragging] = useState(false);
+  const carried = drag !== null && drag.id === task.id;
+  const lift = useRef(new Animated.Value(0)).current;
+  const shift = useRef(new Animated.Value(0)).current;
+
+  // The gesture handlers are built once and must not close over this render's values: after a
+  // reorder the row's index changes, and a captured one would drop the task at a position it no
+  // longer occupies.
+  const latest = useRef({ index, onStart, onMove, onDrop, onCancel });
+  useEffect(() => {
+    latest.current = { index, onStart, onMove, onDrop, onCancel };
+  });
+
   const responder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => setDragging(true),
-      onPanResponderMove: (_, gesture) => offset.setValue(gesture.dy),
+      // Claimed on movement, never on touch alone, so the grip can still be pressed and a gesture
+      // that turns out to be a scroll is left to the list.
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gesture) => isDrag(gesture.dx, gesture.dy),
+      // Captured as well: the enclosing scroll view would otherwise take the same swipe first.
+      onMoveShouldSetPanResponderCapture: (_, gesture) => isDrag(gesture.dx, gesture.dy),
+      onPanResponderGrant: () => {
+        lift.setValue(0);
+        latest.current.onStart(latest.current.index);
+      },
+      onPanResponderMove: (_, gesture) => {
+        lift.setValue(gesture.dy);
+        latest.current.onMove(gesture.dy);
+      },
       onPanResponderRelease: (_, gesture) => {
-        setDragging(false);
-        offset.setValue(0);
-        const target = reorderTarget(index, gesture.dy, queueRowHeight, count);
-        if (target !== index) onDrop(task, target);
+        latest.current.onDrop(gesture.dy);
       },
       onPanResponderTerminate: () => {
-        setDragging(false);
-        offset.setValue(0);
+        lift.setValue(0);
+        latest.current.onCancel();
       },
+      // Once a row is being carried nothing may take the gesture away mid-drag, or the row is left
+      // somewhere nobody chose.
+      onPanResponderTerminationRequest: () => false,
+      onShouldBlockNativeResponder: () => true,
     }),
   ).current;
 
+  const settling = carried && drag.settled;
+  const target = drag === null ? 0 : rowShift(index, drag.from, drag.to, pitch);
+
+  useEffect(() => {
+    if (carried) return;
+    Animated.timing(shift, { toValue: target, duration: 140, useNativeDriver: true }).start();
+  }, [carried, shift, target]);
+
+  // The finger has lifted and the queue has not answered yet, so the row eases into the slot it
+  // chose instead of springing back to where the drag began and moving a second time.
+  useEffect(() => {
+    if (!settling || drag === null) return;
+    Animated.timing(lift, {
+      toValue: restingOffset(drag.from, drag.to, pitch),
+      duration: 140,
+      useNativeDriver: true,
+    }).start();
+  }, [settling, drag?.from, drag?.to, lift, pitch]);
+
+  const step = (delta: number) => {
+    const to = Math.min(Math.max(index + delta, 0), count - 1);
+    if (to !== index) onStep(task, to);
+  };
+
+  // A drag is reachable by a pointer and nothing else. On the web the grip therefore takes focus
+  // and answers the arrow keys, because the buttons that used to step a task through the queue are
+  // gone and the order must not be something only a mouse or a finger can change.
+  const keyboard = Platform.OS === 'web'
+    ? ({
+      tabIndex: 0,
+      onKeyDown: (event: { key: string; preventDefault: () => void }) => {
+        const delta = event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : 0;
+        if (delta === 0) return;
+        event.preventDefault();
+        step(delta);
+      },
+    } as Record<string, unknown>)
+    : null;
+
   return (
     <Animated.View
-      style={[styles.queueRow, dragging && styles.queueRowDragging, { transform: [{ translateY: offset }] }]}
+      onLayout={onMeasure ? event => onMeasure(event.nativeEvent.layout.height) : undefined}
+      style={[
+        styles.queueRow,
+        carried && styles.queueRowCarried,
+        { transform: [{ translateY: carried ? lift : shift }] },
+      ]}
     >
       <View
         accessibilityRole="adjustable"
         accessibilityLabel={`Reorder ${taskLabel(task)}`}
-        style={styles.grip}
+        accessibilityActions={reorderActions}
+        onAccessibilityAction={event => step(event.nativeEvent.actionName === 'increment' ? 1 : -1)}
+        style={[styles.grip, gripTouchAction]}
+        {...keyboard}
         {...responder.panHandlers}
       >
         <View style={styles.gripBar} />
@@ -256,10 +491,32 @@ function QueueRow({
   );
 }
 
+/**
+ * On the web the browser scrolls a touch drag itself, and the gesture system here never sees it.
+ * Only `touch-action: none` on the grip stops that, so a drag on the grip is a drag rather than a
+ * scrolled page. The grip exists to be dragged, so giving up scrolling on it costs nothing; the
+ * rest of the row still scrolls the list normally. The property is web-only, so native is left
+ * alone rather than handed a style it does not know.
+ */
+const gripTouchAction = Platform.OS === 'web' ? ({ touchAction: 'none' } as const) : null;
+
+const reorderActions = [
+  { name: 'increment', label: 'Move later' },
+  { name: 'decrement', label: 'Move sooner' },
+];
+
+/**
+ * Whether a gesture is a reorder. It has to travel far enough to be deliberate and be more down
+ * the screen than across it, so a swipe that was meant for something else is not read as a drag.
+ */
+function isDrag(dx: number, dy: number): boolean {
+  return Math.abs(dy) > dragThreshold && Math.abs(dy) > Math.abs(dx);
+}
+
 function QueueAction({ label, tone, onPress }: { label: string; tone?: 'danger'; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} style={styles.rowAction} onPress={onPress}>
-      <Text style={tone === 'danger' ? styles.dangerText : styles.buttonText}>{label}</Text>
+      <Text style={tone === 'danger' ? styles.dangerText : styles.rowActionText}>{label}</Text>
     </Pressable>
   );
 }
@@ -407,9 +664,18 @@ const styles = StyleSheet.create({
   sectionDanger: { color: agentUpTheme.colors.textDanger },
   sectionWarning: { color: agentUpTheme.colors.textWarning },
   card: { ...auBox('card'), gap: 4 },
-  rowAction: { ...auBox('button', 'buttonSecondary'), paddingHorizontal: 12, paddingVertical: 6 },
+  rowAction: {
+    // The compact variant, because the full button's 44pt minimum is taller than the row it sits
+    // in. Centred and sized to itself, or the row's cross-axis stretch makes a slab of it.
+    ...auBox('button', 'buttonSecondary', 'buttonCompact'),
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   danger: { color: agentUpTheme.colors.statusDanger },
-  dangerText: { color: agentUpTheme.colors.statusDanger, fontSize: 13, fontWeight: '600' },
+  // 12, to match the compact box these two labels sit in.
+  dangerText: { color: agentUpTheme.colors.statusDanger, fontSize: 12, fontWeight: '600' },
+  rowActionText: { color: agentUpTheme.colors.accentSoft, fontSize: 12, fontWeight: '600' },
   queueRow: {
     ...auBox('card'),
     flexDirection: 'row',
@@ -417,9 +683,9 @@ const styles = StyleSheet.create({
     gap: 12,
     minHeight: 64,
   },
-  queueRowDragging: { borderColor: agentUpTheme.colors.accentSoft },
+  queueRowCarried: { borderColor: agentUpTheme.colors.accentSoft, zIndex: 1 },
   queueRowBody: { flexGrow: 1, flexShrink: 1, minWidth: 0, gap: 2 },
-  grip: { paddingVertical: 10, paddingRight: 4, gap: 3, justifyContent: 'center' },
+  grip: { alignSelf: 'stretch', paddingVertical: 10, paddingRight: 4, gap: 3, justifyContent: 'center' },
   gripBar: { width: 18, height: 2, borderRadius: 1, backgroundColor: agentUpTheme.colors.textMuted },
   cardDanger: auBox('cardDanger'),
   cardWarning: { borderColor: agentUpTheme.colors.borderStrong },

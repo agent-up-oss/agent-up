@@ -38,14 +38,41 @@ export function repositoryLabel(task: QueuedTask): string {
 }
 
 /**
- * Where a dragged row lands. The drag is measured in pixels, so the row height turns the distance
- * travelled into whole positions, and the result is clamped: dragging past either end parks the
- * row at that end rather than falling off the queue.
+ * Where a dragged row lands. The drag is measured in pixels, so the pitch between rows turns the
+ * distance travelled into whole positions, and the result is clamped: dragging past either end
+ * parks the row at that end rather than falling off the queue.
+ *
+ * The pitch is a row's height plus the gap under it, not the height alone. Measuring the height
+ * and forgetting the gap makes every position short, so a long drag lands further up the queue
+ * than the finger did.
  */
-export function reorderTarget(fromIndex: number, dy: number, rowHeight: number, count: number): number {
-  if (rowHeight <= 0 || count <= 0) return fromIndex;
-  const moved = Math.round(dy / rowHeight);
+export function reorderTarget(fromIndex: number, dy: number, rowPitch: number, count: number): number {
+  if (rowPitch <= 0 || count <= 0) return fromIndex;
+  const moved = Math.round(dy / rowPitch);
   return Math.min(Math.max(fromIndex + moved, 0), count - 1);
+}
+
+/**
+ * How far a row that is not the dragged one steps aside, so the queue opens a gap where the drag
+ * would land rather than leaving the reader to guess.
+ *
+ * Only the rows between the two positions move, and each moves exactly one place: dragging down
+ * pulls the rows it passes up, dragging up pushes them down. Everything outside that span stays
+ * put, which is what makes the gap read as a single slot rather than the whole list sliding.
+ */
+export function rowShift(index: number, fromIndex: number, toIndex: number, rowPitch: number): number {
+  if (index === fromIndex) return 0;
+  if (toIndex > fromIndex && index > fromIndex && index <= toIndex) return -rowPitch;
+  if (toIndex < fromIndex && index >= toIndex && index < fromIndex) return rowPitch;
+  return 0;
+}
+
+/**
+ * Where the dragged row belongs once the finger lifts. The row settles into the slot it chose
+ * rather than snapping back to where it started and jumping again when the queue re-reads.
+ */
+export function restingOffset(fromIndex: number, toIndex: number, rowPitch: number): number {
+  return (toIndex - fromIndex) * rowPitch;
 }
 
 /**

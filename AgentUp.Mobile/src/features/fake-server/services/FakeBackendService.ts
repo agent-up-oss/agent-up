@@ -206,7 +206,7 @@ export class FakeBackendService {
       return this.disableCapability(decodeURIComponent(path.slice('/api/capabilities/disable/'.length)));
     if (method === 'GET' && path === '/api/tasks') return json(this.taskQueue());
     if (method === 'POST' && path === '/api/tasks') return this.enqueueTask(request.body);
-    if (path.startsWith('/api/tasks/')) return this.taskMutation(method, path.slice('/api/tasks/'.length));
+    if (path.startsWith('/api/tasks/')) return this.taskMutation(method, path.slice('/api/tasks/'.length), request.body);
     if (method === 'GET' && path.startsWith('/apps/')) return this.appPage(path);
 
     const workspacePath = parseWorkspacePath(path);
@@ -416,7 +416,7 @@ export class FakeBackendService {
    * Changes to one queued task. The path carries owner and repository the way the Server's routes
    * do, so only the trailing id and verb decide what happens.
    */
-  private taskMutation(method: string, rest: string): FakeBackendResponse {
+  private taskMutation(method: string, rest: string, body: string | null): FakeBackendResponse {
     const segments = rest.split('/').filter(segment => segment.length > 0);
     if (segments.length < 3) return notFound();
 
@@ -438,7 +438,21 @@ export class FakeBackendService {
       return { status: 204, contentType: 'application/json' };
     }
 
-    return { status: 204, contentType: 'application/json' };
+    if (method === 'PUT' && verb === 'position') {
+      const index = readJsonNumber(body, 'index');
+      if (index === null) return notFound();
+      this.state.taskQueue = movedTo(this.taskQueue(), id, index);
+      return { status: 204, contentType: 'application/json' };
+    }
+
+    if (method === 'PUT' && verb === 'target') {
+      const workspaceId = readJsonString(body, 'workspaceId');
+      this.state.taskQueue = this.taskQueue().map(item =>
+        item.id === id ? { ...item, targetWorkspaceId: workspaceId } : item);
+      return { status: 204, contentType: 'application/json' };
+    }
+
+    return notFound();
   }
 
   private forge(workspaceId: string): unknown {
@@ -948,6 +962,19 @@ function parseBody(body: string | null): Record<string, unknown> | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * The queue with one task lifted out and put back at a position, the way the Server rewrites it.
+ * The position is clamped, so a drag that overshoots either end parks the task there rather than
+ * dropping it out of the queue.
+ */
+function movedTo(queue: FakeQueuedTask[], id: string, index: number): FakeQueuedTask[] {
+  const from = queue.findIndex(item => item.id === id);
+  if (from < 0) return queue;
+  const rest = queue.filter(item => item.id !== id);
+  const to = Math.min(Math.max(index, 0), rest.length);
+  return [...rest.slice(0, to), queue[from], ...rest.slice(to)];
 }
 
 function readJsonString(body: string | null, name: string): string | null {

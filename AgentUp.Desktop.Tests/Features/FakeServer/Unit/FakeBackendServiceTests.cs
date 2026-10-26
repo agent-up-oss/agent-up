@@ -972,6 +972,63 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_movesATaskToThePositionItWasDraggedTo()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        var moved = Run(backend, new FakeBackendRequestDtoBuilder()
+            .Put("/api/tasks/example/repository/I-44/position", """{"index":2}"""));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(moved.Status, Is.EqualTo(204));
+            Assert.That(
+                Json(backend, Get("/api/tasks")).AsArray().Select(task => task!["number"]!.GetValue<int>()),
+                Is.EqualTo(new[] { 51, 48, 44 }));
+        });
+    }
+
+    [Test]
+    public void Handle_parksATaskAtTheEndWhenTheDragOvershootsTheQueue()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Run(backend, new FakeBackendRequestDtoBuilder()
+            .Put("/api/tasks/example/repository/I-51/position", """{"index":99}"""));
+
+        Assert.That(
+            Json(backend, Get("/api/tasks")).AsArray().Select(task => task!["number"]!.GetValue<int>()),
+            Is.EqualTo(new[] { 44, 48, 51 }));
+    }
+
+    [Test]
+    public void Handle_refusesAMoveThatNamesNoPosition()
+    {
+        // Every unknown verb answered 204 once, so a reorder the Demo never applied still read as
+        // a success and the queue simply did not move.
+        var backend = FakeServerTestComposition.Backend();
+
+        var refused = Run(backend, new FakeBackendRequestDtoBuilder()
+            .Put("/api/tasks/example/repository/I-44/position"));
+
+        Assert.That(refused.Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public void Handle_pointsATaskAtAWorkspace()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Run(backend, new FakeBackendRequestDtoBuilder()
+            .Put("/api/tasks/example/repository/I-48/target", """{"workspaceId":"lucy"}"""));
+
+        Assert.That(
+            Json(backend, Get("/api/tasks")).AsArray()
+                .First(task => task!["number"]!.GetValue<int>() == 48)!["targetWorkspaceId"]!.GetValue<string>(),
+            Is.EqualTo("lucy"));
+    }
+
+    [Test]
     public void Handle_refusesToRemoveATaskAWorkspaceIsCarrying()
     {
         var backend = FakeServerTestComposition.Backend();
