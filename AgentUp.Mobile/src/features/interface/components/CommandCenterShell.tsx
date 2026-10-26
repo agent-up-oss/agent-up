@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Animated,
+  PanResponder,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { agentUpTheme, auBox } from '@agent-up/design-system/native';
 import { useTaskQueue, type TaskQueueState } from '../controllers/TaskQueueContext';
@@ -496,14 +506,17 @@ function QueueRow({
  * Only `touch-action: none` on the grip stops that, so a drag on the grip is a drag rather than a
  * scrolled page. The grip exists to be dragged, so giving up scrolling on it costs nothing; the
  * rest of the row still scrolls the list normally. The property is web-only, so native is left
- * alone rather than handed a style it does not know.
+ * alone rather than handed a style it does not know, and React Native's own style type has no name
+ * for it either: the cast is what says this is meant for the web renderer rather than for that one.
  */
-const gripTouchAction = Platform.OS === 'web' ? ({ touchAction: 'none' } as const) : null;
+const gripTouchAction = Platform.OS === 'web'
+  ? ({ touchAction: 'none' } as unknown as ViewStyle)
+  : null;
 
 const reorderActions = [
   { name: 'increment', label: 'Move later' },
   { name: 'decrement', label: 'Move sooner' },
-];
+] as const;
 
 /**
  * Whether a gesture is a reorder. It has to travel far enough to be deliberate and be more down
