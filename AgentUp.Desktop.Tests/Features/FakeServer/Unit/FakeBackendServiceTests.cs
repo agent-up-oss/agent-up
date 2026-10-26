@@ -897,6 +897,86 @@ public sealed class FakeBackendServiceTests
         Assert.That(unknownDb["tables"]!.AsArray(), Is.Empty);
     }
 
+    [Test]
+    public void Handle_returnsNotFoundWhenADatabaseAppHasNoCatalog()
+    {
+        var backend = BackendFromJson("""
+            {"id":"fake","url":"http://127.0.0.1:9","displayName":"Demo","connection":{},"authentication":{},"entitlements":{},"workspaces":[{"id":"harbor-shop","displayName":"Harbor Shop","state":"Running","applications":[{"name":"Inventory","database":true}]}]}
+            """);
+
+        Assert.That(
+            Run(backend, Get("/api/workspaces/harbor-shop/applications/Inventory/database/databases")).Status,
+            Is.EqualTo(404));
+    }
+
+    [Test]
+    public void Handle_returnsNotFoundForUnknownDatabaseActionsAndApps()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Assert.That(Run(backend, Get("/api/workspaces/harbor-shop/applications/Inventory/database/schema")).Status, Is.EqualTo(404));
+        Assert.That(Run(backend, Get("/api/workspaces/harbor-shop/applications/Missing/database/databases")).Status, Is.EqualTo(404));
+        Assert.That(Run(backend, Get("/api/workspaces/missing/applications/Inventory/database/databases")).Status, Is.EqualTo(404));
+        Assert.That(Run(backend, Get("/api/workspaces/harbor-shop/other/database/databases")).Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public void Handle_queryWithoutSqlOrEscapedQuotesReturnsEmptyColumns()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var noSql = Json(backend, Post(
+            "/api/workspaces/harbor-shop/applications/Inventory/database/query",
+            """{"database":"harbor"}"""));
+        var escaped = Json(backend, Post(
+            "/api/workspaces/harbor-shop/applications/Inventory/database/query",
+            """{"database":"harbor","sql":"SELECT * FROM \"ord\"\"ers\""}"""));
+        var tables = Json(backend, Get("/api/workspaces/harbor-shop/applications/Inventory/database/tables"));
+
+        Assert.That(noSql["columns"]!.AsArray(), Is.Empty);
+        Assert.That(escaped["columns"]!.AsArray(), Is.Empty);
+        Assert.That(tables["tables"]!.AsArray(), Is.Empty);
+    }
+
+    [Test]
+    public void Handle_listsNoValidationFlowsWhenTheDefinitionOmitsThem()
+    {
+        var backend = BackendFromJson("""
+            {"id":"fake","url":"http://127.0.0.1:9","displayName":"Demo","connection":{},"authentication":{},"entitlements":{},"workspaces":[{"id":"harbor-shop","displayName":"Harbor Shop","state":"Running","applications":[]}]}
+            """);
+
+        Assert.That(Json(backend, Get("/api/workspaces/harbor-shop/validation-flows")).AsArray(), Is.Empty);
+        Assert.That(Run(backend, Get("/api/workspaces/harbor-shop/validation-flows/checkout-featured-goods")).Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public void Handle_ignoresValidationFlowsForOtherWorkspacesAndBareNestedPaths()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var bare = Json(backend, Get("/api/workspaces/harbor-shop/applications/validation-flows")).AsArray();
+        var other = Json(backend, Get("/api/workspaces/harbor-shop/other/validation-flows")).AsArray();
+        var encoded = Json(backend, Get("/api/workspaces/harbor-shop/applications/Orders%20API/validation-flows")).AsArray();
+
+        Assert.That(bare, Has.Count.EqualTo(1));
+        Assert.That(other, Has.Count.EqualTo(1));
+        Assert.That(encoded, Is.Empty);
+    }
+
+    [Test]
+    public void Handle_skipsDatabaseCatalogsThatDoNotMatchTheWorkspace()
+    {
+        var backend = BackendFromJson("""
+            {"id":"fake","url":"http://127.0.0.1:9","displayName":"Demo","connection":{},"authentication":{},"entitlements":{},"workspaces":[{"id":"harbor-shop","displayName":"Harbor Shop","state":"Running","applications":[{"name":"Inventory","database":true},{"name":"Ledger","database":true}]}],"databases":[{"workspaceId":"other","application":"Inventory","names":["harbor"]},{"workspaceId":"harbor-shop","application":"Ledger","names":["books"]}]}
+            """);
+
+        Assert.That(Run(backend, Get("/api/workspaces/harbor-shop/applications/Inventory/database/databases")).Status, Is.EqualTo(404));
+        Assert.That(
+            Json(backend, Get("/api/workspaces/harbor-shop/applications/Ledger/database/databases"))["databases"]!.AsArray()[0]!.GetValue<string>(),
+            Is.EqualTo("books"));
+    }
+
+    private static AgentUp.Desktop.Features.FakeServer.Services.FakeBackendService BackendFromJson(string json)
+        => new(new AgentUp.Desktop.Features.FakeServer.Providers.FakeServerDefinitionProvider().LoadJson(json));
+
     private static FakeBackendRequestDtoBuilder Get(string path) => new FakeBackendRequestDtoBuilder().Get(path);
 
     private static FakeBackendRequestDtoBuilder Post(string path, string? body = null)
