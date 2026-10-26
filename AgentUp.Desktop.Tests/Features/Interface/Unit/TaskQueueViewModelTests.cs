@@ -139,6 +139,89 @@ public sealed class TaskQueueViewModelTests
         Assert.That(queue.Queue.Single().TaskLabel, Is.EqualTo("#3 · Task 3"));
     }
 
+    [Test]
+    public async Task RemoveCommand_takesTheTaskOutOfTheQueue()
+    {
+        var api = new FakeTaskQueueApi { Queue = [Queued("1", 1)] };
+        var queue = ViewModel(api);
+        await queue.ReadAsync();
+
+        await queue.Queue.Single().RemoveCommand.Execute();
+
+        Assert.That(api.Removed, Is.EqualTo(new[] { "1" }));
+    }
+
+    [Test]
+    public async Task ReleaseCommand_handsAHeldTaskBack()
+    {
+        var api = new FakeTaskQueueApi { Queue = [Queued("1", 1) with { HeldByWorkspaceId = "ws-bob" }] };
+        var queue = ViewModel(api);
+        await queue.ReadAsync();
+
+        await queue.Queue.Single().ReleaseCommand.Execute();
+
+        Assert.That(api.Released, Is.EqualTo(new[] { "1" }));
+    }
+
+    [Test]
+    public async Task MoveDownCommand_asksForThePositionBelowTheOneItHolds()
+    {
+        var api = new FakeTaskQueueApi { Queue = [Queued("1", 1), Queued("2", 2)] };
+        var queue = ViewModel(api);
+        await queue.ReadAsync();
+
+        await queue.Queue[0].MoveDownCommand.Execute();
+
+        Assert.That(api.Moved, Is.EqualTo(new[] { ("1", 1) }));
+    }
+
+    [Test]
+    public async Task AChangeTheServerRefusesIsReportedAndTheListIsReadBack()
+    {
+        var api = new FakeTaskQueueApi { Queue = [Queued("1", 1)], ChangeFailure = new HttpRequestException("refused") };
+        var queue = ViewModel(api);
+        await queue.ReadAsync();
+
+        await queue.Queue.Single().RemoveCommand.Execute();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(queue.HasError, Is.True);
+            Assert.That(queue.ErrorMessage, Is.EqualTo("refused"));
+            Assert.That(queue.Queue.Single().TaskLabel, Is.EqualTo("#1 · Task 1"));
+        });
+    }
+
+    [Test]
+    public async Task PickCommand_doesNothingWhileNoWorkspaceIsOpen()
+    {
+        var api = new FakeTaskQueueApi { Issues = [new OfferedIssue("8", 8, "Task 8", "u")] };
+        var queue = ViewModel(api);
+        queue.Attach([new TeamMember("ws-bob", "Bob", "feat/44", "Running")]);
+        await queue.ReadAsync();
+        var row = queue.Offered.Single();
+        queue.Attach([]);
+
+        await row.PickCommand.Execute();
+
+        Assert.That(api.Enqueued, Is.Empty);
+    }
+
+    [Test]
+    public async Task TheEmptyQueueHintSaysToPickSomethingOnceTheQueueHasBeenRead()
+    {
+        var queue = ViewModel(new FakeTaskQueueApi());
+
+        var before = queue.EmptyQueueHint;
+        await queue.ReadAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(before, Does.Contain("Reading"));
+            Assert.That(queue.EmptyQueueHint, Does.Contain("Pick an issue"));
+        });
+    }
+
     private static TaskQueueViewModel ViewModel(ITaskQueueApiProvider api) => new(new TaskQueueController(new TaskQueueService(api)));
 
     private static QueuedTask Queued(string id, int number) =>
@@ -156,6 +239,12 @@ public sealed class TaskQueueViewModelTests
 
         public List<(string Id, int Index)> Moved { get; } = [];
 
+        public List<string> Removed { get; } = [];
+
+        public List<string> Released { get; } = [];
+
+        public Exception? ChangeFailure { get; init; }
+
         public Task<IReadOnlyList<QueuedTask>> ListAsync(CancellationToken cancellationToken) =>
             Failure is not null ? Task.FromException<IReadOnlyList<QueuedTask>>(Failure) : Task.FromResult(Queue);
 
@@ -168,7 +257,12 @@ public sealed class TaskQueueViewModelTests
             return Task.CompletedTask;
         }
 
-        public Task RemoveAsync(QueuedTask task, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task RemoveAsync(QueuedTask task, CancellationToken cancellationToken)
+        {
+            if (ChangeFailure is not null) return Task.FromException(ChangeFailure);
+            Removed.Add(task.Id);
+            return Task.CompletedTask;
+        }
 
         public Task MoveAsync(QueuedTask task, int index, CancellationToken cancellationToken)
         {
@@ -178,6 +272,10 @@ public sealed class TaskQueueViewModelTests
 
         public Task TargetAsync(QueuedTask task, string? workspaceId, CancellationToken cancellationToken) => Task.CompletedTask;
 
-        public Task ReleaseAsync(QueuedTask task, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task ReleaseAsync(QueuedTask task, CancellationToken cancellationToken)
+        {
+            Released.Add(task.Id);
+            return Task.CompletedTask;
+        }
     }
 }

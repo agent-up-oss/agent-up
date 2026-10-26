@@ -987,6 +987,66 @@ public sealed class FakeBackendServiceTests
         });
     }
 
+    [Test]
+    public void Handle_refusesToPickWithoutAWorkspaceAndAnIssue()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Run(backend, Post("/api/tasks", """{"workspaceId":"bob"}""")).Status, Is.EqualTo(404));
+            Assert.That(Run(backend, Post("/api/tasks", """{"issueId":"I-57"}""")).Status, Is.EqualTo(404));
+            Assert.That(Run(backend, Post("/api/tasks", null)).Status, Is.EqualTo(404));
+        });
+    }
+
+    [Test]
+    public void Handle_refusesToPickAnIssueTheRepositoryDoesNotHaveOpen()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        var refused = Run(backend, Post("/api/tasks", """{"workspaceId":"bob","issueId":"nope"}"""));
+
+        Assert.That(refused.Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public void Handle_reportsAChangeToATaskThatIsNotQueued()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/tasks/harbor-oss/harbor/nope")).Status,
+                Is.EqualTo(404));
+            Assert.That(Run(backend, Post("/api/tasks/harbor-oss/harbor/nope/release")).Status, Is.EqualTo(404));
+            Assert.That(Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/tasks/harbor-oss")).Status,
+                Is.EqualTo(404));
+        });
+    }
+
+    [Test]
+    public void Handle_acceptsArrangingAQueuedTask()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Run(backend, Put("/api/tasks/harbor-oss/harbor/I-48/position", """{"index":0}""")).Status,
+                Is.EqualTo(204));
+            Assert.That(Run(backend, Put("/api/tasks/harbor-oss/harbor/I-48/target", """{"workspaceId":"lucy"}""")).Status,
+                Is.EqualTo(204));
+        });
+    }
+
+    [Test]
+    public void Handle_offersAWorkspaceTheDefinitionSaysNothingAboutNoIssues()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Assert.That(Json(backend, Get("/api/workspaces/stranger/forge/issues")).AsArray(), Is.Empty);
+    }
+
     private static FakeBackendRequestDtoBuilder Get(string path) => new FakeBackendRequestDtoBuilder().Get(path);
 
     private static FakeBackendRequestDtoBuilder Post(string path, string? body = null)

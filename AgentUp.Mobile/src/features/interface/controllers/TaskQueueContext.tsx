@@ -79,12 +79,16 @@ export function useTaskQueue(): TaskQueueState {
   }, [load]);
 
   const change = useCallback(async (apply: () => Promise<void>) => {
+    let refused: string | null = null;
     try {
       await apply();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'The queue did not change.');
+      refused = cause instanceof Error ? cause.message : 'The queue did not change.';
     }
     await load();
+    // After the re-read, not before: the read clears the error it did not cause, so saying why a
+    // change was refused first would flash the message and wipe it in the same breath.
+    if (refused !== null) setError(refused);
   }, [load]);
 
   return {

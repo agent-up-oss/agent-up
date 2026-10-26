@@ -143,17 +143,23 @@ public sealed class TaskQueueViewModel : ReactiveObject
     /// </summary>
     private async Task Run(Func<CancellationToken, Task> change)
     {
+        string? refused = null;
         try
         {
             await change(CancellationToken.None);
         }
         catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
         {
-            ErrorMessage = failure.Message;
-            this.RaisePropertyChanged(nameof(HasError));
+            refused = failure.Message;
         }
 
         await ReadAsync();
+
+        // After the re-read, not before: the read clears the error it did not cause, so saying
+        // why a change was refused first would flash the message and wipe it in the same breath.
+        if (refused is null) return;
+        ErrorMessage = refused;
+        this.RaisePropertyChanged(nameof(HasError));
     }
 }
 
