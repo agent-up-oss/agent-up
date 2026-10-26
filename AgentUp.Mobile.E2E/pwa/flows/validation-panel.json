@@ -1,0 +1,51 @@
+{
+  "id": "validation-panel",
+  "application": "Mobile",
+  "name": "List validation flows for an application",
+  "description": "A person opens Docs, taps the Navbar checkmark, and sees the recorded checks. Fixture: isolated Server, repository-root agent-up.json workspace with the Docs application flows. Replay of an Application-surface flow is not this journey.",
+  "surface": "Mobile",
+  "initialPath": "/connect",
+  "initialExpectations": [
+    { "kind": "Text", "value": "Connect to server" }
+  ],
+  "steps": [
+    {
+      "id": "enter-server-url",
+      "description": "Enter the Server URL",
+      "action": "Fill",
+      "target": { "label": "Server URL" },
+      "value": "{serverUrl}",
+      "expectations": [
+        { "kind": "Text", "value": "{serverUrl}", "target": { "label": "Server URL" } }
+      ]
+    },
+    {
+      "id": "try-and-save",
+      "description": "Save the Server URL and open the workspace",
+      "action": "Click",
+      "target": { "role": "button", "name": "Try and save" },
+      "expectations": [
+        { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Open application Docs" } }
+      ]
+    },
+    {
+      "id": "open-docs",
+      "description": "Open the Docs application",
+      "action": "Click",
+      "target": { "role": "button", "name": "Open application Docs" },
+      "expectations": [
+        { "kind": "Visible", "value": "true", "target": { "testId": "validation.toggle" } }
+      ]
+    },
+    {
+      "id": "open-validation",
+      "description": "Open the Validation sidebar",
+      "action": "Click",
+      "target": { "testId": "validation.toggle" },
+      "expectations": [
+        { "kind": "Visible", "value": "true", "target": { "testId": "validation-flows" } },
+        { "kind": "Text", "value": "Checks for the displayed app" }
+      ]
+    }
+  ]
+}

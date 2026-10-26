@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { Workspace } from '@/features/workspaces/models/Workspace';
@@ -9,16 +9,26 @@ import { isFakeServerUrl } from '@/features/fake-server/models/FakeServerIdentit
 import { waitForDesktopViewerUrl } from '../providers/DesktopViewerProvider';
 import { DesktopStreamView } from './DesktopStreamView';
 import { RemoteBrowser } from './RemoteBrowser';
+import { DatabaseExplorerScreen } from '@/features/database/components/DatabaseExplorerScreen';
+import { isDatabaseApplication } from '@/features/database/providers/DatabaseExplorerProvider';
+import { ValidationSidebar } from '@/features/validation/components/ValidationSidebar';
+import { showsValidationChrome, validationToggleLabel } from '@/features/validation/providers/ValidationPanelProvider';
+import { useInnerShell } from '@/features/shell/hooks/useInnerShell';
+import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 
 type ApplicationSpaceScreenProps = { workspace: Workspace; applicationName: string };
 
-/** Displays an HTTP application through the Server proxy, or a desktop application through the ticketed viewer. */
+/** Displays an HTTP application through the Server proxy, a database explorer, or a desktop viewer. */
 export function ApplicationSpaceScreen({ workspace, applicationName }: ApplicationSpaceScreenProps) {
   const { server } = useWorkspaces();
   const { activeServer } = useServers();
+  const { width } = useWindowDimensions();
   const application = workspace.applications?.find(entry => entry.name === applicationName);
   const allocatedHttpPort = application ? applicationHttpPort(application) : null;
   const applicationKind = application?.kind;
+  const database = isDatabaseApplication(application);
+  const showValidation = showsValidationChrome(application);
+  const [validationOpen, setValidationOpen] = useState(false);
   const [source, setSource] = useState<ApplicationProxySource | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
@@ -27,6 +37,25 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
   const applicationRef = useRef(application);
   applicationState.current = application?.state;
   applicationRef.current = application;
+
+  const inner = useInnerShell(applicationName, `/(main)/workspace/${workspace.id}`);
+  const shellConfig = useMemo(() => ({
+    ...inner,
+    rightAction: showValidation
+      ? {
+          label: '✓',
+          accessibilityLabel: validationToggleLabel(validationOpen),
+          testID: 'validation.toggle',
+          appearance: 'tool' as const,
+          onPress: () => setValidationOpen(open => !open),
+        }
+      : null,
+  }), [inner, showValidation, validationOpen]);
+  useShellConfig(shellConfig);
+
+  useEffect(() => {
+    setValidationOpen(false);
+  }, [applicationName]);
 
   useEffect(() => {
     if (applicationKind !== 'Desktop' || !activeServer) return;
@@ -46,7 +75,7 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
   }, [activeServer, applicationKind, applicationName, workspace.id]);
 
   useEffect(() => {
-    if (applicationKind === 'Desktop') return;
+    if (applicationKind === 'Desktop' || database) return;
     let active = true;
     const request = new AbortController();
     setSource(null);
@@ -67,7 +96,9 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
       .then(next => { if (active) setSource(next); })
       .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : String(reason)); });
     return () => { active = false; request.abort(); };
-  }, [server, workspace.id, applicationName, allocatedHttpPort, applicationKind]);
+  }, [server, workspace.id, applicationName, allocatedHttpPort, applicationKind, database]);
+
+  const panelWidth = Math.min(360, Math.round(width * 0.85));
 
   if (applicationKind === 'Desktop') {
     if (viewerError) {
@@ -88,6 +119,10 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
     return <View style={styles.desktop}><DesktopStreamView url={viewerUrl} /></View>;
   }
 
+  if (database) {
+    return <DatabaseExplorerScreen workspaceId={workspace.id} applicationName={applicationName} />;
+  }
+
   return (
     <View style={styles.container}>
       {!source && !error && (
@@ -102,6 +137,19 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
         </View>
       )}
       {source && <RemoteBrowser source={source} />}
+      {showValidation && validationOpen && (
+        <View style={styles.overlay} pointerEvents="box-none">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close validation"
+            onPress={() => setValidationOpen(false)}
+            style={styles.backdrop}
+          />
+          <View style={[styles.panel, { width: panelWidth }]}>
+            <ValidationSidebar workspaceId={workspace.id} applicationName={applicationName} />
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -119,4 +167,17 @@ const styles = StyleSheet.create({
   },
   status: auText('muted'),
   error: { ...auText('badgeDanger'), textAlign: 'center' },
+  overlay: {
+    ...StyleSheet.absoluteFill,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: agentUpTheme.colors.overlay,
+  },
+  panel: {
+    maxWidth: 360,
+    height: '100%',
+  },
 });

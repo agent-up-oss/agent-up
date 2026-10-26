@@ -2,6 +2,7 @@ export type WorkspaceApplication = {
   name: string;
   state: string;
   kind?: 'Process' | 'Desktop';
+  database?: boolean;
   allocatedPorts?: Array<{
     allocatedPort: number;
     protocol: string;

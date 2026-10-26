@@ -1,0 +1,43 @@
+{
+  "id": "database-explorer",
+  "application": "Mobile",
+  "name": "Open a database application and inspect tables",
+  "description": "A person opens the Database application and sees the explorer instead of a webview. Fixture: isolated Server, repository-root agent-up.json workspace with the Database docker app declared database true. Query results depend on Postgres being ready; this journey asserts the explorer chrome.",
+  "surface": "Mobile",
+  "initialPath": "/connect",
+  "initialExpectations": [
+    { "kind": "Text", "value": "Connect to server" }
+  ],
+  "steps": [
+    {
+      "id": "enter-server-url",
+      "description": "Enter the Server URL",
+      "action": "Fill",
+      "target": { "label": "Server URL" },
+      "value": "{serverUrl}",
+      "expectations": [
+        { "kind": "Text", "value": "{serverUrl}", "target": { "label": "Server URL" } }
+      ]
+    },
+    {
+      "id": "try-and-save",
+      "description": "Save the Server URL and open the workspace",
+      "action": "Click",
+      "target": { "role": "button", "name": "Try and save" },
+      "expectations": [
+        { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Open application Database" } }
+      ]
+    },
+    {
+      "id": "open-database",
+      "description": "Open the Database application",
+      "action": "Click",
+      "target": { "role": "button", "name": "Open application Database" },
+      "expectations": [
+        { "kind": "Visible", "value": "true", "target": { "testId": "database-explorer" } },
+        { "kind": "Text", "value": "Databases" },
+        { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Run" } }
+      ]
+    }
+  ]
+}

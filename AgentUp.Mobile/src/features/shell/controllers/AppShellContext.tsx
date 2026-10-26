@@ -11,6 +11,8 @@ import {
 export type ShellAction = {
   label: string;
   accessibilityLabel?: string;
+  testID?: string;
+  appearance?: 'button' | 'tool';
   onPress: () => void;
 };
 
