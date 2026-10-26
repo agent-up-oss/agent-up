@@ -407,8 +407,9 @@ test('lists Storefront validation flows and loads one by id', () => {
     query: '',
     body: null,
   });
-  assert.equal(listed.length, 1);
+  assert.equal(listed.length, 2);
   assert.equal(listed[0].name, 'Checkout featured goods');
+  assert.equal(listed[1].name, 'Browse Canvas Tote');
   assert.equal(orders.length, 0);
   assert.equal(flow.id, 'checkout-featured-goods');
   assert.equal(missing.status, 404);
@@ -457,7 +458,7 @@ test('lists nested Storefront validation flows and quoted Inventory queries', ()
     query: '',
     body: null,
   });
-  assert.equal(nested.length, 1);
+  assert.equal(nested.length, 2);
   assert.deepEqual(quoted.columns, ['id', 'status', 'total']);
   assert.equal(quoted.rows.length, 2);
   assert.deepEqual(missing.columns, []);

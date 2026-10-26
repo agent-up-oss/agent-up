@@ -850,8 +850,9 @@ public sealed class FakeBackendServiceTests
         var orders = Json(backend, Get("/api/workspaces/harbor-shop/validation-flows").WithQuery("application=Orders%20API")).AsArray();
         var flow = Json(backend, Get("/api/workspaces/harbor-shop/validation-flows/checkout-featured-goods"));
 
-        Assert.That(listed, Has.Count.EqualTo(1));
+        Assert.That(listed, Has.Count.EqualTo(2));
         Assert.That(listed[0]!["name"]!.GetValue<string>(), Is.EqualTo("Checkout featured goods"));
+        Assert.That(listed[1]!["name"]!.GetValue<string>(), Is.EqualTo("Browse Canvas Tote"));
         Assert.That(orders, Is.Empty);
         Assert.That(flow["id"]!.GetValue<string>(), Is.EqualTo("checkout-featured-goods"));
         Assert.That(Run(backend, Get("/api/workspaces/harbor-shop/validation-flows/missing")).Status, Is.EqualTo(404));
@@ -887,8 +888,8 @@ public sealed class FakeBackendServiceTests
             "/api/workspaces/harbor-shop/applications/Inventory/database/query",
             """{"database":"harbor","sql":"SELECT 1"}"""));
 
-        Assert.That(nested, Has.Count.EqualTo(1));
-        Assert.That(all, Has.Count.EqualTo(1));
+        Assert.That(nested, Has.Count.EqualTo(2));
+        Assert.That(all, Has.Count.EqualTo(2));
         Assert.That(quoted["columns"]!.AsArray()[1]!.GetValue<string>(), Is.EqualTo("status"));
         Assert.That(quoted["rows"]!.AsArray(), Has.Count.EqualTo(2));
         Assert.That(missingTable["columns"]!.AsArray(), Is.Empty);

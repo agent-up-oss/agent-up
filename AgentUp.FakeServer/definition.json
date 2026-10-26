@@ -434,6 +434,22 @@
       "updatedAtUtc": "2026-09-22T08:00:00Z",
       "version": 1,
       "surface": "Application"
+    },
+    {
+      "id": "browse-canvas-tote",
+      "workspaceId": "harbor-shop",
+      "application": "Storefront",
+      "name": "Browse Canvas Tote",
+      "description": "The tote is listed among featured goods.",
+      "initialPath": "/",
+      "initialExpectations": [
+        { "kind": "Title", "value": "Harbor Shop" },
+        { "kind": "Text", "value": "Canvas Tote" }
+      ],
+      "steps": [],
+      "updatedAtUtc": "2026-10-26T18:00:00Z",
+      "version": 1,
+      "surface": "Application"
     }
   ],
   "databases": [
