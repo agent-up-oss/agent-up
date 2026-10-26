@@ -20,3 +20,10 @@ export function javascriptLiteral(value: unknown): string {
     .replace(/\u2028/g, '\\u2028')
     .replace(/\u2029/g, '\\u2029');
 }
+
+/** Window.eval is missing from TypeScript's DOM typings; look it up at runtime. */
+export function evalInWindow(win: object, script: string): unknown {
+  const evaluate = Reflect.get(win, 'eval');
+  if (typeof evaluate !== 'function') return null;
+  return (evaluate as (code: string) => unknown).call(win, script);
+}

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { javascriptLiteral, stringifyEvalResult } from './RemoteBrowserHandle';
+import { evalInWindow, javascriptLiteral, stringifyEvalResult } from './RemoteBrowserHandle';
 
 test('stringifyEvalResult keeps strings and stringifies objects', () => {
   assert.equal(stringifyEvalResult('Harbor Shop'), 'Harbor Shop');
@@ -20,4 +20,9 @@ test('javascriptLiteral escapes line and paragraph separators left by JSON.strin
   assert.equal(javascriptLiteral('\u2028ok\u2029').includes('\u2028'), false);
   assert.equal(javascriptLiteral('\u2028ok\u2029').includes('\\u2028'), true);
   assert.equal(javascriptLiteral('\u2028ok\u2029').includes('\\u2029'), true);
+});
+
+test('evalInWindow looks up eval on the window object because Window has no eval type', () => {
+  assert.equal(evalInWindow({ eval: (code: string) => `${code}!` }, 'Harbor Shop'), 'Harbor Shop!');
+  assert.equal(evalInWindow({}, 'Harbor Shop'), null);
 });

@@ -2,7 +2,7 @@ import { forwardRef, useImperativeHandle, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { agentUpTheme } from '@agent-up/design-system/native';
 import type { ApplicationProxySource } from '../providers/ApplicationBrowserProvider';
-import { stringifyEvalResult, type RemoteBrowserHandle } from '../providers/RemoteBrowserHandle';
+import { evalInWindow, stringifyEvalResult, type RemoteBrowserHandle } from '../providers/RemoteBrowserHandle';
 
 /** Hosts the tunneled application HTTP response in the installable web client. */
 export const RemoteBrowser = forwardRef<RemoteBrowserHandle, { source: ApplicationProxySource }>(
@@ -14,7 +14,7 @@ export const RemoteBrowser = forwardRef<RemoteBrowserHandle, { source: Applicati
         const win = frameRef.current?.contentWindow;
         if (!win) return Promise.resolve(null);
         try {
-          return Promise.resolve(stringifyEvalResult(win.eval(script)));
+          return Promise.resolve(stringifyEvalResult(evalInWindow(win, script)));
         } catch (error) {
           return Promise.resolve(JSON.stringify({
             error: error instanceof Error ? error.message : String(error),
