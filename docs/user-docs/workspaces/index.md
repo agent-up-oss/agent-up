@@ -44,7 +44,7 @@ Git worktrees are the recommended model for AI agents working in the same reposi
 
 <DocSurfaces>
 <DocSurface desktop>The Overview tab shows workspace identity and Server-owned CPU, memory, storage, and process totals. **Export Report** downloads an HTML workspace report with those details, application logs, diagnostics, screenshots, and verification. Branch switching, Fetch, Pull, and Push live at the top of the Git tab.</DocSurface>
-<DocSurface mobile>The Apps dashboard has the same **Export Report** download. Git controls live on the workspace Git tab, beside Apps and Agents.</DocSurface>
+<DocSurface mobile>The Apps dashboard has a download control beside Start for the same report. Git controls live on the workspace Git tab, beside Apps and Agents.</DocSurface>
 </DocSurfaces>
 
 ## Managed source clones

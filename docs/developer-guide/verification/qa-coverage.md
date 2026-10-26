@@ -71,7 +71,7 @@ Workspace lifecycle is not `n/a` on Mobile: the Apps dashboard exposes Start wor
 
 Agents, autonomous loop, and forge are no longer blocked. The isolated Server has no forge module and no host credential, so those flows cover the shipping empty states: agent availability and remedies, the unattended-loop checklist, and the Git hosting strip's `notInstalled` copy with `Run: agent-up capabilities bootstrap`. Starting `test-agent-scripted` covers a live session on a Development Server. The isolated Server puts that executable on PATH through a fixture shim. Opening a forge proposal, activating a loop through a satisfied checklist, and Demo remain gaps.
 
-Workspace start in this suite asserts the workspace leaves Stopped (Stop workspace is visible). Stop is disabled until Running or Degraded, and every application reaching `Running` is the Runtime capability E2E job; a cold start of this repository exceeds the validation wait. Console, diagnostics, and the Desktop Validation sidebar select Docs without starting processes. Mobile Validation and Database explorer open those applications from the Apps list without waiting for every process to become Running.
+Workspace start in this suite asserts the workspace leaves Stopped (Stop workspace is visible). Stop is disabled until Running or Degraded, and every application reaching `Running` is the Runtime capability E2E job; a cold start of this repository exceeds the validation wait. Console, diagnostics, and the Desktop Validation sidebar select Docs without starting processes. Mobile Validation opens Docs from the Apps list and reads the dock under the webview without waiting for every process to become Running. Database explorer opens that application the same way.
 
 ## Authoring
 

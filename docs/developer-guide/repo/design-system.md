@@ -70,7 +70,7 @@ shows the live components that surface uses.
   `data-au-icon`, and emits the same geometry as `dist/web/icons.json`,
   `dist/native/icons.js` for react-native-svg, and
   `dist/dotnet/AgentUpIcons.g.cs` for Avalonia `StreamGeometry`. Desktop draws
-  Unicode glyphs and Mobile names Ionicons today; those two surfaces adopting the
+  Unicode glyphs and Mobile hosts the same drawings as public SVGs today; those two surfaces adopting the
   emitted geometry is what makes a documented screen match a real one at the icon
   level.
 - `src/screens.html` owns assembled screens: named layouts plus scenes that
@@ -156,8 +156,8 @@ Desktop is the reference rendering:
   selected commit. Ref chips stay in that header. Lanes use `--au-color-git-lane-*`.
   Do not render ASCII `| * |` glyphs.
 - Validation is `.au-validation-sidebar`, a right rail on the selected
-  application, not a full-screen pane. Mobile opens that rail from a Navbar
-  checkmark on the HTTP application page. `.au-validation-flow` cards nest
+  Desktop application, not a full-screen pane. Mobile uses `.au-validation-dock`,
+  a 50px strip under the HTTP application webview. `.au-validation-flow` cards nest
   `.au-validation-stage` greater steps and `.au-validation-check` micro-checks.
   Glyphs use `.au-validation-glyph` with `--passed`, `--running`, and
   `--failed`; pending stays muted. Play is `.au-validation-play`, a

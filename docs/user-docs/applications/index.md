@@ -28,7 +28,7 @@ Applications consume ports through environment variables such as `WEB_PORT`. The
 
 <DocSurfaces>
 <DocSurface desktop>Selecting an application opens Console, Metrics, Diagnostics, and, when `database` is true, a Postgres explorer. HTTP ports keep a native view. `desktopApplications` use a ticketed streamed viewer.</DocSurface>
-<DocSurface mobile>Apps shows workspace start/stop and live health above the application list, then opens each application as an inner page. HTTP UIs load through the Server proxy. A Navbar checkmark opens Validation for that page. An application with `database: true` opens the database explorer instead of a webview. `desktopApplications` use the streamed viewer.</DocSurface>
+<DocSurface mobile>Apps shows workspace start/stop and a download control beside Start, then live health above the application list, then opens each application as an inner page. HTTP UIs load through the Server proxy. A 50px Validation dock sits under the webview. An application with `database: true` opens the database explorer instead of a webview. `desktopApplications` use the streamed viewer.</DocSurface>
 </DocSurfaces>
 
 <p><img src="/desktop-applications.png" alt="Desktop applications showing Harbor Shop Storefront" /></p>

@@ -149,7 +149,7 @@ The `SourceClones` slice owns repositories Agent-Up clones for itself. `POST /ap
 
 The root comes from `AGENTUP_SOURCE_CLONES_ROOT` and otherwise defaults to a `sources` directory under the Server data directory. Remotes are restricted to `http`, `https`, `ssh`, and `git` URLs plus the `user@host:path` form. Local `file://` and transport-helper remotes are rejected.
 
-`GET /api/workspaces/{workspaceId}/overview` returns workspace identity plus Server-measured worktree storage and local-process CPU and memory totals. Docker application containers are not included in the CPU and memory figures. Desktop Overview and Mobile Apps **Export Report** download `GET /api/workspaces/{workspaceId}/review-snapshot` as HTML.
+`GET /api/workspaces/{workspaceId}/overview` returns workspace identity plus Server-measured worktree storage and local-process CPU and memory totals. Docker application containers are not included in the CPU and memory figures. Desktop Overview **Export Report** and the Mobile Apps download control beside Start download `GET /api/workspaces/{workspaceId}/review-snapshot` as HTML.
 
 `POST /api/workspaces/tutorial/cleanup` stops and removes every registered workspace. Desktop and Mobile onboarding is the built-in Demo server, not this endpoint. The Desktop FirstRun tutorial overlay is gone; every launch is the server picker.
 
