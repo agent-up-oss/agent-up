@@ -99,7 +99,7 @@ For applications with configured ports, the second tab row starts with ports in 
 </DocSurface>
 <DocSurface mobile>
 
-HTTP application pages keep a Navbar checkmark that opens Validation. When an application sets `database: true`, Mobile replaces the webview with the same Server-owned explorer at `/api/workspaces/{id}/applications/{name}/database/...`.
+HTTP application pages keep a Navbar checkmark that opens Validation. Play replays the check in the application webview with cursor motion, click highlighting, and per-check ticks. When an application sets `database: true`, Mobile replaces the webview with the same Server-owned explorer at `/api/workspaces/{id}/applications/{name}/database/...`.
 
 </DocSurface>
 </DocSurfaces>
