@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { findNodeHandle, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { PublicIcon } from '@/features/shell/components/PublicIcon';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
@@ -9,6 +9,7 @@ import {
   adjacentFlowIndex,
   compactValidationCopy,
   idleStageViews,
+  swipeFlowDelta,
   validationMenuLabel,
 } from '../providers/ValidationPanelProvider';
 import {
@@ -40,7 +41,10 @@ export function ValidationDock({ workspaceId, applicationName, replayHost }: Val
   const [error, setError] = useState<string | null>(null);
   const playAbort = useRef<AbortController | null>(null);
   const selectedIndexRef = useRef(0);
+  const itemCountRef = useRef(0);
+  const copyRef = useRef<View>(null);
   selectedIndexRef.current = selectedIndex;
+  itemCountRef.current = items.length;
 
   useEffect(() => {
     let active = true;
@@ -136,16 +140,67 @@ export function ValidationDock({ workspaceId, applicationName, replayHost }: Val
 
   const panResponder = useMemo(() => PanResponder.create({
     onMoveShouldSetPanResponder: (_event, gesture) => (
-      items.length > 1
+      itemCountRef.current > 1
       && Math.abs(gesture.dy) > 12
       && Math.abs(gesture.dy) > Math.abs(gesture.dx)
     ),
     onPanResponderRelease: (_event, gesture) => {
-      if (Math.abs(gesture.dy) < 24) return;
-      const delta = gesture.dy < 0 ? 1 : -1;
-      select(adjacentFlowIndex(selectedIndexRef.current, items.length, delta));
+      const delta = swipeFlowDelta(gesture.dy);
+      if (delta === 0) return;
+      select(adjacentFlowIndex(selectedIndexRef.current, itemCountRef.current, delta));
     },
-  }), [items.length, select]);
+  }), [select]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const raw = copyRef.current as unknown;
+    const node = (
+      raw != null && typeof (raw as HTMLElement).addEventListener === 'function'
+        ? raw
+        : findNodeHandle(copyRef.current)
+    ) as HTMLElement | null;
+    if (node == null || typeof node.addEventListener !== 'function') return;
+
+    let startY: number | null = null;
+    const onPointerDown = (event: PointerEvent) => {
+      if (itemCountRef.current <= 1) return;
+      startY = event.clientY;
+      node.setPointerCapture?.(event.pointerId);
+    };
+    const finishPointer = (event: PointerEvent) => {
+      if (startY == null) return;
+      const delta = swipeFlowDelta(event.clientY - startY);
+      startY = null;
+      if (delta === 0) return;
+      select(adjacentFlowIndex(selectedIndexRef.current, itemCountRef.current, delta));
+    };
+    const onWheel = (event: WheelEvent) => {
+      if (itemCountRef.current <= 1) return;
+      if (Math.abs(event.deltaY) < 8) return;
+      event.preventDefault();
+      select(adjacentFlowIndex(
+        selectedIndexRef.current,
+        itemCountRef.current,
+        event.deltaY > 0 ? 1 : -1,
+      ));
+    };
+    const preventDrag = (event: Event) => event.preventDefault();
+    node.addEventListener('pointerdown', onPointerDown);
+    node.addEventListener('pointerup', finishPointer);
+    node.addEventListener('pointercancel', finishPointer);
+    node.addEventListener('wheel', onWheel, { passive: false });
+    node.addEventListener('dragstart', preventDrag);
+    node.style.touchAction = 'none';
+    node.style.userSelect = 'none';
+    node.style.cursor = 'ns-resize';
+    return () => {
+      node.removeEventListener('pointerdown', onPointerDown);
+      node.removeEventListener('pointerup', finishPointer);
+      node.removeEventListener('pointercancel', finishPointer);
+      node.removeEventListener('wheel', onWheel);
+      node.removeEventListener('dragstart', preventDrag);
+    };
+  }, [select]);
 
   return (
     <View style={styles.wrap}>
@@ -180,7 +235,11 @@ export function ValidationDock({ workspaceId, applicationName, replayHost }: Val
           style={[styles.tool, (!selected || playing) && styles.toolDisabled]}>
           <Text style={styles.playGlyph}>▶</Text>
         </Pressable>
-        <View {...panResponder.panHandlers} style={styles.copy}>
+        <View
+          ref={copyRef}
+          collapsable={false}
+          {...(Platform.OS === 'web' ? null : panResponder.panHandlers)}
+          style={styles.copy}>
           <Text numberOfLines={1} style={styles.title}>{copy.title}</Text>
           {!!copy.substep && <Text numberOfLines={1} style={styles.substep}>{copy.substep}</Text>}
         </View>
@@ -271,7 +330,9 @@ const styles = StyleSheet.create({
     ...auBox('validationDockCopy'),
     flex: 1,
     minWidth: 0,
+    height: '100%',
     justifyContent: 'center',
+    userSelect: 'none',
   },
   title: { ...auText('workspaceName'), fontSize: agentUpTheme.typography.sizeUiSm },
   substep: { ...auText('muted'), fontSize: agentUpTheme.typography.sizeUiXs },

@@ -6,6 +6,7 @@ import {
   idleStageViews,
   showsValidationChrome,
   adjacentFlowIndex,
+  swipeFlowDelta,
   compactValidationCopy,
   selectedFlowSubstep,
   validationMenuLabel,
@@ -53,6 +54,13 @@ test('adjacent flow index wraps at both ends', () => {
   assert.equal(adjacentFlowIndex(2, 3, 1), 0);
   assert.equal(adjacentFlowIndex(1, 3, 1), 2);
   assert.equal(adjacentFlowIndex(0, 0, 1), 0);
+});
+
+test('swipe delta ignores short moves and maps up to next', () => {
+  assert.equal(swipeFlowDelta(0), 0);
+  assert.equal(swipeFlowDelta(23), 0);
+  assert.equal(swipeFlowDelta(-24), 1);
+  assert.equal(swipeFlowDelta(24), -1);
 });
 
 test('compact copy shows the flow name and only the current substep', () => {

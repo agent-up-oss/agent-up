@@ -50,6 +50,12 @@ export function adjacentFlowIndex(index: number, count: number, delta: number): 
   return ((index + delta) % count + count) % count;
 }
 
+/** Maps a vertical drag to next (+1) or previous (-1). Zero when the gesture is too small. */
+export function swipeFlowDelta(displacement: number, threshold = 24): number {
+  if (Math.abs(displacement) < threshold) return 0;
+  return displacement < 0 ? 1 : -1;
+}
+
 export function selectedFlowSubstep(
   stages: ValidationStageView[],
   resultMessage: string | null,
