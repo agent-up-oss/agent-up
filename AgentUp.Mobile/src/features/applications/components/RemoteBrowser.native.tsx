@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 import { agentUpTheme } from '@agent-up/design-system/native';
 import type { ApplicationProxySource } from '../providers/ApplicationBrowserProvider';
-import type { RemoteBrowserHandle } from '../providers/RemoteBrowserHandle';
+import { javascriptLiteral, type RemoteBrowserHandle } from '../providers/RemoteBrowserHandle';
 
 type PendingEval = {
   resolve: (value: string | null) => void;
@@ -33,7 +33,7 @@ export const RemoteBrowser = forwardRef<RemoteBrowserHandle, { source: Applicati
             };
           }
           webViewRef.current?.injectJavaScript(
-            `(function(){var id=${id};var out;try{out=eval(${JSON.stringify(script)});}catch(e){out=JSON.stringify({error:String(e&&e.message?e.message:e)});}if(typeof out!=='string'){try{out=JSON.stringify(out);}catch(err){out=String(out);}}window.ReactNativeWebView.postMessage(JSON.stringify({id:id,value:out}));})();true;`,
+            `(function(){var id=${id};var out;try{out=eval(${javascriptLiteral(script)});}catch(e){out=JSON.stringify({error:String(e&&e.message?e.message:e)});}if(typeof out!=='string'){try{out=JSON.stringify(out);}catch(err){out=String(out);}}window.ReactNativeWebView.postMessage(JSON.stringify({id:id,value:out}));})();true;`,
           );
         });
       },

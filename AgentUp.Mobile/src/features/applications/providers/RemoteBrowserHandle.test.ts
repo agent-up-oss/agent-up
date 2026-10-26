@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { stringifyEvalResult } from './RemoteBrowserHandle';
+import { javascriptLiteral, stringifyEvalResult } from './RemoteBrowserHandle';
 
 test('stringifyEvalResult keeps strings and stringifies objects', () => {
   assert.equal(stringifyEvalResult('Harbor Shop'), 'Harbor Shop');
@@ -13,4 +13,11 @@ test('stringifyEvalResult falls back when JSON cannot serialise a cycle', () => 
   const cycle: { self?: unknown } = {};
   cycle.self = cycle;
   assert.equal(stringifyEvalResult(cycle).includes('object'), true);
+});
+
+test('javascriptLiteral escapes line and paragraph separators left by JSON.stringify', () => {
+  assert.equal(javascriptLiteral('Harbor Shop'), '"Harbor Shop"');
+  assert.equal(javascriptLiteral('\u2028ok\u2029').includes('\u2028'), false);
+  assert.equal(javascriptLiteral('\u2028ok\u2029').includes('\\u2028'), true);
+  assert.equal(javascriptLiteral('\u2028ok\u2029').includes('\\u2029'), true);
 });

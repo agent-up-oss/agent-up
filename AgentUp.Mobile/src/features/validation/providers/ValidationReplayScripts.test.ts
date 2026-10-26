@@ -27,3 +27,9 @@ test('mouse, ping, and click scripts inject the cursor overlay and click the tar
 test('checkTextScript looks for visible page text', () => {
   assert.equal(checkTextScript('Harbor Mug').includes('Harbor Mug'), true);
 });
+
+test('script literals escape line separators so they cannot break out of JS strings', () => {
+  const script = checkTextScript('Harbor\u2028Mug');
+  assert.equal(script.includes('\u2028'), false);
+  assert.equal(script.includes('\\u2028'), true);
+});

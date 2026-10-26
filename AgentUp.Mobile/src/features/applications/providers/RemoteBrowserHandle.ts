@@ -13,3 +13,10 @@ export function stringifyEvalResult(result: unknown): string {
     return String(result);
   }
 }
+
+/** JSON.stringify leaves U+2028/U+2029 intact; those must be escaped before the literal is used as code. */
+export function javascriptLiteral(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
