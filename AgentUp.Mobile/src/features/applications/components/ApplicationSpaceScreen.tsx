@@ -5,6 +5,7 @@ import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesConte
 import type { Workspace } from '@/features/workspaces/models/Workspace';
 import { agentUpTheme, auText } from '@agent-up/design-system/native';
 import { applicationHttpPort, applicationProxySource, issueApplicationProxyTicket, type ApplicationProxySource } from '../providers/ApplicationBrowserProvider';
+import type { RemoteBrowserHandle } from '../providers/RemoteBrowserHandle';
 import { isFakeServerUrl } from '@/features/fake-server/models/FakeServerIdentity';
 import { waitForDesktopViewerUrl } from '../providers/DesktopViewerProvider';
 import { DesktopStreamView } from './DesktopStreamView';
@@ -13,6 +14,7 @@ import { DatabaseExplorerScreen } from '@/features/database/components/DatabaseE
 import { isDatabaseApplication } from '@/features/database/providers/DatabaseExplorerProvider';
 import { ValidationSidebar } from '@/features/validation/components/ValidationSidebar';
 import { showsValidationChrome, validationToggleLabel } from '@/features/validation/providers/ValidationPanelProvider';
+import type { ValidationReplayHost } from '@/features/validation/providers/ValidationReplayProvider';
 import { useInnerShell } from '@/features/shell/hooks/useInnerShell';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 
@@ -35,8 +37,13 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
   const [viewerError, setViewerError] = useState<string | null>(null);
   const applicationState = useRef(application?.state);
   const applicationRef = useRef(application);
+  const browserRef = useRef<RemoteBrowserHandle>(null);
   applicationState.current = application?.state;
   applicationRef.current = application;
+  const replayHost = useMemo<ValidationReplayHost>(() => ({
+    eval: script => browserRef.current?.eval(script) ?? Promise.resolve(null),
+    delay: ms => new Promise(resolve => setTimeout(resolve, ms)),
+  }), []);
 
   const inner = useInnerShell(applicationName, `/(main)/workspace/${workspace.id}`);
   const shellConfig = useMemo(() => ({
@@ -136,7 +143,7 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
           <Text accessibilityRole="alert" style={styles.error}>{error}</Text>
         </View>
       )}
-      {source && <RemoteBrowser source={source} />}
+      {source && <RemoteBrowser ref={browserRef} source={source} />}
       {showValidation && validationOpen && (
         <View style={styles.overlay} pointerEvents="box-none">
           <Pressable
@@ -146,7 +153,11 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
             style={styles.backdrop}
           />
           <View style={[styles.panel, { width: panelWidth }]}>
-            <ValidationSidebar workspaceId={workspace.id} applicationName={applicationName} />
+            <ValidationSidebar
+              workspaceId={workspace.id}
+              applicationName={applicationName}
+              replayHost={source ? replayHost : null}
+            />
           </View>
         </View>
       )}

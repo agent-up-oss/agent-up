@@ -1,29 +1,41 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
-import type { ValidationFlow, ValidationStage } from '../models/ValidationFlow';
+import type { ValidationFlow, ValidationRunState, ValidationStageView } from '../models/ValidationFlow';
 import { getValidationFlow, listValidationFlows } from '../providers/ValidationFlowApiProvider';
-import { validationStages } from '../providers/ValidationPanelProvider';
+import {
+  idleStageViews,
+  validationRunGlyph,
+} from '../providers/ValidationPanelProvider';
+import {
+  runValidationReplay,
+  type ValidationReplayHost,
+  type ValidationReplayReporter,
+} from '../providers/ValidationReplayProvider';
 
 type ValidationSidebarProps = {
   workspaceId: string;
   applicationName: string;
+  replayHost: ValidationReplayHost | null;
 };
 
 type FlowItem = {
   flow: ValidationFlow;
-  stages: ValidationStage[];
+  stages: ValidationStageView[];
   expanded: boolean;
   loading: boolean;
+  runState: ValidationRunState;
+  resultMessage: string | null;
 };
 
 /** Right-hand list of recorded checks for the open HTTP application. */
-export function ValidationSidebar({ workspaceId, applicationName }: ValidationSidebarProps) {
+export function ValidationSidebar({ workspaceId, applicationName, replayHost }: ValidationSidebarProps) {
   const { server } = useWorkspaces();
   const [items, setItems] = useState<FlowItem[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const playAbort = useRef<AbortController | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -37,7 +49,14 @@ export function ValidationSidebar({ workspaceId, applicationName }: ValidationSi
     void listValidationFlows(server, workspaceId, applicationName)
       .then(flows => {
         if (!active) return;
-        setItems(flows.map(flow => ({ flow, stages: validationStages(flow), expanded: false, loading: false })));
+        setItems(flows.map(flow => ({
+          flow,
+          stages: idleStageViews(flow),
+          expanded: false,
+          loading: false,
+          runState: 'pending',
+          resultMessage: null,
+        })));
         setStatus(flows.length === 0 ? 'No checks recorded for this application.' : null);
       })
       .catch(reason => {
@@ -47,25 +66,60 @@ export function ValidationSidebar({ workspaceId, applicationName }: ValidationSi
     return () => { active = false; };
   }, [server, workspaceId, applicationName]);
 
-  const expand = useCallback((id: string, next: ValidationFlow | null) => {
-    setItems(current => current.map(item => {
-      if (item.flow.id !== id) return item;
-      const flow = next ?? item.flow;
-      return { flow, stages: validationStages(flow), expanded: true, loading: false };
-    }));
+  useEffect(() => () => playAbort.current?.abort(), []);
+
+  const patch = useCallback((id: string, update: (item: FlowItem) => FlowItem) => {
+    setItems(current => current.map(item => item.flow.id === id ? update(item) : item));
   }, []);
+
+  const expand = useCallback((id: string) => {
+    patch(id, item => ({ ...item, expanded: true }));
+  }, [patch]);
 
   const play = useCallback(async (id: string) => {
     if (!server) return;
-    setItems(current => current.map(item => item.flow.id === id ? { ...item, loading: true, expanded: true } : item));
+    playAbort.current?.abort();
+    const controller = new AbortController();
+    playAbort.current = controller;
+    patch(id, item => ({
+      ...item,
+      loading: true,
+      expanded: true,
+      runState: 'running',
+      resultMessage: null,
+      stages: idleStageViews(item.flow),
+    }));
     try {
       const fresh = await getValidationFlow(server, workspaceId, id);
-      expand(id, fresh);
+      if (controller.signal.aborted) return;
+      if (fresh == null) {
+        setError('Validation flow was not found.');
+        patch(id, item => ({ ...item, loading: false, runState: 'failed', resultMessage: 'Validation flow was not found.' }));
+        return;
+      }
+      patch(id, item => ({ ...item, flow: fresh, stages: idleStageViews(fresh) }));
+      if (!replayHost) {
+        const message = 'Validation replay is not connected to the browser view.';
+        patch(id, item => ({ ...item, loading: false, runState: 'failed', resultMessage: message }));
+        return;
+      }
+      const reporter = createReporter(id, patch);
+      await runValidationReplay({
+        flow: fresh,
+        host: replayHost,
+        reporter,
+        signal: controller.signal,
+      });
     } catch (reason) {
+      if (controller.signal.aborted) return;
       setError(reason instanceof Error ? reason.message : String(reason));
-      setItems(current => current.map(item => item.flow.id === id ? { ...item, loading: false } : item));
+      patch(id, item => ({ ...item, loading: false, runState: 'failed' }));
+    } finally {
+      if (!controller.signal.aborted) {
+        patch(id, item => ({ ...item, loading: false }));
+      }
     }
-  }, [expand, server, workspaceId]);
+  }, [patch, replayHost, server, workspaceId]);
 
   return (
     <View testID="validation-panel" style={styles.sidebar}>
@@ -81,19 +135,21 @@ export function ValidationSidebar({ workspaceId, applicationName }: ValidationSi
         {items.map(item => (
           <View key={item.flow.id} testID={`validation-flow-${item.flow.id}`} style={styles.flow}>
             <View style={styles.flowHead}>
+              <Text style={glyphStyle(item.runState)}>{validationRunGlyph(item.runState)}</Text>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Show steps for ${item.flow.name}`}
-                onPress={() => expand(item.flow.id, item.flow)}
+                onPress={() => expand(item.flow.id)}
                 style={styles.flowCopy}>
                 <Text style={styles.flowName}>{item.flow.name}</Text>
                 {!!item.flow.description && <Text style={styles.muted}>{item.flow.description}</Text>}
                 <Text style={styles.muted}>Starts at {item.flow.initialPath || '/'}</Text>
+                {!!item.resultMessage && <Text style={styles.muted}>{item.resultMessage}</Text>}
               </Pressable>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Play ${item.flow.name}`}
-                disabled={item.loading}
+                disabled={item.loading || item.runState === 'running'}
                 onPress={() => { void play(item.flow.id); }}
                 style={styles.play}>
                 <Text style={styles.playLabel}>▶ Play</Text>
@@ -103,10 +159,16 @@ export function ValidationSidebar({ workspaceId, applicationName }: ValidationSi
               <View style={styles.steps}>
                 {item.stages.map(stage => (
                   <View key={stage.id} style={styles.stage}>
-                    <Text style={styles.stepTitle}>{stage.title}</Text>
+                    <View style={styles.stageHead}>
+                      <Text style={glyphStyle(stage.state)}>{validationRunGlyph(stage.state)}</Text>
+                      <Text style={styles.stepTitle}>{stage.title}</Text>
+                    </View>
                     <View style={styles.checks}>
-                      {stage.checks.map(check => (
-                        <Text key={check} style={styles.check}>{check}</Text>
+                      {stage.checks.map((check, index) => (
+                        <View key={`${stage.id}-${index}`} style={styles.checkRow}>
+                          <Text style={glyphStyle(check.state)}>{validationRunGlyph(check.state)}</Text>
+                          <Text style={styles.check}>{check.label}</Text>
+                        </View>
                       ))}
                     </View>
                   </View>
@@ -118,6 +180,66 @@ export function ValidationSidebar({ workspaceId, applicationName }: ValidationSi
       </ScrollView>
     </View>
   );
+}
+
+function createReporter(
+  id: string,
+  patch: (id: string, update: (item: FlowItem) => FlowItem) => void,
+): ValidationReplayReporter {
+  const updateStage = (item: FlowItem, stageId: string, next: Partial<ValidationStageView>): FlowItem => ({
+    ...item,
+    stages: item.stages.map(stage => stage.id === stageId ? { ...stage, ...next } : stage),
+  });
+  return {
+    beginFlow: () => patch(id, item => ({
+      ...item,
+      expanded: true,
+      runState: 'running',
+      resultMessage: null,
+      stages: item.stages.map(stage => ({
+        ...stage,
+        state: 'pending',
+        checks: stage.checks.map(check => ({ ...check, state: 'pending' })),
+      })),
+    })),
+    beginStage: stageId => patch(id, item => updateStage(item, stageId, { state: 'running' })),
+    beginCheck: (stageId, checkIndex) => patch(id, item => ({
+      ...item,
+      stages: item.stages.map(stage => {
+        if (stage.id !== stageId) return stage;
+        return {
+          ...stage,
+          checks: stage.checks.map((check, index) => index === checkIndex ? { ...check, state: 'running' } : check),
+        };
+      }),
+    })),
+    completeCheck: (stageId, checkIndex, passed) => patch(id, item => ({
+      ...item,
+      stages: item.stages.map(stage => {
+        if (stage.id !== stageId) return stage;
+        return {
+          ...stage,
+          checks: stage.checks.map((check, index) => (
+            index === checkIndex ? { ...check, state: passed ? 'passed' : 'failed' } : check
+          )),
+        };
+      }),
+    })),
+    completeStage: (stageId, passed) => patch(id, item => updateStage(item, stageId, { state: passed ? 'passed' : 'failed' })),
+    completeFlow: (passed, message) => patch(id, item => ({
+      ...item,
+      runState: passed ? 'passed' : 'failed',
+      resultMessage: message ?? null,
+      loading: false,
+    })),
+  };
+}
+
+function glyphStyle(state: ValidationRunState) {
+  if (state === 'passed') return styles.glyphPassed;
+  if (state === 'failed') return styles.glyphFailed;
+  if (state === 'running') return styles.glyphRunning;
+  return styles.glyph;
 }
 
 const styles = StyleSheet.create({
@@ -160,8 +282,14 @@ const styles = StyleSheet.create({
     gap: 4,
     marginTop: agentUpTheme.spacing[2],
   },
-  stepTitle: auText('validationStep'),
+  stageHead: { flexDirection: 'row', alignItems: 'flex-start', gap: agentUpTheme.spacing[2] },
+  stepTitle: { ...auText('validationStep'), flex: 1 },
   checks: auBox('validationChecks'),
-  check: auText('validationCheck'),
+  checkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: agentUpTheme.spacing[2] },
+  check: { ...auText('validationCheck'), flex: 1 },
+  glyph: auText('validationGlyph'),
+  glyphPassed: auText('validationGlyph', 'validationGlyphPassed'),
+  glyphFailed: auText('validationGlyph', 'validationGlyphFailed'),
+  glyphRunning: auText('validationGlyph', 'validationGlyphRunning'),
   error: auText('badgeDanger'),
 });

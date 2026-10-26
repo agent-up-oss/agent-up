@@ -416,7 +416,7 @@
           "id": "add-mug",
           "description": "Add Harbor Mug to the cart",
           "action": "Click",
-          "target": { "text": "Add to cart" },
+          "target": { "text": "Add to cart", "selector": "button[data-add=\"mug\"]" },
           "expectations": [
             { "kind": "Text", "value": "Harbor Mug × 1" }
           ]
@@ -425,7 +425,7 @@
           "id": "place-order",
           "description": "Place the order",
           "action": "Click",
-          "target": { "name": "Place order" },
+          "target": { "name": "Place order", "selector": "#place" },
           "expectations": [
             { "kind": "Text", "value": "Order 1009" }
           ]

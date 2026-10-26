@@ -1,7 +1,13 @@
 import type { WorkspaceApplication } from '@/features/workspaces/models/Workspace';
-import type { ValidationAssertion, ValidationFlow, ValidationStage } from '../models/ValidationFlow';
+import type {
+  ValidationAssertion,
+  ValidationFlow,
+  ValidationRunState,
+  ValidationStage,
+  ValidationStageView,
+} from '../models/ValidationFlow';
 
-const InitialStageId = 'initial';
+export const InitialStageId = 'initial';
 
 /** HTTP Process webviews host Validation. Desktop streams and database apps do not. */
 export function showsValidationChrome(application: WorkspaceApplication | undefined): boolean {
@@ -28,6 +34,22 @@ export function validationStages(flow: ValidationFlow): ValidationStage[] {
       checks: (step.expectations ?? []).map(describeAssertion),
     })),
   ];
+}
+
+export function idleStageViews(flow: ValidationFlow): ValidationStageView[] {
+  return validationStages(flow).map(stage => ({
+    id: stage.id,
+    title: stage.title,
+    state: 'pending',
+    checks: stage.checks.map(label => ({ label, state: 'pending' as const })),
+  }));
+}
+
+export function validationRunGlyph(state: ValidationRunState): string {
+  if (state === 'passed') return '✓';
+  if (state === 'failed') return '✗';
+  if (state === 'running') return '●';
+  return '○';
 }
 
 export function describeAssertion(assertion: ValidationAssertion): string {

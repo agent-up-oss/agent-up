@@ -54,3 +54,17 @@ export type ValidationStage = {
   title: string;
   checks: string[];
 };
+
+export type ValidationRunState = 'pending' | 'running' | 'passed' | 'failed';
+
+export type ValidationCheckView = {
+  label: string;
+  state: ValidationRunState;
+};
+
+export type ValidationStageView = {
+  id: string;
+  title: string;
+  state: ValidationRunState;
+  checks: ValidationCheckView[];
+};

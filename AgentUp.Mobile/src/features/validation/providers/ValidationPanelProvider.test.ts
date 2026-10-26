@@ -3,7 +3,9 @@ import { test } from 'node:test';
 import type { ValidationFlow } from '../models/ValidationFlow';
 import {
   describeAssertion,
+  idleStageViews,
   showsValidationChrome,
+  validationRunGlyph,
   validationStages,
   validationToggleLabel,
 } from './ValidationPanelProvider';
@@ -51,6 +53,16 @@ test('stages start with the initial page then one stage per step', () => {
   assert.equal(stages[1].id, 'add-mug');
   assert.equal(stages[1].title, 'Add Harbor Mug to the cart');
   assert.deepEqual(stages[1].checks, ['Text contains "Harbor Mug × 1"']);
+});
+
+test('idle stages start pending with glyphs for running, passed, and failed', () => {
+  const stages = idleStageViews(flow);
+  assert.equal(stages[0].state, 'pending');
+  assert.equal(stages[0].checks[0].state, 'pending');
+  assert.equal(validationRunGlyph('pending'), '○');
+  assert.equal(validationRunGlyph('running'), '●');
+  assert.equal(validationRunGlyph('passed'), '✓');
+  assert.equal(validationRunGlyph('failed'), '✗');
 });
 
 test('assertion copy covers visible, enabled, and named targets', () => {

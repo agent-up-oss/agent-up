@@ -440,6 +440,30 @@ test('serves Inventory database catalog and default table query', () => {
   assert.equal(storefront.status, 404);
 });
 
+test('lists nested Storefront validation flows and quoted Inventory queries', () => {
+  const service = backend();
+  const nested = json(service, 'GET', '/api/workspaces/harbor-shop/applications/Storefront/validation-flows');
+  const quoted = json(service, 'POST', '/api/workspaces/harbor-shop/applications/Inventory/database/query', JSON.stringify({
+    database: 'harbor',
+    sql: 'SELECT * FROM "orders" LIMIT 50',
+  }));
+  const missing = json(service, 'POST', '/api/workspaces/harbor-shop/applications/Inventory/database/query', JSON.stringify({
+    database: 'harbor',
+    sql: 'SELECT 1',
+  }));
+  const getQuery = service.handle({
+    method: 'GET',
+    path: '/api/workspaces/harbor-shop/applications/Inventory/database/query',
+    query: '',
+    body: null,
+  });
+  assert.equal(nested.length, 1);
+  assert.deepEqual(quoted.columns, ['id', 'status', 'total']);
+  assert.equal(quoted.rows.length, 2);
+  assert.deepEqual(missing.columns, []);
+  assert.equal(getQuery.status, 404);
+});
+
 test('unknown git action and empty commit bodies stay safe', () => {
   const service = backend();
   const other = json(service, 'POST', '/api/workspaces/harbor-shop/git/status', '{}');
