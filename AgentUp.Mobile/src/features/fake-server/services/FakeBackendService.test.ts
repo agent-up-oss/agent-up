@@ -225,13 +225,16 @@ test('resume returns not found when the workspace or path is invalid', () => {
   }).status, 404);
 });
 
-test('review snapshot exports the bundled workspace', () => {
+test('review snapshot exports the bundled workspace as HTML', () => {
   const service = backend();
-  const snapshot = json(service, 'GET', '/api/workspaces/bob/review-snapshot');
-  assert.equal(snapshot.workspaceId, 'bob');
-  assert.equal(snapshot.displayName, 'Bob');
-  assert.deepEqual(snapshot.applications.map((item: { name: string }) => item.name), ['Storefront', 'Orders API']);
-  assert.equal(snapshot.verification, null);
+  const response = service.handle({ method: 'GET', path: '/api/workspaces/bob/review-snapshot', query: '', body: null });
+  assert.equal(response.status, 200);
+  assert.equal(response.contentType, 'text/html; charset=utf-8');
+  assert.match(response.body ?? '', /Bob/);
+  assert.match(response.body ?? '', /Storefront/);
+  assert.match(response.body ?? '', /Orders API/);
+  assert.match(response.body ?? '', /<h2>Screenshots<\/h2>/);
+  assert.match(response.body ?? '', /<h2>Verification<\/h2>/);
   assert.equal(service.handle({ method: 'GET', path: '/api/workspaces/missing/review-snapshot', query: '', body: null }).status, 404);
 });
 

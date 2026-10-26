@@ -1,6 +1,8 @@
+using System.Reactive;
 using AgentUp.Desktop.Features.Applications.DTOs;
 using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Features.Workspaces.Interfaces;
 using AgentUp.Desktop.Shared.Models;
 using ReactiveUI;
 
@@ -9,6 +11,7 @@ namespace AgentUp.Desktop.Features.Workspaces.ViewModels;
 public sealed class WorkspaceOverviewViewModel : ReactiveObject
 {
     private readonly WorkspacesController _workspaces;
+    private readonly IReviewReportSavePrompt? _save;
     private int _loadRequest;
     private string? _workspaceId;
     private bool _showSkeleton;
@@ -25,11 +28,16 @@ public sealed class WorkspaceOverviewViewModel : ReactiveObject
     private string _applicationCount = "—";
     private string? _errorMessage;
     private bool _isLoading;
+    private bool _isExporting;
 
-    public WorkspaceOverviewViewModel(WorkspacesController workspaces)
+    public WorkspaceOverviewViewModel(WorkspacesController workspaces, IReviewReportSavePrompt? save = null)
     {
         _workspaces = workspaces;
+        _save = save;
+        ExportReportCommand = ReactiveCommand.CreateFromTask(ExportReportAsync);
     }
+
+    public ReactiveCommand<Unit, Unit> ExportReportCommand { get; }
 
     public string DisplayName
     {
@@ -117,6 +125,46 @@ public sealed class WorkspaceOverviewViewModel : ReactiveObject
     {
         get => _showSkeleton;
         private set => this.RaiseAndSetIfChanged(ref _showSkeleton, value);
+    }
+
+    public bool IsExporting
+    {
+        get => _isExporting;
+        private set => this.RaiseAndSetIfChanged(ref _isExporting, value);
+    }
+
+    public async Task ExportReportAsync(CancellationToken cancellationToken = default)
+    {
+        if (_workspaceId is null || _save is null)
+        {
+            ErrorMessage = _save is null
+                ? "Saving a report is not available."
+                : "Could not load workspace overview.";
+            return;
+        }
+
+        IsExporting = true;
+        try
+        {
+            var html = await _workspaces.GetReviewReportHtmlAsync(_workspaceId, cancellationToken);
+            if (html is null)
+            {
+                ErrorMessage = "Could not export the workspace report.";
+                return;
+            }
+
+            var saved = await _save.SaveAsync(FileName(DisplayName), html, cancellationToken);
+            if (saved)
+                ErrorMessage = null;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException or IOException)
+        {
+            ErrorMessage = $"Could not export the workspace report: {ex.Message}";
+        }
+        finally
+        {
+            IsExporting = false;
+        }
     }
 
     public async Task LoadAsync(string? workspaceId, CancellationToken cancellationToken = default)
@@ -236,4 +284,11 @@ public sealed class WorkspaceOverviewViewModel : ReactiveObject
 
     private static string ShortCommit(string commit)
         => commit.Length <= 8 ? commit : commit[..8];
+
+    internal static string FileName(string displayName)
+    {
+        var slug = new string([.. displayName.Select(ch => char.IsAsciiLetterOrDigit(ch) ? ch : '-')]);
+        slug = string.Join('-', slug.Split('-', StringSplitOptions.RemoveEmptyEntries));
+        return string.IsNullOrWhiteSpace(slug) ? "agent-up-report.html" : $"agent-up-report-{slug}.html";
+    }
 }

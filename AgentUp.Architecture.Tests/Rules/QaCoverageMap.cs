@@ -16,6 +16,7 @@ public sealed class QaCoverageMap
         "First run / Demo",
         "Workspace list",
         "Workspace lifecycle",
+        "Workspace overview / export",
         "Application tabs",
         "Console",
         "Diagnostics",

@@ -9,6 +9,7 @@ export {
   jsonBody,
   readProblemDetail,
   requestServerJson,
+  requestServerText,
   toReadableError,
 } from '@agent-up/server-client';
 export type { ServerSession } from '@agent-up/server-client';

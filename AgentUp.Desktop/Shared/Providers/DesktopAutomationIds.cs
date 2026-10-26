@@ -33,6 +33,7 @@ public static class DesktopAutomationIds
 
     public const string ShellTabs = "shell.tabs";
     public const string ShellTabOverview = "shell.tab.overview";
+    public const string OverviewExportReport = "overview.export-report";
     public const string ShellTabAgent = "shell.tab.agent";
     public const string ShellTabGit = "shell.tab.git";
     public const string ApplicationTabs = "app.tabs";

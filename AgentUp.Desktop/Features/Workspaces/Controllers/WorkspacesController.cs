@@ -48,4 +48,7 @@ public sealed class WorkspacesController
 
     public async Task<WorkspaceOverviewDto?> GetOverviewAsync(string workspaceId, CancellationToken cancellationToken = default)
         => await _service.GetOverviewAsync(workspaceId, cancellationToken);
+
+    public async Task<string?> GetReviewReportHtmlAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => await _service.GetReviewReportHtmlAsync(workspaceId, cancellationToken);
 }

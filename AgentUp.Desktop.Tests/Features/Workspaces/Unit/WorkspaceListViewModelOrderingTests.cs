@@ -113,5 +113,8 @@ public class WorkspaceListViewModelOrderingTests
 
         public Task<WorkspaceOverviewDto?> GetOverviewAsync(string workspaceId, CancellationToken cancellationToken = default) =>
             Task.FromResult<WorkspaceOverviewDto?>(null);
+
+        public Task<string?> GetReviewReportHtmlAsync(string workspaceId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<string?>(null);
     }
 }

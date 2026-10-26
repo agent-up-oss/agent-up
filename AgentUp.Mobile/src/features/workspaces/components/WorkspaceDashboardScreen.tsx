@@ -6,6 +6,11 @@ import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import type { Workspace, WorkspaceApplication } from '../models/Workspace';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
 import {
+  reviewReportFileName,
+  saveReviewReport,
+} from '../providers/ReviewReportExportProvider';
+import { getReviewReportHtml } from '../providers/WorkspacesApiProvider';
+import {
   statusDotStyle,
   workspaceLedState,
   workspaceLifecycleControls,
@@ -20,9 +25,10 @@ type WorkspaceDashboardScreenProps = {
 
 export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreenProps) {
   const router = useRouter();
-  const { loading, error, refresh, start, stop } = useWorkspaces();
+  const { server, loading, error, refresh, start, stop } = useWorkspaces();
   const [actionPending, setActionPending] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const openApplication = useCallback((applicationName: string) => {
     router.push(`/(main)/workspace/${workspace.id}/application/${encodeURIComponent(applicationName)}`);
@@ -61,6 +67,21 @@ export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreen
     }
   }, [lifecycle.action, lifecycleDisabled, start, stop, workspace.id]);
 
+  const exportReport = useCallback(async () => {
+    if (!server || exporting) return;
+    setExporting(true);
+    setActionError(null);
+    try {
+      const html = await getReviewReportHtml(server, workspace.id);
+      if (!html) throw new Error('Could not export the workspace report.');
+      await saveReviewReport(html, reviewReportFileName(workspace.displayName));
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : 'Could not export the workspace report.');
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting, server, workspace.displayName, workspace.id]);
+
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -88,6 +109,16 @@ export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreen
         {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}
         {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
         {!!actionError && <Text accessibilityRole="alert" style={styles.error}>{actionError}</Text>}
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Export Report"
+          accessibilityState={{ disabled: exporting || !server, busy: exporting }}
+          disabled={exporting || !server}
+          onPress={() => { void exportReport(); }}
+          style={[styles.exportButton, (exporting || !server) && styles.exportButtonDisabled]}>
+          <Text style={styles.exportButtonText}>Export Report</Text>
+        </Pressable>
 
         {showApplications &&
           <View style={styles.section}>
@@ -132,6 +163,9 @@ const styles = StyleSheet.create({
   lifecycleButtonDisabled: auBox('lifecycleButtonDisabled'),
   lifecycleIcon: auText('lifecycleButton'),
   lifecycleCopy: { flex: 1, gap: 2 },
+  exportButton: { ...auBox('button', 'buttonSecondary'), alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
+  exportButtonDisabled: auBox('lifecycleButtonDisabled'),
+  exportButtonText: auText('button'),
   error: auText('badgeDanger'),
   section: { gap: 10 },
   sectionTitle: auText('fieldLabel'),

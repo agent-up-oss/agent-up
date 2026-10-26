@@ -52,10 +52,23 @@ public sealed class WorkspacesControllerTests
         Assert.That(provider.RefreshedRevision, Is.EqualTo("release"));
     }
 
+    [Test]
+    public async Task GetReviewReportHtmlAsync_forwardsTheWorkspaceIdentity()
+    {
+        var provider = new RecordingWorkspaceProvider { ReportHtml = "<html>Shop</html>" };
+        var controller = new WorkspacesController(new WorkspaceListService(provider));
+
+        var html = await controller.GetReviewReportHtmlAsync("one");
+
+        Assert.That(html, Is.EqualTo("<html>Shop</html>"));
+        Assert.That(provider.Actions, Is.EqualTo(new[] { "report:one" }));
+    }
+
     private sealed class RecordingWorkspaceProvider : IWorkspaceApiProvider
     {
         public CloneSourceRequestDto? CloneRequest { get; private set; }
         public List<string> Actions { get; } = [];
+        public string? ReportHtml { get; init; }
         public Task<List<WorkspaceDto>> ListAsync(CancellationToken cancellationToken = default) => Task.FromResult<List<WorkspaceDto>>([]);
         public Task<WorkspaceDto?> GetByIdAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.FromResult<WorkspaceDto?>(null);
         public Task<WorkspaceOverviewDto?> GetOverviewAsync(string workspaceId, CancellationToken cancellationToken = default) => Task.FromResult<WorkspaceOverviewDto?>(null);
@@ -83,5 +96,11 @@ public sealed class WorkspacesControllerTests
         public Task StartAsync(string workspaceId, CancellationToken cancellationToken = default) { Actions.Add($"start:{workspaceId}"); return Task.CompletedTask; }
         public Task StopAsync(string workspaceId, CancellationToken cancellationToken = default) { Actions.Add($"stop:{workspaceId}"); return Task.CompletedTask; }
         public Task DeleteAsync(string workspaceId, CancellationToken cancellationToken = default) { Actions.Add($"delete:{workspaceId}"); return Task.CompletedTask; }
+
+        public Task<string?> GetReviewReportHtmlAsync(string workspaceId, CancellationToken cancellationToken = default)
+        {
+            Actions.Add($"report:{workspaceId}");
+            return Task.FromResult(ReportHtml);
+        }
     }
 }

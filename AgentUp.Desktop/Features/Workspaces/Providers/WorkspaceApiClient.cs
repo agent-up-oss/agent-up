@@ -85,6 +85,17 @@ public sealed class WorkspaceApiClient(HttpClient http) : IWorkspaceApiProvider
         return await response.Content.ReadFromJsonAsync<WorkspaceOverviewDto>(Options, ct);
     }
 
+    public async Task<string?> GetReviewReportHtmlAsync(string workspaceId, CancellationToken ct = default)
+    {
+        using var response = await http.GetAsync(
+            $"/api/workspaces/{Uri.EscapeDataString(workspaceId)}/review-snapshot", ct);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync(ct);
+    }
+
     private static async Task<string> ReadProblemDetailAsync(HttpResponseMessage response)
     {
         try

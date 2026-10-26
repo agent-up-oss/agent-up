@@ -20,6 +20,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\AgentUp.DesignSystem\dist\web\agent-up.css" Link="Features\Diagnostics\Providers\agent-up.css" LogicalName="AgentUp.DesignSystem.agent-up.css" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AgentUp.Browser.Streaming\AgentUp.Browser.Streaming.csproj" />
     <ProjectReference Include="..\AgentUp.CommitPolicy\AgentUp.CommitPolicy.csproj" />
     <ProjectReference Include="..\AgentUp.Verification\AgentUp.Verification.csproj" />

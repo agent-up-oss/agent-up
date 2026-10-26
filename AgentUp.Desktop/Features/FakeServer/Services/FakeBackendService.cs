@@ -353,52 +353,9 @@ public sealed class FakeBackendService
         lock (_gate)
         {
             var workspace = FindWorkspace(workspaceId);
-            if (workspace is null)
-                return NotFound();
-
-            var applications = new JsonArray();
-            foreach (var app in (workspace["applications"] as JsonArray ?? []).OfType<JsonObject>())
-            {
-                var ports = new JsonArray();
-                foreach (var port in (app["allocatedPorts"] as JsonArray ?? []).OfType<JsonObject>())
-                {
-                    ports.Add(new JsonObject
-                    {
-                        ["variable"] = port["variable"]?.DeepClone(),
-                        ["allocatedPort"] = port["allocatedPort"]?.DeepClone(),
-                        ["protocol"] = port["protocol"]?.DeepClone() ?? "http"
-                    });
-                }
-
-                applications.Add(new JsonObject
-                {
-                    ["name"] = app["name"]?.DeepClone(),
-                    ["kind"] = app["kind"]?.DeepClone() ?? "Process",
-                    ["processState"] = app["state"]?.DeepClone(),
-                    ["health"] = workspace["healthState"]?.DeepClone(),
-                    ["ports"] = ports,
-                    ["logs"] = new JsonArray(),
-                    ["logsTruncated"] = false
-                });
-            }
-
-            return Json(new JsonObject
-            {
-                ["workspaceId"] = workspaceId,
-                ["displayName"] = workspace["displayName"]?.DeepClone(),
-                ["repositoryPath"] = workspace["repositoryPath"]?.DeepClone(),
-                ["worktreePath"] = workspace["worktreePath"]?.DeepClone(),
-                ["branch"] = workspace["branch"]?.DeepClone(),
-                ["commit"] = workspace["commit"]?.DeepClone(),
-                ["state"] = workspace["state"]?.DeepClone(),
-                ["health"] = workspace["healthState"]?.DeepClone(),
-                ["capturedAt"] = "2026-04-11T15:30:00Z",
-                ["browserUrl"] = null,
-                ["applications"] = applications,
-                ["entries"] = new JsonArray(),
-                ["recentActions"] = new JsonArray(),
-                ["verification"] = null
-            });
+            return workspace is null
+                ? NotFound()
+                : new FakeBackendResponseDto(200, "text/html; charset=utf-8", FakeReviewReportHtml.Render(workspaceId, workspace));
         }
     }
 

@@ -36,6 +36,7 @@ using AgentUp.Desktop.Features.Metrics.ViewModels;
 using AgentUp.Desktop.Features.Ports.Controllers;
 using AgentUp.Desktop.Features.Ports.Services;
 using AgentUp.Desktop.Features.Workspaces.Controllers;
+using AgentUp.Desktop.Features.Workspaces.Interfaces;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.Services;
 using AgentUp.Desktop.Features.Interface.Interfaces;
@@ -112,7 +113,8 @@ public static class MainViewModelFactory
         CapabilityModulesApiClient? capabilityModulesClient = null,
         HttpClient? entitlementsHttp = null,
         CommandCenterViewModel? commandCenter = null,
-        ITaskQueueApiProvider? taskQueueClient = null)
+        ITaskQueueApiProvider? taskQueueClient = null,
+        IReviewReportSavePrompt? reviewReportSave = null)
     {
         var workspaces = new WorkspacesController(new WorkspaceListService(workspaceClient));
         var entitlements = new EntitlementsController(new EntitlementsService(
@@ -161,7 +163,7 @@ public static class MainViewModelFactory
                 new ApplicationAuditStreamClient(auditApi.Http)),
             new GitPanelViewModel(git),
             new AgentChatViewModel(agents, modulesController),
-            new WorkspaceOverviewViewModel(workspaces),
+            new WorkspaceOverviewViewModel(workspaces, reviewReportSave),
             login ?? CreateLogin(DefaultAuthHttpClient),
             ports,
             new ValidationViewModel(validationApi, validationReplay),
@@ -178,7 +180,8 @@ public static class MainViewModelFactory
         HttpClient http,
         LoginViewModel? login = null,
         HttpClient? agentEventsHttp = null,
-        CommandCenterViewModel? commandCenter = null)
+        CommandCenterViewModel? commandCenter = null,
+        IReviewReportSavePrompt? reviewReportSave = null)
     {
         return Create(
             new WorkspaceApiClient(http),
@@ -193,7 +196,8 @@ public static class MainViewModelFactory
             login: login ?? CreateLogin(http),
             entitlementsHttp: http,
             commandCenter: commandCenter,
-            taskQueueClient: new TaskQueueApiClient(http));
+            taskQueueClient: new TaskQueueApiClient(http),
+            reviewReportSave: reviewReportSave);
     }
 
     public static HostMetricsController CreateHostMetricsController(HttpClient http) =>

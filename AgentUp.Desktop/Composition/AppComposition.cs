@@ -9,6 +9,7 @@ using AgentUp.Desktop.Features.Authentication.ViewModels;
 using AgentUp.Desktop.Features.FakeServer.Controllers;
 using AgentUp.Desktop.Features.FakeServer.Providers;
 using AgentUp.Desktop.Features.FakeServer.Services;
+using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.Views;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 
@@ -129,8 +130,13 @@ public static class AppComposition
         FakeBackendService fakeBackend,
         HttpClient? agentEventsHttp = null)
     {
-        var viewModel = MainViewModelFactory.Create(http, login, agentEventsHttp);
-        var window = new MainWindow(http, fakeServers) { DataContext = viewModel };
+        var window = new MainWindow(http, fakeServers);
+        var viewModel = MainViewModelFactory.Create(
+            http,
+            login,
+            agentEventsHttp,
+            reviewReportSave: new ReviewReportSavePrompt(window.StorageProvider));
+        window.DataContext = viewModel;
         window.CreateWorkspaceEventHttpClient = url =>
         {
             var client = ServerSessionProvider.CreateClient(

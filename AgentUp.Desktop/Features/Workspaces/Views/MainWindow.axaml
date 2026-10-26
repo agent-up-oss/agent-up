@@ -1174,10 +1174,19 @@
                                       RowDefinitions="Auto,Auto,Auto,*"
                                       RowSpacing="18"
                                       HorizontalAlignment="Stretch">
-                                    <StackPanel Spacing="8">
-                                        <TextBlock Classes="au-page-title" Text="Workspace overview"/>
-                                        <TextBlock Classes="au-muted" Text="{Binding Sidebar.SelectedWorkspace.DisplayName}"/>
-                                    </StackPanel>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Classes="au-page-title" Text="Workspace overview"/>
+                                            <TextBlock Classes="au-muted" Text="{Binding Sidebar.SelectedWorkspace.DisplayName}"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Classes="au-button"
+                                                VerticalAlignment="Top"
+                                                Content="Export Report"
+                                                Command="{Binding Overview.ExportReportCommand}"
+                                                IsEnabled="{Binding !Overview.IsExporting}"
+                                                AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.OverviewExportReport}"/>
+                                    </Grid>
                                     <Grid Grid.Row="1"
                                           x:Name="OverviewMetrics"
                                           IsVisible="{Binding !Overview.ShowSkeleton}"
