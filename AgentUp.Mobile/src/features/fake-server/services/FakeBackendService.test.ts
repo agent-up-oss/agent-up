@@ -488,11 +488,11 @@ test('picking an issue puts it at the back of the queue and stops offering it', 
 
 test('a task a workspace is carrying is not removed, but can be released first', () => {
   const service = backend();
-  const refused = service.handle({ method: 'DELETE', path: '/api/tasks/harbor-oss/harbor/I-44', query: '', body: null });
+  const refused = service.handle({ method: 'DELETE', path: '/api/tasks/example/repository/I-44', query: '', body: null });
   assert.equal(refused.status, 409);
 
-  service.handle({ method: 'POST', path: '/api/tasks/harbor-oss/harbor/I-44/release', query: '', body: null });
-  const removed = service.handle({ method: 'DELETE', path: '/api/tasks/harbor-oss/harbor/I-44', query: '', body: null });
+  service.handle({ method: 'POST', path: '/api/tasks/example/repository/I-44/release', query: '', body: null });
+  const removed = service.handle({ method: 'DELETE', path: '/api/tasks/example/repository/I-44', query: '', body: null });
   assert.equal(removed.status, 204);
   assert.equal(json(service, 'GET', '/api/tasks').length, 2);
 });

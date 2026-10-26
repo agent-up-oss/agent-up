@@ -32,17 +32,20 @@ export function issueLabel(issue: OfferedIssue): string {
   return `#${issue.number} · ${issue.title}`;
 }
 
-/**
- * Who may take a task: one agent by name, or anyone on the repository. A name is used where the
- * team knows it, because a workspace id says nothing to the person reading the queue.
- */
-export function targetLabel(task: QueuedTask, names: Map<string, string>): string {
-  return task.targetWorkspaceId === null ? 'anyone' : names.get(task.targetWorkspaceId) ?? task.targetWorkspaceId;
+/** The repository a task belongs to, as the host names it. */
+export function repositoryLabel(task: QueuedTask): string {
+  return `${task.owner}/${task.repository}`;
 }
 
-/** Who has it now. A free task says so rather than leaving the column blank. */
-export function holderLabel(task: QueuedTask, names: Map<string, string>): string {
-  return task.heldByWorkspaceId === null ? 'free' : names.get(task.heldByWorkspaceId) ?? task.heldByWorkspaceId;
+/**
+ * Where a dragged row lands. The drag is measured in pixels, so the row height turns the distance
+ * travelled into whole positions, and the result is clamped: dragging past either end parks the
+ * row at that end rather than falling off the queue.
+ */
+export function reorderTarget(fromIndex: number, dy: number, rowHeight: number, count: number): number {
+  if (rowHeight <= 0 || count <= 0) return fromIndex;
+  const moved = Math.round(dy / rowHeight);
+  return Math.min(Math.max(fromIndex + moved, 0), count - 1);
 }
 
 /**

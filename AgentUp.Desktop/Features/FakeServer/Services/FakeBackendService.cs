@@ -995,8 +995,8 @@ public sealed class FakeBackendService
     /// The Demo's one repository. Every demo workspace is a worktree of it, which is why one queue
     /// serves them all.
     /// </summary>
-    private const string DemoOwner = "harbor-oss";
-    private const string DemoRepository = "harbor";
+    private const string DemoOwner = "example";
+    private const string DemoRepository = "repository";
 
     /// <summary>
     /// The picked queue, shared by every workspace. The Demo keeps it in the same shape the Server

@@ -368,8 +368,8 @@ export class FakeBackendService {
    * The Demo's one repository. Every demo workspace is a worktree of it, which is why one queue
    * serves them all.
    */
-  private static readonly demoOwner = 'harbor-oss';
-  private static readonly demoRepository = 'harbor';
+  private static readonly demoOwner = 'example';
+  private static readonly demoRepository = 'repository';
 
   /**
    * The picked queue, shared by every workspace. The Demo answers the shape the Server serves, so

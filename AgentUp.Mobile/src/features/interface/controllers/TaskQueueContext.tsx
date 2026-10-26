@@ -20,7 +20,8 @@ export type TaskQueueState = {
   pick: (issue: OfferedIssue) => void;
   remove: (task: QueuedTask) => void;
   release: (task: QueuedTask) => void;
-  move: (task: QueuedTask, delta: number) => void;
+  /** Drops a dragged task at a position in the queue, counted from zero. */
+  moveTo: (task: QueuedTask, index: number) => void;
 };
 
 /**
@@ -111,11 +112,9 @@ export function useTaskQueue(): TaskQueueState {
       if (!server) return;
       void change(() => releaseTask(server, task));
     },
-    move: (task, delta) => {
+    moveTo: (task, index) => {
       if (!server) return;
-      const index = queue.findIndex(item => item.id === task.id);
-      if (index < 0) return;
-      void change(() => moveTask(server, task, index + delta));
+      void change(() => moveTask(server, task, index));
     },
   };
 }

@@ -1072,7 +1072,7 @@
         "id": "PR-44",
         "number": "44",
         "title": "Restock featured products",
-        "url": "https://github.com/harbor-oss/harbor/pull/44",
+        "url": "https://github.com/example/repository/pull/44",
         "headRef": "feat/44-restock",
         "baseRef": "main",
         "state": "open"
@@ -1082,31 +1082,31 @@
           "name": "build",
           "status": "completed",
           "conclusion": "success",
-          "url": "https://github.com/harbor-oss/harbor/actions"
+          "url": "https://github.com/example/repository/actions"
         },
         {
           "name": "unit tests",
           "status": "completed",
           "conclusion": "failure",
-          "url": "https://github.com/harbor-oss/harbor/actions"
+          "url": "https://github.com/example/repository/actions"
         },
         {
           "name": "e2e",
           "status": "in_progress",
           "conclusion": "",
-          "url": "https://github.com/harbor-oss/harbor/actions"
+          "url": "https://github.com/example/repository/actions"
         },
         {
           "name": "visual regression",
           "status": "completed",
           "conclusion": "skipped",
-          "url": "https://github.com/harbor-oss/harbor/actions"
+          "url": "https://github.com/example/repository/actions"
         }
       ],
       "threads": [
         {
           "id": "t1",
-          "url": "https://github.com/harbor-oss/harbor/pull/44#discussion_t1",
+          "url": "https://github.com/example/repository/pull/44#discussion_t1",
           "summary": "Naming on the restock helper",
           "isResolved": true
         }
@@ -1137,7 +1137,7 @@
         "id": "PR-44",
         "number": "44",
         "title": "Restock featured products",
-        "url": "https://github.com/harbor-oss/harbor/pull/44",
+        "url": "https://github.com/example/repository/pull/44",
         "headRef": "feat/44-restock",
         "baseRef": "main",
         "state": "open"
@@ -1147,37 +1147,37 @@
           "name": "build",
           "status": "completed",
           "conclusion": "success",
-          "url": "https://github.com/harbor-oss/harbor/actions"
+          "url": "https://github.com/example/repository/actions"
         },
         {
           "name": "unit tests",
           "status": "completed",
           "conclusion": "failure",
-          "url": "https://github.com/harbor-oss/harbor/actions"
+          "url": "https://github.com/example/repository/actions"
         },
         {
           "name": "e2e",
           "status": "in_progress",
           "conclusion": "",
-          "url": "https://github.com/harbor-oss/harbor/actions"
+          "url": "https://github.com/example/repository/actions"
         },
         {
           "name": "visual regression",
           "status": "completed",
           "conclusion": "skipped",
-          "url": "https://github.com/harbor-oss/harbor/actions"
+          "url": "https://github.com/example/repository/actions"
         }
       ],
       "threads": [
         {
           "id": "t2",
-          "url": "https://github.com/harbor-oss/harbor/pull/44#discussion_t2",
+          "url": "https://github.com/example/repository/pull/44#discussion_t2",
           "summary": "Address form skips keyboard focus",
           "isResolved": false
         },
         {
           "id": "t3",
-          "url": "https://github.com/harbor-oss/harbor/pull/44#discussion_t3",
+          "url": "https://github.com/example/repository/pull/44#discussion_t3",
           "summary": "Totals rounding on discounts",
           "isResolved": false
         }
@@ -1222,36 +1222,36 @@
   "taskQueue": [
     {
       "id": "I-44",
-      "owner": "harbor-oss",
-      "repository": "harbor",
+      "owner": "example",
+      "repository": "repository",
       "number": 44,
       "title": "Restock featured products",
       "body": "The featured rail empties when a promo ends. Refill it from the catalogue.",
-      "url": "https://github.com/harbor-oss/harbor/issues/44",
+      "url": "https://github.com/example/repository/issues/44",
       "queuedAt": "2026-03-02T09:00:00Z",
       "targetWorkspaceId": null,
       "heldByWorkspaceId": "bob"
     },
     {
       "id": "I-51",
-      "owner": "harbor-oss",
-      "repository": "harbor",
+      "owner": "example",
+      "repository": "repository",
       "number": 51,
       "title": "Broken anchors in the docs nav",
       "body": "Several in-page anchors scroll to the wrong heading.",
-      "url": "https://github.com/harbor-oss/harbor/issues/51",
+      "url": "https://github.com/example/repository/issues/51",
       "queuedAt": "2026-03-02T09:04:00Z",
       "targetWorkspaceId": "hector",
       "heldByWorkspaceId": null
     },
     {
       "id": "I-48",
-      "owner": "harbor-oss",
-      "repository": "harbor",
+      "owner": "example",
+      "repository": "repository",
       "number": 48,
       "title": "Express checkout drops the promo code",
       "body": "Applying a promo code then switching to express checkout loses it.",
-      "url": "https://github.com/harbor-oss/harbor/issues/48",
+      "url": "https://github.com/example/repository/issues/48",
       "queuedAt": "2026-03-02T09:07:00Z",
       "targetWorkspaceId": null,
       "heldByWorkspaceId": null
@@ -1266,7 +1266,7 @@
         "body": "",
         "createdAt": "2026-03-01T08:00:00Z",
         "updatedAt": "2026-03-02T08:00:00Z",
-        "url": "https://github.com/harbor-oss/harbor/issues/57"
+        "url": "https://github.com/example/repository/issues/57"
       },
       {
         "id": "I-58",
@@ -1275,7 +1275,7 @@
         "body": "",
         "createdAt": "2026-03-01T08:00:00Z",
         "updatedAt": "2026-03-02T08:00:00Z",
-        "url": "https://github.com/harbor-oss/harbor/issues/58"
+        "url": "https://github.com/example/repository/issues/58"
       },
       {
         "id": "I-61",
@@ -1284,7 +1284,7 @@
         "body": "",
         "createdAt": "2026-03-01T08:00:00Z",
         "updatedAt": "2026-03-02T08:00:00Z",
-        "url": "https://github.com/harbor-oss/harbor/issues/61"
+        "url": "https://github.com/example/repository/issues/61"
       }
     ],
     "lucy": [
@@ -1295,7 +1295,7 @@
         "body": "",
         "createdAt": "2026-03-01T08:00:00Z",
         "updatedAt": "2026-03-02T08:00:00Z",
-        "url": "https://github.com/harbor-oss/harbor/issues/57"
+        "url": "https://github.com/example/repository/issues/57"
       },
       {
         "id": "I-58",
@@ -1304,7 +1304,7 @@
         "body": "",
         "createdAt": "2026-03-01T08:00:00Z",
         "updatedAt": "2026-03-02T08:00:00Z",
-        "url": "https://github.com/harbor-oss/harbor/issues/58"
+        "url": "https://github.com/example/repository/issues/58"
       },
       {
         "id": "I-61",
@@ -1313,7 +1313,7 @@
         "body": "",
         "createdAt": "2026-03-01T08:00:00Z",
         "updatedAt": "2026-03-02T08:00:00Z",
-        "url": "https://github.com/harbor-oss/harbor/issues/61"
+        "url": "https://github.com/example/repository/issues/61"
       }
     ],
     "hector": [
@@ -1324,7 +1324,7 @@
         "body": "",
         "createdAt": "2026-03-01T08:00:00Z",
         "updatedAt": "2026-03-02T08:00:00Z",
-        "url": "https://github.com/harbor-oss/harbor/issues/57"
+        "url": "https://github.com/example/repository/issues/57"
       },
       {
         "id": "I-58",
@@ -1333,7 +1333,7 @@
         "body": "",
         "createdAt": "2026-03-01T08:00:00Z",
         "updatedAt": "2026-03-02T08:00:00Z",
-        "url": "https://github.com/harbor-oss/harbor/issues/58"
+        "url": "https://github.com/example/repository/issues/58"
       },
       {
         "id": "I-61",
@@ -1342,7 +1342,7 @@
         "body": "",
         "createdAt": "2026-03-01T08:00:00Z",
         "updatedAt": "2026-03-02T08:00:00Z",
-        "url": "https://github.com/harbor-oss/harbor/issues/61"
+        "url": "https://github.com/example/repository/issues/61"
       }
     ]
   }

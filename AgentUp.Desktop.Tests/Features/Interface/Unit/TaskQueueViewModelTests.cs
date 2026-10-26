@@ -22,34 +22,36 @@ public sealed class TaskQueueViewModelTests
     }
 
     [Test]
-    public async Task ReadAsync_namesTheWorkspaceHoldingATaskRatherThanItsId()
+    public async Task ReadAsync_marksATaskAWorkspaceIsCarrying()
     {
         var api = new FakeTaskQueueApi { Queue = [Queued("1", 1) with { HeldByWorkspaceId = "ws-bob" } ] };
         var queue = ViewModel(api);
-        queue.Attach([new TeamMember("ws-bob", "Bob", "feat/44", "Running")]);
 
         await queue.ReadAsync();
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(queue.Queue.Single().HolderLabel, Is.EqualTo("Bob"));
-            Assert.That(queue.Queue.Single().IsHeld, Is.True);
-        });
+        Assert.That(queue.Queue.Single().IsHeld, Is.True);
     }
 
     [Test]
-    public async Task ReadAsync_saysATaskAnybodyMayTakeIsForAnyoneAndNotHeld()
+    public async Task ReadAsync_aFreeTaskOffersDequeueRatherThanRelease()
     {
         var api = new FakeTaskQueueApi { Queue = [Queued("1", 1)] };
         var queue = ViewModel(api);
 
         await queue.ReadAsync();
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(queue.Queue.Single().TargetLabel, Is.EqualTo("anyone"));
-            Assert.That(queue.Queue.Single().HolderLabel, Is.EqualTo("free"));
-        });
+        Assert.That(queue.Queue.Single().IsHeld, Is.False);
+    }
+
+    [Test]
+    public async Task ReadAsync_namesTheRepositoryATaskBelongsTo()
+    {
+        var api = new FakeTaskQueueApi { Queue = [Queued("1", 1)] };
+        var queue = ViewModel(api);
+
+        await queue.ReadAsync();
+
+        Assert.That(queue.Queue.Single().RepositoryLabel, Is.EqualTo("example/repository"));
     }
 
     [Test]
@@ -225,7 +227,7 @@ public sealed class TaskQueueViewModelTests
     private static TaskQueueViewModel ViewModel(ITaskQueueApiProvider api) => new(new TaskQueueController(new TaskQueueService(api)));
 
     private static QueuedTask Queued(string id, int number) =>
-        new(id, "acme", "widgets", number, $"Task {number}", "u", null, null);
+        new(id, "example", "repository", number, $"Task {number}", "u", null, null);
 
     private sealed class FakeTaskQueueApi : ITaskQueueApiProvider
     {

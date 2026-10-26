@@ -21,7 +21,6 @@ public sealed class TaskQueueViewModel : ReactiveObject
     private bool _isLoading;
     private string? _errorMessage;
     private bool _hasRead;
-    private IReadOnlyList<TeamMember> _team = [];
     private string? _offeringWorkspaceId;
 
     public TaskQueueViewModel(TaskQueueController queue)
@@ -65,14 +64,11 @@ public sealed class TaskQueueViewModel : ReactiveObject
         : "Every open issue on this repository is already queued.";
 
     /// <summary>
-    /// The team, so a row can name the workspace holding or targeted by a task rather than show
-    /// its id, and so the issues offered come from a workspace that actually has a repository.
+    /// The team, so the issues offered come from a workspace that actually has a repository. Every
+    /// workspace here is a worktree of one repository, so the first is enough to ask.
     /// </summary>
-    public void Attach(IReadOnlyList<TeamMember> team)
-    {
-        _team = team;
+    public void Attach(IReadOnlyList<TeamMember> team) =>
         _offeringWorkspaceId = team.FirstOrDefault()?.WorkspaceId;
-    }
 
     public async Task ReadAsync(CancellationToken cancellationToken = default)
     {
@@ -105,7 +101,7 @@ public sealed class TaskQueueViewModel : ReactiveObject
     {
         Queue.Clear();
         foreach (var task in queued)
-            Queue.Add(new QueuedTaskRowViewModel(task, _team, this));
+            Queue.Add(new QueuedTaskRowViewModel(task, this));
 
         // An issue already in the queue is not offered again: picking it twice would change
         // nothing, and showing it invites the click that does nothing.
@@ -167,12 +163,10 @@ public sealed class TaskQueueViewModel : ReactiveObject
 public sealed class QueuedTaskRowViewModel
 {
     private readonly QueuedTask _task;
-    private readonly IReadOnlyList<TeamMember> _team;
 
-    public QueuedTaskRowViewModel(QueuedTask task, IReadOnlyList<TeamMember> team, TaskQueueViewModel queue)
+    public QueuedTaskRowViewModel(QueuedTask task, TaskQueueViewModel queue)
     {
         _task = task;
-        _team = team;
         RemoveCommand = ReactiveCommand.CreateFromTask(() => queue.RemoveAsync(task));
         ReleaseCommand = ReactiveCommand.CreateFromTask(() => queue.ReleaseAsync(task));
         MoveUpCommand = ReactiveCommand.CreateFromTask(() => queue.MoveAsync(task, -1));
@@ -185,12 +179,11 @@ public sealed class QueuedTaskRowViewModel
 
     public string RepositoryLabel => $"{_task.Owner}/{_task.Repository}";
 
-    /// <summary>Who may take it: one agent by name, or anyone on the repository.</summary>
-    public string TargetLabel => _task.TargetWorkspaceId is null ? "anyone" : Name(_task.TargetWorkspaceId);
-
-    /// <summary>Who has it now. A free task says so rather than leaving the column blank.</summary>
-    public string HolderLabel => _task.HeldByWorkspaceId is null ? "free" : Name(_task.HeldByWorkspaceId);
-
+    /// <summary>
+    /// Whether a workspace is carrying this task. The row says so by offering Release rather than
+    /// Dequeue: who holds it is the team's business, shown on the bridge, and repeating it on
+    /// every row only crowds the queue.
+    /// </summary>
     public bool IsHeld => _task.HeldByWorkspaceId is not null;
 
     public ReactiveCommand<Unit, Unit> RemoveCommand { get; }
@@ -200,9 +193,6 @@ public sealed class QueuedTaskRowViewModel
     public ReactiveCommand<Unit, Unit> MoveUpCommand { get; }
 
     public ReactiveCommand<Unit, Unit> MoveDownCommand { get; }
-
-    private string Name(string workspaceId) =>
-        _team.FirstOrDefault(member => member.WorkspaceId == workspaceId)?.DisplayName ?? workspaceId;
 }
 
 /// <summary>One open issue that is not queued yet.</summary>

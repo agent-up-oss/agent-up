@@ -171,47 +171,43 @@
             </Grid>
         </DataTemplate>
         <DataTemplate x:Key="QueuedTaskRowTemplate">
-            <Grid ColumnDefinitions="*,110,110,136"
+            <Grid ColumnDefinitions="Auto,*,Auto"
                   ColumnSpacing="12"
                   Margin="0,0,0,1"
                   Background="{DynamicResource AgentUpColorTransparentBrush}">
-                <StackPanel Grid.Column="0" Margin="0,8" Spacing="2">
-                    <TextBlock Text="{Binding TaskLabel}"
-                               FontSize="13"
-                               FontWeight="SemiBold"
-                               TextWrapping="Wrap"
-                               Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
-                    <TextBlock Text="{Binding RepositoryLabel}"
-                               FontSize="11"
-                               Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
-                </StackPanel>
-                <TextBlock Grid.Column="1"
-                           Text="{Binding TargetLabel}"
-                           FontSize="12"
-                           Margin="0,8"
-                           VerticalAlignment="Top"
-                           Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
-                <TextBlock Grid.Column="2"
-                           Text="{Binding HolderLabel}"
-                           FontSize="12"
-                           Margin="0,8"
-                           VerticalAlignment="Top"
-                           Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
-                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" Margin="0,6" VerticalAlignment="Top">
-                    <Button Content="&#8593;"
+                <!-- Reorder on the left, because the order is what this list is for. -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2" Margin="0,6" VerticalAlignment="Center">
+                    <Button Content="↑"
+                            Classes="au-button au-button--compact"
                             Command="{Binding MoveUpCommand}"
                             AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueueMoveUp}"
                             ToolTip.Tip="Work this sooner"/>
-                    <Button Content="&#8595;"
+                    <Button Content="↓"
+                            Classes="au-button au-button--compact"
                             Command="{Binding MoveDownCommand}"
                             AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueueMoveDown}"
                             ToolTip.Tip="Work this later"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="0,8" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding TaskLabel}"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                    <TextBlock Text="{Binding RepositoryLabel}"
+                               FontSize="11"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" Margin="0,6" VerticalAlignment="Center">
                     <Button Content="Release"
+                            Classes="au-button au-button--compact"
                             Command="{Binding ReleaseCommand}"
                             IsVisible="{Binding IsHeld}"
                             AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueueRelease}"
                             ToolTip.Tip="Hand this back so another agent can take it"/>
-                    <Button Content="Remove"
+                    <Button Content="Dequeue"
+                            Classes="au-button au-button--danger au-button--compact"
                             Command="{Binding RemoveCommand}"
                             IsVisible="{Binding !IsHeld}"
                             AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueueRemove}"
@@ -429,14 +425,6 @@
                                    FontSize="11"
                                    TextWrapping="Wrap"
                                    Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
-                        <Grid ColumnDefinitions="*,110,110,136" ColumnSpacing="12">
-                            <TextBlock Grid.Column="0" Text="TASK" FontSize="10"
-                                       Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
-                            <TextBlock Grid.Column="1" Text="FOR" FontSize="10"
-                                       Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
-                            <TextBlock Grid.Column="2" Text="HELD BY" FontSize="10"
-                                       Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
-                        </Grid>
                         <ItemsControl x:Name="QueueList"
                                       ItemsSource="{Binding CommandCenter.Tasks.Queue}"
                                       ItemTemplate="{StaticResource QueuedTaskRowTemplate}"/>

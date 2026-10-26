@@ -976,7 +976,7 @@ public sealed class FakeBackendServiceTests
     {
         var backend = FakeServerTestComposition.Backend();
 
-        var refused = Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/tasks/harbor-oss/harbor/I-44"));
+        var refused = Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/tasks/example/repository/I-44"));
 
         Assert.Multiple(() =>
         {
@@ -990,8 +990,8 @@ public sealed class FakeBackendServiceTests
     {
         var backend = FakeServerTestComposition.Backend();
 
-        Run(backend, Post("/api/tasks/harbor-oss/harbor/I-44/release"));
-        var removed = Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/tasks/harbor-oss/harbor/I-44"));
+        Run(backend, Post("/api/tasks/example/repository/I-44/release"));
+        var removed = Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/tasks/example/repository/I-44"));
 
         Assert.Multiple(() =>
         {
@@ -1030,10 +1030,10 @@ public sealed class FakeBackendServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/tasks/harbor-oss/harbor/nope")).Status,
+            Assert.That(Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/tasks/example/repository/nope")).Status,
                 Is.EqualTo(404));
-            Assert.That(Run(backend, Post("/api/tasks/harbor-oss/harbor/nope/release")).Status, Is.EqualTo(404));
-            Assert.That(Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/tasks/harbor-oss")).Status,
+            Assert.That(Run(backend, Post("/api/tasks/example/repository/nope/release")).Status, Is.EqualTo(404));
+            Assert.That(Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/tasks/example")).Status,
                 Is.EqualTo(404));
         });
     }
@@ -1045,9 +1045,9 @@ public sealed class FakeBackendServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(Run(backend, Put("/api/tasks/harbor-oss/harbor/I-48/position", """{"index":0}""")).Status,
+            Assert.That(Run(backend, Put("/api/tasks/example/repository/I-48/position", """{"index":0}""")).Status,
                 Is.EqualTo(204));
-            Assert.That(Run(backend, Put("/api/tasks/harbor-oss/harbor/I-48/target", """{"workspaceId":"lucy"}""")).Status,
+            Assert.That(Run(backend, Put("/api/tasks/example/repository/I-48/target", """{"workspaceId":"lucy"}""")).Status,
                 Is.EqualTo(204));
         });
     }

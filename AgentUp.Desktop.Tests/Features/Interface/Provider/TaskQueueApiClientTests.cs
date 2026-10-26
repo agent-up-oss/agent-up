@@ -12,7 +12,7 @@ public sealed class TaskQueueApiClientTests
     public async Task ListAsync_readsTheQueueTheServerHolds()
     {
         var handler = Returning("""
-            [{"id":"I-44","owner":"harbor-oss","repository":"harbor","number":44,"title":"Restock","url":"u","targetWorkspaceId":null,"heldByWorkspaceId":"bob"}]
+            [{"id":"I-44","owner":"example","repository":"repository","number":44,"title":"Restock","url":"u","targetWorkspaceId":null,"heldByWorkspaceId":"bob"}]
             """);
 
         var queue = await new TaskQueueApiClient(Client(handler)).ListAsync(CancellationToken.None);
@@ -69,7 +69,7 @@ public sealed class TaskQueueApiClientTests
 
         await new TaskQueueApiClient(Client(handler)).RemoveAsync(Task("I-44"), CancellationToken.None);
 
-        Assert.That(handler.Requests.Single(), Is.EqualTo("DELETE api/tasks/harbor-oss/harbor/I-44"));
+        Assert.That(handler.Requests.Single(), Is.EqualTo("DELETE api/tasks/example/repository/I-44"));
     }
 
     [Test]
@@ -81,7 +81,7 @@ public sealed class TaskQueueApiClientTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(handler.Requests.Single(), Is.EqualTo("PUT api/tasks/harbor-oss/harbor/I-44/position"));
+            Assert.That(handler.Requests.Single(), Is.EqualTo("PUT api/tasks/example/repository/I-44/position"));
             Assert.That(handler.Bodies.Single(), Does.Contain("\"index\":2"));
         });
     }
@@ -95,7 +95,7 @@ public sealed class TaskQueueApiClientTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(handler.Requests.Single(), Is.EqualTo("PUT api/tasks/harbor-oss/harbor/I-44/target"));
+            Assert.That(handler.Requests.Single(), Is.EqualTo("PUT api/tasks/example/repository/I-44/target"));
             Assert.That(handler.Bodies.Single(), Does.Contain("\"workspaceId\":\"hector\""));
         });
     }
@@ -107,7 +107,7 @@ public sealed class TaskQueueApiClientTests
 
         await new TaskQueueApiClient(Client(handler)).ReleaseAsync(Task("I-44"), CancellationToken.None);
 
-        Assert.That(handler.Requests.Single(), Is.EqualTo("POST api/tasks/harbor-oss/harbor/I-44/release"));
+        Assert.That(handler.Requests.Single(), Is.EqualTo("POST api/tasks/example/repository/I-44/release"));
     }
 
     [Test]
@@ -121,7 +121,7 @@ public sealed class TaskQueueApiClientTests
     }
 
     private static QueuedTask Task(string id) =>
-        new(id, "harbor-oss", "harbor", 44, "Restock", "u", null, null);
+        new(id, "example", "repository", 44, "Restock", "u", null, null);
 
     private static HttpClient Client(RecordingHandler handler) =>
         new(handler) { BaseAddress = new Uri("http://localhost:5000/") };

@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Animated, PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { agentUpTheme, auBox } from '@agent-up/design-system/native';
 import { useTaskQueue, type TaskQueueState } from '../controllers/TaskQueueContext';
 import { useTeamStanding } from '../controllers/TeamStandingContext';
-import { holderLabel, issueLabel, targetLabel, taskLabel } from '../models/TaskQueue';
+import { issueLabel, repositoryLabel, reorderTarget, taskLabel, type QueuedTask } from '../models/TaskQueue';
 import type { TeamStanding } from '../models/TeamStanding';
 import {
   checksCount,
@@ -140,30 +140,27 @@ function Tasks({ standing, tasks }: { standing: Standing; tasks: TaskQueueState 
       <Text style={styles.note}>The agents work these, in this order. Nothing else on the host is touched.</Text>
       {tasks.error ? <Text style={[styles.note, styles.danger]}>{tasks.error}</Text> : null}
       {tasks.queue.length
-        ? tasks.queue.map(task => (
-          <View key={`${task.owner}/${task.repository}/${task.id}`} style={styles.card}>
-            <Text style={styles.cardTitle}>{taskLabel(task)}</Text>
-            <Text style={styles.note}>{task.owner}/{task.repository}</Text>
-            <Text style={styles.note}>for {targetLabel(task, tasks.names)} · held by {holderLabel(task, tasks.names)}</Text>
-            <View style={styles.rowActions}>
-              <QueueAction label="Sooner" onPress={() => tasks.move(task, -1)} />
-              <QueueAction label="Later" onPress={() => tasks.move(task, 1)} />
-              {task.heldByWorkspaceId === null
-                ? <QueueAction label="Remove" onPress={() => tasks.remove(task)} />
-                : <QueueAction label="Release" onPress={() => tasks.release(task)} />}
-            </View>
-          </View>
+        ? tasks.queue.map((task, index) => (
+          <QueueRow
+            key={`${task.owner}/${task.repository}/${task.id}`}
+            task={task}
+            index={index}
+            count={tasks.queue.length}
+            onDrop={tasks.moveTo}
+            onRemove={tasks.remove}
+            onRelease={tasks.release}
+          />
         ))
         : <Text style={styles.note}>Nothing is queued, so the agents have nothing to take. Pick an issue below.</Text>}
 
       <Section title={`OPEN ISSUES · ${tasks.offered.length}`} tone="muted" />
       {tasks.offered.length
         ? tasks.offered.map(issue => (
-          <View key={issue.id} style={styles.card}>
-            <Text style={styles.cardTitle}>{issueLabel(issue)}</Text>
-            <View style={styles.rowActions}>
-              <QueueAction label="Queue" onPress={() => tasks.pick(issue)} />
+          <View key={issue.id} style={styles.queueRow}>
+            <View style={styles.queueRowBody}>
+              <Text style={styles.cardTitle} numberOfLines={1} ellipsizeMode="tail">{issueLabel(issue)}</Text>
             </View>
+            <QueueAction label="Queue" onPress={() => tasks.pick(issue)} />
           </View>
         ))
         : <Text style={styles.note}>Every open issue on this repository is already queued.</Text>}
@@ -187,10 +184,82 @@ function Tasks({ standing, tasks }: { standing: Standing; tasks: TaskQueueState 
   );
 }
 
-function QueueAction({ label, onPress }: { label: string; onPress: () => void }) {
+/** The height one queue row occupies, which is what turns a drag distance into whole positions. */
+const queueRowHeight = 64;
+
+/**
+ * One queued task: its number and title on one line, the repository under it, and the grip that
+ * reorders it.
+ *
+ * The grip is dragged rather than tapped because the order is the point of this list and stepping
+ * a task through it one press at a time says nothing about where it will land. Dragging shows the
+ * row moving; the queue is only told once, on release, so a drag costs one write rather than one
+ * per position crossed.
+ */
+function QueueRow({
+  task,
+  index,
+  count,
+  onDrop,
+  onRemove,
+  onRelease,
+}: {
+  task: QueuedTask;
+  index: number;
+  count: number;
+  onDrop: (task: QueuedTask, index: number) => void;
+  onRemove: (task: QueuedTask) => void;
+  onRelease: (task: QueuedTask) => void;
+}) {
+  const offset = useRef(new Animated.Value(0)).current;
+  const [dragging, setDragging] = useState(false);
+  const responder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => setDragging(true),
+      onPanResponderMove: (_, gesture) => offset.setValue(gesture.dy),
+      onPanResponderRelease: (_, gesture) => {
+        setDragging(false);
+        offset.setValue(0);
+        const target = reorderTarget(index, gesture.dy, queueRowHeight, count);
+        if (target !== index) onDrop(task, target);
+      },
+      onPanResponderTerminate: () => {
+        setDragging(false);
+        offset.setValue(0);
+      },
+    }),
+  ).current;
+
+  return (
+    <Animated.View
+      style={[styles.queueRow, dragging && styles.queueRowDragging, { transform: [{ translateY: offset }] }]}
+    >
+      <View
+        accessibilityRole="adjustable"
+        accessibilityLabel={`Reorder ${taskLabel(task)}`}
+        style={styles.grip}
+        {...responder.panHandlers}
+      >
+        <View style={styles.gripBar} />
+        <View style={styles.gripBar} />
+        <View style={styles.gripBar} />
+      </View>
+      <View style={styles.queueRowBody}>
+        <Text style={styles.cardTitle} numberOfLines={1} ellipsizeMode="tail">{taskLabel(task)}</Text>
+        <Text style={styles.note} numberOfLines={1} ellipsizeMode="tail">{repositoryLabel(task)}</Text>
+      </View>
+      {task.heldByWorkspaceId === null
+        ? <QueueAction label="Dequeue" tone="danger" onPress={() => onRemove(task)} />
+        : <QueueAction label="Release" onPress={() => onRelease(task)} />}
+    </Animated.View>
+  );
+}
+
+function QueueAction({ label, tone, onPress }: { label: string; tone?: 'danger'; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} style={styles.rowAction} onPress={onPress}>
-      <Text style={styles.buttonText}>{label}</Text>
+      <Text style={tone === 'danger' ? styles.dangerText : styles.buttonText}>{label}</Text>
     </Pressable>
   );
 }
@@ -338,9 +407,20 @@ const styles = StyleSheet.create({
   sectionDanger: { color: agentUpTheme.colors.textDanger },
   sectionWarning: { color: agentUpTheme.colors.textWarning },
   card: { ...auBox('card'), gap: 4 },
-  rowActions: { flexDirection: 'row', gap: 8, marginTop: 8 },
   rowAction: { ...auBox('button', 'buttonSecondary'), paddingHorizontal: 12, paddingVertical: 6 },
   danger: { color: agentUpTheme.colors.statusDanger },
+  dangerText: { color: agentUpTheme.colors.statusDanger, fontSize: 13, fontWeight: '600' },
+  queueRow: {
+    ...auBox('card'),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 64,
+  },
+  queueRowDragging: { borderColor: agentUpTheme.colors.accentSoft },
+  queueRowBody: { flexGrow: 1, flexShrink: 1, minWidth: 0, gap: 2 },
+  grip: { paddingVertical: 10, paddingRight: 4, gap: 3, justifyContent: 'center' },
+  gripBar: { width: 18, height: 2, borderRadius: 1, backgroundColor: agentUpTheme.colors.textMuted },
   cardDanger: auBox('cardDanger'),
   cardWarning: { borderColor: agentUpTheme.colors.borderStrong },
   code: { color: agentUpTheme.colors.textMuted, fontSize: 12, fontFamily: agentUpTheme.fonts.mono },
