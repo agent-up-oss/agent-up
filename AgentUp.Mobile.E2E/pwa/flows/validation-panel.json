@@ -2,7 +2,7 @@
   "id": "validation-panel",
   "application": "Mobile",
   "name": "List validation flows for an application",
-  "description": "A person opens Docs, taps the Navbar checkmark, and sees the recorded checks. Fixture: isolated Server, repository-root agent-up.json workspace with the Docs application flows. Replay of an Application-surface flow is not this journey.",
+  "description": "A person opens Docs and sees the Validation dock, then opens the scenario list. Fixture: isolated Server, repository-root agent-up.json workspace with the Docs application flows. Replay of an Application-surface flow is not this journey.",
   "surface": "Mobile",
   "initialPath": "/connect",
   "initialExpectations": [
@@ -34,17 +34,16 @@
       "action": "Click",
       "target": { "role": "button", "name": "Open application Docs" },
       "expectations": [
-        { "kind": "Visible", "value": "true", "target": { "testId": "validation.toggle" } }
+        { "kind": "Visible", "value": "true", "target": { "testId": "validation-panel" } }
       ]
     },
     {
-      "id": "open-validation",
-      "description": "Open the Validation sidebar",
+      "id": "open-validation-menu",
+      "description": "Open the Validation scenario list",
       "action": "Click",
       "target": { "testId": "validation.toggle" },
       "expectations": [
-        { "kind": "Visible", "value": "true", "target": { "testId": "validation-flows" } },
-        { "kind": "Text", "value": "Checks for the displayed app" }
+        { "kind": "Visible", "value": "true", "target": { "testId": "validation-flows" } }
       ]
     }
   ]

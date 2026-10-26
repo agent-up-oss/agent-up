@@ -16,8 +16,8 @@ export function showsValidationChrome(application: WorkspaceApplication | undefi
     && application.database !== true;
 }
 
-export function validationToggleLabel(open: boolean): string {
-  return open ? 'Close validation' : 'Open validation';
+export function validationMenuLabel(open: boolean): string {
+  return open ? 'Hide validation scenarios' : 'Show validation scenarios';
 }
 
 /** Turns a flow into the starting-page stage plus one stage per recorded step. */
@@ -43,6 +43,36 @@ export function idleStageViews(flow: ValidationFlow): ValidationStageView[] {
     state: 'pending',
     checks: stage.checks.map(label => ({ label, state: 'pending' as const })),
   }));
+}
+
+export function adjacentFlowIndex(index: number, count: number, delta: number): number {
+  if (count <= 0) return 0;
+  return ((index + delta) % count + count) % count;
+}
+
+export function selectedFlowSubstep(
+  stages: ValidationStageView[],
+  resultMessage: string | null,
+): string {
+  for (const stage of stages) {
+    const running = stage.checks.find(check => check.state === 'running');
+    if (running) return running.label;
+  }
+  const runningStage = stages.find(stage => stage.state === 'running');
+  if (runningStage) return runningStage.title;
+  if (resultMessage) return resultMessage;
+  return stages[0]?.title ?? '';
+}
+
+export function compactValidationCopy(input: {
+  name: string;
+  stages: ValidationStageView[];
+  resultMessage: string | null;
+}): { title: string; substep: string } {
+  return {
+    title: input.name,
+    substep: selectedFlowSubstep(input.stages, input.resultMessage),
+  };
 }
 
 export function validationRunGlyph(state: ValidationRunState): string {

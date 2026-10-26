@@ -1,8 +1,9 @@
+import { agentUpTheme } from '@agent-up/design-system/native';
 import type { ValidationTarget } from '../models/ValidationFlow';
 
 export const ReplayAnimationMs = 500;
-const AccentBright = '#00d66b';
-const Canvas = '#0a0b0c';
+const AccentBright = agentUpTheme.colors.accentBright;
+const Canvas = agentUpTheme.colors.canvas;
 
 const FindElement = `
 function find(target){

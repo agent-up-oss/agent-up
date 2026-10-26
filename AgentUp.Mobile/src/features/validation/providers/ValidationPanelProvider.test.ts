@@ -5,9 +5,12 @@ import {
   describeAssertion,
   idleStageViews,
   showsValidationChrome,
+  adjacentFlowIndex,
+  compactValidationCopy,
+  selectedFlowSubstep,
+  validationMenuLabel,
   validationRunGlyph,
   validationStages,
-  validationToggleLabel,
 } from './ValidationPanelProvider';
 
 const flow: ValidationFlow = {
@@ -40,9 +43,31 @@ test('shows validation on HTTP process apps and hides it for desktop and databas
   assert.equal(showsValidationChrome(undefined), false);
 });
 
-test('toggle copy names open and close', () => {
-  assert.equal(validationToggleLabel(false), 'Open validation');
-  assert.equal(validationToggleLabel(true), 'Close validation');
+test('menu copy names show and hide the scenario list', () => {
+  assert.equal(validationMenuLabel(false), 'Show validation scenarios');
+  assert.equal(validationMenuLabel(true), 'Hide validation scenarios');
+});
+
+test('adjacent flow index wraps at both ends', () => {
+  assert.equal(adjacentFlowIndex(0, 3, -1), 2);
+  assert.equal(adjacentFlowIndex(2, 3, 1), 0);
+  assert.equal(adjacentFlowIndex(1, 3, 1), 2);
+  assert.equal(adjacentFlowIndex(0, 0, 1), 0);
+});
+
+test('compact copy shows the flow name and only the current substep', () => {
+  const idle = idleStageViews(flow);
+  assert.deepEqual(
+    compactValidationCopy({ name: flow.name, stages: idle, resultMessage: null }),
+    { title: 'Checkout featured goods', substep: 'Starting page' },
+  );
+  const running = idle.map((stage, index) => (
+    index === 1
+      ? { ...stage, state: 'running' as const, checks: [{ ...stage.checks[0], state: 'running' as const }] }
+      : stage
+  ));
+  assert.equal(selectedFlowSubstep(running, null), 'Text contains "Harbor Mug × 1"');
+  assert.equal(selectedFlowSubstep(idle, 'Validation passed.'), 'Validation passed.');
 });
 
 test('stages start with the initial page then one stage per step', () => {

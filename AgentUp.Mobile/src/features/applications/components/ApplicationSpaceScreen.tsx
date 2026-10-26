@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { Workspace } from '@/features/workspaces/models/Workspace';
@@ -12,8 +12,8 @@ import { DesktopStreamView } from './DesktopStreamView';
 import { RemoteBrowser } from './RemoteBrowser';
 import { DatabaseExplorerScreen } from '@/features/database/components/DatabaseExplorerScreen';
 import { isDatabaseApplication } from '@/features/database/providers/DatabaseExplorerProvider';
-import { ValidationSidebar } from '@/features/validation/components/ValidationSidebar';
-import { showsValidationChrome, validationToggleLabel } from '@/features/validation/providers/ValidationPanelProvider';
+import { ValidationDock } from '@/features/validation/components/ValidationDock';
+import { showsValidationChrome } from '@/features/validation/providers/ValidationPanelProvider';
 import type { ValidationReplayHost } from '@/features/validation/providers/ValidationReplayProvider';
 import { useInnerShell } from '@/features/shell/hooks/useInnerShell';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
@@ -24,13 +24,11 @@ type ApplicationSpaceScreenProps = { workspace: Workspace; applicationName: stri
 export function ApplicationSpaceScreen({ workspace, applicationName }: ApplicationSpaceScreenProps) {
   const { server } = useWorkspaces();
   const { activeServer } = useServers();
-  const { width } = useWindowDimensions();
   const application = workspace.applications?.find(entry => entry.name === applicationName);
   const allocatedHttpPort = application ? applicationHttpPort(application) : null;
   const applicationKind = application?.kind;
   const database = isDatabaseApplication(application);
   const showValidation = showsValidationChrome(application);
-  const [validationOpen, setValidationOpen] = useState(false);
   const [source, setSource] = useState<ApplicationProxySource | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
@@ -46,23 +44,7 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
   }), []);
 
   const inner = useInnerShell(applicationName, `/(main)/workspace/${workspace.id}`);
-  const shellConfig = useMemo(() => ({
-    ...inner,
-    rightAction: showValidation
-      ? {
-          label: '✓',
-          accessibilityLabel: validationToggleLabel(validationOpen),
-          testID: 'validation.toggle',
-          appearance: 'tool' as const,
-          onPress: () => setValidationOpen(open => !open),
-        }
-      : null,
-  }), [inner, showValidation, validationOpen]);
-  useShellConfig(shellConfig);
-
-  useEffect(() => {
-    setValidationOpen(false);
-  }, [applicationName]);
+  useShellConfig(inner);
 
   useEffect(() => {
     if (applicationKind !== 'Desktop' || !activeServer) return;
@@ -105,8 +87,6 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
     return () => { active = false; request.abort(); };
   }, [server, workspace.id, applicationName, allocatedHttpPort, applicationKind, database]);
 
-  const panelWidth = Math.min(360, Math.round(width * 0.85));
-
   if (applicationKind === 'Desktop') {
     if (viewerError) {
       return (
@@ -132,41 +112,34 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
 
   return (
     <View style={styles.container}>
-      {!source && !error && (
-        <View style={styles.center}>
-          <ActivityIndicator color={agentUpTheme.colors.accent} />
-          <Text style={styles.status}>Opening the application…</Text>
-        </View>
-      )}
-      {!!error && (
-        <View style={styles.center}>
-          <Text accessibilityRole="alert" style={styles.error}>{error}</Text>
-        </View>
-      )}
-      {source && <RemoteBrowser ref={browserRef} source={source} />}
-      {showValidation && validationOpen && (
-        <View style={styles.overlay} pointerEvents="box-none">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close validation"
-            onPress={() => setValidationOpen(false)}
-            style={styles.backdrop}
-          />
-          <View style={[styles.panel, { width: panelWidth }]}>
-            <ValidationSidebar
-              workspaceId={workspace.id}
-              applicationName={applicationName}
-              replayHost={source ? replayHost : null}
-            />
+      <View style={styles.browser}>
+        {!source && !error && (
+          <View style={styles.center}>
+            <ActivityIndicator color={agentUpTheme.colors.accent} />
+            <Text style={styles.status}>Opening the application…</Text>
           </View>
-        </View>
+        )}
+        {!!error && (
+          <View style={styles.center}>
+            <Text accessibilityRole="alert" style={styles.error}>{error}</Text>
+          </View>
+        )}
+        {source && <RemoteBrowser ref={browserRef} source={source} />}
+      </View>
+      {showValidation && (
+        <ValidationDock
+          workspaceId={workspace.id}
+          applicationName={applicationName}
+          replayHost={source ? replayHost : null}
+        />
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, minHeight: 400, backgroundColor: agentUpTheme.colors.canvas },
+  container: { flex: 1, minHeight: 400, backgroundColor: agentUpTheme.colors.canvas, overflow: 'visible' },
+  browser: { flex: 1, minHeight: 0, backgroundColor: agentUpTheme.colors.canvas },
   desktop: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
   center: {
     flex: 1,
@@ -178,17 +151,4 @@ const styles = StyleSheet.create({
   },
   status: auText('muted'),
   error: { ...auText('badgeDanger'), textAlign: 'center' },
-  overlay: {
-    ...StyleSheet.absoluteFill,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    flex: 1,
-    backgroundColor: agentUpTheme.colors.overlay,
-  },
-  panel: {
-    maxWidth: 360,
-    height: '100%',
-  },
 });

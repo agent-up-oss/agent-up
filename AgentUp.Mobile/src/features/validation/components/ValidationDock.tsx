@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
+import { PublicIcon } from '@/features/shell/components/PublicIcon';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import type { ValidationFlow, ValidationRunState, ValidationStageView } from '../models/ValidationFlow';
 import { getValidationFlow, listValidationFlows } from '../providers/ValidationFlowApiProvider';
 import {
+  adjacentFlowIndex,
+  compactValidationCopy,
   idleStageViews,
-  validationRunGlyph,
+  validationMenuLabel,
 } from '../providers/ValidationPanelProvider';
 import {
   runValidationReplay,
@@ -14,7 +17,7 @@ import {
   type ValidationReplayReporter,
 } from '../providers/ValidationReplayProvider';
 
-type ValidationSidebarProps = {
+type ValidationDockProps = {
   workspaceId: string;
   applicationName: string;
   replayHost: ValidationReplayHost | null;
@@ -23,19 +26,21 @@ type ValidationSidebarProps = {
 type FlowItem = {
   flow: ValidationFlow;
   stages: ValidationStageView[];
-  expanded: boolean;
   loading: boolean;
   runState: ValidationRunState;
   resultMessage: string | null;
 };
 
-/** Right-hand list of recorded checks for the open HTTP application. */
-export function ValidationSidebar({ workspaceId, applicationName, replayHost }: ValidationSidebarProps) {
+/** Compact 50px dock under the application webview. */
+export function ValidationDock({ workspaceId, applicationName, replayHost }: ValidationDockProps) {
   const { server } = useWorkspaces();
   const [items, setItems] = useState<FlowItem[]>([]);
-  const [status, setStatus] = useState<string | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const playAbort = useRef<AbortController | null>(null);
+  const selectedIndexRef = useRef(0);
+  selectedIndexRef.current = selectedIndex;
 
   useEffect(() => {
     let active = true;
@@ -45,19 +50,17 @@ export function ValidationSidebar({ workspaceId, applicationName, replayHost }: 
       return () => { active = false; };
     }
     setError(null);
-    setStatus(null);
     void listValidationFlows(server, workspaceId, applicationName)
       .then(flows => {
         if (!active) return;
         setItems(flows.map(flow => ({
           flow,
           stages: idleStageViews(flow),
-          expanded: false,
           loading: false,
           runState: 'pending',
           resultMessage: null,
         })));
-        setStatus(flows.length === 0 ? 'No checks recorded for this application.' : null);
+        setSelectedIndex(0);
       })
       .catch(reason => {
         if (!active) return;
@@ -72,9 +75,11 @@ export function ValidationSidebar({ workspaceId, applicationName, replayHost }: 
     setItems(current => current.map(item => item.flow.id === id ? update(item) : item));
   }, []);
 
-  const expand = useCallback((id: string) => {
-    patch(id, item => ({ ...item, expanded: true }));
-  }, [patch]);
+  const select = useCallback((index: number) => {
+    playAbort.current?.abort();
+    setSelectedIndex(index);
+    setMenuOpen(false);
+  }, []);
 
   const play = useCallback(async (id: string) => {
     if (!server) return;
@@ -84,7 +89,6 @@ export function ValidationSidebar({ workspaceId, applicationName, replayHost }: 
     patch(id, item => ({
       ...item,
       loading: true,
-      expanded: true,
       runState: 'running',
       resultMessage: null,
       stages: idleStageViews(item.flow),
@@ -103,11 +107,10 @@ export function ValidationSidebar({ workspaceId, applicationName, replayHost }: 
         patch(id, item => ({ ...item, loading: false, runState: 'failed', resultMessage: message }));
         return;
       }
-      const reporter = createReporter(id, patch);
       await runValidationReplay({
         flow: fresh,
         host: replayHost,
-        reporter,
+        reporter: createReporter(id, patch),
         signal: controller.signal,
       });
     } catch (reason) {
@@ -121,63 +124,75 @@ export function ValidationSidebar({ workspaceId, applicationName, replayHost }: 
     }
   }, [patch, replayHost, server, workspaceId]);
 
+  const selected = items[selectedIndex] ?? null;
+  const copy = selected
+    ? compactValidationCopy({
+      name: selected.flow.name,
+      stages: selected.stages,
+      resultMessage: selected.resultMessage ?? error,
+    })
+    : { title: error ?? 'No checks recorded', substep: '' };
+  const playing = selected?.runState === 'running' || selected?.loading === true;
+
+  const panResponder = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_event, gesture) => (
+      items.length > 1
+      && Math.abs(gesture.dy) > 12
+      && Math.abs(gesture.dy) > Math.abs(gesture.dx)
+    ),
+    onPanResponderRelease: (_event, gesture) => {
+      if (Math.abs(gesture.dy) < 24) return;
+      const delta = gesture.dy < 0 ? 1 : -1;
+      select(adjacentFlowIndex(selectedIndexRef.current, items.length, delta));
+    },
+  }), [items.length, select]);
+
   return (
-    <View testID="validation-panel" style={styles.sidebar}>
-      <View style={styles.head}>
-        <View style={styles.copy}>
-          <Text style={styles.kicker}>Validation</Text>
-          <Text style={styles.muted}>Checks for the displayed app</Text>
-        </View>
-      </View>
-      <ScrollView testID="validation-flows" contentContainerStyle={styles.list}>
-        {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
-        {!!status && <Text style={styles.muted}>{status}</Text>}
-        {items.map(item => (
-          <View key={item.flow.id} testID={`validation-flow-${item.flow.id}`} style={styles.flow}>
-            <View style={styles.flowHead}>
-              <Text style={glyphStyle(item.runState)}>{validationRunGlyph(item.runState)}</Text>
+    <View style={styles.wrap}>
+      {menuOpen && (
+        <View testID="validation-flows" style={styles.menu}>
+          <ScrollView>
+            {items.map((item, index) => (
               <Pressable
+                key={item.flow.id}
+                testID={`validation-flow-${item.flow.id}`}
                 accessibilityRole="button"
-                accessibilityLabel={`Show steps for ${item.flow.name}`}
-                onPress={() => expand(item.flow.id)}
-                style={styles.flowCopy}>
-                <Text style={styles.flowName}>{item.flow.name}</Text>
-                {!!item.flow.description && <Text style={styles.muted}>{item.flow.description}</Text>}
-                <Text style={styles.muted}>Starts at {item.flow.initialPath || '/'}</Text>
-                {!!item.resultMessage && <Text style={styles.muted}>{item.resultMessage}</Text>}
+                accessibilityLabel={item.flow.name}
+                accessibilityState={{ selected: index === selectedIndex }}
+                onPress={() => select(index)}
+                style={[styles.menuRow, index === selectedIndex && styles.menuRowSelected]}>
+                <Text numberOfLines={1} style={styles.menuName}>{item.flow.name}</Text>
               </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Play ${item.flow.name}`}
-                disabled={item.loading || item.runState === 'running'}
-                onPress={() => { void play(item.flow.id); }}
-                style={styles.play}>
-                <Text style={styles.playLabel}>▶ Play</Text>
-              </Pressable>
-            </View>
-            {item.expanded && (
-              <View style={styles.steps}>
-                {item.stages.map(stage => (
-                  <View key={stage.id} style={styles.stage}>
-                    <View style={styles.stageHead}>
-                      <Text style={glyphStyle(stage.state)}>{validationRunGlyph(stage.state)}</Text>
-                      <Text style={styles.stepTitle}>{stage.title}</Text>
-                    </View>
-                    <View style={styles.checks}>
-                      {stage.checks.map((check, index) => (
-                        <View key={`${stage.id}-${index}`} style={styles.checkRow}>
-                          <Text style={glyphStyle(check.state)}>{validationRunGlyph(check.state)}</Text>
-                          <Text style={styles.check}>{check.label}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                ))}
-              </View>
+            ))}
+            {items.length === 0 && (
+              <Text style={styles.substep}>{error ?? 'No checks recorded for this application.'}</Text>
             )}
-          </View>
-        ))}
-      </ScrollView>
+          </ScrollView>
+        </View>
+      )}
+      <View testID="validation-panel" style={styles.dock}>
+        <Pressable
+          testID="validation-play"
+          accessibilityRole="button"
+          accessibilityLabel={selected ? `Play ${selected.flow.name}` : 'Play validation'}
+          disabled={!selected || playing}
+          onPress={() => { if (selected) void play(selected.flow.id); }}
+          style={[styles.tool, (!selected || playing) && styles.toolDisabled]}>
+          <Text style={styles.playGlyph}>▶</Text>
+        </Pressable>
+        <View {...panResponder.panHandlers} style={styles.copy}>
+          <Text numberOfLines={1} style={styles.title}>{copy.title}</Text>
+          {!!copy.substep && <Text numberOfLines={1} style={styles.substep}>{copy.substep}</Text>}
+        </View>
+        <Pressable
+          testID="validation.toggle"
+          accessibilityRole="button"
+          accessibilityLabel={validationMenuLabel(menuOpen)}
+          onPress={() => setMenuOpen(open => !open)}
+          style={styles.tool}>
+          <PublicIcon name="menu" size={18} />
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -193,7 +208,6 @@ function createReporter(
   return {
     beginFlow: () => patch(id, item => ({
       ...item,
-      expanded: true,
       runState: 'running',
       resultMessage: null,
       stages: item.stages.map(stage => ({
@@ -235,61 +249,46 @@ function createReporter(
   };
 }
 
-function glyphStyle(state: ValidationRunState) {
-  if (state === 'passed') return styles.glyphPassed;
-  if (state === 'failed') return styles.glyphFailed;
-  if (state === 'running') return styles.glyphRunning;
-  return styles.glyph;
-}
-
 const styles = StyleSheet.create({
-  sidebar: {
-    ...auBox('validationSidebar'),
-    flex: 1,
-    maxWidth: 360,
-    width: '100%',
+  wrap: {
+    position: 'relative',
+    zIndex: 3,
+    overflow: 'visible',
   },
-  head: {
-    ...auBox('validationSidebarHead'),
+  dock: {
+    ...auBox('validationDock'),
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
-  copy: auBox('validationSidebarCopy'),
-  kicker: auText('accent'),
-  muted: auText('muted'),
-  list: {
-    gap: agentUpTheme.spacing[3],
-    padding: agentUpTheme.spacing[3],
+  tool: {
+    ...auBox('titleTool'),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  flow: auBox('validationFlow'),
-  flowHead: {
-    ...auBox('validationFlowHead'),
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: agentUpTheme.spacing[2],
-  },
-  flowCopy: {
-    ...auBox('validationCopy'),
+  toolDisabled: auBox('lifecycleButtonDisabled'),
+  playGlyph: { ...auText('chromeIcon'), fontSize: 16, lineHeight: 18 },
+  copy: {
+    ...auBox('validationDockCopy'),
     flex: 1,
-    gap: 4,
+    minWidth: 0,
+    justifyContent: 'center',
   },
-  flowName: auText('workspaceName'),
-  play: auBox('validationPlay'),
-  playLabel: auText('validationPlay'),
-  steps: auBox('validationSteps'),
-  stage: {
-    ...auBox('validationStage'),
-    gap: 4,
-    marginTop: agentUpTheme.spacing[2],
+  title: { ...auText('workspaceName'), fontSize: agentUpTheme.typography.sizeUiSm },
+  substep: { ...auText('muted'), fontSize: agentUpTheme.typography.sizeUiXs },
+  menu: {
+    ...auBox('validationDockList'),
+    position: 'absolute',
+    left: agentUpTheme.spacing[3],
+    right: agentUpTheme.spacing[3],
+    bottom: 50,
+    maxHeight: 192,
+    zIndex: 4,
   },
-  stageHead: { flexDirection: 'row', alignItems: 'flex-start', gap: agentUpTheme.spacing[2] },
-  stepTitle: { ...auText('validationStep'), flex: 1 },
-  checks: auBox('validationChecks'),
-  checkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: agentUpTheme.spacing[2] },
-  check: { ...auText('validationCheck'), flex: 1 },
-  glyph: auText('validationGlyph'),
-  glyphPassed: auText('validationGlyph', 'validationGlyphPassed'),
-  glyphFailed: auText('validationGlyph', 'validationGlyphFailed'),
-  glyphRunning: auText('validationGlyph', 'validationGlyphRunning'),
-  error: auText('badgeDanger'),
+  menuRow: {
+    ...auBox('choice'),
+    paddingHorizontal: agentUpTheme.spacing[3],
+    paddingVertical: agentUpTheme.spacing[2],
+  },
+  menuRowSelected: auBox('choiceSelected'),
+  menuName: auText('workspaceName'),
 });

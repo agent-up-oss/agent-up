@@ -17,6 +17,7 @@ import {
   workspaceShowsApplications,
   workspaceStatusLabel,
 } from '../providers/WorkspaceStatusProvider';
+import { PublicIcon } from '@/features/shell/components/PublicIcon';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 type WorkspaceDashboardScreenProps = {
@@ -95,6 +96,15 @@ export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreen
             style={[styles.lifecycleButton, lifecycleDisabled && styles.lifecycleButtonDisabled]}>
             <Text style={styles.lifecycleIcon}>{lifecycle.glyph}</Text>
           </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Export Report"
+            accessibilityState={{ disabled: exporting || !server, busy: exporting }}
+            disabled={exporting || !server}
+            onPress={() => { void exportReport(); }}
+            style={[styles.lifecycleButton, (exporting || !server) && styles.lifecycleButtonDisabled]}>
+            <PublicIcon name="download" size={14} />
+          </Pressable>
           <View
             accessibilityElementsHidden
             importantForAccessibility="no"
@@ -109,16 +119,6 @@ export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreen
         {loading && <ActivityIndicator color={agentUpTheme.colors.accent} />}
         {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
         {!!actionError && <Text accessibilityRole="alert" style={styles.error}>{actionError}</Text>}
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Export Report"
-          accessibilityState={{ disabled: exporting || !server, busy: exporting }}
-          disabled={exporting || !server}
-          onPress={() => { void exportReport(); }}
-          style={[styles.exportButton, (exporting || !server) && styles.exportButtonDisabled]}>
-          <Text style={styles.exportButtonText}>Export Report</Text>
-        </Pressable>
 
         {showApplications &&
           <View style={styles.section}>
@@ -163,9 +163,6 @@ const styles = StyleSheet.create({
   lifecycleButtonDisabled: auBox('lifecycleButtonDisabled'),
   lifecycleIcon: auText('lifecycleButton'),
   lifecycleCopy: { flex: 1, gap: 2 },
-  exportButton: { ...auBox('button', 'buttonSecondary'), alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
-  exportButtonDisabled: auBox('lifecycleButtonDisabled'),
-  exportButtonText: auText('button'),
   error: auText('badgeDanger'),
   section: { gap: 10 },
   sectionTitle: auText('fieldLabel'),
