@@ -1,14 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
-import { offerable, type OfferedIssue, type QueuedTask } from '../models/TaskQueue';
+import {
+  inProgress,
+  offerable,
+  queueIndexFor,
+  waiting,
+  type OfferedIssue,
+  type QueuedTask,
+} from '../models/TaskQueue';
 import { moveTask, pickIssue, readIssues, readQueue, releaseTask, removeTask } from '../providers/TaskQueueProvider';
 
 /** How often the Tasks tab re-reads the queue, matching the bridge's own refresh. */
 const taskQueueRefreshMs = 10_000;
 
 export type TaskQueueState = {
-  /** The queue in the order it will be worked. */
+  /** The tasks still waiting to be taken, in the order they will be worked. */
   queue: QueuedTask[];
+  /** The tasks a workspace has taken and is working now. */
+  working: QueuedTask[];
   /** Open issues on the shown workspace's repository that are not queued yet. */
   offered: OfferedIssue[];
   /** Workspace id to display name, so a row can name who holds a task. */
@@ -19,9 +28,10 @@ export type TaskQueueState = {
   refresh: () => void;
   pick: (issue: OfferedIssue) => void;
   remove: (task: QueuedTask) => void;
-  release: (task: QueuedTask) => void;
-  /** Drops a dragged task at a position in the queue, counted from zero. */
+  /** Drops a dragged task at a position among the waiting tasks, counted from zero. */
   moveTo: (task: QueuedTask, index: number) => void;
+  /** Stops work on a task, which puts it back in the queue for whoever asks next. */
+  stop: (task: QueuedTask) => void;
 };
 
 /**
@@ -93,7 +103,8 @@ export function useTaskQueue(): TaskQueueState {
   }, [load]);
 
   return {
-    queue,
+    queue: waiting(queue),
+    working: inProgress(queue),
     offered: offerable(issues, queue),
     names,
     loading,
@@ -108,13 +119,15 @@ export function useTaskQueue(): TaskQueueState {
       if (!server) return;
       void change(() => removeTask(server, task));
     },
-    release: task => {
+    stop: task => {
       if (!server) return;
       void change(() => releaseTask(server, task));
     },
+    // The screen lists only what is waiting, so the position dropped on is turned back into a
+    // position in the queue the Server holds before it is sent.
     moveTo: (task, index) => {
       if (!server) return;
-      void change(() => moveTask(server, task, index));
+      void change(() => moveTask(server, task, queueIndexFor(queue, task, index)));
     },
   };
 }

@@ -15,6 +15,7 @@ import { agentUpTheme, auBox } from '@agent-up/design-system/native';
 import { useTaskQueue, type TaskQueueState } from '../controllers/TaskQueueContext';
 import { useTeamStanding } from '../controllers/TeamStandingContext';
 import {
+  dragOffset,
   issueLabel,
   reorderTarget,
   repositoryLabel,
@@ -165,16 +166,32 @@ function Tasks({
 
   return (
     <>
+      {tasks.error ? <Text style={[styles.note, styles.danger]}>{tasks.error}</Text> : null}
+
+      {tasks.working.length ? (
+        <>
+          <Section title={`IN PROGRESS · ${tasks.working.length}`} tone="muted" />
+          <Text style={styles.note}>Taken off the queue and being worked. Stopping one puts it back.</Text>
+          {tasks.working.map(task => (
+            <View key={`${task.owner}/${task.repository}/${task.id}`} style={styles.queueRow}>
+              <View style={styles.queueRowBody}>
+                <Text style={styles.cardTitle} numberOfLines={1} ellipsizeMode="tail">{taskLabel(task)}</Text>
+                <Text style={styles.note} numberOfLines={1} ellipsizeMode="tail">{repositoryLabel(task)}</Text>
+              </View>
+              <QueueAction label="Stop" tone="danger" onPress={() => tasks.stop(task)} />
+            </View>
+          ))}
+        </>
+      ) : null}
+
       <Section title={`QUEUE · ${tasks.queue.length}`} tone="muted" />
       <Text style={styles.note}>The agents work these, in this order. Nothing else on the host is touched.</Text>
-      {tasks.error ? <Text style={[styles.note, styles.danger]}>{tasks.error}</Text> : null}
       {tasks.queue.length
         ? (
           <QueueList
             queue={tasks.queue}
             onMove={tasks.moveTo}
             onRemove={tasks.remove}
-            onRelease={tasks.release}
             onDragging={onDragging}
           />
         )
@@ -249,13 +266,11 @@ function QueueList({
   queue,
   onMove,
   onRemove,
-  onRelease,
   onDragging,
 }: {
   queue: QueuedTask[];
   onMove: (task: QueuedTask, index: number) => void;
   onRemove: (task: QueuedTask) => void;
-  onRelease: (task: QueuedTask) => void;
   onDragging: (dragging: boolean) => void;
 }) {
   const [rowHeight, setRowHeight] = useState(queueRowMinHeight);
@@ -287,43 +302,55 @@ function QueueList({
     return () => onDragging(false);
   }, [carrying, onDragging]);
 
+  const cancel = useCallback(() => {
+    settledAgainst.current = null;
+    live.current = null;
+    setDrag(null);
+  }, []);
+
   const start = useCallback((index: number) => {
     const next = { id: queue[index].id, from: index, to: index, settled: false };
     live.current = next;
     setDrag(next);
   }, [queue]);
 
+  // The queue is re-read while a finger is down, and a task a workspace takes leaves it, so the
+  // row being carried is found again by its id. Trusting the position it had when the drag began
+  // would move whichever task had since slid into it, or none at all.
+  const carriedNow = useCallback((drag: Drag) => {
+    const from = queue.findIndex(item => item.id === drag.id);
+    return from < 0 ? null : { from, task: queue[from] };
+  }, [queue]);
+
   const move = useCallback((dy: number) => {
     const current = live.current;
     if (current === null || current.settled) return;
-    const to = reorderTarget(current.from, dy, pitch, queue.length);
-    if (to === current.to) return;
-    const next = { ...current, to };
+    const here = carriedNow(current);
+    if (here === null) return cancel();
+    const to = reorderTarget(here.from, dy, pitch, queue.length);
+    if (to === current.to && here.from === current.from) return;
+    const next = { ...current, from: here.from, to };
     live.current = next;
     setDrag(next);
-  }, [pitch, queue.length]);
+  }, [cancel, carriedNow, pitch, queue.length]);
 
   const drop = useCallback((dy: number) => {
     const current = live.current;
     if (current === null) return;
-    const to = reorderTarget(current.from, dy, pitch, queue.length);
-    if (to === current.from) {
+    const here = carriedNow(current);
+    if (here === null) return cancel();
+    const to = reorderTarget(here.from, dy, pitch, queue.length);
+    if (to === here.from) {
       live.current = null;
       setDrag(null);
       return;
     }
-    const settled = { ...current, to, settled: true };
+    const settled = { ...current, from: here.from, to, settled: true };
     live.current = settled;
     settledAgainst.current = queue;
     setDrag(settled);
-    onMove(queue[current.from], to);
-  }, [onMove, pitch, queue]);
-
-  const cancel = useCallback(() => {
-    settledAgainst.current = null;
-    live.current = null;
-    setDrag(null);
-  }, []);
+    onMove(here.task, to);
+  }, [cancel, carriedNow, onMove, pitch, queue]);
 
   return (
     <>
@@ -342,7 +369,6 @@ function QueueList({
           onCancel={cancel}
           onStep={onMove}
           onRemove={onRemove}
-          onRelease={onRelease}
         />
       ))}
     </>
@@ -371,7 +397,6 @@ function QueueRow({
   onCancel,
   onStep,
   onRemove,
-  onRelease,
 }: {
   task: QueuedTask;
   index: number;
@@ -385,7 +410,6 @@ function QueueRow({
   onCancel: () => void;
   onStep: (task: QueuedTask, index: number) => void;
   onRemove: (task: QueuedTask) => void;
-  onRelease: (task: QueuedTask) => void;
 }) {
   const carried = drag !== null && drag.id === task.id;
   const lift = useRef(new Animated.Value(0)).current;
@@ -394,9 +418,9 @@ function QueueRow({
   // The gesture handlers are built once and must not close over this render's values: after a
   // reorder the row's index changes, and a captured one would drop the task at a position it no
   // longer occupies.
-  const latest = useRef({ index, onStart, onMove, onDrop, onCancel });
+  const latest = useRef({ index, count, pitch, onStart, onMove, onDrop, onCancel });
   useEffect(() => {
-    latest.current = { index, onStart, onMove, onDrop, onCancel };
+    latest.current = { index, count, pitch, onStart, onMove, onDrop, onCancel };
   });
 
   const responder = useRef(
@@ -412,7 +436,8 @@ function QueueRow({
         latest.current.onStart(latest.current.index);
       },
       onPanResponderMove: (_, gesture) => {
-        lift.setValue(gesture.dy);
+        const { index: from, pitch: step, count: rows } = latest.current;
+        lift.setValue(dragOffset(from, gesture.dy, step, rows));
         latest.current.onMove(gesture.dy);
       },
       onPanResponderRelease: (_, gesture) => {
@@ -494,9 +519,7 @@ function QueueRow({
         <Text style={styles.cardTitle} numberOfLines={1} ellipsizeMode="tail">{taskLabel(task)}</Text>
         <Text style={styles.note} numberOfLines={1} ellipsizeMode="tail">{repositoryLabel(task)}</Text>
       </View>
-      {task.heldByWorkspaceId === null
-        ? <QueueAction label="Dequeue" tone="danger" onPress={() => onRemove(task)} />
-        : <QueueAction label="Release" onPress={() => onRelease(task)} />}
+      <QueueAction label="Dequeue" tone="danger" onPress={() => onRemove(task)} />
     </Animated.View>
   );
 }

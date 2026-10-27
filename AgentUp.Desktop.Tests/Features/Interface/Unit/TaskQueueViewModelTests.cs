@@ -22,25 +22,35 @@ public sealed class TaskQueueViewModelTests
     }
 
     [Test]
-    public async Task ReadAsync_marksATaskAWorkspaceIsCarrying()
+    public async Task ReadAsync_takesATaskAWorkspaceIsCarryingOutOfTheQueue()
     {
         var api = new FakeTaskQueueApi { Queue = [Queued("1", 1) with { HeldByWorkspaceId = "ws-bob" } ] };
         var queue = ViewModel(api);
 
         await queue.ReadAsync();
 
-        Assert.That(queue.Queue.Single().IsHeld, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(queue.Queue, Is.Empty);
+            Assert.That(queue.Working.Single().Id, Is.EqualTo("1"));
+            Assert.That(queue.HasWorking, Is.True);
+        });
     }
 
     [Test]
-    public async Task ReadAsync_aFreeTaskOffersDequeueRatherThanRelease()
+    public async Task ReadAsync_leavesAFreeTaskWaitingInTheQueue()
     {
         var api = new FakeTaskQueueApi { Queue = [Queued("1", 1)] };
         var queue = ViewModel(api);
 
         await queue.ReadAsync();
 
-        Assert.That(queue.Queue.Single().IsHeld, Is.False);
+        Assert.Multiple(() =>
+        {
+            Assert.That(queue.Queue.Single().Id, Is.EqualTo("1"));
+            Assert.That(queue.Working, Is.Empty);
+            Assert.That(queue.HasWorking, Is.False);
+        });
     }
 
     [Test]
@@ -154,15 +164,37 @@ public sealed class TaskQueueViewModelTests
     }
 
     [Test]
-    public async Task ReleaseCommand_handsAHeldTaskBack()
+    public async Task StopCommand_putsATaskBeingWorkedBackInTheQueue()
     {
         var api = new FakeTaskQueueApi { Queue = [Queued("1", 1) with { HeldByWorkspaceId = "ws-bob" }] };
         var queue = ViewModel(api);
         await queue.ReadAsync();
 
-        await queue.Queue.Single().ReleaseCommand.Execute();
+        await queue.Working.Single().StopCommand.Execute();
 
         Assert.That(api.Released, Is.EqualTo(new[] { "1" }));
+    }
+
+    [Test]
+    public async Task MoveCommand_countsThePositionInTheWholeQueueRatherThanTheRowsOnScreen()
+    {
+        // The first task is being worked and is not in the list, so stepping the second waiting
+        // task down has to land it after the third, which sits at index 2 of the whole queue.
+        var api = new FakeTaskQueueApi
+        {
+            Queue =
+            [
+                Queued("1", 1) with { HeldByWorkspaceId = "ws-bob" },
+                Queued("2", 2),
+                Queued("3", 3),
+            ],
+        };
+        var queue = ViewModel(api);
+        await queue.ReadAsync();
+
+        await queue.Queue[0].MoveDownCommand.Execute();
+
+        Assert.That(api.Moved.Single(), Is.EqualTo(("2", 2)));
     }
 
     [Test]

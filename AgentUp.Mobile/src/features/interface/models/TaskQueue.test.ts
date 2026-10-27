@@ -1,13 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  dragOffset,
+  inProgress,
   issueLabel,
   offerable,
+  queueIndexFor,
   reorderTarget,
   repositoryLabel,
   restingOffset,
   rowShift,
   taskLabel,
+  waiting,
   type OfferedIssue,
   type QueuedTask,
 } from './TaskQueue';
@@ -112,4 +116,47 @@ test('a position is measured by the pitch between rows, not the row height alone
   assert.equal(reorderTarget(0, 148, 74, 4), 2);
   assert.equal(reorderTarget(0, 148, 64, 4), 2);
   assert.equal(reorderTarget(0, 222, 74, 4), 3);
+});
+
+test('a task a workspace has taken is in progress, not waiting', () => {
+  const queue = [task('I-44', 44, { heldByWorkspaceId: 'bob' }), task('I-51', 51)];
+
+  assert.deepEqual(inProgress(queue).map(t => t.number), [44]);
+  assert.deepEqual(waiting(queue).map(t => t.number), [51]);
+});
+
+test('a dragged row cannot be carried past the ends of its own list', () => {
+  // The finger went 600pt down a three-row queue; the row stops at the last place it could land,
+  // instead of riding out of the list and under whatever is below it.
+  assert.equal(dragOffset(0, 600, 84, 3), 168);
+  assert.equal(dragOffset(2, -600, 84, 3), -168);
+});
+
+test('a drag within the list is left exactly where the finger is', () => {
+  assert.equal(dragOffset(0, 100, 84, 3), 100);
+  assert.equal(dragOffset(1, -40, 84, 3), -40);
+});
+
+test('a list with nothing to measure against holds the row still', () => {
+  assert.equal(dragOffset(0, 300, 0, 3), 0);
+  assert.equal(dragOffset(0, 300, 84, 0), 0);
+});
+
+test('a position among the waiting tasks becomes a position in the whole queue', () => {
+  // #44 is being worked and is not on screen, so dropping #61 first among the waiting rows has to
+  // land it after #44 in the queue the Server holds.
+  const queue = [
+    task('I-44', 44, { heldByWorkspaceId: 'bob' }),
+    task('I-51', 51),
+    task('I-61', 61),
+  ];
+
+  assert.equal(queueIndexFor(queue, queue[2], 0), 1);
+  assert.equal(queueIndexFor(queue, queue[1], 1), 2);
+});
+
+test('a drop past the last waiting task lands at the end of the queue', () => {
+  const queue = [task('I-44', 44), task('I-51', 51)];
+
+  assert.equal(queueIndexFor(queue, queue[0], 5), 1);
 });

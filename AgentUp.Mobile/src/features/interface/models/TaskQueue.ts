@@ -53,6 +53,46 @@ export function reorderTarget(fromIndex: number, dy: number, rowPitch: number, c
 }
 
 /**
+ * The tasks a workspace has taken. They have left the queue and are being worked, so the queue no
+ * longer offers them and the order no longer counts them.
+ */
+export function inProgress(queue: QueuedTask[]): QueuedTask[] {
+  return queue.filter(task => task.heldByWorkspaceId !== null);
+}
+
+/** The tasks still waiting to be taken, in the order they will be worked. */
+export function waiting(queue: QueuedTask[]): QueuedTask[] {
+  return queue.filter(task => task.heldByWorkspaceId === null);
+}
+
+/**
+ * Where a row dropped among the waiting tasks belongs in the queue the Server holds, which still
+ * carries the tasks being worked.
+ *
+ * The screen only shows what is waiting, so a position on screen is not a position in that queue.
+ * The row goes immediately before whichever waiting task currently holds the chosen place, counted
+ * after the dragged row is lifted out, which is how the Server rewrites the order too.
+ */
+export function queueIndexFor(queue: QueuedTask[], task: QueuedTask, waitingIndex: number): number {
+  const rest = queue.filter(item => item.id !== task.id);
+  const anchor = waiting(rest)[waitingIndex];
+  return anchor === undefined ? rest.length : rest.indexOf(anchor);
+}
+
+/**
+ * How far the dragged row has actually travelled. The finger may go anywhere, but the row may not:
+ * it is held inside the span between the first and last place it could be dropped, so it cannot
+ * leave its own list, ride over the sections below it or slide under the tab bar and read as a
+ * task that vanished.
+ */
+export function dragOffset(fromIndex: number, dy: number, rowPitch: number, count: number): number {
+  if (rowPitch <= 0 || count <= 0) return 0;
+  const highest = -fromIndex * rowPitch;
+  const lowest = (count - 1 - fromIndex) * rowPitch;
+  return Math.min(Math.max(dy, highest), lowest);
+}
+
+/**
  * How far a row that is not the dragged one steps aside, so the queue opens a gap where the drag
  * would land rather than leaving the reader to guess.
  *

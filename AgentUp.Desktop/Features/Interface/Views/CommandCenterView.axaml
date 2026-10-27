@@ -200,19 +200,40 @@
                                Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" Margin="0,6" VerticalAlignment="Center">
-                    <Button Content="Release"
-                            Classes="au-button au-button--compact"
-                            Command="{Binding ReleaseCommand}"
-                            IsVisible="{Binding IsHeld}"
-                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueueRelease}"
-                            ToolTip.Tip="Hand this back so another agent can take it"/>
                     <Button Content="Dequeue"
                             Classes="au-button au-button--danger au-button--compact"
                             Command="{Binding RemoveCommand}"
-                            IsVisible="{Binding !IsHeld}"
                             AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueueRemove}"
                             ToolTip.Tip="Take this out of the queue"/>
                 </StackPanel>
+            </Grid>
+        </DataTemplate>
+
+        <!-- A task being worked: no order to change, only whether the work carries on. -->
+        <DataTemplate x:Key="WorkingTaskRowTemplate">
+            <Grid ColumnDefinitions="*,Auto"
+                  ColumnSpacing="12"
+                  Margin="0,0,0,1"
+                  Background="{DynamicResource AgentUpColorTransparentBrush}">
+                <StackPanel Grid.Column="0" Margin="0,8" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding TaskLabel}"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                    <TextBlock Text="{Binding RepositoryLabel}"
+                               FontSize="11"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Content="Stop"
+                        Margin="0,6"
+                        VerticalAlignment="Center"
+                        Classes="au-button au-button--danger au-button--compact"
+                        Command="{Binding StopCommand}"
+                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueueStop}"
+                        ToolTip.Tip="Stop this work and put the task back in the queue"/>
             </Grid>
         </DataTemplate>
 
@@ -417,6 +438,21 @@
                         Padding="20"
                         IsVisible="{Binding CommandCenter.Tasks, Converter={x:Static ObjectConverters.IsNotNull}}">
                     <StackPanel Spacing="10">
+                        <TextBlock Text="IN PROGRESS"
+                                   FontSize="10"
+                                   FontWeight="Bold"
+                                   IsVisible="{Binding CommandCenter.Tasks.HasWorking}"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                        <TextBlock Text="Taken off the queue and being worked. Stopping one puts it back."
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding CommandCenter.Tasks.HasWorking}"
+                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                        <ItemsControl x:Name="WorkingList"
+                                      ItemsSource="{Binding CommandCenter.Tasks.Working}"
+                                      IsVisible="{Binding CommandCenter.Tasks.HasWorking}"
+                                      ItemTemplate="{StaticResource WorkingTaskRowTemplate}"/>
+
                         <TextBlock Text="QUEUE"
                                    FontSize="10"
                                    FontWeight="Bold"
