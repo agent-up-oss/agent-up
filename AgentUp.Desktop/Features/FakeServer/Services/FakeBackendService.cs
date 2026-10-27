@@ -248,14 +248,14 @@ public sealed class FakeBackendService
             return ConsoleOutput(workspaceId, rest);
         if (method == "GET" && rest.EndsWith("/metrics", StringComparison.Ordinal))
             return Json(new JsonArray());
-        if (method == "GET" && rest.EndsWith("/validation-flows", StringComparison.Ordinal))
-            return Json(new JsonArray());
+        if (method == "GET" && rest.StartsWith("validation-flows/", StringComparison.Ordinal))
+            return ValidationFlow(workspaceId, Uri.UnescapeDataString(rest["validation-flows/".Length..]));
+        if (method == "GET" && (rest == "validation-flows" || rest.EndsWith("/validation-flows", StringComparison.Ordinal)))
+            return ValidationFlows(workspaceId, rest, request.Query);
         if (method == "POST" && rest.Contains("/viewer-ticket", StringComparison.Ordinal))
             return ViewerTicket(workspaceId, rest);
-        if (method == "GET" && rest.Contains("/database/", StringComparison.Ordinal))
-            return Json(new JsonArray());
-        if (method == "POST" && rest.Contains("/database/", StringComparison.Ordinal))
-            return Json(new JsonObject { ["rows"] = new JsonArray(), ["error"] = null });
+        if (TryParseDatabasePath(rest, out var application, out var action))
+            return DatabaseRoute(workspaceId, application, action, method, request);
 
         return NotFound();
     }
@@ -1132,6 +1132,136 @@ public sealed class FakeBackendService
             return false;
         }
     }
+
+    private FakeBackendResponseDto ValidationFlows(string workspaceId, string rest, string query)
+    {
+        var application = NestedValidationApplication(rest, query);
+        var flows = ListedValidationFlows(workspaceId)
+            .Where(flow =>
+                application is null
+                || string.Equals(JsonString(flow, "application"), application, StringComparison.Ordinal))
+            .Select(flow => flow.DeepClone());
+        return Json(new JsonArray(flows.ToArray()));
+    }
+
+    private FakeBackendResponseDto ValidationFlow(string workspaceId, string id)
+    {
+        var flow = ListedValidationFlows(workspaceId)
+            .FirstOrDefault(item => string.Equals(JsonString(item, "id"), id, StringComparison.Ordinal));
+        return flow is null ? NotFound() : Json(flow.DeepClone());
+    }
+
+    private IEnumerable<JsonObject> ListedValidationFlows(string workspaceId)
+        => JsonArrayAt(_state.Root, "validationFlows")
+            .OfType<JsonObject>()
+            .Where(flow => string.Equals(JsonString(flow, "workspaceId"), workspaceId, StringComparison.Ordinal));
+
+    private FakeBackendResponseDto DatabaseRoute(
+        string workspaceId,
+        string application,
+        string action,
+        string method,
+        FakeBackendRequestDto request)
+    {
+        if (!JsonTrue(FindApplication(workspaceId, application), "database"))
+            return NotFound();
+        var catalog = DatabaseCatalog(workspaceId, application);
+        if (catalog is null)
+            return NotFound();
+        if (method == "GET" && action == "databases")
+            return Json(new JsonObject { ["databases"] = CloneArray(JsonArrayAt(catalog, "names")) });
+        if (method == "GET" && action == "tables")
+        {
+            var database = QueryValue(request.Query, "database") ?? "";
+            return Json(new JsonObject { ["tables"] = CloneArray(JsonIndexArray(catalog["tables"], database)) });
+        }
+
+        if (method == "POST" && action == "query")
+        {
+            var database = ReadJsonString(request.Body, "database") ?? "";
+            var table = TableNameFromSql(ReadJsonString(request.Body, "sql") ?? "");
+            var data = table is null ? null : JsonIndexObject(JsonIndexObject(catalog["data"], database), table);
+            return Json(new JsonObject
+            {
+                ["columns"] = CloneArray(JsonArrayAt(data, "columns")),
+                ["rows"] = CloneArray(JsonArrayAt(data, "rows"))
+            });
+        }
+
+        return NotFound();
+    }
+
+    private JsonObject? FindApplication(string workspaceId, string name)
+    {
+        var applications = JsonArrayAt(FindWorkspace(workspaceId), "applications");
+        return applications.OfType<JsonObject>().FirstOrDefault(item =>
+            string.Equals(JsonString(item, "name"), name, StringComparison.Ordinal));
+    }
+
+    private JsonObject? DatabaseCatalog(string workspaceId, string application)
+        => JsonArrayAt(_state.Root, "databases")
+            .OfType<JsonObject>()
+            .FirstOrDefault(item =>
+                string.Equals(JsonString(item, "workspaceId"), workspaceId, StringComparison.Ordinal)
+                && string.Equals(JsonString(item, "application"), application, StringComparison.Ordinal));
+
+    private static string? NestedValidationApplication(string rest, string query)
+    {
+        var application = QueryValue(query, "application");
+        if (!string.IsNullOrEmpty(application))
+            return application;
+        const string prefix = "applications/";
+        const string suffix = "/validation-flows";
+        if (!rest.StartsWith(prefix, StringComparison.Ordinal) || rest.Length <= prefix.Length + suffix.Length)
+            return null;
+        var nested = rest[prefix.Length..^suffix.Length];
+        return Uri.UnescapeDataString(nested);
+    }
+
+    private static bool TryParseDatabasePath(string rest, out string application, out string action)
+    {
+        application = "";
+        action = "";
+        const string prefix = "applications/";
+        const string marker = "/database/";
+        var markerAt = rest.IndexOf(marker, StringComparison.Ordinal);
+        if (!rest.StartsWith(prefix, StringComparison.Ordinal) || markerAt < 0)
+            return false;
+        application = Uri.UnescapeDataString(rest[prefix.Length..markerAt]);
+        action = rest[(markerAt + marker.Length)..];
+        return action is "databases" or "tables" or "query";
+    }
+
+    private static string? TableNameFromSql(string sql)
+    {
+        var quoted = System.Text.RegularExpressions.Regex.Match(sql, @"from\s+""((?:[^""]|"""")+)""", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (quoted.Success)
+            return quoted.Groups[1].Value.Replace("\"\"", "\"", StringComparison.Ordinal);
+        var bare = System.Text.RegularExpressions.Regex.Match(sql, @"from\s+([A-Za-z_][\w]*)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return bare.Success ? bare.Groups[1].Value : null;
+    }
+
+    private static JsonArray CloneArray(JsonArray? source)
+        => source is null ? [] : source.DeepClone().AsArray();
+
+    private static JsonArray JsonArrayAt(JsonNode? node, string name)
+        => node?[name] as JsonArray ?? [];
+
+    private static JsonArray? JsonIndexArray(JsonNode? node, string key)
+        => node?[key] as JsonArray;
+
+    private static JsonObject? JsonIndexObject(JsonNode? node, string? key)
+    {
+        if (key is null || node is null)
+            return null;
+        return node[key] as JsonObject;
+    }
+
+    private static string? JsonString(JsonObject node, string name)
+        => node[name]?.GetValue<string>();
+
+    private static bool JsonTrue(JsonObject? node, string name)
+        => node?[name]?.GetValue<bool>() == true;
 
     private static FakeBackendResponseDto Json(JsonNode node)
         => new(200, "application/json", node.ToJsonString(WebOptions()));

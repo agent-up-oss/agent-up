@@ -184,6 +184,10 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
         [
             ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}/application/Storefront", 4000)
         ]),
+        MobileScreen("database", "Mobile database",
+        [
+            ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}/application/Inventory", 4000)
+        ]),
         MobileScreen("workspace-list", "Mobile workspace list",
         [
             ScreenStepDto.Navigate("/workspace", 3000)

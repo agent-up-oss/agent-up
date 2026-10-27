@@ -18,6 +18,8 @@ public sealed class BrowserInteractionController
 
     public string RemoveAttentionPingScript() => BrowserScripts.RemoveAttentionPing();
 
+    public string RemoveReplayChromeScript() => BrowserScripts.RemoveReplayChrome();
+
     public string CheckNavigationScript() => BrowserScripts.CheckNavigation;
 
     public string CheckTextScript(string text) => BrowserScripts.CheckText(text);

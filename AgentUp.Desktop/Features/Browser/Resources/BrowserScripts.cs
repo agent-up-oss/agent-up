@@ -84,6 +84,9 @@ internal static class BrowserScripts
     public static string RemoveAttentionPing() =>
         "(function(){var c=document.getElementById('__agentUpClickRing');if(c)c.remove();return JSON.stringify({ok:true});})()";
 
+    public static string RemoveReplayChrome() =>
+        "(function(){var m=document.getElementById('__agentUpMouse');if(m)m.remove();var c=document.getElementById('__agentUpClickRing');if(c)c.remove();try{delete window.__agentUpMouse;}catch(e){window.__agentUpMouse=undefined;}return JSON.stringify({ok:true});})()";
+
     public static string CompleteClick(string selector) =>
         $"(function(){{" +
         $"var e=document.querySelector({Js(selector)});" +

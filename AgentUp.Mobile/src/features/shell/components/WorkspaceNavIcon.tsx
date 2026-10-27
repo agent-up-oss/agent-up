@@ -1,13 +1,5 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { agentUpTheme } from '@agent-up/design-system/native';
 import type { WorkspaceOverviewTab } from '../providers/WorkspaceTabProvider';
-
-const names = {
-  apps: 'grid-outline',
-  git: 'git-branch-outline',
-  agents: 'chatbubbles-outline',
-  settings: 'settings-outline',
-} as const;
+import { PublicIcon } from './PublicIcon';
 
 type WorkspaceNavIconProps = {
   tab: WorkspaceOverviewTab;
@@ -15,13 +7,5 @@ type WorkspaceNavIconProps = {
 };
 
 export function WorkspaceNavIcon({ tab, selected }: WorkspaceNavIconProps) {
-  return (
-    <Ionicons
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      name={names[tab]}
-      size={20}
-      color={selected ? agentUpTheme.colors.textPrimary : agentUpTheme.colors.textMuted}
-    />
-  );
+  return <PublicIcon name={tab} muted={!selected} size={20} />;
 }

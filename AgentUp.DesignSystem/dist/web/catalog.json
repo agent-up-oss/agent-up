@@ -839,7 +839,7 @@
             "au-status-dot",
             "au-status-dot--healthy"
           ],
-          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
         },
         {
           "id": "workspace-tabs",
@@ -857,19 +857,19 @@
               "state": "selected:1",
               "title": "Agent tab selected",
               "note": "The live ACP session is the primary selection when Agent is open.",
-              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
             },
             {
               "state": "selected:2",
               "title": "Git tab selected",
               "note": "Working-tree review is the primary selection when Git is open.",
-              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
             },
             {
               "state": "selected:3",
               "title": "Application tab selected",
               "note": "Storefront is the primary selection when the running app is open.",
-              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
             }
           ],
           "rootClass": "au-app-tab",
@@ -881,7 +881,7 @@
             "au-status-dot",
             "au-status-dot--healthy"
           ],
-          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n      </div>"
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
         },
         {
           "id": "subtab",
@@ -1626,7 +1626,7 @@
     {
       "id": "validation",
       "title": "Validation",
-      "intro": "Validation is a right sidebar on the selected application, not a full-screen tab. A flow is greater steps; each step nests micro-checks. Glyph color is the only status paint: healthy, warning, and danger. Pass and fail roll up.",
+      "intro": "Desktop Validation is a right sidebar on the selected application. Mobile uses a 50px dock under the webview. A flow is greater steps; each step nests micro-checks. Glyph color is the only status paint: healthy, warning, and danger. Pass and fail roll up.",
       "components": [
         {
           "id": "validation-sidebar",
@@ -1684,6 +1684,29 @@
             "au-workspace-add"
           ],
           "html": "<aside class=\"au-validation-sidebar au-validation-sidebar--collapsed\">\n        <button class=\"au-workspace-add\" type=\"button\">‹</button>\n      </aside>"
+        },
+        {
+          "id": "validation-dock",
+          "title": "Mobile dock",
+          "note": "Mobile HTTP application pages keep a 50px full-width dock under the webview. Play is on the left. The selected scenario is two compact lines: name, then only the current substep. The menu opens the scenario list. Do not restore a right sidebar on Mobile.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-validation-dock",
+          "classes": [
+            "au-validation-dock",
+            "au-title-tool",
+            "au-chrome-icon",
+            "au-validation-dock-copy",
+            "au-muted",
+            "au-nav-icon"
+          ],
+          "html": "<div class=\"au-validation-dock\">\n        <button class=\"au-title-tool au-chrome-icon\" type=\"button\">▶</button>\n        <div class=\"au-validation-dock-copy\">\n          <strong>Checkout featured goods</strong>\n          <p class=\"au-muted\">Starting page</p>\n        </div>\n        <button class=\"au-title-tool au-chrome-icon\" type=\"button\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></button>\n      </div>"
         },
         {
           "id": "validation-flow",
@@ -1932,11 +1955,18 @@
           "avalonia": "Border",
           "desktopClass": "dbListItem",
           "desktopHost": "ListBoxItem",
-          "states": "",
+          "states": "selected=au-list-item/au-list-item--selected",
           "parts": "",
           "propsExamples": [],
           "modifierClasses": "",
-          "stateExamples": [],
+          "stateExamples": [
+            {
+              "state": "selected:0",
+              "title": "Selected table",
+              "note": "The open table takes the accent tint.",
+              "html": "<div class=\"au-stack\">\n        <div class=\"au-list-item au-list-item--selected\">orders</div>\n        <div class=\"au-list-item\">customers</div>\n      </div>"
+            }
+          ],
           "rootClass": "au-list-item",
           "classes": [
             "au-stack",
@@ -2063,6 +2093,12 @@
               "title": "Settings top bar",
               "note": "Settings keeps Reload next to the title.",
               "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n        <strong>Settings</strong>\n        <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Reload</button>\n      </div>"
+            },
+            {
+              "props": "title=Storefront; parts=back title",
+              "title": "Application bar",
+              "note": "HTTP application pages keep Back and the application title. Validation lives in the dock under the webview.",
+              "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\">‹</span>\n        <strong>Storefront</strong>\n      </div>"
             }
           ],
           "modifierClasses": "",
@@ -2078,7 +2114,7 @@
             "au-button--compact"
           ],
           "html": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n        <strong>Harbor Shop</strong>\n        <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Reload</button>\n      </div>",
-          "source": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\" data-au-part=\"menu\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n        <span class=\"au-title-tool au-chrome-icon\" data-au-part=\"back\">‹</span>\n        <strong data-au-part=\"title\" data-au-text=\"title\">Harbor Shop</strong>\n        <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\" data-au-part=\"reload\">Reload</button>\n      </div>"
+          "source": "<div class=\"au-mobile-bar\">\n        <span class=\"au-title-tool au-chrome-icon\" data-au-part=\"menu\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"></path></svg></span>\n        <span class=\"au-title-tool au-chrome-icon\" data-au-part=\"back\">‹</span>\n        <strong data-au-part=\"title\" data-au-text=\"title\">Harbor Shop</strong>\n        <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\" data-au-part=\"reload\">Reload</button>\n        <button class=\"au-title-tool au-chrome-icon\" type=\"button\" data-au-part=\"check\">✓</button>\n      </div>"
         },
         {
           "id": "drawer",
@@ -2190,13 +2226,14 @@
             "au-app-list",
             "au-workspace",
             "au-lifecycle-button",
+            "au-nav-icon",
             "au-status-dot",
             "au-status-dot--healthy",
             "au-workspace-name",
             "au-workspace-branch",
             "au-field-label"
           ],
-          "html": "<div class=\"au-app-list\">\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Harbor Shop</strong>\n            <small class=\"au-workspace-branch\">Healthy</small>\n          </span>\n        </div>\n        <span class=\"au-field-label\">Applications</span>\n        <div class=\"au-workspace\">\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Storefront</strong>\n            <small class=\"au-workspace-branch\">Running</small>\n          </span>\n        </div>\n        <div class=\"au-workspace\">\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Orders API</strong>\n            <small class=\"au-workspace-branch\">Running</small>\n          </span>\n        </div>\n      </div>"
+          "html": "<div class=\"au-app-list\">\n        <div class=\"au-workspace\">\n          <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n          <button class=\"au-lifecycle-button\" type=\"button\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3v12\"></path><path d=\"M7 10l5 5 5-5\"></path><path d=\"M5 21h14\"></path></svg></button>\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Harbor Shop</strong>\n            <small class=\"au-workspace-branch\">Healthy</small>\n          </span>\n        </div>\n        <span class=\"au-field-label\">Applications</span>\n        <div class=\"au-workspace\">\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Storefront</strong>\n            <small class=\"au-workspace-branch\">Running</small>\n          </span>\n        </div>\n        <div class=\"au-workspace\">\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Orders API</strong>\n            <small class=\"au-workspace-branch\">Running</small>\n          </span>\n        </div>\n        <div class=\"au-workspace\">\n          <span class=\"au-status-dot au-status-dot--healthy\"></span>\n          <span>\n            <strong class=\"au-workspace-name\">Inventory</strong>\n            <small class=\"au-workspace-branch\">Running</small>\n          </span>\n        </div>\n      </div>"
         }
       ]
     },

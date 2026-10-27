@@ -229,6 +229,8 @@ test('review snapshot exports the bundled workspace as HTML', () => {
   assert.match(response.body ?? '', /Harbor Shop/);
   assert.match(response.body ?? '', /Storefront/);
   assert.match(response.body ?? '', /Orders API/);
+  assert.match(response.body ?? '', /<style>/);
+  assert.match(response.body ?? '', /--au-color-canvas/);
   assert.match(response.body ?? '', /<h2>Screenshots<\/h2>/);
   assert.match(response.body ?? '', /<h2>Verification<\/h2>/);
   assert.equal(service.handle({ method: 'GET', path: '/api/workspaces/missing/review-snapshot', query: '', body: null }).status, 404);
@@ -269,7 +271,7 @@ test('start walks starting checking then healthy and stop keeps apps offline', (
   const stopped = json(service, 'GET', '/api/workspaces/harbor-shop');
   assert.equal(stopped.state, 'Stopped');
   assert.equal(stopped.healthState, undefined);
-  assert.equal(stopped.applications.length, 2);
+  assert.equal(stopped.applications.length, 3);
   assert.equal(stopped.applications.every((item: { state: string }) => item.state === 'Stopped'), true);
 
   assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/harbor-shop/start', query: '', body: null }).status, 204);
@@ -281,7 +283,7 @@ test('start walks starting checking then healthy and stop keeps apps offline', (
   step();
   const healthy = json(service, 'GET', '/api/workspaces/harbor-shop');
   assert.equal(healthy.healthState, 'Healthy');
-  assert.equal(healthy.applications.length, 2);
+  assert.equal(healthy.applications.length, 3);
 });
 
 test('reset restores the bundled workspace after a clone', () => {
@@ -384,6 +386,103 @@ test('start then stop cancels the checking phase', () => {
   assert.equal(service.handle({ method: 'POST', path: '/api/workspaces/harbor-shop/stop', query: '', body: null }).status, 204);
   step();
   assert.equal(json(service, 'GET', '/api/workspaces/harbor-shop').state, 'Stopped');
+});
+
+test('lists Storefront validation flows and loads one by id', () => {
+  const service = backend();
+  const listed = JSON.parse(service.handle({
+    method: 'GET',
+    path: '/api/workspaces/harbor-shop/validation-flows',
+    query: 'application=Storefront',
+    body: null,
+  }).body!);
+  const orders = JSON.parse(service.handle({
+    method: 'GET',
+    path: '/api/workspaces/harbor-shop/validation-flows',
+    query: 'application=Orders%20API',
+    body: null,
+  }).body!);
+  const flow = json(service, 'GET', '/api/workspaces/harbor-shop/validation-flows/checkout-featured-goods');
+  const missing = service.handle({
+    method: 'GET',
+    path: '/api/workspaces/harbor-shop/validation-flows/missing',
+    query: '',
+    body: null,
+  });
+  assert.equal(listed.length, 3);
+  assert.equal(listed[0].name, 'Checkout featured goods');
+  assert.equal(listed[1].name, 'Checkout tote and lamp');
+  assert.equal(orders.length, 3);
+  assert.equal(orders[0].name, 'Pack the open ticket');
+  assert.equal(flow.id, 'checkout-featured-goods');
+  assert.equal(missing.status, 404);
+});
+
+test('bundled flows act then assert on Storefront and Orders API', () => {
+  const service = backend();
+  const all = json(service, 'GET', '/api/workspaces/harbor-shop/validation-flows') as Array<{
+    application: string;
+    steps: Array<{ action?: string; expectations?: unknown[] }>;
+  }>;
+  assert.equal(all.length, 6);
+  assert.equal(all.filter(flow => flow.application === 'Storefront').length, 3);
+  assert.equal(all.filter(flow => flow.application === 'Orders API').length, 3);
+  assert.equal(all.every(flow =>
+    flow.steps.length > 0
+    && flow.steps.every(step => !!step.action && (step.expectations?.length ?? 0) > 0)
+  ), true);
+  assert.match(service.applicationHtml(9100) ?? '', /Reset catalog/);
+  assert.match(service.applicationHtml(9101) ?? '', /Pack order/);
+});
+
+test('serves Inventory database catalog and default table query', () => {
+  const service = backend();
+  const names = json(service, 'GET', '/api/workspaces/harbor-shop/applications/Inventory/database/databases');
+  const tables = JSON.parse(service.handle({
+    method: 'GET',
+    path: '/api/workspaces/harbor-shop/applications/Inventory/database/tables',
+    query: 'database=harbor',
+    body: null,
+  }).body!);
+  const query = json(service, 'POST', '/api/workspaces/harbor-shop/applications/Inventory/database/query', JSON.stringify({
+    database: 'harbor',
+    sql: 'SELECT * FROM "products" LIMIT 50',
+  }));
+  const storefront = service.handle({
+    method: 'GET',
+    path: '/api/workspaces/harbor-shop/applications/Storefront/database/databases',
+    query: '',
+    body: null,
+  });
+  assert.deepEqual(names.databases, ['harbor']);
+  assert.deepEqual(tables.tables, ['products', 'orders']);
+  assert.deepEqual(query.columns, ['id', 'name', 'price']);
+  assert.equal(query.rows.length, 3);
+  assert.equal(storefront.status, 404);
+});
+
+test('lists nested Storefront validation flows and quoted Inventory queries', () => {
+  const service = backend();
+  const nested = json(service, 'GET', '/api/workspaces/harbor-shop/applications/Storefront/validation-flows');
+  const quoted = json(service, 'POST', '/api/workspaces/harbor-shop/applications/Inventory/database/query', JSON.stringify({
+    database: 'harbor',
+    sql: 'SELECT * FROM "orders" LIMIT 50',
+  }));
+  const missing = json(service, 'POST', '/api/workspaces/harbor-shop/applications/Inventory/database/query', JSON.stringify({
+    database: 'harbor',
+    sql: 'SELECT 1',
+  }));
+  const getQuery = service.handle({
+    method: 'GET',
+    path: '/api/workspaces/harbor-shop/applications/Inventory/database/query',
+    query: '',
+    body: null,
+  });
+  assert.equal(nested.length, 3);
+  assert.deepEqual(quoted.columns, ['id', 'status', 'total']);
+  assert.equal(quoted.rows.length, 2);
+  assert.deepEqual(missing.columns, []);
+  assert.equal(getQuery.status, 404);
 });
 
 test('unknown git action and empty commit bodies stay safe', () => {

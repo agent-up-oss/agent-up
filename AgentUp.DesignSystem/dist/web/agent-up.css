@@ -947,6 +947,48 @@
   gap: 0.625rem;
   padding: 0.5rem 1.125rem 1.125rem;
 }
+.au-validation-dock {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  height: 3.125rem;
+  min-height: 3.125rem;
+  padding: 0 var(--au-space-3);
+  gap: var(--au-space-3);
+  color: var(--au-color-text-primary);
+  background: var(--au-color-canvas);
+  border-top: 1px solid var(--au-color-border-subtle);
+}
+.au-validation-dock-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.125rem;
+}
+.au-validation-dock-copy strong,
+.au-validation-dock-copy p {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.au-validation-dock-copy strong {
+  font-size: var(--au-font-size-ui-sm);
+  font-weight: var(--au-weight-ui-strong);
+}
+.au-validation-dock-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 12rem;
+  overflow: auto;
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-overlay);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-md);
+}
 .au-validation-play {
   display: inline-flex;
   align-items: center;
