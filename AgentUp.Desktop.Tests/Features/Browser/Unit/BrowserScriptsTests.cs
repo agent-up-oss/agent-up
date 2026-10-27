@@ -36,4 +36,17 @@ public class BrowserScriptsTests
             Assert.That(script, Does.Contain("finally{if(c)c.remove();}"));
         });
     }
+
+    [Test]
+    public void RemoveReplayChrome_deletesTheMouseOverlayAndClickRing()
+    {
+        var script = BrowserScripts.RemoveReplayChrome();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(script, Does.Contain("getElementById('__agentUpMouse')"));
+            Assert.That(script, Does.Contain("m.remove()"));
+            Assert.That(script, Does.Contain("getElementById('__agentUpClickRing')"));
+        });
+    }
 }

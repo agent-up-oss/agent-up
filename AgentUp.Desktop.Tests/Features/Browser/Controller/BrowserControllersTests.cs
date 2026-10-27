@@ -29,6 +29,7 @@ public sealed class BrowserControllersTests
             Assert.That(controller.CheckNavigationScript(), Does.Contain("document.readyState"));
             Assert.That(controller.GetUrlScript(), Does.Contain("location"));
             Assert.That(controller.GetTitleScript(), Does.Contain("title"));
+            Assert.That(controller.RemoveReplayChromeScript(), Does.Contain("__agentUpMouse"));
         });
     }
 

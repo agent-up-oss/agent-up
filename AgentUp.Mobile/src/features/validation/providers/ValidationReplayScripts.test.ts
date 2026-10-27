@@ -5,6 +5,7 @@ import {
   beginMouseMoveScript,
   checkTextScript,
   completeClickScript,
+  removeReplayChromeScript,
   replayTarget,
 } from './ValidationReplayScripts';
 
@@ -22,6 +23,13 @@ test('mouse, ping, and click scripts inject the cursor overlay and click the tar
   assert.equal(ping.includes('__agentUpClickRing'), true);
   assert.equal(click.includes('.click()'), true);
   assert.equal(click.includes('#place'), true);
+});
+
+test('removeReplayChromeScript deletes the mouse overlay and click ring', () => {
+  const script = removeReplayChromeScript();
+  assert.equal(script.includes("getElementById('__agentUpMouse')"), true);
+  assert.equal(script.includes('m.remove()'), true);
+  assert.equal(script.includes("getElementById('__agentUpClickRing')"), true);
 });
 
 test('checkTextScript looks for visible page text', () => {

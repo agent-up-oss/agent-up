@@ -57,6 +57,10 @@ export function removeAttentionPingScript(): string {
   return "(function(){var c=document.getElementById('__agentUpClickRing');if(c)c.remove();return JSON.stringify({ok:true});})()";
 }
 
+export function removeReplayChromeScript(): string {
+  return "(function(){var m=document.getElementById('__agentUpMouse');if(m)m.remove();var c=document.getElementById('__agentUpClickRing');if(c)c.remove();try{delete window.__agentUpMouse;}catch(e){window.__agentUpMouse=undefined;}return JSON.stringify({ok:true});})()";
+}
+
 export function checkNavigationScript(): string {
   return 'document.readyState';
 }

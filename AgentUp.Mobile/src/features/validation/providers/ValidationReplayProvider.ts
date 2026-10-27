@@ -13,6 +13,7 @@ import {
   getUrlScript,
   pressScript,
   removeAttentionPingScript,
+  removeReplayChromeScript,
   replayTarget,
 } from './ValidationReplayScripts';
 
@@ -86,7 +87,14 @@ export async function runValidationReplay(options: RunValidationReplayOptions): 
       return { succeeded: false, message };
     }
     throw reason;
+  } finally {
+    await removeReplayChrome(host, skipCosmeticStaging === true);
   }
+}
+
+async function removeReplayChrome(host: ValidationReplayHost, skipCosmeticStaging: boolean): Promise<void> {
+  if (skipCosmeticStaging) return;
+  await host.eval(removeReplayChromeScript()).then(() => undefined, () => undefined);
 }
 
 async function executeStep(

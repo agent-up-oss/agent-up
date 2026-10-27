@@ -65,56 +65,63 @@ public sealed class ValidationFlowReplayService(
             return new(false, "Could not open the application browser tab for this flow.");
         }
 
-        await WaitForPageReadyAsync(host, workspaceId, cancellationToken);
-
-        reporter.BeginStage(ValidationFlowItemViewModel.InitialStageId);
-        var initialError = await AssertAsync(
-            host,
-            workspaceId,
-            ValidationFlowItemViewModel.InitialStageId,
-            flow.InitialExpectations,
-            reporter,
-            cancellationToken);
-        if (initialError is not null)
+        try
         {
-            reporter.CompleteStage(ValidationFlowItemViewModel.InitialStageId, false, initialError);
-            reporter.CompleteFlow(false, initialError);
-            return new(false, initialError);
-        }
+            await WaitForPageReadyAsync(host, workspaceId, cancellationToken);
 
-        reporter.CompleteStage(ValidationFlowItemViewModel.InitialStageId, true);
-
-        foreach (var step in flow.Steps)
-        {
-            reporter.BeginStage(step.Id);
-            var stepError = await ExecuteStepAsync(host, workspaceId, origin, step, cancellationToken);
-            if (stepError is not null)
-            {
-                reporter.CompleteStage(step.Id, false, stepError);
-                reporter.CompleteFlow(false, stepError);
-                return new(false, stepError, step.Id);
-            }
-
-            var assertionError = await AssertAsync(
+            reporter.BeginStage(ValidationFlowItemViewModel.InitialStageId);
+            var initialError = await AssertAsync(
                 host,
                 workspaceId,
-                step.Id,
-                step.Expectations ?? [],
+                ValidationFlowItemViewModel.InitialStageId,
+                flow.InitialExpectations,
                 reporter,
                 cancellationToken);
-            if (assertionError is not null)
+            if (initialError is not null)
             {
-                reporter.CompleteStage(step.Id, false, assertionError);
-                reporter.CompleteFlow(false, assertionError);
-                return new(false, assertionError, step.Id);
+                reporter.CompleteStage(ValidationFlowItemViewModel.InitialStageId, false, initialError);
+                reporter.CompleteFlow(false, initialError);
+                return new(false, initialError);
             }
 
-            reporter.CompleteStage(step.Id, true);
-        }
+            reporter.CompleteStage(ValidationFlowItemViewModel.InitialStageId, true);
 
-        var message = $"Validation '{flow.Name}' passed.";
-        reporter.CompleteFlow(true, message);
-        return new(true, message);
+            foreach (var step in flow.Steps)
+            {
+                reporter.BeginStage(step.Id);
+                var stepError = await ExecuteStepAsync(host, workspaceId, origin, step, cancellationToken);
+                if (stepError is not null)
+                {
+                    reporter.CompleteStage(step.Id, false, stepError);
+                    reporter.CompleteFlow(false, stepError);
+                    return new(false, stepError, step.Id);
+                }
+
+                var assertionError = await AssertAsync(
+                    host,
+                    workspaceId,
+                    step.Id,
+                    step.Expectations ?? [],
+                    reporter,
+                    cancellationToken);
+                if (assertionError is not null)
+                {
+                    reporter.CompleteStage(step.Id, false, assertionError);
+                    reporter.CompleteFlow(false, assertionError);
+                    return new(false, assertionError, step.Id);
+                }
+
+                reporter.CompleteStage(step.Id, true);
+            }
+
+            var message = $"Validation '{flow.Name}' passed.";
+            reporter.CompleteFlow(true, message);
+            return new(true, message);
+        }
+        finally
+        {
+            await RemoveReplayChromeAsync(host, workspaceId);
+        }
     }
 
     private async Task<string?> ExecuteStepAsync(
@@ -328,6 +335,13 @@ public sealed class ValidationFlowReplayService(
         cancellationToken.ThrowIfCancellationRequested();
         var json = await host.EvalAsync(workspaceId, script, cancellationToken);
         return ParseScriptError(json);
+    }
+
+    private async Task RemoveReplayChromeAsync(IValidationReplayHost host, string workspaceId)
+    {
+        if (skipCosmeticStaging)
+            return;
+        await host.EvalAsync(workspaceId, browser.RemoveReplayChromeScript(), CancellationToken.None);
     }
 
     private static string? ParseScriptError(string? json)

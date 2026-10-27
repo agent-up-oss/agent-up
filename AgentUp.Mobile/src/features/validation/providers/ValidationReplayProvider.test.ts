@@ -93,6 +93,9 @@ test('runValidationReplay moves the cursor and pings before a click when cosmeti
   await runValidationReplay({ flow, host: page, reporter: record, skipCosmeticStaging: false });
   assert.equal(page.scripts.some(script => script.includes('__agentUpMouse')), true);
   assert.equal(page.scripts.some(script => script.includes('__agentUpClickRing')), true);
+  assert.equal(page.scripts.some(script =>
+    script.includes("getElementById('__agentUpMouse')") && script.includes('m.remove()')
+  ), true);
 });
 
 test('runValidationReplay fails the starting page when the title never matches', async () => {
