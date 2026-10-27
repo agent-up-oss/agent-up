@@ -11,6 +11,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
+import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import { agentUpTheme, auBox } from '@agent-up/design-system/native';
 import { useTaskQueue, type TaskQueueState } from '../controllers/TaskQueueContext';
 import { useTeamStanding } from '../controllers/TeamStandingContext';
@@ -37,6 +38,7 @@ import {
   whoIs,
   type TeamTriage,
 } from '../services/TeamStandingService';
+import { AgentPage } from './AgentPage';
 import { InterfaceToggleRow } from './InterfaceToggleRow';
 
 type Surface = 'bridge' | 'tasks' | 'team' | 'settings';
@@ -53,13 +55,38 @@ export function CommandCenterShell() {
   const standing = useTeamStanding();
   const tasks = useTaskQueue();
   const { activeServer, logout } = useServers();
+  const { workspaces } = useWorkspaces();
   const [surface, setSurface] = useState<Surface>('bridge');
+  // Which agent's own page is open, if any. The team says what each one is doing; opening one
+  // says what they are doing it in.
+  const [openAgent, setOpenAgent] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   // A drag and a scroll are the same downward swipe, so the list cannot scroll while a row is
   // being carried: the gesture has to mean one thing at a time.
   const [dragging, setDragging] = useState(false);
 
   const serverLabel = activeServer?.url ?? 'No server';
+
+  // An agent's page takes the whole shell: it carries its own head and its own sections, and the
+  // tab bar below still moves between surfaces, so leaving it is one press either way.
+  const agent = openAgent === null ? null : standing.team.find(item => item.workspaceId === openAgent) ?? null;
+  if (agent) {
+    return (
+      <View style={styles.shell}>
+        <AgentPage
+          standing={agent}
+          workspace={workspaces.find(item => item.id === agent.workspaceId) ?? null}
+          server={activeServer}
+          onBack={() => setOpenAgent(null)}
+        />
+        <View style={styles.tabBar}>
+          <TabItem label="Bridge" active={false} onPress={() => { setOpenAgent(null); setSurface('bridge'); }} />
+          <TabItem label="Tasks" active={false} onPress={() => { setOpenAgent(null); setSurface('tasks'); }} />
+          <TabItem label="Team" active onPress={() => setOpenAgent(null)} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.shell}>
@@ -83,7 +110,7 @@ export function CommandCenterShell() {
       <ScrollView contentContainerStyle={styles.body} scrollEnabled={!dragging}>
         {surface === 'bridge' ? <Bridge standing={standing} /> : null}
         {surface === 'tasks' ? <Tasks standing={standing} tasks={tasks} onDragging={setDragging} /> : null}
-        {surface === 'team' ? <Team standing={standing} /> : null}
+        {surface === 'team' ? <Team standing={standing} onOpen={setOpenAgent} /> : null}
         {surface === 'settings' ? <Settings onSignOut={logout} serverLabel={serverLabel} /> : null}
       </ScrollView>
 
@@ -557,11 +584,24 @@ function QueueAction({ label, tone, onPress }: { label: string; tone?: 'danger';
   );
 }
 
-function Team({ standing }: { standing: Standing }) {
+function Team({ standing, onOpen }: { standing: Standing; onOpen: (workspaceId: string) => void }) {
   if (standing.error) return <Empty title="Could not reach the Server" note={standing.error} action="Retry" onPress={standing.refresh} />;
   if (!standing.read && standing.loading) return <Empty title="Loading" note="Reading the team from the Server." />;
   if (!standing.team.length) return <Empty title="No agents yet" note="Each workspace on this Server is one agent's own space." />;
-  return <>{standing.team.map(item => <StandingCard key={item.workspaceId} standing={item} />)}</>;
+  return (
+    <>
+      {standing.team.map(item => (
+        <Pressable
+          key={item.workspaceId}
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${item.displayName}`}
+          onPress={() => onOpen(item.workspaceId)}
+        >
+          <StandingCard standing={item} />
+        </Pressable>
+      ))}
+    </>
+  );
 }
 
 /** One agent as a card: who, what they are on, and what the host reports about it. */
