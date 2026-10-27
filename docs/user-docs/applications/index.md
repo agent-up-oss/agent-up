@@ -28,7 +28,7 @@ Applications consume ports through environment variables such as `WEB_PORT`. The
 
 <DocSurfaces>
 <DocSurface desktop>Selecting an application opens Console, Metrics, Diagnostics, and, when `database` is true, a Postgres explorer. HTTP ports keep a native view. `desktopApplications` use a ticketed streamed viewer.</DocSurface>
-<DocSurface mobile>Apps shows workspace start/stop and live health above the application list, then opens each application as an inner page. HTTP UIs load through the Server proxy. `desktopApplications` use the streamed viewer.</DocSurface>
+<DocSurface mobile>Apps shows workspace start/stop and a download control beside Start, then live health above the application list, then opens each application as an inner page. HTTP UIs load through the Server proxy. A 50px Validation dock sits under the webview. An application with `database: true` opens the database explorer instead of a webview. `desktopApplications` use the streamed viewer.</DocSurface>
 </DocSurfaces>
 
 <p><img src="/desktop-applications.png" alt="Desktop applications showing the storefront running in Bob's workspace" /></p>
@@ -36,7 +36,7 @@ Applications consume ports through environment variables such as `WEB_PORT`. The
 
 ## Application tabs
 
-Selecting an application opens Console, Metrics, Diagnostics, and, when `database` is true, a Postgres explorer.
+Selecting an application opens Console, Metrics, Diagnostics, and, when `database` is true, a Postgres explorer. On Mobile, `database: true` replaces the application webview with that explorer.
 
 The Server owns port allocation and injects the workspace's full allocated port map into each launched local process. Applications should read the relevant environment variables instead of assuming fixed localhost ports.
 

@@ -44,6 +44,7 @@ public sealed class ValidationFlowReplayServiceTests
             Assert.That(handler.LastPath, Does.EndWith("/validation-flows/flow"));
             Assert.That(FakeReplayHost.Scripts.Any(s => s.Contains("__agentUpMouse")), Is.True);
             Assert.That(FakeReplayHost.Scripts.Any(s => s.Contains("__agentUpClickRing")), Is.True);
+            Assert.That(FakeReplayHost.Scripts, Does.Contain(BrowserScripts.RemoveReplayChrome()));
             Assert.That(reporter.CompletedFlowPassed, Is.True);
             Assert.That(reporter.StageIds, Does.Contain("settings"));
         });

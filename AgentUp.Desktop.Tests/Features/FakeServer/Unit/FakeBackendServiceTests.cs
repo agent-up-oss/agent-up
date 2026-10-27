@@ -40,7 +40,7 @@ public sealed class FakeBackendServiceTests
                 Is.EquivalentTo(new[] { "bob", "lucy", "hector" }));
             Assert.That(bob["state"]!.GetValue<string>(), Is.EqualTo("Running"));
             Assert.That(overview["displayName"]!.GetValue<string>(), Is.EqualTo("Bob"));
-            Assert.That(overview["applicationCount"]!.GetValue<int>(), Is.EqualTo(2));
+            Assert.That(overview["applicationCount"]!.GetValue<int>(), Is.EqualTo(3));
         });
     }
 
@@ -51,7 +51,7 @@ public sealed class FakeBackendServiceTests
 
         Assert.That(Run(backend, Post("/api/workspaces/bob/stop")).Status, Is.EqualTo(204));
         Assert.That(Json(backend, Get("/api/workspaces/bob"))["state"]!.GetValue<string>(), Is.EqualTo("Stopped"));
-        Assert.That(Json(backend, Get("/api/workspaces/bob"))["applications"]!.AsArray(), Has.Count.EqualTo(2));
+        Assert.That(Json(backend, Get("/api/workspaces/bob"))["applications"]!.AsArray(), Has.Count.EqualTo(3));
         Assert.That(Json(backend, Get("/api/workspaces/bob"))["applications"]![0]!["state"]!.GetValue<string>(), Is.EqualTo("Stopped"));
         Assert.That(Run(backend, Post("/api/workspaces/bob/start")).Status, Is.EqualTo(204));
         Assert.That(Json(backend, Get("/api/workspaces/bob"))["state"]!.GetValue<string>(), Is.EqualTo("Starting"));
@@ -71,7 +71,7 @@ public sealed class FakeBackendServiceTests
         queued.Dequeue()();
         var healthy = Json(backend, Get("/api/workspaces/bob"));
         Assert.That(healthy["healthState"]!.GetValue<string>(), Is.EqualTo("Healthy"));
-        Assert.That(healthy["applications"]!.AsArray(), Has.Count.EqualTo(2));
+        Assert.That(healthy["applications"]!.AsArray(), Has.Count.EqualTo(3));
     }
 
     [Test]
@@ -464,8 +464,6 @@ public sealed class FakeBackendServiceTests
         Assert.That(Run(backend, Post("/api/workspaces/bob/agent/permissions", "{}")).Status, Is.EqualTo(204));
         Assert.That(Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/workspaces/bob/agent")).Status, Is.EqualTo(204));
         Assert.That(Json(backend, Get("/api/workspaces/bob/applications/Storefront/metrics")).AsArray(), Is.Empty);
-        Assert.That(Json(backend, Get("/api/workspaces/bob/applications/Storefront/validation-flows")).AsArray(), Is.Empty);
-        Assert.That(Json(backend, Get("/api/workspaces/bob/applications/Storefront/database/tables")).AsArray(), Is.Empty);
     }
 
     [Test]
@@ -473,11 +471,9 @@ public sealed class FakeBackendServiceTests
     {
         var backend = FakeServerTestComposition.Backend();
         var ticket = Json(backend, Post("/api/workspaces/bob/applications/Storefront/viewer-ticket"));
-        var query = Json(backend, Post("/api/workspaces/bob/applications/Storefront/database/query", "{}"));
         var cloned = Json(backend, Post("/api/source-clones"));
 
         Assert.That(ticket["viewerUrl"]!.GetValue<string>(), Does.Contain("storefront"));
-        Assert.That(query["rows"]!.AsArray(), Is.Empty);
         Assert.That(cloned["branch"]!.GetValue<string>(), Is.EqualTo("main"));
         Assert.That(cloned["displayName"]!.GetValue<string>(), Is.EqualTo("demo"));
     }
@@ -827,6 +823,8 @@ public sealed class FakeBackendServiceTests
             Assert.That(response.Body, Does.Contain("Bob"));
             Assert.That(response.Body, Does.Contain("Storefront"));
             Assert.That(response.Body, Does.Contain("Orders API"));
+            Assert.That(response.Body, Does.Contain("<style>"));
+            Assert.That(response.Body, Does.Contain("--au-color-canvas"));
             Assert.That(response.Body, Does.Contain("<h2>Screenshots</h2>"));
             Assert.That(response.Body, Does.Contain("<h2>Verification</h2>"));
             Assert.That(Run(backend, Get("/api/workspaces/missing/review-snapshot")).Status, Is.EqualTo(404));
@@ -1116,6 +1114,193 @@ public sealed class FakeBackendServiceTests
 
         Assert.That(Json(backend, Get("/api/workspaces/stranger/forge/issues")).AsArray(), Is.Empty);
     }
+
+    [Test]
+    public void Handle_listsStorefrontValidationFlowsAndLoadsOneById()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var listed = Json(backend, Get("/api/workspaces/bob/validation-flows").WithQuery("application=Storefront")).AsArray();
+        var orders = Json(backend, Get("/api/workspaces/bob/validation-flows").WithQuery("application=Orders%20API")).AsArray();
+        var flow = Json(backend, Get("/api/workspaces/bob/validation-flows/checkout-featured-goods"));
+
+        Assert.That(listed, Has.Count.EqualTo(3));
+        Assert.That(listed[0]!["name"]!.GetValue<string>(), Is.EqualTo("Checkout featured goods"));
+        Assert.That(listed[1]!["name"]!.GetValue<string>(), Is.EqualTo("Checkout tote and lamp"));
+        Assert.That(orders, Has.Count.EqualTo(3));
+        Assert.That(orders[0]!["name"]!.GetValue<string>(), Is.EqualTo("Pack the open ticket"));
+        Assert.That(flow["id"]!.GetValue<string>(), Is.EqualTo("checkout-featured-goods"));
+        Assert.That(Run(backend, Get("/api/workspaces/bob/validation-flows/missing")).Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public void Handle_bundledFlowsActThenAssertOnStorefrontAndOrders()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var all = Json(backend, Get("/api/workspaces/bob/validation-flows")).AsArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(all, Has.Count.EqualTo(6));
+            Assert.That(all.Count(item => item?["application"]?.GetValue<string>() == "Storefront"), Is.EqualTo(3));
+            Assert.That(all.Count(item => item?["application"]?.GetValue<string>() == "Orders API"), Is.EqualTo(3));
+            Assert.That(all.All(HasActThenAssertSteps), Is.True);
+            Assert.That(backend.ApplicationHtml(9100), Does.Contain("Reset catalog"));
+            Assert.That(backend.ApplicationHtml(9101), Does.Contain("Pack order"));
+        });
+    }
+
+    private static bool HasActThenAssertSteps(JsonNode? item)
+    {
+        var steps = item?["steps"]?.AsArray();
+        return steps is { Count: > 0 }
+            && steps.All(step =>
+                step?["action"] is not null
+                && (step["expectations"]?.AsArray().Count ?? 0) > 0);
+    }
+
+    [Test]
+    public void Handle_servesInventoryDatabaseCatalogAndDefaultTableQuery()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var names = Json(backend, Get("/api/workspaces/bob/applications/Inventory/database/databases"));
+        var tables = Json(backend, Get("/api/workspaces/bob/applications/Inventory/database/tables").WithQuery("database=harbor"));
+        var query = Json(backend, Post(
+            "/api/workspaces/bob/applications/Inventory/database/query",
+            """{"database":"harbor","sql":"SELECT * FROM products LIMIT 50"}"""));
+
+        Assert.That(names["databases"]!.AsArray()[0]!.GetValue<string>(), Is.EqualTo("harbor"));
+        Assert.That(tables["tables"]!.AsArray().Select(item => item!.GetValue<string>()), Does.Contain("products"));
+        Assert.That(query["columns"]!.AsArray()[1]!.GetValue<string>(), Is.EqualTo("name"));
+        Assert.That(query["rows"]!.AsArray(), Has.Count.EqualTo(3));
+        Assert.That(Run(backend, Get("/api/workspaces/bob/applications/Storefront/database/databases")).Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public void Handle_listsNestedValidationFlowsAndQuotedInventoryQueries()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var nested = Json(backend, Get("/api/workspaces/bob/applications/Storefront/validation-flows")).AsArray();
+        var all = Json(backend, Get("/api/workspaces/bob/validation-flows")).AsArray();
+        var quoted = Json(backend, Post(
+            "/api/workspaces/bob/applications/Inventory/database/query",
+            """{"database":"harbor","sql":"SELECT * FROM \"orders\" LIMIT 50"}"""));
+        var missingTable = Json(backend, Post(
+            "/api/workspaces/bob/applications/Inventory/database/query",
+            """{"database":"harbor","sql":"SELECT 1"}"""));
+
+        Assert.That(nested, Has.Count.EqualTo(3));
+        Assert.That(all, Has.Count.EqualTo(6));
+        Assert.That(quoted["columns"]!.AsArray()[1]!.GetValue<string>(), Is.EqualTo("status"));
+        Assert.That(quoted["rows"]!.AsArray(), Has.Count.EqualTo(2));
+        Assert.That(missingTable["columns"]!.AsArray(), Is.Empty);
+        Assert.That(Run(backend, Get("/api/workspaces/bob/applications/Inventory/database/query")).Status, Is.EqualTo(404));
+        var unknownDb = Json(backend, Get("/api/workspaces/bob/applications/Inventory/database/tables").WithQuery("database=missing"));
+        Assert.That(unknownDb["tables"]!.AsArray(), Is.Empty);
+    }
+
+    [Test]
+    public void Handle_returnsNotFoundWhenADatabaseAppHasNoCatalog()
+    {
+        var backend = BackendFromJson("""
+            {"id":"fake","url":"http://127.0.0.1:9","displayName":"Demo","connection":{},"authentication":{},"entitlements":{},"workspaces":[{"id":"bob","displayName":"Bob","state":"Running","applications":[{"name":"Inventory","database":true}]}]}
+            """);
+
+        Assert.That(
+            Run(backend, Get("/api/workspaces/bob/applications/Inventory/database/databases")).Status,
+            Is.EqualTo(404));
+    }
+
+    [Test]
+    public void Handle_returnsNotFoundForUnknownDatabaseActionsAndApps()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Assert.That(Run(backend, Get("/api/workspaces/bob/applications/Inventory/database/schema")).Status, Is.EqualTo(404));
+        Assert.That(Run(backend, Get("/api/workspaces/bob/applications/Missing/database/databases")).Status, Is.EqualTo(404));
+        Assert.That(Run(backend, Get("/api/workspaces/missing/applications/Inventory/database/databases")).Status, Is.EqualTo(404));
+        Assert.That(Run(backend, Get("/api/workspaces/bob/other/database/databases")).Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public void Handle_queryWithoutSqlOrEscapedQuotesReturnsEmptyColumns()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var noSql = Json(backend, Post(
+            "/api/workspaces/bob/applications/Inventory/database/query",
+            """{"database":"harbor"}"""));
+        var escaped = Json(backend, Post(
+            "/api/workspaces/bob/applications/Inventory/database/query",
+            """{"database":"harbor","sql":"SELECT * FROM \"ord\"\"ers\""}"""));
+        var tables = Json(backend, Get("/api/workspaces/bob/applications/Inventory/database/tables"));
+
+        Assert.That(noSql["columns"]!.AsArray(), Is.Empty);
+        Assert.That(escaped["columns"]!.AsArray(), Is.Empty);
+        Assert.That(tables["tables"]!.AsArray(), Is.Empty);
+    }
+
+    [Test]
+    public void Handle_listsNoValidationFlowsWhenTheDefinitionOmitsThem()
+    {
+        var backend = BackendFromJson("""
+            {"id":"fake","url":"http://127.0.0.1:9","displayName":"Demo","connection":{},"authentication":{},"entitlements":{},"workspaces":[{"id":"bob","displayName":"Bob","state":"Running","applications":[]}]}
+            """);
+
+        Assert.That(Json(backend, Get("/api/workspaces/bob/validation-flows")).AsArray(), Is.Empty);
+        Assert.That(Run(backend, Get("/api/workspaces/bob/validation-flows/checkout-featured-goods")).Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public void Handle_ignoresValidationFlowsForOtherWorkspacesAndBareNestedPaths()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var bare = Json(backend, Get("/api/workspaces/bob/applications/validation-flows")).AsArray();
+        var other = Json(backend, Get("/api/workspaces/bob/other/validation-flows")).AsArray();
+        var encoded = Json(backend, Get("/api/workspaces/bob/applications/Orders%20API/validation-flows")).AsArray();
+
+        Assert.That(bare, Has.Count.EqualTo(6));
+        Assert.That(other, Has.Count.EqualTo(6));
+        Assert.That(encoded, Has.Count.EqualTo(3));
+    }
+
+    [Test]
+    public void Handle_skipsDatabaseCatalogsThatDoNotMatchTheWorkspace()
+    {
+        var backend = BackendFromJson("""
+            {"id":"fake","url":"http://127.0.0.1:9","displayName":"Demo","connection":{},"authentication":{},"entitlements":{},"workspaces":[{"id":"bob","displayName":"Bob","state":"Running","applications":[{"name":"Inventory","database":true},{"name":"Ledger","database":true}]}],"databases":[{"workspaceId":"other","application":"Inventory","names":["harbor"]},{"workspaceId":"bob","application":"Ledger","names":["books"]}]}
+            """);
+
+        Assert.That(Run(backend, Get("/api/workspaces/bob/applications/Inventory/database/databases")).Status, Is.EqualTo(404));
+        Assert.That(
+            Json(backend, Get("/api/workspaces/bob/applications/Ledger/database/databases"))["databases"]!.AsArray()[0]!.GetValue<string>(),
+            Is.EqualTo("books"));
+    }
+
+    [Test]
+    public void Handle_treatsIncompleteDefinitionRowsAsMissing()
+    {
+        var backend = BackendFromJson("""
+            {"id":"fake","url":"http://127.0.0.1:9","displayName":"Demo","connection":{},"authentication":{},"entitlements":{},"workspaces":[{"id":"bob","displayName":"Bob","state":"Running","applications":[{"name":"Inventory","database":true},{"name":"Bare"},{}]},{"id":"empty-apps","displayName":"Empty"}],"validationFlows":[{},{"id":"orphan","workspaceId":"other"},{"workspaceId":"bob"}],"databases":[{},{"workspaceId":"bob","application":"Inventory","names":["harbor"]}]}
+            """);
+
+        Assert.That(Run(backend, Get("/api/workspaces/bob/applications/Bare/database/databases")).Status, Is.EqualTo(404));
+        Assert.That(Run(backend, Get("/api/workspaces/empty-apps/applications/Inventory/database/databases")).Status, Is.EqualTo(404));
+        Assert.That(Json(backend, Get("/api/workspaces/bob/validation-flows").WithQuery("application=Storefront")).AsArray(), Is.Empty);
+        Assert.That(Run(backend, Get("/api/workspaces/bob/validation-flows/orphan")).Status, Is.EqualTo(404));
+        Assert.That(
+            Json(backend, Get("/api/workspaces/bob/applications/Inventory/database/tables").WithQuery("database=harbor"))["tables"]!.AsArray(),
+            Is.Empty);
+        Assert.That(
+            Json(backend, Post("/api/workspaces/bob/applications/Inventory/database/query", "{}"))["columns"]!.AsArray(),
+            Is.Empty);
+        Assert.That(
+            Json(backend, Post(
+                "/api/workspaces/bob/applications/Inventory/database/query",
+                """{"database":"harbor","sql":"SELECT * FROM products"}"""))["columns"]!.AsArray(),
+            Is.Empty);
+    }
+
+    private static AgentUp.Desktop.Features.FakeServer.Services.FakeBackendService BackendFromJson(string json)
+        => new(new AgentUp.Desktop.Features.FakeServer.Providers.FakeServerDefinitionProvider().LoadJson(json));
 
     private static FakeBackendRequestDtoBuilder Get(string path) => new FakeBackendRequestDtoBuilder().Get(path);
 

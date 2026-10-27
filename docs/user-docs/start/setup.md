@@ -122,7 +122,7 @@ On NixOS:
 
 The script runs the desktop inside `shell.nix`, which provides the native libraries needed on Linux.
 
-On every launch, Desktop and Mobile list a built-in **Demo** server on the connect screen. Desktop shows that picker before it talks to a local Server, so Demo can be opened without a running `agent-up-server`. Connecting to Demo uses only in-app sample state — a team of three named agents (Bob building a feature, Lucy waiting on your approval to post a review, Hector stopped on a repository host that will not answer), each with their own worktree, branch, and account on the host, plus interactive application pages, Git changes, and first-party capability modules. It is not a running Agent-Up Server. Disconnect and connect to a real Server without restarting the client.
+On every launch, Desktop and Mobile list a built-in **Demo** server on the connect screen. Desktop shows that picker before it talks to a local Server, so Demo can be opened without a running `agent-up-server`. Connecting to Demo uses only in-app sample state — a team of three named agents (Bob building a feature, Lucy waiting on your approval to post a review, Hector stopped on a repository host that will not answer), each with their own worktree, branch, and account on the host, plus interactive storefront and Orders API pages, Git changes, and first-party capability modules. Storefront and Orders API each ship several validation flows that reset the catalog, drive a user action, and assert the page after that change. It is not a running Agent-Up Server. Disconnect and connect to a real Server without restarting the client.
 
 See [Workspaces](/docs/workspaces) for connect, start, and the Mobile workspace list.
 

@@ -18,6 +18,7 @@ import {
   switchGitBranch,
   type FakeGitState,
 } from '../providers/FakeGitProvider';
+import { fakeReviewReportStyleTag } from '../providers/FakeReviewReportCss';
 
 export const fakeWorkspaceStartPhaseMs = 1000;
 
@@ -57,6 +58,7 @@ type WorkspaceRecord = {
     state: string;
     kind?: string;
     page?: string;
+    database?: boolean;
     allocatedPorts?: Array<{ allocatedPort: number; protocol?: string; variable?: string }>;
   }>;
 };
@@ -278,10 +280,13 @@ export class FakeBackendService {
     if (method === 'DELETE' && rest === 'agent') return { status: 204, contentType: 'application/json' };
     if (method === 'GET' && rest.endsWith('/output')) return this.consoleOutput(workspaceId, rest);
     if (method === 'GET' && rest.endsWith('/metrics')) return json([]);
-    if (method === 'GET' && rest.endsWith('/validation-flows')) return json([]);
+    if (method === 'GET' && rest.startsWith('validation-flows/'))
+      return this.validationFlow(workspaceId, decodeURIComponent(rest.slice('validation-flows/'.length)));
+    if (method === 'GET' && (rest === 'validation-flows' || rest.endsWith('/validation-flows')))
+      return this.validationFlows(workspaceId, rest, request.query);
     if (method === 'POST' && rest.includes('/viewer-ticket')) return this.viewerTicket(workspaceId);
-    if (method === 'GET' && rest.includes('/database/')) return json([]);
-    if (method === 'POST' && rest.includes('/database/')) return json({ rows: [], error: null });
+    const database = parseDatabasePath(rest);
+    if (database) return this.databaseRoute(workspaceId, database.application, database.action, method, request);
     return notFound();
   }
 
@@ -730,6 +735,59 @@ export class FakeBackendService {
     return json(this.state.console?.[key] ?? []);
   }
 
+  private validationFlows(workspaceId: string, rest: string, query: string): FakeBackendResponse {
+    let application = queryValue(query, 'application');
+    const nested = rest.match(/^applications\/([^/]+)\/validation-flows$/);
+    if (!application && nested) application = decodeURIComponent(nested[1]);
+    const flows = this.listedValidationFlows(workspaceId).filter(flow =>
+      !application || flow.application === application);
+    return json(flows);
+  }
+
+  private validationFlow(workspaceId: string, id: string): FakeBackendResponse {
+    const flow = this.listedValidationFlows(workspaceId).find(item => item.id === id);
+    return flow ? json(flow) : notFound();
+  }
+
+  private listedValidationFlows(workspaceId: string): Array<ValidationFlowRecord> {
+    return (this.state.validationFlows ?? [])
+      .filter((item): item is ValidationFlowRecord => isValidationFlow(item) && item.workspaceId === workspaceId);
+  }
+
+  private databaseRoute(
+    workspaceId: string,
+    application: string,
+    action: string,
+    method: string,
+    request: FakeBackendRequest,
+  ): FakeBackendResponse {
+    if (!this.findApplication(workspaceId, application)?.database) return notFound();
+    const catalog = this.databaseCatalog(workspaceId, application);
+    if (!catalog) return notFound();
+    if (method === 'GET' && action === 'databases') return json({ databases: catalog.names });
+    if (method === 'GET' && action === 'tables') {
+      const database = queryValue(request.query, 'database') ?? '';
+      return json({ tables: catalog.tables?.[database] ?? [] });
+    }
+    if (method === 'POST' && action === 'query') {
+      const database = readJsonString(request.body, 'database') ?? '';
+      const table = tableNameFromSql(readJsonString(request.body, 'sql') ?? '');
+      const data = table ? catalog.data[database]?.[table] : undefined;
+      return json({ columns: data?.columns ?? [], rows: data?.rows ?? [] });
+    }
+    return notFound();
+  }
+
+  private findApplication(workspaceId: string, name: string) {
+    return this.findWorkspace(workspaceId)?.applications?.find(item => item.name === name);
+  }
+
+  private databaseCatalog(workspaceId: string, application: string): DatabaseCatalog | null {
+    const match = (this.state.databases ?? []).find(item =>
+      isDatabaseCatalog(item) && item.workspaceId === workspaceId && item.application === application);
+    return match && isDatabaseCatalog(match) ? match : null;
+  }
+
   private cloneWorkspace(body: string | null): FakeBackendResponse {
     const repository = readJsonString(body, 'repository') ?? 'https://git.example/demo.git';
     const derived = readJsonBoolean(body, 'derived');
@@ -1030,7 +1088,7 @@ function renderFakeReviewReport(workspace: WorkspaceRecord): string {
     ).join('');
     return `<article class="au-card"><h3>${escapeHtml(app.name)}</h3><p class="au-muted">${escapeHtml(app.kind ?? 'Process')} · ${escapeHtml(app.state)}</p>${ports}</article>`;
   }).join('');
-  return `<!DOCTYPE html><html lang="en" class="au-theme"><head><meta charset="utf-8"><title>Export Report — ${escapeHtml(workspace.displayName)}</title></head><body class="au-theme"><article class="au-overview au-report"><p class="au-eyebrow">Export Report</p><h1 class="au-page-title">${escapeHtml(workspace.displayName)}</h1><p class="au-muted">${escapeHtml(workspace.state)}</p><p class="au-mono">${escapeHtml(workspace.repositoryPath)}</p><h2>Applications</h2>${appMarkup}<h2>Screenshots</h2><p class="au-muted">No screenshots.</p><h2>Verification</h2><p class="au-muted">Verification could not run for this worktree.</p></article></body></html>`;
+  return `<!DOCTYPE html><html lang="en" class="au-theme"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Export Report — ${escapeHtml(workspace.displayName)}</title>${fakeReviewReportStyleTag()}</head><body class="au-theme"><article class="au-overview au-report"><p class="au-eyebrow">Export Report</p><h1 class="au-page-title">${escapeHtml(workspace.displayName)}</h1><p class="au-muted">${escapeHtml(workspace.state)}</p><p class="au-mono">${escapeHtml(workspace.repositoryPath)}</p><h2>Applications</h2>${appMarkup}<h2>Screenshots</h2><p class="au-muted">No screenshots.</p><h2>Verification</h2><p class="au-muted">Verification could not run for this worktree.</p></article></body></html>`;
 }
 
 function notFound(): FakeBackendResponse {
@@ -1039,4 +1097,47 @@ function notFound(): FakeBackendResponse {
     contentType: 'application/json',
     body: JSON.stringify({ title: 'Not Found', detail: 'The fake Server has no resource at that path.' }),
   };
+}
+
+type ValidationFlowRecord = {
+  id: string;
+  workspaceId: string;
+  application: string;
+  [key: string]: unknown;
+};
+
+type DatabaseCatalog = {
+  workspaceId: string;
+  application: string;
+  names: string[];
+  tables: Record<string, string[]>;
+  data: Record<string, Record<string, { columns: string[]; rows: string[][] }>>;
+};
+
+function isValidationFlow(item: unknown): item is ValidationFlowRecord {
+  return !!item
+    && typeof item === 'object'
+    && typeof (item as ValidationFlowRecord).id === 'string'
+    && typeof (item as ValidationFlowRecord).workspaceId === 'string'
+    && typeof (item as ValidationFlowRecord).application === 'string';
+}
+
+function isDatabaseCatalog(item: unknown): item is DatabaseCatalog {
+  return !!item
+    && typeof item === 'object'
+    && typeof (item as DatabaseCatalog).workspaceId === 'string'
+    && typeof (item as DatabaseCatalog).application === 'string'
+    && Array.isArray((item as DatabaseCatalog).names);
+}
+
+function parseDatabasePath(rest: string): { application: string; action: string } | null {
+  const match = rest.match(/^applications\/([^/]+)\/database\/(databases|tables|query)$/);
+  return match ? { application: decodeURIComponent(match[1]), action: match[2] } : null;
+}
+
+function tableNameFromSql(sql: string): string | null {
+  const quoted = sql.match(/from\s+"((?:[^"]|"")+)"/i);
+  if (quoted) return quoted[1].replaceAll('""', '"');
+  const bare = sql.match(/from\s+([A-Za-z_][\w]*)/i);
+  return bare?.[1] ?? null;
 }

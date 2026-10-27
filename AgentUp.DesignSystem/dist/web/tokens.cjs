@@ -812,6 +812,26 @@ const agentUpTheme = Object.freeze({
     validationSidebarCopy: Object.freeze({
       minWidth: 0,
     }),
+    validationDock: Object.freeze({
+      height: 50,
+      minHeight: 50,
+      paddingHorizontal: 12,
+      paddingVertical: 0,
+      color: "#f5fbf7",
+      backgroundColor: "#0a0b0c",
+      borderTopWidth: 1,
+      borderTopColor: "#ffffff14",
+    }),
+    validationDockCopy: Object.freeze({
+      minWidth: 0,
+    }),
+    validationDockList: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#202428",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 8,
+    }),
     validationPlay: Object.freeze({
       paddingHorizontal: 12,
       paddingVertical: 7.04,

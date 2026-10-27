@@ -13,7 +13,9 @@
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "expo-env.d.ts",
+    "../AgentUp.FakeServer/definition.json",
+    "../AgentUp.FakeServer/agent-up.css.json"
   ],
   "exclude": [
     "**/*.test.ts",

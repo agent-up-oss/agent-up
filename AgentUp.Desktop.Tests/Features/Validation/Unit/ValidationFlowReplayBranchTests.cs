@@ -176,6 +176,7 @@ public sealed class ValidationFlowReplayBranchTests
             Assert.That(host.Scripts.Any(x => x.Contains("__agentUpMouse")), Is.True);
             Assert.That(host.Scripts.Any(x => x.Contains("a@b.test")), Is.True);
             Assert.That(host.Scripts, Does.Contain(BrowserScripts.RemoveAttentionPing()));
+            Assert.That(host.Scripts, Does.Contain(BrowserScripts.RemoveReplayChrome()));
         });
     }
 

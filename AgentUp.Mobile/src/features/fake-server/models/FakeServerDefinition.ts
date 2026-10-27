@@ -12,6 +12,8 @@ export type FakeServerDefinition = {
   agents?: Record<string, { session?: unknown; scripts?: Array<{ events?: Array<{ type?: string; payload?: unknown }> }> }>;
   pages?: Record<string, string>;
   capabilities?: unknown[];
+  validationFlows?: unknown[];
+  databases?: unknown[];
   /** What a connected repository host reports, per workspace. */
   forge?: Record<string, unknown>;
   /** The tasks picked for the agents, in the order they will be worked. */

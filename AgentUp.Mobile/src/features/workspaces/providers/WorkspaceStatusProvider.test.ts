@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { agentUpTheme } from '@agent-up/design-system/native';
 import {
   statusDotStyle,
   statusLedRole,
@@ -70,9 +71,9 @@ test('lifecycle controls match Desktop start/stop visibility', () => {
 });
 
 test('status dots use the design-system healthy warning and danger tokens', () => {
-  assert.equal(statusDotStyle('Running').backgroundColor, '#22c55e');
-  assert.equal(statusDotStyle('Starting').backgroundColor, '#e0a128');
-  assert.equal(statusDotStyle('Failed').backgroundColor, '#d84f4f');
-  assert.equal(statusDotStyle('Degraded').backgroundColor, '#e0a128');
-  assert.equal(statusDotStyle('Stopped').backgroundColor, '#8a9a92');
+  assert.equal(statusDotStyle('Running').backgroundColor, agentUpTheme.colors.statusHealthy);
+  assert.equal(statusDotStyle('Starting').backgroundColor, agentUpTheme.colors.statusWarning);
+  assert.equal(statusDotStyle('Failed').backgroundColor, agentUpTheme.colors.statusDanger);
+  assert.equal(statusDotStyle('Degraded').backgroundColor, agentUpTheme.colors.statusWarning);
+  assert.equal(statusDotStyle('Stopped').backgroundColor, agentUpTheme.colors.textMuted);
 });

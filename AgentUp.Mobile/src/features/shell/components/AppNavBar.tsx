@@ -31,12 +31,14 @@ export function AppNavBar() {
       <Text accessibilityRole="header" numberOfLines={1} style={styles.title}>{config.title}</Text>
       {rightAction
         ? <Pressable
-            testID="shell-right-action"
+            testID={rightAction.testID ?? 'shell-right-action'}
             accessibilityRole="button"
             accessibilityLabel={rightAction.accessibilityLabel ?? rightAction.label}
             onPress={rightAction.onPress}
-            style={styles.rightButton}>
-            <Text style={styles.rightButtonText}>{rightAction.label}</Text>
+            style={rightAction.appearance === 'tool' ? styles.stackButton : styles.rightButton}>
+            <Text style={rightAction.appearance === 'tool' ? styles.stackIcon : styles.rightButtonText}>
+              {rightAction.label}
+            </Text>
           </Pressable>
         : <View style={styles.rightSpacer} />}
     </View>
