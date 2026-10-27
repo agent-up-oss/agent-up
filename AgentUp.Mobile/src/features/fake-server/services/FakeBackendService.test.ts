@@ -644,3 +644,32 @@ test('pointing a task at a workspace is served back on the queue', () => {
   const task = json(service, 'GET', '/api/tasks').find((item: { number: number }) => item.number === 48);
   assert.equal(task.targetWorkspaceId, 'lucy');
 });
+
+test('a dequeued task goes back to the open issues it came from', () => {
+  // The demo once listed the queued issues nowhere else, so taking one out of the queue put it
+  // nowhere at all: it vanished from the screen and could never be picked again.
+  const service = backend();
+  const before = json(service, 'GET', '/api/workspaces/bob/forge/issues') as Array<{ number: number }>;
+  assert.ok(!before.some(issue => issue.number === 51));
+
+  service.handle({ method: 'DELETE', path: '/api/tasks/example/repository/I-51', query: '', body: null });
+
+  const after = json(service, 'GET', '/api/workspaces/bob/forge/issues') as Array<{ number: number }>;
+  assert.ok(after.some(issue => issue.number === 51));
+});
+
+test('a dequeued task can be picked into the queue again', () => {
+  const service = backend();
+  service.handle({ method: 'DELETE', path: '/api/tasks/example/repository/I-51', query: '', body: null });
+
+  const picked = service.handle({
+    method: 'POST', path: '/api/tasks', query: '',
+    body: JSON.stringify({ workspaceId: 'bob', issueId: 'I-51' }),
+  });
+
+  assert.equal(picked.status, 200);
+  assert.deepEqual(
+    json(service, 'GET', '/api/tasks').map((task: { number: number }) => task.number),
+    [44, 48, 51],
+  );
+});

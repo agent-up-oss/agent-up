@@ -1027,6 +1027,40 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_offersADequeuedTaskBackAmongTheOpenIssues()
+    {
+        // The Demo once listed the queued issues nowhere else, so taking one out of the queue put
+        // it nowhere at all: it vanished from the screen and could never be picked again.
+        var backend = FakeServerTestComposition.Backend();
+        var before = Json(backend, Get("/api/workspaces/bob/forge/issues")).AsArray()
+            .Select(issue => issue!["number"]!.GetValue<int>()).ToList();
+
+        Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/tasks/example/repository/I-51"));
+
+        var after = Json(backend, Get("/api/workspaces/bob/forge/issues")).AsArray()
+            .Select(issue => issue!["number"]!.GetValue<int>()).ToList();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(before, Does.Not.Contain(51));
+            Assert.That(after, Does.Contain(51));
+        });
+    }
+
+    [Test]
+    public void Handle_picksADequeuedTaskIntoTheQueueAgain()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/tasks/example/repository/I-51"));
+
+        Run(backend, Post("/api/tasks", """{"workspaceId":"bob","issueId":"I-51"}"""));
+
+        Assert.That(
+            Json(backend, Get("/api/tasks")).AsArray().Select(task => task!["number"]!.GetValue<int>()),
+            Is.EqualTo(new[] { 44, 48, 51 }));
+    }
+
+    [Test]
     public void Handle_refusesToRemoveATaskAWorkspaceIsCarrying()
     {
         var backend = FakeServerTestComposition.Backend();

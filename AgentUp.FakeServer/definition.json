@@ -1866,6 +1866,33 @@
         "createdAt": "2026-03-01T08:00:00Z",
         "updatedAt": "2026-03-02T08:00:00Z",
         "url": "https://github.com/example/repository/issues/61"
+      },
+      {
+        "id": "I-44",
+        "number": 44,
+        "title": "Restock featured products",
+        "body": "The featured rail empties when a promo ends. Refill it from the catalogue.",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T09:00:00Z",
+        "url": "https://github.com/example/repository/issues/44"
+      },
+      {
+        "id": "I-51",
+        "number": 51,
+        "title": "Broken anchors in the docs nav",
+        "body": "Several in-page anchors scroll to the wrong heading.",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T09:04:00Z",
+        "url": "https://github.com/example/repository/issues/51"
+      },
+      {
+        "id": "I-48",
+        "number": 48,
+        "title": "Express checkout drops the promo code",
+        "body": "Applying a promo code then switching to express checkout loses it.",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T09:07:00Z",
+        "url": "https://github.com/example/repository/issues/48"
       }
     ],
     "lucy": [
@@ -1895,6 +1922,33 @@
         "createdAt": "2026-03-01T08:00:00Z",
         "updatedAt": "2026-03-02T08:00:00Z",
         "url": "https://github.com/example/repository/issues/61"
+      },
+      {
+        "id": "I-44",
+        "number": 44,
+        "title": "Restock featured products",
+        "body": "The featured rail empties when a promo ends. Refill it from the catalogue.",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T09:00:00Z",
+        "url": "https://github.com/example/repository/issues/44"
+      },
+      {
+        "id": "I-51",
+        "number": 51,
+        "title": "Broken anchors in the docs nav",
+        "body": "Several in-page anchors scroll to the wrong heading.",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T09:04:00Z",
+        "url": "https://github.com/example/repository/issues/51"
+      },
+      {
+        "id": "I-48",
+        "number": 48,
+        "title": "Express checkout drops the promo code",
+        "body": "Applying a promo code then switching to express checkout loses it.",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T09:07:00Z",
+        "url": "https://github.com/example/repository/issues/48"
       }
     ],
     "hector": [
@@ -1924,6 +1978,33 @@
         "createdAt": "2026-03-01T08:00:00Z",
         "updatedAt": "2026-03-02T08:00:00Z",
         "url": "https://github.com/example/repository/issues/61"
+      },
+      {
+        "id": "I-44",
+        "number": 44,
+        "title": "Restock featured products",
+        "body": "The featured rail empties when a promo ends. Refill it from the catalogue.",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T09:00:00Z",
+        "url": "https://github.com/example/repository/issues/44"
+      },
+      {
+        "id": "I-51",
+        "number": 51,
+        "title": "Broken anchors in the docs nav",
+        "body": "Several in-page anchors scroll to the wrong heading.",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T09:04:00Z",
+        "url": "https://github.com/example/repository/issues/51"
+      },
+      {
+        "id": "I-48",
+        "number": 48,
+        "title": "Express checkout drops the promo code",
+        "body": "Applying a promo code then switching to express checkout loses it.",
+        "createdAt": "2026-03-01T08:00:00Z",
+        "updatedAt": "2026-03-02T09:07:00Z",
+        "url": "https://github.com/example/repository/issues/48"
       }
     ]
   }
