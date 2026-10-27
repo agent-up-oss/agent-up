@@ -744,6 +744,8 @@ public sealed class FakeBackendServiceTests
             Assert.That(response.Body, Does.Contain("Harbor Shop"));
             Assert.That(response.Body, Does.Contain("Storefront"));
             Assert.That(response.Body, Does.Contain("Orders API"));
+            Assert.That(response.Body, Does.Contain("<style>"));
+            Assert.That(response.Body, Does.Contain("--au-color-canvas"));
             Assert.That(response.Body, Does.Contain("<h2>Screenshots</h2>"));
             Assert.That(response.Body, Does.Contain("<h2>Verification</h2>"));
             Assert.That(Run(backend, Get("/api/workspaces/missing/review-snapshot")).Status, Is.EqualTo(404));
@@ -850,12 +852,39 @@ public sealed class FakeBackendServiceTests
         var orders = Json(backend, Get("/api/workspaces/harbor-shop/validation-flows").WithQuery("application=Orders%20API")).AsArray();
         var flow = Json(backend, Get("/api/workspaces/harbor-shop/validation-flows/checkout-featured-goods"));
 
-        Assert.That(listed, Has.Count.EqualTo(2));
+        Assert.That(listed, Has.Count.EqualTo(3));
         Assert.That(listed[0]!["name"]!.GetValue<string>(), Is.EqualTo("Checkout featured goods"));
-        Assert.That(listed[1]!["name"]!.GetValue<string>(), Is.EqualTo("Browse Canvas Tote"));
-        Assert.That(orders, Is.Empty);
+        Assert.That(listed[1]!["name"]!.GetValue<string>(), Is.EqualTo("Checkout tote and lamp"));
+        Assert.That(orders, Has.Count.EqualTo(3));
+        Assert.That(orders[0]!["name"]!.GetValue<string>(), Is.EqualTo("Pack the open ticket"));
         Assert.That(flow["id"]!.GetValue<string>(), Is.EqualTo("checkout-featured-goods"));
         Assert.That(Run(backend, Get("/api/workspaces/harbor-shop/validation-flows/missing")).Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public void Handle_bundledFlowsActThenAssertOnStorefrontAndOrders()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var all = Json(backend, Get("/api/workspaces/harbor-shop/validation-flows")).AsArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(all, Has.Count.EqualTo(6));
+            Assert.That(all.Count(item => item?["application"]?.GetValue<string>() == "Storefront"), Is.EqualTo(3));
+            Assert.That(all.Count(item => item?["application"]?.GetValue<string>() == "Orders API"), Is.EqualTo(3));
+            Assert.That(all.All(HasActThenAssertSteps), Is.True);
+            Assert.That(backend.ApplicationHtml(9100), Does.Contain("Reset catalog"));
+            Assert.That(backend.ApplicationHtml(9101), Does.Contain("Pack order"));
+        });
+    }
+
+    private static bool HasActThenAssertSteps(JsonNode? item)
+    {
+        var steps = item?["steps"]?.AsArray();
+        return steps is { Count: > 0 }
+            && steps.All(step =>
+                step?["action"] is not null
+                && (step["expectations"]?.AsArray().Count ?? 0) > 0);
     }
 
     [Test]
@@ -888,8 +917,8 @@ public sealed class FakeBackendServiceTests
             "/api/workspaces/harbor-shop/applications/Inventory/database/query",
             """{"database":"harbor","sql":"SELECT 1"}"""));
 
-        Assert.That(nested, Has.Count.EqualTo(2));
-        Assert.That(all, Has.Count.EqualTo(2));
+        Assert.That(nested, Has.Count.EqualTo(3));
+        Assert.That(all, Has.Count.EqualTo(6));
         Assert.That(quoted["columns"]!.AsArray()[1]!.GetValue<string>(), Is.EqualTo("status"));
         Assert.That(quoted["rows"]!.AsArray(), Has.Count.EqualTo(2));
         Assert.That(missingTable["columns"]!.AsArray(), Is.Empty);
@@ -957,9 +986,9 @@ public sealed class FakeBackendServiceTests
         var other = Json(backend, Get("/api/workspaces/harbor-shop/other/validation-flows")).AsArray();
         var encoded = Json(backend, Get("/api/workspaces/harbor-shop/applications/Orders%20API/validation-flows")).AsArray();
 
-        Assert.That(bare, Has.Count.EqualTo(2));
-        Assert.That(other, Has.Count.EqualTo(2));
-        Assert.That(encoded, Is.Empty);
+        Assert.That(bare, Has.Count.EqualTo(6));
+        Assert.That(other, Has.Count.EqualTo(6));
+        Assert.That(encoded, Has.Count.EqualTo(3));
     }
 
     [Test]

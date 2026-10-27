@@ -229,6 +229,8 @@ test('review snapshot exports the bundled workspace as HTML', () => {
   assert.match(response.body ?? '', /Harbor Shop/);
   assert.match(response.body ?? '', /Storefront/);
   assert.match(response.body ?? '', /Orders API/);
+  assert.match(response.body ?? '', /<style>/);
+  assert.match(response.body ?? '', /--au-color-canvas/);
   assert.match(response.body ?? '', /<h2>Screenshots<\/h2>/);
   assert.match(response.body ?? '', /<h2>Verification<\/h2>/);
   assert.equal(service.handle({ method: 'GET', path: '/api/workspaces/missing/review-snapshot', query: '', body: null }).status, 404);
@@ -407,12 +409,30 @@ test('lists Storefront validation flows and loads one by id', () => {
     query: '',
     body: null,
   });
-  assert.equal(listed.length, 2);
+  assert.equal(listed.length, 3);
   assert.equal(listed[0].name, 'Checkout featured goods');
-  assert.equal(listed[1].name, 'Browse Canvas Tote');
-  assert.equal(orders.length, 0);
+  assert.equal(listed[1].name, 'Checkout tote and lamp');
+  assert.equal(orders.length, 3);
+  assert.equal(orders[0].name, 'Pack the open ticket');
   assert.equal(flow.id, 'checkout-featured-goods');
   assert.equal(missing.status, 404);
+});
+
+test('bundled flows act then assert on Storefront and Orders API', () => {
+  const service = backend();
+  const all = json(service, 'GET', '/api/workspaces/harbor-shop/validation-flows') as Array<{
+    application: string;
+    steps: Array<{ action?: string; expectations?: unknown[] }>;
+  }>;
+  assert.equal(all.length, 6);
+  assert.equal(all.filter(flow => flow.application === 'Storefront').length, 3);
+  assert.equal(all.filter(flow => flow.application === 'Orders API').length, 3);
+  assert.equal(all.every(flow =>
+    flow.steps.length > 0
+    && flow.steps.every(step => !!step.action && (step.expectations?.length ?? 0) > 0)
+  ), true);
+  assert.match(service.applicationHtml(9100) ?? '', /Reset catalog/);
+  assert.match(service.applicationHtml(9101) ?? '', /Pack order/);
 });
 
 test('serves Inventory database catalog and default table query', () => {
@@ -458,7 +478,7 @@ test('lists nested Storefront validation flows and quoted Inventory queries', ()
     query: '',
     body: null,
   });
-  assert.equal(nested.length, 2);
+  assert.equal(nested.length, 3);
   assert.deepEqual(quoted.columns, ['id', 'status', 'total']);
   assert.equal(quoted.rows.length, 2);
   assert.deepEqual(missing.columns, []);

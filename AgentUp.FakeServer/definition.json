@@ -252,17 +252,38 @@
   },
   "console": {
     "harbor-shop/Storefront": [
-      { "text": "[install] npm install", "stream": "stdout" },
-      { "text": "added 1278 packages in 17s", "stream": "stdout" },
-      { "text": "[err] 4 vulnerabilities", "stream": "stderr" },
-      { "text": "Storefront listening on WEB_PORT", "stream": "stdout" }
+      {
+        "text": "[install] npm install",
+        "stream": "stdout"
+      },
+      {
+        "text": "added 1278 packages in 17s",
+        "stream": "stdout"
+      },
+      {
+        "text": "[err] 4 vulnerabilities",
+        "stream": "stderr"
+      },
+      {
+        "text": "Storefront listening on WEB_PORT",
+        "stream": "stdout"
+      }
     ],
     "harbor-shop/Orders API": [
-      { "text": "[install] npm install", "stream": "stdout" },
-      { "text": "Orders API listening on API_PORT", "stream": "stdout" }
+      {
+        "text": "[install] npm install",
+        "stream": "stdout"
+      },
+      {
+        "text": "Orders API listening on API_PORT",
+        "stream": "stdout"
+      }
     ],
     "harbor-shop/Inventory": [
-      { "text": "database system is ready to accept connections", "stream": "stdout" }
+      {
+        "text": "database system is ready to accept connections",
+        "stream": "stdout"
+      }
     ]
   },
   "agents": {
@@ -396,8 +417,8 @@
     }
   },
   "pages": {
-    "storefront": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Harbor Shop</title><style>html,body{margin:0;min-height:100%;background:#111;color:#f4f1ea;font-family:Inter,system-ui,sans-serif}main{max-width:720px;margin:0 auto;padding:32px 24px 64px}p,label{color:#c8c2b4}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin:24px 0}.card,.panel{background:#1b1b1b;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px}.price,.total{color:#3ddc84}button{background:#3ddc84;color:#102114;border:0;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer}button.ghost{background:transparent;color:#f4f1ea;border:1px solid rgba(255,255,255,.14)}.row{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:8px 0}.orders{display:grid;gap:12px;margin-top:16px}</style></head><body><main><p>STOREFRONT</p><h1>Harbor Shop</h1><p>Featured goods from the harbor catalog.</p><div id=\"products\" class=\"grid\"></div><section class=\"panel\"><h2>Cart</h2><div id=\"cart\"></div><div class=\"row\"><strong>Total</strong><strong class=\"total\" id=\"total\">$0</strong></div><p><button id=\"place\">Place order</button></p></section><section><h2>Recent orders</h2><div id=\"orders\" class=\"orders\"></div></section></main><script>const K=\"harbor-shop\";const P=[{id:\"mug\",n:\"Harbor Mug\",p:18,d:\"Stoneware, fog glaze\"},{id:\"tote\",n:\"Canvas Tote\",p:32,d:\"Waxed canvas, brass snap\"},{id:\"lamp\",n:\"Chart Lamp\",p:54,d:\"Brass shade, linen cord\"}];function seed(){return{seq:1009,cart:{},orders:[{id:\"1008\",status:\"open\",lines:[{id:\"mug\",n:\"Harbor Mug\",q:2,p:18}]},{id:\"1007\",status:\"packed\",lines:[{id:\"tote\",n:\"Canvas Tote\",q:1,p:32}]}]}}function load(){try{const s=JSON.parse(localStorage.getItem(K));return s&&Array.isArray(s.orders)?Object.assign(seed(),s):seed()}catch(e){return seed()}}function save(s){localStorage.setItem(K,JSON.stringify(s));try{new BroadcastChannel(K).postMessage(s)}catch(e){}}function listen(r){window.addEventListener(\"storage\",e=>{if(e.key===K)r()});try{new BroadcastChannel(K).onmessage=r}catch(e){}setInterval(r,800)}function money(n){return \"$\"+n}function sum(lines){return lines.reduce((a,l)=>a+l.p*l.q,0)}function render(){const s=load();const products=document.getElementById(\"products\");products.innerHTML=P.map(p=>'<div class=\"card\"><strong>'+p.n+'</strong><p>'+p.d+'</p><p class=\"price\">'+money(p.p)+'</p><button data-add=\"'+p.id+'\">Add to cart</button></div>').join(\"\");const cart=s.cart||{};const lines=Object.keys(cart).map(id=>cart[id]);document.getElementById(\"cart\").innerHTML=lines.length?lines.map(l=>'<div class=\"row\"><span>'+l.n+\" \u00d7 \"+l.q+\"</span><span>\"+money(l.p*l.q)+\"</span></div>\").join(\"\"):\"<p>Your cart is empty.</p>\";document.getElementById(\"total\").textContent=money(sum(lines));document.getElementById(\"orders\").innerHTML=s.orders.map(o=>'<div class=\"card\"><div class=\"row\"><strong>Order '+o.id+\"</strong><span>\"+o.status+\"</span></div>\"+o.lines.map(l=>\"<p>\"+l.n+\" \u00d7 \"+l.q+\"</p>\").join(\"\")+'<p class=\"total\">'+money(sum(o.lines))+\"</p></div>\").join(\"\");products.onclick=function(e){const id=e.target&&e.target.getAttribute&&e.target.getAttribute(\"data-add\");if(!id)return;const p=P.find(x=>x.id===id);const next=load();next.cart=next.cart||{};const line=next.cart[id]||{id:p.id,n:p.n,q:0,p:p.p};line.q+=1;next.cart[id]=line;save(next);render()};document.getElementById(\"place\").onclick=function(){const next=load();const lines=Object.keys(next.cart||{}).map(id=>next.cart[id]);if(!lines.length)return;next.orders=[{id:String(next.seq++),status:\"open\",lines:lines}].concat(next.orders);next.cart={};save(next);render()}}listen(render);render();</script></body></html>",
-    "orders-api": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Harbor Shop Orders</title><style>html,body{margin:0;min-height:100%;background:#111;color:#f4f1ea;font-family:Inter,system-ui,sans-serif}main{max-width:720px;margin:0 auto;padding:32px 24px 64px}p,label{color:#c8c2b4}.card{background:#1b1b1b;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px;margin:12px 0}.total{color:#3ddc84}button{background:#3ddc84;color:#102114;border:0;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer;margin-right:8px}button.ghost{background:transparent;color:#f4f1ea;border:1px solid rgba(255,255,255,.14)}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}select,input{background:#111;color:#f4f1ea;border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:8px}</style></head><body><main><p>ORDERS</p><h1>Harbor Shop Orders</h1><p>Open tickets from the storefront and the counter.</p><section class=\"card\"><h2>New counter order</h2><p><label>Item <select id=\"item\"><option value=\"mug\">Harbor Mug \u00b7 $18</option><option value=\"tote\">Canvas Tote \u00b7 $32</option><option value=\"lamp\">Chart Lamp \u00b7 $54</option></select></label></p><p><label>Qty <input id=\"qty\" type=\"number\" min=\"1\" value=\"1\"></label> <button id=\"create\">Create order</button></p></section><div id=\"list\"></div></main><script>const K=\"harbor-shop\";const P={mug:{n:\"Harbor Mug\",p:18},tote:{n:\"Canvas Tote\",p:32},lamp:{n:\"Chart Lamp\",p:54}};function seed(){return{seq:1009,cart:{},orders:[{id:\"1008\",status:\"open\",lines:[{id:\"mug\",n:\"Harbor Mug\",q:2,p:18}]},{id:\"1007\",status:\"packed\",lines:[{id:\"tote\",n:\"Canvas Tote\",q:1,p:32}]}]}}function load(){try{const s=JSON.parse(localStorage.getItem(K));return s&&Array.isArray(s.orders)?Object.assign(seed(),s):seed()}catch(e){return seed()}}function save(s){localStorage.setItem(K,JSON.stringify(s));try{new BroadcastChannel(K).postMessage(s)}catch(e){}}function listen(r){window.addEventListener(\"storage\",e=>{if(e.key===K)r()});try{new BroadcastChannel(K).onmessage=r}catch(e){}setInterval(r,800)}function money(n){return \"$\"+n}function sum(lines){return lines.reduce((a,l)=>a+l.p*l.q,0)}function nextStatus(status){return status===\"open\"?\"packed\":status===\"packed\"?\"shipped\":\"shipped\"}function render(){const s=load();document.getElementById(\"list\").innerHTML=s.orders.map(o=>'<article class=\"card\"><div class=\"row\"><strong>Order '+o.id+'</strong><span>'+o.status+'</span></div>'+o.lines.map(l=>\"<p>\"+l.n+\" \u00d7 \"+l.q+\"</p>\").join(\"\")+'<p class=\"total\">'+money(sum(o.lines))+\"</p>\"+(o.status===\"shipped\"?\"\":'<button data-advance=\"'+o.id+'\">Mark '+nextStatus(o.status)+\"</button>\")+\"</article>\").join(\"\");document.getElementById(\"list\").onclick=function(e){const id=e.target&&e.target.getAttribute&&e.target.getAttribute(\"data-advance\");if(!id)return;const next=load();const order=next.orders.find(o=>o.id===id);if(!order||order.status===\"shipped\")return;order.status=nextStatus(order.status);save(next);render()}}document.getElementById(\"create\").onclick=function(){const item=document.getElementById(\"item\").value;const qty=Math.max(1,Number(document.getElementById(\"qty\").value)||1);const catalog=P[item];const next=load();next.orders=[{id:String(next.seq++),status:\"open\",lines:[{id:item,n:catalog.n,q:qty,p:catalog.p}]}].concat(next.orders);save(next);render()};listen(render);render();</script></body></html>"
+    "storefront": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Harbor Shop</title><style>html,body{margin:0;min-height:100%;background:#111;color:#f4f1ea;font-family:Inter,system-ui,sans-serif}main{max-width:720px;margin:0 auto;padding:32px 24px 64px}p,label{color:#c8c2b4}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin:24px 0}.card,.panel{background:#1b1b1b;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px}.price,.total{color:#3ddc84}button{background:#3ddc84;color:#102114;border:0;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer}button.ghost{background:transparent;color:#f4f1ea;border:1px solid rgba(255,255,255,.14)}.row{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:8px 0}.orders{display:grid;gap:12px;margin-top:16px}</style></head><body><main><p>STOREFRONT</p><h1>Harbor Shop</h1><p>Featured goods from the harbor catalog.</p><p><button id=\"reset\" class=\"ghost\" type=\"button\">Reset catalog</button></p><div id=\"products\" class=\"grid\"></div><section class=\"panel\"><h2>Cart</h2><div id=\"cart\"></div><div class=\"row\"><strong>Total</strong><strong class=\"total\" id=\"total\">$0</strong></div><p><button id=\"place\">Place order</button></p></section><section><h2>Recent orders</h2><div id=\"orders\" class=\"orders\"></div></section></main><script>const K=\"harbor-shop\";const P=[{id:\"mug\",n:\"Harbor Mug\",p:18,d:\"Stoneware, fog glaze\"},{id:\"tote\",n:\"Canvas Tote\",p:32,d:\"Waxed canvas, brass snap\"},{id:\"lamp\",n:\"Chart Lamp\",p:54,d:\"Brass shade, linen cord\"}];function seed(){return{seq:1009,cart:{},orders:[{id:\"1008\",status:\"open\",lines:[{id:\"mug\",n:\"Harbor Mug\",q:2,p:18}]},{id:\"1007\",status:\"packed\",lines:[{id:\"tote\",n:\"Canvas Tote\",q:1,p:32}]}]}}function load(){try{const s=JSON.parse(localStorage.getItem(K));return s&&Array.isArray(s.orders)?Object.assign(seed(),s):seed()}catch(e){return seed()}}function save(s){localStorage.setItem(K,JSON.stringify(s));try{new BroadcastChannel(K).postMessage(s)}catch(e){}}function listen(r){window.addEventListener(\"storage\",e=>{if(e.key===K)r()});try{new BroadcastChannel(K).onmessage=r}catch(e){}setInterval(r,800)}function money(n){return \"$\"+n}function sum(lines){return lines.reduce((a,l)=>a+l.p*l.q,0)}function render(){const s=load();const products=document.getElementById(\"products\");products.innerHTML=P.map(p=>'<div class=\"card\"><strong>'+p.n+'</strong><p>'+p.d+'</p><p class=\"price\">'+money(p.p)+'</p><button data-add=\"'+p.id+'\">Add to cart</button></div>').join(\"\");const cart=s.cart||{};const lines=Object.keys(cart).map(id=>cart[id]);document.getElementById(\"cart\").innerHTML=lines.length?lines.map(l=>'<div class=\"row\"><span>Cart · '+l.n+\" × \"+l.q+\"</span><span>\"+money(l.p*l.q)+\"</span></div>\").join(\"\"):\"<p>Your cart is empty.</p>\";document.getElementById(\"total\").textContent=money(sum(lines));document.getElementById(\"orders\").innerHTML=s.orders.map(o=>'<div class=\"card\"><div class=\"row\"><strong>Order '+o.id+\"</strong><span>Order \"+o.id+\" is \"+o.status+\"</span></div>\"+o.lines.map(l=>\"<p>\"+l.n+\" × \"+l.q+\"</p>\").join(\"\")+'<p class=\"total\">'+money(sum(o.lines))+\"</p></div>\").join(\"\");products.onclick=function(e){const id=e.target&&e.target.getAttribute&&e.target.getAttribute(\"data-add\");if(!id)return;const p=P.find(x=>x.id===id);const next=load();next.cart=next.cart||{};const line=next.cart[id]||{id:p.id,n:p.n,q:0,p:p.p};line.q+=1;next.cart[id]=line;save(next);render()}}document.getElementById(\"place\").onclick=function(){const next=load();const lines=Object.keys(next.cart||{}).map(id=>next.cart[id]);if(!lines.length)return;next.orders=[{id:String(next.seq++),status:\"open\",lines:lines}].concat(next.orders);next.cart={};save(next);render()};document.getElementById(\"reset\").onclick=function(){localStorage.removeItem(K);render()};listen(render);render();</script></body></html>",
+    "orders-api": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Harbor Shop Orders</title><style>html,body{margin:0;min-height:100%;background:#111;color:#f4f1ea;font-family:Inter,system-ui,sans-serif}main{max-width:720px;margin:0 auto;padding:32px 24px 64px}p,label{color:#c8c2b4}.card{background:#1b1b1b;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px;margin:12px 0}.total{color:#3ddc84}button{background:#3ddc84;color:#102114;border:0;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer;margin-right:8px}button.ghost{background:transparent;color:#f4f1ea;border:1px solid rgba(255,255,255,.14)}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}select,input{background:#111;color:#f4f1ea;border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:8px}</style></head><body><main><p>ORDERS</p><h1>Harbor Shop Orders</h1><p>Open tickets from the storefront and the counter.</p><p><button id=\"reset\" class=\"ghost\" type=\"button\">Reset catalog</button></p><section class=\"card\"><h2>New counter order</h2><p><label>Item <select id=\"item\"><option value=\"mug\">Harbor Mug · $18</option><option value=\"tote\">Canvas Tote · $32</option><option value=\"lamp\">Chart Lamp · $54</option></select></label></p><p><label>Qty <input id=\"qty\" type=\"number\" min=\"1\" value=\"1\"></label> <button id=\"create\">Create order</button></p><p id=\"preview\">Ready: Harbor Mug × 1 · $18</p></section><div id=\"list\"></div></main><script>const K=\"harbor-shop\";const P={mug:{n:\"Harbor Mug\",p:18},tote:{n:\"Canvas Tote\",p:32},lamp:{n:\"Chart Lamp\",p:54}};function seed(){return{seq:1009,cart:{},orders:[{id:\"1008\",status:\"open\",lines:[{id:\"mug\",n:\"Harbor Mug\",q:2,p:18}]},{id:\"1007\",status:\"packed\",lines:[{id:\"tote\",n:\"Canvas Tote\",q:1,p:32}]}]}}function load(){try{const s=JSON.parse(localStorage.getItem(K));return s&&Array.isArray(s.orders)?Object.assign(seed(),s):seed()}catch(e){return seed()}}function save(s){localStorage.setItem(K,JSON.stringify(s));try{new BroadcastChannel(K).postMessage(s)}catch(e){}}function listen(r){window.addEventListener(\"storage\",e=>{if(e.key===K)r()});try{new BroadcastChannel(K).onmessage=r}catch(e){}setInterval(r,800)}function money(n){return \"$\"+n}function sum(lines){return lines.reduce((a,l)=>a+l.p*l.q,0)}function nextStatus(status){return status===\"open\"?\"packed\":status===\"packed\"?\"shipped\":\"shipped\"}function actionLabel(status){return status===\"open\"?\"Pack order\":\"Ship order\"}function preview(){const item=document.getElementById(\"item\").value;const qty=Math.max(1,Number(document.getElementById(\"qty\").value)||1);const catalog=P[item];document.getElementById(\"preview\").textContent=\"Ready: \"+catalog.n+\" × \"+qty+\" · \"+money(catalog.p*qty)}function render(){const s=load();document.getElementById(\"list\").innerHTML=s.orders.map(o=>'<article class=\"card\"><div class=\"row\"><strong>Order '+o.id+'</strong><span>Order '+o.id+' is '+o.status+'</span></div>'+o.lines.map(l=>\"<p>\"+l.n+\" × \"+l.q+\"</p>\").join(\"\")+'<p class=\"total\">'+money(sum(o.lines))+\"</p>\"+(o.status===\"shipped\"?\"\":'<button data-advance=\"'+o.id+'\">'+actionLabel(o.status)+\"</button>\")+\"</article>\").join(\"\");document.getElementById(\"list\").onclick=function(e){const id=e.target&&e.target.getAttribute&&e.target.getAttribute(\"data-advance\");if(!id)return;const next=load();const order=next.orders.find(o=>o.id===id);if(!order||order.status===\"shipped\")return;order.status=nextStatus(order.status);save(next);render()}}document.getElementById(\"create\").onclick=function(){const item=document.getElementById(\"item\").value;const qty=Math.max(1,Number(document.getElementById(\"qty\").value)||1);const catalog=P[item];const next=load();next.orders=[{id:String(next.seq++),status:\"open\",lines:[{id:item,n:catalog.n,q:qty,p:catalog.p}]}].concat(next.orders);save(next);render()};document.getElementById(\"item\").addEventListener(\"change\",preview);document.getElementById(\"qty\").addEventListener(\"input\",preview);document.getElementById(\"reset\").onclick=function(){localStorage.removeItem(K);document.getElementById(\"item\").value=\"mug\";document.getElementById(\"qty\").value=\"1\";preview();render()};listen(render);preview();render();</script></body></html>"
   },
   "validationFlows": [
     {
@@ -405,49 +426,493 @@
       "workspaceId": "harbor-shop",
       "application": "Storefront",
       "name": "Checkout featured goods",
-      "description": "Featured products are listed and the cart can take an order.",
+      "description": "Reset the catalog, refuse an empty cart, then order a Harbor Mug.",
       "initialPath": "/",
       "initialExpectations": [
-        { "kind": "Title", "value": "Harbor Shop" },
-        { "kind": "Text", "value": "Harbor Mug" }
+        {
+          "kind": "Title",
+          "value": "Harbor Shop"
+        },
+        {
+          "kind": "Text",
+          "value": "Harbor Mug"
+        }
       ],
       "steps": [
+        {
+          "id": "reset-catalog",
+          "description": "Reset the catalog to the seed tickets",
+          "action": "Click",
+          "target": {
+            "text": "Reset catalog",
+            "selector": "#reset"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Your cart is empty."
+            },
+            {
+              "kind": "Text",
+              "value": "Order 1008"
+            }
+          ]
+        },
+        {
+          "id": "place-empty-cart",
+          "description": "Place order does nothing while the cart is empty",
+          "action": "Click",
+          "target": {
+            "name": "Place order",
+            "selector": "#place"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Your cart is empty."
+            },
+            {
+              "kind": "Text",
+              "value": "Order 1008"
+            }
+          ]
+        },
         {
           "id": "add-mug",
           "description": "Add Harbor Mug to the cart",
           "action": "Click",
-          "target": { "text": "Add to cart", "selector": "button[data-add=\"mug\"]" },
+          "target": {
+            "text": "Add to cart",
+            "selector": "button[data-add=\"mug\"]"
+          },
           "expectations": [
-            { "kind": "Text", "value": "Harbor Mug × 1" }
+            {
+              "kind": "Text",
+              "value": "Cart · Harbor Mug × 1"
+            }
           ]
         },
         {
           "id": "place-order",
-          "description": "Place the order",
+          "description": "Place the Harbor Mug order",
           "action": "Click",
-          "target": { "name": "Place order", "selector": "#place" },
+          "target": {
+            "name": "Place order",
+            "selector": "#place"
+          },
           "expectations": [
-            { "kind": "Text", "value": "Order 1009" }
+            {
+              "kind": "Text",
+              "value": "Order 1009"
+            },
+            {
+              "kind": "Text",
+              "value": "Your cart is empty."
+            }
           ]
         }
       ],
-      "updatedAtUtc": "2026-09-22T08:00:00Z",
+      "updatedAtUtc": "2026-10-27T06:00:00Z",
       "version": 1,
       "surface": "Application"
     },
     {
-      "id": "browse-canvas-tote",
+      "id": "checkout-tote-and-lamp",
       "workspaceId": "harbor-shop",
       "application": "Storefront",
-      "name": "Browse Canvas Tote",
-      "description": "The tote is listed among featured goods.",
+      "name": "Checkout tote and lamp",
+      "description": "Add the tote and lamp together, then place one combined order.",
       "initialPath": "/",
       "initialExpectations": [
-        { "kind": "Title", "value": "Harbor Shop" },
-        { "kind": "Text", "value": "Canvas Tote" }
+        {
+          "kind": "Title",
+          "value": "Harbor Shop"
+        },
+        {
+          "kind": "Text",
+          "value": "Canvas Tote"
+        }
       ],
-      "steps": [],
-      "updatedAtUtc": "2026-10-26T18:00:00Z",
+      "steps": [
+        {
+          "id": "reset-catalog",
+          "description": "Reset the catalog to the seed tickets",
+          "action": "Click",
+          "target": {
+            "text": "Reset catalog",
+            "selector": "#reset"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Your cart is empty."
+            }
+          ]
+        },
+        {
+          "id": "add-tote",
+          "description": "Add Canvas Tote to the cart",
+          "action": "Click",
+          "target": {
+            "text": "Add to cart",
+            "selector": "button[data-add=\"tote\"]"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Cart · Canvas Tote × 1"
+            }
+          ]
+        },
+        {
+          "id": "add-lamp",
+          "description": "Add Chart Lamp beside the tote",
+          "action": "Click",
+          "target": {
+            "text": "Add to cart",
+            "selector": "button[data-add=\"lamp\"]"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Cart · Chart Lamp × 1"
+            },
+            {
+              "kind": "Text",
+              "value": "Cart · Canvas Tote × 1"
+            }
+          ]
+        },
+        {
+          "id": "place-order",
+          "description": "Place the combined tote and lamp order",
+          "action": "Click",
+          "target": {
+            "name": "Place order",
+            "selector": "#place"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Order 1009"
+            },
+            {
+              "kind": "Text",
+              "value": "Chart Lamp × 1"
+            },
+            {
+              "kind": "Text",
+              "value": "Your cart is empty."
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-10-27T06:00:00Z",
+      "version": 1,
+      "surface": "Application"
+    },
+    {
+      "id": "stack-harbor-mugs",
+      "workspaceId": "harbor-shop",
+      "application": "Storefront",
+      "name": "Stack Harbor Mugs",
+      "description": "Add the mug twice so the cart quantity stacks, then place that order.",
+      "initialPath": "/",
+      "initialExpectations": [
+        {
+          "kind": "Title",
+          "value": "Harbor Shop"
+        },
+        {
+          "kind": "Text",
+          "value": "Harbor Mug"
+        }
+      ],
+      "steps": [
+        {
+          "id": "reset-catalog",
+          "description": "Reset the catalog to the seed tickets",
+          "action": "Click",
+          "target": {
+            "text": "Reset catalog",
+            "selector": "#reset"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Your cart is empty."
+            }
+          ]
+        },
+        {
+          "id": "add-first-mug",
+          "description": "Add the first Harbor Mug",
+          "action": "Click",
+          "target": {
+            "text": "Add to cart",
+            "selector": "button[data-add=\"mug\"]"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Cart · Harbor Mug × 1"
+            }
+          ]
+        },
+        {
+          "id": "add-second-mug",
+          "description": "Stack a second Harbor Mug in the cart",
+          "action": "Click",
+          "target": {
+            "text": "Add to cart",
+            "selector": "button[data-add=\"mug\"]"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Cart · Harbor Mug × 2"
+            }
+          ]
+        },
+        {
+          "id": "place-order",
+          "description": "Place the stacked mug order",
+          "action": "Click",
+          "target": {
+            "name": "Place order",
+            "selector": "#place"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Order 1009"
+            },
+            {
+              "kind": "Text",
+              "value": "Your cart is empty."
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-10-27T06:00:00Z",
+      "version": 1,
+      "surface": "Application"
+    },
+    {
+      "id": "pack-open-ticket",
+      "workspaceId": "harbor-shop",
+      "application": "Orders API",
+      "name": "Pack the open ticket",
+      "description": "Pack the seeded open mug ticket, then ship it.",
+      "initialPath": "/",
+      "initialExpectations": [
+        {
+          "kind": "Title",
+          "value": "Harbor Shop Orders"
+        },
+        {
+          "kind": "Text",
+          "value": "Order 1008"
+        }
+      ],
+      "steps": [
+        {
+          "id": "reset-catalog",
+          "description": "Reset the catalog to the seed tickets",
+          "action": "Click",
+          "target": {
+            "text": "Reset catalog",
+            "selector": "#reset"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Pack order"
+            },
+            {
+              "kind": "Text",
+              "value": "Order 1008"
+            }
+          ]
+        },
+        {
+          "id": "pack-1008",
+          "description": "Pack the open Harbor Mug ticket",
+          "action": "Click",
+          "target": {
+            "text": "Pack order",
+            "selector": "button[data-advance=\"1008\"]"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Order 1008 is packed"
+            }
+          ]
+        },
+        {
+          "id": "ship-1008",
+          "description": "Ship the packed Harbor Mug ticket",
+          "action": "Click",
+          "target": {
+            "text": "Ship order",
+            "selector": "button[data-advance=\"1008\"]"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Order 1008 is shipped"
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-10-27T06:00:00Z",
+      "version": 1,
+      "surface": "Application"
+    },
+    {
+      "id": "ship-packed-tote",
+      "workspaceId": "harbor-shop",
+      "application": "Orders API",
+      "name": "Ship the packed tote",
+      "description": "Ship the seeded packed tote ticket from the counter list.",
+      "initialPath": "/",
+      "initialExpectations": [
+        {
+          "kind": "Title",
+          "value": "Harbor Shop Orders"
+        },
+        {
+          "kind": "Text",
+          "value": "Order 1007"
+        }
+      ],
+      "steps": [
+        {
+          "id": "reset-catalog",
+          "description": "Reset the catalog to the seed tickets",
+          "action": "Click",
+          "target": {
+            "text": "Reset catalog",
+            "selector": "#reset"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Ship order"
+            },
+            {
+              "kind": "Text",
+              "value": "Order 1007"
+            }
+          ]
+        },
+        {
+          "id": "ship-1007",
+          "description": "Ship the packed Canvas Tote ticket",
+          "action": "Click",
+          "target": {
+            "text": "Ship order",
+            "selector": "button[data-advance=\"1007\"]"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Order 1007 is shipped"
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-10-27T06:00:00Z",
+      "version": 1,
+      "surface": "Application"
+    },
+    {
+      "id": "counter-chart-lamp",
+      "workspaceId": "harbor-shop",
+      "application": "Orders API",
+      "name": "Counter Chart Lamp",
+      "description": "Build a counter order for two Chart Lamps and create it.",
+      "initialPath": "/",
+      "initialExpectations": [
+        {
+          "kind": "Title",
+          "value": "Harbor Shop Orders"
+        },
+        {
+          "kind": "Text",
+          "value": "New counter order"
+        }
+      ],
+      "steps": [
+        {
+          "id": "reset-catalog",
+          "description": "Reset the catalog to the seed tickets",
+          "action": "Click",
+          "target": {
+            "text": "Reset catalog",
+            "selector": "#reset"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Ready: Harbor Mug × 1 · $18"
+            }
+          ]
+        },
+        {
+          "id": "choose-lamp",
+          "description": "Choose Chart Lamp in the counter form",
+          "action": "Fill",
+          "target": {
+            "name": "Item",
+            "selector": "#item"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Ready: Chart Lamp × 1 · $54"
+            }
+          ],
+          "value": "lamp"
+        },
+        {
+          "id": "set-qty",
+          "description": "Set the counter quantity to two",
+          "action": "Fill",
+          "target": {
+            "name": "Qty",
+            "selector": "#qty"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Ready: Chart Lamp × 2 · $108"
+            }
+          ],
+          "value": "2"
+        },
+        {
+          "id": "create-order",
+          "description": "Create the Chart Lamp counter order",
+          "action": "Click",
+          "target": {
+            "name": "Create order",
+            "selector": "#create"
+          },
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "Order 1009"
+            },
+            {
+              "kind": "Text",
+              "value": "Chart Lamp × 2"
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-10-27T06:00:00Z",
       "version": 1,
       "surface": "Application"
     }
@@ -456,25 +921,58 @@
     {
       "workspaceId": "harbor-shop",
       "application": "Inventory",
-      "names": ["harbor"],
+      "names": [
+        "harbor"
+      ],
       "tables": {
-        "harbor": ["products", "orders"]
+        "harbor": [
+          "products",
+          "orders"
+        ]
       },
       "data": {
         "harbor": {
           "products": {
-            "columns": ["id", "name", "price"],
+            "columns": [
+              "id",
+              "name",
+              "price"
+            ],
             "rows": [
-              ["mug", "Harbor Mug", "18"],
-              ["tote", "Canvas Tote", "32"],
-              ["lamp", "Chart Lamp", "54"]
+              [
+                "mug",
+                "Harbor Mug",
+                "18"
+              ],
+              [
+                "tote",
+                "Canvas Tote",
+                "32"
+              ],
+              [
+                "lamp",
+                "Chart Lamp",
+                "54"
+              ]
             ]
           },
           "orders": {
-            "columns": ["id", "status", "total"],
+            "columns": [
+              "id",
+              "status",
+              "total"
+            ],
             "rows": [
-              ["1008", "open", "36"],
-              ["1007", "packed", "32"]
+              [
+                "1008",
+                "open",
+                "36"
+              ],
+              [
+                "1007",
+                "packed",
+                "32"
+              ]
             ]
           }
         }

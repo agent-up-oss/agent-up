@@ -18,6 +18,7 @@ import {
   switchGitBranch,
   type FakeGitState,
 } from '../providers/FakeGitProvider';
+import { fakeReviewReportStyleTag } from '../providers/FakeReviewReportCss';
 
 export const fakeWorkspaceStartPhaseMs = 1000;
 
@@ -957,7 +958,7 @@ function renderFakeReviewReport(workspace: WorkspaceRecord): string {
     ).join('');
     return `<article class="au-card"><h3>${escapeHtml(app.name)}</h3><p class="au-muted">${escapeHtml(app.kind ?? 'Process')} · ${escapeHtml(app.state)}</p>${ports}</article>`;
   }).join('');
-  return `<!DOCTYPE html><html lang="en" class="au-theme"><head><meta charset="utf-8"><title>Export Report — ${escapeHtml(workspace.displayName)}</title></head><body class="au-theme"><article class="au-overview au-report"><p class="au-eyebrow">Export Report</p><h1 class="au-page-title">${escapeHtml(workspace.displayName)}</h1><p class="au-muted">${escapeHtml(workspace.state)}</p><p class="au-mono">${escapeHtml(workspace.repositoryPath)}</p><h2>Applications</h2>${appMarkup}<h2>Screenshots</h2><p class="au-muted">No screenshots.</p><h2>Verification</h2><p class="au-muted">Verification could not run for this worktree.</p></article></body></html>`;
+  return `<!DOCTYPE html><html lang="en" class="au-theme"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Export Report — ${escapeHtml(workspace.displayName)}</title>${fakeReviewReportStyleTag()}</head><body class="au-theme"><article class="au-overview au-report"><p class="au-eyebrow">Export Report</p><h1 class="au-page-title">${escapeHtml(workspace.displayName)}</h1><p class="au-muted">${escapeHtml(workspace.state)}</p><p class="au-mono">${escapeHtml(workspace.repositoryPath)}</p><h2>Applications</h2>${appMarkup}<h2>Screenshots</h2><p class="au-muted">No screenshots.</p><h2>Verification</h2><p class="au-muted">Verification could not run for this worktree.</p></article></body></html>`;
 }
 
 function notFound(): FakeBackendResponse {

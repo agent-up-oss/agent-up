@@ -7,7 +7,8 @@
   },
   "include": [
     "src/features/**/*.ts",
-    "../AgentUp.FakeServer/definition.json"
+    "../AgentUp.FakeServer/definition.json",
+    "../AgentUp.FakeServer/agent-up.css.json"
   ],
   "exclude": []
 }
