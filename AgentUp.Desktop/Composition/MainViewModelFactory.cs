@@ -173,9 +173,7 @@ public static class MainViewModelFactory
             commandCenter ?? new CommandCenterViewModel(
                 new InterfaceController(new FileInterfacePreferenceStore()),
                 new BridgeViewModel(new TeamStandingController(new TeamStandingService(agents, git))),
-                taskQueueClient is null ? null : new TaskQueueViewModel(new TaskQueueController(new TaskQueueService(taskQueueClient))),
-                workspaces,
-                git));
+                taskQueueClient is null ? null : new TaskQueueViewModel(new TaskQueueController(new TaskQueueService(taskQueueClient)))));
     }
 
     public static MainViewModel Create(

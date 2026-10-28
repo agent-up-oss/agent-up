@@ -57,34 +57,28 @@ public sealed class CommandCenterViewModelTests
     }
 
     [Test]
-    public async Task Opening_a_team_member_puts_their_own_page_where_the_surfaces_were()
+    public void Opening_a_team_member_hands_the_pane_to_their_workspace()
     {
-        var workspaces = new AgentPageWorkspaceFake();
-        workspaces.Workspaces["lucy"] = new WorkspaceDtoBuilder().Identified("lucy").AtCommit("a71f093").Build();
-        var view = new CommandCenterViewModel(
-            new InterfaceController(new FakeStore(InterfaceChoice.CommandCenter)),
-            workspaces: AgentPageComposition.Workspaces(workspaces),
-            git: AgentPageComposition.Git(new StandingForgeFake()));
+        var view = InterfaceTestComposition.CommandCenter();
 
-        await view.OpenAgentAsync(TeamStandingComposition.Standing());
+        view.OpenAgentCommand.Execute(TeamStandingComposition.Standing()).Subscribe();
 
         Assert.Multiple(() =>
         {
             Assert.That(view.HasAgent, Is.True);
+            Assert.That(view.AgentName, Is.EqualTo("Lucy"));
+            Assert.That(view.Agent!.WorkspaceId, Is.EqualTo("lucy"));
+            // The command center stops drawing its own surfaces so the workspace detail shows.
+            Assert.That(view.ShowsOwnSurfaces, Is.False);
             Assert.That(view.ShowsSurfaces, Is.False);
-            Assert.That(view.Agent!.DisplayName, Is.EqualTo("Lucy"));
-            Assert.That(view.Agent.Facts.Single(fact => fact.Label == "Head").Value, Is.EqualTo("a71f093"));
         });
     }
 
     [Test]
-    public async Task Closing_an_agent_hands_the_pane_back_to_the_surfaces()
+    public void Closing_an_agent_hands_the_pane_back_to_the_surfaces()
     {
-        var view = new CommandCenterViewModel(
-            new InterfaceController(new FakeStore(InterfaceChoice.CommandCenter)),
-            workspaces: AgentPageComposition.Workspaces(new AgentPageWorkspaceFake()),
-            git: AgentPageComposition.Git(new StandingForgeFake()));
-        await view.OpenAgentAsync(TeamStandingComposition.Standing());
+        var view = InterfaceTestComposition.CommandCenter();
+        view.OpenAgentCommand.Execute(TeamStandingComposition.Standing()).Subscribe();
 
         view.CloseAgentCommand.Execute().Subscribe();
 
@@ -92,23 +86,37 @@ public sealed class CommandCenterViewModelTests
         {
             Assert.That(view.Agent, Is.Null);
             Assert.That(view.HasAgent, Is.False);
-            Assert.That(view.ShowsSurfaces, Is.True);
+            Assert.That(view.ShowsOwnSurfaces, Is.True);
         });
     }
 
     [Test]
-    public async Task A_shell_composed_without_the_reads_behind_a_page_simply_does_not_open_one()
+    public void Leaving_the_command_center_leaves_the_agent_it_had_open()
     {
-        // The headless window tests compose the shell without the two controllers. Opening a
-        // member there has to stay a no-op rather than throw at a rail row's press.
+        // Otherwise the classic shell comes back with its rail still stood down for a page that
+        // is no longer on screen, and there is no way between workspaces at all.
         var view = InterfaceTestComposition.CommandCenter();
+        view.OpenAgentCommand.Execute(TeamStandingComposition.Standing()).Subscribe();
 
-        await view.OpenAgentAsync(TeamStandingComposition.Standing());
+        view.ToggleCommand.Execute().Subscribe();
 
         Assert.Multiple(() =>
         {
-            Assert.That(view.Agent, Is.Null);
+            Assert.That(view.Classic, Is.True);
+            Assert.That(view.HasAgent, Is.False);
+            Assert.That(view.ShowsOwnSurfaces, Is.False);
+        });
+    }
+
+    [Test]
+    public void The_classic_shell_draws_no_command_center_surfaces_even_with_no_agent_open()
+    {
+        var view = InterfaceTestComposition.Classic();
+
+        Assert.Multiple(() =>
+        {
             Assert.That(view.ShowsSurfaces, Is.True);
+            Assert.That(view.ShowsOwnSurfaces, Is.False);
         });
     }
 

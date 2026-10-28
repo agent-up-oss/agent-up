@@ -134,6 +134,12 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         set => this.RaiseAndSetIfChanged(ref _selectedSubTab, value);
     }
 
+    /// <summary>
+    /// True while the classic workspace rail is the way between workspaces. With an agent open in
+    /// the command center it is not: the team picked the workspace, and its own head leads back.
+    /// </summary>
+    public bool ShowsClassicRail => CommandCenter?.HasAgent != true;
+
     public bool ShowOverview => SelectedShellTab == WorkspaceShellTab.Overview;
     public bool ShowAgent => SelectedShellTab == WorkspaceShellTab.Agent;
     public bool ShowGit => SelectedShellTab == WorkspaceShellTab.Git;
@@ -234,6 +240,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         SubscribeOverviewRefresh();
         SubscribeClientSurfaces();
         SubscribeCommandCenter();
+        SubscribeOpenedAgent();
         SubscribeSelectedPortProbe(selectedPortTab);
 
         BrowserTabNavigation = CreateBrowserTabNavigation();
@@ -348,6 +355,25 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             .Switch()
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(_ => LoadMetricsIfPossible());
+
+    /// <summary>
+    /// Opens the workspace an agent was opened for. Nothing about the detail below changes: the
+    /// command center picks the workspace the way the rail does, and the same tabs answer.
+    /// </summary>
+    private void SubscribeOpenedAgent()
+    {
+        if (CommandCenter is null) return;
+        CommandCenter.WhenAnyValue(x => x.Agent)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(standing =>
+            {
+                this.RaisePropertyChanged(nameof(ShowsClassicRail));
+                if (standing is null) return;
+                var workspace = Sidebar.Workspaces.FirstOrDefault(item => item.Id == standing.WorkspaceId);
+                if (workspace is not null) Sidebar.SelectedWorkspace = workspace;
+                SelectedShellTab = WorkspaceShellTab.Overview;
+            });
+    }
 
     private void SubscribeOverviewRefresh()
         => Sidebar.WhenAnyValue(x => x.SelectedWorkspace)

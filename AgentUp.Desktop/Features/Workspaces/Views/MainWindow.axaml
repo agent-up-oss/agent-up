@@ -700,7 +700,7 @@
             </Panel>
 
             <Panel IsVisible="{Binding !Login.IsVisible}">
-            <Grid IsVisible="{Binding CommandCenter.Classic, FallbackValue=True}"
+            <Grid IsVisible="{Binding CommandCenter.ShowsClassicLayout, FallbackValue=True}"
                   HorizontalAlignment="Stretch"
                   VerticalAlignment="Stretch">
             <Grid.ColumnDefinitions>
@@ -712,6 +712,7 @@
         <Border Grid.Column="0"
                 x:Name="SidebarRail"
                 Classes="au-rail"
+                IsVisible="{Binding ShowsClassicRail}"
                 Width="{Binding Sidebar.Width}">
             <DockPanel>
 
@@ -1022,6 +1023,16 @@
                                 BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
                                 BorderThickness="0,0,0,1">
                             <StackPanel Orientation="Horizontal">
+                            <!-- Opened from the command center's team: the way back, beside the
+                                 workspace's own tabs rather than above them. -->
+                            <Button Content="&#8249; Team"
+                                    Classes="au-button au-button--secondary au-button--compact"
+                                    Margin="10,0,4,0"
+                                    VerticalAlignment="Center"
+                                    IsVisible="{Binding CommandCenter.HasAgent, FallbackValue=False}"
+                                    Command="{Binding CommandCenter.CloseAgentCommand}"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentBack}"
+                                    ToolTip.Tip="Back to the team"/>
                             <ListBox x:Name="ShellTabs" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.ShellTabs}"
                                      ItemsSource="{Binding ShellTabs}"
                                      SelectedItem="{Binding SelectedShellTabItem}"
@@ -2521,7 +2532,7 @@
         </Grid>
             <interfaceViews:CommandCenterView
                 x:Name="CommandCenterPage"
-                IsVisible="{Binding CommandCenter.Active, FallbackValue=False}"/>
+                IsVisible="{Binding CommandCenter.ShowsOwnSurfaces, FallbackValue=False}"/>
             </Panel>
 
         <Grid ZIndex="100"
