@@ -1,5 +1,8 @@
 using System.Reactive;
+using AgentUp.Desktop.Features.Git.Controllers;
 using AgentUp.Desktop.Features.Interface.Controllers;
+using AgentUp.Desktop.Features.Interface.Models;
+using AgentUp.Desktop.Features.Workspaces.Controllers;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Interface.ViewModels;
@@ -14,20 +17,69 @@ namespace AgentUp.Desktop.Features.Interface.ViewModels;
 public sealed class CommandCenterViewModel : ReactiveObject
 {
     private readonly InterfaceController _controller;
+    private readonly WorkspacesController? _workspaces;
+    private readonly GitController? _git;
     private bool _active;
     private bool _persists = true;
+    private AgentPageViewModel? _agent;
 
     public CommandCenterViewModel(
         InterfaceController controller,
         BridgeViewModel? bridge = null,
-        TaskQueueViewModel? tasks = null)
+        TaskQueueViewModel? tasks = null,
+        WorkspacesController? workspaces = null,
+        GitController? git = null)
     {
         _controller = controller;
+        _workspaces = workspaces;
+        _git = git;
         _active = controller.UsesCommandCenter;
         Bridge = bridge;
         Tasks = tasks;
         ToggleCommand = ReactiveCommand.Create(Toggle);
+        CloseAgentCommand = ReactiveCommand.Create(CloseAgent);
+        OpenAgentCommand = ReactiveCommand.CreateFromTask<TeamStanding>(standing => OpenAgentAsync(standing));
     }
+
+    /// <summary>
+    /// The agent whose own page is open, or null while the team is the thing on screen. Opening
+    /// one is how the team stops being a list of what everyone is doing and becomes the workspace
+    /// they are doing it in.
+    /// </summary>
+    public AgentPageViewModel? Agent
+    {
+        get => _agent;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _agent, value);
+            this.RaisePropertyChanged(nameof(HasAgent));
+            this.RaisePropertyChanged(nameof(ShowsSurfaces));
+        }
+    }
+
+    public bool HasAgent => Agent is not null;
+
+    /// <summary>True while the bridge and the queue are what the main pane draws.</summary>
+    public bool ShowsSurfaces => Agent is null;
+
+    public ReactiveCommand<Unit, Unit> CloseAgentCommand { get; }
+
+    /// <summary>Opens the agent a rail row names.</summary>
+    public ReactiveCommand<TeamStanding, Unit> OpenAgentCommand { get; }
+
+    /// <summary>
+    /// Opens one agent's own page. The reads behind it are optional, because the headless tests
+    /// compose this shell without them; without them a member simply does not open.
+    /// </summary>
+    public async Task OpenAgentAsync(TeamStanding standing, CancellationToken cancellationToken = default)
+    {
+        if (_workspaces is null || _git is null) return;
+        var page = new AgentPageViewModel(standing, _workspaces, _git);
+        Agent = page;
+        await page.ReadAsync(cancellationToken);
+    }
+
+    private void CloseAgent() => Agent = null;
 
     /// <summary>
     /// Triage for the whole team, or null where the shell was composed without the reads behind it

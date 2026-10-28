@@ -14,6 +14,10 @@ public static class DesktopAutomationIds
     public const string QueueStop = "queue.stop";
     public const string QueueRemove = "queue.remove";
     public const string QueuePick = "queue.pick";
+    public const string TeamOpenAgent = "team.open-agent";
+    public const string AgentBack = "agent.back";
+    public const string AgentOverview = "agent.overview";
+    public const string AgentGit = "agent.git";
     public const string ChromeServerStatus = "chrome.server-status";
 
     public const string LoginBack = "login.back";
