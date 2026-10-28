@@ -31,17 +31,20 @@ export function AgentPage({
   workspace,
   server,
   onBack,
+  topInset = 0,
 }: {
   standing: TeamStanding;
   workspace: Workspace | null;
   server: ServerSession | null;
   onBack: () => void;
+  /** How far the phone's own chrome reaches down the screen, so the head starts below it. */
+  topInset?: number;
 }) {
   const [section, setSection] = useState<AgentSection>('overview');
 
   return (
     <View style={styles.page}>
-      <View style={styles.head}>
+      <View style={[styles.head, { paddingTop: topInset + agentUpTheme.spacing[3] }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back to the team"

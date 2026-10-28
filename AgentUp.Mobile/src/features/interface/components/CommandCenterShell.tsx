@@ -10,6 +10,7 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import { agentUpTheme, auBox } from '@agent-up/design-system/native';
@@ -56,6 +57,10 @@ export function CommandCenterShell() {
   const tasks = useTaskQueue();
   const { activeServer, logout } = useServers();
   const { workspaces } = useWorkspaces();
+  // The phone's own chrome sits over the top and bottom of the screen: the status bar and the
+  // island above, the home indicator below. The shell keeps clear of both rather than drawing
+  // under them, which is what put the title behind the clock.
+  const insets = useSafeAreaInsets();
   const [surface, setSurface] = useState<Surface>('bridge');
   // Which agent's own page is open, if any. The team says what each one is doing; opening one
   // says what they are doing it in.
@@ -74,12 +79,13 @@ export function CommandCenterShell() {
     return (
       <View style={styles.shell}>
         <AgentPage
+          topInset={insets.top}
           standing={agent}
           workspace={workspaces.find(item => item.id === agent.workspaceId) ?? null}
           server={activeServer}
           onBack={() => setOpenAgent(null)}
         />
-        <View style={styles.tabBar}>
+        <View style={[styles.tabBar, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
           <TabItem label="Bridge" active={false} onPress={() => { setOpenAgent(null); setSurface('bridge'); }} />
           <TabItem label="Tasks" active={false} onPress={() => { setOpenAgent(null); setSurface('tasks'); }} />
           <TabItem label="Team" active onPress={() => setOpenAgent(null)} />
@@ -90,7 +96,7 @@ export function CommandCenterShell() {
 
   return (
     <View style={styles.shell}>
-      <View style={styles.head}>
+      <View style={[styles.head, { paddingTop: insets.top + agentUpTheme.spacing[3] }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Open menu"
@@ -114,7 +120,7 @@ export function CommandCenterShell() {
         {surface === 'settings' ? <Settings onSignOut={logout} serverLabel={serverLabel} /> : null}
       </ScrollView>
 
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
         <TabItem label="Bridge" active={surface === 'bridge'} onPress={() => setSurface('bridge')} />
         <TabItem label="Tasks" active={surface === 'tasks'} onPress={() => setSurface('tasks')} />
         <TabItem label="Team" active={surface === 'team'} onPress={() => setSurface('team')} />
@@ -123,7 +129,7 @@ export function CommandCenterShell() {
       {menuOpen ? (
         <View style={styles.drawer}>
           <Pressable accessibilityLabel="Close menu" style={styles.scrim} onPress={() => setMenuOpen(false)} />
-          <View style={styles.drawerPanel}>
+          <View style={[styles.drawerPanel, { paddingTop: insets.top + agentUpTheme.spacing[3] }]}>
             <View style={styles.drawerServer}>
               <Text style={styles.drawerServerName}>Server</Text>
               <Text style={styles.subtitle} numberOfLines={2}>{serverLabel}</Text>
