@@ -7,6 +7,7 @@ using AgentUp.Desktop.Features.Git.DTOs;
 using AgentUp.Desktop.Features.Git.Interfaces;
 using AgentUp.Desktop.Features.Git.Services;
 using AgentUp.Desktop.Features.Interface.Controllers;
+using AgentUp.Desktop.Features.Interface.Models;
 using AgentUp.Desktop.Features.Interface.Services;
 
 namespace AgentUp.Desktop.Tests.Support;
@@ -78,7 +79,13 @@ internal sealed class StandingForgeFake : IGitApiProvider
 {
     public Dictionary<string, ForgeHostingDto?> Hosting { get; } = [];
 
+    /// <summary>The working tree each workspace answers with, for the reads that ask for one.</summary>
+    public Dictionary<string, GitChangeTreeDto?> Changes { get; } = [];
+
     public Dictionary<string, Exception> Failures { get; } = [];
+
+    /// <summary>Kept apart from <see cref="Failures"/> so a test can fail one read and not the other.</summary>
+    public Dictionary<string, Exception> ChangeFailures { get; } = [];
 
     public Task<ForgeHostingDto?> GetHostingAsync(string workspaceId, CancellationToken cancellationToken = default)
         => Failures.TryGetValue(workspaceId, out var failure)
@@ -86,7 +93,9 @@ internal sealed class StandingForgeFake : IGitApiProvider
             : Task.FromResult(Hosting.GetValueOrDefault(workspaceId));
 
     public Task<GitChangeTreeDto?> GetChangesAsync(string workspaceId, CancellationToken cancellationToken = default)
-        => throw new NotSupportedException();
+        => ChangeFailures.TryGetValue(workspaceId, out var failure)
+            ? Task.FromException<GitChangeTreeDto?>(failure)
+            : Task.FromResult(Changes.GetValueOrDefault(workspaceId));
 
     public Task<CommitQueueDto?> GetCommitQueueAsync(string workspaceId, CancellationToken cancellationToken = default)
         => throw new NotSupportedException();
@@ -191,6 +200,43 @@ internal static class TeamStandingComposition
             Remedy: null,
             account,
             reviews);
+
+    /// <summary>
+    /// A composed standing, as the bridge would already hold it. The surfaces that read one never
+    /// see the two Server reads behind it, so a test about a surface states the standing itself.
+    /// </summary>
+    public static TeamStanding Standing(
+        string workspaceId = "lucy",
+        string displayName = "Lucy",
+        string branch = "feat/44-restock",
+        TeamStandingKind kind = TeamStandingKind.WaitingOnYou,
+        int? taskNumber = 44,
+        string? taskTitle = "Restock featured products",
+        string? reason = null,
+        string? diagnosticCode = null,
+        string? proposal = "431",
+        int threads = 2,
+        int passed = 3,
+        int failed = 0,
+        int running = 0,
+        string? login = "lucy-aup[bot]",
+        TeamRoleKind role = TeamRoleKind.Reviewer)
+        => new(
+            workspaceId,
+            displayName,
+            branch,
+            "Running",
+            "Claude",
+            kind,
+            taskNumber,
+            taskTitle,
+            reason,
+            diagnosticCode,
+            [],
+            new ForgeStanding("ready", proposal, "Restock the featured rail", "u", passed, failed, running, threads, "clean", null),
+            role,
+            null,
+            login is null ? null : new TeamIdentity(login, displayName, true, "u"));
 
     public static ForgeCheckDto Check(string name, string status, string conclusion)
         => new(name, status, conclusion, "https://example/checks");

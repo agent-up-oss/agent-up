@@ -145,20 +145,10 @@ public sealed class AgentPageTextTests
         int threads = 2,
         int failed = 0,
         int running = 0)
-        => new(
-            "lucy",
-            "Lucy",
-            "feat/44-restock",
-            "Running",
-            "Claude",
-            TeamStandingKind.WaitingOnYou,
-            taskNumber,
-            "Restock featured products",
-            null,
-            null,
-            [],
-            new ForgeStanding("ready", proposal, "Restock the featured rail", "u", 3, failed, running, threads, "clean", null),
-            TeamRoleKind.Reviewer,
-            null,
-            new TeamIdentity("lucy-aup[bot]", "Lucy", true, "u"));
+        => TeamStandingComposition.Standing(
+            taskNumber: taskNumber,
+            proposal: proposal,
+            threads: threads,
+            failed: failed,
+            running: running);
 }
