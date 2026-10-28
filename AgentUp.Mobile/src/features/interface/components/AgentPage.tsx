@@ -1,32 +1,60 @@
-import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { AgentChatScreen } from '@agent-up/chat';
-import { getChanges } from '@/features/git/providers/GitApiProvider';
-import { flattenChangeTree } from '@/features/git/providers/GitChangeTreeProvider';
-import type { GitChangeNode } from '@/features/git/models/GitChanges';
+import { useCallback, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AgentCreationScreen } from '@/features/agents/components/AgentCreationScreen';
+import { AgentPermissionPolicyScreen } from '@/features/agents/components/AgentPermissionPolicyScreen';
+import { AgentsOverviewScreen } from '@/features/agents/components/AgentsOverviewScreen';
+import { WorkspaceAgentChatScreen } from '@/features/agents/components/WorkspaceAgentChatScreen';
+import { ApplicationSpaceScreen } from '@/features/applications/components/ApplicationSpaceScreen';
+import { GitHistoryScreen } from '@/features/git/components/GitHistoryScreen';
+import { GitOverviewScreen } from '@/features/git/components/GitOverviewScreen';
+import { GitReviewScreen } from '@/features/git/components/GitReviewScreen';
+import { AppShellProvider, useAppShell } from '@/features/shell/controllers/AppShellContext';
+import { WorkspaceDashboardScreen } from '@/features/workspaces/components/WorkspaceDashboardScreen';
+import { WorkspaceSettingsScreen } from '@/features/workspaces/components/WorkspaceSettingsScreen';
+import {
+  WorkspaceHostProvider,
+  type WorkspaceHost,
+  type WorkspacePlace,
+} from '@/features/workspaces/controllers/WorkspaceHostContext';
 import type { ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import type { Workspace } from '@/features/workspaces/models/Workspace';
 import { agentUpTheme, auBox } from '@agent-up/design-system/native';
-import {
-  agentSubtitle,
-  applicationAddress,
-  checkSummary,
-  findingSummary,
-  taskFacts,
-  type AgentSection,
-} from '../models/AgentWorkspace';
 import type { TeamStanding } from '../models/TeamStanding';
-import { stateLabel, whoIs } from '../services/TeamStandingService';
+
+/** The tabs an agent's workspace opens on, which are the workspace's own tabs. */
+const tabs = [
+  { place: 'apps', label: 'Apps' },
+  { place: 'git', label: 'Git' },
+  { place: 'agents', label: 'Agent' },
+  { place: 'settings', label: 'Settings' },
+] as const;
+
+type TabPlace = (typeof tabs)[number]['place'];
 
 /**
- * One agent's own page: their workspace, read from the inside.
+ * One agent's workspace, read from the inside.
  *
- * The team says what each agent is doing; this says what they are doing it in. It is the same
- * workspace the classic shell opens — the same applications, the same chat, the same changes —
- * arranged around the agent rather than around the repository, because here a workspace is a
- * person doing a job rather than a checkout.
+ * Nothing here is a second version of a workspace screen: these are the screens the classic shell
+ * opens, hosted under the agent's own tabs. They reach the same Server through the same providers,
+ * so what works in one shell works in the other, including everything they open on top of
+ * themselves.
  */
-export function AgentPage({
+export function AgentPage(props: {
+  standing: TeamStanding;
+  workspace: Workspace | null;
+  server: ServerSession | null;
+  onBack: () => void;
+  /** How far the phone's own chrome reaches down the screen, so the head starts below it. */
+  topInset?: number;
+}) {
+  return (
+    <AppShellProvider>
+      <AgentPageBody {...props} />
+    </AppShellProvider>
+  );
+}
+
+function AgentPageBody({
   standing,
   workspace,
   server,
@@ -37,172 +65,169 @@ export function AgentPage({
   workspace: Workspace | null;
   server: ServerSession | null;
   onBack: () => void;
-  /** How far the phone's own chrome reaches down the screen, so the head starts below it. */
   topInset?: number;
 }) {
-  const [section, setSection] = useState<AgentSection>('overview');
+  const [tab, setTab] = useState<TabPlace>('apps');
+  // What the tab has opened on top of itself, innermost last. A workspace screen that opens
+  // another is the same gesture here as a route push is in the classic shell.
+  const [stack, setStack] = useState<WorkspacePlace[]>([]);
+  const { config } = useAppShell();
+
+  const host = useCallback((): WorkspaceHost => ({
+    open: (place, options) => {
+      if (isTab(place)) {
+        setTab(place.kind);
+        setStack([]);
+        return;
+      }
+      setStack(current => (options?.replace ? [...current.slice(0, -1), place] : [...current, place]));
+    },
+    back: fallback => {
+      setStack(current => {
+        if (current.length > 0) return current.slice(0, -1);
+        if (isTab(fallback)) setTab(fallback.kind);
+        return current;
+      });
+    },
+    // The agent page carries its own tabs above, so the workspace's own row would be a second one.
+    showsTabBar: false,
+  }), []);
+
+  const provide = useMemo(() => () => host(), [host]);
+  const place: WorkspacePlace = stack.at(-1) ?? { kind: tab };
+  const deep = stack.length > 0;
+
+  // A screen opened on top names itself; the agent names the page otherwise.
+  const title = deep && config.title ? config.title : standing.displayName;
+  // The page owns its own stack, so going back pops it rather than trusting the screen's own
+  // back action, which in the classic shell is a route this shell does not use.
+  const goBack = deep ? () => setStack(current => current.slice(0, -1)) : onBack;
 
   return (
-    <View style={styles.page}>
-      <View style={[styles.head, { paddingTop: topInset + agentUpTheme.spacing[3] }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back to the team"
-          onPress={onBack}
-          style={styles.backButton}
-        >
-          <Text style={styles.backGlyph}>‹</Text>
-        </Pressable>
-        <View style={styles.headBody}>
-          <Text style={styles.title} numberOfLines={1}>{standing.displayName}</Text>
-          <Text style={styles.subtitle} numberOfLines={1}>{agentSubtitle(standing)}</Text>
-        </View>
-      </View>
-
-      <View style={styles.sections}>
-        {(['overview', 'chat', 'git'] as AgentSection[]).map(item => (
+    <WorkspaceHostProvider host={provide}>
+      <View style={styles.page}>
+        <View style={[styles.head, { paddingTop: topInset + agentUpTheme.spacing[3] }]}>
           <Pressable
-            key={item}
-            accessibilityRole="tab"
-            accessibilityLabel={sectionLabel(item)}
-            accessibilityState={{ selected: section === item }}
-            style={[styles.section, section === item && styles.sectionOn]}
-            onPress={() => setSection(item)}
+            accessibilityRole="button"
+            accessibilityLabel={deep ? 'Go back' : 'Back to the team'}
+            onPress={goBack}
+            style={styles.backButton}
           >
-            <Text style={[styles.sectionText, section === item && styles.sectionTextOn]}>
-              {sectionLabel(item)}
-            </Text>
+            <Text style={styles.backGlyph}>‹</Text>
           </Pressable>
-        ))}
-      </View>
-
-      {section === 'overview' ? <Overview standing={standing} workspace={workspace} /> : null}
-      {section === 'chat' ? (
-        <View style={styles.fill}>
-          <AgentChatScreen
-            workspace={{ id: standing.workspaceId, displayName: standing.displayName }}
-            server={server}
-          />
+          <View style={styles.headBody}>
+            <Text style={styles.title} numberOfLines={1}>{title}</Text>
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {deep ? standing.displayName : subtitle(standing, workspace)}
+            </Text>
+          </View>
+          {config.rightAction ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={config.rightAction.accessibilityLabel ?? config.rightAction.label}
+              testID={config.rightAction.testID}
+              onPress={config.rightAction.onPress}
+              style={styles.headAction}
+            >
+              <Text style={styles.headActionText}>{config.rightAction.label}</Text>
+            </Pressable>
+          ) : null}
         </View>
-      ) : null}
-      {section === 'git' ? <GitSection standing={standing} server={server} /> : null}
+
+        {deep ? null : (
+          <View style={styles.tabs}>
+            {tabs.map(item => (
+              <Pressable
+                key={item.place}
+                accessibilityRole="tab"
+                accessibilityLabel={item.label}
+                accessibilityState={{ selected: tab === item.place }}
+                style={[styles.tab, tab === item.place && styles.tabOn]}
+                onPress={() => { setTab(item.place); setStack([]); }}
+              >
+                <Text style={[styles.tabText, tab === item.place && styles.tabTextOn]}>{item.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.body}>
+          <Screen place={place} standing={standing} workspace={workspace} server={server} />
+        </View>
+      </View>
+    </WorkspaceHostProvider>
+  );
+}
+
+/** The workspace screen one place names, which is the screen the classic shell opens for it. */
+function Screen({
+  place,
+  standing,
+  workspace,
+  server,
+}: {
+  place: WorkspacePlace;
+  standing: TeamStanding;
+  workspace: Workspace | null;
+  server: ServerSession | null;
+}) {
+  const workspaceId = standing.workspaceId;
+
+  switch (place.kind) {
+    case 'apps':
+      return workspace ? <WorkspaceDashboardScreen workspace={workspace} /> : <Missing />;
+    case 'git':
+      return <GitOverviewScreen workspaceId={workspaceId} />;
+    case 'agents':
+      return <AgentsOverviewScreen workspaceId={workspaceId} />;
+    case 'settings':
+      return <WorkspaceSettingsScreen workspaceId={workspaceId} />;
+    case 'application':
+      return workspace
+        ? <ApplicationSpaceScreen workspace={workspace} applicationName={place.name} />
+        : <Missing />;
+    case 'gitHistory':
+      return <GitHistoryScreen workspaceId={workspaceId} />;
+    case 'gitReview':
+      return <GitReviewScreen workspaceId={workspaceId} />;
+    case 'agent':
+      return (
+        <WorkspaceAgentChatScreen
+          workspaceId={workspaceId}
+          displayName={standing.displayName}
+          server={server}
+        />
+      );
+    case 'agentPolicy':
+      return <AgentPermissionPolicyScreen workspaceId={workspaceId} />;
+    case 'agentCreate':
+      return <AgentCreationScreen workspaceId={workspaceId} />;
+  }
+}
+
+/** The Server has not answered with this workspace yet, so there is nothing to draw it from. */
+function Missing() {
+  return (
+    <View style={styles.missing}>
+      <Text style={styles.subtitle}>This workspace is not on the Server yet.</Text>
     </View>
   );
 }
 
-function sectionLabel(section: AgentSection): string {
-  return section === 'overview' ? 'Overview' : section === 'chat' ? 'Chat' : 'Git';
+function isTab(place: WorkspacePlace): place is { kind: TabPlace } {
+  return tabs.some(tab => tab.place === place.kind);
 }
 
-/** What the agent is working on, and what is running in the workspace while they do it. */
-function Overview({ standing, workspace }: { standing: TeamStanding; workspace: Workspace | null }) {
-  const facts = taskFacts(standing, workspace);
-  const applications = workspace?.applications ?? [];
-  return (
-    <ScrollView contentContainerStyle={styles.body}>
-      {standing.kind === 'waiting' || standing.kind === 'halted' ? (
-        <View style={[styles.card, standing.kind === 'halted' ? styles.cardDanger : styles.cardWarning]}>
-          <Text style={styles.cardTitle}>{stateLabel(standing.kind)}</Text>
-          <Text style={styles.note}>{whoIs(standing)}</Text>
-          {standing.reason ? <Text style={styles.note}>{standing.reason}</Text> : null}
-          {standing.diagnosticCode ? <Text style={styles.code}>{standing.diagnosticCode}</Text> : null}
-        </View>
-      ) : null}
-
-      <Heading text="CURRENT TASK" />
-      {facts.length ? (
-        <View style={styles.card}>
-          {facts.map(fact => (
-            <View key={fact.label} style={styles.factRow}>
-              <Text style={styles.factKey}>{fact.label}</Text>
-              <Text style={styles.factValue} numberOfLines={1} ellipsizeMode="tail">{fact.value}</Text>
-            </View>
-          ))}
-        </View>
-      ) : (
-        <Text style={styles.note}>Nothing in hand. This agent is not working a task right now.</Text>
-      )}
-
-      <Heading text={`APPLICATIONS · ${applications.length}`} />
-      {applications.length ? (
-        applications.map(application => (
-          <View key={application.name} style={styles.row}>
-            <View style={styles.rowBody}>
-              <Text style={styles.cardTitle} numberOfLines={1} ellipsizeMode="tail">{application.name}</Text>
-              <Text style={styles.code} numberOfLines={1}>{applicationAddress(application)}</Text>
-            </View>
-            <Text style={[styles.note, application.state === 'Running' ? styles.live : null]}>
-              {application.state}
-            </Text>
-          </View>
-        ))
-      ) : (
-        <Text style={styles.note}>Nothing is running in this workspace.</Text>
-      )}
-    </ScrollView>
+/** What the agent is, under their name: what they are doing, and where. */
+function subtitle(standing: TeamStanding, workspace: Workspace | null): string {
+  const parts = [standing.agent, workspace?.branch ?? standing.branch].filter(
+    (part): part is string => typeof part === 'string' && part.length > 0,
   );
-}
-
-/**
- * The proposal this agent has open and the files it changes. The changes are read here rather
- * than carried from the team, because the team is a summary and this is the thing itself.
- */
-function GitSection({ standing, server }: { standing: TeamStanding; server: ServerSession | null }) {
-  const [changes, setChanges] = useState<GitChangeNode[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let current = true;
-    if (!server) return;
-    getChanges(server, standing.workspaceId)
-      .then(result => {
-        if (!current) return;
-        setChanges(flattenChangeTree(result).filter(node => !node.isDirectory));
-        setError(null);
-      })
-      .catch(cause => { if (current) setError(cause instanceof Error ? cause.message : 'Could not read the changes.'); });
-    return () => { current = false; };
-  }, [server, standing.workspaceId]);
-
-  return (
-    <ScrollView contentContainerStyle={styles.body}>
-      <Heading text="PROPOSAL" />
-      {standing.forge.proposalNumber ? (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle} numberOfLines={2}>
-            #{standing.forge.proposalNumber} {standing.forge.proposalTitle}
-          </Text>
-          <Text style={styles.note}>{checkSummary(standing)}</Text>
-          <Text style={styles.note}>{findingSummary(standing)}</Text>
-          {standing.forge.mergeState ? (
-            <Text style={styles.code}>{standing.forge.mergeState}</Text>
-          ) : null}
-        </View>
-      ) : (
-        <Text style={styles.note}>{standing.forge.detail ?? 'No proposal open on this workspace.'}</Text>
-      )}
-
-      <Heading text={`CHANGES · ${changes?.length ?? 0}`} />
-      {error ? <Text style={[styles.note, styles.danger]}>{error}</Text> : null}
-      {changes === null && !error ? <Text style={styles.note}>Reading the working tree…</Text> : null}
-      {changes?.length === 0 ? <Text style={styles.note}>The working tree is clean.</Text> : null}
-      {(changes ?? []).map(change => (
-        <View key={change.key} style={styles.row}>
-          <Text style={styles.changeMark}>{(change.status ?? '').slice(0, 1).toUpperCase()}</Text>
-          <Text style={styles.changePath} numberOfLines={1} ellipsizeMode="head">{change.path}</Text>
-        </View>
-      ))}
-    </ScrollView>
-  );
-}
-
-function Heading({ text }: { text: string }) {
-  return <Text style={styles.heading}>{text}</Text>;
+  return parts.join(' · ');
 }
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
-  fill: { flex: 1 },
   head: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -215,50 +240,21 @@ const styles = StyleSheet.create({
   backButton: { width: 36, height: 44, alignItems: 'flex-start', justifyContent: 'center', marginLeft: -6 },
   backGlyph: { color: agentUpTheme.colors.textSecondary, fontSize: 30, lineHeight: 32 },
   headBody: { flex: 1, minWidth: 0 },
+  headAction: { paddingHorizontal: agentUpTheme.spacing[2], paddingVertical: 6 },
+  headActionText: { color: agentUpTheme.colors.accentBright, fontSize: 13, fontWeight: '600' },
   title: { color: agentUpTheme.colors.textPrimary, fontSize: 20, fontWeight: '700' },
   subtitle: { color: agentUpTheme.colors.textMuted, fontSize: 12 },
-  sections: {
+  tabs: {
     ...auBox('tabs'),
     flexDirection: 'row',
     gap: 6,
     marginHorizontal: agentUpTheme.spacing[4],
     marginTop: agentUpTheme.spacing[3],
   },
-  section: auBox('tab'),
-  sectionOn: auBox('tab', 'tabSelected'),
-  sectionText: { color: agentUpTheme.colors.textMuted, fontSize: 13, fontWeight: '600' },
-  sectionTextOn: { color: agentUpTheme.colors.textPrimary },
-  body: { padding: agentUpTheme.spacing[4], gap: 10, paddingBottom: agentUpTheme.spacing[8] },
-  heading: {
-    color: agentUpTheme.colors.textMuted,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginTop: 6,
-  },
-  card: { ...auBox('card'), gap: 4 },
-  cardDanger: auBox('cardDanger'),
-  cardWarning: { borderColor: agentUpTheme.colors.borderStrong },
-  cardTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 14, fontWeight: '600' },
-  note: { color: agentUpTheme.colors.textMuted, fontSize: 12 },
-  danger: { color: agentUpTheme.colors.statusDanger },
-  live: { color: agentUpTheme.colors.accentBright },
-  code: { color: agentUpTheme.colors.textMuted, fontSize: 12, fontFamily: agentUpTheme.fonts.mono },
-  row: { ...auBox('card'), flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56 },
-  rowBody: { flexGrow: 1, flexShrink: 1, minWidth: 0, gap: 2 },
-  factRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
-  factKey: { color: agentUpTheme.colors.textFaint, fontSize: 12, width: 72 },
-  factValue: { color: agentUpTheme.colors.textSecondary, fontSize: 13, flexShrink: 1 },
-  changeMark: {
-    color: agentUpTheme.colors.textFaint,
-    fontSize: 12,
-    fontFamily: agentUpTheme.fonts.mono,
-    width: 16,
-  },
-  changePath: {
-    color: agentUpTheme.colors.textSecondary,
-    fontSize: 12,
-    fontFamily: agentUpTheme.fonts.mono,
-    flexShrink: 1,
-  },
+  tab: auBox('tab'),
+  tabOn: auBox('tab', 'tabSelected'),
+  tabText: { color: agentUpTheme.colors.textMuted, fontSize: 13, fontWeight: '600' },
+  tabTextOn: { color: agentUpTheme.colors.textPrimary },
+  body: { flex: 1 },
+  missing: { padding: agentUpTheme.spacing[4] },
 });

@@ -15,7 +15,7 @@ import { isDatabaseApplication } from '@/features/database/providers/DatabaseExp
 import { ValidationDock } from '@/features/validation/components/ValidationDock';
 import { showsValidationChrome } from '@/features/validation/providers/ValidationPanelProvider';
 import type { ValidationReplayHost } from '@/features/validation/providers/ValidationReplayProvider';
-import { useInnerShell } from '@/features/shell/hooks/useInnerShell';
+import { useWorkspaceInnerShell } from '@/features/shell/hooks/useWorkspaceInnerShell';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 
 type ApplicationSpaceScreenProps = { workspace: Workspace; applicationName: string };
@@ -43,7 +43,7 @@ export function ApplicationSpaceScreen({ workspace, applicationName }: Applicati
     delay: ms => new Promise(resolve => setTimeout(resolve, ms)),
   }), []);
 
-  const inner = useInnerShell(applicationName, `/(main)/workspace/${workspace.id}`);
+  const inner = useWorkspaceInnerShell(workspace.id, applicationName, APPS);
   useShellConfig(inner);
 
   useEffect(() => {
@@ -152,3 +152,5 @@ const styles = StyleSheet.create({
   status: auText('muted'),
   error: { ...auText('badgeDanger'), textAlign: 'center' },
 });
+
+const APPS = { kind: 'apps' } as const;

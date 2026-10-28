@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import {
   getPermissionPolicy,
   putPermissionPolicy,
@@ -8,11 +7,12 @@ import {
   type PermissionRuleKind,
 } from '@agent-up/chat';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
-import { useInnerShell } from '@/features/shell/hooks/useInnerShell';
+import { useWorkspaceInnerShell } from '@/features/shell/hooks/useWorkspaceInnerShell';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
+import { useWorkspaceHost } from '@/features/workspaces/controllers/WorkspaceHostContext';
 
 const choices: { kind: PermissionRuleKind; title: string; detail: string }[] = [
   { kind: 'WorktreeRead', title: 'Read the worktree', detail: 'Inspect files in this workspace.' },
@@ -22,7 +22,7 @@ const choices: { kind: PermissionRuleKind; title: string; detail: string }[] = [
 ];
 
 export function AgentPermissionPolicyScreen({ workspaceId }: { workspaceId: string }) {
-  const router = useRouter();
+  const host = useWorkspaceHost(workspaceId);
   const { server } = useWorkspaces();
   const { expireActiveCredential } = useServers();
   const [allowed, setAllowed] = useState<Set<PermissionRuleKind>>(new Set());
@@ -30,7 +30,7 @@ export function AgentPermissionPolicyScreen({ workspaceId }: { workspaceId: stri
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const inner = useInnerShell('Autonomy permissions', `/(main)/workspace/${workspaceId}/agents`);
+  const inner = useWorkspaceInnerShell(workspaceId, 'Autonomy permissions', AGENTS);
   useShellConfig(useMemo(() => inner, [inner]));
 
   const load = useCallback(async () => {
@@ -71,7 +71,7 @@ export function AgentPermissionPolicyScreen({ workspaceId }: { workspaceId: stri
           })),
         ],
       });
-      router.replace(`/(main)/workspace/${workspaceId}/agents`);
+      host.open({ kind: 'agents' }, { replace: true });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not save the permission policy.');
     } finally {
@@ -130,3 +130,5 @@ const styles = StyleSheet.create({
   saveText: auText('button', 'buttonCompact'),
   error: auText('badgeDanger'),
 });
+
+const AGENTS = { kind: 'agents' } as const;
