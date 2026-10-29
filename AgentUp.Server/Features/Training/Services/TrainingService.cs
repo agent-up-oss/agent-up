@@ -13,7 +13,11 @@ namespace AgentUp.Server.Features.Training.Services;
 /// The backlog itself lives in <see cref="ProductDecisionService"/>. This is the layer that turns
 /// it into and out of the shapes that travel.
 /// </summary>
-public sealed class TrainingService(ProductDecisionService decisions, IDecisionRepositoryResolver repositories)
+public sealed class TrainingService(
+    ProductDecisionService decisions,
+    IDecisionRepositoryResolver repositories,
+    IDecisionEvidenceStore evidence,
+    IDecisionEvidenceSource captures)
 {
     public string ExportMimeType => DecisionExportProvider.MimeType;
 
@@ -24,7 +28,10 @@ public sealed class TrainingService(ProductDecisionService decisions, IDecisionR
     /// comes from the workspace rather than the caller, so a decision is filed against what the
     /// agent is actually working on.
     /// </summary>
-    public RecordDecisionResult Record(RecordDecisionRequest request, DateTimeOffset now)
+    public async Task<RecordDecisionResult> RecordAsync(
+        RecordDecisionRequest request,
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default)
     {
         var category = DecisionCategoryProvider.Parse(request.Category);
         if (category is null)
@@ -40,7 +47,49 @@ public sealed class TrainingService(ProductDecisionService decisions, IDecisionR
                 "workspaceId",
                 "This workspace has no repository, and none was named.");
 
-        return Recorded(request, category.Value, repository.Value, now);
+        var faults = DecisionDraftProvider.Faults(
+            request.Headline,
+            request.Detail,
+            request.Evidence,
+            request.EvidenceArtifactIds);
+        if (faults.Count > 0)
+            return Refused([.. faults.Select(fault => new DecisionFaultDto(fault.Field, fault.Problem))]);
+
+        var images = await CopyEvidenceAsync(request.EvidenceArtifactIds, cancellationToken);
+        return images.Missing.Count > 0
+            ? Refused([new DecisionFaultDto(
+                "evidenceArtifactIds",
+                $"No capture is stored under {string.Join(", ", images.Missing)}. Pass the artifact id browser_screenshot returned for this run.")])
+            : Recorded(request, category.Value, repository.Value, images.Images, now);
+    }
+
+    /// <summary>
+    /// Takes the backlog's own copy of every picture before the decision is written down, so a
+    /// recorded decision never points at something that can go away.
+    /// </summary>
+    private async Task<(List<DecisionEvidenceImage> Images, List<string> Missing)> CopyEvidenceAsync(
+        IReadOnlyList<string>? artifactIds,
+        CancellationToken cancellationToken)
+    {
+        var images = new List<DecisionEvidenceImage>();
+        var missing = new List<string>();
+        foreach (var artifactId in artifactIds ?? [])
+        {
+            var capture = await captures.ReadAsync(artifactId, cancellationToken);
+            if (capture is null)
+                missing.Add(artifactId);
+            else
+                images.Add(await evidence.SaveAsync(artifactId, capture.Value.MimeType, capture.Value.Bytes, cancellationToken));
+        }
+
+        return (images, missing);
+    }
+
+    /// <summary>The bytes behind one evidence picture, for a surface that shows it.</summary>
+    public async Task<(string MimeType, byte[] Bytes)?> EvidenceAsync(string evidenceId, CancellationToken cancellationToken = default)
+    {
+        var stored = await evidence.LoadAsync(evidenceId, cancellationToken);
+        return stored is null ? null : (stored.Value.Image.MimeType, stored.Value.Bytes);
     }
 
     /// <summary>Every repository with decisions, and how much of each is waiting.</summary>
@@ -72,6 +121,36 @@ public sealed class TrainingService(ProductDecisionService decisions, IDecisionR
         return reviewed is null ? null : Dto(reviewed);
     }
 
+    /// <summary>
+    /// What an agent reads back. A workspace names its own repository, so an agent asks about the
+    /// product it is working on without having to know what that product is called. Judged
+    /// decisions come first: they are the ones that carry an instruction.
+    /// </summary>
+    public IReadOnlyList<ProductDecisionDto> Read(
+        string? workspaceId,
+        string? owner,
+        string? repository,
+        string? category,
+        string? verdict,
+        int limit)
+    {
+        var resolved = Named(owner, repository) ?? Workspace(workspaceId);
+        var wanted = WantedVerdict(verdict);
+        return [.. decisions
+            .List(resolved?.Owner, resolved?.Repository, DecisionCategoryProvider.Parse(category), includeReviewed: true)
+            .Where(decision => wanted is null || decision.Verdict == wanted)
+            .OrderByDescending(decision => decision.ReviewedAt ?? decision.RecordedAt)
+            .Take(Math.Clamp(limit, 1, 200))
+            .Select(Dto)];
+    }
+
+    /// <summary>One recorded decision, whoever is asking.</summary>
+    public ProductDecisionDto? Find(string id)
+    {
+        var decision = decisions.All().FirstOrDefault(item => item.Id == id);
+        return decision is null ? null : Dto(decision);
+    }
+
     /// <summary>The backlog as training material.</summary>
     public string Export(bool includePending) => DecisionExportProvider.Write(decisions.All(), includePending);
 
@@ -89,6 +168,7 @@ public sealed class TrainingService(ProductDecisionService decisions, IDecisionR
         RecordDecisionRequest request,
         DecisionCategory category,
         (string Owner, string Repository) repository,
+        IReadOnlyList<DecisionEvidenceImage> images,
         DateTimeOffset now)
     {
         var recording = decisions.Record(
@@ -100,7 +180,7 @@ public sealed class TrainingService(ProductDecisionService decisions, IDecisionR
             request.Headline ?? string.Empty,
             request.Detail ?? string.Empty,
             request.Evidence ?? string.Empty,
-            request.EvidenceArtifactIds,
+            images,
             now);
 
         if (recording.Duplicate is not null)
@@ -110,26 +190,25 @@ public sealed class TrainingService(ProductDecisionService decisions, IDecisionR
                 Dto(recording.Duplicate),
                 DuplicateOfId: recording.Duplicate.Id);
 
-        return recording.Recorded
-            ? new RecordDecisionResult(true, "Recorded.", Dto(recording.Decision!))
-            : new RecordDecisionResult(
-                false,
-                "The decision was not recorded. Fix the points below and record it again.",
-                Faults: [.. recording.Faults.Select(fault => new DecisionFaultDto(fault.Field, fault.Problem))]);
+        return new RecordDecisionResult(true, "Recorded.", Dto(recording.Decision!));
     }
 
     private (string Owner, string Repository)? Repository(RecordDecisionRequest request)
-    {
-        if (!string.IsNullOrWhiteSpace(request.Owner) && !string.IsNullOrWhiteSpace(request.Repository))
-            return (request.Owner.Trim(), request.Repository.Trim());
+        => Named(request.Owner, request.Repository) ?? Workspace(request.WorkspaceId);
 
-        return string.IsNullOrWhiteSpace(request.WorkspaceId)
+    private static (string Owner, string Repository)? Named(string? owner, string? repository)
+        => string.IsNullOrWhiteSpace(owner) || string.IsNullOrWhiteSpace(repository)
             ? null
-            : repositories.Resolve(request.WorkspaceId);
-    }
+            : (owner.Trim(), repository.Trim());
+
+    private (string Owner, string Repository)? Workspace(string? workspaceId)
+        => string.IsNullOrWhiteSpace(workspaceId) ? null : repositories.Resolve(workspaceId);
 
     private static RecordDecisionResult Refused(string message, string field, string problem)
         => new(false, message, Faults: [new DecisionFaultDto(field, problem)]);
+
+    private static RecordDecisionResult Refused(IReadOnlyList<DecisionFaultDto> faults)
+        => new(false, "The decision was not recorded. Fix the points below and record it again.", Faults: faults);
 
     private static DecisionRepositoryDto Tile(IGrouping<string, ProductDecision> group) => new(
         group.First().Owner,
@@ -141,6 +220,13 @@ public sealed class TrainingService(ProductDecisionService decisions, IDecisionR
             DecisionCategoryProvider.Label(category),
             group.Count(decision => decision.Category == category && !decision.Reviewed),
             group.Count(decision => decision.Category == category && decision.Reviewed)))]);
+
+    /// <summary>
+    /// The verdict a reader is narrowing to, or null for all of them. Naming none is not the same
+    /// as naming "pending": an agent asking what has been decided wants the judged ones most.
+    /// </summary>
+    private static DecisionVerdict? WantedVerdict(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : Verdict(value);
 
     private static DecisionVerdict? Verdict(string? value) => (value ?? string.Empty).Trim().ToLowerInvariant() switch
     {
@@ -160,7 +246,7 @@ public sealed class TrainingService(ProductDecisionService decisions, IDecisionR
         decision.Headline,
         decision.Detail,
         decision.Evidence,
-        decision.EvidenceArtifactIds,
+        [.. decision.EvidenceImages.Select(image => new DecisionEvidenceDto(image.EvidenceId, image.SourceArtifactId, image.MimeType))],
         decision.RecordedAt,
         decision.Verdict switch
         {

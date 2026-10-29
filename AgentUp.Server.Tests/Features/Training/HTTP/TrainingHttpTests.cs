@@ -199,6 +199,8 @@ public sealed class TrainingHttpTests
         builder.Services.AddControllers().AddApplicationPart(typeof(TrainingHttpController).Assembly);
         builder.Services.AddSingleton<IProductDecisionStore, MemoryDecisionStore>();
         builder.Services.AddSingleton<IDecisionRepositoryResolver, FixedRepository>();
+        builder.Services.AddSingleton<IDecisionEvidenceStore, MemoryEvidenceStore>();
+        builder.Services.AddSingleton<IDecisionEvidenceSource, StubCaptures>();
         builder.Services.AddSingleton<ProductDecisionService>();
         builder.Services.AddSingleton<TrainingService>();
         builder.Services.AddSingleton<TrainingController>();
@@ -223,6 +225,27 @@ public sealed class TrainingHttpTests
     private sealed class FixedRepository : IDecisionRepositoryResolver
     {
         public (string Owner, string Repository)? Resolve(string workspaceId) => ("acme", "widgets");
+    }
+
+    private sealed class MemoryEvidenceStore : IDecisionEvidenceStore
+    {
+        private readonly Dictionary<string, (DecisionEvidenceImage Image, byte[] Bytes)> _images = [];
+
+        public Task<DecisionEvidenceImage> SaveAsync(string sourceArtifactId, string mimeType, byte[] bytes, CancellationToken cancellationToken)
+        {
+            var image = new DecisionEvidenceImage($"evidence-{_images.Count}", sourceArtifactId, mimeType);
+            _images[image.EvidenceId] = (image, bytes);
+            return Task.FromResult(image);
+        }
+
+        public Task<(DecisionEvidenceImage Image, byte[] Bytes)?> LoadAsync(string evidenceId, CancellationToken cancellationToken)
+            => Task.FromResult(_images.TryGetValue(evidenceId, out var found) ? found : ((DecisionEvidenceImage, byte[])?)null);
+    }
+
+    private sealed class StubCaptures : IDecisionEvidenceSource
+    {
+        public Task<(string MimeType, byte[] Bytes)?> ReadAsync(string artifactId, CancellationToken cancellationToken)
+            => Task.FromResult<(string MimeType, byte[] Bytes)?>(("image/png", [1, 2, 3]));
     }
 
     private sealed class MemoryDecisionStore : IProductDecisionStore

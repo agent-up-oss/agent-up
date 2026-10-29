@@ -85,6 +85,8 @@ public sealed class McpEndpointSessionProvider
     private static readonly HashSet<string> TrainingTools = new(StringComparer.Ordinal)
     {
         "train_record_decision",
+        "train_list_decisions",
+        "train_get_decision",
         "train_decision_categories"
     };
 

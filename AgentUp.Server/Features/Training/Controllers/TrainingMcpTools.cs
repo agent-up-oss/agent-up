@@ -27,7 +27,7 @@ public sealed class TrainingMcpTools(TrainingController training)
         + "headline is the decision in one line a product owner can judge at a glance — start with the decision, not with 'I decided'. "
         + "detail is what was decided, evidence is what it was based on: what you saw, what you tried, or the decision you are following. "
         + "evidenceArtifactIds takes audit artifact ids such as the one browser_screenshot returns, so the owner sees the screen you are talking about.")]
-    public Task<McpToolResult> RecordDecision(
+    public async Task<McpToolResult> RecordDecision(
         [Description("The workspace you are working in. The repository is taken from it.")]
         string workspaceId,
         [Description("One of: product-vision, gui-decisions, code-architecture.")]
@@ -44,18 +44,63 @@ public sealed class TrainingMcpTools(TrainingController training)
         string? agent = null,
         CancellationToken cancellationToken = default)
     {
-        var result = training.Record(new RecordDecisionRequest(
+        var result = await training.RecordAsync(new RecordDecisionRequest(
             workspaceId,
             categoryId,
             headline,
             detail,
             evidence,
             evidenceArtifactIds,
-            Agent: agent));
+            Agent: agent),
+            cancellationToken: cancellationToken);
 
-        return Task.FromResult(result.Recorded
+        return result.Recorded
             ? new McpToolResult(true, result.Message, result.Decision)
-            : new McpToolResult(false, Refusal(result), result.Faults ?? (object?)result.Decision));
+            : new McpToolResult(false, Refusal(result), result.Faults ?? (object?)result.Decision);
+    }
+
+    [McpServerTool(Name = "train_list_decisions", Title = "Read product decisions and their verdicts")]
+    [Description(
+        "Read the product decisions recorded for a repository, with whatever the product owner has made of them. "
+        + "Read these before you decide something in the same area: a decision the owner marked good is how they "
+        + "want this product built, and one marked bad is a mistake you should not repeat. Verdicts appear here as "
+        + "soon as the owner gives them, so it is worth re-reading on a later run. "
+        + "verdict narrows to good, bad or pending; category narrows to product-vision, gui-decisions or code-architecture.")]
+    public Task<McpToolResult> ListDecisions(
+        [Description("The workspace whose repository to read. Its repository is used when owner and repository are not given.")]
+        string? workspaceId = null,
+        [Description("Repository owner, when not reading from a workspace.")]
+        string? owner = null,
+        [Description("Repository name, when not reading from a workspace.")]
+        string? repository = null,
+        [Description("One of: product-vision, gui-decisions, code-architecture.")]
+        string? categoryId = null,
+        [Description("One of: good, bad, pending. Omit for all of them.")]
+        string? verdict = null,
+        [Description("How many to return, newest judged first.")]
+        int limit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var decisions = training.Read(workspaceId, owner, repository, categoryId, verdict, limit);
+        return Task.FromResult(new McpToolResult(
+            true,
+            decisions.Count == 0
+                ? "No product decisions are recorded for that repository yet."
+                : $"{decisions.Count} product decision(s). A 'good' verdict is how the product owner wants this built; a 'bad' one is a call to avoid.",
+            decisions));
+    }
+
+    [McpServerTool(Name = "train_get_decision", Title = "Read one product decision")]
+    [Description("Read one recorded product decision in full, with the product owner's verdict and note if they have judged it.")]
+    public Task<McpToolResult> GetDecision(
+        [Description("The decision id, as train_list_decisions reports it.")]
+        string decisionId,
+        CancellationToken cancellationToken = default)
+    {
+        var decision = training.Find(decisionId);
+        return Task.FromResult(decision is null
+            ? new McpToolResult(false, $"No decision is recorded under '{decisionId}'.")
+            : new McpToolResult(true, $"Decision '{decision.Headline}' is {decision.Verdict}.", decision));
     }
 
     [McpServerTool(Name = "train_decision_categories", Title = "Product decision categories")]

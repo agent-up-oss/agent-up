@@ -2,6 +2,7 @@ using AgentUp.Server.Features.Training.Controllers;
 using AgentUp.Server.Features.Training.DTOs;
 using AgentUp.Server.Features.Training.Interfaces;
 using AgentUp.Server.Features.Training.Models;
+using AgentUp.Server.Features.Training.Providers;
 using AgentUp.Server.Features.Training.Services;
 
 namespace AgentUp.Server.Tests.Features.Training.Controller;
@@ -55,7 +56,19 @@ public sealed class TrainingMcpToolsTests
             "The iOS calendar does the same, and the right side is where the destructive action is.",
             evidenceArtifactIds: ["artifact-abc", "artifact-def"]);
 
-        Assert.That(decisions.All().Single().EvidenceArtifactIds, Is.EqualTo(new[] { "artifact-abc", "artifact-def" }));
+        var images = decisions.All().Single().EvidenceImages;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(
+                images.Select(image => image.SourceArtifactId),
+                Is.EqualTo(new[] { "artifact-abc", "artifact-def" }),
+                "each picture still says which capture it came from");
+            Assert.That(
+                images.Select(image => image.EvidenceId),
+                Is.All.Not.AnyOf("artifact-abc", "artifact-def"),
+                "but the backlog keeps its own copy under its own id");
+        });
     }
 
     [TestCase("product vision", DecisionCategory.ProductVision)]
@@ -158,6 +171,118 @@ public sealed class TrainingMcpToolsTests
     }
 
     [Test]
+    public async Task RecordDecision_refusesACaptureThatIsNotThereRatherThanAnEmptyFrame()
+    {
+        // A decision whose picture cannot be copied would show a blank card forever.
+        var tools = Tools(out var decisions);
+
+        var result = await tools.RecordDecision(
+            "ws-1",
+            "gui-decisions",
+            "Put the reorder grip on the left of each queued row",
+            "The grip sits left of the title so a thumb reaches it without covering the text.",
+            "The iOS calendar does the same, and the right side is where the destructive action is.",
+            evidenceArtifactIds: ["gone"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Message, Does.Contain("gone"));
+            Assert.That(decisions.All(), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task ListDecisions_handsAnAgentTheVerdictsOnItsOwnRepository()
+    {
+        // This is the whole point of the loop: what the owner judged good is how they want the
+        // product built, and the agent should be able to read it on its next run.
+        var tools = Tools(out var decisions, out var service);
+        await tools.RecordDecision(
+            "ws-1",
+            "gui-decisions",
+            "Put the reorder grip on the left of each queued row",
+            "The grip sits left of the title so a thumb reaches it without covering the text.",
+            "The iOS calendar does the same, and the right side is where the destructive action is.");
+        service.Review(decisions.All().Single().Id, DecisionVerdict.Good, "Yes, keep this.", DateTimeOffset.UnixEpoch);
+
+        var result = await tools.ListDecisions("ws-1");
+
+        var listed = (IReadOnlyList<ProductDecisionDto>)result.Data!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(listed.Single().Verdict, Is.EqualTo("good"));
+            Assert.That(listed.Single().Note, Is.EqualTo("Yes, keep this."));
+        });
+    }
+
+    [Test]
+    public async Task ListDecisions_narrowsToWhatTheOwnerActuallyJudged()
+    {
+        var tools = Tools(out var decisions, out var service);
+        await tools.RecordDecision("ws-1", "gui-decisions",
+            "Put the reorder grip on the left of each queued row",
+            "The grip sits left of the title so a thumb reaches it.",
+            "The iOS calendar does the same, and the right side is destructive.");
+        await tools.RecordDecision("ws-1", "product-vision",
+            "Queue the work on the Server rather than the host",
+            "The Server owns the order of work; the host only reports what is open.",
+            "The host cannot assign an agent, so order had to live somewhere else.");
+        service.Review(decisions.All().First().Id, DecisionVerdict.Bad, null, DateTimeOffset.UnixEpoch);
+
+        var bad = (IReadOnlyList<ProductDecisionDto>)(await tools.ListDecisions("ws-1", verdict: "bad")).Data!;
+        var pending = (IReadOnlyList<ProductDecisionDto>)(await tools.ListDecisions("ws-1", verdict: "pending")).Data!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(bad, Has.Count.EqualTo(1));
+            Assert.That(pending, Has.Count.EqualTo(1));
+            Assert.That(bad.Single().Headline, Does.StartWith("Put the reorder grip"));
+        });
+    }
+
+    [Test]
+    public async Task ListDecisions_saysSoWhenAnAgentHasNothingToLearnFromYet()
+    {
+        var tools = Tools(out _);
+
+        var result = await tools.ListDecisions("ws-1");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(result.Message, Does.Contain("No product decisions"));
+        });
+    }
+
+    [Test]
+    public async Task GetDecision_readsOneBackInFull()
+    {
+        var tools = Tools(out var decisions);
+        await tools.RecordDecision("ws-1", "product-vision",
+            "Queue the work on the Server rather than the host",
+            "The Server owns the order of work; the host only reports what is open.",
+            "The host cannot assign an agent, so order had to live somewhere else.");
+
+        var result = await tools.GetDecision(decisions.All().Single().Id);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True);
+            Assert.That(((ProductDecisionDto)result.Data!).Headline, Does.StartWith("Queue the work"));
+        });
+    }
+
+    [Test]
+    public async Task GetDecision_saysSoWhenThereIsNoSuchDecision()
+    {
+        var tools = Tools(out _);
+
+        Assert.That((await tools.GetDecision("nope")).Succeeded, Is.False);
+    }
+
+    [Test]
     public async Task Categories_tellAnAgentWhatEachOneCovers()
     {
         var tools = Tools(out _);
@@ -172,12 +297,21 @@ public sealed class TrainingMcpToolsTests
         });
     }
 
+    private static TrainingMcpTools Tools(out ProductDecisionService decisions, string? repository = "widgets")
+        => Tools(out decisions, out _, repository);
+
     private static TrainingMcpTools Tools(
         out ProductDecisionService decisions,
+        out ProductDecisionService reviewer,
         string? repository = "widgets")
     {
         decisions = new ProductDecisionService(new MemoryDecisionStore());
-        return new TrainingMcpTools(new TrainingController(new TrainingService(decisions, new FixedRepository(repository))));
+        reviewer = decisions;
+        return new TrainingMcpTools(new TrainingController(new TrainingService(
+            decisions,
+            new FixedRepository(repository),
+            new MemoryEvidenceStore(),
+            new StubCaptures())));
     }
 
     /// <summary>The repository a workspace is on, stated by the test rather than read off a forge.</summary>
@@ -185,6 +319,30 @@ public sealed class TrainingMcpToolsTests
     {
         public (string Owner, string Repository)? Resolve(string workspaceId)
             => repository is null ? null : ("acme", repository);
+    }
+
+    /// <summary>Keeps the copies the backlog takes, so a test can see that it took them.</summary>
+    private sealed class MemoryEvidenceStore : IDecisionEvidenceStore
+    {
+        private readonly Dictionary<string, (DecisionEvidenceImage Image, byte[] Bytes)> _images = [];
+
+        public Task<DecisionEvidenceImage> SaveAsync(string sourceArtifactId, string mimeType, byte[] bytes, CancellationToken cancellationToken)
+        {
+            var image = new DecisionEvidenceImage($"evidence-{_images.Count}", sourceArtifactId, mimeType);
+            _images[image.EvidenceId] = (image, bytes);
+            return Task.FromResult(image);
+        }
+
+        public Task<(DecisionEvidenceImage Image, byte[] Bytes)?> LoadAsync(string evidenceId, CancellationToken cancellationToken)
+            => Task.FromResult(_images.TryGetValue(evidenceId, out var found) ? found : ((DecisionEvidenceImage, byte[])?)null);
+    }
+
+    /// <summary>Every artifact id reads back, except the one a test says is missing.</summary>
+    private sealed class StubCaptures : IDecisionEvidenceSource
+    {
+        public Task<(string MimeType, byte[] Bytes)?> ReadAsync(string artifactId, CancellationToken cancellationToken)
+            => Task.FromResult<(string MimeType, byte[] Bytes)?>(
+                artifactId == "gone" ? null : ("image/png", [1, 2, 3]));
     }
 
     private sealed class MemoryDecisionStore : IProductDecisionStore

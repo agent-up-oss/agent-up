@@ -13,11 +13,14 @@ public sealed record ProductDecisionDto(
     string Headline,
     string Detail,
     string Evidence,
-    IReadOnlyList<string> EvidenceArtifactIds,
+    IReadOnlyList<DecisionEvidenceDto> EvidenceImages,
     DateTimeOffset RecordedAt,
     string Verdict,
     string? Note,
     DateTimeOffset? ReviewedAt);
+
+/// <summary>A picture behind a decision, as a surface asks for it.</summary>
+public sealed record DecisionEvidenceDto(string EvidenceId, string SourceArtifactId, string MimeType);
 
 /// <summary>
 /// One repository's tile on the Train tab: who it is and how much is waiting, counted per

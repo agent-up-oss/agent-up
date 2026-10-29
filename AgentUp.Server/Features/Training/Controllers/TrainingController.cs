@@ -15,8 +15,15 @@ public sealed class TrainingController(TrainingService training)
     public string ExpectedCategories => training.ExpectedCategories;
 
     /// <summary>Writes down a decision an agent took, or says why it was not written down.</summary>
-    public RecordDecisionResult Record(RecordDecisionRequest request, DateTimeOffset? now = null)
-        => training.Record(request, now ?? DateTimeOffset.UtcNow);
+    public Task<RecordDecisionResult> RecordAsync(
+        RecordDecisionRequest request,
+        DateTimeOffset? now = null,
+        CancellationToken cancellationToken = default)
+        => training.RecordAsync(request, now ?? DateTimeOffset.UtcNow, cancellationToken);
+
+    /// <summary>The bytes behind one evidence picture.</summary>
+    public Task<(string MimeType, byte[] Bytes)?> EvidenceAsync(string evidenceId, CancellationToken cancellationToken = default)
+        => training.EvidenceAsync(evidenceId, cancellationToken);
 
     /// <summary>Every repository with decisions, and how much of each is waiting.</summary>
     public IReadOnlyList<DecisionRepositoryDto> Repositories() => training.Repositories();
@@ -35,6 +42,22 @@ public sealed class TrainingController(TrainingService training)
 
     /// <summary>The backlog as training material.</summary>
     public string Export(bool includePending = false) => training.Export(includePending);
+
+    /// <summary>
+    /// The decisions an agent should read before deciding something in the same area, newest
+    /// judged first.
+    /// </summary>
+    public IReadOnlyList<ProductDecisionDto> Read(
+        string? workspaceId,
+        string? owner,
+        string? repository,
+        string? category,
+        string? verdict,
+        int limit)
+        => training.Read(workspaceId, owner, repository, category, verdict, limit);
+
+    /// <summary>One recorded decision, with whatever the product owner made of it.</summary>
+    public ProductDecisionDto? Find(string id) => training.Find(id);
 
     /// <summary>The three categories and what each one covers.</summary>
     public IReadOnlyList<DecisionCategoryDto> Categories() => training.Categories();

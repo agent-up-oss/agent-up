@@ -41,7 +41,7 @@ public static class DecisionExportProvider
         decision.Headline,
         decision.Detail,
         decision.Evidence,
-        decision.EvidenceArtifactIds,
+        [.. decision.EvidenceImages.Select(image => image.EvidenceId)],
         decision.RecordedAt,
         decision.Verdict switch
         {

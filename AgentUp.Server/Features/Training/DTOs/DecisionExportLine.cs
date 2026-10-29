@@ -13,7 +13,7 @@ public sealed record DecisionExportLine(
     string Headline,
     string Detail,
     string Evidence,
-    IReadOnlyList<string> EvidenceArtifactIds,
+    IReadOnlyList<string> EvidenceImageIds,
     DateTimeOffset RecordedAt,
     string Verdict,
     string? Note,

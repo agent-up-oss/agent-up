@@ -47,12 +47,9 @@ public sealed class ProductDecisionService
         string headline,
         string detail,
         string evidence,
-        IReadOnlyList<string>? evidenceArtifactIds,
+        IReadOnlyList<DecisionEvidenceImage> evidenceImages,
         DateTimeOffset recordedAt)
     {
-        var faults = DecisionDraftProvider.Faults(headline, detail, evidence, evidenceArtifactIds);
-        if (faults.Count > 0)
-            return new DecisionRecording(null, faults, null);
 
         lock (_gate)
         {
@@ -71,7 +68,7 @@ public sealed class ProductDecisionService
                 headline.Trim(),
                 detail.Trim(),
                 evidence.Trim(),
-                evidenceArtifactIds?.Where(id => !string.IsNullOrWhiteSpace(id)).ToList() ?? [],
+                evidenceImages,
                 recordedAt);
 
             _decisions.Add(decision);

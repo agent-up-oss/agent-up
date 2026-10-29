@@ -76,6 +76,8 @@ public static class McpToolPermissionMap
         ["delete_validation_flow"] = OperationPermissions.ApplicationOperate,
 
         ["train_record_decision"] = OperationPermissions.AgentPrompt,
+        ["train_list_decisions"] = OperationPermissions.AgentRead,
+        ["train_get_decision"] = OperationPermissions.AgentRead,
         ["train_decision_categories"] = OperationPermissions.AgentRead,
         ["audit_query"] = OperationPermissions.DiagnosticsRead,
         ["audit_timeline"] = OperationPermissions.DiagnosticsRead,

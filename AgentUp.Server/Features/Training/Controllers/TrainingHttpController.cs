@@ -23,10 +23,23 @@ public sealed class TrainingHttpController(TrainingController training) : Contro
 
     /// <summary>Writes down a decision. Agents normally reach this through MCP rather than here.</summary>
     [HttpPost("decisions")]
-    public ActionResult<RecordDecisionResult> Record([FromBody] RecordDecisionRequest request)
+    public async Task<ActionResult<RecordDecisionResult>> Record(
+        [FromBody] RecordDecisionRequest request,
+        CancellationToken cancellationToken)
     {
-        var result = training.Record(request);
+        var result = await training.RecordAsync(request, cancellationToken: cancellationToken);
         return result.Recorded ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// A picture behind a decision. Served from the backlog's own store rather than from the
+    /// capture it came from, so a surface can still show it long after that run.
+    /// </summary>
+    [HttpGet("evidence/{evidenceId}")]
+    public async Task<IActionResult> Evidence(string evidenceId, CancellationToken cancellationToken)
+    {
+        var image = await training.EvidenceAsync(evidenceId, cancellationToken);
+        return image is null ? NotFound() : File(image.Value.Bytes, image.Value.MimeType);
     }
 
     /// <summary>What the product owner made of one decision.</summary>

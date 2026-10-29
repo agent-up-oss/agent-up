@@ -236,6 +236,10 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IProductDecisionStore>(_ => new JsonProductDecisionStore(dataDir));
         builder.Services.AddSingleton<ProductDecisionService>();
         builder.Services.AddSingleton<IDecisionRepositoryResolver, ForgeDecisionRepositoryResolver>();
+        // The backlog keeps its own copy of every evidence picture: a decision is training
+        // material and must not depend on a workspace, a branch, or an audit rollover.
+        builder.Services.AddSingleton<IDecisionEvidenceStore>(_ => new FileDecisionEvidenceStore(dataDir));
+        builder.Services.AddSingleton<IDecisionEvidenceSource, AuditDecisionEvidenceSource>();
         builder.Services.AddSingleton<TrainingService>();
         builder.Services.AddSingleton<TrainingController>();
         // The loop draws from the picked queue, never from whatever the host happens to have open.

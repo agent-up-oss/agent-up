@@ -41,9 +41,10 @@ public enum DecisionVerdict
 /// </param>
 /// <param name="Detail">What was decided, at enough length to be acted on.</param>
 /// <param name="Evidence">What the decision was based on: what was seen, tried, or already settled.</param>
-/// <param name="EvidenceArtifactIds">
-/// Audit artifacts that show the evidence, such as the screenshot <c>browser_screenshot</c>
-/// stored. The image lives in the audit store once; this points at it rather than copying it.
+/// <param name="EvidenceImages">
+/// Pictures of the evidence, copied into the backlog's own store when the decision was recorded.
+/// A decision outlives the workspace it was taken in, so it does not point at anything that a
+/// checkout, a branch or an audit rollover could take away.
 /// </param>
 public sealed record ProductDecision(
     string Id,
@@ -55,7 +56,7 @@ public sealed record ProductDecision(
     string Headline,
     string Detail,
     string Evidence,
-    IReadOnlyList<string> EvidenceArtifactIds,
+    IReadOnlyList<DecisionEvidenceImage> EvidenceImages,
     DateTimeOffset RecordedAt,
     DecisionVerdict Verdict = DecisionVerdict.Pending,
     string? Note = null,

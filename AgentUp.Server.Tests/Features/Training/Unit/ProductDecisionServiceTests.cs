@@ -29,23 +29,6 @@ public sealed class ProductDecisionServiceTests
     }
 
     [Test]
-    public void AMalformedDraft_isNotWrittenDownAtAll()
-    {
-        var store = new MemoryDecisionStore();
-        var service = new ProductDecisionService(store);
-
-        var recording = Record(service, headline: "no");
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(recording.Recorded, Is.False);
-            Assert.That(recording.Faults, Is.Not.Empty);
-            Assert.That(service.All(), Is.Empty);
-            Assert.That(store.Writes, Is.Zero, "nothing was persisted for a draft that was refused");
-        });
-    }
-
-    [Test]
     public void TheSameDecisionRecordedTwice_isDroppedRatherThanQueuedAgain()
     {
         // Agents work in loops and reach the same conclusion more than once. The person reviewing
