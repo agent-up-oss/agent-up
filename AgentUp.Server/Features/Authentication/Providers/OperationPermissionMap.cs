@@ -94,6 +94,12 @@ public static class OperationPermissionMap
         [("TaskQueueHttp", "Move")] = OperationPermissions.AgentPrompt,
         [("TaskQueueHttp", "Target")] = OperationPermissions.AgentPrompt,
         [("TaskQueueHttp", "Release")] = OperationPermissions.AgentPrompt,
+        [("TrainingHttp", "Repositories")] = OperationPermissions.AgentRead,
+        [("TrainingHttp", "Decisions")] = OperationPermissions.AgentRead,
+        [("TrainingHttp", "Evidence")] = OperationPermissions.AgentRead,
+        [("TrainingHttp", "Export")] = OperationPermissions.AgentRead,
+        [("TrainingHttp", "Record")] = OperationPermissions.AgentPrompt,
+        [("TrainingHttp", "Review")] = OperationPermissions.AgentPrompt,
 
         [("WorkspaceDiagnosticsHttp", "Get")] = OperationPermissions.DiagnosticsRead,
         [("WorkspaceReviewSnapshotHttp", "Get")] = OperationPermissions.DiagnosticsRead,
