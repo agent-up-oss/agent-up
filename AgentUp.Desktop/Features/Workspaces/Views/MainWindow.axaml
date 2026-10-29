@@ -1025,7 +1025,7 @@
                             <StackPanel Orientation="Horizontal">
                             <!-- Opened from the command center's team: the way back, beside the
                                  workspace's own tabs rather than above them. -->
-                            <Button Content="&#8249; Team"
+                            <Button Content="‹ Team"
                                     Classes="au-button au-button--secondary au-button--compact"
                                     Margin="10,0,4,0"
                                     VerticalAlignment="Center"

@@ -23,6 +23,14 @@ public sealed record ProductDecisionDto(
 public sealed record DecisionEvidenceDto(string EvidenceId, string SourceArtifactId, string MimeType);
 
 /// <summary>
+/// The picture itself, carried as text.
+///
+/// A surface cannot put an authenticated request behind an image tag, so the bytes come back
+/// through the same authenticated read as everything else and are rendered from there.
+/// </summary>
+public sealed record DecisionEvidenceImageDto(string EvidenceId, string MimeType, string Base64);
+
+/// <summary>
 /// One repository's tile on the Train tab: who it is and how much is waiting, counted per
 /// category so a reader can see where the backlog actually is before opening anything.
 /// </summary>

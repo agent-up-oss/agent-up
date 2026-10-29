@@ -36,10 +36,12 @@ public sealed class TrainingHttpController(TrainingController training) : Contro
     /// capture it came from, so a surface can still show it long after that run.
     /// </summary>
     [HttpGet("evidence/{evidenceId}")]
-    public async Task<IActionResult> Evidence(string evidenceId, CancellationToken cancellationToken)
+    public async Task<ActionResult<DecisionEvidenceImageDto>> Evidence(string evidenceId, CancellationToken cancellationToken)
     {
         var image = await training.EvidenceAsync(evidenceId, cancellationToken);
-        return image is null ? NotFound() : File(image.Value.Bytes, image.Value.MimeType);
+        return image is null
+            ? NotFound()
+            : Ok(new DecisionEvidenceImageDto(evidenceId, image.Value.MimeType, Convert.ToBase64String(image.Value.Bytes)));
     }
 
     /// <summary>What the product owner made of one decision.</summary>

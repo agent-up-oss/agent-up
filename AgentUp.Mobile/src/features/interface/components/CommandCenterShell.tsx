@@ -15,6 +15,7 @@ import { useServers } from '@/features/servers/controllers/ServersContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import { agentUpTheme, auBox } from '@agent-up/design-system/native';
 import { useTaskQueue, type TaskQueueState } from '../controllers/TaskQueueContext';
+import { useTraining } from '../controllers/TrainingContext';
 import { useTeamStanding } from '../controllers/TeamStandingContext';
 import {
   dragOffset,
@@ -39,10 +40,17 @@ import {
   whoIs,
   type TeamTriage,
 } from '../services/TeamStandingService';
+import {
+  decisionExportFileName,
+  exportedCount,
+  saveDecisionExport,
+} from '../providers/DecisionExportProvider';
+import { readExport } from '../providers/TrainingProvider';
 import { AgentPage } from './AgentPage';
+import { TrainScreen } from './TrainScreen';
 import { InterfaceToggleRow } from './InterfaceToggleRow';
 
-type Surface = 'bridge' | 'tasks' | 'team' | 'settings';
+type Surface = 'bridge' | 'train' | 'tasks' | 'team' | 'settings';
 
 /**
  * The command center, on the phone.
@@ -55,6 +63,7 @@ type Surface = 'bridge' | 'tasks' | 'team' | 'settings';
 export function CommandCenterShell() {
   const standing = useTeamStanding();
   const tasks = useTaskQueue();
+  const training = useTraining();
   const { activeServer, logout } = useServers();
   const { workspaces } = useWorkspaces();
   // The phone's own chrome sits over the top and bottom of the screen: the status bar and the
@@ -72,6 +81,17 @@ export function CommandCenterShell() {
 
   const serverLabel = activeServer?.url ?? 'No server';
 
+  // The whole backlog as training material. Judged decisions only: an export is what a training
+  // run reads, and a decision nobody has judged carries no lesson.
+  const exportDecisions = useCallback(() => {
+    if (!activeServer) return;
+    void readExport(activeServer, false)
+      .then(jsonl => exportedCount(jsonl) === 0
+        ? undefined
+        : saveDecisionExport(jsonl, decisionExportFileName()))
+      .catch(() => undefined);
+  }, [activeServer]);
+
   // An agent's page takes the whole shell: it carries its own head and its own sections, and the
   // tab bar below still moves between surfaces, so leaving it is one press either way.
   const agent = openAgent === null ? null : standing.team.find(item => item.workspaceId === openAgent) ?? null;
@@ -87,6 +107,7 @@ export function CommandCenterShell() {
         />
         <View style={[styles.tabBar, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
           <TabItem label="Bridge" active={false} onPress={() => { setOpenAgent(null); setSurface('bridge'); }} />
+          <TabItem label="Train" active={false} onPress={() => { setOpenAgent(null); setSurface('train'); }} />
           <TabItem label="Tasks" active={false} onPress={() => { setOpenAgent(null); setSurface('tasks'); }} />
           <TabItem label="Team" active onPress={() => setOpenAgent(null)} />
         </View>
@@ -115,6 +136,7 @@ export function CommandCenterShell() {
 
       <ScrollView contentContainerStyle={styles.body} scrollEnabled={!dragging}>
         {surface === 'bridge' ? <Bridge standing={standing} /> : null}
+        {surface === 'train' ? <TrainScreen training={training} server={activeServer} onExport={exportDecisions} /> : null}
         {surface === 'tasks' ? <Tasks standing={standing} tasks={tasks} onDragging={setDragging} /> : null}
         {surface === 'team' ? <Team standing={standing} onOpen={setOpenAgent} /> : null}
         {surface === 'settings' ? <Settings onSignOut={logout} serverLabel={serverLabel} /> : null}
@@ -122,6 +144,7 @@ export function CommandCenterShell() {
 
       <View style={[styles.tabBar, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
         <TabItem label="Bridge" active={surface === 'bridge'} onPress={() => setSurface('bridge')} />
+        <TabItem label="Train" active={surface === 'train'} onPress={() => setSurface('train')} />
         <TabItem label="Tasks" active={surface === 'tasks'} onPress={() => setSurface('tasks')} />
         <TabItem label="Team" active={surface === 'team'} onPress={() => setSurface('team')} />
       </View>
@@ -134,7 +157,7 @@ export function CommandCenterShell() {
               <Text style={styles.drawerServerName}>Server</Text>
               <Text style={styles.subtitle} numberOfLines={2}>{serverLabel}</Text>
             </View>
-            {(['bridge', 'tasks', 'team', 'settings'] as Surface[]).map(item => (
+            {(['bridge', 'train', 'tasks', 'team', 'settings'] as Surface[]).map(item => (
               <Pressable
                 key={item}
                 accessibilityRole="link"
@@ -155,6 +178,7 @@ type Standing = TeamTriage & { loading: boolean; read: boolean; error: string | 
 
 function titleFor(surface: Surface): string {
   if (surface === 'bridge') return 'Bridge';
+  if (surface === 'train') return 'Train';
   if (surface === 'tasks') return 'Tasks';
   if (surface === 'team') return 'Team';
   return 'Settings';

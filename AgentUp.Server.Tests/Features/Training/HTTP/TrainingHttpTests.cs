@@ -178,7 +178,55 @@ public sealed class TrainingHttpTests
         Assert.That(body.Split('\n', StringSplitOptions.RemoveEmptyEntries), Has.Length.EqualTo(1));
     }
 
-    private static async Task<RecordDecisionResult?> RecordAsync(Host host, string category, string headline)
+    [Test]
+    public async Task AnEvidencePicture_comesBackAsTextASurfaceCanRender()
+    {
+        // Not as raw bytes behind a URL: an image tag carries no credentials, so the picture
+        // travels through the same authenticated read as the decision it belongs to.
+        await using var host = await HostAsync();
+        var recorded = await RecordAsync(host, "gui-decisions", "Crop a long task title rather than wrapping it", ["artifact-1"]);
+        var evidenceId = recorded!.Decision!.EvidenceImages.Single().EvidenceId;
+
+        var image = await host.Client.GetFromJsonAsync<DecisionEvidenceImageDto>(
+            $"/api/training/evidence/{evidenceId}", Json);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(image!.MimeType, Is.EqualTo("image/png"));
+            Assert.That(Convert.FromBase64String(image.Base64), Is.EqualTo(new byte[] { 1, 2, 3 }));
+        });
+    }
+
+    [Test]
+    public async Task AnEvidencePictureThatIsNotThere_isNotFound()
+    {
+        await using var host = await HostAsync();
+
+        var response = await host.Client.GetAsync("/api/training/evidence/nope");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task ADecisionKeepsItsOwnCopyOfThePicture_notTheCaptureItCameFrom()
+    {
+        await using var host = await HostAsync();
+
+        var recorded = await RecordAsync(host, "gui-decisions", "Crop a long task title rather than wrapping it", ["artifact-1"]);
+
+        var image = recorded!.Decision!.EvidenceImages.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(image.SourceArtifactId, Is.EqualTo("artifact-1"), "it still says where it came from");
+            Assert.That(image.EvidenceId, Is.Not.EqualTo("artifact-1"), "but it is the backlog's own copy");
+        });
+    }
+
+    private static async Task<RecordDecisionResult?> RecordAsync(
+        Host host,
+        string category,
+        string headline,
+        IReadOnlyList<string>? images = null)
     {
         var response = await host.Client.PostAsJsonAsync(
             "/api/training/decisions",
@@ -188,6 +236,7 @@ public sealed class TrainingHttpTests
                 headline,
                 "What was decided, said at enough length to be acted on later.",
                 "What the call was based on, said at enough length to be worth reading.",
+                images,
                 Agent: "Lucy"),
             Json);
         return await response.Content.ReadFromJsonAsync<RecordDecisionResult>(Json);

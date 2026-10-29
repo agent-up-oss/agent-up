@@ -1,4 +1,10 @@
-import { cloneDefinition, type FakeOfferedIssue, type FakeQueuedTask, type FakeServerDefinition } from '../models/FakeServerDefinition';
+import {
+  cloneDefinition,
+  type FakeOfferedIssue,
+  type FakeProductDecision,
+  type FakeQueuedTask,
+  type FakeServerDefinition,
+} from '../models/FakeServerDefinition';
 import { fakeServerEventFrame, type FakeServerEvent } from '../models/FakeServerEvent';
 import { fakeServerId, fakeServerUrl, isFakeServerUrl } from '../models/FakeServerIdentity';
 import {
@@ -209,6 +215,8 @@ export class FakeBackendService {
     if (method === 'GET' && path === '/api/tasks') return json(this.taskQueue());
     if (method === 'POST' && path === '/api/tasks') return this.enqueueTask(request.body);
     if (path.startsWith('/api/tasks/')) return this.taskMutation(method, path.slice('/api/tasks/'.length), request.body);
+    if (path.startsWith('/api/training'))
+      return this.training(method, path + (request.query ?? ''), request.body ?? undefined);
     if (method === 'GET' && path.startsWith('/apps/')) return this.appPage(path);
 
     const workspacePath = parseWorkspacePath(path);
@@ -380,6 +388,107 @@ export class FakeBackendService {
    * The picked queue, shared by every workspace. The Demo answers the shape the Server serves, so
    * the Tasks tab arranges it here exactly as it would against a real Server.
    */
+  /**
+   * The decision backlog the Train tab reads. Verdicts given here stay for the life of the Demo
+   * session, so judging a card and coming back to it shows what you said.
+   */
+  private training(method: string, path: string, body: string | undefined): FakeBackendResponse {
+    const rest = path.slice('/api/training'.length);
+
+    if (method === 'GET' && rest === '/repositories') return json(this.decisionRepositories());
+
+    if (method === 'GET' && rest.startsWith('/decisions')) {
+      const query = new URLSearchParams(rest.includes('?') ? rest.slice(rest.indexOf('?') + 1) : '');
+      return json(this.decisionsFor(query.get('owner'), query.get('repository'), query.get('category')));
+    }
+
+    if (method === 'POST' && rest.startsWith('/decisions/') && rest.endsWith('/review'))
+      return this.reviewDecision(rest.slice('/decisions/'.length, rest.length - '/review'.length), body);
+
+    if (method === 'GET' && rest.startsWith('/evidence/'))
+      return this.decisionEvidence(decodeURIComponent(rest.slice('/evidence/'.length)));
+
+    if (method === 'GET' && rest.startsWith('/export')) return this.decisionExport(rest.includes('includePending=true'));
+
+    return notFound();
+  }
+
+  private decisions(): FakeProductDecision[] {
+    return this.state.productDecisions ?? [];
+  }
+
+  private decisionRepositories() {
+    const byRepository = new Map<string, FakeProductDecision[]>();
+    for (const decision of this.decisions()) {
+      const key = `${decision.owner}/${decision.repository}`;
+      byRepository.set(key, [...(byRepository.get(key) ?? []), decision]);
+    }
+
+    return [...byRepository.values()]
+      .map(group => ({
+        owner: group[0].owner,
+        repository: group[0].repository,
+        pending: group.filter(decision => decision.verdict === 'pending').length,
+        reviewed: group.filter(decision => decision.verdict !== 'pending').length,
+        categories: decisionCategoryIds.map(category => ({
+          category,
+          label: decisionCategoryLabels[category],
+          pending: group.filter(d => d.category === category && d.verdict === 'pending').length,
+          reviewed: group.filter(d => d.category === category && d.verdict !== 'pending').length,
+        })),
+      }))
+      .sort((left, right) => right.pending - left.pending || left.repository.localeCompare(right.repository));
+  }
+
+  private decisionsFor(owner: string | null, repository: string | null, category: string | null) {
+    return this.decisions()
+      .filter(decision => !owner || decision.owner.toLowerCase() === owner.toLowerCase())
+      .filter(decision => !repository || decision.repository.toLowerCase() === repository.toLowerCase())
+      .filter(decision => !category || decision.category === category)
+      .sort((left, right) =>
+        Number(left.verdict !== 'pending') - Number(right.verdict !== 'pending')
+        || left.recordedAt.localeCompare(right.recordedAt));
+  }
+
+  private reviewDecision(id: string, body: string | undefined): FakeBackendResponse {
+    const decision = this.decisions().find(item => item.id === decodeURIComponent(id));
+    if (!decision) return notFound();
+
+    const asked = body ? (JSON.parse(body) as { verdict?: string; note?: string | null }) : {};
+    const verdict = asked.verdict ?? 'pending';
+    if (!['good', 'bad', 'pending'].includes(verdict)) return notFound();
+
+    decision.verdict = verdict;
+    decision.note = asked.note?.trim() ? asked.note.trim() : null;
+    decision.reviewedAt = verdict === 'pending' ? null : new Date().toISOString();
+    return json(decision);
+  }
+
+  private decisionEvidence(evidenceId: string): FakeBackendResponse {
+    const image = this.state.decisionEvidence?.[evidenceId];
+    return image ? json({ evidenceId, mimeType: image.mimeType, base64: image.base64 }) : notFound();
+  }
+
+  private decisionExport(includePending: boolean): FakeBackendResponse {
+    const lines = this.decisions()
+      .filter(decision => includePending || decision.verdict !== 'pending')
+      .map(decision => JSON.stringify({
+        id: decision.id,
+        repository: `${decision.owner}/${decision.repository}`,
+        agent: decision.agent,
+        category: decision.category,
+        headline: decision.headline,
+        detail: decision.detail,
+        evidence: decision.evidence,
+        evidenceImageIds: decision.evidenceImages.map(image => image.evidenceId),
+        recordedAt: decision.recordedAt,
+        verdict: decision.verdict,
+        note: decision.note,
+        reviewedAt: decision.reviewedAt,
+      }));
+    return { status: 200, contentType: 'application/x-ndjson', body: lines.join('\n') + (lines.length ? '\n' : '') };
+  }
+
   private taskQueue(): FakeQueuedTask[] {
     return this.state.taskQueue ?? [];
   }
@@ -1063,6 +1172,15 @@ function readJsonArray(body: string | null, name: string): unknown[] {
 function workspaceIdOf(item: unknown): string | undefined {
   return item && typeof item === 'object' && 'id' in item && typeof item.id === 'string' ? item.id : undefined;
 }
+
+/** The three categories, in the order the Train tab shows them. */
+const decisionCategoryIds = ['product-vision', 'gui-decisions', 'code-architecture'] as const;
+
+const decisionCategoryLabels: Record<string, string> = {
+  'product-vision': 'Product vision',
+  'gui-decisions': 'GUI decisions',
+  'code-architecture': 'Code architecture',
+};
 
 function json(body: unknown): FakeBackendResponse {
   return { status: 200, contentType: 'application/json', body: JSON.stringify(body) };
