@@ -49,8 +49,8 @@ export type DecisionRepository = {
 /** The three categories in the order the tab shows them. */
 export const decisionCategories: { id: DecisionCategoryId; label: string }[] = [
   { id: 'product-vision', label: 'Product vision' },
-  { id: 'gui-decisions', label: 'GUI decisions' },
-  { id: 'code-architecture', label: 'Code architecture' },
+  { id: 'gui-decisions', label: 'GUI' },
+  { id: 'code-architecture', label: 'Architecture' },
 ];
 
 /** A repository as one string, which is how a tile is identified. */

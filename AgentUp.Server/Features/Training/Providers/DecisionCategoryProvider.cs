@@ -25,8 +25,8 @@ public static class DecisionCategoryProvider
     public static string Label(DecisionCategory category) => category switch
     {
         DecisionCategory.ProductVision => "Product vision",
-        DecisionCategory.GuiDecisions => "GUI decisions",
-        _ => "Code architecture"
+        DecisionCategory.GuiDecisions => "GUI",
+        _ => "Architecture"
     };
 
     /// <summary>

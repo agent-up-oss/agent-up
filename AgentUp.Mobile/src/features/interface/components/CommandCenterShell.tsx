@@ -13,7 +13,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
-import { agentUpTheme, auBox } from '@agent-up/design-system/native';
+import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
+import { PublicIcon } from '@/features/shell/components/PublicIcon';
+import type { PublicIconName } from '@/features/shell/providers/PublicIconProvider';
 import { useTaskQueue, type TaskQueueState } from '../controllers/TaskQueueContext';
 import { useTraining } from '../controllers/TrainingContext';
 import { useTeamStanding } from '../controllers/TeamStandingContext';
@@ -106,10 +108,10 @@ export function CommandCenterShell() {
           onBack={() => setOpenAgent(null)}
         />
         <View style={[styles.tabBar, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
-          <TabItem label="Bridge" active={false} onPress={() => { setOpenAgent(null); setSurface('bridge'); }} />
-          <TabItem label="Train" active={false} onPress={() => { setOpenAgent(null); setSurface('train'); }} />
-          <TabItem label="Tasks" active={false} onPress={() => { setOpenAgent(null); setSurface('tasks'); }} />
-          <TabItem label="Team" active onPress={() => setOpenAgent(null)} />
+          <TabItem label="Bridge" icon="bridge" active={false} onPress={() => { setOpenAgent(null); setSurface('bridge'); }} />
+          <TabItem label="Train" icon="train" active={false} onPress={() => { setOpenAgent(null); setSurface('train'); }} />
+          <TabItem label="Tasks" icon="tasks" active={false} onPress={() => { setOpenAgent(null); setSurface('tasks'); }} />
+          <TabItem label="Team" icon="team" active onPress={() => setOpenAgent(null)} />
         </View>
       </View>
     );
@@ -143,10 +145,10 @@ export function CommandCenterShell() {
       </ScrollView>
 
       <View style={[styles.tabBar, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
-        <TabItem label="Bridge" active={surface === 'bridge'} onPress={() => setSurface('bridge')} />
-        <TabItem label="Train" active={surface === 'train'} onPress={() => setSurface('train')} />
-        <TabItem label="Tasks" active={surface === 'tasks'} onPress={() => setSurface('tasks')} />
-        <TabItem label="Team" active={surface === 'team'} onPress={() => setSurface('team')} />
+        <TabItem label="Bridge" icon="bridge" active={surface === 'bridge'} onPress={() => setSurface('bridge')} />
+        <TabItem label="Train" icon="train" active={surface === 'train'} onPress={() => setSurface('train')} />
+        <TabItem label="Tasks" icon="tasks" active={surface === 'tasks'} onPress={() => setSurface('tasks')} />
+        <TabItem label="Team" icon="team" active={surface === 'team'} onPress={() => setSurface('team')} />
       </View>
 
       {menuOpen ? (
@@ -741,9 +743,30 @@ function Empty({ title, note, action, onPress }: { title: string; note: string; 
   );
 }
 
-function TabItem({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+/**
+ * One surface on the bottom bar: its icon over its name, built from the same catalog boxes as the
+ * workspace bar in the classic shell so the two read as one product rather than two.
+ */
+function TabItem({
+  label,
+  icon,
+  active,
+  onPress,
+}: {
+  label: string;
+  icon: PublicIconName;
+  active: boolean;
+  onPress: () => void;
+}) {
   return (
-    <Pressable accessibilityRole="tab" accessibilityState={{ selected: active }} style={styles.tabItem} onPress={onPress}>
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active }}
+      style={[styles.tabItem, active && styles.tabItemOn]}
+      onPress={onPress}
+    >
+      <PublicIcon name={icon} muted={!active} size={20} />
       <Text style={active ? styles.tabTextOn : styles.tabText}>{label}</Text>
     </Pressable>
   );
@@ -838,16 +861,22 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: agentUpTheme.colors.accentSoft, fontSize: 13, fontWeight: '600' },
   tabBar: {
-    ...auBox('panel'),
+    ...auBox('mobileTabBar'),
     flexDirection: 'row',
-    borderRadius: 0,
-    borderWidth: 0,
-    borderTopWidth: 1,
-    borderTopColor: agentUpTheme.colors.borderSubtle,
+    gap: 6,
   },
-  tabItem: { flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center' },
-  tabText: { color: agentUpTheme.colors.textFaint, fontSize: 12 },
-  tabTextOn: { color: agentUpTheme.colors.textPrimary, fontSize: 12, fontWeight: '600' },
+  tabItem: {
+    ...auBox('subtab'),
+    ...auBox('navTab'),
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  tabItemOn: auBox('subtabSelected'),
+  tabText: auText('subtab'),
+  tabTextOn: auText('subtabSelected'),
   drawer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, flexDirection: 'row' },
   scrim: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: agentUpTheme.colors.scrim },
   drawerPanel: { ...auBox('drawer'), paddingVertical: agentUpTheme.spacing[3], gap: 2 },

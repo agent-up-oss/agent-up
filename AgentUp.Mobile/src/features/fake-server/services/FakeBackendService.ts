@@ -1178,8 +1178,8 @@ const decisionCategoryIds = ['product-vision', 'gui-decisions', 'code-architectu
 
 const decisionCategoryLabels: Record<string, string> = {
   'product-vision': 'Product vision',
-  'gui-decisions': 'GUI decisions',
-  'code-architecture': 'Code architecture',
+  'gui-decisions': 'GUI',
+  'code-architecture': 'Architecture',
 };
 
 function json(body: unknown): FakeBackendResponse {
