@@ -150,7 +150,8 @@ session, so a Desktop layout change moves those numbers and nothing else. Mobile
 controls by the accessible label the client gives them, so it needs no coordinates.
 
 CI runs this in the **Product screens** job and uploads `artifacts/product-screens` as a
-build artifact. It gates nothing; it is evidence to look at.
+build artifact. It gates nothing; it is evidence to look at. A capture miss still uploads
+whatever was taken and does not fail the workflow.
 
 One caveat for repeat local runs: the Demo storefront keeps its cart and orders in the
 Desktop WebView's own storage, so a second run on the same machine starts from the first
