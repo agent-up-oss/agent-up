@@ -24,6 +24,8 @@ This page lists the repository secrets and variables the Agent-Up CI workflow re
 
 The Agent-Up CI workflow runs on every push. Signing and release steps degrade gracefully when their credentials are absent. Codecov uploads also skip when `CODECOV_TOKEN` is unavailable, which is how GitHub withholds repository secrets from Dependabot and fork pull requests. Patch coverage and the slice floor still run locally in the coverage job.
 
+Linux jobs run on self-hosted `[self-hosted, Linux, X64, mcl-runner]` so they do not consume GitHub-hosted Action minutes. macOS and Windows packaging, iOS store builds, and iOS sign-in stay on GitHub-hosted runners because those platforms are not `mcl-runner`.
+
 ## Code coverage
 
 | Secret | Value |

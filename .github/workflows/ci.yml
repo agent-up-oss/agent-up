@@ -27,7 +27,7 @@ permissions:
 jobs:
   version:
     name: Determine version
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     permissions:
       contents: write
     outputs:
@@ -67,7 +67,7 @@ jobs:
 
   helm-chart:
     name: Helm chart
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     steps:
       - uses: actions/checkout@v7
 
@@ -82,7 +82,7 @@ jobs:
 
   dotnet-build:
     name: .NET payloads
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     needs: version
     permissions:
       contents: read
@@ -172,7 +172,7 @@ jobs:
 
   dotnet-tests:
     name: .NET tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     needs: version
     permissions:
       contents: read
@@ -206,7 +206,7 @@ jobs:
 
   performance-gates:
     name: Performance gates
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     needs: version
     permissions:
       contents: read
@@ -242,7 +242,7 @@ jobs:
 
   test-kind-watchdog:
     name: Test-kind watchdog
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     needs: version
     permissions:
       contents: read
@@ -275,7 +275,7 @@ jobs:
 
   dotnet-gui-tests:
     name: .NET GUI tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     needs: version
     permissions:
       contents: read
@@ -324,7 +324,7 @@ jobs:
 
   runtime-capability-e2e:
     name: Runtime capability E2E
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     needs: version
     permissions:
       contents: read
@@ -374,7 +374,7 @@ jobs:
 
   loop-inference:
     name: Loop CPU inference
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     needs: version
     permissions:
       contents: read
@@ -414,7 +414,7 @@ jobs:
 
   loop-soak:
     name: Loop soak
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     needs: version
     permissions:
       contents: read
@@ -449,7 +449,7 @@ jobs:
 
   dotnet-coverage:
     name: .NET coverage
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     needs: version
     permissions:
       contents: read
@@ -820,7 +820,7 @@ jobs:
 
   au-check:
     name: au-check
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     permissions:
       contents: read
     steps:
@@ -849,7 +849,7 @@ jobs:
 
   au-check-smoke:
     name: au-check smoke
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     needs: au-check
     permissions:
       contents: read
@@ -872,7 +872,7 @@ jobs:
 
   jetbrains-plugin:
     name: JetBrains plugin
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     needs: version
     permissions:
       contents: read
@@ -918,12 +918,12 @@ jobs:
       matrix:
         include:
           - name: Ubuntu package
-            os: ubuntu-latest
+            os: [self-hosted, Linux, X64, mcl-runner]
             platform: ubuntu
             rid: linux-x64
             use-nix: false
           - name: NixOS package
-            os: ubuntu-latest
+            os: [self-hosted, Linux, X64, mcl-runner]
             platform: nixos
             rid: linux-x64
             use-nix: true
@@ -1201,7 +1201,7 @@ jobs:
   # uploads the screenshots. It proves nothing and gates nothing - it is evidence to look at.
   product-screens:
     name: Product screens
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     needs: version
     permissions:
       contents: read
@@ -1249,7 +1249,7 @@ jobs:
 
   mobile:
     name: Mobile
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     needs: version
     steps:
       - uses: actions/checkout@v7
@@ -1307,7 +1307,7 @@ jobs:
 
   docs:
     name: Docs
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     if: ${{ github.ref == 'refs/heads/main' }}
     steps:
       - uses: actions/checkout@v7
@@ -1323,7 +1323,7 @@ jobs:
 
   release:
     name: Release
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     needs: [platform, runtime-capability-e2e, loop-inference, loop-soak, performance-gates, test-kind-watchdog, docs, jetbrains-plugin, au-check, version, helm-chart]
     if: ${{ github.ref == 'refs/heads/main' && needs.version.outputs.publish == 'true' }}
     permissions:

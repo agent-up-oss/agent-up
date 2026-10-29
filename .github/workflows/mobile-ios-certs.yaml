@@ -22,7 +22,7 @@ jobs:
   init-ci:
     name: Initialize Match deploy key
     if: ${{ inputs.action == 'init_ci' }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7

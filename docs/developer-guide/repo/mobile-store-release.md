@@ -19,10 +19,10 @@ to GitHub Actions artifacts (`mobile-android`, `mobile-ios`) with 1-day
 retention, including on smoke, before any Play or App Store Connect submit.
 
 The workflow runs Mobile typechecking, provider and script tests, and a web
-export in a dedicated Ubuntu job before either native build. Dependency
+export in a dedicated Linux `mcl-runner` job before either native build. Dependency
 installation runs the design-system generator with `--check` so stale committed
 outputs fail instead of being rewritten. It does not call
-semantic-release or use `.releaserc.json`. Android compiles on Ubuntu. iOS
+semantic-release or use `.releaserc.json`. Android compiles on Linux `mcl-runner`. iOS
 compiles on `macos-26` with Xcode 26.4 because CocoaPods and `xcodebuild` cannot
 run on Linux, and Expo SDK 57 rejects Xcode 16.
 
@@ -65,9 +65,9 @@ pushes entirely, so desktop CI would never start on this branch.
 
 ```text
 push (path-filtered) or workflow_dispatch
-  version (ubuntu)
-    tests (ubuntu)
-      android (ubuntu)
+  version (mcl-runner)
+    tests (mcl-runner)
+      android (mcl-runner)
       ios (macos-26)
 ```
 
@@ -115,7 +115,7 @@ CI runs `expo prebuild` and does not commit `android/` or `ios/`. Store
 `icon.png` and `adaptive-icon.png` under `AgentUp.Mobile/assets/` are 1024px
 scales of `AgentUp.Mobile/public/agent-up-icon-512.png`.
 
-GitHub-hosted store jobs invoke Expo and Fastlane directly. Fastlane, `Gemfile`,
+Linux store jobs run on `mcl-runner`. GitHub-hosted macOS store jobs invoke Expo and Fastlane directly. Fastlane, `Gemfile`,
 `Gemfile.lock`, and `.ruby-version` live at the repository root; `expo prebuild`
 still runs in `AgentUp.Mobile`. Do not add public Mobile npm scripts for those
 commands; local scripts still enter `shell.nix`.

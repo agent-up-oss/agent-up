@@ -56,7 +56,7 @@ permissions:
 jobs:
   mobile-e2e-pwa:
     name: Mobile E2E (installable web)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     steps:
       - uses: actions/checkout@v7
 
@@ -117,7 +117,7 @@ jobs:
 
   mobile-e2e-android:
     name: Mobile E2E (Android)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, mcl-runner]
     steps:
       - uses: actions/checkout@v7
 
