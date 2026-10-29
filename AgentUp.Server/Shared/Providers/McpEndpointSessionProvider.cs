@@ -82,6 +82,12 @@ public sealed class McpEndpointSessionProvider
         "export_workspace_review_snapshot"
     };
 
+    private static readonly HashSet<string> TrainingTools = new(StringComparer.Ordinal)
+    {
+        "train_record_decision",
+        "train_decision_categories"
+    };
+
     private static readonly HashSet<string> CapabilityTools = new(StringComparer.Ordinal)
     {
         "list_capability_modules",
@@ -100,6 +106,9 @@ public sealed class McpEndpointSessionProvider
 
     private const string AuditInstructions =
         "Agent-Up audit MCP server. Use these tools to query durable workspace, browser, MCP, process, source revision, health, and artifact history. export_workspace_review_snapshot is one shareable HTML report of what the workspace looked like after an agent task: identity, ports, processes, diagnostics, the open browser URL, recent actions, and embedded screenshots. Its verification section is the same export_verification report rendered in that document, not a second format, and never an input to the guard. Evidence to show, never a substitute for the live workspace.";
+
+    private const string TrainingInstructions =
+        "Agent-Up product decision MCP server. Record a product decision you have taken so the product owner can judge it later. Recording never blocks and never returns a verdict: write it down and carry on with your work.";
 
     private const string CapabilitiesInstructions =
         "Agent-Up capability modules MCP server. List, enable, and disable registry packages on this Server. Enabling wraps later application and agent launches through nix. Desktop and Mobile never call the remote registry.";
@@ -152,6 +161,11 @@ public sealed class McpEndpointSessionProvider
             options.ServerInstructions = AgentUpMcpGuidance.ForEndpoint(AuditInstructions, instructions);
             KeepTools(options, AuditTools);
             options.ResourceCollection?.Clear();
+        }
+        else if (IsEndpoint(context, "/mcp/training"))
+        {
+            options.ServerInstructions = AgentUpMcpGuidance.ForEndpoint(TrainingInstructions, instructions);
+            KeepTools(options, TrainingTools);
         }
         else if (IsEndpoint(context, "/mcp/capabilities"))
         {

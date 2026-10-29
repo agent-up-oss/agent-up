@@ -19,6 +19,21 @@ public sealed class AuditHttpController(AuditController audit) : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// The bytes behind one artifact, for a surface that shows it rather than an agent that
+    /// reads it. A product decision points at its evidence this way, so the screenshot lives in
+    /// the audit store once instead of being copied into every feature that refers to it.
+    /// </summary>
+    [HttpGet("artifacts/{artifactId}")]
+    public async Task<IActionResult> Artifact(string artifactId, CancellationToken ct)
+    {
+        var artifact = await audit.LoadArtifactAsync(artifactId, includeImage: true, ct);
+        if (artifact?.ImageBase64 is null)
+            return NotFound();
+
+        return File(Convert.FromBase64String(artifact.ImageBase64), artifact.MimeType);
+    }
+
     [HttpGet("workspaces/{workspaceId}/applications/{application}")]
     public async Task<ActionResult<DTOs.AuditEventPageDto>> QueryApplication(
         string workspaceId,
