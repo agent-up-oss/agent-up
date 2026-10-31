@@ -21,7 +21,7 @@ test('intercepts the Demo URL and leaves other hosts alone', async () => {
   // the Demo answers with the whole team rather than pinning whoever sits first in the file.
   assert.deepEqual(
     (await workspaces.json()).map((workspace: { id: string }) => workspace.id).sort(),
-    ['bob', 'hector', 'lucy'],
+    ['bob', 'frank', 'hector', 'lucy', 'mia'],
   );
   assert.equal(passthrough.status, 204);
   assert.equal(forwarded, 1);

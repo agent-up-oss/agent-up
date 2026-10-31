@@ -204,13 +204,16 @@
   </section>
 
   <section data-au-surface="workspaces" data-au-title="Workspaces" data-au-intro="A workspace is the managed runtime and source identity. Do not name every row after an agent unless that is the display name.">
-    <article data-au-component="workspace" data-au-title="Workspace row" data-au-note="Idle rows are transparent and hover with the neutral state layer. The selected checkout takes an accent tint plus a 2px accent rule on its leading edge, never a saturated fill. Start, identity, and delete are the same controls on Desktop and Mobile. A running workspace shows stop, not play." data-au-avalonia="Border" data-au-class="au-workspace" data-au-desktop-class="wsEntry" data-au-desktop-host="ListBoxItem" data-au-states="selected=au-workspace/au-workspace--selected" data-au-state-examples="selected:0|Selected workspace|The open checkout takes the accent tint plus a 2px accent rule.">
+    <article data-au-component="workspace" data-au-title="Workspace row" data-au-note="Idle rows are transparent and hover with the neutral state layer. The selected checkout takes an accent tint plus a 2px accent rule on its leading edge, never a saturated fill. Start, identity, and delete are the same controls on Desktop and Mobile. A running workspace shows stop, not play. The LED is the agent state: working, waiting, error, or idle. The branch line is omitted when none is assigned." data-au-avalonia="Border" data-au-class="au-workspace" data-au-desktop-class="wsEntry" data-au-desktop-host="ListBoxItem" data-au-states="selected=au-workspace/au-workspace--selected" data-au-state-examples="selected:0|Selected workspace|The open checkout takes the accent tint plus a 2px accent rule." data-au-parts="working branch">
       <div class="au-workspace">
         <button class="au-lifecycle-button" type="button">■</button>
-        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span class="au-status-dot au-status-dot--healthy" data-au-part="working"></span>
+        <span class="au-status-dot au-status-dot--warning" data-au-part="waiting"></span>
+        <span class="au-status-dot au-status-dot--danger" data-au-part="halted"></span>
+        <span class="au-status-dot au-status-dot--idle" data-au-part="idle"></span>
         <span>
           <strong class="au-workspace-name" data-au-text="name">Harbor Shop</strong>
-          <small class="au-workspace-branch" data-au-text="branch">main</small>
+          <small class="au-workspace-branch" data-au-text="branch" data-au-part="branch">main</small>
         </span>
         <button class="au-workspace-delete" type="button">×</button>
       </div>

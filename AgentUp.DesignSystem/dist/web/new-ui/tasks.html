@@ -34,33 +34,49 @@
           <button type="button" class="au-workspace-add" aria-label="Add workspace">+</button>
         </div>
         <div class="aun-nav-subs">
-          <div class="au-workspace">
+          <div data-au-demo="workspaces"><div class="au-workspace">
         <button class="au-lifecycle-button" type="button">■</button>
         <span class="au-status-dot au-status-dot--healthy"></span>
         <span>
-          <strong class="au-workspace-name">Harbor Shop</strong>
-          <small class="au-workspace-branch">main</small>
+          <strong class="au-workspace-name">Bob</strong>
+          <small class="au-workspace-branch">feat/45-deliver</small>
         </span>
         <button class="au-workspace-delete" type="button">×</button>
       </div>
-          <div class="au-workspace">
+<div class="au-workspace">
         <button class="au-lifecycle-button" type="button">■</button>
-        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span class="au-status-dot au-status-dot--idle"></span>
         <span>
-          <strong class="au-workspace-name">Harbor Checkout</strong>
-          <small class="au-workspace-branch">feat/48-express-checkout</small>
+          <strong class="au-workspace-name">Frank</strong>
         </span>
         <button class="au-workspace-delete" type="button">×</button>
       </div>
-          <div class="au-workspace">
+<div class="au-workspace">
         <button class="au-lifecycle-button" type="button">■</button>
-        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span class="au-status-dot au-status-dot--danger"></span>
         <span>
-          <strong class="au-workspace-name">Harbor Docs</strong>
-          <small class="au-workspace-branch">fix/51-broken-anchors</small>
+          <strong class="au-workspace-name">Hector</strong>
+          <small class="au-workspace-branch">feat/44-restock</small>
         </span>
         <button class="au-workspace-delete" type="button">×</button>
       </div>
+<div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--warning"></span>
+        <span>
+          <strong class="au-workspace-name">Lucy</strong>
+          <small class="au-workspace-branch">feat/44-restock</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+<div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--idle"></span>
+        <span>
+          <strong class="au-workspace-name">Mia</strong>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div></div>
         </div>
         <button type="button" class="aun-nav aun-nav--current">Tasks</button>
         <button type="button" class="aun-nav">Settings</button>
@@ -69,54 +85,60 @@
           
           
           
-          <div class="au-screen-pane"><div class="aun-task-board">
-        <h1 class="au-page-title">Tasks</h1>
-        <div class="aun-group">
-        <p class="au-field-label">In progress · 1</p>
-        <div class="aun-task-row">
-          <span class="aun-task-row__body">
-            <span class="aun-task-row__title">#44 · Restock featured products</span>
-            <span class="aun-task-row__agent">Bob</span>
-            <span class="aun-task-row__repo">example/repository</span>
-          </span>
-          <button class="aun-btn aun-btn--danger" type="button">Stop</button>
-        </div>
-        </div>
-        <div class="aun-group">
-        <p class="au-field-label">Queue · 2</p>
-        <div class="aun-task-row">
-          <span class="aun-task__grip" aria-hidden="true"><span></span><span></span><span></span></span>
-          <span class="aun-task-row__body">
-            <span class="aun-task-row__title">#51 · Broken anchors in the docs nav</span>
-            <span class="aun-task-row__repo">example/repository</span>
-          </span>
-          <button class="aun-btn aun-btn--danger" type="button">Dequeue</button>
-        </div>
-        <div class="aun-task-row">
-          <span class="aun-task__grip" aria-hidden="true"><span></span><span></span><span></span></span>
-          <span class="aun-task-row__body">
-            <span class="aun-task-row__title">#48 · Express checkout drops the promo code</span>
-            <span class="aun-task-row__repo">example/repository</span>
-          </span>
-          <button class="aun-btn aun-btn--danger" type="button">Dequeue</button>
-        </div>
-        </div>
-        <div class="aun-group">
-        <p class="au-field-label">Open issues · 3</p>
-        <div class="aun-task-row">
-          <span class="aun-task-row__body"><span class="aun-task-row__title">#57 · Cart badge lags behind the cart</span></span>
-          <button class="aun-btn aun-btn--primary" type="button">Queue</button>
-        </div>
-        <div class="aun-task-row">
-          <span class="aun-task-row__body"><span class="aun-task-row__title">#58 · Search ignores a trailing space</span></span>
-          <button class="aun-btn aun-btn--primary" type="button">Queue</button>
-        </div>
-        <div class="aun-task-row">
-          <span class="aun-task-row__body"><span class="aun-task-row__title">#61 · Order confirmation email omits tax</span></span>
-          <button class="aun-btn aun-btn--primary" type="button">Queue</button>
-        </div>
-        </div>
-      </div></div>
+          <div class="au-screen-pane"><div class="aun-task-board" data-au-demo="queue">
+    <h1 class="au-page-title">Tasks</h1>
+    
+    <div class="aun-group">
+      <p class="au-field-label">In progress · 1</p>
+      
+    <div class="aun-task-row">
+      
+      <span class="aun-task-row__body">
+        <span class="aun-task-row__title">#44 · Restock featured products</span>
+        <span class="aun-task-row__agent">Bob</span>
+        <span class="aun-task-row__repo">example/repository</span>
+      </span>
+      <button class="aun-btn aun-btn--danger" type="button">Stop</button>
+    </div>
+    </div>
+    <div class="aun-group">
+      <p class="au-field-label">Queue · 2</p>
+      
+    <div class="aun-task-row">
+      <span class="aun-task__grip" aria-hidden="true"><span></span><span></span><span></span></span>
+      <span class="aun-task-row__body">
+        <span class="aun-task-row__title">#51 · Broken anchors in the docs nav</span>
+        
+        <span class="aun-task-row__repo">example/repository</span>
+      </span>
+      <button class="aun-btn aun-btn--danger" type="button">Dequeue</button>
+    </div>
+    <div class="aun-task-row">
+      <span class="aun-task__grip" aria-hidden="true"><span></span><span></span><span></span></span>
+      <span class="aun-task-row__body">
+        <span class="aun-task-row__title">#48 · Express checkout drops the promo code</span>
+        
+        <span class="aun-task-row__repo">example/repository</span>
+      </span>
+      <button class="aun-btn aun-btn--danger" type="button">Dequeue</button>
+    </div>
+    </div>
+    <div class="aun-group">
+      <p class="au-field-label">Open issues · 3</p>
+      
+      <div class="aun-task-row">
+        <span class="aun-task-row__body"><span class="aun-task-row__title">#57 · Cart badge lags behind the cart</span></span>
+        <button class="aun-btn aun-btn--primary" type="button">Queue</button>
+      </div>
+      <div class="aun-task-row">
+        <span class="aun-task-row__body"><span class="aun-task-row__title">#58 · Search ignores a trailing space</span></span>
+        <button class="aun-btn aun-btn--primary" type="button">Queue</button>
+      </div>
+      <div class="aun-task-row">
+        <span class="aun-task-row__body"><span class="aun-task-row__title">#61 · Order confirmation email omits tax</span></span>
+        <button class="aun-btn aun-btn--primary" type="button">Queue</button>
+      </div>
+    </div></div></div>
         </main>
       </div>
     </div>

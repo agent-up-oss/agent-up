@@ -17,6 +17,7 @@ import {
 } from '../scripts/lib/css.mjs';
 import { emitNative } from '../scripts/lib/native.mjs';
 import { parseCatalog } from '../scripts/lib/catalog.mjs';
+import { applyDemo, loadDemo } from '../scripts/lib/demo.mjs';
 import { applyNewUiSceneFiles, newUiFromAssembled, newUiManifest, parseNewUi, withProductCatalog, wrapNewUiScene } from '../scripts/lib/new-ui.mjs';
 import { assembleScreens } from '../scripts/lib/screens.mjs';
 import { applyDefaultParts, applyProps, hasContentSlots } from '../scripts/lib/slots.mjs';
@@ -781,6 +782,7 @@ async function assembleNewUi() {
   const close = main.lastIndexOf('</body>');
   const product = parseCatalog(`${main.slice(0, close)}\n${fragments.join('\n')}\n${main.slice(close)}`);
   const extra = parseCatalog(await readFile(new URL('../src/new-ui/catalog.html', import.meta.url), 'utf8'));
+  applyDemo(extra, await loadDemo());
   const screens = await readFile(new URL('../src/new-ui/screens.html', import.meta.url), 'utf8');
   for (const value of [product, extra]) {
     for (const surface of value.surfaces) {
@@ -814,7 +816,11 @@ test('new UI screens pair desktop and mobile instead of a chip per surface', asy
   for (const scene of scenes.filter(item => item.surface === 'desktop')) {
     assert.match(scene.html, /aria-label="Sidebar"/, `${scene.id} is missing the sidebar`);
     assert.match(scene.html, /SERVER ONLINE/, `${scene.id} is missing the window bar`);
-    assert.match(scene.html, /Harbor Shop/, `${scene.id} is missing a workspace`);
+    assert.match(scene.html, />Bob</, `${scene.id} is missing Bob`);
+    assert.match(scene.html, />Hector</, `${scene.id} is missing Hector`);
+    assert.match(scene.html, />Lucy</, `${scene.id} is missing Lucy`);
+    assert.match(scene.html, />Frank</, `${scene.id} is missing Frank`);
+    assert.match(scene.html, />Mia</, `${scene.id} is missing Mia`);
     assert.match(scene.html, /Add workspace/, `${scene.id} is missing Add`);
     assert.match(scene.html, />Team</, `${scene.id} is missing Team`);
     assert.match(scene.html, />Tasks</, `${scene.id} is missing Tasks`);
@@ -823,6 +829,33 @@ test('new UI screens pair desktop and mobile instead of a chip per surface', asy
     assert.doesNotMatch(scene.html, /Switch back/, `${scene.id} still switches back from the rail`);
   }
   assert.doesNotMatch(scenes.find(item => item.id === 'team').html, />Logout</);
+  const teamScene = scenes.find(item => item.id === 'team');
+  assert.match(teamScene.html, /Restock featured products/);
+  assert.match(teamScene.html, /aun-state-map__branch--working/);
+  assert.match(teamScene.html, /aun-state-map__branch--idle/);
+  assert.match(teamScene.html, /aun-state-map__branch--waiting/);
+  assert.match(teamScene.html, /aun-state-map__branch--halted/);
+  assert.match(teamScene.html, /feat\/45-deliver/);
+  assert.match(teamScene.html, /feat\/44-restock/);
+  assert.equal(teamScene.html.match(/class="au-workspace-branch"/g).length, 3);
+  assert.match(teamScene.html, /au-status-dot--healthy/);
+  assert.match(teamScene.html, /au-status-dot--warning/);
+  assert.match(teamScene.html, /au-status-dot--danger/);
+  assert.match(teamScene.html, /au-status-dot--idle/);
+  assert.match(teamScene.html, />Wait for approval</);
+  assert.match(teamScene.html, />Error</);
+  assert.match(teamScene.html, /aun-state-map__message/);
+  assert.doesNotMatch(teamScene.html, /In progress/);
+  assert.doesNotMatch(teamScene.html, /Task source/);
+  const phoneTeam = scenes.find(item => item.id === 'mobile-team');
+  assert.match(phoneTeam.html, /aun-state-map--mobile/);
+  assert.match(phoneTeam.html, /aun-state-map__branch--working/);
+  assert.match(phoneTeam.html, /aun-state-map__branch--idle/);
+  assert.match(phoneTeam.html, /5 agents · 1 working · 2 idle · 1 waiting for approval · 1 error/);
+  assert.doesNotMatch(scenes.find(item => item.id === 'team').html, /Reading the team/);
+  assert.doesNotMatch(scenes.find(item => item.id === 'team').html, /Harbor Shop/);
+  assert.match(scenes.find(item => item.id === 'agent-overview').html, />Bob</);
+  assert.doesNotMatch(scenes.find(item => item.id === 'agent-overview').html, /Harbor Shop/);
   const phoneApp = scenes.find(item => item.id === 'mobile-application');
   assert.match(phoneApp.html, /Storefront/);
   assert.match(phoneApp.html, /au-validation-dock/);

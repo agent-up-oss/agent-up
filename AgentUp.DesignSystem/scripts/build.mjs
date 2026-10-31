@@ -15,6 +15,7 @@ import { emitNative } from './lib/native.mjs';
 import { newUiFromAssembled, newUiManifest, withProductCatalog, wrapNewUiScene } from './lib/new-ui.mjs';
 import { emitSequencePlayer, emitSequencePlayerTypes } from './lib/sequences.mjs';
 import { assembleScreens, framedSceneHtml, sceneCopy, wrapSceneDocument } from './lib/screens.mjs';
+import { applyDemo, loadDemo } from './lib/demo.mjs';
 import { applyDefaultParts, buildPropsExamples, hasContentSlots } from './lib/slots.mjs';
 import { buildStateExamples } from './lib/states.mjs';
 
@@ -37,6 +38,7 @@ const screenshotCss = `${css}\n${marketing}\n${screenshotShell}\n`;
  * Product components (the title bar, a workspace row, the Git pane) are inserted as themselves.
  */
 const newUiCatalog = parseCatalog(await readFile(resolve(src, 'new-ui', 'catalog.html'), 'utf8'));
+applyDemo(newUiCatalog, await loadDemo());
 const newUiScreens = await readFile(resolve(src, 'new-ui', 'screens.html'), 'utf8');
 const newUiCss = await readFile(resolve(src, 'new-ui', 'new-ui.css'), 'utf8');
 const tokens = parseCustomProperties(primitives);

@@ -26,9 +26,7 @@
           <button type="button" class="au-workspace-add" aria-label="Add workspace">+</button>
         </div>
         <div class="aun-nav-subs">
-          <div data-au-use="workspace"></div>
-          <div data-au-use="workspace" data-au-props="name=Harbor Checkout; branch=feat/48-express-checkout"></div>
-          <div data-au-use="workspace" data-au-props="name=Harbor Docs; branch=fix/51-broken-anchors"></div>
+          <div data-au-demo="workspaces"></div>
           <button type="button" class="aun-rail__link" data-au-part="more">Load more</button>
         </div>
         <button type="button" class="aun-nav">Tasks</button>
@@ -43,9 +41,7 @@
           <button type="button" class="au-workspace-add" aria-label="Add workspace">+</button>
         </div>
         <div class="aun-nav-subs">
-          <div data-au-use="workspace" data-au-state="selected:0"></div>
-          <div data-au-use="workspace" data-au-props="name=Harbor Checkout; branch=feat/48-express-checkout"></div>
-          <div data-au-use="workspace" data-au-props="name=Harbor Docs; branch=fix/51-broken-anchors"></div>
+          <div data-au-demo="workspaces"></div>
         </div>
         <button type="button" class="aun-nav">Tasks</button>
         <button type="button" class="aun-nav">Settings</button>
@@ -111,49 +107,16 @@
     <article data-au-component="bridge-heading" data-au-title="Bridge heading" data-au-note="Desktop bridge title and the headline the view binds." data-au-avalonia="Border" data-au-class="aun-main">
       <div>
         <div data-au-use="page-title" data-au-props="title=Team"></div>
-        <p class="aun-muted">Reading the team…</p>
+        <div data-au-demo="headline"></div>
       </div>
     </article>
 
-    <article data-au-component="agent-state-map" data-au-title="Agent state map" data-au-note="Desktop fleet graph. Lane names and empty copy come from the state lanes." data-au-avalonia="Border" data-au-class="aun-state-map">
-      <div class="aun-state-map">
-        <div class="aun-state-map__head">
-          <div>
-            <p class="aun-state-map__kicker">AGENT STATE MAP</p>
-            <p class="aun-state-map__dek">Live fleet topology</p>
-          </div>
-          <span class="aun-live">LIVE</span>
-        </div>
-        <div class="aun-state-map__root">
-          <div>
-            <p class="aun-state-map__total">0</p>
-            <p class="aun-state-map__total-label">AGENTS</p>
-          </div>
-          <div>
-            <p class="aun-state-map__root-title">SERVER FLEET</p>
-            <p class="aun-state-map__root-meta">0 active · 0 ready · 0 need attention</p>
-          </div>
-        </div>
-        <div class="aun-state-map__stem"></div>
-        <div class="aun-state-map__crossbar"></div>
-        <div class="aun-state-map__lanes">
-          <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch"><p>Waiting</p><p class="aun-faint">Needs your decision</p><p class="aun-faint">No decisions waiting</p></div></div>
-          <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch"><p>Halted</p><p class="aun-faint">Needs recovery</p><p class="aun-faint">No stopped agents</p></div></div>
-          <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch"><p>Working</p><p class="aun-faint">Moving work forward</p><p class="aun-faint">No active work</p></div></div>
-          <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch"><p>Idle</p><p class="aun-faint">Ready for work</p><p class="aun-faint">No agents standing by</p></div></div>
-        </div>
-      </div>
+    <article data-au-component="agent-state-map" data-au-title="Agent state map" data-au-note="Desktop fleet graph. Only lanes with an agent are drawn. A host's messages sit under the host." data-au-avalonia="Border" data-au-class="aun-state-map">
+      <div class="aun-state-map" data-au-demo="fleet"></div>
     </article>
 
     <article data-au-component="bridge-task-table" data-au-title="Bridge tasks" data-au-note="The task table on the Desktop bridge." data-au-avalonia="Border" data-au-class="aun-card">
-      <div class="aun-card">
-        <p class="aun-rail__section">TASKS</p>
-        <p class="aun-faint">TASK</p>
-        <p class="aun-faint">STATE</p>
-        <p class="aun-faint">ASSIGNED TO</p>
-        <p class="aun-faint">No agent reports a task in hand.</p>
-        <p class="aun-faint">These are the tasks the agents report holding. Unassigned issues live on the repository host; this Server does not expose its queue to clients, so they are not listed here.</p>
-      </div>
+      <div class="aun-card" data-au-demo="reported"></div>
     </article>
 
     <article data-au-component="task-queue" data-au-title="Task queue" data-au-note="In progress, queue, and open issues, with the empty copy the Desktop queue shows after a read." data-au-avalonia="Border" data-au-class="aun-card">
@@ -166,22 +129,16 @@
     </article>
 
     <article data-au-component="task-source" data-au-title="Task source" data-au-note="Where the Server's agents take work from." data-au-avalonia="Border" data-au-class="aun-card">
-      <div class="aun-card">
-        <p class="aun-rail__section">TASK SOURCE</p>
-        <button type="button" class="aun-btn">Connect</button>
-      </div>
+      <div class="aun-card" data-au-demo="source"></div>
     </article>
 
     <article data-au-component="train-panel" data-au-title="Train panel" data-au-note="The train block on the Desktop command center." data-au-avalonia="Border" data-au-class="aun-card">
-      <div class="aun-card">
-        <p class="aun-rail__section">TRAIN</p>
-        <button type="button" class="aun-btn">Export</button>
-      </div>
+      <div class="aun-card" data-au-demo="decisions"></div>
     </article>
 
     <article data-au-component="mobile-head-team" data-au-title="Mobile Team head" data-au-note="Team and the fleet headline. The phone has no drawer." data-au-avalonia="Border" data-au-class="aun-phone__head-row">
       <div class="aun-phone__head-row">
-        <div class="aun-phone__head-copy"><div data-au-use="page-title" data-au-props="title=Team"></div><span class="aun-phone__subtitle">Reading the team…</span></div>
+        <div class="aun-phone__head-copy"><div data-au-use="page-title" data-au-props="title=Team"></div><div data-au-demo="headline"></div></div>
       </div>
     </article>
 
@@ -200,14 +157,14 @@
     <article data-au-component="mobile-application-head" data-au-title="Mobile application head" data-au-note="An open application is an inner page: a chevron back to Apps, and the application name. No reload." data-au-avalonia="Border" data-au-class="aun-agent-head">
       <div class="aun-agent-head">
         <button type="button" class="aun-agent-back" aria-label="Go back">‹</button>
-        <div class="aun-phone__head-copy"><div data-au-use="page-title" data-au-props="title=Storefront"></div></div>
+        <div class="aun-phone__head-copy" data-au-demo="application"></div>
       </div>
     </article>
 
     <article data-au-component="mobile-agent-head" data-au-title="Mobile agent head" data-au-note="Back is a chevron, the workspace name sits above its branch, and Reload is accent text. No boxed control." data-au-avalonia="Border" data-au-class="aun-agent-head">
       <div class="aun-agent-head">
         <button type="button" class="aun-agent-back" aria-label="Back to the team">‹</button>
-        <div class="aun-phone__head-copy"><div data-au-use="page-title" data-au-props="title=Harbor Shop"></div><span class="aun-phone__subtitle">main</span></div>
+        <div class="aun-phone__head-copy" data-au-demo="member"></div>
         <button type="button" class="aun-agent-reload">Reload</button>
       </div>
     </article>
@@ -241,67 +198,12 @@
       </div>
     </article>
 
-    <article data-au-component="mobile-state-map" data-au-title="Mobile state map" data-au-note="The same four lanes, stacked for the phone." data-au-avalonia="Border" data-au-class="aun-card">
-      <div>
-        <p class="aun-rail__section">AGENT STATE MAP</p>
-        <p class="aun-faint">Live fleet topology</p>
-        <p class="aun-rail__section">SERVER FLEET</p>
-        <p>Waiting</p><p class="aun-faint">Needs your decision</p>
-        <p>Halted</p><p class="aun-faint">Needs recovery</p>
-        <p>Working</p><p class="aun-faint">Moving work forward</p>
-        <p>Idle</p><p class="aun-faint">Ready for work</p>
-      </div>
+    <article data-au-component="mobile-state-map" data-au-title="Mobile state map" data-au-note="The same fleet graph, stacked for the phone." data-au-avalonia="Border" data-au-class="aun-state-map">
+      <div class="aun-state-map aun-state-map--mobile" data-au-demo="fleet"></div>
     </article>
 
     <article data-au-component="task-board" data-au-title="Task board" data-au-note="The Demo queue: one task in progress, two waiting, and three open issues. Desktop keeps the page title; the phone puts that title in its head." data-au-avalonia="Border" data-au-class="aun-task-board" data-au-parts="title">
-      <div class="aun-task-board">
-        <div data-au-part="title" data-au-use="page-title" data-au-props="title=Tasks"></div>
-        <div class="aun-group">
-        <div data-au-use="section-label" data-au-props="label=In progress · 1"></div>
-        <div class="aun-task-row">
-          <span class="aun-task-row__body">
-            <span class="aun-task-row__title">#44 · Restock featured products</span>
-            <span class="aun-task-row__agent">Bob</span>
-            <span class="aun-task-row__repo">example/repository</span>
-          </span>
-          <button class="aun-btn aun-btn--danger" type="button">Stop</button>
-        </div>
-        </div>
-        <div class="aun-group">
-        <div data-au-use="section-label" data-au-props="label=Queue · 2"></div>
-        <div class="aun-task-row">
-          <span class="aun-task__grip" aria-hidden="true"><span></span><span></span><span></span></span>
-          <span class="aun-task-row__body">
-            <span class="aun-task-row__title">#51 · Broken anchors in the docs nav</span>
-            <span class="aun-task-row__repo">example/repository</span>
-          </span>
-          <button class="aun-btn aun-btn--danger" type="button">Dequeue</button>
-        </div>
-        <div class="aun-task-row">
-          <span class="aun-task__grip" aria-hidden="true"><span></span><span></span><span></span></span>
-          <span class="aun-task-row__body">
-            <span class="aun-task-row__title">#48 · Express checkout drops the promo code</span>
-            <span class="aun-task-row__repo">example/repository</span>
-          </span>
-          <button class="aun-btn aun-btn--danger" type="button">Dequeue</button>
-        </div>
-        </div>
-        <div class="aun-group">
-        <div data-au-use="section-label" data-au-props="label=Open issues · 3"></div>
-        <div class="aun-task-row">
-          <span class="aun-task-row__body"><span class="aun-task-row__title">#57 · Cart badge lags behind the cart</span></span>
-          <button class="aun-btn aun-btn--primary" type="button">Queue</button>
-        </div>
-        <div class="aun-task-row">
-          <span class="aun-task-row__body"><span class="aun-task-row__title">#58 · Search ignores a trailing space</span></span>
-          <button class="aun-btn aun-btn--primary" type="button">Queue</button>
-        </div>
-        <div class="aun-task-row">
-          <span class="aun-task-row__body"><span class="aun-task-row__title">#61 · Order confirmation email omits tax</span></span>
-          <button class="aun-btn aun-btn--primary" type="button">Queue</button>
-        </div>
-        </div>
-      </div>
+      <div class="aun-task-board" data-au-demo="queue"></div>
     </article>
 
     <article data-au-component="mobile-settings" data-au-title="Mobile settings" data-au-note="Interface and task source. Capability modules and logout are their own sections." data-au-avalonia="Border" data-au-class="aun-card">
@@ -309,6 +211,10 @@
         <p class="aun-rail__section">INTERFACE</p>
         <p class="aun-rail__section">TASK SOURCE</p>
       </div>
+    </article>
+
+    <article data-au-component="member-overview" data-au-title="Member overview" data-au-note="The open workspace, read from the Demo definition." data-au-avalonia="Border" data-au-class="au-overview">
+      <div data-au-demo="overview"></div>
     </article>
 
     <article data-au-component="mobile-chat" data-au-title="Mobile chat" data-au-note="The shared chat composer." data-au-avalonia="Border" data-au-class="aun-wrap">

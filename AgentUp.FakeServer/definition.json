@@ -142,7 +142,7 @@
       "displayName": "Bob",
       "repositoryPath": "/demo/harbor",
       "worktreePath": "/demo/agents/bob",
-      "branch": "feat/44-restock",
+      "branch": "feat/45-deliver",
       "commit": "a1b2c3d",
       "state": "Running",
       "healthState": "Healthy",
@@ -199,6 +199,66 @@
           ]
         }
       ]
+    },
+    {
+      "id": "frank",
+      "displayName": "Frank",
+      "repositoryPath": "/demo/harbor",
+      "worktreePath": "/demo/agents/frank",
+      "branch": "",
+      "commit": "a1b2c3d",
+      "state": "Running",
+      "healthState": "Healthy",
+      "lastActivityAtUtc": "2026-09-22T06:10:00Z",
+      "applications": [
+        {
+          "name": "Storefront",
+          "command": "npm run dev",
+          "path": "apps/storefront",
+          "state": "Running",
+          "kind": "Process",
+          "database": false,
+          "page": "storefront",
+          "allocatedPorts": [
+            {
+              "variable": "WEB_PORT",
+              "defaultPort": 3000,
+              "allocatedPort": 9500,
+              "protocol": "http"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mia",
+      "displayName": "Mia",
+      "repositoryPath": "/demo/harbor",
+      "worktreePath": "/demo/agents/mia",
+      "branch": "",
+      "commit": "a1b2c3d",
+      "state": "Running",
+      "healthState": "Healthy",
+      "lastActivityAtUtc": "2026-09-22T06:40:00Z",
+      "applications": [
+        {
+          "name": "Storefront",
+          "command": "npm run dev",
+          "path": "apps/storefront",
+          "state": "Running",
+          "kind": "Process",
+          "database": false,
+          "page": "storefront",
+          "allocatedPorts": [
+            {
+              "variable": "WEB_PORT",
+              "defaultPort": 3000,
+              "allocatedPort": 9600,
+              "protocol": "http"
+            }
+          ]
+        }
+      ]
     }
   ],
   "overview": {
@@ -237,6 +297,18 @@
       "commit": "b7c8d9e",
       "branch": "fix/51-broken-anchors",
       "healthState": "Healthy"
+    },
+    "frank": {
+      "cpuPercent": 0.4,
+      "memoryBytes": 67108864,
+      "storageBytes": 52428800,
+      "processCount": 1
+    },
+    "mia": {
+      "cpuPercent": 0.3,
+      "memoryBytes": 67108864,
+      "storageBytes": 52428800,
+      "processCount": 1
     }
   },
   "git": {
@@ -1023,6 +1095,131 @@
           ]
         }
       ]
+    },
+    "frank": {
+      "session": {
+        "workspaceId": "frank",
+        "agent": "Codex",
+        "state": "ready",
+        "sessionId": "demo-frank",
+        "error": null,
+        "boundAgent": "Codex",
+        "sessions": [
+          {
+            "sessionId": "demo-frank",
+            "agent": "Codex",
+            "description": "Standing by",
+            "branch": "feat/44-restock",
+            "lastUsedAt": "2026-09-22T06:10:00Z"
+          }
+        ],
+        "loop": {
+          "active": false,
+          "phase": "idle",
+          "taskId": null,
+          "taskNumber": null,
+          "taskTitle": null,
+          "terminal": "Idle",
+          "stopReason": "queue_empty",
+          "blockReason": null,
+          "permissionRuleIds": []
+        },
+        "agents": [
+          {
+            "agent": "Codex",
+            "available": true,
+            "displayName": "Codex"
+          },
+          {
+            "agent": "Cursor",
+            "available": true,
+            "displayName": "Cursor"
+          },
+          {
+            "agent": "Claude",
+            "available": true,
+            "displayName": "Claude"
+          }
+        ],
+        "role": {
+          "prompt": "You are Frank. Take the issue assigned to this workspace, build it on the branch already checked out for you, and open a proposal when the work stands up. Nothing is assigned yet, so you stand by.",
+          "tools": [
+            "get_workspace_status",
+            "get_workspace_console",
+            "run_verification",
+            "enqueue_commit",
+            "guard_commits",
+            "start_workspace",
+            "stop_workspace"
+          ],
+          "trigger": "IssueAssigned",
+          "termination": "ProposalOpened",
+          "review": "None"
+        }
+      },
+      "scripts": []
+    },
+    "mia": {
+      "session": {
+        "workspaceId": "mia",
+        "agent": "Claude",
+        "state": "ready",
+        "sessionId": "demo-mia",
+        "error": null,
+        "boundAgent": "Claude",
+        "sessions": [
+          {
+            "sessionId": "demo-mia",
+            "agent": "Claude",
+            "description": "Standing by",
+            "branch": "feat/44-restock",
+            "lastUsedAt": "2026-09-22T06:40:00Z"
+          }
+        ],
+        "loop": {
+          "active": false,
+          "phase": "idle",
+          "taskId": null,
+          "taskNumber": null,
+          "taskTitle": null,
+          "terminal": "Idle",
+          "stopReason": "queue_empty",
+          "blockReason": null,
+          "permissionRuleIds": []
+        },
+        "agents": [
+          {
+            "agent": "Codex",
+            "available": true,
+            "displayName": "Codex"
+          },
+          {
+            "agent": "Cursor",
+            "available": true,
+            "displayName": "Cursor"
+          },
+          {
+            "agent": "Claude",
+            "available": true,
+            "displayName": "Claude"
+          }
+        ],
+        "role": {
+          "prompt": "You are Mia. When a proposal is waiting on review, replay its validation flows and submit one review. Nothing is waiting on you yet, so you stand by. You cannot commit and you cannot push.",
+          "tools": [
+            "list_validation_flows",
+            "play_validation_flow",
+            "browser_navigate",
+            "browser_screenshot",
+            "browser_inspect",
+            "export_workspace_review_snapshot"
+          ],
+          "trigger": "ProposalAwaitingReview",
+          "termination": "ReviewSubmitted",
+          "review": "Pm"
+        }
+      },
+      "scripts": []
     }
   },
   "pages": {

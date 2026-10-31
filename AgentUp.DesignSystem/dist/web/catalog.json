@@ -625,12 +625,12 @@
         {
           "id": "workspace",
           "title": "Workspace row",
-          "note": "Idle rows are transparent and hover with the neutral state layer. The selected checkout takes an accent tint plus a 2px accent rule on its leading edge, never a saturated fill. Start, identity, and delete are the same controls on Desktop and Mobile. A running workspace shows stop, not play.",
+          "note": "Idle rows are transparent and hover with the neutral state layer. The selected checkout takes an accent tint plus a 2px accent rule on its leading edge, never a saturated fill. Start, identity, and delete are the same controls on Desktop and Mobile. A running workspace shows stop, not play. The LED is the agent state: working, waiting, error, or idle. The branch line is omitted when none is assigned.",
           "avalonia": "Border",
           "desktopClass": "wsEntry",
           "desktopHost": "ListBoxItem",
           "states": "selected=au-workspace/au-workspace--selected",
-          "parts": "",
+          "parts": "working branch",
           "propsExamples": [],
           "modifierClasses": "",
           "stateExamples": [
@@ -647,12 +647,15 @@
             "au-lifecycle-button",
             "au-status-dot",
             "au-status-dot--healthy",
+            "au-status-dot--warning",
+            "au-status-dot--danger",
+            "au-status-dot--idle",
             "au-workspace-name",
             "au-workspace-branch",
             "au-workspace-delete"
           ],
           "html": "<div class=\"au-workspace\">\n        <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n        <span class=\"au-status-dot au-status-dot--healthy\"></span>\n        <span>\n          <strong class=\"au-workspace-name\">Harbor Shop</strong>\n          <small class=\"au-workspace-branch\">main</small>\n        </span>\n        <button class=\"au-workspace-delete\" type=\"button\">×</button>\n      </div>",
-          "source": "<div class=\"au-workspace\">\n        <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n        <span class=\"au-status-dot au-status-dot--healthy\"></span>\n        <span>\n          <strong class=\"au-workspace-name\" data-au-text=\"name\">Harbor Shop</strong>\n          <small class=\"au-workspace-branch\" data-au-text=\"branch\">main</small>\n        </span>\n        <button class=\"au-workspace-delete\" type=\"button\">×</button>\n      </div>"
+          "source": "<div class=\"au-workspace\">\n        <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n        <span class=\"au-status-dot au-status-dot--healthy\" data-au-part=\"working\"></span>\n        <span class=\"au-status-dot au-status-dot--warning\" data-au-part=\"waiting\"></span>\n        <span class=\"au-status-dot au-status-dot--danger\" data-au-part=\"halted\"></span>\n        <span class=\"au-status-dot au-status-dot--idle\" data-au-part=\"idle\"></span>\n        <span>\n          <strong class=\"au-workspace-name\" data-au-text=\"name\">Harbor Shop</strong>\n          <small class=\"au-workspace-branch\" data-au-text=\"branch\" data-au-part=\"branch\">main</small>\n        </span>\n        <button class=\"au-workspace-delete\" type=\"button\">×</button>\n      </div>"
         },
         {
           "id": "workspace-head",

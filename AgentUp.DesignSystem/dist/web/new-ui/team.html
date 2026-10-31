@@ -34,33 +34,49 @@
           <button type="button" class="au-workspace-add" aria-label="Add workspace">+</button>
         </div>
         <div class="aun-nav-subs">
-          <div class="au-workspace">
+          <div data-au-demo="workspaces"><div class="au-workspace">
         <button class="au-lifecycle-button" type="button">■</button>
         <span class="au-status-dot au-status-dot--healthy"></span>
         <span>
-          <strong class="au-workspace-name">Harbor Shop</strong>
-          <small class="au-workspace-branch">main</small>
+          <strong class="au-workspace-name">Bob</strong>
+          <small class="au-workspace-branch">feat/45-deliver</small>
         </span>
         <button class="au-workspace-delete" type="button">×</button>
       </div>
-          <div class="au-workspace">
+<div class="au-workspace">
         <button class="au-lifecycle-button" type="button">■</button>
-        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span class="au-status-dot au-status-dot--idle"></span>
         <span>
-          <strong class="au-workspace-name">Harbor Checkout</strong>
-          <small class="au-workspace-branch">feat/48-express-checkout</small>
+          <strong class="au-workspace-name">Frank</strong>
         </span>
         <button class="au-workspace-delete" type="button">×</button>
       </div>
-          <div class="au-workspace">
+<div class="au-workspace">
         <button class="au-lifecycle-button" type="button">■</button>
-        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span class="au-status-dot au-status-dot--danger"></span>
         <span>
-          <strong class="au-workspace-name">Harbor Docs</strong>
-          <small class="au-workspace-branch">fix/51-broken-anchors</small>
+          <strong class="au-workspace-name">Hector</strong>
+          <small class="au-workspace-branch">feat/44-restock</small>
         </span>
         <button class="au-workspace-delete" type="button">×</button>
       </div>
+<div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--warning"></span>
+        <span>
+          <strong class="au-workspace-name">Lucy</strong>
+          <small class="au-workspace-branch">feat/44-restock</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+<div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--idle"></span>
+        <span>
+          <strong class="au-workspace-name">Mia</strong>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div></div>
         </div>
         <button type="button" class="aun-nav">Tasks</button>
         <button type="button" class="aun-nav">Settings</button>
@@ -71,52 +87,45 @@
           
           <div class="au-screen-pane"><div>
         <h1 class="au-page-title">Team</h1>
-        <p class="aun-muted">Reading the team…</p>
-      </div><div class="aun-state-map">
-        <div class="aun-state-map__head">
-          <div>
-            <p class="aun-state-map__kicker">AGENT STATE MAP</p>
-            <p class="aun-state-map__dek">Live fleet topology</p>
-          </div>
-          <span class="aun-live">LIVE</span>
-        </div>
-        <div class="aun-state-map__root">
-          <div>
-            <p class="aun-state-map__total">0</p>
-            <p class="aun-state-map__total-label">AGENTS</p>
-          </div>
-          <div>
-            <p class="aun-state-map__root-title">SERVER FLEET</p>
-            <p class="aun-state-map__root-meta">0 active · 0 ready · 0 need attention</p>
-          </div>
-        </div>
-        <div class="aun-state-map__stem"></div>
-        <div class="aun-state-map__crossbar"></div>
-        <div class="aun-state-map__lanes">
-          <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch"><p>Waiting</p><p class="aun-faint">Needs your decision</p><p class="aun-faint">No decisions waiting</p></div></div>
-          <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch"><p>Halted</p><p class="aun-faint">Needs recovery</p><p class="aun-faint">No stopped agents</p></div></div>
-          <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch"><p>Working</p><p class="aun-faint">Moving work forward</p><p class="aun-faint">No active work</p></div></div>
-          <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch"><p>Idle</p><p class="aun-faint">Ready for work</p><p class="aun-faint">No agents standing by</p></div></div>
-        </div>
-      </div><div class="aun-card">
-        <p class="aun-rail__section">TASKS</p>
-        <p class="aun-faint">TASK</p>
-        <p class="aun-faint">STATE</p>
-        <p class="aun-faint">ASSIGNED TO</p>
-        <p class="aun-faint">No agent reports a task in hand.</p>
-        <p class="aun-faint">These are the tasks the agents report holding. Unassigned issues live on the repository host; this Server does not expose its queue to clients, so they are not listed here.</p>
-      </div><div class="aun-card">
-        <p class="aun-rail__section">QUEUE</p>
-        <p class="aun-faint">Nothing is queued, so the agents have nothing to take. Pick an issue below.</p>
-        <p class="aun-rail__section">OPEN ISSUES</p>
-        <p class="aun-faint">Open a workspace to see the issues on its repository.</p>
-      </div><div class="aun-card">
-        <p class="aun-rail__section">TASK SOURCE</p>
-        <button type="button" class="aun-btn">Connect</button>
-      </div><div class="aun-card">
-        <p class="aun-rail__section">TRAIN</p>
-        <button type="button" class="aun-btn">Export</button>
-      </div></div>
+        <div data-au-demo="headline"><p class="aun-muted">5 agents · 1 working · 2 idle · 1 waiting for approval · 1 error</p></div>
+      </div><div class="aun-state-map" data-au-demo="fleet">
+    <div class="aun-state-map__head"><div><p class="aun-state-map__kicker">AGENT STATE MAP</p><p class="aun-state-map__dek">Live fleet topology</p></div><span class="aun-live">LIVE</span></div>
+    <div class="aun-state-map__root"><div><p class="aun-state-map__total">5</p><p class="aun-state-map__total-label">AGENTS</p></div>
+      <div><p class="aun-state-map__root-title">SERVER FLEET</p><p class="aun-state-map__root-meta">1 active · 2 ready · 2 need attention</p></div></div>
+    <div class="aun-state-map__stem"></div><div class="aun-state-map__crossbar" style="--aun-lanes: 4"></div>
+    <div class="aun-state-map__lanes" style="--aun-lanes: 4">
+    <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch aun-state-map__branch--waiting">
+      <div class="aun-state-map__branch-head">
+        <span class="aun-state-map__mark" aria-hidden="true"></span>
+        <span class="aun-state-map__branch-copy"><span class="aun-state-map__branch-title">Wait for approval</span><span class="aun-state-map__branch-meta">Needs your decision</span></span>
+        <span class="aun-state-map__count">1</span>
+      </div>
+      <div class="aun-state-map__host"><div class="aun-state-map__agent"><span class="aun-state-map__agent-name">Lucy</span><span class="aun-state-map__agent-task">#44 · Restock featured products</span></div><div class="aun-state-map__messages"><p class="aun-state-map__message">Waiting for you to approve the review of #44 before it is posted.</p></div></div>
+    </div></div>
+    <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch aun-state-map__branch--halted">
+      <div class="aun-state-map__branch-head">
+        <span class="aun-state-map__mark" aria-hidden="true"></span>
+        <span class="aun-state-map__branch-copy"><span class="aun-state-map__branch-title">Error</span><span class="aun-state-map__branch-meta">Needs recovery</span></span>
+        <span class="aun-state-map__count">1</span>
+      </div>
+      <div class="aun-state-map__host"><div class="aun-state-map__agent"><span class="aun-state-map__agent-name">Hector</span><span class="aun-state-map__agent-task">#44 · Restock featured products</span></div><div class="aun-state-map__messages"><p class="aun-state-map__message">The repository host returned 502 on read.</p></div></div>
+    </div></div>
+    <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch aun-state-map__branch--working">
+      <div class="aun-state-map__branch-head">
+        <span class="aun-state-map__mark" aria-hidden="true"></span>
+        <span class="aun-state-map__branch-copy"><span class="aun-state-map__branch-title">Working</span><span class="aun-state-map__branch-meta">Moving work forward</span></span>
+        <span class="aun-state-map__count">1</span>
+      </div>
+      <div class="aun-state-map__host"><div class="aun-state-map__agent"><span class="aun-state-map__agent-name">Bob</span><span class="aun-state-map__agent-task">#44 · Restock featured products</span></div></div>
+    </div></div>
+    <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch aun-state-map__branch--idle">
+      <div class="aun-state-map__branch-head">
+        <span class="aun-state-map__mark" aria-hidden="true"></span>
+        <span class="aun-state-map__branch-copy"><span class="aun-state-map__branch-title">Idle</span><span class="aun-state-map__branch-meta">Ready for work</span></span>
+        <span class="aun-state-map__count">2</span>
+      </div>
+      <div class="aun-state-map__host"><div class="aun-state-map__agent"><span class="aun-state-map__agent-name">Frank</span><span class="aun-state-map__agent-task">No task in hand</span></div></div><div class="aun-state-map__host"><div class="aun-state-map__agent"><span class="aun-state-map__agent-name">Mia</span><span class="aun-state-map__agent-task">No task in hand</span></div></div>
+    </div></div></div></div></div>
         </main>
       </div>
     </div>

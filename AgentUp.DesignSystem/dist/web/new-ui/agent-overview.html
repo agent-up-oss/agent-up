@@ -34,33 +34,49 @@
           <button type="button" class="au-workspace-add" aria-label="Add workspace">+</button>
         </div>
         <div class="aun-nav-subs">
-          <div class="au-workspace au-workspace--selected">
+          <div data-au-demo="workspaces"><div class="au-workspace au-workspace--selected">
         <button class="au-lifecycle-button" type="button">■</button>
         <span class="au-status-dot au-status-dot--healthy"></span>
         <span>
-          <strong class="au-workspace-name">Harbor Shop</strong>
-          <small class="au-workspace-branch">main</small>
+          <strong class="au-workspace-name">Bob</strong>
+          <small class="au-workspace-branch">feat/45-deliver</small>
         </span>
         <button class="au-workspace-delete" type="button">×</button>
       </div>
-          <div class="au-workspace">
+<div class="au-workspace">
         <button class="au-lifecycle-button" type="button">■</button>
-        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span class="au-status-dot au-status-dot--idle"></span>
         <span>
-          <strong class="au-workspace-name">Harbor Checkout</strong>
-          <small class="au-workspace-branch">feat/48-express-checkout</small>
+          <strong class="au-workspace-name">Frank</strong>
         </span>
         <button class="au-workspace-delete" type="button">×</button>
       </div>
-          <div class="au-workspace">
+<div class="au-workspace">
         <button class="au-lifecycle-button" type="button">■</button>
-        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span class="au-status-dot au-status-dot--danger"></span>
         <span>
-          <strong class="au-workspace-name">Harbor Docs</strong>
-          <small class="au-workspace-branch">fix/51-broken-anchors</small>
+          <strong class="au-workspace-name">Hector</strong>
+          <small class="au-workspace-branch">feat/44-restock</small>
         </span>
         <button class="au-workspace-delete" type="button">×</button>
       </div>
+<div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--warning"></span>
+        <span>
+          <strong class="au-workspace-name">Lucy</strong>
+          <small class="au-workspace-branch">feat/44-restock</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+<div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--idle"></span>
+        <span>
+          <strong class="au-workspace-name">Mia</strong>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div></div>
         </div>
         <button type="button" class="aun-nav">Tasks</button>
         <button type="button" class="aun-nav">Settings</button>
@@ -77,25 +93,23 @@
       </div></div>
           
           
-          <div class="au-screen-pane"><div class="au-overview">
-        <div>
-          <h1 class="au-page-title">Workspace overview</h1>
-          <p class="au-muted">Harbor Shop</p>
-        </div>
-        <div class="au-overview-grid">
-          <div class="au-card"><span class="au-field-label">State</span><strong class="au-accent">Running</strong></div>
-          <div class="au-card"><span class="au-field-label">CPU</span><strong>4.2%</strong></div>
-          <div class="au-card"><span class="au-field-label">Memory</span><strong>256 MB</strong></div>
-          <div class="au-card"><span class="au-field-label">Storage</span><strong>50 MB</strong></div>
-          <div class="au-card"><span class="au-field-label">Processes</span><strong>2</strong></div>
-          <div class="au-card"><span class="au-field-label">Applications</span><strong>2</strong></div>
-        </div>
-        <div class="au-stack">
-          <div><span class="au-field-label">Repository</span><p class="au-mono">/demo/harbor-shop</p></div>
-          <div><span class="au-field-label">Worktree</span><p class="au-mono">/demo/harbor-shop</p></div>
-          <div><span class="au-field-label">Commit</span><p class="au-mono">a1b2c3d</p></div>
-        </div>
-      </div></div>
+          <div class="au-screen-pane"><div data-au-demo="overview">
+    <div class="au-overview">
+      <div><h1 class="au-page-title">Bob</h1><p class="au-muted">feat/45-deliver</p></div>
+      <div class="au-overview-grid">
+        <div class="au-card"><span class="au-field-label">State</span><strong class="au-accent">Running</strong></div>
+        <div class="au-card"><span class="au-field-label">CPU</span><strong>4.2%</strong></div>
+        <div class="au-card"><span class="au-field-label">Memory</span><strong>256 MB</strong></div>
+        <div class="au-card"><span class="au-field-label">Storage</span><strong>50 MB</strong></div>
+        <div class="au-card"><span class="au-field-label">Processes</span><strong>3</strong></div>
+        <div class="au-card"><span class="au-field-label">Applications</span><strong>3</strong></div>
+      </div>
+      <div class="au-stack">
+        <div><span class="au-field-label">Repository</span><p class="au-mono">/demo/harbor</p></div>
+        <div><span class="au-field-label">Worktree</span><p class="au-mono">/demo/agents/bob</p></div>
+        <div><span class="au-field-label">Commit</span><p class="au-mono">a1b2c3d</p></div>
+      </div>
+    </div></div></div>
         </main>
       </div>
     </div>

@@ -15,17 +15,46 @@
 <div class="aun-frame">
 <div class="aun-phone">
       <header class="aun-phone__head"><div class="aun-phone__head-row">
-        <div class="aun-phone__head-copy"><h1 class="au-page-title">Team</h1><span class="aun-phone__subtitle">Reading the team…</span></div>
+        <div class="aun-phone__head-copy"><h1 class="au-page-title">Team</h1><div data-au-demo="headline"><span class="aun-phone__subtitle">5 agents · 1 working · 2 idle · 1 waiting for approval · 1 error</span></div></div>
       </div></header>
-      <div class="aun-phone__body"><div>
-        <p class="aun-rail__section">AGENT STATE MAP</p>
-        <p class="aun-faint">Live fleet topology</p>
-        <p class="aun-rail__section">SERVER FLEET</p>
-        <p>Waiting</p><p class="aun-faint">Needs your decision</p>
-        <p>Halted</p><p class="aun-faint">Needs recovery</p>
-        <p>Working</p><p class="aun-faint">Moving work forward</p>
-        <p>Idle</p><p class="aun-faint">Ready for work</p>
-      </div></div>
+      <div class="aun-phone__body"><div class="aun-state-map aun-state-map--mobile" data-au-demo="fleet">
+    <div class="aun-state-map__head"><div><p class="aun-state-map__kicker">AGENT STATE MAP</p><p class="aun-state-map__dek">Live fleet topology</p></div><span class="aun-live">LIVE</span></div>
+    <div class="aun-state-map__root"><div><p class="aun-state-map__total">5</p><p class="aun-state-map__total-label">AGENTS</p></div>
+      <div><p class="aun-state-map__root-title">SERVER FLEET</p><p class="aun-state-map__root-meta">1 active · 2 ready · 2 need attention</p></div></div>
+    <div class="aun-state-map__stem"></div><div class="aun-state-map__crossbar" style="--aun-lanes: 4"></div>
+    <div class="aun-state-map__lanes" style="--aun-lanes: 4">
+    <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch aun-state-map__branch--waiting">
+      <div class="aun-state-map__branch-head">
+        <span class="aun-state-map__mark" aria-hidden="true"></span>
+        <span class="aun-state-map__branch-copy"><span class="aun-state-map__branch-title">Wait for approval</span><span class="aun-state-map__branch-meta">Needs your decision</span></span>
+        <span class="aun-state-map__count">1</span>
+      </div>
+      <div class="aun-state-map__host"><div class="aun-state-map__agent"><span class="aun-state-map__agent-name">Lucy</span><span class="aun-state-map__agent-task">#44 · Restock featured products</span></div><div class="aun-state-map__messages"><p class="aun-state-map__message">Waiting for you to approve the review of #44 before it is posted.</p></div></div>
+    </div></div>
+    <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch aun-state-map__branch--halted">
+      <div class="aun-state-map__branch-head">
+        <span class="aun-state-map__mark" aria-hidden="true"></span>
+        <span class="aun-state-map__branch-copy"><span class="aun-state-map__branch-title">Error</span><span class="aun-state-map__branch-meta">Needs recovery</span></span>
+        <span class="aun-state-map__count">1</span>
+      </div>
+      <div class="aun-state-map__host"><div class="aun-state-map__agent"><span class="aun-state-map__agent-name">Hector</span><span class="aun-state-map__agent-task">#44 · Restock featured products</span></div><div class="aun-state-map__messages"><p class="aun-state-map__message">The repository host returned 502 on read.</p></div></div>
+    </div></div>
+    <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch aun-state-map__branch--working">
+      <div class="aun-state-map__branch-head">
+        <span class="aun-state-map__mark" aria-hidden="true"></span>
+        <span class="aun-state-map__branch-copy"><span class="aun-state-map__branch-title">Working</span><span class="aun-state-map__branch-meta">Moving work forward</span></span>
+        <span class="aun-state-map__count">1</span>
+      </div>
+      <div class="aun-state-map__host"><div class="aun-state-map__agent"><span class="aun-state-map__agent-name">Bob</span><span class="aun-state-map__agent-task">#44 · Restock featured products</span></div></div>
+    </div></div>
+    <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch aun-state-map__branch--idle">
+      <div class="aun-state-map__branch-head">
+        <span class="aun-state-map__mark" aria-hidden="true"></span>
+        <span class="aun-state-map__branch-copy"><span class="aun-state-map__branch-title">Idle</span><span class="aun-state-map__branch-meta">Ready for work</span></span>
+        <span class="aun-state-map__count">2</span>
+      </div>
+      <div class="aun-state-map__host"><div class="aun-state-map__agent"><span class="aun-state-map__agent-name">Frank</span><span class="aun-state-map__agent-task">No task in hand</span></div></div><div class="aun-state-map__host"><div class="aun-state-map__agent"><span class="aun-state-map__agent-name">Mia</span><span class="aun-state-map__agent-task">No task in hand</span></div></div>
+    </div></div></div></div></div>
       <div class="au-mobile-tab-bar" role="tablist">
         <button class="au-subtab au-nav-tab au-subtab--selected" type="button">
           <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 19v-1.2a3.8 3.8 0 0 0-3.8-3.8H6.8A3.8 3.8 0 0 0 3 17.8V19"></path><circle cx="9" cy="7.2" r="3.2"></circle><path d="M21 19v-1.2a3.8 3.8 0 0 0-2.9-3.7"></path><path d="M16.2 4.2a3.2 3.2 0 0 1 0 6"></path></svg>

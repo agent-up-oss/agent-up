@@ -37,7 +37,7 @@ public sealed class FakeBackendServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(workspaces.Select(entry => entry!["id"]!.GetValue<string>()),
-                Is.EquivalentTo(new[] { "bob", "lucy", "hector" }));
+                Is.EquivalentTo(new[] { "bob", "lucy", "hector", "frank", "mia" }));
             Assert.That(bob["state"]!.GetValue<string>(), Is.EqualTo("Running"));
             Assert.That(overview["displayName"]!.GetValue<string>(), Is.EqualTo("Bob"));
             Assert.That(overview["applicationCount"]!.GetValue<int>(), Is.EqualTo(3));
