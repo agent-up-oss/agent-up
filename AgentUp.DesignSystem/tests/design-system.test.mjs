@@ -772,7 +772,14 @@ test('a screen must name a real scene of the surface it claims', () => {
 });
 
 async function assembleNewUi() {
-  const product = parseCatalog(await readFile(new URL('../src/catalog.html', import.meta.url), 'utf8'));
+  const directory = fileURLToPath(new URL('../src', import.meta.url));
+  const main = await readFile(new URL('../src/catalog.html', import.meta.url), 'utf8');
+  const extras = (await readdir(directory))
+    .filter(name => name.startsWith('catalog-') && name.endsWith('.html'))
+    .sort();
+  const fragments = await Promise.all(extras.map(name => readFile(new URL(`../src/${name}`, import.meta.url), 'utf8')));
+  const close = main.lastIndexOf('</body>');
+  const product = parseCatalog(`${main.slice(0, close)}\n${fragments.join('\n')}\n${main.slice(close)}`);
   const extra = parseCatalog(await readFile(new URL('../src/new-ui/catalog.html', import.meta.url), 'utf8'));
   const screens = await readFile(new URL('../src/new-ui/screens.html', import.meta.url), 'utf8');
   for (const value of [product, extra]) {
@@ -821,7 +828,14 @@ test('new UI screens pair desktop and mobile instead of a chip per surface', asy
   assert.match(phoneApp.html, /au-validation-dock/);
   assert.match(phoneApp.html, /Go back/);
   assert.match(scenes.find(item => item.id === 'settings').html, />Logout</);
+  assert.match(scenes.find(item => item.id === 'settings').html, />Forge connection</);
+  assert.match(scenes.find(item => item.id === 'settings').html, />Capabilities</);
+  assert.match(scenes.find(item => item.id === 'settings').html, />Login</);
   assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Logout</);
+  assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Forge connection</);
+  assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Capabilities</);
+  assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Login</);
+  assert.doesNotMatch(scenes.find(item => item.id === 'team').html, />Capabilities</);
   assert.match(scenes.find(item => item.id === 'agent-overview').html, /au-workspace--selected/);
   assert.doesNotMatch(scenes.find(item => item.id === 'team').html, /au-workspace--selected/);
   for (const scene of scenes.filter(item => item.surface === 'mobile')) {

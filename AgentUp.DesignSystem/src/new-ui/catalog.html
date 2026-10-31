@@ -44,6 +44,54 @@
       </aside>
     </article>
 
+    <article data-au-component="settings-panel" data-au-title="Settings panel" data-au-note="Forge connection, capability modules, and Login. Each group has the same small headline." data-au-avalonia="Border" data-au-class="aun-settings">
+      <div class="aun-settings">
+        <div class="aun-settings__group">
+          <p class="au-field-label">Forge connection</p>
+          <div class="aun-settings__list">
+            <div class="aun-settings__row">
+              <span class="aun-settings__name">Task source</span>
+              <button class="aun-btn aun-btn--primary" type="button">Connect</button>
+            </div>
+          </div>
+        </div>
+        <div class="aun-settings__group">
+          <p class="au-field-label">Capabilities</p>
+          <div class="aun-settings__list">
+            <div class="aun-settings__row">
+              <span class="aun-settings__id"><span class="aun-settings__name">.NET</span><span class="aun-settings__state"><span class="au-status-dot au-status-dot--healthy"></span>Ready</span></span>
+              <button class="aun-btn" type="button">Disable</button>
+            </div>
+            <div class="aun-settings__row">
+              <span class="aun-settings__id"><span class="aun-settings__name">Docker</span><span class="aun-settings__state"><span class="au-status-dot au-status-dot--healthy"></span>Ready</span></span>
+              <button class="aun-btn" type="button">Disable</button>
+            </div>
+            <div class="aun-settings__row">
+              <span class="aun-settings__id"><span class="aun-settings__name">Codex</span><span class="aun-settings__state"><span class="au-status-dot au-status-dot--healthy"></span>Ready</span></span>
+              <button class="aun-btn" type="button">Disable</button>
+            </div>
+            <div class="aun-settings__row">
+              <span class="aun-settings__id"><span class="aun-settings__name">Cursor</span><span class="aun-settings__state">Disabled</span></span>
+              <button class="aun-btn aun-btn--primary" type="button">Enable</button>
+            </div>
+            <div class="aun-settings__row">
+              <span class="aun-settings__id"><span class="aun-settings__name">Claude</span><span class="aun-settings__state"><span class="au-status-dot au-status-dot--healthy"></span>Ready</span></span>
+              <button class="aun-btn" type="button">Disable</button>
+            </div>
+          </div>
+        </div>
+        <div class="aun-settings__group">
+          <p class="au-field-label">Login</p>
+          <div class="aun-settings__list">
+            <div class="aun-settings__row">
+              <span class="aun-settings__name">Demo</span>
+              <button class="aun-btn" type="button">Logout</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
     <article data-au-component="settings-logout" data-au-title="Settings logout" data-au-note="The Server and Logout section. It lives on Settings, on Desktop and Mobile." data-au-avalonia="Border" data-au-class="au-drawer-server">
       <div class="aun-card">
         <p class="aun-rail__section">SERVER</p>
@@ -205,7 +253,7 @@
       </div>
     </article>
 
-    <article data-au-component="mobile-settings" data-au-title="Mobile settings" data-au-note="Interface and task source. Logout is the settings-logout section." data-au-avalonia="Border" data-au-class="aun-card">
+    <article data-au-component="mobile-settings" data-au-title="Mobile settings" data-au-note="Interface and task source. Capability modules and logout are their own sections." data-au-avalonia="Border" data-au-class="aun-card">
       <div>
         <p class="aun-rail__section">INTERFACE</p>
         <p class="aun-rail__section">TASK SOURCE</p>
