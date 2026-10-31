@@ -16,7 +16,7 @@ import {
   varName,
 } from '../scripts/lib/css.mjs';
 import { emitNative } from '../scripts/lib/native.mjs';
-import { newUiManifest, parseNewUi, wrapNewUiScene } from '../scripts/lib/new-ui.mjs';
+import { applyNewUiSceneFiles, newUiManifest, parseNewUi, wrapNewUiScene } from '../scripts/lib/new-ui.mjs';
 import { applyProps } from '../scripts/lib/slots.mjs';
 
 const root = new URL('..', import.meta.url);
@@ -791,6 +791,44 @@ test('new UI screens pair desktop and mobile instead of a chip per surface', asy
   const named = screens.flatMap(item => [item.desktopId, item.mobileId].filter(Boolean));
   assert.equal(named.length, scenes.length);
   assert.ok(screens.every(item => !item.title.startsWith('Mobile')));
+});
+
+test('a screen may omit its intro', () => {
+  const desktop = scene('data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop"');
+  const row = '<section data-aun-screen="bridge" data-aun-title="Bridge" data-aun-desktop="bridge"></section>';
+  const parsed = parseNewUi(`${row}\n${desktop}`);
+  assert.equal(parsed.screens[0].intro, '');
+  assert.equal(parsed.scenes[0].intro, '');
+});
+
+test('a scene file replaces the inline scene and an unclosed file does not', () => {
+  const inline = [
+    '<section data-aun-screen="bridge" data-aun-title="Bridge" data-aun-desktop="bridge" data-aun-mobile="mobile-bridge"></section>',
+    '<section data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop" data-aun-intro="Inline">inline</section>',
+    '<section data-aun-scene="mobile-bridge" data-aun-title="Mobile" data-aun-surface="mobile" data-aun-intro="Phone">phone</section>',
+  ].join('\n');
+  const merged = applyNewUiSceneFiles(inline, [
+    { html: '<section data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop">from file</section>' },
+    { html: '<section data-aun-scene="mobile-bridge" data-aun-title="Mobile" data-aun-surface="mobile">no close' },
+  ]);
+  const parsed = parseNewUi(merged);
+  assert.equal(parsed.scenes.find(item => item.id === 'bridge').html, 'from file');
+  assert.equal(parsed.scenes.find(item => item.id === 'bridge').intro, '');
+  assert.equal(parsed.scenes.find(item => item.id === 'mobile-bridge').html, 'phone');
+});
+
+test('the bridge screen file replaces both inline scenes', async () => {
+  const inline = await readFile(new URL('../src/new-ui/screens.html', import.meta.url), 'utf8');
+  const file = await readFile(new URL('../src/new-ui/screens/bridge.html', import.meta.url), 'utf8');
+  const parsed = parseNewUi(applyNewUiSceneFiles(inline, [{ html: file }]));
+  const bridge = parsed.scenes.find(item => item.id === 'bridge');
+  const mobile = parsed.scenes.find(item => item.id === 'mobile-bridge');
+  assert.equal(bridge.intro, '');
+  assert.equal(mobile.intro, '');
+  assert.match(bridge.html, /gate open/);
+  assert.doesNotMatch(bridge.html, /one Server root/);
+  assert.equal(parsed.screens.find(item => item.id === 'bridge').mobileId, 'mobile-bridge');
+  assert.match(parsed.scenes.find(item => item.id === 'tasks').intro, /forge queue/);
 });
 
 test('reading a long tag that is not a scene stays linear', () => {

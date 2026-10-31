@@ -1,0 +1,154 @@
+<section data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop">
+  <div class="aun">
+    <nav class="aun-rail" aria-label="Command center">
+      <p class="aun-rail__section">TEAM</p>
+      <a class="aun-rail__agent" href="#lucy">
+        <strong>Lucy</strong><span>Reviewer &middot; interface</span><code>@lucy-aup[bot]</code>
+        <span class="aun-glyph--gate">&#9670; gate open</span><span>Review #412</span>
+      </a>
+      <a class="aun-rail__agent" href="#bob">
+        <strong>Bob</strong><span>Developer</span><code>@bob-aup[bot]</code>
+        <span class="aun-glyph--running">&#9679; working</span><span>Build #398</span>
+      </a>
+      <a class="aun-rail__agent" href="#hector">
+        <strong>Hector</strong><span>Reviewer &middot; code</span><code>@hector-aup[bot]</code>
+        <span class="aun-glyph--halted">&#9650; halted</span><span>Review #405</span>
+      </a>
+      <span class="aun-rail__spacer"></span>
+      <button type="button" class="aun-rail__switch">Switch back to the classic interface</button>
+    </nav>
+    <main class="aun-main aun-main--bridge">
+      <header class="aun-head">
+        <div>
+          <h1 class="aun-title">Bridge</h1>
+          <p class="aun-subtitle">3 agents &middot; 1 waiting on you &middot; 1 halted</p>
+        </div>
+      </header>
+
+      <section class="aun-state-map" aria-labelledby="desktop-fleet-map-title">
+        <header class="aun-state-map__head">
+          <div>
+            <h2 id="desktop-fleet-map-title" class="aun-state-map__kicker">AGENT STATE MAP</h2>
+            <p class="aun-state-map__dek">Live fleet topology</p>
+          </div>
+          <span class="aun-state aun-state--done">LIVE</span>
+        </header>
+
+        <div class="aun-state-map__root">
+          <div><p class="aun-state-map__total">3</p><p class="aun-state-map__total-label">AGENTS</p></div>
+          <div><p class="aun-state-map__root-title">SERVER FLEET</p><p class="aun-state-map__root-meta">1 active &middot; 0 ready &middot; 2 need attention</p></div>
+        </div>
+        <div class="aun-state-map__stem"></div>
+        <div class="aun-state-map__crossbar"></div>
+
+        <div class="aun-state-map__lanes">
+          <section class="aun-state-map__lane">
+            <div class="aun-state-map__drop"></div>
+            <div class="aun-state-map__branch">
+              <header class="aun-state-map__branch-head"><span class="aun-glyph--gate">&#9670;</span><div><h3 class="aun-state-map__branch-title">Waiting</h3><p class="aun-state-map__branch-meta">Needs your decision</p></div><span class="aun-state-map__count aun-glyph--gate">1</span></header>
+              <a class="aun-state-map__agent" href="#lucy"><span class="aun-avatar aun-avatar--sm">L</span><span><span class="aun-state-map__agent-name">Lucy</span><span class="aun-state-map__agent-task">Review #412</span><span class="aun-state-map__agent-reason aun-glyph--gate">Permission decision required</span></span><span class="aun-faint">&rsaquo;</span></a>
+            </div>
+          </section>
+          <section class="aun-state-map__lane">
+            <div class="aun-state-map__drop"></div>
+            <div class="aun-state-map__branch">
+              <header class="aun-state-map__branch-head"><span class="aun-glyph--halted">&#9650;</span><div><h3 class="aun-state-map__branch-title">Halted</h3><p class="aun-state-map__branch-meta">Needs recovery</p></div><span class="aun-state-map__count aun-glyph--halted">1</span></header>
+              <a class="aun-state-map__agent" href="#hector"><span class="aun-avatar aun-avatar--sm">H</span><span><span class="aun-state-map__agent-name">Hector</span><span class="aun-state-map__agent-task">Review #405</span><span class="aun-state-map__agent-reason aun-glyph--halted">Forge returned 502</span></span><span class="aun-faint">&rsaquo;</span></a>
+            </div>
+          </section>
+          <section class="aun-state-map__lane">
+            <div class="aun-state-map__drop"></div>
+            <div class="aun-state-map__branch">
+              <header class="aun-state-map__branch-head"><span class="aun-glyph--running">&#9679;</span><div><h3 class="aun-state-map__branch-title">Working</h3><p class="aun-state-map__branch-meta">Moving work forward</p></div><span class="aun-state-map__count aun-glyph--running">1</span></header>
+              <a class="aun-state-map__agent" href="#bob"><span class="aun-avatar aun-avatar--sm">B</span><span><span class="aun-state-map__agent-name">Bob</span><span class="aun-state-map__agent-task">Build #398</span></span><span class="aun-faint">&rsaquo;</span></a>
+            </div>
+          </section>
+          <section class="aun-state-map__lane">
+            <div class="aun-state-map__drop"></div>
+            <div class="aun-state-map__branch">
+              <header class="aun-state-map__branch-head"><span class="aun-glyph--idle">&#9675;</span><div><h3 class="aun-state-map__branch-title">Idle</h3><p class="aun-state-map__branch-meta">Ready for work</p></div><span class="aun-state-map__count aun-glyph--idle">0</span></header>
+              <p class="aun-state-map__empty">No agents standing by</p>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="aun-card aun-task-summary">
+        <h2 class="aun-section__head">TASKS</h2>
+        <div class="aun-task-summary__head"><span>TASK</span><span>STATE</span><span>ASSIGNED TO</span></div>
+        <div class="aun-task-summary__row"><strong>#412 &middot; Agent tab dead end on both clients</strong><span class="aun-glyph--gate">&#9670; gate open</span><span>Lucy <span class="aun-muted">Reviewer &middot; interface</span></span></div>
+        <div class="aun-task-summary__row"><strong>#405 &middot; Forge surface renders nothing</strong><span class="aun-glyph--halted">&#9650; halted</span><span>Hector <span class="aun-muted">Reviewer &middot; code</span></span></div>
+        <div class="aun-task-summary__row"><strong>#398 &middot; Promote capability bootstrap</strong><span class="aun-glyph--running">&#9679; working</span><span>Bob <span class="aun-muted">Developer</span></span></div>
+        <p class="aun-faint">These are the tasks the agents report holding. Unassigned issues live on the repository host; this Server does not expose its queue to clients, so they are not listed here.</p>
+      </section>
+    </main>
+  </div>
+</section>
+
+<section data-aun-scene="mobile-bridge" data-aun-title="Mobile &middot; Bridge" data-aun-surface="mobile">
+  <div class="aun-phone">
+    <header class="aun-phone__head">
+      <div class="aun-phone__head-row">
+        <button type="button" class="aun-iconbtn" aria-label="Open menu">&#9776;</button>
+        <span class="aun-phone__head-copy">
+          <span class="aun-phone__title">Bridge</span>
+          <span class="aun-phone__subtitle">3 agents &middot; 1 waiting on you &middot; 1 halted</span>
+        </span>
+      </div>
+    </header>
+    <div class="aun-phone__body">
+      <section class="aun-state-map aun-state-map--mobile" aria-labelledby="mobile-fleet-map-title">
+        <header class="aun-state-map__head">
+          <div>
+            <h2 id="mobile-fleet-map-title" class="aun-state-map__kicker">AGENT STATE MAP</h2>
+            <p class="aun-state-map__dek">Live fleet topology</p>
+          </div>
+          <span class="aun-state aun-state--done">LIVE</span>
+        </header>
+
+        <div class="aun-state-map__root">
+          <div><p class="aun-state-map__total">3</p><p class="aun-state-map__total-label">AGENTS</p></div>
+          <div><p class="aun-state-map__root-title">SERVER FLEET</p><p class="aun-state-map__root-meta">1 active &middot; 0 ready &middot; 2 need attention</p></div>
+        </div>
+        <div class="aun-state-map__mobile-lead"></div>
+
+        <div class="aun-state-map__mobile-rail">
+          <section class="aun-state-map__mobile-lane">
+            <span class="aun-state-map__joint aun-state-map__joint--gate"></span><span class="aun-state-map__link"></span>
+            <div class="aun-state-map__branch">
+              <header class="aun-state-map__branch-head"><span class="aun-glyph--gate">&#9670;</span><div><h3 class="aun-state-map__branch-title">Waiting</h3><p class="aun-state-map__branch-meta">Needs your decision</p></div><span class="aun-state-map__count aun-glyph--gate">1</span></header>
+              <a class="aun-state-map__agent" href="#lucy"><span class="aun-avatar aun-avatar--sm">L</span><span><span class="aun-state-map__agent-name">Lucy</span><span class="aun-state-map__agent-task">Review #412</span><span class="aun-state-map__agent-reason aun-glyph--gate">Permission decision required</span></span><span class="aun-faint">&rsaquo;</span></a>
+            </div>
+          </section>
+          <section class="aun-state-map__mobile-lane">
+            <span class="aun-state-map__joint aun-state-map__joint--halted"></span><span class="aun-state-map__link"></span>
+            <div class="aun-state-map__branch">
+              <header class="aun-state-map__branch-head"><span class="aun-glyph--halted">&#9650;</span><div><h3 class="aun-state-map__branch-title">Halted</h3><p class="aun-state-map__branch-meta">Needs recovery</p></div><span class="aun-state-map__count aun-glyph--halted">1</span></header>
+              <a class="aun-state-map__agent" href="#hector"><span class="aun-avatar aun-avatar--sm">H</span><span><span class="aun-state-map__agent-name">Hector</span><span class="aun-state-map__agent-task">Review #405</span><span class="aun-state-map__agent-reason aun-glyph--halted">Forge returned 502</span></span><span class="aun-faint">&rsaquo;</span></a>
+            </div>
+          </section>
+          <section class="aun-state-map__mobile-lane">
+            <span class="aun-state-map__joint aun-state-map__joint--running"></span><span class="aun-state-map__link"></span>
+            <div class="aun-state-map__branch">
+              <header class="aun-state-map__branch-head"><span class="aun-glyph--running">&#9679;</span><div><h3 class="aun-state-map__branch-title">Working</h3><p class="aun-state-map__branch-meta">Moving work forward</p></div><span class="aun-state-map__count aun-glyph--running">1</span></header>
+              <a class="aun-state-map__agent" href="#bob"><span class="aun-avatar aun-avatar--sm">B</span><span><span class="aun-state-map__agent-name">Bob</span><span class="aun-state-map__agent-task">Build #398</span></span><span class="aun-faint">&rsaquo;</span></a>
+            </div>
+          </section>
+          <section class="aun-state-map__mobile-lane">
+            <span class="aun-state-map__joint aun-state-map__joint--idle"></span><span class="aun-state-map__link"></span>
+            <div class="aun-state-map__branch">
+              <header class="aun-state-map__branch-head"><span class="aun-glyph--idle">&#9675;</span><div><h3 class="aun-state-map__branch-title">Idle</h3><p class="aun-state-map__branch-meta">Ready for work</p></div><span class="aun-state-map__count aun-glyph--idle">0</span></header>
+              <p class="aun-state-map__empty">No agents standing by</p>
+            </div>
+          </section>
+        </div>
+      </section>
+    </div>
+    <nav class="aun-tabbar" aria-label="Sections">
+      <a class="aun-tabbar__item" href="#bridge" aria-current="page"><span class="aun-tabbar__icon">&#9632;</span>Bridge</a>
+      <a class="aun-tabbar__item" href="#train"><span class="aun-tabbar__icon">&#9651;</span>Train</a>
+      <a class="aun-tabbar__item" href="#tasks"><span class="aun-tabbar__icon">&#9644;</span>Tasks</a>
+      <a class="aun-tabbar__item" href="#team"><span class="aun-tabbar__icon">&#9679;</span>Team</a>
+    </nav>
+  </div>
+</section>

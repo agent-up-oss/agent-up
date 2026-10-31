@@ -310,10 +310,6 @@ function NewUiSpace({ screens, scenes, activeId, onSelect }) {
       role="tabpanel"
       aria-labelledby={`new-ui-tab-${screen.id}`}
     >
-      <div className={styles.screenCopy}>
-        <h3 className="au-page-title">{screen.title}</h3>
-        <p className="au-muted">{screen.intro}</p>
-      </div>
       <div className="au-screenshot-stage">
         <div className="au-screenshot-pair">
           {desktop ? <NewUiPreview scene={desktop} /> : null}

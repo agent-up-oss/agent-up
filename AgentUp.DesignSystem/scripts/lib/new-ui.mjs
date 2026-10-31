@@ -6,9 +6,12 @@
  * adding or changing a scene cannot move a single byte in the Avalonia resources, the React
  * Native bindings or `dist/web/agent-up.css` that the shipping clients consume.
  *
- * Scenes are authored in `src/new-ui/screens.html` as plain markup. A `<template
- * data-aun-partial>` is inserted wherever a scene writes `<div data-aun-include>`, so the rail
- * and the agent header are written once rather than copied into every screen.
+ * Scenes are authored in `src/new-ui/screens.html` as plain markup. A file at
+ * `src/new-ui/screens/<id>.html` replaces the inline scene sections it names. The inline
+ * section stays in `screens.html` and is what renders when that file is missing or does not
+ * parse. A `<template data-aun-partial>` is inserted wherever a scene writes
+ * `<div data-aun-include>`, so the rail and the agent header are written once rather than
+ * copied into every screen.
  *
  * A screen is the showcase chip. It names the desktop scene and the mobile scene that belong
  * together, so the two surfaces share one tab and sit side by side. A scene that exists on
@@ -177,7 +180,8 @@ function collectScreens(html) {
 
 /**
  * Every scene belongs to exactly one screen. The chip's intro is the screen's own sentence
- * when it has one, otherwise the desktop scene's, otherwise the mobile scene's.
+ * when it has one, otherwise the desktop scene's, otherwise the mobile scene's. An empty
+ * intro is allowed: the showcase chip is the label, and the scene markup carries no dek.
  */
 function bindScreens(screens, scenes) {
   if (!screens.length) throw new Error('The New UI space has no screens.');
@@ -197,8 +201,7 @@ function bindScreens(screens, scenes) {
     claimScene(screen, screen.mobileId, 'mobile', byId, owner);
     const desktop = screen.desktopId ? byId.get(screen.desktopId) : null;
     const mobile = screen.mobileId ? byId.get(screen.mobileId) : null;
-    const intro = screen.intro || desktop?.intro || mobile?.intro;
-    if (!intro) throw new Error(`New UI screen "${screen.id}" is missing an intro.`);
+    const intro = screen.intro || desktop?.intro || mobile?.intro || '';
     bound.push({
       id: screen.id,
       title: screen.title,
@@ -287,4 +290,75 @@ function stripMarkup(value) {
 
 function escapeText(value) {
   return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+}
+
+/**
+ * Replaces inline scenes with the sections named in per-screen files.
+ *
+ * A file that does not parse, or that names no scene, leaves the inline sections alone.
+ * A scene id the inline file does not already have is ignored, so an override cannot
+ * invent a surface. The inline section stays in `screens.html` either way.
+ */
+export function applyNewUiSceneFiles(html, files) {
+  let result = html;
+  for (const file of files) {
+    let scenes;
+    try {
+      scenes = collectSceneElements(file.html);
+    } catch (error) {
+      if (error instanceof Error && /closing <\/section>/.test(error.message)) continue;
+      throw error;
+    }
+    if (!scenes.length) continue;
+    for (const scene of scenes) {
+      if (!scene.id || !scene.title) continue;
+      if (scene.surface !== 'desktop' && scene.surface !== 'mobile') continue;
+      const replaced = replaceSceneElement(result, scene.id, scene.element);
+      if (replaced !== null) result = replaced;
+    }
+  }
+  return result;
+}
+
+function collectSceneElements(html) {
+  const scenes = [];
+  const open = /<section\s+([^>]*)>/g;
+  let match;
+  while ((match = open.exec(html)) !== null) {
+    const attributes = match[1];
+    if (!attributes.includes('data-aun-scene=')) continue;
+    const bodyStart = match.index + match[0].length;
+    const bodyEnd = findSectionClose(html, bodyStart);
+    const closeEnd = html.indexOf('>', bodyEnd);
+    if (closeEnd < 0) throw new Error('A New UI section is missing its closing </section>.');
+    const end = closeEnd + 1;
+    scenes.push({
+      id: attribute(attributes, 'data-aun-scene'),
+      title: attribute(attributes, 'data-aun-title'),
+      surface: attribute(attributes, 'data-aun-surface'),
+      element: html.slice(match.index, end).trim(),
+    });
+    open.lastIndex = end;
+  }
+  return scenes;
+}
+
+/** Returns the html with that scene replaced, or null when the inline file has no such scene. */
+function replaceSceneElement(html, sceneId, element) {
+  const open = /<section\s+([^>]*)>/g;
+  let match;
+  while ((match = open.exec(html)) !== null) {
+    const attributes = match[1];
+    if (!attributes.includes('data-aun-scene=')) continue;
+    const bodyStart = match.index + match[0].length;
+    const bodyEnd = findSectionClose(html, bodyStart);
+    const closeEnd = html.indexOf('>', bodyEnd);
+    if (closeEnd < 0) throw new Error('A New UI section is missing its closing </section>.');
+    const end = closeEnd + 1;
+    if (attribute(attributes, 'data-aun-scene') === sceneId) {
+      return `${html.slice(0, match.index)}${element.trim()}${html.slice(end)}`;
+    }
+    open.lastIndex = end;
+  }
+  return null;
 }

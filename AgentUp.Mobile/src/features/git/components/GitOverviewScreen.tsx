@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { WorkspaceBranchPicker } from './WorkspaceBranchPicker';
 import { GitChangesPanel } from './GitChangesPanel';
 import { GitHostingRow } from './GitHostingRow';
@@ -23,7 +23,11 @@ export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.body}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.body}
+        keyboardShouldPersistTaps="handled"
+      >
         <WorkspaceBranchPicker
           workspaceId={workspaceId}
           onHistory={() => host.open({ kind: 'gitHistory' })}
@@ -42,7 +46,7 @@ export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
             onSelectedFilesChange={setSelectedFiles}
           />
         </View>
-      </View>
+      </ScrollView>
       <WorkspaceTabs workspaceId={workspaceId} active="git" />
     </View>
   );
@@ -50,7 +54,8 @@ export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
-  body: { flex: 1, padding: agentUpTheme.spacing[4], gap: 16, maxWidth: 672, width: '100%', alignSelf: 'center' },
-  section: { flex: 1, gap: 8, minHeight: 0 },
+  scroll: { flex: 1 },
+  body: { padding: agentUpTheme.spacing[4], gap: 16, maxWidth: 672, width: '100%', alignSelf: 'center' },
+  section: { gap: 8 },
   sectionTitle: auText('fieldLabel'),
 });

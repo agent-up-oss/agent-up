@@ -12,7 +12,7 @@ import {
   parseIcons,
 } from './lib/icons.mjs';
 import { emitNative } from './lib/native.mjs';
-import { newUiManifest, parseNewUi, wrapNewUiScene } from './lib/new-ui.mjs';
+import { applyNewUiSceneFiles, newUiManifest, parseNewUi, wrapNewUiScene } from './lib/new-ui.mjs';
 import { emitSequencePlayer, emitSequencePlayerTypes } from './lib/sequences.mjs';
 import { assembleScreens, framedSceneHtml, sceneCopy, wrapSceneDocument } from './lib/screens.mjs';
 import { applyDefaultParts, buildPropsExamples, hasContentSlots } from './lib/slots.mjs';
@@ -37,7 +37,9 @@ const screenshotCss = `${css}\n${marketing}\n${screenshotShell}\n`;
  * placed beside them would join the compiled product stylesheet and the catalog, and from there
  * reach the Avalonia and React Native bindings. Kept here, this space can only ever add outputs.
  */
-const newUiSource = expandIcons(await readFile(resolve(src, 'new-ui', 'screens.html'), 'utf8'), icons);
+const newUiInline = await readFile(resolve(src, 'new-ui', 'screens.html'), 'utf8');
+const newUiSceneFiles = await readNewUiSceneFiles(resolve(src, 'new-ui', 'screens'));
+const newUiSource = expandIcons(applyNewUiSceneFiles(newUiInline, newUiSceneFiles), icons);
 const newUiCss = await readFile(resolve(src, 'new-ui', 'new-ui.css'), 'utf8');
 const newUi = parseNewUi(newUiSource);
 const tokens = parseCustomProperties(primitives);
@@ -124,6 +126,19 @@ for (const [relative, content] of outputs) {
     await mkdir(dirname(path), { recursive: true });
     await writeFile(path, content);
   }
+}
+
+async function readNewUiSceneFiles(directory) {
+  let names;
+  try {
+    names = (await readdir(directory)).filter(name => name.endsWith('.html')).sort();
+  } catch (error) {
+    if (error && error.code === 'ENOENT') return [];
+    throw error;
+  }
+  return Promise.all(names.map(async name => ({
+    html: await readFile(resolve(directory, name), 'utf8'),
+  })));
 }
 
 async function readCatalogHtml(directory) {

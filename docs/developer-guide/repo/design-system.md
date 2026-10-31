@@ -73,7 +73,7 @@ shows the live components that surface uses.
   Unicode glyphs and Mobile hosts the same drawings as public SVGs today; those two surfaces adopting the
   emitted geometry is what makes a documented screen match a real one at the icon
   level.
-- `src/new-ui/screens.html` owns the New UI space. A `data-aun-screen` row pairs one desktop scene and one mobile scene under a single showcase chip. Scene documents stay one file per surface under `dist/web/new-ui/`.
+- `src/new-ui/screens.html` owns the New UI space. A `data-aun-screen` row pairs one desktop scene and one mobile scene under a single showcase chip. A file at `src/new-ui/screens/<id>.html` replaces the inline scenes it names; the inline section stays and is used when that file is missing or does not parse. The chip is the label. Scene documents stay one file per surface under `dist/web/new-ui/`.
 - `src/screens.html` owns assembled screens: named layouts plus scenes that
   fill regions with `data-au-use` of catalog component ids, including the
   `screen*` layout shells. `scripts/lib/screens.mjs` inserts leaf catalog HTML

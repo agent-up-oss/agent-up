@@ -15,22 +15,22 @@
 <div class="aun-frame">
 <div class="aun">
     <nav class="aun-rail" aria-label="Command center">
-    <p class="aun-rail__section">TEAM</p>
-    <a class="aun-rail__agent" data-aun-nav="lucy" href="#lucy">
-      <strong>Lucy</strong><span>Reviewer &middot; interface</span><code>@lucy-aup[bot]</code>
-      <span class="aun-glyph--gate">Waiting on you</span><span>Review #412</span>
-    </a>
-    <a class="aun-rail__agent" data-aun-nav="bob" href="#bob">
-      <strong>Bob</strong><span>Developer</span><code>@bob-aup[bot]</code>
-      <span class="aun-glyph--running">Working</span><span>Build #398</span>
-    </a>
-    <a class="aun-rail__agent" data-aun-nav="hector" href="#hector">
-      <strong>Hector</strong><span>Reviewer &middot; code</span><code>@hector-aup[bot]</code>
-      <span class="aun-glyph--halted">Halted</span><span>Review #405</span>
-    </a>
-    <span class="aun-rail__spacer"></span>
-    <button type="button" class="aun-rail__switch">Switch back to the classic interface</button>
-  </nav>
+      <p class="aun-rail__section">TEAM</p>
+      <a class="aun-rail__agent" href="#lucy">
+        <strong>Lucy</strong><span>Reviewer &middot; interface</span><code>@lucy-aup[bot]</code>
+        <span class="aun-glyph--gate">&#9670; gate open</span><span>Review #412</span>
+      </a>
+      <a class="aun-rail__agent" href="#bob">
+        <strong>Bob</strong><span>Developer</span><code>@bob-aup[bot]</code>
+        <span class="aun-glyph--running">&#9679; working</span><span>Build #398</span>
+      </a>
+      <a class="aun-rail__agent" href="#hector">
+        <strong>Hector</strong><span>Reviewer &middot; code</span><code>@hector-aup[bot]</code>
+        <span class="aun-glyph--halted">&#9650; halted</span><span>Review #405</span>
+      </a>
+      <span class="aun-rail__spacer"></span>
+      <button type="button" class="aun-rail__switch">Switch back to the classic interface</button>
+    </nav>
     <main class="aun-main aun-main--bridge">
       <header class="aun-head">
         <div>
@@ -90,9 +90,10 @@
       <section class="aun-card aun-task-summary">
         <h2 class="aun-section__head">TASKS</h2>
         <div class="aun-task-summary__head"><span>TASK</span><span>STATE</span><span>ASSIGNED TO</span></div>
-        <div class="aun-task-summary__row"><strong>#412 &middot; Agent tab dead end on both clients</strong><span class="aun-glyph--gate">Waiting</span><span>Lucy</span></div>
-        <div class="aun-task-summary__row"><strong>#405 &middot; Forge surface renders nothing</strong><span class="aun-glyph--halted">Halted</span><span>Hector</span></div>
-        <div class="aun-task-summary__row"><strong>#398 &middot; Promote capability bootstrap</strong><span class="aun-glyph--running">Working</span><span>Bob</span></div>
+        <div class="aun-task-summary__row"><strong>#412 &middot; Agent tab dead end on both clients</strong><span class="aun-glyph--gate">&#9670; gate open</span><span>Lucy <span class="aun-muted">Reviewer &middot; interface</span></span></div>
+        <div class="aun-task-summary__row"><strong>#405 &middot; Forge surface renders nothing</strong><span class="aun-glyph--halted">&#9650; halted</span><span>Hector <span class="aun-muted">Reviewer &middot; code</span></span></div>
+        <div class="aun-task-summary__row"><strong>#398 &middot; Promote capability bootstrap</strong><span class="aun-glyph--running">&#9679; working</span><span>Bob <span class="aun-muted">Developer</span></span></div>
+        <p class="aun-faint">These are the tasks the agents report holding. Unassigned issues live on the repository host; this Server does not expose its queue to clients, so they are not listed here.</p>
       </section>
     </main>
   </div>
