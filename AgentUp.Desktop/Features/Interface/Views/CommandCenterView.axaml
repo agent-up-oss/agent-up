@@ -364,7 +364,44 @@
                                Foreground="{DynamicResource AgentUpColorTextDangerBrush}"/>
                 </StackPanel>
 
+                <!-- Every workspace on the Server, counted. A quiet Server still has a board. -->
                 <StackPanel Spacing="8">
+                    <TextBlock Text="ACROSS THE SERVER"
+                               FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                    <ItemsControl x:Name="FleetBoard" ItemsSource="{Binding CommandCenter.Bridge.Fleet}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Width="150"
+                                        Margin="0,0,8,8"
+                                        Padding="14,12"
+                                        CornerRadius="10"
+                                        Background="{DynamicResource AgentUpColorSurfaceBrush}"
+                                        BorderThickness="1"
+                                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{Binding Count}"
+                                                   FontSize="22"
+                                                   FontWeight="Bold"
+                                                   Foreground="{Binding Colour}"/>
+                                        <TextBlock Text="{Binding Label}"
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- A group nobody is in is not drawn: a heading reading zero reports an absence. -->
+                <StackPanel Spacing="8" IsVisible="{Binding CommandCenter.Bridge.HasWaiting}">
                     <TextBlock Text="WAITING ON YOU"
                                FontSize="10"
                                FontWeight="Bold"
@@ -372,13 +409,9 @@
                     <ItemsControl x:Name="WaitingList"
                                   ItemsSource="{Binding CommandCenter.Bridge.WaitingOnYou}"
                                   ItemTemplate="{StaticResource StandingRowTemplate}"/>
-                    <TextBlock Text="{Binding CommandCenter.Bridge.EmptyWaitingHint}"
-                               FontSize="12"
-                               IsVisible="{Binding !CommandCenter.Bridge.HasWaiting}"
-                               Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
                 </StackPanel>
 
-                <StackPanel Spacing="8">
+                <StackPanel Spacing="8" IsVisible="{Binding CommandCenter.Bridge.HasHalted}">
                     <TextBlock Text="HALTED"
                                FontSize="10"
                                FontWeight="Bold"
@@ -386,13 +419,9 @@
                     <ItemsControl x:Name="HaltedList"
                                   ItemsSource="{Binding CommandCenter.Bridge.Halted}"
                                   ItemTemplate="{StaticResource StandingRowTemplate}"/>
-                    <TextBlock Text="{Binding CommandCenter.Bridge.EmptyHaltedHint}"
-                               FontSize="12"
-                               IsVisible="{Binding !CommandCenter.Bridge.HasHalted}"
-                               Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
                 </StackPanel>
 
-                <StackPanel Spacing="8">
+                <StackPanel Spacing="8" IsVisible="{Binding CommandCenter.Bridge.HasNothingNeeded}">
                     <TextBlock Text="NOTHING NEEDED"
                                FontSize="10"
                                FontWeight="Bold"
@@ -400,10 +429,6 @@
                     <ItemsControl x:Name="TeamList"
                                   ItemsSource="{Binding CommandCenter.Bridge.NothingNeeded}"
                                   ItemTemplate="{StaticResource StandingRowTemplate}"/>
-                    <TextBlock Text="{Binding CommandCenter.Bridge.EmptyNothingNeededHint}"
-                               FontSize="12"
-                               IsVisible="{Binding !CommandCenter.Bridge.HasNothingNeeded}"
-                               Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
                 </StackPanel>
 
                 <Border Background="{DynamicResource AgentUpColorSurfaceBrush}"
@@ -450,11 +475,6 @@
                                    FontWeight="Bold"
                                    IsVisible="{Binding CommandCenter.Tasks.HasWorking}"
                                    Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                        <TextBlock Text="Taken off the queue and being worked. Stopping one puts it back."
-                                   FontSize="11"
-                                   TextWrapping="Wrap"
-                                   IsVisible="{Binding CommandCenter.Tasks.HasWorking}"
-                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
                         <ItemsControl x:Name="WorkingList"
                                       ItemsSource="{Binding CommandCenter.Tasks.Working}"
                                       IsVisible="{Binding CommandCenter.Tasks.HasWorking}"
@@ -464,10 +484,6 @@
                                    FontSize="10"
                                    FontWeight="Bold"
                                    Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                        <TextBlock Text="The agents work these, in this order. Nothing else on the host is touched."
-                                   FontSize="11"
-                                   TextWrapping="Wrap"
-                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
                         <ItemsControl x:Name="QueueList"
                                       ItemsSource="{Binding CommandCenter.Tasks.Queue}"
                                       ItemTemplate="{StaticResource QueuedTaskRowTemplate}"/>
@@ -520,11 +536,6 @@
                                     Command="{Binding ExportCommand}"
                                     ToolTip.Tip="Save the judged decisions as training material"/>
                         </Grid>
-
-                        <TextBlock Text="What the agents decided while they worked. A verdict here is what the next model learns from."
-                                   FontSize="11"
-                                   TextWrapping="Wrap"
-                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
 
                         <TextBlock Text="{Binding ExportMessage}"
                                    FontSize="12"

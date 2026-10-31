@@ -87,10 +87,16 @@ public sealed class BridgeViewModel : ReactiveObject
         "These are the tasks the agents report holding. Unassigned issues live on the repository host; "
         + "this Server does not expose its queue to clients, so they are not listed here.";
 
-    public string EmptyWaitingHint => "Nothing is waiting on you.";
-    public string EmptyHaltedHint => "Nothing halted.";
     public string EmptyTeamHint => "This server has no workspaces yet.";
-    public string EmptyNothingNeededHint => "Every agent needs something from you.";
+
+    /// <summary>
+    /// Every workspace on this Server as numbers.
+    ///
+    /// A group nobody is in is not drawn, so a quiet Server would otherwise be a blank page. This
+    /// is what fills it, and it is worth reading when the Server is busy too: counts rather than
+    /// sentences, because the board is read at a glance.
+    /// </summary>
+    public ObservableCollection<FleetTileViewModel> Fleet { get; } = [];
 
     /// <summary>
     /// Reads the team. Reads overlap: the timer starts one every ten seconds, and the workspace
@@ -135,6 +141,8 @@ public sealed class BridgeViewModel : ReactiveObject
             standing.Kind is not (TeamStandingKind.WaitingOnYou or TeamStandingKind.Halted)));
         Tasks.Clear();
         foreach (var task in Queue(standings)) Tasks.Add(task);
+        Fleet.Clear();
+        foreach (var tile in FleetTiles(standings)) Fleet.Add(tile);
         foreach (var name in new[]
                  {
                      nameof(HasWaiting), nameof(HasHalted), nameof(HasTeam), nameof(HasTasks),
@@ -143,6 +151,34 @@ public sealed class BridgeViewModel : ReactiveObject
         {
             this.RaisePropertyChanged(name);
         }
+    }
+
+    /// <summary>
+    /// The fleet counted from the standings the Server already answered, so the board costs no
+    /// read of its own.
+    /// </summary>
+    private static IEnumerable<FleetTileViewModel> FleetTiles(IReadOnlyList<TeamStanding> standings)
+    {
+        var of = (TeamStandingKind kind) => standings.Count(standing => standing.Kind == kind);
+
+        yield return new FleetTileViewModel("Agents", standings.Count);
+        yield return new FleetTileViewModel("Working", of(TeamStandingKind.Working));
+        yield return new FleetTileViewModel("Idle", of(TeamStandingKind.Idle));
+        yield return new FleetTileViewModel("Holding a task", standings.Count(standing => standing.TaskNumber is not null));
+        yield return new FleetTileViewModel("Waiting on you", of(TeamStandingKind.WaitingOnYou), FleetTone.Warning);
+        yield return new FleetTileViewModel("Halted", of(TeamStandingKind.Halted), FleetTone.Danger);
+        yield return new FleetTileViewModel(
+            "Proposals open",
+            standings.Count(standing => standing.Forge.ProposalNumber is not null));
+        yield return new FleetTileViewModel("Checks running", standings.Sum(standing => standing.Forge.ChecksRunning));
+        yield return new FleetTileViewModel(
+            "Checks failed",
+            standings.Sum(standing => standing.Forge.ChecksFailed),
+            FleetTone.Danger);
+        yield return new FleetTileViewModel(
+            "Threads unresolved",
+            standings.Sum(standing => standing.Forge.UnresolvedThreads),
+            FleetTone.Warning);
     }
 
     /// <summary>

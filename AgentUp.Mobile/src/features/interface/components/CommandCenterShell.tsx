@@ -32,6 +32,7 @@ import {
 import type { TeamStanding } from '../models/TeamStanding';
 import {
   checksCount,
+  fleet,
   hasStatusRow,
   headlineFor,
   roleLabel,
@@ -186,27 +187,72 @@ function titleFor(surface: Surface): string {
   return 'Settings';
 }
 
+/**
+ * The board for the whole Server.
+ *
+ * A group nobody is in is not drawn: a heading reading zero above a line saying nothing is there
+ * costs a screen of attention to report an absence. What fills the space instead is the fleet
+ * itself, counted across every workspace, which is worth reading whether or not anything is wrong.
+ */
 function Bridge({ standing }: { standing: Standing }) {
   if (standing.error) return <Empty title="Could not reach the Server" note={standing.error} action="Retry" onPress={standing.refresh} />;
-  if (!standing.read && standing.loading) return <Empty title="Loading" note="Reading the team from the Server." />;
-  if (!standing.team.length) return <Empty title="No agents yet" note="Register a workspace and it becomes an agent's own space." />;
+  if (!standing.read && standing.loading) return <Empty title="Loading" />;
+  if (!standing.team.length) return <Empty title="No agents yet" />;
+
+  const groups = [
+    { title: 'WAITING ON YOU', tone: 'warning' as const, members: standing.waiting },
+    { title: 'HALTED', tone: 'danger' as const, members: standing.halted },
+    { title: 'NOTHING NEEDED', tone: 'muted' as const, members: standing.settled },
+  ].filter(group => group.members.length > 0);
 
   return (
     <>
-      <Section title={`WAITING ON YOU · ${standing.waiting.length}`} tone={standing.waiting.length ? 'warning' : 'muted'} />
-      {standing.waiting.length
-        ? standing.waiting.map(item => <StandingCard key={item.workspaceId} standing={item} />)
-        : <Text style={styles.note}>Nothing is waiting on you.</Text>}
+      <FleetBoard standing={standing} />
+      {groups.map(group => (
+        <View key={group.title}>
+          <Section title={`${group.title} · ${group.members.length}`} tone={group.tone} />
+          {group.members.map(item => <StandingCard key={item.workspaceId} standing={item} />)}
+        </View>
+      ))}
+    </>
+  );
+}
 
-      <Section title={`HALTED · ${standing.halted.length}`} tone={standing.halted.length ? 'danger' : 'muted'} />
-      {standing.halted.length
-        ? standing.halted.map(item => <StandingCard key={item.workspaceId} standing={item} />)
-        : <Text style={styles.note}>Nothing halted.</Text>}
+/** Every workspace on the Server as numbers, each one counted from what the Server answered. */
+function FleetBoard({ standing }: { standing: Standing }) {
+  const summary = fleet(standing.team);
+  const tiles: { label: string; value: number; tone?: 'warning' | 'danger' }[] = [
+    { label: 'Agents', value: summary.agents },
+    { label: 'Working', value: summary.working },
+    { label: 'Idle', value: summary.idle },
+    { label: 'Holding a task', value: summary.holding },
+    { label: 'Waiting on you', value: summary.waiting, tone: summary.waiting ? 'warning' : undefined },
+    { label: 'Halted', value: summary.halted, tone: summary.halted ? 'danger' : undefined },
+    { label: 'Proposals open', value: summary.proposals },
+    { label: 'Checks running', value: summary.checksRunning },
+    { label: 'Checks failed', value: summary.checksFailed, tone: summary.checksFailed ? 'danger' : undefined },
+    { label: 'Threads unresolved', value: summary.unresolvedThreads, tone: summary.unresolvedThreads ? 'warning' : undefined },
+  ];
 
-      <Section title={`NOTHING NEEDED · ${standing.settled.length}`} tone="muted" />
-      {standing.settled.length
-        ? standing.settled.map(item => <StandingCard key={item.workspaceId} standing={item} />)
-        : <Text style={styles.note}>Every agent needs something from you.</Text>}
+  return (
+    <>
+      <Section title="ACROSS THE SERVER" tone="muted" />
+      <View style={styles.board}>
+        {tiles.map(tile => (
+          <View key={tile.label} style={styles.boardTile}>
+            <Text
+              style={[
+                styles.boardValue,
+                tile.tone === 'warning' && styles.boardValueWarning,
+                tile.tone === 'danger' && styles.boardValueDanger,
+              ]}
+            >
+              {tile.value}
+            </Text>
+            <Text style={styles.boardLabel} numberOfLines={2}>{tile.label}</Text>
+          </View>
+        ))}
+      </View>
     </>
   );
 }
@@ -221,7 +267,9 @@ function Tasks({
   onDragging: (dragging: boolean) => void;
 }) {
   if (standing.error) return <Empty title="Could not reach the Server" note={standing.error} action="Retry" onPress={standing.refresh} />;
-  if (!standing.read && standing.loading) return <Empty title="Loading" note="Reading the queue from the Server." />;
+  if (!standing.read && standing.loading) return <Empty title="Loading" />;
+
+  const hasNothing = !tasks.working.length && !tasks.queue.length && !tasks.offered.length && !standing.tasks.length;
 
   return (
     <>
@@ -230,7 +278,6 @@ function Tasks({
       {tasks.working.length ? (
         <>
           <Section title={`IN PROGRESS · ${tasks.working.length}`} tone="muted" />
-          <Text style={styles.note}>Taken off the queue and being worked. Stopping one puts it back.</Text>
           {tasks.working.map(task => (
             <View key={`${task.owner}/${task.repository}/${task.id}`} style={styles.queueRow}>
               <View style={styles.queueRowBody}>
@@ -243,46 +290,50 @@ function Tasks({
         </>
       ) : null}
 
-      <Section title={`QUEUE · ${tasks.queue.length}`} tone="muted" />
-      <Text style={styles.note}>The agents work these, in this order. Nothing else on the host is touched.</Text>
-      {tasks.queue.length
-        ? (
+      {tasks.queue.length ? (
+        <>
+          <Section title={`QUEUE · ${tasks.queue.length}`} tone="muted" />
           <QueueList
             queue={tasks.queue}
             onMove={tasks.moveTo}
             onRemove={tasks.remove}
             onDragging={onDragging}
           />
-        )
-        : <Text style={styles.note}>Nothing is queued, so the agents have nothing to take. Pick an issue below.</Text>}
+        </>
+      ) : null}
 
-      <Section title={`OPEN ISSUES · ${tasks.offered.length}`} tone="muted" />
-      {tasks.offered.length
-        ? tasks.offered.map(issue => (
-          <View key={issue.id} style={styles.queueRow}>
-            <View style={styles.queueRowBody}>
-              <Text style={styles.cardTitle} numberOfLines={1} ellipsizeMode="tail">{issueLabel(issue)}</Text>
+      {tasks.offered.length ? (
+        <>
+          <Section title={`OPEN ISSUES · ${tasks.offered.length}`} tone="muted" />
+          {tasks.offered.map(issue => (
+            <View key={issue.id} style={styles.queueRow}>
+              <View style={styles.queueRowBody}>
+                <Text style={styles.cardTitle} numberOfLines={1} ellipsizeMode="tail">{issueLabel(issue)}</Text>
+              </View>
+              <QueueAction label="Queue" onPress={() => tasks.pick(issue)} />
             </View>
-            <QueueAction label="Queue" onPress={() => tasks.pick(issue)} />
-          </View>
-        ))
-        : <Text style={styles.note}>Every open issue on this repository is already queued.</Text>}
+          ))}
+        </>
+      ) : null}
 
-      <Section title={`REPORTED · ${standing.tasks.length}`} tone="muted" />
-      <Text style={styles.note}>What each agent says it is holding right now.</Text>
-      {standing.tasks.length
-        ? standing.tasks.map(task => (
-          <View key={task.number} style={styles.card}>
-            <Text style={styles.cardTitle}>{task.label}</Text>
-            <Text style={[styles.note, kindTone(task.kind)]}>{stateLabel(task.kind)}</Text>
-            {task.agents.map(agent => (
-              <Text key={agent.workspaceId} style={styles.note}>
-                {agent.displayName}{roleLabel(agent) ? ` · ${roleLabel(agent)}` : ''}
-              </Text>
-            ))}
-          </View>
-        ))
-        : <Text style={styles.note}>No agent reports a task in hand.</Text>}
+      {standing.tasks.length ? (
+        <>
+          <Section title={`REPORTED · ${standing.tasks.length}`} tone="muted" />
+          {standing.tasks.map(task => (
+            <View key={task.number} style={styles.card}>
+              <Text style={styles.cardTitle}>{task.label}</Text>
+              <Text style={[styles.note, kindTone(task.kind)]}>{stateLabel(task.kind)}</Text>
+              {task.agents.map(agent => (
+                <Text key={agent.workspaceId} style={styles.note}>
+                  {agent.displayName}{roleLabel(agent) ? ` · ${roleLabel(agent)}` : ''}
+                </Text>
+              ))}
+            </View>
+          ))}
+        </>
+      ) : null}
+
+      {hasNothing ? <Empty title="Nothing queued" /> : null}
     </>
   );
 }
@@ -711,7 +762,6 @@ function Settings({ onSignOut, serverLabel }: { onSignOut: () => void; serverLab
       </View>
       <Pressable accessibilityRole="button" style={[styles.card, styles.cardAction]} onPress={onSignOut}>
         <Text style={styles.cardTitleDanger}>Sign out of this server</Text>
-        <Text style={styles.note}>Disconnects this client. Agents keep running on the Server.</Text>
       </Pressable>
     </>
   );
@@ -729,11 +779,11 @@ function Section({ title, tone }: { title: string; tone: 'muted' | 'warning' | '
   );
 }
 
-function Empty({ title, note, action, onPress }: { title: string; note: string; action?: string; onPress?: () => void }) {
+function Empty({ title, note, action, onPress }: { title: string; note?: string; action?: string; onPress?: () => void }) {
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{title}</Text>
-      <Text style={styles.note}>{note}</Text>
+      {note ? <Text style={styles.note}>{note}</Text> : null}
       {action && onPress ? (
         <Pressable accessibilityRole="button" style={styles.button} onPress={onPress}>
           <Text style={styles.buttonText}>{action}</Text>
@@ -789,6 +839,18 @@ const styles = StyleSheet.create({
   title: { color: agentUpTheme.colors.textPrimary, fontSize: 20, fontWeight: '700' },
   subtitle: { color: agentUpTheme.colors.textMuted, fontSize: 12 },
   body: { padding: agentUpTheme.spacing[4], gap: 10, paddingBottom: agentUpTheme.spacing[8] },
+  board: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  boardTile: {
+    ...auBox('card'),
+    flexGrow: 1,
+    flexBasis: '30%',
+    minWidth: 96,
+    paddingVertical: agentUpTheme.spacing[3],
+  },
+  boardValue: { color: agentUpTheme.colors.textPrimary, fontSize: 22, fontWeight: '700' },
+  boardValueWarning: { color: agentUpTheme.colors.textWarning },
+  boardValueDanger: { color: agentUpTheme.colors.textDanger },
+  boardLabel: { color: agentUpTheme.colors.textMuted, fontSize: 11, marginTop: 2 },
   section: { color: agentUpTheme.colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginTop: 6 },
   sectionDanger: { color: agentUpTheme.colors.textDanger },
   sectionWarning: { color: agentUpTheme.colors.textWarning },

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { noForge, type TeamStanding } from '../models/TeamStanding';
-import { checksCount, hasStatusRow, queue, headlineFor, identityHandle, roleLabel, showProposalBesideTask, slotGlyph, stateLabel, taskLabel, threadSummary, triage, whoIs } from './TeamStandingService';
+import { checksCount, fleet, hasStatusRow, queue, headlineFor, identityHandle, roleLabel, showProposalBesideTask, slotGlyph, stateLabel, taskLabel, threadSummary, triage, whoIs } from './TeamStandingService';
 
 function standing(partial: Partial<TeamStanding> = {}): TeamStanding {
   return {
@@ -184,4 +184,48 @@ test('the queue is one row per task, naming everyone on it, most urgent first', 
 
 test('the queue leaves out agents holding no task', () => {
   assert.deepEqual(queue([standing()]), []);
+});
+
+test('the fleet counts every workspace on the server rather than one of them', () => {
+  const forge = (checksFailed: number, checksRunning: number, threads: number, proposal: string | null) => ({
+    availability: 'ready',
+    proposalNumber: proposal,
+    proposalTitle: proposal ? 'Restock' : null,
+    proposalUrl: null,
+    checksPassed: 0,
+    checksFailed,
+    checksRunning,
+    unresolvedThreads: threads,
+    mergeState: null,
+    detail: null,
+    checksSkipped: 0,
+    checksTotal: checksFailed + checksRunning,
+    checks: 'none' as const,
+    verdicts: [],
+  });
+
+  const summary = fleet([
+    standing({ kind: 'working', taskNumber: 44, forge: forge(1, 2, 3, '51') }),
+    standing({ kind: 'halted', forge: forge(2, 0, 1, '52') }),
+    standing({ kind: 'idle' }),
+    standing({ kind: 'waiting', taskNumber: 48 }),
+  ]);
+
+  assert.deepEqual(summary, {
+    agents: 4,
+    working: 1,
+    waiting: 1,
+    halted: 1,
+    idle: 1,
+    holding: 2,
+    proposals: 2,
+    checksFailed: 3,
+    checksRunning: 2,
+    unresolvedThreads: 4,
+  });
+});
+
+test('the fleet of an empty server is all zeroes rather than nothing', () => {
+  assert.deepEqual(fleet([]).agents, 0);
+  assert.deepEqual(fleet([]).halted, 0);
 });

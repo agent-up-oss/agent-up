@@ -55,7 +55,7 @@ export function TrainScreen({
   }
 
   if (!training.read && training.loading) {
-    return <Empty title="Loading" note="Reading the decisions the agents have taken." />;
+    return <Empty title="Loading" />;
   }
 
   if (training.opened) {
@@ -63,12 +63,7 @@ export function TrainScreen({
   }
 
   if (training.repositories.length === 0) {
-    return (
-      <Empty
-        title="No decisions yet"
-        note="When an agent takes a product decision it records it here, and you judge it in your own time."
-      />
-    );
+    return <Empty title="No decisions yet" />;
   }
 
   return <RepositoryTiles training={training} onExport={onExport} />;
@@ -89,10 +84,6 @@ function RepositoryTiles({ training, onExport }: { training: TrainingState; onEx
           <Text style={styles.exportText}>Export</Text>
         </Pressable>
       </View>
-      <Text style={styles.note}>
-        What the agents decided while they worked. A verdict here is what the next model learns from.
-      </Text>
-
       <View style={styles.tiles}>
         {training.repositories.map(repository => (
           <Pressable
@@ -214,7 +205,7 @@ function DecisionDeck({
   }), [slide, move]);
 
   if (count === 0) {
-    return <Empty title="Nothing here" note="No decisions have been recorded in this part of the product." />;
+    return <Empty title="Nothing here" />;
   }
 
   const decision = decisions[Math.min(index, count - 1)];
@@ -372,11 +363,11 @@ function EvidenceImage({ server, evidenceId }: { server: ServerSession | null; e
   );
 }
 
-function Empty({ title, note }: { title: string; note: string }) {
+function Empty({ title, note }: { title: string; note?: string }) {
   return (
     <View style={styles.empty}>
       <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.note}>{note}</Text>
+      {note ? <Text style={styles.note}>{note}</Text> : null}
     </View>
   );
 }

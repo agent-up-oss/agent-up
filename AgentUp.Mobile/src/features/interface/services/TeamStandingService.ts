@@ -13,6 +13,46 @@ export type TeamTriage = {
 };
 
 /**
+ * What the whole Server amounts to, counted across every workspace it holds.
+ *
+ * Everything here is counted from standings the Server already answered, so the bridge says what
+ * is true of the fleet without a read of its own. A count is a number rather than a sentence: the
+ * board is read at a glance, and a glance has no time for prose.
+ */
+export type FleetSummary = {
+  agents: number;
+  working: number;
+  waiting: number;
+  halted: number;
+  idle: number;
+  /** Agents holding a task right now, which is not the same as agents that are busy. */
+  holding: number;
+  proposals: number;
+  checksFailed: number;
+  checksRunning: number;
+  unresolvedThreads: number;
+};
+
+export function fleet(standings: TeamStanding[]): FleetSummary {
+  const of = (kind: TeamStandingKind) => standings.filter(standing => standing.kind === kind).length;
+  const total = (pick: (standing: TeamStanding) => number) =>
+    standings.reduce((count, standing) => count + pick(standing), 0);
+
+  return {
+    agents: standings.length,
+    working: of('working'),
+    waiting: of('waiting'),
+    halted: of('halted'),
+    idle: of('idle'),
+    holding: standings.filter(standing => standing.taskNumber !== null).length,
+    proposals: standings.filter(standing => standing.forge.proposalNumber !== null).length,
+    checksFailed: total(standing => standing.forge.checksFailed),
+    checksRunning: total(standing => standing.forge.checksRunning),
+    unresolvedThreads: total(standing => standing.forge.unresolvedThreads),
+  };
+}
+
+/**
  * One task in the queue, with everyone on it. A task is not one agent's: an author builds it and
  * the reviewers read what they built, so an issue with three agents on it is one row naming three
  * people, not three rows naming the same issue.

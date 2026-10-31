@@ -1,4 +1,5 @@
 using AgentUp.Desktop.Features.Interface.Models;
+using AgentUp.Desktop.Shared.Models;
 using AgentUp.Desktop.Features.Interface.ViewModels;
 using AgentUp.Desktop.Tests.Support;
 
@@ -185,6 +186,53 @@ public sealed class BridgeViewModelTests
         });
     }
 
+    [Test]
+    public async Task Fleet_countsEveryWorkspaceOnTheServerRatherThanOneOfThem()
+    {
+        var agents = new StandingAgentFake();
+        var forge = new StandingForgeFake();
+        agents.Sessions["shop"] = TeamStandingComposition.Session(
+            "shop",
+            loop: TeamStandingComposition.Loop(true, "running", 44, "Restock featured products", "Running"));
+        agents.Sessions["docs"] = TeamStandingComposition.Session(
+            "docs",
+            state: "error",
+            loop: TeamStandingComposition.Loop(false, "failed", 51, "Docs anchors", "Failed", stopReason: "forge.unreachable"));
+        agents.Sessions["quiet"] = TeamStandingComposition.Session("quiet", state: "idle");
+        var bridge = new BridgeViewModel(TeamStandingComposition.Controller(agents, forge));
+
+        await bridge.ReadAsync(Members("shop", "docs", "quiet"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Tile(bridge, "Agents"), Is.EqualTo("3"));
+            Assert.That(Tile(bridge, "Working"), Is.EqualTo("1"));
+            Assert.That(Tile(bridge, "Halted"), Is.EqualTo("1"));
+            Assert.That(Tile(bridge, "Holding a task"), Is.EqualTo("2"));
+        });
+    }
+
+    [Test]
+    public async Task Fleet_leavesAZeroPlainSoAQuietServerDoesNotReadAsAnAlarm()
+    {
+        var agents = new StandingAgentFake();
+        agents.Sessions["quiet"] = TeamStandingComposition.Session("quiet", state: "idle");
+        var bridge = new BridgeViewModel(TeamStandingComposition.Controller(agents, new StandingForgeFake()));
+
+        await bridge.ReadAsync(Members("quiet"));
+        var halted = bridge.Fleet.Single(tile => tile.Label == "Halted");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(halted.Count, Is.EqualTo("0"));
+            Assert.That(halted.Colour, Is.EqualTo(AgentUpThemeColors.TextPrimary), "zero halted is good news");
+            Assert.That(bridge.HasHalted, Is.False, "and the group is not drawn at all");
+        });
+    }
+
+    private static string Tile(BridgeViewModel bridge, string label)
+        => bridge.Fleet.Single(tile => tile.Label == label).Count;
+
     private static TeamMember[] Members(params string[] ids)
         => ids.Select(id => new TeamMember(id, id, "main", "Running")).ToArray();
 }
@@ -237,7 +285,7 @@ public sealed class StandingRowViewModelTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(row.Subtitle, Is.EqualTo("Reviewer · @lucy-aup[bot] · Claude · Running"));
+            Assert.That(row.Subtitle, Is.EqualTo("Reviewer · @lucy-aup[bot] · Claude"));
             Assert.That(row.RoleLabel, Is.EqualTo("Reviewer"));
             Assert.That(row.IdentityHandle, Is.EqualTo("@lucy-aup[bot]"));
             Assert.That(row.IdentityToolTip, Is.EqualTo("Lucy · https://github.com/apps/lucy-aup"));
@@ -245,7 +293,7 @@ public sealed class StandingRowViewModelTests
     }
 
     [Test]
-    public void Row_withNoRoleOrAccountFallsBackToWhatTheServerDidReport()
+    public void Row_withNoRoleOrAccountSaysNothingRatherThanTheWorkspaceState()
     {
         var row = new StandingRowViewModel(new TeamStanding(
             "fresh", "Fresh", "main", "Stopped", null, TeamStandingKind.Idle,
@@ -253,7 +301,8 @@ public sealed class StandingRowViewModelTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(row.Subtitle, Is.EqualTo("Stopped"));
+            // The workspace being stopped is not the agent's standing, so it is not this line.
+            Assert.That(row.Subtitle, Is.Empty);
             Assert.That(row.HasRole, Is.False);
             Assert.That(row.HasIdentity, Is.False);
             Assert.That(row.HasStatusRow, Is.False);
@@ -296,7 +345,7 @@ public sealed class StandingRowViewModelTests
             Assert.That(row.HasProposal, Is.False);
             Assert.That(row.HasUnresolvedThreads, Is.False);
             Assert.That(row.HasStatusRow, Is.False);
-            Assert.That(row.Subtitle, Is.EqualTo("Stopped"));
+            Assert.That(row.Subtitle, Is.Empty);
         });
     }
 
