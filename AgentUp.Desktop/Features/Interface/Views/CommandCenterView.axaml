@@ -497,6 +497,214 @@
                                    Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
                     </StackPanel>
                 </Border>
+
+                <!-- Train: the decisions the agents took, and what you make of them. -->
+                <Border Background="{DynamicResource AgentUpColorSurfaceBrush}"
+                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="20"
+                        IsVisible="{Binding CommandCenter.Training, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <StackPanel Spacing="10" DataContext="{Binding CommandCenter.Training}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0"
+                                       Text="TRAIN"
+                                       FontSize="10"
+                                       FontWeight="Bold"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                            <Button Grid.Column="1"
+                                    Content="Export"
+                                    Classes="au-button au-button--secondary au-button--compact"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TrainExport}"
+                                    Command="{Binding ExportCommand}"
+                                    ToolTip.Tip="Save the judged decisions as training material"/>
+                        </Grid>
+
+                        <TextBlock Text="What the agents decided while they worked. A verdict here is what the next model learns from."
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+
+                        <TextBlock Text="{Binding ExportMessage}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding HasExportMessage}"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding HasError}"
+                                   Foreground="{DynamicResource AgentUpColorTextWarningBrush}"/>
+
+                        <!-- Which product this is about. -->
+                        <ItemsControl ItemsSource="{Binding Repositories}" IsVisible="{Binding ShowsRepositories}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Classes="au-choice au-choice--compact"
+                                            Width="230"
+                                            Margin="0,0,10,10"
+                                            AutomationProperties.AutomationId="{Binding TestId}"
+                                            Command="{Binding $parent[ItemsControl].DataContext.OpenRepositoryCommand}"
+                                            CommandParameter="{Binding}">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Waiting}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource AgentUpColorAccentBrightBrush}"
+                                                       IsVisible="{Binding HasWaiting}"/>
+                                            <TextBlock Text="{Binding Waiting}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
+                                                       IsVisible="{Binding !HasWaiting}"/>
+                                            <TextBlock Text="{Binding Judged}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="{Binding EmptyHint}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding !HasRepositories}"
+                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+
+                        <!-- One repository's decisions, read one at a time. -->
+                        <StackPanel Spacing="10" IsVisible="{Binding ShowsDecisions}">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Content="‹ Repositories"
+                                        Classes="au-button au-button--secondary au-button--compact"
+                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TrainBack}"
+                                        Command="{Binding CloseRepositoryCommand}"/>
+                                <TextBlock Text="{Binding RepositoryName}"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <ItemsControl ItemsSource="{Binding Categories}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="6"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Classes="au-button au-button--secondary au-button--compact"
+                                                AutomationProperties.AutomationId="{Binding TestId}"
+                                                Command="{Binding $parent[ItemsControl].DataContext.ShowCategoryCommand}"
+                                                CommandParameter="{Binding Id}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{Binding Label}"/>
+                                                <TextBlock Text="{Binding Count}"
+                                                           IsVisible="{Binding HasCount}"
+                                                           Foreground="{DynamicResource AgentUpColorAccentBrightBrush}"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <TextBlock Text="{Binding EmptyCategoryHint}"
+                                       FontSize="12"
+                                       IsVisible="{Binding !HasShown}"
+                                       Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+
+                            <StackPanel Spacing="8" IsVisible="{Binding HasShown}">
+                                <Grid ColumnDefinitions="*,Auto,Auto">
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding Position}"
+                                               FontSize="11"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                                    <Button Grid.Column="1"
+                                            Content="Previous"
+                                            Classes="au-button au-button--secondary au-button--compact"
+                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TrainPrevious}"
+                                            IsEnabled="{Binding CanGoBack}"
+                                            Command="{Binding PreviousCommand}"/>
+                                    <Button Grid.Column="2"
+                                            Content="Next"
+                                            Margin="6,0,0,0"
+                                            Classes="au-button au-button--secondary au-button--compact"
+                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TrainNext}"
+                                            IsEnabled="{Binding CanGoOn}"
+                                            Command="{Binding NextCommand}"/>
+                                </Grid>
+
+                                <TextBlock Text="{Binding DecidedBy}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                                <TextBlock Text="{Binding Headline}"
+                                           FontSize="20"
+                                           FontWeight="Bold"
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                                <TextBlock Text="{Binding Detail}"
+                                           FontSize="13"
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                                <TextBlock Text="BASED ON"
+                                           FontSize="10"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                                <TextBlock Text="{Binding Evidence}"
+                                           FontSize="13"
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+
+                                <Border CornerRadius="8"
+                                        ClipToBounds="True"
+                                        HorizontalAlignment="Left"
+                                        BorderThickness="1"
+                                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                                        IsVisible="{Binding HasEvidencePicture}">
+                                    <Image Source="{Binding EvidencePicture}"
+                                           MaxWidth="520"
+                                           Stretch="Uniform"/>
+                                </Border>
+
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Content="Good call"
+                                            Classes="au-button au-button--secondary"
+                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TrainGood}"
+                                            Command="{Binding GoodCommand}"/>
+                                    <Button Content="Bad call"
+                                            Classes="au-button au-button--danger"
+                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TrainBad}"
+                                            Command="{Binding BadCommand}"/>
+                                </StackPanel>
+
+                                <TextBlock Text="{Binding VerdictLabel}"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+
+                                <TextBox PlaceholderText="Why, if it is worth saying (optional)"
+                                         AcceptsReturn="True"
+                                         MinHeight="72"
+                                         TextWrapping="Wrap"
+                                         AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TrainNote}"
+                                         Text="{Binding Note, Mode=TwoWay}"/>
+
+                                <Button Content="Submit"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
+                                        Classes="au-button"
+                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TrainSubmit}"
+                                        IsEnabled="{Binding CanSubmit}"
+                                        Command="{Binding SubmitCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
 

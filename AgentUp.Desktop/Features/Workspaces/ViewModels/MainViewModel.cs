@@ -392,6 +392,14 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     /// </summary>
     private void SubscribeCommandCenter()
     {
+        // The decision backlog is not a live feed: it changes when an agent records something, not
+        // every few seconds, so it is read when the shell comes up rather than on the triage tick.
+        if (CommandCenter?.Training is { } training)
+            CommandCenter.WhenAnyValue(x => x.Active)
+                .Where(active => active)
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(active => { _ = training.LoadAsync(); });
+
         if (CommandCenter?.Bridge is null && CommandCenter?.Tasks is null) return;
         CommandCenter.WhenAnyValue(x => x.Active)
             .Select(active => active

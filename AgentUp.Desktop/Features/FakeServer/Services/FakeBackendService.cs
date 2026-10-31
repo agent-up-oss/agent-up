@@ -125,6 +125,8 @@ public sealed class FakeBackendService
             return EnqueueTask(request.Body);
         if (path.StartsWith("/api/tasks/", StringComparison.Ordinal))
             return TaskMutation(method, path["/api/tasks/".Length..], request.Body);
+        if (path.StartsWith("/api/training", StringComparison.Ordinal))
+            return TrainingRoute(method, path["/api/training".Length..], request);
         if (method == "GET" && path.StartsWith("/apps/", StringComparison.Ordinal))
             return AppPage(path);
 
@@ -997,6 +999,169 @@ public sealed class FakeBackendService
     /// </summary>
     private const string DemoOwner = "example";
     private const string DemoRepository = "repository";
+
+    /// <summary>
+    /// The decision backlog the Train surface reads.
+    ///
+    /// Verdicts given here stay for the life of the Demo session, so judging a decision and coming
+    /// back to it shows what you said rather than asking again.
+    /// </summary>
+    private FakeBackendResponseDto TrainingRoute(string method, string rest, FakeBackendRequestDto request)
+    {
+        if (method == "GET" && rest == "/repositories")
+            return Json(DecisionRepositories());
+        if (method == "GET" && rest == "/decisions")
+            return Json(DecisionsFor(
+                QueryValue(request.Query, "owner"),
+                QueryValue(request.Query, "repository"),
+                QueryValue(request.Query, "category"),
+                QueryValue(request.Query, "verdict")));
+        if (method == "POST" && rest.StartsWith("/decisions/", StringComparison.Ordinal)
+            && rest.EndsWith("/review", StringComparison.Ordinal))
+            return ReviewDecision(
+                Uri.UnescapeDataString(rest["/decisions/".Length..^"/review".Length]),
+                request.Body);
+        if (method == "GET" && rest.StartsWith("/evidence/", StringComparison.Ordinal))
+            return DecisionEvidence(Uri.UnescapeDataString(rest["/evidence/".Length..]));
+        if (method == "GET" && rest == "/export")
+            return DecisionExport(QueryValue(request.Query, "includePending") == "true");
+
+        return NotFound();
+    }
+
+    private JsonArray DecisionRepositories()
+    {
+        lock (_gate)
+        {
+            var groups = _state.ProductDecisions
+                .OfType<JsonObject>()
+                .GroupBy(decision => $"{Text(decision, "owner")}/{Text(decision, "repository")}", StringComparer.Ordinal)
+                .Select(group => new JsonObject
+                {
+                    ["owner"] = Text(group.First(), "owner"),
+                    ["repository"] = Text(group.First(), "repository"),
+                    ["pending"] = group.Count(decision => !Judged(decision)),
+                    ["reviewed"] = group.Count(Judged),
+                    ["categories"] = new JsonArray(
+                    [
+                        .. DecisionCategories.Select(category => (JsonNode)new JsonObject
+                        {
+                            ["category"] = category.Key,
+                            ["label"] = category.Value,
+                            ["pending"] = group.Count(decision =>
+                                Text(decision, "category") == category.Key && !Judged(decision)),
+                            ["reviewed"] = group.Count(decision =>
+                                Text(decision, "category") == category.Key && Judged(decision))
+                        })
+                    ])
+                })
+                .OrderByDescending(repository => repository["pending"]!.GetValue<int>())
+                .ThenBy(repository => repository["repository"]!.GetValue<string>(), StringComparer.Ordinal);
+
+            return new JsonArray([.. groups.Select(repository => (JsonNode)repository)]);
+        }
+    }
+
+    private JsonArray DecisionsFor(string? owner, string? repository, string? category, string? verdict)
+    {
+        lock (_gate)
+        {
+            var found = _state.ProductDecisions
+                .OfType<JsonObject>()
+                .Where(decision => owner is null || Same(Text(decision, "owner"), owner))
+                .Where(decision => repository is null || Same(Text(decision, "repository"), repository))
+                .Where(decision => category is null || Text(decision, "category") == category)
+                .Where(decision => verdict is null || Text(decision, "verdict") == verdict)
+                // What nobody has judged comes first: that is what a reader opened the surface for.
+                .OrderBy(Judged)
+                .ThenBy(decision => Text(decision, "recordedAt"), StringComparer.Ordinal);
+
+            return new JsonArray([.. found.Select(decision => decision.DeepClone())]);
+        }
+    }
+
+    private FakeBackendResponseDto ReviewDecision(string decisionId, string? body)
+    {
+        var verdict = ReadJsonString(body, "verdict") ?? "pending";
+        if (verdict is not ("good" or "bad" or "pending"))
+            return NotFound();
+
+        var note = ReadJsonString(body, "note")?.Trim();
+
+        lock (_gate)
+        {
+            var decision = _state.ProductDecisions
+                .OfType<JsonObject>()
+                .FirstOrDefault(item => Text(item, "id") == decisionId);
+            if (decision is null)
+                return NotFound();
+
+            decision["verdict"] = verdict;
+            decision["note"] = string.IsNullOrWhiteSpace(note) ? null : note;
+            decision["reviewedAt"] = verdict == "pending" ? null : DateTimeOffset.UtcNow.ToString("o");
+            return Json(decision.DeepClone());
+        }
+    }
+
+    private FakeBackendResponseDto DecisionEvidence(string evidenceId)
+    {
+        lock (_gate)
+        {
+            var image = _state.DecisionEvidence?[evidenceId];
+            if (image is null)
+                return NotFound();
+
+            return Json(new JsonObject
+            {
+                ["evidenceId"] = evidenceId,
+                ["mimeType"] = image["mimeType"]?.DeepClone(),
+                ["base64"] = image["base64"]?.DeepClone()
+            });
+        }
+    }
+
+    private FakeBackendResponseDto DecisionExport(bool includePending)
+    {
+        lock (_gate)
+        {
+            var lines = _state.ProductDecisions
+                .OfType<JsonObject>()
+                .Where(decision => includePending || Judged(decision))
+                .Select(decision => new JsonObject
+                {
+                    ["id"] = Text(decision, "id"),
+                    ["repository"] = $"{Text(decision, "owner")}/{Text(decision, "repository")}",
+                    ["agent"] = Text(decision, "agent"),
+                    ["category"] = Text(decision, "category"),
+                    ["headline"] = Text(decision, "headline"),
+                    ["detail"] = Text(decision, "detail"),
+                    ["evidence"] = Text(decision, "evidence"),
+                    ["recordedAt"] = Text(decision, "recordedAt"),
+                    ["verdict"] = Text(decision, "verdict"),
+                    ["note"] = decision["note"]?.DeepClone(),
+                    ["reviewedAt"] = decision["reviewedAt"]?.DeepClone()
+                }.ToJsonString())
+                .ToArray();
+
+            var body = lines.Length == 0 ? string.Empty : string.Join("\n", lines) + "\n";
+            return new FakeBackendResponseDto(200, "application/x-ndjson", body);
+        }
+    }
+
+    private static bool Judged(JsonObject decision) => Text(decision, "verdict") != "pending";
+
+    private static string Text(JsonObject node, string name) => node[name]?.GetValue<string>() ?? string.Empty;
+
+    private static bool Same(string left, string right)
+        => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The three categories, in the order both surfaces show them.</summary>
+    private static readonly KeyValuePair<string, string>[] DecisionCategories =
+    [
+        new("product-vision", "Product vision"),
+        new("gui-decisions", "GUI"),
+        new("code-architecture", "Architecture")
+    ];
 
     /// <summary>
     /// The picked queue, shared by every workspace. The Demo keeps it in the same shape the Server

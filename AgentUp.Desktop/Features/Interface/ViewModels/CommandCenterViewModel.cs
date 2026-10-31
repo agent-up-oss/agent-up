@@ -22,12 +22,14 @@ public sealed class CommandCenterViewModel : ReactiveObject
     public CommandCenterViewModel(
         InterfaceController controller,
         BridgeViewModel? bridge = null,
-        TaskQueueViewModel? tasks = null)
+        TaskQueueViewModel? tasks = null,
+        TrainingViewModel? training = null)
     {
         _controller = controller;
         _active = controller.UsesCommandCenter;
         Bridge = bridge;
         Tasks = tasks;
+        Training = training;
         ToggleCommand = ReactiveCommand.Create(Toggle);
         CloseAgentCommand = ReactiveCommand.Create(CloseAgent);
         OpenAgentCommand = ReactiveCommand.Create<TeamStanding>(OpenAgent);
@@ -98,6 +100,12 @@ public sealed class CommandCenterViewModel : ReactiveObject
     /// behind it (the headless tests). The classic shell never touches it.
     /// </summary>
     public TaskQueueViewModel? Tasks { get; }
+
+    /// <summary>
+    /// The decisions the agents took and the verdicts you give them, or null where the shell was
+    /// composed without the reads behind it.
+    /// </summary>
+    public TrainingViewModel? Training { get; }
 
     /// <summary>True while the command center is the shell on screen.</summary>
     public bool Active

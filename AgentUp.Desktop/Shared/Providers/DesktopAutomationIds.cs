@@ -134,6 +134,15 @@ public static class DesktopAutomationIds
     public const string GitDiffDismiss = "git.diff.dismiss";
     public const string CapabilityClose = "capability.close";
 
+    public const string TrainExport = "train.export";
+    public const string TrainBack = "train.back";
+    public const string TrainPrevious = "train.previous";
+    public const string TrainNext = "train.next";
+    public const string TrainGood = "train.good";
+    public const string TrainBad = "train.bad";
+    public const string TrainNote = "train.note";
+    public const string TrainSubmit = "train.submit";
+
     public static string LoginSaved(string id) => $"login.saved.{id}";
     public static string LoginRemoveSaved(string id) => $"login.remove.{id}";
     public static string WorkspaceStart(string id) => $"workspace.start.{id}";
@@ -157,4 +166,8 @@ public static class DesktopAutomationIds
     public static string ValidationPlay(string flowId) => $"validation.play.{flowId}";
     public static string CapabilityEnable(string moduleId) => $"capability.enable.{moduleId}";
     public static string CapabilityDisable(string moduleId) => $"capability.disable.{moduleId}";
+
+    public static string TrainRepository(string key) => $"train.repository.{key}";
+
+    public static string TrainCategory(string category) => $"train.category.{category}";
 }

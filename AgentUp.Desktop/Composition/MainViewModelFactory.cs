@@ -114,7 +114,9 @@ public static class MainViewModelFactory
         HttpClient? entitlementsHttp = null,
         CommandCenterViewModel? commandCenter = null,
         ITaskQueueApiProvider? taskQueueClient = null,
-        IReviewReportSavePrompt? reviewReportSave = null)
+        ITrainingApiProvider? trainingClient = null,
+        IReviewReportSavePrompt? reviewReportSave = null,
+        IDecisionExportSink? decisionExport = null)
     {
         var workspaces = new WorkspacesController(new WorkspaceListService(workspaceClient));
         var entitlements = new EntitlementsController(new EntitlementsService(
@@ -173,7 +175,12 @@ public static class MainViewModelFactory
             commandCenter ?? new CommandCenterViewModel(
                 new InterfaceController(new FileInterfacePreferenceStore()),
                 new BridgeViewModel(new TeamStandingController(new TeamStandingService(agents, git))),
-                taskQueueClient is null ? null : new TaskQueueViewModel(new TaskQueueController(new TaskQueueService(taskQueueClient)))));
+                taskQueueClient is null ? null : new TaskQueueViewModel(new TaskQueueController(new TaskQueueService(taskQueueClient))),
+                trainingClient is null
+                    ? null
+                    : new TrainingViewModel(
+                        new TrainingController(new TrainingService(trainingClient)),
+                        decisionExport)));
     }
 
     public static MainViewModel Create(
@@ -181,7 +188,8 @@ public static class MainViewModelFactory
         LoginViewModel? login = null,
         HttpClient? agentEventsHttp = null,
         CommandCenterViewModel? commandCenter = null,
-        IReviewReportSavePrompt? reviewReportSave = null)
+        IReviewReportSavePrompt? reviewReportSave = null,
+        IDecisionExportSink? decisionExport = null)
     {
         return Create(
             new WorkspaceApiClient(http),
@@ -197,7 +205,9 @@ public static class MainViewModelFactory
             entitlementsHttp: http,
             commandCenter: commandCenter,
             taskQueueClient: new TaskQueueApiClient(http),
-            reviewReportSave: reviewReportSave);
+            trainingClient: new TrainingApiClient(http),
+            reviewReportSave: reviewReportSave,
+            decisionExport: decisionExport);
     }
 
     public static HostMetricsController CreateHostMetricsController(HttpClient http) =>

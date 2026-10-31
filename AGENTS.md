@@ -32,7 +32,7 @@ Product names that appear in more than one surface:
 - Desktop chrome for the live ACP session is the **Agent** tab. Mobile chrome for the picker is the **Agents** tab.
 - The installed CLI is `agent-up`. Do not document `agentup` or `agent-up register`.
 - Packaged Server URL is `http://localhost:5000`. The repository launch profile is `http://localhost:5001`.
-- MCP clients connect to named servers (`/mcp/orchestration`, `/mcp/browser`, `/mcp/audit`, `/mcp/commits`, `/mcp/verification`), never a shared `/mcp`.
+- MCP clients connect to named servers (`/mcp/orchestration`, `/mcp/browser`, `/mcp/audit`, `/mcp/commits`, `/mcp/verification`, `/mcp/training`), never a shared `/mcp`.
 
 Client and platform names (Desktop, Mobile, Server, CLI, Packaging, CI) are glossary and chrome terms. They cannot be sidebar categories. Slice documentation lives on User General and Developer General pages; see Docs IA.
 
@@ -751,8 +751,8 @@ the endpoint's permission floor receives `403`. The floors are the lowest
 permission any tool on that endpoint needs: `browser.control` for
 `/mcp/browser`, `git.read` for `/mcp/commits` and `/mcp/verification`,
 `workspace.read` for `/mcp/orchestration`, `diagnostics.read` for `/mcp/audit`,
-and `server.read` for `/mcp/capabilities`; individual tools may still require
-more. The
+`agent.read` for `/mcp/training`, and `server.read` for `/mcp/capabilities`;
+individual tools may still require more. The
 `McpNetworkRestrictionMiddleware` runs after `UseAuthentication` so the caller is
 already identified when that decision is made, and loopback anonymity survives
 `RequireAuthorization` through `McpLoopbackOrPermissionRequirement` rather than by
@@ -1409,6 +1409,18 @@ A role is a prompt prefix plus an MCP tool allowlist, a trigger (`IssueAssigned`
 
 Read: `docs/user-docs/agents/index.md`, `docs/developer-guide/agents/index.md`, and `docs/developer-guide/agents/autonomy.md`.
 
+## Training
+
+The product decision backlog is what the agents learn the product from. `AgentUp.Server`'s Training slice owns it; Desktop's command center and Mobile's **Train** tab read the same endpoints, and nothing is kept client-side.
+
+An agent records a decision with `train_record_decision` on `/mcp/training` and carries on: recording never blocks, never returns a verdict, and never says what to do next. Record a decision when real alternatives existed and a reasonable person could have chosen differently — scope and priorities, what a screen says and how it behaves, where a boundary in the code goes. Do not record an instruction you were given, a question with one sensible answer, or routine work: a backlog full of small things is a backlog nobody reads. The headline is the decision in one line a product owner can judge at a glance, 12 to 120 characters, starting with the decision rather than with "I decided"; the detail is what was decided and the evidence is what it was based on. `DecisionDraftProvider` refuses an empty opening, a headline or detail that is too thin, and a decision that repeats one already recorded, returning every fault at once.
+
+Each decision belongs to one of three categories — `product-vision`, `gui-decisions`, `code-architecture` — shown as **Product vision**, **GUI** and **Architecture**. Evidence may carry up to four pictures: an agent passes audit artifact ids (what `browser_screenshot` returns) and the Server copies the bytes into its own evidence store under the data directory, so the reference does not depend on a workspace's changing Git state. Clients read a picture as base64 over `GET /api/training/evidence/{evidenceId}` rather than as a URL an image control would fetch unauthenticated.
+
+Verdicts flow back to the agents through the same space. `train_list_decisions` and `train_get_decision` return a decision with whatever the owner has made of it as soon as they have made it, so an agent reads the recorded decisions for the area it is about to work in before deciding: a `good` verdict is how the owner wants this product built, and a `bad` one is a call not to repeat. The top-level Train view exports the judged backlog as JSONL for post-training; a decision nobody has judged teaches nothing and is left out unless `includePending` asks for it.
+
+Read: `docs/developer-guide/agents/index.md`.
+
 ## Browser
 
 Agent-Up keeps browser sessions tied to workspaces. Developers use Desktop or Mobile WebViews; agents use the Server headless profile. Those surfaces do not share cookies, storage, or navigation state. Restarting applications should reload the existing surface for that workspace rather than create more tabs.
@@ -1443,7 +1455,7 @@ Read: `docs/user-docs/configuration/index.md` and `docs/developer-guide/configur
 
 `au-debug` hosts repo Desktop, Mobile, and docs for visual comparison. One-shot commands use a 30 second watchdog. Probe the host with `au-debug status` instead of curling ports or searching windows. Replay Desktop-surface validation flows with `au-debug validate --surface desktop`; artifacts default to `artifacts/desktop-validation/<flow-id>/`. Drive specified Mobile web flows against a real Server with `au-debug validate --surface mobile`; artifacts default to `artifacts/mobile-validation/`. Capture a hosted docs page with `au-debug docs screenshot [path]`; add `--heading <text>` to scroll that heading into view, or `--full-page` to capture the whole document. Persist design-system Desktop and Mobile product screenshots into `media/` with `au-debug screenshots persist`, and prove assembled screens compose catalog component HTML with `au-debug screenshots validate`. Hold the last captured run against the design system with `au-debug screens compare`, which fails on a documented screen the real one no longer matches; it compares copy, and reports Desktop as not comparable because xdotool and ImageMagick carry no text channel. Photograph the **real** clients instead with `au-debug screens`: it drives the Desktop window and the Mobile web client through every documented page-assembly screen on their built-in Demo backend, interacting with each one first, and writes `artifacts/product-screens/`. Demo exposes no Database, Diagnostics, or Metrics surface, and Validation is a collapsed application sidebar rather than a dedicated tab, so those four Desktop screens are reported unavailable with their reason rather than captured. CI runs it in the Product screens job and uploads the result; it gates nothing. Run visual-iteration checks with `au-debug test <suite>` or `au-debug test`. Rebuild generated design-system bindings with `au-debug build design-system`, and Mobile typecheck plus web export with `au-debug build mobile`. Do not invoke those npm or `dotnet test` commands directly when an `au-debug` wrap exists. Read: `docs/developer-guide/repo/au-debug.md`.
 
-MCP is a protocol, not a slice. Attach to `/mcp/orchestration`, `/mcp/browser`, `/mcp/audit`, `/mcp/commits`, and `/mcp/verification`. Each developer General lists that slice's tools. See `docs/developer-guide/index.md`.
+MCP is a protocol, not a slice. Attach to `/mcp/orchestration`, `/mcp/browser`, `/mcp/audit`, `/mcp/commits`, `/mcp/verification`, and `/mcp/training`. Each developer General lists that slice's tools. See `docs/developer-guide/index.md`.
 
 ## Product telemetry
 
