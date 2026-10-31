@@ -8,6 +8,10 @@ export type TeamTriage = {
   halted: TeamStanding[];
   /** The rest of the team: running or idle, and needing nothing from you. */
   settled: TeamStanding[];
+  /** Of the settled, the ones actually doing something. */
+  working: TeamStanding[];
+  /** Of the settled, the ones with nothing in hand. */
+  idle: TeamStanding[];
   tasks: TaskGroup[];
   headline: string;
 };
@@ -72,6 +76,8 @@ export function triage(standings: TeamStanding[]): TeamTriage {
     waiting,
     halted,
     settled: standings.filter(standing => standing.kind !== 'waiting' && standing.kind !== 'halted'),
+    working: standings.filter(standing => standing.kind === 'working'),
+    idle: standings.filter(standing => standing.kind === 'idle'),
     tasks: queue(standings),
     headline: `${standings.length} ${plural(standings.length, 'agent')} · ${waiting.length} waiting on you · ${halted.length} halted`,
   };

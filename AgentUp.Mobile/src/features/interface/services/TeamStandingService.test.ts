@@ -229,3 +229,16 @@ test('the fleet of an empty server is all zeroes rather than nothing', () => {
   assert.deepEqual(fleet([]).agents, 0);
   assert.deepEqual(fleet([]).halted, 0);
 });
+
+test('the bridge separates agents that are working from agents that are idle', () => {
+  const found = triage([
+    standing({ workspaceId: 'bob', kind: 'working' }),
+    standing({ workspaceId: 'lucy', kind: 'idle' }),
+    standing({ workspaceId: 'hector', kind: 'halted' }),
+  ]);
+
+  assert.deepEqual(found.working.map(item => item.workspaceId), ['bob']);
+  assert.deepEqual(found.idle.map(item => item.workspaceId), ['lucy']);
+  // Both are still settled: neither needs anything from the reader.
+  assert.deepEqual(found.settled.map(item => item.workspaceId), ['bob', 'lucy']);
+});

@@ -199,10 +199,13 @@ function Bridge({ standing }: { standing: Standing }) {
   if (!standing.read && standing.loading) return <Empty title="Loading" />;
   if (!standing.team.length) return <Empty title="No agents yet" />;
 
+  // Named for what the agents in them are doing. "Nothing needed" described the reader's side of
+  // it and left an idle agent filed under a heading that never says it is idle.
   const groups = [
     { title: 'WAITING ON YOU', tone: 'warning' as const, members: standing.waiting },
     { title: 'HALTED', tone: 'danger' as const, members: standing.halted },
-    { title: 'NOTHING NEEDED', tone: 'muted' as const, members: standing.settled },
+    { title: 'WORKING', tone: 'muted' as const, members: standing.working },
+    { title: 'IDLE', tone: 'muted' as const, members: standing.idle },
   ].filter(group => group.members.length > 0);
 
   return (
@@ -218,7 +221,13 @@ function Bridge({ standing }: { standing: Standing }) {
   );
 }
 
-/** Every workspace on the Server as numbers, each one counted from what the Server answered. */
+/**
+ * Every workspace on the Server as numbers.
+ *
+ * Four counts always show, because they describe the fleet whatever it is doing. The rest are
+ * exceptions - work waiting, work stopped, checks failing - and a zero there is the absence of a
+ * problem rather than a fact worth a tile, so they appear only once there is something to report.
+ */
 function FleetBoard({ standing }: { standing: Standing }) {
   const summary = fleet(standing.team);
   const tiles: { label: string; value: number; tone?: 'warning' | 'danger' }[] = [
@@ -226,12 +235,14 @@ function FleetBoard({ standing }: { standing: Standing }) {
     { label: 'Working', value: summary.working },
     { label: 'Idle', value: summary.idle },
     { label: 'Holding a task', value: summary.holding },
-    { label: 'Waiting on you', value: summary.waiting, tone: summary.waiting ? 'warning' : undefined },
-    { label: 'Halted', value: summary.halted, tone: summary.halted ? 'danger' : undefined },
-    { label: 'Proposals open', value: summary.proposals },
-    { label: 'Checks running', value: summary.checksRunning },
-    { label: 'Checks failed', value: summary.checksFailed, tone: summary.checksFailed ? 'danger' : undefined },
-    { label: 'Threads unresolved', value: summary.unresolvedThreads, tone: summary.unresolvedThreads ? 'warning' : undefined },
+    ...(summary.waiting ? [{ label: 'Waiting on you', value: summary.waiting, tone: 'warning' as const }] : []),
+    ...(summary.halted ? [{ label: 'Halted', value: summary.halted, tone: 'danger' as const }] : []),
+    ...(summary.proposals ? [{ label: 'Proposals open', value: summary.proposals }] : []),
+    ...(summary.checksRunning ? [{ label: 'Checks running', value: summary.checksRunning }] : []),
+    ...(summary.checksFailed ? [{ label: 'Checks failed', value: summary.checksFailed, tone: 'danger' as const }] : []),
+    ...(summary.unresolvedThreads
+      ? [{ label: 'Threads unresolved', value: summary.unresolvedThreads, tone: 'warning' as const }]
+      : []),
   ];
 
   return (
@@ -840,12 +851,13 @@ const styles = StyleSheet.create({
   subtitle: { color: agentUpTheme.colors.textMuted, fontSize: 12 },
   body: { padding: agentUpTheme.spacing[4], gap: 10, paddingBottom: agentUpTheme.spacing[8] },
   board: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  // A fixed width rather than a share of the row: a tile stretched across a desktop window is a
+  // very large box holding one small number.
   boardTile: {
     ...auBox('card'),
-    flexGrow: 1,
-    flexBasis: '30%',
-    minWidth: 96,
+    width: 150,
     paddingVertical: agentUpTheme.spacing[3],
+    paddingHorizontal: agentUpTheme.spacing[3],
   },
   boardValue: { color: agentUpTheme.colors.textPrimary, fontSize: 22, fontWeight: '700' },
   boardValueWarning: { color: agentUpTheme.colors.textWarning },

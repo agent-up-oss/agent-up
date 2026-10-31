@@ -42,6 +42,12 @@ public sealed class BridgeViewModel : ReactiveObject
     /// <summary>The rest of the team: running or idle, and needing nothing from you.</summary>
     public ObservableCollection<StandingRowViewModel> NothingNeeded { get; } = [];
 
+    /// <summary>Of those needing nothing, the ones actually doing something.</summary>
+    public ObservableCollection<StandingRowViewModel> Working { get; } = [];
+
+    /// <summary>Of those needing nothing, the ones with nothing in hand.</summary>
+    public ObservableCollection<StandingRowViewModel> Idle { get; } = [];
+
     /// <summary>One row per task, with everyone on it.</summary>
     public ObservableCollection<TaskRowViewModel> Tasks { get; } = [];
 
@@ -65,6 +71,8 @@ public sealed class BridgeViewModel : ReactiveObject
     public bool HasHalted => Halted.Count > 0;
     public bool HasTeam => Team.Count > 0;
     public bool HasNothingNeeded => NothingNeeded.Count > 0;
+    public bool HasWorking => Working.Count > 0;
+    public bool HasIdle => Idle.Count > 0;
     public bool HasTasks => Tasks.Count > 0;
 
     /// <summary>True once a read finished, so an empty surface can tell apart "nothing" from "not yet".</summary>
@@ -139,6 +147,10 @@ public sealed class BridgeViewModel : ReactiveObject
         Replace(Halted, standings.Where(standing => standing.Kind == TeamStandingKind.Halted));
         Replace(NothingNeeded, standings.Where(standing =>
             standing.Kind is not (TeamStandingKind.WaitingOnYou or TeamStandingKind.Halted)));
+        // Named for what those agents are doing. "Nothing needed" describes the reader's side of
+        // it and files an idle agent under a heading that never says it is idle.
+        Replace(Working, standings.Where(standing => standing.Kind == TeamStandingKind.Working));
+        Replace(Idle, standings.Where(standing => standing.Kind == TeamStandingKind.Idle));
         Tasks.Clear();
         foreach (var task in Queue(standings)) Tasks.Add(task);
         Fleet.Clear();
@@ -146,7 +158,8 @@ public sealed class BridgeViewModel : ReactiveObject
         foreach (var name in new[]
                  {
                      nameof(HasWaiting), nameof(HasHalted), nameof(HasTeam), nameof(HasTasks),
-                     nameof(HasNothingNeeded), nameof(Headline), nameof(HasError)
+                     nameof(HasNothingNeeded), nameof(HasWorking), nameof(HasIdle),
+                     nameof(Headline), nameof(HasError)
                  })
         {
             this.RaisePropertyChanged(name);
@@ -161,24 +174,34 @@ public sealed class BridgeViewModel : ReactiveObject
     {
         var of = (TeamStandingKind kind) => standings.Count(standing => standing.Kind == kind);
 
+        // These four describe the fleet whatever it is doing, so they always show.
         yield return new FleetTileViewModel("Agents", standings.Count);
         yield return new FleetTileViewModel("Working", of(TeamStandingKind.Working));
         yield return new FleetTileViewModel("Idle", of(TeamStandingKind.Idle));
         yield return new FleetTileViewModel("Holding a task", standings.Count(standing => standing.TaskNumber is not null));
-        yield return new FleetTileViewModel("Waiting on you", of(TeamStandingKind.WaitingOnYou), FleetTone.Warning);
-        yield return new FleetTileViewModel("Halted", of(TeamStandingKind.Halted), FleetTone.Danger);
-        yield return new FleetTileViewModel(
-            "Proposals open",
-            standings.Count(standing => standing.Forge.ProposalNumber is not null));
-        yield return new FleetTileViewModel("Checks running", standings.Sum(standing => standing.Forge.ChecksRunning));
-        yield return new FleetTileViewModel(
-            "Checks failed",
-            standings.Sum(standing => standing.Forge.ChecksFailed),
-            FleetTone.Danger);
-        yield return new FleetTileViewModel(
-            "Threads unresolved",
-            standings.Sum(standing => standing.Forge.UnresolvedThreads),
-            FleetTone.Warning);
+
+        // The rest are exceptions. A zero there is the absence of a problem rather than a fact
+        // worth its own tile, so each one appears only once it has something to report.
+        foreach (var tile in new[]
+                 {
+                     new FleetTileViewModel("Waiting on you", of(TeamStandingKind.WaitingOnYou), FleetTone.Warning),
+                     new FleetTileViewModel("Halted", of(TeamStandingKind.Halted), FleetTone.Danger),
+                     new FleetTileViewModel(
+                         "Proposals open",
+                         standings.Count(standing => standing.Forge.ProposalNumber is not null)),
+                     new FleetTileViewModel("Checks running", standings.Sum(standing => standing.Forge.ChecksRunning)),
+                     new FleetTileViewModel(
+                         "Checks failed",
+                         standings.Sum(standing => standing.Forge.ChecksFailed),
+                         FleetTone.Danger),
+                     new FleetTileViewModel(
+                         "Threads unresolved",
+                         standings.Sum(standing => standing.Forge.UnresolvedThreads),
+                         FleetTone.Warning)
+                 })
+        {
+            if (tile.Count != "0") yield return tile;
+        }
     }
 
     /// <summary>

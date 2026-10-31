@@ -421,13 +421,23 @@
                                   ItemTemplate="{StaticResource StandingRowTemplate}"/>
                 </StackPanel>
 
-                <StackPanel Spacing="8" IsVisible="{Binding CommandCenter.Bridge.HasNothingNeeded}">
-                    <TextBlock Text="NOTHING NEEDED"
+                <StackPanel Spacing="8" IsVisible="{Binding CommandCenter.Bridge.HasWorking}">
+                    <TextBlock Text="WORKING"
                                FontSize="10"
                                FontWeight="Bold"
                                Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
                     <ItemsControl x:Name="TeamList"
-                                  ItemsSource="{Binding CommandCenter.Bridge.NothingNeeded}"
+                                  ItemsSource="{Binding CommandCenter.Bridge.Working}"
+                                  ItemTemplate="{StaticResource StandingRowTemplate}"/>
+                </StackPanel>
+
+                <StackPanel Spacing="8" IsVisible="{Binding CommandCenter.Bridge.HasIdle}">
+                    <TextBlock Text="IDLE"
+                               FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                    <ItemsControl x:Name="IdleList"
+                                  ItemsSource="{Binding CommandCenter.Bridge.Idle}"
                                   ItemTemplate="{StaticResource StandingRowTemplate}"/>
                 </StackPanel>
 

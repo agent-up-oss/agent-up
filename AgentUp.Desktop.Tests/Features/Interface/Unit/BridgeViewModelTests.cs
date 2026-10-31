@@ -213,20 +213,66 @@ public sealed class BridgeViewModelTests
     }
 
     [Test]
-    public async Task Fleet_leavesAZeroPlainSoAQuietServerDoesNotReadAsAnAlarm()
+    public async Task Fleet_onAQuietServerShowsWhatItIsAndNotAWallOfZeroes()
     {
         var agents = new StandingAgentFake();
         agents.Sessions["quiet"] = TeamStandingComposition.Session("quiet", state: "idle");
         var bridge = new BridgeViewModel(TeamStandingComposition.Controller(agents, new StandingForgeFake()));
 
         await bridge.ReadAsync(Members("quiet"));
+        var labels = bridge.Fleet.Select(tile => tile.Label).ToArray();
+
+        Assert.Multiple(() =>
+        {
+            // These four describe the fleet whatever it is doing.
+            Assert.That(labels, Is.EqualTo(new[] { "Agents", "Working", "Idle", "Holding a task" }));
+            // Nothing halted and no failing checks is the absence of a problem, not a fact
+            // worth a tile of its own.
+            Assert.That(labels, Has.None.EqualTo("Halted"));
+            Assert.That(labels, Has.None.EqualTo("Checks failed"));
+            Assert.That(bridge.HasHalted, Is.False, "and the group is not drawn either");
+        });
+    }
+
+    [Test]
+    public async Task Fleet_showsAnExceptionTileOnceThereIsSomethingToReport()
+    {
+        var agents = new StandingAgentFake();
+        var forge = new StandingForgeFake();
+        agents.Sessions["docs"] = TeamStandingComposition.Session(
+            "docs",
+            state: "error",
+            loop: TeamStandingComposition.Loop(false, "failed", 51, "Docs anchors", "Failed", stopReason: "forge.unreachable"));
+        var bridge = new BridgeViewModel(TeamStandingComposition.Controller(agents, forge));
+
+        await bridge.ReadAsync(Members("docs"));
         var halted = bridge.Fleet.Single(tile => tile.Label == "Halted");
 
         Assert.Multiple(() =>
         {
-            Assert.That(halted.Count, Is.EqualTo("0"));
-            Assert.That(halted.Colour, Is.EqualTo(AgentUpThemeColors.TextPrimary), "zero halted is good news");
-            Assert.That(bridge.HasHalted, Is.False, "and the group is not drawn at all");
+            Assert.That(halted.Count, Is.EqualTo("1"));
+            Assert.That(halted.Colour, Is.EqualTo(AgentUpThemeColors.TextDanger));
+        });
+    }
+
+    [Test]
+    public async Task Bridge_namesTheIdleGroupForWhatThoseAgentsAreDoing()
+    {
+        var agents = new StandingAgentFake();
+        agents.Sessions["quiet"] = TeamStandingComposition.Session("quiet", state: "idle");
+        agents.Sessions["shop"] = TeamStandingComposition.Session(
+            "shop",
+            loop: TeamStandingComposition.Loop(true, "running", 44, "Restock featured products", "Running"));
+        var bridge = new BridgeViewModel(TeamStandingComposition.Controller(agents, new StandingForgeFake()));
+
+        await bridge.ReadAsync(Members("quiet", "shop"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(bridge.Idle.Single().DisplayName, Is.EqualTo("quiet"));
+            Assert.That(bridge.Working.Single().DisplayName, Is.EqualTo("shop"));
+            Assert.That(bridge.HasIdle, Is.True);
+            Assert.That(bridge.HasWorking, Is.True);
         });
     }
 

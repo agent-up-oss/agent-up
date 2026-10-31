@@ -332,7 +332,25 @@ public sealed class ForgeService(
         var forge = ResolveForge(packages.ListForges(), remote);
         if (forge is null)
             return null;
-        var token = await CredentialAsync(workspaceId, forge, remote, cancellationToken);
+
+        // Reading the credential can go to the host: a GitHub App installation token is minted on
+        // demand. A host that refuses or cannot be reached means this workspace has no usable
+        // credential right now, which is the same answer as having none at all. Letting that throw
+        // here would fail the whole read, because every caller guards only the call that follows -
+        // so a reader asking for issues got a 500 rather than an empty list. What went wrong is
+        // not lost: the hosting read reports it as unreachable, with the reason.
+        string? token;
+        try
+        {
+            token = await CredentialAsync(workspaceId, forge, remote, cancellationToken);
+        }
+        catch (Exception failure) when (failure is HttpRequestException
+                                            or TaskCanceledException
+                                            or InvalidOperationException)
+        {
+            return null;
+        }
+
         if (string.IsNullOrWhiteSpace(token)) return null;
 
         return (forge, new ForgeRequest(token, remote.Owner, remote.Repository, remote.Branch));
