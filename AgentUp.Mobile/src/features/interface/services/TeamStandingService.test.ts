@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { noForge, type TeamStanding } from '../models/TeamStanding';
-import { checksCount, fleet, hasStatusRow, queue, headlineFor, identityHandle, roleLabel, showProposalBesideTask, slotGlyph, stateLabel, taskLabel, threadSummary, triage, whoIs } from './TeamStandingService';
+import { checksCount, fleet, hasStatusRow, queue, headlineFor, identityHandle, roleLabel, showProposalBesideTask, slotGlyph, stateLabel, stateLanes, taskLabel, threadSummary, triage, whoIs } from './TeamStandingService';
 
 function standing(partial: Partial<TeamStanding> = {}): TeamStanding {
   return {
@@ -149,6 +149,30 @@ test('the bridge groups put each agent in exactly one place', () => {
   assert.equal(new Set(drawn).size, drawn.length, 'the bridge must not draw an agent twice');
   assert.deepEqual(drawn.slice().sort(), result.team.map(item => item.workspaceId).slice().sort());
   assert.deepEqual(result.settled.map(item => item.workspaceId), ['busy', 'spare']);
+});
+
+test('the state graph keeps four stable branches and places every agent once', () => {
+  const team = [
+    standing({ workspaceId: 'gate', kind: 'waiting' }),
+    standing({ workspaceId: 'stopped', kind: 'halted' }),
+    standing({ workspaceId: 'busy', kind: 'working' }),
+    standing({ workspaceId: 'spare', kind: 'idle' }),
+  ];
+  const lanes = stateLanes(team);
+  const drawn = lanes.flatMap(lane => lane.members.map(item => item.workspaceId));
+
+  assert.deepEqual(lanes.map(lane => lane.label), ['Waiting', 'Halted', 'Working', 'Idle']);
+  assert.deepEqual(drawn, ['gate', 'stopped', 'busy', 'spare']);
+  assert.equal(new Set(drawn).size, team.length);
+});
+
+test('the state graph keeps empty branches visible on a quiet server', () => {
+  const lanes = stateLanes([standing({ workspaceId: 'spare', kind: 'idle' })]);
+
+  assert.equal(lanes.length, 4);
+  assert.equal(lanes.find(lane => lane.kind === 'idle')?.members.length, 1);
+  assert.equal(lanes.find(lane => lane.kind === 'waiting')?.members.length, 0);
+  assert.equal(lanes.find(lane => lane.kind === 'halted')?.emptyLabel, 'No stopped agents');
 });
 
 test('an empty team settles nobody', () => {

@@ -39,7 +39,7 @@ const screenshotCss = `${css}\n${marketing}\n${screenshotShell}\n`;
  */
 const newUiSource = expandIcons(await readFile(resolve(src, 'new-ui', 'screens.html'), 'utf8'), icons);
 const newUiCss = await readFile(resolve(src, 'new-ui', 'new-ui.css'), 'utf8');
-const newUiScenes = parseNewUi(newUiSource);
+const newUi = parseNewUi(newUiSource);
 const tokens = parseCustomProperties(primitives);
 const required = [
   'color-canvas', 'color-surface', 'color-border-subtle', 'color-text-primary',
@@ -109,8 +109,8 @@ for (const scene of assembled.scenes) {
 // design system embeds the second file so the shared primitives are not applied twice.
 outputs.set('dist/web/new-ui.css', `${primitives.trim()}\n\n${newUiCss.trim()}\n`);
 outputs.set('dist/web/new-ui-embed.css', `${newUiCss.trim()}\n`);
-outputs.set('dist/web/new-ui.json', `${JSON.stringify(newUiManifest(newUiScenes), null, 2)}\n`);
-for (const scene of newUiScenes) {
+outputs.set('dist/web/new-ui.json', `${JSON.stringify(newUiManifest(newUi), null, 2)}\n`);
+for (const scene of newUi.scenes) {
   outputs.set(`dist/web/new-ui/${scene.id}.html`, wrapNewUiScene(scene));
 }
 

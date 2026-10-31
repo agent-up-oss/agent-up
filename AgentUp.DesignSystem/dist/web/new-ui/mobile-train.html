@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mobile · Train — Agent-Up new UI</title>
+  <link rel="stylesheet" href="../new-ui.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
+    .aun-frame { width: 390px; height: 844px; overflow: hidden; display: flex; }
+    .aun-frame > * { flex: 1 1 auto; min-width: 0; }
+  </style>
+</head>
+<body>
+<div class="aun-frame">
+<div class="aun-phone">
+    <header class="aun-phone__head">
+      <div class="aun-phone__head-row">
+        <button type="button" class="aun-iconbtn" aria-label="Open menu">&#9776;</button>
+        <span class="aun-phone__head-copy"><span class="aun-phone__title">Train</span><span class="aun-phone__subtitle">3 agents &middot; 1 waiting on you &middot; 1 halted</span></span>
+      </div>
+    </header>
+    <div class="aun-phone__body">
+      <div class="aun-head"><h2 class="aun-section__head">REPOSITORIES</h2><button type="button" class="aun-btn">Export</button></div>
+      <div class="aun-train-tiles">
+        <article class="aun-card aun-train-tile"><strong>agent-up/agent-up</strong><span class="aun-glyph--gate">4 waiting</span><span class="aun-muted">12 judged</span></article>
+        <article class="aun-card aun-train-tile"><strong>agent-up/docs</strong><span class="aun-glyph--gate">2 waiting</span><span class="aun-muted">7 judged</span></article>
+      </div>
+    </div>
+    <nav class="aun-tabbar" aria-label="Sections">
+      <a class="aun-tabbar__item" href="#bridge"><span class="aun-tabbar__icon">&#9632;</span>Bridge</a>
+      <a class="aun-tabbar__item" href="#train" aria-current="page"><span class="aun-tabbar__icon">&#9651;</span>Train</a>
+      <a class="aun-tabbar__item" href="#tasks"><span class="aun-tabbar__icon">&#9644;</span>Tasks</a>
+      <a class="aun-tabbar__item" href="#team"><span class="aun-tabbar__icon">&#9679;</span>Team</a>
+    </nav>
+  </div>
+</div>
+</body>
+</html>

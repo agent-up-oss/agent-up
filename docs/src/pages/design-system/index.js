@@ -72,6 +72,7 @@ const playgroundColumns = [
     { id: 'badge' },
     { id: 'workspace' },
     { id: 'app-tab' },
+    { id: 'git-log-ref' },
     { id: 'git-log-row', props: 'time-0=02.10.26 14:33; time-1=02.10.26 11:04; time-2=01.10.26 19:41; time-3=01.10.26 08:12; time-4=30.09.26 16:20; time-5=22.09.26 09:18; time-6=22.09.26 07:30' },
     { id: 'validation-sidebar' },
     { id: 'git-log-detail', props: 'subject=feat(storefront): add the weekly promo banner; author=Demo' },
@@ -243,7 +244,7 @@ function ScenePreview({ scene, label }) {
  * One New UI scene, scaled into the showcase the same way an assembled screen is.
  *
  * The New UI space is a second arrangement of the same tokens. It is rendered from its own
- * manifest and its own `aun-` stylesheet, so nothing here can alter how the current UI above
+ * manifest and its own `aun-` stylesheet, so nothing here can alter how the old UI above
  * is defined or drawn.
  */
 function NewUiPreview({ scene }) {
@@ -279,40 +280,44 @@ function NewUiPreview({ scene }) {
   </figure>;
 }
 
-/** The New UI space: its own scene list, shown in place of the assembled current-UI screens. */
-function NewUiSpace({ scenes, activeId, onSelect }) {
-  const scene = scenes.find(item => item.id === activeId) ?? scenes[0];
+/** The New UI space: one chip per screen, with that screen's desktop and mobile scenes side by side. */
+function NewUiSpace({ screens, scenes, activeId, onSelect }) {
+  const screen = screens.find(item => item.id === activeId) ?? screens[0];
+  const desktop = screen.desktopId ? scenes[screen.desktopId] : null;
+  const mobile = screen.mobileId ? scenes[screen.mobileId] : null;
   return <div className={styles.screenNav}>
     <nav aria-label="New UI screens">
       <div className={styles.screenChipRow} role="tablist" aria-orientation="horizontal">
-        {scenes.map(item => (
+        {screens.map(item => (
           <button
             key={item.id}
             id={`new-ui-tab-${item.id}`}
             type="button"
-            className={`au-chip${item.id === scene.id ? ' au-chip--selected' : ''} ${styles.screenChip}`}
+            className={`au-chip${item.id === screen.id ? ' au-chip--selected' : ''} ${styles.screenChip}`}
             role="tab"
-            aria-selected={item.id === scene.id}
+            aria-selected={item.id === screen.id}
             aria-controls={`new-ui-panel-${item.id}`}
             onClick={() => onSelect(item.id)}
-            dangerouslySetInnerHTML={{ __html: item.title }}
-          />
+          >
+            {item.title}
+          </button>
         ))}
       </div>
     </nav>
     <section
-      id={`new-ui-panel-${scene.id}`}
+      id={`new-ui-panel-${screen.id}`}
       className={styles.screenPanel}
       role="tabpanel"
-      aria-labelledby={`new-ui-tab-${scene.id}`}
+      aria-labelledby={`new-ui-tab-${screen.id}`}
     >
       <div className={styles.screenCopy}>
-        <h3 className="au-page-title" dangerouslySetInnerHTML={{ __html: scene.title }} />
-        <p className="au-muted">{scene.intro}</p>
+        <h3 className="au-page-title">{screen.title}</h3>
+        <p className="au-muted">{screen.intro}</p>
       </div>
       <div className="au-screenshot-stage">
         <div className="au-screenshot-pair">
-          <NewUiPreview scene={scene} />
+          {desktop ? <NewUiPreview scene={desktop} /> : null}
+          {mobile ? <NewUiPreview scene={mobile} /> : null}
         </div>
       </div>
     </section>
@@ -330,9 +335,13 @@ export default function DesignSystemPage() {
   );
   const [active, setActive] = useState(ids[0]);
   const [activeScreen, setActiveScreen] = useState(screenIds.includes('applications') ? 'applications' : screenIds[0]);
-  const newUiScenes = newUi.scenes;
-  const [space, setSpace] = useState('current');
-  const [activeNewUi, setActiveNewUi] = useState(newUiScenes[0].id);
+  const newUiScreens = newUi.screens;
+  const newUiScenes = useMemo(
+    () => Object.fromEntries(newUi.scenes.map(scene => [scene.id, scene])),
+    [],
+  );
+  const [space, setSpace] = useState('old');
+  const [activeNewUi, setActiveNewUi] = useState(newUiScreens[0].id);
 
   useEffect(() => {
     const sync = () => {
@@ -394,13 +403,13 @@ export default function DesignSystemPage() {
                 <button
                   type="button"
                   role="tab"
-                  id="space-tab-current"
-                  aria-controls="space-panel-current"
-                  aria-selected={space === 'current'}
-                  className={`au-chip${space === 'current' ? ' au-chip--selected' : ''}`}
-                  onClick={() => setSpace('current')}
+                  id="space-tab-old"
+                  aria-controls="space-panel-old"
+                  aria-selected={space === 'old'}
+                  className={`au-chip${space === 'old' ? ' au-chip--selected' : ''}`}
+                  onClick={() => setSpace('old')}
                 >
-                  Current UI
+                  Old UI
                 </button>
                 <button
                   type="button"
@@ -423,16 +432,17 @@ export default function DesignSystemPage() {
               hidden={space !== 'new'}
             >
               <NewUiSpace
+                screens={newUiScreens}
                 scenes={newUiScenes}
                 activeId={activeNewUi}
                 onSelect={setActiveNewUi}
               />
             </div>
             <div
-              id="space-panel-current"
+              id="space-panel-old"
               role="tabpanel"
-              aria-labelledby="space-tab-current"
-              hidden={space !== 'current'}
+              aria-labelledby="space-tab-old"
+              hidden={space !== 'old'}
             >
               <div className={styles.screenNav}>
                 <nav aria-label="Assembled screens">

@@ -41,7 +41,9 @@ import {
   roleLabel,
   showProposalBesideTask,
   slotGlyph,
+  stateLanes,
   stateLabel,
+  taskLabel as standingTaskLabel,
   threadSummary,
   whoIs,
   type TeamTriage,
@@ -141,7 +143,7 @@ export function CommandCenterShell() {
       </View>
 
       <ScrollView contentContainerStyle={styles.body} scrollEnabled={!dragging}>
-        {surface === 'bridge' ? <Bridge standing={standing} /> : null}
+        {surface === 'bridge' ? <Bridge standing={standing} onOpen={setOpenAgent} /> : null}
         {surface === 'train' ? <TrainScreen training={training} server={activeServer} onExport={exportDecisions} /> : null}
         {surface === 'tasks' ? <Tasks standing={standing} tasks={tasks} onDragging={setDragging} /> : null}
         {surface === 'team' ? <Team standing={standing} onOpen={setOpenAgent} /> : null}
@@ -191,83 +193,101 @@ function titleFor(surface: Surface): string {
 }
 
 /**
- * The board for the whole Server.
- *
- * A group nobody is in is not drawn: a heading reading zero above a line saying nothing is there
- * costs a screen of attention to report an absence. What fills the space instead is the fleet
- * itself, counted across every workspace, which is worth reading whether or not anything is wrong.
+ * The graph for the whole Server. Every agent appears once on a stable state branch; tapping a
+ * node opens that agent's workspace.
  */
-function Bridge({ standing }: { standing: Standing }) {
+function Bridge({ standing, onOpen }: { standing: Standing; onOpen: (workspaceId: string) => void }) {
   if (standing.error) return <Empty title="Could not reach the Server" note={standing.error} action="Retry" onPress={standing.refresh} />;
   if (!standing.read && standing.loading) return <Empty title="Loading" />;
   if (!standing.team.length) return <Empty title="No agents yet" />;
 
-  // Named for what the agents in them are doing. "Nothing needed" described the reader's side of
-  // it and left an idle agent filed under a heading that never says it is idle.
-  const groups = [
-    { title: 'WAITING ON YOU', tone: 'warning' as const, members: standing.waiting },
-    { title: 'HALTED', tone: 'danger' as const, members: standing.halted },
-    { title: 'WORKING', tone: 'muted' as const, members: standing.working },
-    { title: 'IDLE', tone: 'muted' as const, members: standing.idle },
-  ].filter(group => group.members.length > 0);
-
-  return (
-    <>
-      <FleetBoard standing={standing} />
-      {groups.map(group => (
-        <View key={group.title}>
-          <Section title={`${group.title} · ${group.members.length}`} tone={group.tone} />
-          {group.members.map(item => <StandingCard key={item.workspaceId} standing={item} />)}
-        </View>
-      ))}
-    </>
-  );
+  return <AgentStateGraph standing={standing} onOpen={onOpen} />;
 }
 
 /**
- * Every workspace on the Server as numbers.
- *
- * Four counts always show, because they describe the fleet whatever it is doing. The rest are
- * exceptions - work waiting, work stopped, checks failing - and a zero there is the absence of a
- * problem rather than a fact worth a tile, so they appear only once there is something to report.
+ * The Desktop graph becomes a connected vertical rail on a phone. It preserves the same root and
+ * four branches without shrinking agent nodes below a comfortable touch target.
  */
-function FleetBoard({ standing }: { standing: Standing }) {
+function AgentStateGraph({ standing, onOpen }: { standing: Standing; onOpen: (workspaceId: string) => void }) {
   const summary = fleet(standing.team);
-  const tiles: { label: string; value: number; tone?: 'warning' | 'danger' }[] = [
-    { label: 'Agents', value: summary.agents },
-    { label: 'Working', value: summary.working },
-    { label: 'Idle', value: summary.idle },
-    { label: 'Holding a task', value: summary.holding },
-    ...(summary.waiting ? [{ label: 'Waiting on you', value: summary.waiting, tone: 'warning' as const }] : []),
-    ...(summary.halted ? [{ label: 'Halted', value: summary.halted, tone: 'danger' as const }] : []),
-    ...(summary.proposals ? [{ label: 'Proposals open', value: summary.proposals }] : []),
-    ...(summary.checksRunning ? [{ label: 'Checks running', value: summary.checksRunning }] : []),
-    ...(summary.checksFailed ? [{ label: 'Checks failed', value: summary.checksFailed, tone: 'danger' as const }] : []),
-    ...(summary.unresolvedThreads
-      ? [{ label: 'Threads unresolved', value: summary.unresolvedThreads, tone: 'warning' as const }]
-      : []),
-  ];
+  const lanes = stateLanes(standing.team);
+  const attention = summary.waiting + summary.halted;
 
   return (
-    <>
-      <Section title="ACROSS THE SERVER" tone="muted" />
-      <View style={styles.board}>
-        {tiles.map(tile => (
-          <View key={tile.label} style={styles.boardTile}>
-            <Text
-              style={[
-                styles.boardValue,
-                tile.tone === 'warning' && styles.boardValueWarning,
-                tile.tone === 'danger' && styles.boardValueDanger,
-              ]}
-            >
-              {tile.value}
-            </Text>
-            <Text style={styles.boardLabel} numberOfLines={2}>{tile.label}</Text>
+    <View style={styles.stateMap}>
+      <View style={styles.stateMapHead}>
+        <View>
+          <Text style={styles.stateMapKicker}>AGENT STATE MAP</Text>
+          <Text style={styles.stateMapDek}>Live fleet topology</Text>
+        </View>
+        <View style={styles.liveBadge}><Text style={styles.liveBadgeText}>LIVE</Text></View>
+      </View>
+
+      <View style={styles.fleetRoot}>
+        <View>
+          <Text style={styles.fleetRootCount}>{summary.agents}</Text>
+          <Text style={styles.fleetRootCountLabel}>{summary.agents === 1 ? 'AGENT' : 'AGENTS'}</Text>
+        </View>
+        <View style={styles.fleetRootBody}>
+          <Text style={styles.fleetRootTitle}>SERVER FLEET</Text>
+          <Text style={styles.fleetRootMeta}>
+            {summary.working} active · {summary.idle} ready · {attention} need attention
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.stateMapLead}>
+        <View style={styles.stateMapLeadStem} />
+        <View style={styles.stateMapLeadCrossbar} />
+        <View style={styles.stateMapLeadDrop} />
+      </View>
+
+      <View style={styles.stateRail}>
+        <View style={styles.stateRailLine} />
+        {lanes.map(lane => (
+          <View key={lane.kind} style={styles.stateLane}>
+            <View style={[styles.stateLaneJoint, kindFill(lane.kind)]} />
+            <View style={styles.stateLaneLink} />
+            <View style={styles.stateBranch}>
+              <View style={styles.stateBranchHead}>
+                <Text style={[styles.stateBranchGlyph, kindTone(lane.kind)]}>{lane.glyph}</Text>
+                <View style={styles.stateBranchHeadBody}>
+                  <Text style={styles.stateBranchTitle}>{lane.label}</Text>
+                  <Text style={styles.stateBranchMeta}>{lane.description}</Text>
+                </View>
+                <View style={styles.stateBranchCount}>
+                  <Text style={[styles.stateBranchCountText, kindTone(lane.kind)]}>{lane.members.length}</Text>
+                </View>
+              </View>
+
+              {lane.members.map(agent => (
+                <Pressable
+                  key={agent.workspaceId}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${agent.displayName}`}
+                  style={styles.stateAgent}
+                  onPress={() => onOpen(agent.workspaceId)}
+                >
+                  <View style={styles.stateAgentAvatar}>
+                    <Text style={styles.stateAgentInitial}>{agent.displayName.trim().charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <View style={styles.stateAgentBody}>
+                    <Text style={styles.stateAgentName} numberOfLines={1}>{agent.displayName}</Text>
+                    <Text style={styles.stateAgentTask} numberOfLines={1}>{standingTaskLabel(agent) ?? 'No task in hand'}</Text>
+                    {agent.reason ? (
+                      <Text style={[styles.stateAgentReason, kindTone(agent.kind)]} numberOfLines={2}>{agent.reason}</Text>
+                    ) : null}
+                  </View>
+                  <Text style={styles.stateAgentArrow}>›</Text>
+                </Pressable>
+              ))}
+
+              {lane.members.length === 0 ? <Text style={styles.stateBranchEmpty}>{lane.emptyLabel}</Text> : null}
+            </View>
           </View>
         ))}
       </View>
-    </>
+    </View>
   );
 }
 
@@ -764,6 +784,13 @@ function kindTone(kind: TeamStanding['kind']) {
   return undefined;
 }
 
+function kindFill(kind: TeamStanding['kind']) {
+  if (kind === 'halted') return styles.fillDanger;
+  if (kind === 'waiting') return styles.fillWarning;
+  if (kind === 'working') return styles.fillLive;
+  return styles.fillIdle;
+}
+
 function Settings({ onSignOut, serverLabel }: { onSignOut: () => void; serverLabel: string }) {
   return (
     <>
@@ -952,19 +979,118 @@ const styles = StyleSheet.create({
   buttonSecondaryText: { color: agentUpTheme.colors.textPrimary, fontSize: 14, fontWeight: '600' },
   buttonOff: auBox('buttonDisabled'),
   ok: { color: agentUpTheme.colors.accentBright },
-  board: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  // A fixed width rather than a share of the row: a tile stretched across a desktop window is a
-  // very large box holding one small number.
-  boardTile: {
+  stateMap: {
     ...auBox('card'),
-    width: 150,
-    paddingVertical: agentUpTheme.spacing[3],
-    paddingHorizontal: agentUpTheme.spacing[3],
+    padding: agentUpTheme.spacing[4],
   },
-  boardValue: { color: agentUpTheme.colors.textPrimary, fontSize: 22, fontWeight: '700' },
-  boardValueWarning: { color: agentUpTheme.colors.textWarning },
-  boardValueDanger: { color: agentUpTheme.colors.textDanger },
-  boardLabel: { color: agentUpTheme.colors.textMuted, fontSize: 11, marginTop: 2 },
+  stateMapHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
+  stateMapKicker: { color: agentUpTheme.colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1 },
+  stateMapDek: { color: agentUpTheme.colors.textFaint, fontSize: 12, marginTop: 2 },
+  liveBadge: {
+    borderWidth: 1,
+    borderColor: agentUpTheme.colors.accentLine,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  liveBadgeText: { color: agentUpTheme.colors.accentBright, fontSize: 10, fontWeight: '700' },
+  fleetRoot: {
+    ...auBox('card'),
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    width: '88%',
+    gap: 12,
+    marginTop: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderWidth: 1,
+    borderColor: agentUpTheme.colors.accentLine,
+    borderRadius: 12,
+  },
+  fleetRootCount: { color: agentUpTheme.colors.textPrimary, fontSize: 26, lineHeight: 27, fontWeight: '700' },
+  fleetRootCountLabel: { color: agentUpTheme.colors.textFaint, fontSize: 9, fontWeight: '700' },
+  fleetRootBody: { flex: 1, minWidth: 0, gap: 2 },
+  fleetRootTitle: { color: agentUpTheme.colors.textSecondary, fontSize: 11, fontWeight: '600' },
+  fleetRootMeta: { color: agentUpTheme.colors.textMuted, fontSize: 10, lineHeight: 15 },
+  stateMapLead: { height: 24, position: 'relative' },
+  stateMapLeadStem: {
+    position: 'absolute', top: 0, left: '50%', width: 1, height: 12, backgroundColor: agentUpTheme.colors.borderStrong,
+  },
+  stateMapLeadCrossbar: {
+    position: 'absolute', top: 11, left: 7, right: '50%', height: 1, backgroundColor: agentUpTheme.colors.borderStrong,
+  },
+  stateMapLeadDrop: {
+    position: 'absolute', top: 11, bottom: 0, left: 7, width: 1, backgroundColor: agentUpTheme.colors.borderStrong,
+  },
+  stateRail: { position: 'relative', gap: 9 },
+  stateRailLine: {
+    position: 'absolute', top: 0, bottom: 28, left: 7, width: 1, backgroundColor: agentUpTheme.colors.borderStrong,
+  },
+  stateLane: { position: 'relative', flexDirection: 'row', alignItems: 'flex-start' },
+  stateLaneJoint: { width: 9, height: 9, borderRadius: 5, marginLeft: 3, marginTop: 21 },
+  stateLaneLink: { width: 12, height: 1, marginTop: 25, backgroundColor: agentUpTheme.colors.borderStrong },
+  stateBranch: {
+    flex: 1,
+    minWidth: 0,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: agentUpTheme.colors.borderSubtle,
+    borderRadius: 10,
+    backgroundColor: agentUpTheme.colors.canvas,
+    gap: 9,
+  },
+  stateBranchHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  stateBranchGlyph: { width: 12, fontSize: 12 },
+  stateBranchHeadBody: { flex: 1, minWidth: 0 },
+  stateBranchTitle: { color: agentUpTheme.colors.textPrimary, fontSize: 14, fontWeight: '600' },
+  stateBranchMeta: { color: agentUpTheme.colors.textFaint, fontSize: 10, marginTop: 1 },
+  stateBranchCount: {
+    ...auBox('card'),
+    width: 25,
+    height: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 13,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderWidth: 0,
+  },
+  stateBranchCountText: { fontSize: 12, fontWeight: '700' },
+  stateAgent: {
+    ...auBox('card'),
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: agentUpTheme.colors.borderSubtle,
+    borderRadius: 8,
+  },
+  stateAgentAvatar: {
+    ...auBox('card'),
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderWidth: 0,
+  },
+  stateAgentInitial: { color: agentUpTheme.colors.textSecondary, fontSize: 10, fontWeight: '700' },
+  stateAgentBody: { flex: 1, minWidth: 0 },
+  stateAgentName: { color: agentUpTheme.colors.textPrimary, fontSize: 12, fontWeight: '600' },
+  stateAgentTask: { color: agentUpTheme.colors.textMuted, fontSize: 10, marginTop: 1 },
+  stateAgentReason: { fontSize: 10, lineHeight: 14, marginTop: 3 },
+  stateAgentArrow: { color: agentUpTheme.colors.textFaint, fontSize: 16 },
+  stateBranchEmpty: { color: agentUpTheme.colors.textFaint, fontSize: 11, marginVertical: 5, marginLeft: 20 },
+  fillDanger: { backgroundColor: agentUpTheme.colors.statusDanger },
+  fillWarning: { backgroundColor: agentUpTheme.colors.statusWarning },
+  fillLive: { backgroundColor: agentUpTheme.colors.accentBright },
+  fillIdle: { backgroundColor: agentUpTheme.colors.borderStrong },
   section: { color: agentUpTheme.colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginTop: 6 },
   sectionDanger: { color: agentUpTheme.colors.textDanger },
   sectionWarning: { color: agentUpTheme.colors.textWarning },

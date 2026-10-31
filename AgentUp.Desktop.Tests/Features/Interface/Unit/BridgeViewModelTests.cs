@@ -187,7 +187,7 @@ public sealed class BridgeViewModelTests
     }
 
     [Test]
-    public async Task Fleet_countsEveryWorkspaceOnTheServerRatherThanOneOfThem()
+    public async Task StateGraph_placesEveryWorkspaceOnExactlyOneBranch()
     {
         var agents = new StandingAgentFake();
         var forge = new StandingForgeFake();
@@ -205,37 +205,38 @@ public sealed class BridgeViewModelTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(Tile(bridge, "Agents"), Is.EqualTo("3"));
-            Assert.That(Tile(bridge, "Working"), Is.EqualTo("1"));
-            Assert.That(Tile(bridge, "Halted"), Is.EqualTo("1"));
-            Assert.That(Tile(bridge, "Holding a task"), Is.EqualTo("2"));
+            Assert.That(bridge.FleetCount, Is.EqualTo("3"));
+            Assert.That(Lane(bridge, "Working").Count, Is.EqualTo(1));
+            Assert.That(Lane(bridge, "Halted").Count, Is.EqualTo(1));
+            Assert.That(Lane(bridge, "Idle").Count, Is.EqualTo(1));
+            Assert.That(bridge.StateLanes.SelectMany(lane => lane.Agents).Select(agent => agent.WorkspaceId),
+                Is.EquivalentTo(new[] { "shop", "docs", "quiet" }));
         });
     }
 
     [Test]
-    public async Task Fleet_onAQuietServerShowsWhatItIsAndNotAWallOfZeroes()
+    public async Task StateGraph_keepsAllFourBranchesVisibleOnAQuietServer()
     {
         var agents = new StandingAgentFake();
         agents.Sessions["quiet"] = TeamStandingComposition.Session("quiet", state: "idle");
         var bridge = new BridgeViewModel(TeamStandingComposition.Controller(agents, new StandingForgeFake()));
 
         await bridge.ReadAsync(Members("quiet"));
-        var labels = bridge.Fleet.Select(tile => tile.Label).ToArray();
+        var labels = bridge.StateLanes.Select(lane => lane.Label).ToArray();
 
         Assert.Multiple(() =>
         {
-            // These four describe the fleet whatever it is doing.
-            Assert.That(labels, Is.EqualTo(new[] { "Agents", "Working", "Idle", "Holding a task" }));
-            // Nothing halted and no failing checks is the absence of a problem, not a fact
-            // worth a tile of its own.
-            Assert.That(labels, Has.None.EqualTo("Halted"));
-            Assert.That(labels, Has.None.EqualTo("Checks failed"));
-            Assert.That(bridge.HasHalted, Is.False, "and the group is not drawn either");
+            Assert.That(labels, Is.EqualTo(new[] { "Waiting", "Halted", "Working", "Idle" }));
+            Assert.That(Lane(bridge, "Idle").Count, Is.EqualTo(1));
+            Assert.That(Lane(bridge, "Waiting").IsEmpty, Is.True);
+            Assert.That(Lane(bridge, "Halted").IsEmpty, Is.True);
+            Assert.That(Lane(bridge, "Working").IsEmpty, Is.True);
+            Assert.That(bridge.FleetActivity, Is.EqualTo("0 active · 1 ready · 0 need attention"));
         });
     }
 
     [Test]
-    public async Task Fleet_showsAnExceptionTileOnceThereIsSomethingToReport()
+    public async Task StateGraph_givesAttentionBranchesTheirAlertTone()
     {
         var agents = new StandingAgentFake();
         var forge = new StandingForgeFake();
@@ -246,12 +247,13 @@ public sealed class BridgeViewModelTests
         var bridge = new BridgeViewModel(TeamStandingComposition.Controller(agents, forge));
 
         await bridge.ReadAsync(Members("docs"));
-        var halted = bridge.Fleet.Single(tile => tile.Label == "Halted");
+        var halted = Lane(bridge, "Halted");
 
         Assert.Multiple(() =>
         {
-            Assert.That(halted.Count, Is.EqualTo("1"));
-            Assert.That(halted.Colour, Is.EqualTo(AgentUpThemeColors.TextDanger));
+            Assert.That(halted.Count, Is.EqualTo(1));
+            Assert.That(halted.Colour, Is.EqualTo(AgentUpThemeColors.StatusDanger));
+            Assert.That(halted.Agents.Single().WorkspaceId, Is.EqualTo("docs"));
         });
     }
 
@@ -276,8 +278,8 @@ public sealed class BridgeViewModelTests
         });
     }
 
-    private static string Tile(BridgeViewModel bridge, string label)
-        => bridge.Fleet.Single(tile => tile.Label == label).Count;
+    private static AgentStateLaneViewModel Lane(BridgeViewModel bridge, string label)
+        => bridge.StateLanes.Single(lane => lane.Label == label);
 
     private static TeamMember[] Members(params string[] ids)
         => ids.Select(id => new TeamMember(id, id, "main", "Running")).ToArray();

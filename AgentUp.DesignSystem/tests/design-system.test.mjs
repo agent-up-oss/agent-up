@@ -16,7 +16,7 @@ import {
   varName,
 } from '../scripts/lib/css.mjs';
 import { emitNative } from '../scripts/lib/native.mjs';
-import { parseNewUi, wrapNewUiScene } from '../scripts/lib/new-ui.mjs';
+import { newUiManifest, parseNewUi, wrapNewUiScene } from '../scripts/lib/new-ui.mjs';
 import { applyProps } from '../scripts/lib/slots.mjs';
 
 const root = new URL('..', import.meta.url);
@@ -646,31 +646,42 @@ function scene(attributes, body = '<p>body</p>') {
   return `<section ${attributes}>${body}</section>`;
 }
 
+function chipFor(attributes) {
+  const id = attributes.match(/data-aun-scene="([^"]*)"/)?.[1] ?? 'screen';
+  const surface = attributes.match(/data-aun-surface="([^"]*)"/)?.[1] === 'mobile' ? 'mobile' : 'desktop';
+  const slot = surface === 'mobile' ? 'data-aun-mobile' : 'data-aun-desktop';
+  return `<section data-aun-screen="${id}" data-aun-title="Screen" ${slot}="${id}"></section>`;
+}
+
 test('a New UI scene is read from its attributes', () => {
-  const scenes = parseNewUi(scene(
-    'data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop" data-aun-intro="Triage"'));
+  const attributes = 'data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop" data-aun-intro="Triage"';
+  const parsed = parseNewUi(`${chipFor(attributes)}\n${scene(attributes)}`);
+  const scenes = parsed.scenes;
   assert.equal(scenes.length, 1);
   assert.equal(scenes[0].id, 'bridge');
   assert.equal(scenes[0].title, 'Bridge');
   assert.equal(scenes[0].surface, 'desktop');
   assert.equal(scenes[0].intro, 'Triage');
   assert.equal(scenes[0].html, '<p>body</p>');
+  assert.equal(parsed.screens[0].intro, 'Triage');
 });
 
 test('a section that is not a scene is skipped rather than parsed as one', () => {
+  const attributes = 'data-aun-scene="tasks" data-aun-title="Tasks" data-aun-surface="mobile" data-aun-intro="Queue"';
   const html = [
     '<section class="decoration">ignored</section>',
-    scene('data-aun-scene="tasks" data-aun-title="Tasks" data-aun-surface="mobile"'),
+    chipFor(attributes),
+    scene(attributes),
   ].join('\n');
-  const scenes = parseNewUi(html);
-  assert.deepEqual(scenes.map(item => item.id), ['tasks']);
+  const parsed = parseNewUi(html);
+  assert.deepEqual(parsed.scenes.map(item => item.id), ['tasks']);
+  assert.deepEqual(parsed.screens.map(item => item.id), ['tasks']);
 });
 
 test('a scene keeps its own nested sections rather than ending at the first one', () => {
-  const scenes = parseNewUi(scene(
-    'data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop"',
-    '<section>inner</section><p>after</p>'));
-  assert.match(scenes[0].html, /<p>after<\/p>$/, 'the scene must not be truncated at the inner close');
+  const attributes = 'data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop" data-aun-intro="Triage"';
+  const parsed = parseNewUi(`${chipFor(attributes)}\n${scene(attributes, '<section>inner</section><p>after</p>')}`);
+  assert.match(parsed.scenes[0].html, /<p>after<\/p>$/, 'the scene must not be truncated at the inner close');
 });
 
 test('a scene must name itself, say which surface it is, and carry a title', () => {
@@ -705,6 +716,81 @@ test('a scene title carries no markup into the page, however it is nested', () =
   // nothing in a title can open an element whatever the strip leaves behind.
   assert.match(nested, /<title>Brspan&gt;idge — Agent-Up new UI<\/title>/);
   assert.ok(!nested.includes('<span>'), 'no tag may survive the strip');
+});
+
+test('a screen pairs its desktop and mobile scenes under one chip', () => {
+  const desktop = scene('data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop" data-aun-intro="Desk"');
+  const mobile = scene('data-aun-scene="mobile-bridge" data-aun-title="Mobile · Bridge" data-aun-surface="mobile" data-aun-intro="Phone"');
+  const row = '<section data-aun-screen="bridge" data-aun-title="Bridge" data-aun-desktop="bridge" data-aun-mobile="mobile-bridge"></section>';
+  const parsed = parseNewUi(`${row}\n${desktop}\n${mobile}`);
+  assert.equal(parsed.screens.length, 1);
+  assert.equal(parsed.screens[0].desktopId, 'bridge');
+  assert.equal(parsed.screens[0].mobileId, 'mobile-bridge');
+  assert.equal(parsed.screens[0].intro, 'Desk');
+  const manifest = newUiManifest(parsed);
+  assert.equal(manifest.screens[0].title, 'Bridge');
+  assert.equal(manifest.scenes.length, 2);
+});
+
+test('a screen intro is kept when the row writes one', () => {
+  const desktop = scene('data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop" data-aun-intro="Desk"');
+  const row = '<section data-aun-screen="bridge" data-aun-title="Bridge" data-aun-intro="Both" data-aun-desktop="bridge"></section>';
+  const parsed = parseNewUi(`${row}\n${desktop}`);
+  assert.equal(parsed.screens[0].intro, 'Both');
+  assert.equal(parsed.screens[0].mobileId, '');
+});
+
+test('a scene left off every screen is refused', () => {
+  const desktop = scene('data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop" data-aun-intro="Desk"');
+  const mobile = scene('data-aun-scene="mobile-bridge" data-aun-title="Bridge" data-aun-surface="mobile" data-aun-intro="Phone"');
+  const row = '<section data-aun-screen="bridge" data-aun-title="Bridge" data-aun-desktop="bridge"></section>';
+  assert.throws(() => parseNewUi(`${row}\n${desktop}\n${mobile}`), /mobile-bridge" is not on a screen/);
+});
+
+test('a screen must name a real scene of the surface it claims', () => {
+  const desktop = scene('data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop" data-aun-intro="Desk"');
+  assert.throws(
+    () => parseNewUi(`<section data-aun-screen="bridge" data-aun-title="Bridge" data-aun-desktop="missing"></section>\n${desktop}`),
+    /unknown scene "missing"/,
+  );
+  assert.throws(
+    () => parseNewUi(`<section data-aun-screen="bridge" data-aun-title="Bridge" data-aun-mobile="bridge"></section>\n${desktop}`),
+    /names "bridge" as mobile, but that scene is desktop/,
+  );
+  assert.throws(
+    () => parseNewUi(`<section data-aun-screen="bridge" data-aun-title="Bridge"></section>\n${desktop}`),
+    /neither a desktop nor a mobile/,
+  );
+  const first = '<section data-aun-screen="bridge" data-aun-title="Bridge" data-aun-desktop="bridge"></section>';
+  const second = '<section data-aun-screen="other" data-aun-title="Other" data-aun-desktop="bridge"></section>';
+  assert.throws(
+    () => parseNewUi(`${first}\n${second}\n${desktop}`),
+    /already on screen "bridge"/,
+  );
+});
+
+test('new UI screens pair desktop and mobile instead of a chip per surface', async () => {
+  const html = await readFile(new URL('../src/new-ui/screens.html', import.meta.url), 'utf8');
+  const { screens, scenes } = parseNewUi(html);
+  assert.deepEqual(screens.map(item => item.id), [
+    'bridge', 'train', 'tasks', 'team', 'agent-overview', 'agent-chat',
+    'agent-git', 'application', 'settings', 'menu',
+  ]);
+  assert.deepEqual(screens.map(item => item.title), [
+    'Bridge', 'Train', 'Tasks', 'Team', 'Agent · Overview', 'Agent · Chat',
+    'Agent · Git', 'Application', 'Settings', 'Menu',
+  ]);
+  const bridge = screens.find(item => item.id === 'bridge');
+  assert.equal(bridge.desktopId, 'bridge');
+  assert.equal(bridge.mobileId, 'mobile-bridge');
+  const train = screens.find(item => item.id === 'train');
+  assert.equal(train.desktopId, '');
+  assert.equal(train.mobileId, 'mobile-train');
+  const application = screens.find(item => item.id === 'application');
+  assert.equal(application.mobileId, '');
+  const named = screens.flatMap(item => [item.desktopId, item.mobileId].filter(Boolean));
+  assert.equal(named.length, scenes.length);
+  assert.ok(screens.every(item => !item.title.startsWith('Mobile')));
 });
 
 test('reading a long tag that is not a scene stays linear', () => {

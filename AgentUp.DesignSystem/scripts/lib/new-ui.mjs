@@ -9,6 +9,10 @@
  * Scenes are authored in `src/new-ui/screens.html` as plain markup. A `<template
  * data-aun-partial>` is inserted wherever a scene writes `<div data-aun-include>`, so the rail
  * and the agent header are written once rather than copied into every screen.
+ *
+ * A screen is the showcase chip. It names the desktop scene and the mobile scene that belong
+ * together, so the two surfaces share one tab and sit side by side. A scene that exists on
+ * only one surface is still one screen. Scene documents stay one file per surface.
  */
 
 export const newUiDesktopSize = { width: 1440, height: 900 };
@@ -37,17 +41,24 @@ export function parseNewUi(html) {
       throw new Error(`New UI scene "${scene.id}" includes a partial that does not exist.`);
     }
   }
-  return scenes;
+  return { screens: bindScreens(collectScreens(html), scenes), scenes };
 }
 
 export function newUiSceneSize(scene) {
   return scene.surface === 'mobile' ? newUiMobileSize : newUiDesktopSize;
 }
 
-export function newUiManifest(scenes) {
+export function newUiManifest({ screens, scenes }) {
   return {
     space: 'new-ui',
     stylesheet: 'new-ui.css',
+    screens: screens.map(screen => ({
+      id: screen.id,
+      title: screen.title,
+      intro: screen.intro,
+      desktopId: screen.desktopId,
+      mobileId: screen.mobileId,
+    })),
     scenes: scenes.map(scene => ({
       id: scene.id,
       title: scene.title,
@@ -115,6 +126,9 @@ function collectScenes(html) {
   while ((match = open.exec(html)) !== null) {
     const attributes = match[1];
     if (!attributes.includes('data-aun-scene=')) continue;
+    if (attributes.includes('data-aun-screen=')) {
+      throw new Error('A New UI section declares both data-aun-screen and data-aun-scene.');
+    }
     const bodyStart = match.index + match[0].length;
     const bodyEnd = findSectionClose(html, bodyStart);
     scenes.push({
@@ -129,6 +143,90 @@ function collectScenes(html) {
   return scenes;
 }
 
+/**
+ * A screen is an empty section that names the scenes sharing one showcase chip. Its body stays
+ * empty so it cannot swallow the scene markup that follows it.
+ */
+function collectScreens(html) {
+  const screens = [];
+  const open = /<section\s+([^>]*)>/g;
+  let match;
+  while ((match = open.exec(html)) !== null) {
+    const attributes = match[1];
+    if (!attributes.includes('data-aun-screen=')) continue;
+    if (attributes.includes('data-aun-scene=')) {
+      throw new Error('A New UI section declares both data-aun-screen and data-aun-scene.');
+    }
+    const bodyStart = match.index + match[0].length;
+    const bodyEnd = findSectionClose(html, bodyStart);
+    const id = attribute(attributes, 'data-aun-screen') || '(unnamed)';
+    if (html.slice(bodyStart, bodyEnd).trim()) {
+      throw new Error(`New UI screen "${id}" must be empty; its scenes are separate sections.`);
+    }
+    screens.push({
+      id: attribute(attributes, 'data-aun-screen'),
+      title: attribute(attributes, 'data-aun-title'),
+      intro: attribute(attributes, 'data-aun-intro'),
+      desktopId: attribute(attributes, 'data-aun-desktop'),
+      mobileId: attribute(attributes, 'data-aun-mobile'),
+    });
+    open.lastIndex = bodyEnd;
+  }
+  return screens;
+}
+
+/**
+ * Every scene belongs to exactly one screen. The chip's intro is the screen's own sentence
+ * when it has one, otherwise the desktop scene's, otherwise the mobile scene's.
+ */
+function bindScreens(screens, scenes) {
+  if (!screens.length) throw new Error('The New UI space has no screens.');
+  const byId = new Map(scenes.map(scene => [scene.id, scene]));
+  const owner = new Map();
+  const seen = new Set();
+  const bound = [];
+  for (const screen of screens) {
+    if (!screen.id) throw new Error('A New UI screen declares data-aun-screen with no id.');
+    if (seen.has(screen.id)) throw new Error(`Duplicate New UI screen id "${screen.id}".`);
+    seen.add(screen.id);
+    if (!screen.title) throw new Error(`New UI screen "${screen.id}" is missing data-aun-title.`);
+    if (!screen.desktopId && !screen.mobileId) {
+      throw new Error(`New UI screen "${screen.id}" names neither a desktop nor a mobile scene.`);
+    }
+    claimScene(screen, screen.desktopId, 'desktop', byId, owner);
+    claimScene(screen, screen.mobileId, 'mobile', byId, owner);
+    const desktop = screen.desktopId ? byId.get(screen.desktopId) : null;
+    const mobile = screen.mobileId ? byId.get(screen.mobileId) : null;
+    const intro = screen.intro || desktop?.intro || mobile?.intro;
+    if (!intro) throw new Error(`New UI screen "${screen.id}" is missing an intro.`);
+    bound.push({
+      id: screen.id,
+      title: screen.title,
+      intro,
+      desktopId: screen.desktopId,
+      mobileId: screen.mobileId,
+    });
+  }
+  for (const scene of scenes) {
+    if (!owner.has(scene.id)) throw new Error(`New UI scene "${scene.id}" is not on a screen.`);
+  }
+  return bound;
+}
+
+function claimScene(screen, sceneId, surface, byId, owner) {
+  if (!sceneId) return;
+  const scene = byId.get(sceneId);
+  if (!scene) throw new Error(`New UI screen "${screen.id}" names unknown scene "${sceneId}".`);
+  if (scene.surface !== surface) {
+    throw new Error(
+      `New UI screen "${screen.id}" names "${sceneId}" as ${surface}, but that scene is ${scene.surface}.`,
+    );
+  }
+  const previous = owner.get(sceneId);
+  if (previous) throw new Error(`New UI scene "${sceneId}" is already on screen "${previous}".`);
+  owner.set(sceneId, screen.id);
+}
+
 function findSectionClose(html, from) {
   const tag = /<(\/?)section\b/gi;
   tag.lastIndex = from;
@@ -138,7 +236,7 @@ function findSectionClose(html, from) {
     depth += match[1] ? -1 : 1;
     if (depth === 0) return match.index;
   }
-  throw new Error('A New UI scene is missing its closing </section>.');
+  throw new Error('A New UI section is missing its closing </section>.');
 }
 
 /**

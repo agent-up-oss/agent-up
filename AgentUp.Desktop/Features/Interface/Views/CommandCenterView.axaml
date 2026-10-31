@@ -13,125 +13,6 @@
     -->
     <UserControl.Resources>
 
-        <!-- A triage row: who, what they are on, and what it needs. -->
-        <DataTemplate x:Key="StandingRowTemplate">
-            <Border Margin="0,0,0,8"
-                    Padding="14,12"
-                    CornerRadius="8"
-                    Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
-                    BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
-                    BorderThickness="1">
-                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                    <Border Grid.Column="0"
-                            Width="30"
-                            Height="30"
-                            CornerRadius="15"
-                            VerticalAlignment="Top"
-                            Background="{DynamicResource AgentUpColorSurfaceBrush}"
-                            BorderBrush="{DynamicResource AgentUpColorBorderStrongBrush}"
-                            BorderThickness="1">
-                        <TextBlock Text="{Binding Initial}"
-                                   FontSize="13"
-                                   FontWeight="Bold"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
-                    </Border>
-
-                    <StackPanel Grid.Column="1" Spacing="3">
-                        <TextBlock Text="{Binding Headline}"
-                                   FontSize="13"
-                                   FontWeight="SemiBold"
-                                   TextWrapping="Wrap"
-                                   Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
-                        <TextBlock Text="{Binding Subtitle}"
-                                   FontSize="11"
-                                   TextWrapping="Wrap"
-                                   ToolTip.Tip="{Binding IdentityToolTip}"
-                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                        <TextBlock Text="{Binding Reason}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap"
-                                   IsVisible="{Binding HasReason}"
-                                   Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
-                        <TextBlock Text="{Binding DiagnosticCode}"
-                                   FontSize="11"
-                                   FontFamily="{DynamicResource AgentUpFontMono}"
-                                   IsVisible="{Binding HasDiagnosticCode}"
-                                   Foreground="{DynamicResource AgentUpColorTextWarningBrush}"/>
-                        <TextBlock Text="{Binding ProposalLabel}"
-                                   FontSize="11"
-                                   TextWrapping="Wrap"
-                                   IsVisible="{Binding ShowProposalBesideTask}"
-                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                        <StackPanel Orientation="Horizontal"
-                                    Spacing="8"
-                                    Margin="0,4,0,0"
-                                    IsVisible="{Binding HasStatusRow}">
-                            <TextBlock Text="●"
-                                       FontSize="12"
-                                       VerticalAlignment="Center"
-                                       ToolTip.Tip="{Binding ChecksToolTip}"
-                                       Foreground="{Binding ChecksColor}"/>
-                            <TextBlock Text="{Binding ChecksCount}"
-                                       FontSize="12"
-                                       VerticalAlignment="Center"
-                                       ToolTip.Tip="{Binding ChecksToolTip}"
-                                       Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
-                            <TextBlock Text="—"
-                                       FontSize="12"
-                                       VerticalAlignment="Center"
-                                       Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
-                            <ItemsControl ItemsSource="{Binding Reviews}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <StackPanel Orientation="Horizontal" Spacing="6"/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Padding="7,2"
-                                                CornerRadius="4"
-                                                ToolTip.Tip="{Binding ToolTip}"
-                                                BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
-                                                BorderThickness="1">
-                                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                                <TextBlock Text="{Binding Label}"
-                                                           FontSize="11"
-                                                           Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                                                <TextBlock Text="{Binding Glyph}"
-                                                           FontSize="11"
-                                                           FontWeight="Bold"
-                                                           Foreground="{Binding Color}"/>
-                                            </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-
-                        <TextBlock Text="{Binding ThreadSummary}"
-                                   FontSize="11"
-                                   IsVisible="{Binding HasUnresolvedThreads}"
-                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="2" Spacing="3" MinWidth="128">
-                        <TextBlock Text="{Binding StateLabel}"
-                                   FontSize="12"
-                                   FontWeight="SemiBold"
-                                   HorizontalAlignment="Right"
-                                   Foreground="{Binding StateColor}"/>
-                        <TextBlock Text="{Binding Branch}"
-                                   FontSize="11"
-                                   HorizontalAlignment="Right"
-                                   FontFamily="{DynamicResource AgentUpFontMono}"
-                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
-        </DataTemplate>
-
         <!-- A queue row: one task, where it stands, and everyone on it. -->
         <DataTemplate x:Key="TaskRowTemplate">
             <Grid ColumnDefinitions="*,150,160"
@@ -364,82 +245,201 @@
                                Foreground="{DynamicResource AgentUpColorTextDangerBrush}"/>
                 </StackPanel>
 
-                <!-- Every workspace on the Server, counted. A quiet Server still has a board. -->
-                <StackPanel Spacing="8">
-                    <TextBlock Text="ACROSS THE SERVER"
-                               FontSize="10"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                    <ItemsControl x:Name="FleetBoard" ItemsSource="{Binding CommandCenter.Bridge.Fleet}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Width="150"
-                                        Margin="0,0,8,8"
-                                        Padding="14,12"
-                                        CornerRadius="10"
-                                        Background="{DynamicResource AgentUpColorSurfaceBrush}"
-                                        BorderThickness="1"
-                                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock Text="{Binding Count}"
-                                                   FontSize="22"
-                                                   FontWeight="Bold"
-                                                   Foreground="{Binding Colour}"/>
-                                        <TextBlock Text="{Binding Label}"
-                                                   FontSize="11"
-                                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                <!--
+                    The fleet is one graph, not a set of unrelated totals. Its stable four branches
+                    show the whole state model, and every agent appears on exactly one branch.
+                -->
+                <Border Background="{DynamicResource AgentUpColorSurfaceBrush}"
+                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                        BorderThickness="1"
+                        CornerRadius="14"
+                        Padding="22,20,22,22">
+                    <StackPanel Spacing="0">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0" Spacing="3">
+                                <TextBlock Text="AGENT STATE MAP"
+                                           FontSize="10"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                                <TextBlock Text="Live fleet topology"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                            </StackPanel>
+                            <Border Grid.Column="1"
+                                    Padding="9,4"
+                                    CornerRadius="10"
+                                    Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}">
+                                <TextBlock Text="LIVE"
+                                           FontSize="10"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource AgentUpColorAccentBrightBrush}"/>
+                            </Border>
+                        </Grid>
+
+                        <!-- The Server root that all four state branches describe. -->
+                        <Border Width="230"
+                                Margin="0,20,0,0"
+                                Padding="18,14"
+                                HorizontalAlignment="Center"
+                                CornerRadius="12"
+                                Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
+                                BorderBrush="{DynamicResource AgentUpColorAccentLineBrush}"
+                                BorderThickness="1">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                <StackPanel Grid.Column="0" Spacing="0">
+                                    <TextBlock Text="{Binding CommandCenter.Bridge.FleetCount}"
+                                               FontSize="28"
+                                               LineHeight="29"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                                    <TextBlock Text="{Binding CommandCenter.Bridge.FleetLabel}"
+                                               FontSize="9"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                                    <TextBlock Text="SERVER FLEET"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                                    <TextBlock Text="{Binding CommandCenter.Bridge.FleetActivity}"
+                                               FontSize="10"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Trunk and crossbar make the relationship between the root and lanes explicit. -->
+                        <Border Width="1"
+                                Height="22"
+                                HorizontalAlignment="Center"
+                                Background="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+                        <Border Height="1"
+                                Margin="105,0"
+                                Background="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+
+                        <ItemsControl x:Name="AgentStateGraph"
+                                      ItemsSource="{Binding CommandCenter.Bridge.StateLanes}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="4" Rows="1"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="4,0" Spacing="0">
+                                        <Border Width="1"
+                                                Height="16"
+                                                HorizontalAlignment="Center"
+                                                Background="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+                                        <Border MinHeight="196"
+                                                Padding="12"
+                                                CornerRadius="10"
+                                                Background="{DynamicResource AgentUpColorCanvasBrush}"
+                                                BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                                                BorderThickness="1">
+                                            <StackPanel Spacing="10">
+                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="7">
+                                                    <TextBlock Grid.Column="0"
+                                                               Text="{Binding Glyph}"
+                                                               FontSize="12"
+                                                               VerticalAlignment="Center"
+                                                               Foreground="{Binding Colour}"/>
+                                                    <StackPanel Grid.Column="1" Spacing="1">
+                                                        <TextBlock Text="{Binding Label}"
+                                                                   FontSize="13"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                                                        <TextBlock Text="{Binding Description}"
+                                                                   FontSize="9"
+                                                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                                                    </StackPanel>
+                                                    <Border Grid.Column="2"
+                                                            Width="25"
+                                                            Height="25"
+                                                            CornerRadius="13"
+                                                            Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}">
+                                                        <TextBlock Text="{Binding Count}"
+                                                                   FontSize="12"
+                                                                   FontWeight="Bold"
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{Binding Colour}"/>
+                                                    </Border>
+                                                </Grid>
+
+                                                <ItemsControl ItemsSource="{Binding Agents}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Button Margin="0,0,0,6"
+                                                                    Padding="9,8"
+                                                                    HorizontalAlignment="Stretch"
+                                                                    HorizontalContentAlignment="Stretch"
+                                                                    CornerRadius="7"
+                                                                    Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
+                                                                    BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                                                                    BorderThickness="1"
+                                                                    Command="{Binding $parent[UserControl].DataContext.CommandCenter.OpenAgentCommand}"
+                                                                    CommandParameter="{Binding Standing}"
+                                                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TeamOpenAgent}"
+                                                                    ToolTip.Tip="Open this agent's workspace">
+                                                                <StackPanel Spacing="3">
+                                                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="7">
+                                                                        <Border Grid.Column="0"
+                                                                                Width="22"
+                                                                                Height="22"
+                                                                                CornerRadius="11"
+                                                                                Background="{DynamicResource AgentUpColorSurfaceBrush}">
+                                                                            <TextBlock Text="{Binding Initial}"
+                                                                                       FontSize="10"
+                                                                                       FontWeight="Bold"
+                                                                                       HorizontalAlignment="Center"
+                                                                                       VerticalAlignment="Center"
+                                                                                       Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                                                                        </Border>
+                                                                        <TextBlock Grid.Column="1"
+                                                                                   Text="{Binding DisplayName}"
+                                                                                   FontSize="11"
+                                                                                   FontWeight="SemiBold"
+                                                                                   VerticalAlignment="Center"
+                                                                                   TextTrimming="CharacterEllipsis"
+                                                                                   Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                                                                        <TextBlock Grid.Column="2"
+                                                                                   Text="›"
+                                                                                   FontSize="14"
+                                                                                   VerticalAlignment="Center"
+                                                                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                                                                    </Grid>
+                                                                    <TextBlock Text="{Binding TaskLabel}"
+                                                                               FontSize="10"
+                                                                               TextTrimming="CharacterEllipsis"
+                                                                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                                                                    <TextBlock Text="{Binding Reason}"
+                                                                               FontSize="9"
+                                                                               MaxLines="2"
+                                                                               TextWrapping="Wrap"
+                                                                               IsVisible="{Binding HasReason}"
+                                                                               Foreground="{Binding StateColor}"/>
+                                                                </StackPanel>
+                                                            </Button>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <TextBlock Text="{Binding EmptyLabel}"
+                                                           FontSize="10"
+                                                           Margin="2,4"
+                                                           TextWrapping="Wrap"
+                                                           IsVisible="{Binding IsEmpty}"
+                                                           Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                                            </StackPanel>
+                                        </Border>
                                     </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-
-                <!-- A group nobody is in is not drawn: a heading reading zero reports an absence. -->
-                <StackPanel Spacing="8" IsVisible="{Binding CommandCenter.Bridge.HasWaiting}">
-                    <TextBlock Text="WAITING ON YOU"
-                               FontSize="10"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource AgentUpColorTextWarningBrush}"/>
-                    <ItemsControl x:Name="WaitingList"
-                                  ItemsSource="{Binding CommandCenter.Bridge.WaitingOnYou}"
-                                  ItemTemplate="{StaticResource StandingRowTemplate}"/>
-                </StackPanel>
-
-                <StackPanel Spacing="8" IsVisible="{Binding CommandCenter.Bridge.HasHalted}">
-                    <TextBlock Text="HALTED"
-                               FontSize="10"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource AgentUpColorTextDangerBrush}"/>
-                    <ItemsControl x:Name="HaltedList"
-                                  ItemsSource="{Binding CommandCenter.Bridge.Halted}"
-                                  ItemTemplate="{StaticResource StandingRowTemplate}"/>
-                </StackPanel>
-
-                <StackPanel Spacing="8" IsVisible="{Binding CommandCenter.Bridge.HasWorking}">
-                    <TextBlock Text="WORKING"
-                               FontSize="10"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                    <ItemsControl x:Name="TeamList"
-                                  ItemsSource="{Binding CommandCenter.Bridge.Working}"
-                                  ItemTemplate="{StaticResource StandingRowTemplate}"/>
-                </StackPanel>
-
-                <StackPanel Spacing="8" IsVisible="{Binding CommandCenter.Bridge.HasIdle}">
-                    <TextBlock Text="IDLE"
-                               FontSize="10"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
-                    <ItemsControl x:Name="IdleList"
-                                  ItemsSource="{Binding CommandCenter.Bridge.Idle}"
-                                  ItemTemplate="{StaticResource StandingRowTemplate}"/>
-                </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
 
                 <Border Background="{DynamicResource AgentUpColorSurfaceBrush}"
                         BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"

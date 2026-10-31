@@ -1,8 +1,8 @@
 import { reviewsOthersWork, type ReviewSlot, type TeamStanding, type TeamStandingKind } from '../models/TeamStanding';
 
-/** The bridge's three groups, plus the queue, from one list of standings. */
+/** The Bridge's state branches, plus the queue, from one list of standings. */
 export type TeamTriage = {
-  /** Everyone. The rail draws from this; the bridge shows each agent once instead. */
+  /** Everyone. The Team page draws from this; the Bridge graph shows each agent once instead. */
   team: TeamStanding[];
   waiting: TeamStanding[];
   halted: TeamStanding[];
@@ -36,6 +36,44 @@ export type FleetSummary = {
   checksRunning: number;
   unresolvedThreads: number;
 };
+
+/** One stable branch of the Bridge graph, present even when no agent occupies it. */
+export type AgentStateLane = {
+  kind: TeamStandingKind;
+  label: string;
+  description: string;
+  glyph: string;
+  members: TeamStanding[];
+  emptyLabel: string;
+};
+
+/**
+ * The complete fleet as four graph branches. Stable branches keep the state model readable on a
+ * quiet Server, and filtering from one list guarantees an agent cannot appear on two branches.
+ */
+export function stateLanes(standings: TeamStanding[]): AgentStateLane[] {
+  const lane = (
+    kind: TeamStandingKind,
+    label: string,
+    description: string,
+    glyph: string,
+    emptyLabel: string,
+  ): AgentStateLane => ({
+    kind,
+    label,
+    description,
+    glyph,
+    members: standings.filter(standing => standing.kind === kind),
+    emptyLabel,
+  });
+
+  return [
+    lane('waiting', 'Waiting', 'Needs your decision', '◆', 'No decisions waiting'),
+    lane('halted', 'Halted', 'Needs recovery', '▲', 'No stopped agents'),
+    lane('working', 'Working', 'Moving work forward', '●', 'No active work'),
+    lane('idle', 'Idle', 'Ready for work', '○', 'No agents standing by'),
+  ];
+}
 
 export function fleet(standings: TeamStanding[]): FleetSummary {
   const of = (kind: TeamStandingKind) => standings.filter(standing => standing.kind === kind).length;

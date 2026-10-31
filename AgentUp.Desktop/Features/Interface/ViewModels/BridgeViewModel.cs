@@ -98,13 +98,16 @@ public sealed class BridgeViewModel : ReactiveObject
     public string EmptyTeamHint => "This server has no workspaces yet.";
 
     /// <summary>
-    /// Every workspace on this Server as numbers.
-    ///
-    /// A group nobody is in is not drawn, so a quiet Server would otherwise be a blank page. This
-    /// is what fills it, and it is worth reading when the Server is busy too: counts rather than
-    /// sentences, because the board is read at a glance.
+    /// The complete fleet as one graph: a Server root and one branch for each possible agent
+    /// state. Unlike the old count tiles, the branches show who makes up every number.
     /// </summary>
-    public ObservableCollection<FleetTileViewModel> Fleet { get; } = [];
+    public ObservableCollection<AgentStateLaneViewModel> StateLanes { get; } = [];
+
+    public string FleetCount => $"{Team.Count}";
+
+    public string FleetLabel => Team.Count == 1 ? "AGENT" : "AGENTS";
+
+    public string FleetActivity => $"{Working.Count} active · {Idle.Count} ready · {WaitingOnYou.Count + Halted.Count} need attention";
 
     /// <summary>
     /// Reads the team. Reads overlap: the timer starts one every ten seconds, and the workspace
@@ -153,55 +156,35 @@ public sealed class BridgeViewModel : ReactiveObject
         Replace(Idle, standings.Where(standing => standing.Kind == TeamStandingKind.Idle));
         Tasks.Clear();
         foreach (var task in Queue(standings)) Tasks.Add(task);
-        Fleet.Clear();
-        foreach (var tile in FleetTiles(standings)) Fleet.Add(tile);
+        StateLanes.Clear();
+        foreach (var lane in Graph(standings)) StateLanes.Add(lane);
         foreach (var name in new[]
                  {
                      nameof(HasWaiting), nameof(HasHalted), nameof(HasTeam), nameof(HasTasks),
                      nameof(HasNothingNeeded), nameof(HasWorking), nameof(HasIdle),
-                     nameof(Headline), nameof(HasError)
+                     nameof(Headline), nameof(HasError), nameof(FleetCount), nameof(FleetLabel),
+                     nameof(FleetActivity)
                  })
         {
             this.RaisePropertyChanged(name);
         }
     }
 
-    /// <summary>
-    /// The fleet counted from the standings the Server already answered, so the board costs no
-    /// read of its own.
-    /// </summary>
-    private static IEnumerable<FleetTileViewModel> FleetTiles(IReadOnlyList<TeamStanding> standings)
+    /// <summary>The four stable branches of the graph, populated from the read already in hand.</summary>
+    private static IEnumerable<AgentStateLaneViewModel> Graph(IReadOnlyList<TeamStanding> standings)
     {
-        var of = (TeamStandingKind kind) => standings.Count(standing => standing.Kind == kind);
+        var lane = (TeamStandingKind kind, string label, string description, string glyph) =>
+            new AgentStateLaneViewModel(
+                kind,
+                label,
+                description,
+                glyph,
+                [.. standings.Where(standing => standing.Kind == kind)]);
 
-        // These four describe the fleet whatever it is doing, so they always show.
-        yield return new FleetTileViewModel("Agents", standings.Count);
-        yield return new FleetTileViewModel("Working", of(TeamStandingKind.Working));
-        yield return new FleetTileViewModel("Idle", of(TeamStandingKind.Idle));
-        yield return new FleetTileViewModel("Holding a task", standings.Count(standing => standing.TaskNumber is not null));
-
-        // The rest are exceptions. A zero there is the absence of a problem rather than a fact
-        // worth its own tile, so each one appears only once it has something to report.
-        var exceptions = new[]
-        {
-            new FleetTileViewModel("Waiting on you", of(TeamStandingKind.WaitingOnYou), FleetTone.Warning),
-            new FleetTileViewModel("Halted", of(TeamStandingKind.Halted), FleetTone.Danger),
-            new FleetTileViewModel(
-                "Proposals open",
-                standings.Count(standing => standing.Forge.ProposalNumber is not null)),
-            new FleetTileViewModel("Checks running", standings.Sum(standing => standing.Forge.ChecksRunning)),
-            new FleetTileViewModel(
-                "Checks failed",
-                standings.Sum(standing => standing.Forge.ChecksFailed),
-                FleetTone.Danger),
-            new FleetTileViewModel(
-                "Threads unresolved",
-                standings.Sum(standing => standing.Forge.UnresolvedThreads),
-                FleetTone.Warning)
-        };
-
-        foreach (var tile in exceptions.Where(tile => tile.Count != "0"))
-            yield return tile;
+        yield return lane(TeamStandingKind.WaitingOnYou, "Waiting", "Needs your decision", "◆");
+        yield return lane(TeamStandingKind.Halted, "Halted", "Needs recovery", "▲");
+        yield return lane(TeamStandingKind.Working, "Working", "Moving work forward", "●");
+        yield return lane(TeamStandingKind.Idle, "Idle", "Ready for work", "○");
     }
 
     /// <summary>

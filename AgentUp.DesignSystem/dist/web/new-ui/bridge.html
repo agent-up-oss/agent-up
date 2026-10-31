@@ -15,113 +15,84 @@
 <div class="aun-frame">
 <div class="aun">
     <nav class="aun-rail" aria-label="Command center">
-    <div class="aun-rail__server">
-      <span class="aun-dot aun-dot--live"></span>
-      <span>
-        <span class="aun-rail__name">dev-box</span>
-        <span class="aun-rail__url">localhost:5000</span>
-      </span>
-    </div>
-    <a class="aun-rail__link" data-aun-nav="bridge" aria-current="page" href="#bridge">Bridge</a>
-    <a class="aun-rail__link" data-aun-nav="tasks" href="#tasks">Tasks</a>
     <p class="aun-rail__section">TEAM</p>
-    <a class="aun-rail__link" data-aun-nav="team" href="#team">All agents</a>
     <a class="aun-rail__agent" data-aun-nav="lucy" href="#lucy">
-      <span class="aun-avatar aun-avatar--sm">L</span>Lucy
-      <span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span>
+      <strong>Lucy</strong><span>Reviewer &middot; interface</span><code>@lucy-aup[bot]</code>
+      <span class="aun-glyph--gate">Waiting on you</span><span>Review #412</span>
     </a>
     <a class="aun-rail__agent" data-aun-nav="bob" href="#bob">
-      <span class="aun-avatar aun-avatar--sm">B</span>Bob
-      <span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span>
+      <strong>Bob</strong><span>Developer</span><code>@bob-aup[bot]</code>
+      <span class="aun-glyph--running">Working</span><span>Build #398</span>
     </a>
     <a class="aun-rail__agent" data-aun-nav="hector" href="#hector">
-      <span class="aun-avatar aun-avatar--sm">H</span>Hector
-      <span class="aun-rail__spacer"></span><span class="aun-glyph--halted">&#9650;</span>
+      <strong>Hector</strong><span>Reviewer &middot; code</span><code>@hector-aup[bot]</code>
+      <span class="aun-glyph--halted">Halted</span><span>Review #405</span>
     </a>
     <span class="aun-rail__spacer"></span>
-    <a class="aun-rail__link" data-aun-nav="settings" href="#settings">Settings</a>
-    <a class="aun-rail__link" data-aun-nav="signout" href="#signout">Sign out of server</a>
+    <button type="button" class="aun-rail__switch">Switch back to the classic interface</button>
   </nav>
-    <main class="aun-main">
+    <main class="aun-main aun-main--bridge">
       <header class="aun-head">
         <div>
           <h1 class="aun-title">Bridge</h1>
-          <p class="aun-subtitle">3 agents &middot; 2 waiting on you &middot; 1 halted</p>
+          <p class="aun-subtitle">3 agents &middot; 1 waiting on you &middot; 1 halted</p>
         </div>
-        <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live<span class="aun-muted"> &middot; 2s ago</span></span>
       </header>
 
-      <section>
-        <h2 class="aun-section__head aun-section__head--gate"><span>&#9670;</span>WAITING ON YOU &middot; 2</h2>
-        <div class="aun-stack">
-          <div class="aun-row aun-row--gate">
-            <span class="aun-avatar">L</span>
-            <div class="aun-row__body">
-              <p class="aun-row__title">Lucy wants to submit her review on #412</p>
-              <p class="aun-row__meta">14 findings &middot; 3 blocking &middot; posts to the forge as <span class="aun-mono">@lucy-aup[bot]</span></p>
-              <p class="aun-row__time">waiting 8m</p>
-            </div>
-            <div class="aun-row__actions">
-              <button type="button" class="aun-btn aun-btn--primary">Approve</button>
-              <button type="button" class="aun-btn">Reject</button>
-              <a class="aun-btn" href="#open">Open</a>
-            </div>
+      <section class="aun-state-map" aria-labelledby="desktop-fleet-map-title">
+        <header class="aun-state-map__head">
+          <div>
+            <h2 id="desktop-fleet-map-title" class="aun-state-map__kicker">AGENT STATE MAP</h2>
+            <p class="aun-state-map__dek">Live fleet topology</p>
           </div>
-          <div class="aun-row aun-row--gate">
-            <span class="aun-avatar">B</span>
-            <div class="aun-row__body">
-              <p class="aun-row__title">Bob wants to open a pull request for #398</p>
-              <p class="aun-row__meta">11 files &middot; 240 insertions &middot; pushes <span class="aun-mono">feat/398-capabilities-cli</span></p>
-              <p class="aun-row__time">waiting 41m</p>
+          <span class="aun-state aun-state--done">LIVE</span>
+        </header>
+
+        <div class="aun-state-map__root">
+          <div><p class="aun-state-map__total">3</p><p class="aun-state-map__total-label">AGENTS</p></div>
+          <div><p class="aun-state-map__root-title">SERVER FLEET</p><p class="aun-state-map__root-meta">1 active &middot; 0 ready &middot; 2 need attention</p></div>
+        </div>
+        <div class="aun-state-map__stem"></div>
+        <div class="aun-state-map__crossbar"></div>
+
+        <div class="aun-state-map__lanes">
+          <section class="aun-state-map__lane">
+            <div class="aun-state-map__drop"></div>
+            <div class="aun-state-map__branch">
+              <header class="aun-state-map__branch-head"><span class="aun-glyph--gate">&#9670;</span><div><h3 class="aun-state-map__branch-title">Waiting</h3><p class="aun-state-map__branch-meta">Needs your decision</p></div><span class="aun-state-map__count aun-glyph--gate">1</span></header>
+              <a class="aun-state-map__agent" href="#lucy"><span class="aun-avatar aun-avatar--sm">L</span><span><span class="aun-state-map__agent-name">Lucy</span><span class="aun-state-map__agent-task">Review #412</span><span class="aun-state-map__agent-reason aun-glyph--gate">Permission decision required</span></span><span class="aun-faint">&rsaquo;</span></a>
             </div>
-            <div class="aun-row__actions">
-              <button type="button" class="aun-btn aun-btn--primary">Approve</button>
-              <button type="button" class="aun-btn">Reject</button>
-              <a class="aun-btn" href="#open">Open</a>
+          </section>
+          <section class="aun-state-map__lane">
+            <div class="aun-state-map__drop"></div>
+            <div class="aun-state-map__branch">
+              <header class="aun-state-map__branch-head"><span class="aun-glyph--halted">&#9650;</span><div><h3 class="aun-state-map__branch-title">Halted</h3><p class="aun-state-map__branch-meta">Needs recovery</p></div><span class="aun-state-map__count aun-glyph--halted">1</span></header>
+              <a class="aun-state-map__agent" href="#hector"><span class="aun-avatar aun-avatar--sm">H</span><span><span class="aun-state-map__agent-name">Hector</span><span class="aun-state-map__agent-task">Review #405</span><span class="aun-state-map__agent-reason aun-glyph--halted">Forge returned 502</span></span><span class="aun-faint">&rsaquo;</span></a>
             </div>
-          </div>
+          </section>
+          <section class="aun-state-map__lane">
+            <div class="aun-state-map__drop"></div>
+            <div class="aun-state-map__branch">
+              <header class="aun-state-map__branch-head"><span class="aun-glyph--running">&#9679;</span><div><h3 class="aun-state-map__branch-title">Working</h3><p class="aun-state-map__branch-meta">Moving work forward</p></div><span class="aun-state-map__count aun-glyph--running">1</span></header>
+              <a class="aun-state-map__agent" href="#bob"><span class="aun-avatar aun-avatar--sm">B</span><span><span class="aun-state-map__agent-name">Bob</span><span class="aun-state-map__agent-task">Build #398</span></span><span class="aun-faint">&rsaquo;</span></a>
+            </div>
+          </section>
+          <section class="aun-state-map__lane">
+            <div class="aun-state-map__drop"></div>
+            <div class="aun-state-map__branch">
+              <header class="aun-state-map__branch-head"><span class="aun-glyph--idle">&#9675;</span><div><h3 class="aun-state-map__branch-title">Idle</h3><p class="aun-state-map__branch-meta">Ready for work</p></div><span class="aun-state-map__count aun-glyph--idle">0</span></header>
+              <p class="aun-state-map__empty">No agents standing by</p>
+            </div>
+          </section>
         </div>
       </section>
 
-      <section>
-        <h2 class="aun-section__head aun-section__head--halted"><span>&#9650;</span>HALTED &middot; 1</h2>
-        <div class="aun-row aun-row--halted">
-          <span class="aun-avatar">H</span>
-          <div class="aun-row__body">
-            <p class="aun-row__title">Hector stopped on #405</p>
-            <div class="aun-diag" style="margin-top: 8px">
-              <span class="aun-diag__code">forge.unreachable</span>
-              <span> &mdash; the forge returned 502 on read. The run halted before its first write.</span>
-              <p class="aun-diag__remedy"><strong>Remedy:</strong> check the host connection, then resume.</p>
-            </div>
-            <p class="aun-row__time">stopped 52m ago &middot; attempt 2 of 3</p>
-          </div>
-          <div class="aun-row__actions">
-            <button type="button" class="aun-btn aun-btn--primary">Resume</button>
-            <a class="aun-btn" href="#open">Open</a>
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <h2 class="aun-section__head">TEAM</h2>
-        <div class="aun-wrap">
-          <a class="aun-row aun-row--gate" style="flex: 1 1 16rem; align-items: center" href="#lucy">
-            <span class="aun-avatar aun-avatar--md">L</span>
-            <div class="aun-row__body"><p class="aun-row__title">Lucy</p><p class="aun-row__meta">Reviewer &middot; interface</p></div>
-            <div style="text-align: right"><p class="aun-glyph--gate" style="font-weight: 600">&#9670; gate open</p><p class="aun-row__time">#412</p></div>
-          </a>
-          <a class="aun-row aun-row--gate" style="flex: 1 1 16rem; align-items: center" href="#bob">
-            <span class="aun-avatar aun-avatar--md">B</span>
-            <div class="aun-row__body"><p class="aun-row__title">Bob</p><p class="aun-row__meta">Developer</p></div>
-            <div style="text-align: right"><p class="aun-glyph--gate" style="font-weight: 600">&#9670; gate open</p><p class="aun-row__time">#398</p></div>
-          </a>
-          <a class="aun-row aun-row--halted" style="flex: 1 1 16rem; align-items: center" href="#hector">
-            <span class="aun-avatar aun-avatar--md">H</span>
-            <div class="aun-row__body"><p class="aun-row__title">Hector</p><p class="aun-row__meta">Reviewer &middot; code</p></div>
-            <div style="text-align: right"><p class="aun-glyph--halted" style="font-weight: 600">&#9650; halted</p><p class="aun-row__time">#405</p></div>
-          </a>
-        </div>
+      <section class="aun-card aun-task-summary">
+        <h2 class="aun-section__head">TASKS</h2>
+        <div class="aun-task-summary__head"><span>TASK</span><span>STATE</span><span>ASSIGNED TO</span></div>
+        <div class="aun-task-summary__row"><strong>#412 &middot; Agent tab dead end on both clients</strong><span class="aun-glyph--gate">Waiting</span><span>Lucy</span></div>
+        <div class="aun-task-summary__row"><strong>#405 &middot; Forge surface renders nothing</strong><span class="aun-glyph--halted">Halted</span><span>Hector</span></div>
+        <div class="aun-task-summary__row"><strong>#398 &middot; Promote capability bootstrap</strong><span class="aun-glyph--running">Working</span><span>Bob</span></div>
       </section>
     </main>
   </div>

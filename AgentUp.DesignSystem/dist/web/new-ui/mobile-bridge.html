@@ -15,71 +15,67 @@
 <div class="aun-frame">
 <div class="aun-phone">
     <header class="aun-phone__head">
-      <div style="display: flex; align-items: center; gap: 8px">
+      <div class="aun-phone__head-row">
         <button type="button" class="aun-iconbtn" aria-label="Open menu">&#9776;</button>
-        <span style="flex-grow: 1; min-width: 0">
-          <span class="aun-title" style="display: block; font-size: var(--au-font-size-ui-lg)">Bridge</span>
-          <span class="aun-rail__url">dev-box &middot; localhost:5000</span>
+        <span class="aun-phone__head-copy">
+          <span class="aun-phone__title">Bridge</span>
+          <span class="aun-phone__subtitle">3 agents &middot; 1 waiting on you &middot; 1 halted</span>
         </span>
-        <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live</span>
       </div>
     </header>
     <div class="aun-phone__body">
-      <section>
-        <h2 class="aun-section__head aun-section__head--gate"><span>&#9670;</span>WAITING ON YOU &middot; 2</h2>
-        <div class="aun-stack">
-          <article class="aun-card aun-card--gate" style="padding: 13px 14px">
-            <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 9px">
-              <span class="aun-avatar aun-avatar--sm" style="width: 1.75rem; height: 1.75rem">L</span>
-              <span><span class="aun-row__title" style="display: block">Lucy wants to submit her review on #412</span><span class="aun-row__time">8m</span></span>
-            </div>
-            <p class="aun-row__meta" style="margin-bottom: 11px">14 findings &middot; 3 blocking</p>
-            <div class="aun-wrap" style="gap: 8px">
-              <button type="button" class="aun-btn aun-btn--primary aun-btn--touch" style="flex: 1 1 0">Approve</button>
-              <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">Reject</button>
-            </div>
-          </article>
-          <article class="aun-card aun-card--gate" style="padding: 13px 14px">
-            <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 9px">
-              <span class="aun-avatar aun-avatar--sm" style="width: 1.75rem; height: 1.75rem">B</span>
-              <span><span class="aun-row__title" style="display: block">Bob wants to open a pull request for #398</span><span class="aun-row__time">41m</span></span>
-            </div>
-            <p class="aun-row__meta" style="margin-bottom: 11px">11 files &middot; 240 insertions</p>
-            <div class="aun-wrap" style="gap: 8px">
-              <button type="button" class="aun-btn aun-btn--primary aun-btn--touch" style="flex: 1 1 0">Approve</button>
-              <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">Reject</button>
-            </div>
-          </article>
+      <section class="aun-state-map aun-state-map--mobile" aria-labelledby="mobile-fleet-map-title">
+        <header class="aun-state-map__head">
+          <div>
+            <h2 id="mobile-fleet-map-title" class="aun-state-map__kicker">AGENT STATE MAP</h2>
+            <p class="aun-state-map__dek">Live fleet topology</p>
+          </div>
+          <span class="aun-state aun-state--done">LIVE</span>
+        </header>
+
+        <div class="aun-state-map__root">
+          <div><p class="aun-state-map__total">3</p><p class="aun-state-map__total-label">AGENTS</p></div>
+          <div><p class="aun-state-map__root-title">SERVER FLEET</p><p class="aun-state-map__root-meta">1 active &middot; 0 ready &middot; 2 need attention</p></div>
         </div>
-      </section>
+        <div class="aun-state-map__mobile-lead"></div>
 
-      <section>
-        <h2 class="aun-section__head aun-section__head--halted"><span>&#9650;</span>HALTED &middot; 1</h2>
-        <article class="aun-card aun-card--halted" style="padding: 13px 14px">
-          <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px">
-            <span class="aun-avatar aun-avatar--sm" style="width: 1.75rem; height: 1.75rem">H</span>
-            <span><span class="aun-row__title" style="display: block">Hector stopped on #405</span><span class="aun-row__time">52m</span></span>
-          </div>
-          <div class="aun-diag">
-            <span class="aun-diag__code">forge.unreachable</span>
-            <p class="aun-diag__remedy"><strong>Remedy:</strong> check host connection, then resume</p>
-          </div>
-        </article>
-      </section>
-
-      <section>
-        <h2 class="aun-section__head">TEAM</h2>
-        <div class="aun-stack">
-          <a class="aun-row" href="#lucy" style="align-items: center; padding: 12px 13px"><span class="aun-avatar aun-avatar--sm" style="width: 2rem; height: 2rem">L</span><span class="aun-row__body"><span class="aun-row__title" style="display: block">Lucy</span><span class="aun-row__meta">Reviewer &middot; interface</span></span><span class="aun-glyph--gate" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9670; #412</span></a>
-          <a class="aun-row" href="#bob" style="align-items: center; padding: 12px 13px"><span class="aun-avatar aun-avatar--sm" style="width: 2rem; height: 2rem">B</span><span class="aun-row__body"><span class="aun-row__title" style="display: block">Bob</span><span class="aun-row__meta">Developer</span></span><span class="aun-glyph--gate" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9670; #398</span></a>
-          <a class="aun-row" href="#hector" style="align-items: center; padding: 12px 13px"><span class="aun-avatar aun-avatar--sm" style="width: 2rem; height: 2rem">H</span><span class="aun-row__body"><span class="aun-row__title" style="display: block">Hector</span><span class="aun-row__meta">Reviewer &middot; code</span></span><span class="aun-glyph--halted" style="font-size: var(--au-font-size-ui-xs); font-weight: 600">&#9650; #405</span></a>
+        <div class="aun-state-map__mobile-rail">
+          <section class="aun-state-map__mobile-lane">
+            <span class="aun-state-map__joint aun-state-map__joint--gate"></span><span class="aun-state-map__link"></span>
+            <div class="aun-state-map__branch">
+              <header class="aun-state-map__branch-head"><span class="aun-glyph--gate">&#9670;</span><div><h3 class="aun-state-map__branch-title">Waiting</h3><p class="aun-state-map__branch-meta">Needs your decision</p></div><span class="aun-state-map__count aun-glyph--gate">1</span></header>
+              <a class="aun-state-map__agent" href="#lucy"><span class="aun-avatar aun-avatar--sm">L</span><span><span class="aun-state-map__agent-name">Lucy</span><span class="aun-state-map__agent-task">Review #412</span><span class="aun-state-map__agent-reason aun-glyph--gate">Permission decision required</span></span><span class="aun-faint">&rsaquo;</span></a>
+            </div>
+          </section>
+          <section class="aun-state-map__mobile-lane">
+            <span class="aun-state-map__joint aun-state-map__joint--halted"></span><span class="aun-state-map__link"></span>
+            <div class="aun-state-map__branch">
+              <header class="aun-state-map__branch-head"><span class="aun-glyph--halted">&#9650;</span><div><h3 class="aun-state-map__branch-title">Halted</h3><p class="aun-state-map__branch-meta">Needs recovery</p></div><span class="aun-state-map__count aun-glyph--halted">1</span></header>
+              <a class="aun-state-map__agent" href="#hector"><span class="aun-avatar aun-avatar--sm">H</span><span><span class="aun-state-map__agent-name">Hector</span><span class="aun-state-map__agent-task">Review #405</span><span class="aun-state-map__agent-reason aun-glyph--halted">Forge returned 502</span></span><span class="aun-faint">&rsaquo;</span></a>
+            </div>
+          </section>
+          <section class="aun-state-map__mobile-lane">
+            <span class="aun-state-map__joint aun-state-map__joint--running"></span><span class="aun-state-map__link"></span>
+            <div class="aun-state-map__branch">
+              <header class="aun-state-map__branch-head"><span class="aun-glyph--running">&#9679;</span><div><h3 class="aun-state-map__branch-title">Working</h3><p class="aun-state-map__branch-meta">Moving work forward</p></div><span class="aun-state-map__count aun-glyph--running">1</span></header>
+              <a class="aun-state-map__agent" href="#bob"><span class="aun-avatar aun-avatar--sm">B</span><span><span class="aun-state-map__agent-name">Bob</span><span class="aun-state-map__agent-task">Build #398</span></span><span class="aun-faint">&rsaquo;</span></a>
+            </div>
+          </section>
+          <section class="aun-state-map__mobile-lane">
+            <span class="aun-state-map__joint aun-state-map__joint--idle"></span><span class="aun-state-map__link"></span>
+            <div class="aun-state-map__branch">
+              <header class="aun-state-map__branch-head"><span class="aun-glyph--idle">&#9675;</span><div><h3 class="aun-state-map__branch-title">Idle</h3><p class="aun-state-map__branch-meta">Ready for work</p></div><span class="aun-state-map__count aun-glyph--idle">0</span></header>
+              <p class="aun-state-map__empty">No agents standing by</p>
+            </div>
+          </section>
         </div>
       </section>
     </div>
     <nav class="aun-tabbar" aria-label="Sections">
-      <a class="aun-tabbar__item" href="#bridge" aria-current="page"><span style="font-size: 15px">&#9632;</span>Bridge</a>
-      <a class="aun-tabbar__item" href="#tasks"><span style="font-size: 15px">&#9644;</span>Tasks</a>
-      <a class="aun-tabbar__item" href="#team"><span style="font-size: 15px">&#9679;</span>Team</a>
+      <a class="aun-tabbar__item" href="#bridge" aria-current="page"><span class="aun-tabbar__icon">&#9632;</span>Bridge</a>
+      <a class="aun-tabbar__item" href="#train"><span class="aun-tabbar__icon">&#9651;</span>Train</a>
+      <a class="aun-tabbar__item" href="#tasks"><span class="aun-tabbar__icon">&#9644;</span>Tasks</a>
+      <a class="aun-tabbar__item" href="#team"><span class="aun-tabbar__icon">&#9679;</span>Team</a>
     </nav>
   </div>
 </div>

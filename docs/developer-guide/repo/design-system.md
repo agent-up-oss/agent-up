@@ -18,7 +18,7 @@ timeline, pack the columns and clip at the bottom rather than leaving empty
 canvas. Those examples are the same
 `component.html` definitions as the catalog below, parameterised with
 `data-au-props`, so the intro stays in sync when the catalog changes. Assembled Desktop and Mobile screens follow, selected
-by a horizontal chip strip. Those views mount assembled screen HTML: `src/screens.html` layouts that
+by a horizontal chip strip under two spaces. Old UI selects assembled screens from `src/screens.html`. New UI selects screens from `src/new-ui/screens.html`: each chip is one screen, and that screen's desktop and mobile scenes are the two frames in the pair. A screen that exists on only one surface still uses that one chip. Old UI mounts assembled screen HTML: `src/screens.html` layouts that
 `data-au-use` catalog component ids. The heading, chip selection, and Desktop
 and Mobile pair share one centered max-content block so page zoom recedes them
 together. Each scene lays out at native pixels, then scales into one shared
@@ -73,6 +73,7 @@ shows the live components that surface uses.
   Unicode glyphs and Mobile hosts the same drawings as public SVGs today; those two surfaces adopting the
   emitted geometry is what makes a documented screen match a real one at the icon
   level.
+- `src/new-ui/screens.html` owns the New UI space. A `data-aun-screen` row pairs one desktop scene and one mobile scene under a single showcase chip. Scene documents stay one file per surface under `dist/web/new-ui/`.
 - `src/screens.html` owns assembled screens: named layouts plus scenes that
   fill regions with `data-au-use` of catalog component ids, including the
   `screen*` layout shells. `scripts/lib/screens.mjs` inserts leaf catalog HTML

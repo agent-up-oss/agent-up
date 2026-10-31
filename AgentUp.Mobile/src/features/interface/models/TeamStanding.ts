@@ -2,8 +2,8 @@ import type { ForgeAccount, ForgeHosting, ForgeReview } from '@/features/git/mod
 import type { AgentRole, AgentSession } from '@agent-up/chat';
 
 /**
- * What one agent needs from you. The bridge groups by this and nothing else, so a surface never
- * has to decide for itself which of two reads wins.
+ * What one agent is doing or needs from you. The Bridge branches by this and nothing else, so a
+ * surface never has to decide for itself which of two reads wins.
  */
 export type TeamStandingKind = 'idle' | 'working' | 'waiting' | 'halted';
 
