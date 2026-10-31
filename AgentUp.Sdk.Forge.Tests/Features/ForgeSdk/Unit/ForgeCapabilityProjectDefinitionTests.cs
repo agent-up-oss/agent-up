@@ -52,10 +52,15 @@ public sealed class ForgeCapabilityProjectDefinitionTests
         public Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken = default)
             => Task.FromResult(new ForgeHostSnapshot(null, [], [], null));
 
-        public Task<IReadOnlyList<ForgeAssignedIssue>> ListAssignedAsync(
+        public Task<IReadOnlyList<ForgeIssue>> ListAssignedAsync(
             ForgeRequest request,
             CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyList<ForgeAssignedIssue>>([]);
+            => Task.FromResult<IReadOnlyList<ForgeIssue>>([]);
+
+        public Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
+            ForgeRequest request,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<ForgeIssue>>([]);
 
         public Task<ForgeProposal> OpenProposalAsync(
             ForgeRequest request,

@@ -209,6 +209,13 @@ public sealed class AutonomousWorkspaceService(
                         return;
                     }
 
+                    // Many workspaces draw from one queue, so the task is only ours once the queue
+                    // says so. Losing the race means another workspace took it: choose again
+                    // rather than open the same issue twice.
+                    if (current.Role?.Trigger != RoleTriggerKind.ProposalAwaitingReview
+                        && !await issues.TryHoldAsync(workspaceId, next.Id, cancellationToken))
+                        continue;
+
                     task = next;
                 }
                 catch (HttpRequestException exception)
@@ -248,6 +255,8 @@ public sealed class AutonomousWorkspaceService(
                 }
 
                 completed.Add(TaskKey(current.Role?.Trigger, task.Id));
+                if (current.Role?.Trigger != RoleTriggerKind.ProposalAwaitingReview)
+                    await issues.CompleteAsync(workspaceId, task.Id, cancellationToken);
                 await DrainCompletedAsync(workspaceId, current, completed, cancellationToken);
                 if (current.Role is not null && !progress.Satisfied(workspaceId, current.Role.Termination))
                 {

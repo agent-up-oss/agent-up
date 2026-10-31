@@ -1,0 +1,795 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ids="using:AgentUp.Desktop.Shared.Providers"
+             x:Class="AgentUp.Desktop.Features.Interface.Views.CommandCenterView"
+             x:CompileBindings="False"
+             Background="{DynamicResource AgentUpColorCanvasBrush}">
+
+    <!--
+        The command center shell. Everything it draws comes from two reads the Server answers per
+        workspace - the agent session and the forge - so the same page fills against the Demo and
+        against a real Server without a demo-only path. Where a read said nothing, the surface says
+        so rather than showing a number nothing produced.
+    -->
+    <UserControl.Resources>
+
+        <!-- A triage row: who, what they are on, and what it needs. -->
+        <DataTemplate x:Key="StandingRowTemplate">
+            <Border Margin="0,0,0,8"
+                    Padding="14,12"
+                    CornerRadius="8"
+                    Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
+                    BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                    BorderThickness="1">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                    <Border Grid.Column="0"
+                            Width="30"
+                            Height="30"
+                            CornerRadius="15"
+                            VerticalAlignment="Top"
+                            Background="{DynamicResource AgentUpColorSurfaceBrush}"
+                            BorderBrush="{DynamicResource AgentUpColorBorderStrongBrush}"
+                            BorderThickness="1">
+                        <TextBlock Text="{Binding Initial}"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" Spacing="3">
+                        <TextBlock Text="{Binding Headline}"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                        <TextBlock Text="{Binding Subtitle}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   ToolTip.Tip="{Binding IdentityToolTip}"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                        <TextBlock Text="{Binding Reason}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding HasReason}"
+                                   Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                        <TextBlock Text="{Binding DiagnosticCode}"
+                                   FontSize="11"
+                                   FontFamily="{DynamicResource AgentUpFontMono}"
+                                   IsVisible="{Binding HasDiagnosticCode}"
+                                   Foreground="{DynamicResource AgentUpColorTextWarningBrush}"/>
+                        <TextBlock Text="{Binding ProposalLabel}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding ShowProposalBesideTask}"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="8"
+                                    Margin="0,4,0,0"
+                                    IsVisible="{Binding HasStatusRow}">
+                            <TextBlock Text="●"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       ToolTip.Tip="{Binding ChecksToolTip}"
+                                       Foreground="{Binding ChecksColor}"/>
+                            <TextBlock Text="{Binding ChecksCount}"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       ToolTip.Tip="{Binding ChecksToolTip}"
+                                       Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                            <TextBlock Text="—"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                            <ItemsControl ItemsSource="{Binding Reviews}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="6"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="7,2"
+                                                CornerRadius="4"
+                                                ToolTip.Tip="{Binding ToolTip}"
+                                                BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                                                BorderThickness="1">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock Text="{Binding Label}"
+                                                           FontSize="11"
+                                                           Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                                                <TextBlock Text="{Binding Glyph}"
+                                                           FontSize="11"
+                                                           FontWeight="Bold"
+                                                           Foreground="{Binding Color}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <TextBlock Text="{Binding ThreadSummary}"
+                                   FontSize="11"
+                                   IsVisible="{Binding HasUnresolvedThreads}"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Spacing="3" MinWidth="128">
+                        <TextBlock Text="{Binding StateLabel}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Right"
+                                   Foreground="{Binding StateColor}"/>
+                        <TextBlock Text="{Binding Branch}"
+                                   FontSize="11"
+                                   HorizontalAlignment="Right"
+                                   FontFamily="{DynamicResource AgentUpFontMono}"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- A queue row: one task, where it stands, and everyone on it. -->
+        <DataTemplate x:Key="TaskRowTemplate">
+            <Grid ColumnDefinitions="*,150,160"
+                  ColumnSpacing="12"
+                  Margin="0,0,0,1"
+                  Background="{DynamicResource AgentUpColorTransparentBrush}">
+                <TextBlock Grid.Column="0"
+                           Text="{Binding TaskLabel}"
+                           FontSize="13"
+                           FontWeight="SemiBold"
+                           TextWrapping="Wrap"
+                           Margin="0,8"
+                           Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                <TextBlock Grid.Column="1"
+                           Text="{Binding StateLabel}"
+                           FontSize="12"
+                           Margin="0,8"
+                           VerticalAlignment="Top"
+                           Foreground="{Binding StateColor}"/>
+                <ItemsControl Grid.Column="2" Margin="0,8" ItemsSource="{Binding Agents}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,4">
+                                <TextBlock Text="{Binding DisplayName}"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                                <TextBlock Text="{Binding RoleLabel}"
+                                           FontSize="11"
+                                           VerticalAlignment="Center"
+                                           IsVisible="{Binding HasRole}"
+                                           TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </DataTemplate>
+        <DataTemplate x:Key="QueuedTaskRowTemplate">
+            <Grid ColumnDefinitions="Auto,*,Auto"
+                  ColumnSpacing="12"
+                  Margin="0,0,0,1"
+                  Background="{DynamicResource AgentUpColorTransparentBrush}">
+                <!-- Reorder on the left, because the order is what this list is for. -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2" Margin="0,6" VerticalAlignment="Center">
+                    <Button Content="↑"
+                            Classes="au-button au-button--compact"
+                            Command="{Binding MoveUpCommand}"
+                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueueMoveUp}"
+                            ToolTip.Tip="Work this sooner"/>
+                    <Button Content="↓"
+                            Classes="au-button au-button--compact"
+                            Command="{Binding MoveDownCommand}"
+                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueueMoveDown}"
+                            ToolTip.Tip="Work this later"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="0,8" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding TaskLabel}"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                    <TextBlock Text="{Binding RepositoryLabel}"
+                               FontSize="11"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" Margin="0,6" VerticalAlignment="Center">
+                    <Button Content="Dequeue"
+                            Classes="au-button au-button--danger au-button--compact"
+                            Command="{Binding RemoveCommand}"
+                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueueRemove}"
+                            ToolTip.Tip="Take this out of the queue"/>
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+
+        <!-- A task being worked: no order to change, only whether the work carries on. -->
+        <DataTemplate x:Key="WorkingTaskRowTemplate">
+            <Grid ColumnDefinitions="*,Auto"
+                  ColumnSpacing="12"
+                  Margin="0,0,0,1"
+                  Background="{DynamicResource AgentUpColorTransparentBrush}">
+                <StackPanel Grid.Column="0" Margin="0,8" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding TaskLabel}"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                    <TextBlock Text="{Binding RepositoryLabel}"
+                               FontSize="11"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Content="Stop"
+                        Margin="0,6"
+                        VerticalAlignment="Center"
+                        Classes="au-button au-button--danger au-button--compact"
+                        Command="{Binding StopCommand}"
+                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueueStop}"
+                        ToolTip.Tip="Stop this work and put the task back in the queue"/>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="OfferedIssueRowTemplate">
+            <Grid ColumnDefinitions="*,Auto"
+                  ColumnSpacing="12"
+                  Margin="0,0,0,1"
+                  Background="{DynamicResource AgentUpColorTransparentBrush}">
+                <TextBlock Grid.Column="0"
+                           Text="{Binding IssueLabel}"
+                           FontSize="13"
+                           TextWrapping="Wrap"
+                           Margin="0,8"
+                           Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                <Button Grid.Column="1"
+                        Content="Queue"
+                        Margin="0,6"
+                        VerticalAlignment="Top"
+                        Command="{Binding PickCommand}"
+                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.QueuePick}"
+                        ToolTip.Tip="Put this issue in the queue"/>
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid ColumnDefinitions="208,*">
+
+        <Border Grid.Column="0"
+                Background="{DynamicResource AgentUpColorSurfaceBrush}"
+                BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                BorderThickness="0,0,1,0"
+                Padding="12,16">
+            <DockPanel LastChildFill="False">
+                <StackPanel DockPanel.Dock="Top" Spacing="2">
+                    <TextBlock Text="TEAM"
+                               FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource AgentUpColorTextFaintBrush}"
+                               Margin="10,4,0,6"/>
+                    <ItemsControl ItemsSource="{Binding CommandCenter.Bridge.Team}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Left"
+                                        Padding="10,8"
+                                        CornerRadius="6"
+                                        BorderThickness="0"
+                                        Background="{DynamicResource AgentUpColorTransparentBrush}"
+                                        Command="{Binding $parent[UserControl].DataContext.CommandCenter.OpenAgentCommand}"
+                                        CommandParameter="{Binding Standing}"
+                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TeamOpenAgent}"
+                                        ToolTip.Tip="Open this agent's workspace">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   FontSize="13"
+                                                   Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                                        <TextBlock Text="{Binding RoleLabel}"
+                                                   FontSize="11"
+                                                   IsVisible="{Binding HasRole}"
+                                                   Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                                        <TextBlock Text="{Binding IdentityHandle}"
+                                                   FontSize="11"
+                                                   FontFamily="{DynamicResource AgentUpFontMono}"
+                                                   ToolTip.Tip="{Binding IdentityToolTip}"
+                                                   IsVisible="{Binding HasIdentity}"
+                                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                                        <TextBlock Text="{Binding StateLabel}"
+                                                   FontSize="11"
+                                                   Foreground="{Binding StateColor}"/>
+                                        <TextBlock Text="{Binding TaskLabel}"
+                                                   FontSize="11"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{Binding CommandCenter.Bridge.EmptyTeamHint}"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Margin="10,2"
+                               IsVisible="{Binding !CommandCenter.Bridge.HasTeam}"
+                               Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Bottom" Spacing="6">
+                    <Button Command="{Binding CommandCenter.ToggleCommand}"
+                            x:Name="SwitchBackButton"
+                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.CommandCenterSwitchBack}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Padding="10,8"
+                            Background="{DynamicResource AgentUpColorSurfaceRaisedBrush}"
+                            BorderBrush="{DynamicResource AgentUpColorBorderStrongBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6">
+                        <TextBlock Text="Switch back to the classic interface"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                    </Button>
+                    <TextBlock Text="This machine could not store the choice, so it resets on restart."
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Margin="2,0"
+                               IsVisible="{Binding !CommandCenter.Persists}"
+                               Foreground="{DynamicResource AgentUpColorTextWarningBrush}"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <ScrollViewer Grid.Column="1" Padding="30,26" IsVisible="{Binding CommandCenter.ShowsSurfaces}">
+            <StackPanel Spacing="18" MaxWidth="980" HorizontalAlignment="Left">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Bridge"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                    <TextBlock Text="{Binding CommandCenter.Bridge.Headline}"
+                               FontSize="13"
+                               x:Name="BridgeHeadline"
+                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                    <TextBlock Text="{Binding CommandCenter.Bridge.ErrorMessage}"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding CommandCenter.Bridge.HasError}"
+                               Foreground="{DynamicResource AgentUpColorTextDangerBrush}"/>
+                </StackPanel>
+
+                <!-- Every workspace on the Server, counted. A quiet Server still has a board. -->
+                <StackPanel Spacing="8">
+                    <TextBlock Text="ACROSS THE SERVER"
+                               FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                    <ItemsControl x:Name="FleetBoard" ItemsSource="{Binding CommandCenter.Bridge.Fleet}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Width="150"
+                                        Margin="0,0,8,8"
+                                        Padding="14,12"
+                                        CornerRadius="10"
+                                        Background="{DynamicResource AgentUpColorSurfaceBrush}"
+                                        BorderThickness="1"
+                                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{Binding Count}"
+                                                   FontSize="22"
+                                                   FontWeight="Bold"
+                                                   Foreground="{Binding Colour}"/>
+                                        <TextBlock Text="{Binding Label}"
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- A group nobody is in is not drawn: a heading reading zero reports an absence. -->
+                <StackPanel Spacing="8" IsVisible="{Binding CommandCenter.Bridge.HasWaiting}">
+                    <TextBlock Text="WAITING ON YOU"
+                               FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource AgentUpColorTextWarningBrush}"/>
+                    <ItemsControl x:Name="WaitingList"
+                                  ItemsSource="{Binding CommandCenter.Bridge.WaitingOnYou}"
+                                  ItemTemplate="{StaticResource StandingRowTemplate}"/>
+                </StackPanel>
+
+                <StackPanel Spacing="8" IsVisible="{Binding CommandCenter.Bridge.HasHalted}">
+                    <TextBlock Text="HALTED"
+                               FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource AgentUpColorTextDangerBrush}"/>
+                    <ItemsControl x:Name="HaltedList"
+                                  ItemsSource="{Binding CommandCenter.Bridge.Halted}"
+                                  ItemTemplate="{StaticResource StandingRowTemplate}"/>
+                </StackPanel>
+
+                <StackPanel Spacing="8" IsVisible="{Binding CommandCenter.Bridge.HasWorking}">
+                    <TextBlock Text="WORKING"
+                               FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                    <ItemsControl x:Name="TeamList"
+                                  ItemsSource="{Binding CommandCenter.Bridge.Working}"
+                                  ItemTemplate="{StaticResource StandingRowTemplate}"/>
+                </StackPanel>
+
+                <StackPanel Spacing="8" IsVisible="{Binding CommandCenter.Bridge.HasIdle}">
+                    <TextBlock Text="IDLE"
+                               FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                    <ItemsControl x:Name="IdleList"
+                                  ItemsSource="{Binding CommandCenter.Bridge.Idle}"
+                                  ItemTemplate="{StaticResource StandingRowTemplate}"/>
+                </StackPanel>
+
+                <Border Background="{DynamicResource AgentUpColorSurfaceBrush}"
+                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="20">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="TASKS"
+                                   FontSize="10"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                        <Grid ColumnDefinitions="*,150,160" ColumnSpacing="12">
+                            <TextBlock Grid.Column="0" Text="TASK" FontSize="10"
+                                       Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                            <TextBlock Grid.Column="1" Text="STATE" FontSize="10"
+                                       Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                            <TextBlock Grid.Column="2" Text="ASSIGNED TO" FontSize="10"
+                                       Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                        </Grid>
+                        <ItemsControl x:Name="TaskList"
+                                      ItemsSource="{Binding CommandCenter.Bridge.Tasks}"
+                                      ItemTemplate="{StaticResource TaskRowTemplate}"/>
+                        <TextBlock Text="No agent reports a task in hand."
+                                   FontSize="12"
+                                   IsVisible="{Binding !CommandCenter.Bridge.HasTasks}"
+                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                        <TextBlock Text="{Binding CommandCenter.Bridge.TasksCaveat}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="{DynamicResource AgentUpColorSurfaceBrush}"
+                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="20"
+                        IsVisible="{Binding CommandCenter.Tasks, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="IN PROGRESS"
+                                   FontSize="10"
+                                   FontWeight="Bold"
+                                   IsVisible="{Binding CommandCenter.Tasks.HasWorking}"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                        <ItemsControl x:Name="WorkingList"
+                                      ItemsSource="{Binding CommandCenter.Tasks.Working}"
+                                      IsVisible="{Binding CommandCenter.Tasks.HasWorking}"
+                                      ItemTemplate="{StaticResource WorkingTaskRowTemplate}"/>
+
+                        <TextBlock Text="QUEUE"
+                                   FontSize="10"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                        <ItemsControl x:Name="QueueList"
+                                      ItemsSource="{Binding CommandCenter.Tasks.Queue}"
+                                      ItemTemplate="{StaticResource QueuedTaskRowTemplate}"/>
+                        <TextBlock Text="{Binding CommandCenter.Tasks.EmptyQueueHint}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding !CommandCenter.Tasks.HasQueue}"
+                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                        <TextBlock Text="{Binding CommandCenter.Tasks.ErrorMessage}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding CommandCenter.Tasks.HasError}"
+                                   Foreground="{DynamicResource AgentUpColorStatusDangerBrush}"/>
+
+                        <TextBlock Text="OPEN ISSUES"
+                                   FontSize="10"
+                                   FontWeight="Bold"
+                                   Margin="0,10,0,0"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                        <ItemsControl x:Name="OfferedList"
+                                      ItemsSource="{Binding CommandCenter.Tasks.Offered}"
+                                      ItemTemplate="{StaticResource OfferedIssueRowTemplate}"/>
+                        <TextBlock Text="{Binding CommandCenter.Tasks.EmptyOfferedHint}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding !CommandCenter.Tasks.HasOffered}"
+                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Where this Server's agents take their work from. -->
+                <Border Background="{DynamicResource AgentUpColorSurfaceBrush}"
+                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="20"
+                        IsVisible="{Binding CommandCenter.TaskSource, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <StackPanel Spacing="10" DataContext="{Binding CommandCenter.TaskSource}">
+                        <TextBlock Text="TASK SOURCE"
+                                   FontSize="10"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                        <TextBlock Text="{Binding Label}"
+                                   FontSize="18"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                        <TextBlock Text="{Binding Detail}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+
+                        <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding Reading}">
+                            <Button Content="{Binding EditLabel}"
+                                    Classes="au-button au-button--secondary au-button--compact"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TaskSourceEdit}"
+                                    Command="{Binding EditCommand}"/>
+                            <Button Content="Connect"
+                                    Classes="au-button au-button--compact"
+                                    IsVisible="{Binding ShowsConnect}"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TaskSourceConnect}"
+                                    Command="{Binding ConnectCommand}"/>
+                            <Button Content="Re-check"
+                                    Classes="au-button au-button--secondary au-button--compact"
+                                    IsVisible="{Binding Configured}"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TaskSourceRefresh}"
+                                    Command="{Binding RefreshCommand}"/>
+                            <Button Content="Forget"
+                                    Classes="au-button au-button--danger au-button--compact"
+                                    IsVisible="{Binding Configured}"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TaskSourceForget}"
+                                    Command="{Binding ForgetCommand}"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8" IsVisible="{Binding Editing}">
+                            <TextBox PlaceholderText="owner/repository"
+                                     AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TaskSourceRepository}"
+                                     Text="{Binding Typed, Mode=TwoWay}"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="Save"
+                                        Classes="au-button au-button--compact"
+                                        IsEnabled="{Binding CanSave}"
+                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TaskSourceSave}"
+                                        Command="{Binding SaveCommand}"/>
+                                <Button Content="Cancel"
+                                        Classes="au-button au-button--secondary au-button--compact"
+                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TaskSourceCancel}"
+                                        Command="{Binding CancelCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Train: the decisions the agents took, and what you make of them. -->
+                <Border Background="{DynamicResource AgentUpColorSurfaceBrush}"
+                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="20"
+                        IsVisible="{Binding CommandCenter.Training, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <StackPanel Spacing="10" DataContext="{Binding CommandCenter.Training}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0"
+                                       Text="TRAIN"
+                                       FontSize="10"
+                                       FontWeight="Bold"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                            <Button Grid.Column="1"
+                                    Content="Export"
+                                    Classes="au-button au-button--secondary au-button--compact"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TrainExport}"
+                                    Command="{Binding ExportCommand}"
+                                    ToolTip.Tip="Save the judged decisions as training material"/>
+                        </Grid>
+
+                        <TextBlock Text="{Binding ExportMessage}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding HasExportMessage}"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding HasError}"
+                                   Foreground="{DynamicResource AgentUpColorTextWarningBrush}"/>
+
+                        <!-- Which product this is about. -->
+                        <ItemsControl ItemsSource="{Binding Repositories}" IsVisible="{Binding ShowsRepositories}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Classes="au-choice au-choice--compact"
+                                            Width="230"
+                                            Margin="0,0,10,10"
+                                            AutomationProperties.AutomationId="{Binding TestId}"
+                                            Command="{Binding $parent[ItemsControl].DataContext.OpenRepositoryCommand}"
+                                            CommandParameter="{Binding}">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Waiting}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource AgentUpColorAccentBrightBrush}"
+                                                       IsVisible="{Binding HasWaiting}"/>
+                                            <TextBlock Text="{Binding Waiting}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
+                                                       IsVisible="{Binding !HasWaiting}"/>
+                                            <TextBlock Text="{Binding Judged}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="{Binding EmptyHint}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding !HasRepositories}"
+                                   Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+
+                        <!-- One repository's decisions, read one at a time. -->
+                        <StackPanel Spacing="10" IsVisible="{Binding ShowsDecisions}">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Content="‹ Repositories"
+                                        Classes="au-button au-button--secondary au-button--compact"
+                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TrainBack}"
+                                        Command="{Binding CloseRepositoryCommand}"/>
+                                <TextBlock Text="{Binding RepositoryName}"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <ItemsControl ItemsSource="{Binding Categories}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="6"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Classes="au-button au-button--secondary au-button--compact"
+                                                AutomationProperties.AutomationId="{Binding TestId}"
+                                                Command="{Binding $parent[ItemsControl].DataContext.ShowCategoryCommand}"
+                                                CommandParameter="{Binding Id}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{Binding Label}"/>
+                                                <TextBlock Text="{Binding Count}"
+                                                           IsVisible="{Binding HasCount}"
+                                                           Foreground="{DynamicResource AgentUpColorAccentBrightBrush}"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <TextBlock Text="{Binding EmptyCategoryHint}"
+                                       FontSize="12"
+                                       IsVisible="{Binding !HasShown}"
+                                       Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+
+                            <StackPanel Spacing="8" IsVisible="{Binding HasShown}">
+                                <Grid ColumnDefinitions="*,Auto,Auto">
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding Position}"
+                                               FontSize="11"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                                    <Button Grid.Column="1"
+                                            Content="Previous"
+                                            Classes="au-button au-button--secondary au-button--compact"
+                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TrainPrevious}"
+                                            IsEnabled="{Binding CanGoBack}"
+                                            Command="{Binding PreviousCommand}"/>
+                                    <Button Grid.Column="2"
+                                            Content="Next"
+                                            Margin="6,0,0,0"
+                                            Classes="au-button au-button--secondary au-button--compact"
+                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TrainNext}"
+                                            IsEnabled="{Binding CanGoOn}"
+                                            Command="{Binding NextCommand}"/>
+                                </Grid>
+
+                                <TextBlock Text="{Binding DecidedBy}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource AgentUpColorTextFaintBrush}"/>
+                                <TextBlock Text="{Binding Headline}"
+                                           FontSize="20"
+                                           FontWeight="Bold"
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                                <TextBlock Text="{Binding Detail}"
+                                           FontSize="13"
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+                                <TextBlock Text="BASED ON"
+                                           FontSize="10"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                                <TextBlock Text="{Binding Evidence}"
+                                           FontSize="13"
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+
+                                <Border CornerRadius="8"
+                                        ClipToBounds="True"
+                                        HorizontalAlignment="Left"
+                                        BorderThickness="1"
+                                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                                        IsVisible="{Binding HasEvidencePicture}">
+                                    <Image Source="{Binding EvidencePicture}"
+                                           MaxWidth="520"
+                                           Stretch="Uniform"/>
+                                </Border>
+
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Content="Good call"
+                                            Classes="au-button au-button--secondary"
+                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TrainGood}"
+                                            Command="{Binding GoodCommand}"/>
+                                    <Button Content="Bad call"
+                                            Classes="au-button au-button--danger"
+                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TrainBad}"
+                                            Command="{Binding BadCommand}"/>
+                                </StackPanel>
+
+                                <TextBlock Text="{Binding VerdictLabel}"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+
+                                <TextBox PlaceholderText="Why, if it is worth saying (optional)"
+                                         AcceptsReturn="True"
+                                         MinHeight="72"
+                                         TextWrapping="Wrap"
+                                         AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TrainNote}"
+                                         Text="{Binding Note, Mode=TwoWay}"/>
+
+                                <Button Content="Submit"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
+                                        Classes="au-button"
+                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TrainSubmit}"
+                                        IsEnabled="{Binding CanSubmit}"
+                                        Command="{Binding SubmitCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+    </Grid>
+</UserControl>

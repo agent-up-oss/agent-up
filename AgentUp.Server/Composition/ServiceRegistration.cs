@@ -6,6 +6,14 @@ using AgentUp.Capabilities.Common.Features.NixRuntime.Services;
 using AgentUp.Registry.Composition;
 using AgentUp.Registry.Features.RemoteCatalog.Interfaces;
 using AgentUp.Registry.Features.RemoteCatalog.Providers;
+using AgentUp.Server.Features.Training.Controllers;
+using AgentUp.Server.Features.TaskSource.Interfaces;
+using AgentUp.Server.Features.TaskSource.Providers;
+using AgentUp.Server.Features.TaskSource.Services;
+using AgentUp.Server.Features.TaskSource.Controllers;
+using AgentUp.Server.Features.Training.Interfaces;
+using AgentUp.Server.Features.Training.Providers;
+using AgentUp.Server.Features.Training.Services;
 using AgentUp.Server.Features.ApplicationProxy.Controllers;
 using AgentUp.Server.Features.ApplicationProxy.Interfaces;
 using AgentUp.Server.Features.ApplicationProxy.Providers;
@@ -184,6 +192,7 @@ public static class ServiceRegistration
             .WithTools<WorkspaceReviewSnapshotMcpTools>()
             .WithTools<DiagnosticsMcpTools>()
             .WithTools<CapabilityModulesMcpTools>()
+            .WithTools<TrainingMcpTools>()
             .WithResources<OrchestrationMcpResources>()
             .AddAuthorizationFilters();
 #pragma warning restore MCP9004
@@ -223,7 +232,29 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IForgeOAuthExchange, ForgeOAuthExchangeProvider>();
         builder.Services.AddSingleton<ForgeService>();
         builder.Services.AddSingleton<ForgeController>();
-        builder.Services.AddSingleton<IAssignedIssueQueue, ForgeAssignedIssueQueue>();
+        builder.Services.AddSingleton<ITaskQueueStore>(_ => new JsonTaskQueueStore(dataDir));
+        // The repository the agents take work from, named once for the Server rather than
+        // inferred from whichever workspace a reader happened to open.
+        builder.Services.AddSingleton<ITaskSourceStore>(_ => new JsonTaskSourceStore(dataDir));
+        builder.Services.AddSingleton<ITaskSourceCredentialStore>(_ => new JsonTaskSourceCredentialStore(dataDir));
+        builder.Services.AddSingleton<ITaskSourceStateStore, TaskSourceStateStore>();
+        builder.Services.AddSingleton<TaskSourceService>();
+        builder.Services.AddSingleton<TaskSourceController>();
+        builder.Services.AddSingleton<TaskQueueService>();
+        builder.Services.AddSingleton<TaskPickingService>();
+        builder.Services.AddSingleton<TaskQueueController>();
+        // The decision backlog the product owner trains the agents from.
+        builder.Services.AddSingleton<IProductDecisionStore>(_ => new JsonProductDecisionStore(dataDir));
+        builder.Services.AddSingleton<ProductDecisionService>();
+        builder.Services.AddSingleton<IDecisionRepositoryResolver, ForgeDecisionRepositoryResolver>();
+        // The backlog keeps its own copy of every evidence picture: a decision is training
+        // material and must not depend on a workspace, a branch, or an audit rollover.
+        builder.Services.AddSingleton<IDecisionEvidenceStore>(_ => new FileDecisionEvidenceStore(dataDir));
+        builder.Services.AddSingleton<IDecisionEvidenceSource, AuditDecisionEvidenceSource>();
+        builder.Services.AddSingleton<TrainingService>();
+        builder.Services.AddSingleton<TrainingController>();
+        // The loop draws from the picked queue, never from whatever the host happens to have open.
+        builder.Services.AddSingleton<IAssignedIssueQueue, CuratedIssueQueue>();
         builder.Services.AddSingleton<IAssignedProposalQueue, MemoryAssignedProposalQueue>();
         builder.Services.AddSingleton<IRoleProgress, MemoryRoleProgress>();
         builder.Services.AddSingleton<ILoopBackoff, LoopBackoffProvider>();

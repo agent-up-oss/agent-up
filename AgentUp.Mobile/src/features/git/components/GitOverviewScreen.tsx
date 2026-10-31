@@ -1,15 +1,15 @@
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { WorkspaceBranchPicker } from './WorkspaceBranchPicker';
 import { GitChangesPanel } from './GitChangesPanel';
 import { GitHostingRow } from './GitHostingRow';
-import { WorkspaceTabBar } from '@/features/shell/components/WorkspaceTabBar';
+import { WorkspaceTabs } from '@/features/shell/components/WorkspaceTabs';
+import { useWorkspaceHost } from '@/features/workspaces/controllers/WorkspaceHostContext';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { agentUpTheme, auText } from '@agent-up/design-system/native';
 
 export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
-  const router = useRouter();
+  const host = useWorkspaceHost(workspaceId);
   const [reloadNonce, setReloadNonce] = useState(0);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const reload = useCallback(() => setReloadNonce(current => current + 1), []);
@@ -26,7 +26,7 @@ export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
       <View style={styles.body}>
         <WorkspaceBranchPicker
           workspaceId={workspaceId}
-          onHistory={() => router.push(`/(main)/workspace/${workspaceId}/git/history`)}
+          onHistory={() => host.open({ kind: 'gitHistory' })}
           onReload={reload}
           reloadNonce={reloadNonce}
           selectedFiles={selectedFiles}
@@ -43,7 +43,7 @@ export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
           />
         </View>
       </View>
-      <WorkspaceTabBar workspaceId={workspaceId} active="git" />
+      <WorkspaceTabs workspaceId={workspaceId} active="git" />
     </View>
   );
 }

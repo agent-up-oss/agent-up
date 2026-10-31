@@ -47,7 +47,7 @@ public sealed class FakeServerControllerTests
     public void WriteApplicationPage_returnsAFileUri()
     {
         var controller = FakeServerTestComposition.Controller();
-        var uri = controller.WriteApplicationPage("harbor-shop", "storefront", "<html>Harbor</html>");
+        var uri = controller.WriteApplicationPage("bob", "storefront", "<html>Harbor</html>");
 
         Assert.That(uri.IsFile, Is.True);
         Assert.That(File.ReadAllText(uri.LocalPath), Does.Contain("Harbor"));
@@ -58,12 +58,12 @@ public sealed class FakeServerControllerTests
     public void OpenApplicationPage_writesTheBundledStorefront()
     {
         var controller = FakeServerTestComposition.Controller();
-        var uri = controller.OpenApplicationPage("harbor-shop", "storefront", 9100);
+        var uri = controller.OpenApplicationPage("bob", "storefront", 9100);
 
         Assert.That(uri, Is.Not.Null);
         Assert.That(File.ReadAllText(uri!.LocalPath), Does.Contain("Harbor Shop"));
         File.Delete(uri.LocalPath);
-        Assert.That(controller.OpenApplicationPage("harbor-shop", "missing", 1), Is.Null);
+        Assert.That(controller.OpenApplicationPage("bob", "missing", 1), Is.Null);
     }
 
     [Test]
@@ -71,7 +71,7 @@ public sealed class FakeServerControllerTests
     {
         var backend = FakeServerTestComposition.Backend();
         var controller = FakeServerTestComposition.Controller(backend);
-        backend.Handle(new FakeBackendRequestDtoBuilder().Delete("/api/workspaces/harbor-shop").Build());
+        backend.Handle(new FakeBackendRequestDtoBuilder().Delete("/api/workspaces/bob").Build());
 
         controller.Reset();
 

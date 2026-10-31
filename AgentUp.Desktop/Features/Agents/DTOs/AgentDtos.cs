@@ -89,6 +89,17 @@ public sealed record AgentLoopStatusDto(
     string? StopReason = null,
     string? BlockReason = null,
     IReadOnlyList<string>? PermissionRuleIds = null);
+/// <summary>
+/// What a workspace's agent is for. The Server stores one role per workspace and sends it with the
+/// session; the trigger and termination pair is what distinguishes a builder from a reviewer, so a
+/// client reads the role kind from those rather than from any label.
+/// </summary>
+public sealed record AgentRoleDto(
+    string Prompt,
+    IReadOnlyList<string> Tools,
+    string Trigger,
+    string Termination,
+    string? Review = null);
 public sealed record AgentSessionDto(
     string WorkspaceId,
     string? Agent,
@@ -100,5 +111,6 @@ public sealed record AgentSessionDto(
     AgentLoginChallengeDto? LoginChallenge = null,
     IReadOnlyList<AgentSessionSummaryDto>? Sessions = null,
     string? BoundAgent = null,
-    AgentLoopStatusDto? Loop = null);
+    AgentLoopStatusDto? Loop = null,
+    AgentRoleDto? Role = null);
 public sealed record AgentEventDto(long Sequence, string Type, JsonElement Payload, DateTimeOffset Timestamp);

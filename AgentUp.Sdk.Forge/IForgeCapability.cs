@@ -14,7 +14,16 @@ public interface IForgeCapability
 
     Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<ForgeAssignedIssue>> ListAssignedAsync(
+    Task<IReadOnlyList<ForgeIssue>> ListAssignedAsync(
+        ForgeRequest request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Every open issue on the request's own repository, newest activity first. Assignment is not
+    /// a filter here: a host that cannot assign to an agent still has issues worth picking, and
+    /// the queue decides what is worked on rather than the host.
+    /// </summary>
+    Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
         ForgeRequest request,
         CancellationToken cancellationToken = default);
 

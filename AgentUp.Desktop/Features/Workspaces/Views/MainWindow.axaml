@@ -15,6 +15,7 @@
         xmlns:chromeVm="using:AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome"
         xmlns:authDto="using:AgentUp.Desktop.Features.Authentication.DTOs"
         xmlns:entModels="using:AgentUp.Desktop.Features.Entitlements.Models"
+        xmlns:interfaceViews="using:AgentUp.Desktop.Features.Interface.Views"
         xmlns:ids="using:AgentUp.Desktop.Shared.Providers"
         x:Class="AgentUp.Desktop.Features.Workspaces.Views.MainWindow"
         x:CompileBindings="False"
@@ -698,7 +699,8 @@
                 </Grid>
             </Panel>
 
-            <Grid IsVisible="{Binding !Login.IsVisible}"
+            <Panel IsVisible="{Binding !Login.IsVisible}">
+            <Grid IsVisible="{Binding CommandCenter.ShowsClassicLayout, FallbackValue=True}"
                   HorizontalAlignment="Stretch"
                   VerticalAlignment="Stretch">
             <Grid.ColumnDefinitions>
@@ -710,6 +712,7 @@
         <Border Grid.Column="0"
                 x:Name="SidebarRail"
                 Classes="au-rail"
+                IsVisible="{Binding ShowsClassicRail}"
                 Width="{Binding Sidebar.Width}">
             <DockPanel>
 
@@ -1020,6 +1023,16 @@
                                 BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
                                 BorderThickness="0,0,0,1">
                             <StackPanel Orientation="Horizontal">
+                            <!-- Opened from the command center's team: the way back, beside the
+                                 workspace's own tabs rather than above them. -->
+                            <Button Content="‹ Team"
+                                    Classes="au-button au-button--secondary au-button--compact"
+                                    Margin="10,0,4,0"
+                                    VerticalAlignment="Center"
+                                    IsVisible="{Binding CommandCenter.HasAgent, FallbackValue=False}"
+                                    Command="{Binding CommandCenter.CloseAgentCommand}"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentBack}"
+                                    ToolTip.Tip="Back to the team"/>
                             <ListBox x:Name="ShellTabs" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.ShellTabs}"
                                      ItemsSource="{Binding ShellTabs}"
                                      SelectedItem="{Binding SelectedShellTabItem}"
@@ -2517,6 +2530,10 @@
         </Border>
 
         </Grid>
+            <interfaceViews:CommandCenterView
+                x:Name="CommandCenterPage"
+                IsVisible="{Binding CommandCenter.ShowsOwnSurfaces, FallbackValue=False}"/>
+            </Panel>
 
         <Grid ZIndex="100"
               x:Name="AddWorkspaceOverlay"

@@ -25,7 +25,7 @@ Desktop chrome for the live session is the **Agent** tab. Mobile chrome for the 
 <DocSurface mobile>Agents shows the workspace's bound agent and opens its chat as an inner page. An unbound workspace shows a + action whose creation page lists agent capabilities already enabled on the Server. The same unattended loop checklist, Enable autonomy, Activate, Cancel, and typed terminal appear on Agents and in chat.</DocSurface>
 </DocSurfaces>
 
-<p><img src="/desktop-agents.png" alt="Desktop Agent tab showing Codex and Harbor Shop" /></p>
+<p><img src="/desktop-agents.png" alt="Desktop Agent tab showing the agent bound to Bob's workspace" /></p>
 <p><img src="/mobile-agents.png" alt="Mobile Agents tab showing Codex" /></p>
 
 ## Workspace agent CLIs

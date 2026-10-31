@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent · Git — Agent-Up new UI</title>
+  <link rel="stylesheet" href="../new-ui.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
+    .aun-frame { width: 1440px; min-height: 900px; overflow: hidden; display: flex; }
+    .aun-frame > * { flex: 1 1 auto; min-width: 0; }
+  </style>
+</head>
+<body>
+<div class="aun-frame">
+<div class="aun">
+    <nav class="aun-rail" aria-label="Command center">
+    <div class="aun-rail__server">
+      <span class="aun-dot aun-dot--live"></span>
+      <span>
+        <span class="aun-rail__name">dev-box</span>
+        <span class="aun-rail__url">localhost:5000</span>
+      </span>
+    </div>
+    <a class="aun-rail__link" data-aun-nav="bridge" href="#bridge">Bridge</a>
+    <a class="aun-rail__link" data-aun-nav="tasks" href="#tasks">Tasks</a>
+    <p class="aun-rail__section">TEAM</p>
+    <a class="aun-rail__link" data-aun-nav="team" href="#team">All agents</a>
+    <a class="aun-rail__agent" data-aun-nav="lucy" aria-current="page" href="#lucy">
+      <span class="aun-avatar aun-avatar--sm">L</span>Lucy
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span>
+    </a>
+    <a class="aun-rail__agent" data-aun-nav="bob" href="#bob">
+      <span class="aun-avatar aun-avatar--sm">B</span>Bob
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--gate">&#9670;</span>
+    </a>
+    <a class="aun-rail__agent" data-aun-nav="hector" href="#hector">
+      <span class="aun-avatar aun-avatar--sm">H</span>Hector
+      <span class="aun-rail__spacer"></span><span class="aun-glyph--halted">&#9650;</span>
+    </a>
+    <span class="aun-rail__spacer"></span>
+    <a class="aun-rail__link" data-aun-nav="settings" href="#settings">Settings</a>
+    <a class="aun-rail__link" data-aun-nav="signout" href="#signout">Sign out of server</a>
+  </nav>
+    <main class="aun-main">
+      <header class="aun-head" style="align-items: center">
+    <span class="aun-avatar aun-avatar--lg">L</span>
+    <span style="flex: 1 1 18rem; min-width: 0">
+      <span class="aun-title" style="display: block">Lucy</span>
+      <span class="aun-subtitle">Reviewer &middot; interface &nbsp;&middot;&nbsp; <span class="aun-mono">@lucy-aup[bot]</span> &nbsp;&middot;&nbsp; <span class="aun-mono">agent-up-qa</span></span>
+    </span>
+    <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live</span>
+  </header>
+      <nav class="aun-tabs" aria-label="Agent sections">
+        <a class="aun-tab" href="#overview">Overview</a>
+        <a class="aun-tab" href="#chat">Chat</a>
+        <a class="aun-tab" href="#git" aria-current="page">Git</a>
+      </nav>
+
+      <div class="aun-row" style="align-items: center">
+        <div class="aun-row__body">
+          <p class="aun-row__title">PR #431 &mdash; Give the agent list a remedy</p>
+          <p class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm); margin-top: 3px">feat/412-agent-remedy &rarr; main &middot; a71f093 &middot; bob-aup[bot]</p>
+        </div>
+        <div class="aun-wrap" style="gap: 16px">
+          <span style="color: var(--au-color-accent-soft)">+240</span>
+          <span style="color: var(--au-color-text-danger)">&minus;58</span>
+          <span class="aun-muted">4 files</span>
+        </div>
+        <div class="aun-row__actions"><button type="button" class="aun-btn">Fetch</button><button type="button" class="aun-btn">History</button></div>
+      </div>
+
+      <div class="aun-wrap" style="gap: 16px; flex-grow: 1; min-height: 0">
+        <article class="aun-card" style="flex: 1 1 16rem; min-width: 0; padding: 14px">
+          <p class="aun-rail__section" style="padding: 0 11px 8px">CHANGED</p>
+          <a class="aun-file" href="#f1" aria-current="true"><span class="aun-glyph--gate">&#9670;</span><span class="aun-mono" style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis">AgentDtos.cs</span><span style="color: var(--au-color-accent-soft)">+18</span></a>
+          <a class="aun-file" href="#f2"><span class="aun-glyph--gate">&#9670;</span><span class="aun-mono" style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis">MainWindow.axaml</span><span style="color: var(--au-color-accent-soft)">+96</span></a>
+          <a class="aun-file" href="#f3"><span class="aun-glyph--idle">&#9675;</span><span class="aun-mono" style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis">AgentsScreen.tsx</span><span style="color: var(--au-color-accent-soft)">+104</span></a>
+          <a class="aun-file" href="#f4"><span class="aun-glyph--idle">&#9675;</span><span class="aun-mono" style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis">AgentsHttpController.cs</span><span style="color: var(--au-color-accent-soft)">+22</span></a>
+          <p class="aun-rail__section" style="padding: 16px 11px 8px">FINDINGS &middot; 14</p>
+          <div class="aun-stack" style="padding: 0 11px">
+            <p class="aun-kv"><span style="color: var(--au-color-text-danger); font-weight: 600; width: 1.5rem">3</span>blocking</p>
+            <p class="aun-kv"><span style="color: var(--au-color-text-warning); font-weight: 600; width: 1.5rem">6</span>should fix</p>
+            <p class="aun-kv"><span class="aun-muted" style="font-weight: 600; width: 1.5rem">5</span>nits</p>
+          </div>
+        </article>
+
+        <article class="aun-card" style="flex: 999 1 30rem; min-width: 0; padding: 0; overflow: hidden; display: flex; flex-direction: column">
+          <div style="padding: 12px 16px; border-bottom: 1px solid var(--au-color-border-subtle); display: flex; align-items: center; gap: 10px">
+            <span class="aun-mono" style="font-size: var(--au-font-size-ui-sm)">AgentUp.Desktop/Features/Agents/DTOs/AgentDtos.cs</span>
+            <span class="aun-rail__spacer"></span>
+            <span style="color: var(--au-color-accent-soft); font-size: var(--au-font-size-ui-sm)">+18</span>
+            <span style="color: var(--au-color-text-danger); font-size: var(--au-font-size-ui-sm)">&minus;2</span>
+          </div>
+          <div class="aun-diff" style="padding: 12px 0; overflow: auto; flex-grow: 1">
+            <div class="aun-diff__line"><span class="aun-diff__num">12</span><span class="aun-faint">&nbsp;public sealed record AgentDescriptorDto(</span></div>
+            <div class="aun-diff__line aun-diff__line--del"><span class="aun-diff__num">13</span><span>&minus;&nbsp;&nbsp;&nbsp;&nbsp;string Agent, bool Available, string DisplayName);</span></div>
+            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">13</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;string Agent,</span></div>
+            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">14</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;bool Available,</span></div>
+            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">15</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;string DisplayName,</span></div>
+            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">16</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;string? Unavailability,</span></div>
+            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">17</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;string? Detail,</span></div>
+            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">18</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;string? Remedy);</span></div>
+          </div>
+          <div class="aun-card aun-card--gate" style="margin: 0 16px 16px">
+            <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 7px">
+              <span class="aun-avatar aun-avatar--sm">L</span>
+              <span style="font-weight: 600; font-size: var(--au-font-size-ui-sm)">Lucy</span>
+              <span class="aun-state aun-state--halted">blocking</span>
+              <span class="aun-rail__spacer"></span>
+              <span class="aun-faint" style="font-size: var(--au-font-size-ui-xs)">line 16</span>
+            </div>
+            <p class="aun-row__meta">Three nullable strings with no enum behind <span class="aun-mono">Unavailability</span> means every client re-invents the branch. Make it a typed discriminator so the remedy can be rendered without string comparison.</p>
+          </div>
+        </article>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

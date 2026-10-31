@@ -600,6 +600,82 @@
         }
       }
     },
+    "/api/tasks": {
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "TaskQueueHttpController_Get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "TaskQueueHttpController_Enqueue",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/tasks/{owner}/{repository}/{id}": {
+      "delete": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "TaskQueueHttpController_Remove",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/tasks/{owner}/{repository}/{id}/position": {
+      "put": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "TaskQueueHttpController_Move",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/tasks/{owner}/{repository}/{id}/release": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "TaskQueueHttpController_Release",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/tasks/{owner}/{repository}/{id}/target": {
+      "put": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "TaskQueueHttpController_Target",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/tray/heartbeat": {
       "post": {
         "tags": [
@@ -1147,6 +1223,19 @@
           "Forge"
         ],
         "operationId": "ForgeHttpController_Comment",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/forge/issues": {
+      "get": {
+        "tags": [
+          "Forge"
+        ],
+        "operationId": "ForgeHttpController_Issues",
         "responses": {
           "200": {
             "description": "Success"

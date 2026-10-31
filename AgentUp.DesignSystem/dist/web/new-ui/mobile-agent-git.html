@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mobile · Agent Git — Agent-Up new UI</title>
+  <link rel="stylesheet" href="../new-ui.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
+    .aun-frame { width: 390px; height: 844px; overflow: hidden; display: flex; }
+    .aun-frame > * { flex: 1 1 auto; min-width: 0; }
+  </style>
+</head>
+<body>
+<div class="aun-frame">
+<div class="aun-phone">
+    <header class="aun-phone__head" style="padding-bottom: 0">
+      <a href="#team" style="color: var(--au-color-text-info); font-size: var(--au-font-size-ui-sm); display: inline-block; margin-bottom: 9px">&larr; Team</a>
+      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 11px">
+        <span class="aun-avatar aun-avatar--md">L</span>
+        <span style="flex-grow: 1; min-width: 0">
+          <span style="font-size: var(--au-font-size-ui-lg); font-weight: 700; display: block">Lucy</span>
+          <span class="aun-rail__url">@lucy-aup[bot] &middot; agent-up-qa</span>
+        </span>
+        <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live</span>
+      </div>
+      <nav class="aun-tabs" aria-label="Agent sections" style="border-bottom: none">
+        <a class="aun-tab" href="#overview" style="flex: 1 1 0; text-align: center">Overview</a>
+        <a class="aun-tab" href="#chat" style="flex: 1 1 0; text-align: center">Chat</a>
+        <a class="aun-tab" href="#git" aria-current="page" style="flex: 1 1 0; text-align: center">Git</a>
+      </nav>
+    </header>
+    <div class="aun-phone__body">
+      <div class="aun-input aun-mono" style="display: flex; align-items: center; gap: 8px; min-height: var(--au-control-height-touch)">
+        <span style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">feat/412-agent-remedy</span>
+        <span class="aun-muted">&#9662;</span>
+      </div>
+
+      <div class="aun-wrap" style="gap: 7px">
+        <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">Fetch</button>
+        <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">Pull</button>
+        <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">Push</button>
+        <button type="button" class="aun-btn aun-btn--touch" style="flex: 1 1 0">History</button>
+      </div>
+
+      <section>
+        <h2 class="aun-section__head">PROPOSAL</h2>
+        <article class="aun-card" style="padding: 13px 14px">
+          <p class="aun-row__title">PR #431 &mdash; Give the agent list a remedy</p>
+          <p class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm); margin-top: 3px">a71f093 &middot; bob-aup[bot]</p>
+          <div class="aun-wrap" style="gap: 14px; margin-top: 9px">
+            <span style="color: var(--au-color-accent-soft); font-size: var(--au-font-size-ui-sm)">+240</span>
+            <span style="color: var(--au-color-text-danger); font-size: var(--au-font-size-ui-sm)">&minus;58</span>
+            <span class="aun-muted" style="font-size: var(--au-font-size-ui-sm)">4 files</span>
+          </div>
+        </article>
+      </section>
+
+      <section>
+        <h2 class="aun-section__head">CHANGES &middot; 4</h2>
+        <article class="aun-card" style="padding: 7px 10px">
+          <a class="aun-file" href="#f1" style="min-height: var(--au-control-height-touch)"><span class="aun-glyph--gate">&#9670;</span><span class="aun-mono" style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis">AgentDtos.cs</span><span style="color: var(--au-color-accent-soft)">+18</span></a>
+          <a class="aun-file" href="#f2" style="min-height: var(--au-control-height-touch)"><span class="aun-glyph--gate">&#9670;</span><span class="aun-mono" style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis">MainWindow.axaml</span><span style="color: var(--au-color-accent-soft)">+96</span></a>
+          <a class="aun-file" href="#f3" style="min-height: var(--au-control-height-touch)"><span class="aun-glyph--idle">&#9675;</span><span class="aun-mono" style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis">AgentsScreen.tsx</span><span style="color: var(--au-color-accent-soft)">+104</span></a>
+          <a class="aun-file" href="#f4" style="min-height: var(--au-control-height-touch)"><span class="aun-glyph--idle">&#9675;</span><span class="aun-mono" style="flex-grow: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis">AgentsHttpController.cs</span><span style="color: var(--au-color-accent-soft)">+22</span></a>
+        </article>
+      </section>
+
+      <section>
+        <h2 class="aun-section__head">FINDINGS &middot; 14</h2>
+        <article class="aun-card aun-card--gate" style="padding: 13px 14px">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+            <span class="aun-avatar aun-avatar--sm">L</span>
+            <span style="font-weight: 600; font-size: var(--au-font-size-ui-sm)">Lucy</span>
+            <span class="aun-state aun-state--halted">blocking</span>
+            <span class="aun-rail__spacer"></span>
+            <span class="aun-faint" style="font-size: var(--au-font-size-ui-xs)">line 16</span>
+          </div>
+          <p class="aun-row__meta">Three nullable strings with no enum behind <span class="aun-mono">Unavailability</span> means every client re-invents the branch.</p>
+        </article>
+      </section>
+    </div>
+    <nav class="aun-tabbar" aria-label="Sections">
+      <a class="aun-tabbar__item" href="#bridge"><span style="font-size: 15px">&#9632;</span>Bridge</a>
+      <a class="aun-tabbar__item" href="#tasks"><span style="font-size: 15px">&#9644;</span>Tasks</a>
+      <a class="aun-tabbar__item" href="#team" aria-current="page"><span style="font-size: 15px">&#9679;</span>Team</a>
+    </nav>
+  </div>
+</div>
+</body>
+</html>

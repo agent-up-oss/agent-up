@@ -7,6 +7,17 @@ public static class DesktopAutomationIds
     public const string WindowClose = "window.close";
     public const string ChromeReload = "chrome.reload";
     public const string ChromeCapabilities = "chrome.capabilities";
+    public const string ChromeCommandCenter = "chrome.command-center";
+    public const string CommandCenterSwitchBack = "command-center.switch-back";
+    public const string QueueMoveUp = "queue.move-up";
+    public const string QueueMoveDown = "queue.move-down";
+    public const string QueueStop = "queue.stop";
+    public const string QueueRemove = "queue.remove";
+    public const string QueuePick = "queue.pick";
+    public const string TeamOpenAgent = "team.open-agent";
+    public const string AgentBack = "agent.back";
+    public const string AgentOverview = "agent.overview";
+    public const string AgentGit = "agent.git";
     public const string ChromeServerStatus = "chrome.server-status";
 
     public const string LoginBack = "login.back";
@@ -123,6 +134,23 @@ public static class DesktopAutomationIds
     public const string GitDiffDismiss = "git.diff.dismiss";
     public const string CapabilityClose = "capability.close";
 
+    public const string TaskSourceEdit = "task-source.edit";
+    public const string TaskSourceRepository = "task-source.repository";
+    public const string TaskSourceSave = "task-source.save";
+    public const string TaskSourceCancel = "task-source.cancel";
+    public const string TaskSourceConnect = "task-source.connect";
+    public const string TaskSourceForget = "task-source.forget";
+    public const string TaskSourceRefresh = "task-source.refresh";
+
+    public const string TrainExport = "train.export";
+    public const string TrainBack = "train.back";
+    public const string TrainPrevious = "train.previous";
+    public const string TrainNext = "train.next";
+    public const string TrainGood = "train.good";
+    public const string TrainBad = "train.bad";
+    public const string TrainNote = "train.note";
+    public const string TrainSubmit = "train.submit";
+
     public static string LoginSaved(string id) => $"login.saved.{id}";
     public static string LoginRemoveSaved(string id) => $"login.remove.{id}";
     public static string WorkspaceStart(string id) => $"workspace.start.{id}";
@@ -146,4 +174,8 @@ public static class DesktopAutomationIds
     public static string ValidationPlay(string flowId) => $"validation.play.{flowId}";
     public static string CapabilityEnable(string moduleId) => $"capability.enable.{moduleId}";
     public static string CapabilityDisable(string moduleId) => $"capability.disable.{moduleId}";
+
+    public static string TrainRepository(string key) => $"train.repository.{key}";
+
+    public static string TrainCategory(string category) => $"train.category.{category}";
 }

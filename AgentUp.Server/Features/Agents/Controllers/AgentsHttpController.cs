@@ -176,14 +176,15 @@ public sealed class AgentsHttpController(
     private static PermissionRuleDto ToDto(PermissionRule rule) => new(rule.Id, rule.Kind, rule.Allow, rule.Scope);
 
     private static AgentRoleDefinition ToRole(AgentRoleRequest request) =>
-        new(request.Prompt, request.Tools, request.Trigger, request.Termination);
+        new(request.Prompt, request.Tools, request.Trigger, request.Termination, request.Review);
 
     private static AgentRoleRequest ToDto(AgentRoleDefinition role) => new()
     {
         Prompt = role.Prompt,
         Tools = role.Tools,
         Trigger = role.Trigger,
-        Termination = role.Termination
+        Termination = role.Termination,
+        Review = role.Review
     };
 
     private static AgentLoopStatusDto? ToDto(LoopStatusSnapshot? loop) =>

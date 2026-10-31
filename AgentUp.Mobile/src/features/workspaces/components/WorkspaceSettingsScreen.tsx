@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { CapabilityModulesSection } from '@/features/capabilities/components/CapabilitiesScreen';
-import { WorkspaceTabBar } from '@/features/shell/components/WorkspaceTabBar';
+import { InterfaceToggleRow } from '@/features/interface/components/InterfaceToggleRow';
+import { WorkspaceTabs } from '@/features/shell/components/WorkspaceTabs';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { agentUpTheme } from '@agent-up/design-system/native';
 
@@ -23,9 +24,10 @@ export function WorkspaceSettingsScreen({ workspaceId }: { workspaceId: string }
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <InterfaceToggleRow />
         <CapabilityModulesSection onReload={bindReload} />
       </ScrollView>
-      <WorkspaceTabBar workspaceId={workspaceId} active="settings" />
+      <WorkspaceTabs workspaceId={workspaceId} active="settings" />
     </View>
   );
 }

@@ -17,7 +17,12 @@ test('intercepts the Demo URL and leaves other hosts alone', async () => {
   const passthrough = await request('http://127.0.0.1:5000/api/workspaces');
 
   assert.equal(workspaces.status, 200);
-  assert.equal((await workspaces.json())[0].id, 'harbor-shop');
+  // The definition lists the team in the reverse of the order a client shows them, so assert
+  // the Demo answers with the whole team rather than pinning whoever sits first in the file.
+  assert.deepEqual(
+    (await workspaces.json()).map((workspace: { id: string }) => workspace.id).sort(),
+    ['bob', 'hector', 'lucy'],
+  );
   assert.equal(passthrough.status, 204);
   assert.equal(forwarded, 1);
 });
@@ -30,17 +35,17 @@ test('streams workspace events for the Demo URL', async () => {
   const first = await reader.read();
   await reader.cancel();
   assert.equal(response.headers.get('Content-Type'), 'text/event-stream');
-  assert.match(new TextDecoder().decode(first.value), /harbor-shop/);
+  assert.match(new TextDecoder().decode(first.value), /bob/);
 });
 
 test('returns empty 204 bodies and streams agent events', async () => {
   const service = new FakeBackendService(loadFakeServerDefinition());
   const request = createFakeServerFetch(service, (async () => new Response(null, { status: 204 })) as typeof fetch);
-  const posted = await request('http://127.0.0.1:9/api/workspaces/harbor-shop/agent/messages', {
+  const posted = await request('http://127.0.0.1:9/api/workspaces/bob/agent/messages', {
     method: 'POST',
     body: JSON.stringify({ message: 'status?' }),
   });
-  const events = await request('http://127.0.0.1:9/api/workspaces/harbor-shop/agent/events?after=0');
+  const events = await request('http://127.0.0.1:9/api/workspaces/bob/agent/events?after=0');
   const reader = events.body!.getReader();
   const first = await reader.read();
   await reader.cancel();

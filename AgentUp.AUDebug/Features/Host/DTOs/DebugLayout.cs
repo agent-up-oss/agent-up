@@ -40,7 +40,7 @@ public static class DebugLayout
 
     public const string DemoServerId = "fake";
     public const string DemoServerName = "Demo";
-    public const string DemoWorkspaceId = "harbor-shop";
+    public const string DemoWorkspaceId = "bob";
 
     public const string ProductScreensDirectory = "artifacts/product-screens";
     public const string MobileValidationDirectory = "artifacts/mobile-validation";

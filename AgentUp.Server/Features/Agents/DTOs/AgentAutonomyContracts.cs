@@ -28,6 +28,8 @@ public sealed record AgentRoleRequest
 
     [Required]
     public RoleTerminationKind Termination { get; init; }
+
+    public RoleReviewKind Review { get; init; } = RoleReviewKind.None;
 }
 
 public sealed record AutonomyActivationRequest(bool Active);

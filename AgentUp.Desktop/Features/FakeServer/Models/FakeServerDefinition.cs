@@ -37,6 +37,21 @@ public sealed class FakeServerDefinition
 
     public JsonNode? Capabilities => Root["capabilities"];
 
+    /// <summary>What a connected repository host reports, per workspace.</summary>
+    public JsonNode? Forge => Root["forge"];
+
+    /// <summary>The tasks picked for the agents, in the order they will be worked.</summary>
+    public JsonArray TaskQueue => Root["taskQueue"]?.AsArray() ?? [];
+
+    /// <summary>The product decisions the agents recorded, which the Train surface reads.</summary>
+    public JsonArray ProductDecisions => Root["productDecisions"]?.AsArray() ?? [];
+
+    /// <summary>The pictures behind those decisions, by evidence id.</summary>
+    public JsonNode? DecisionEvidence => Root["decisionEvidence"];
+
+    /// <summary>The open issues each workspace's repository offers, per workspace.</summary>
+    public JsonNode? Issues => Root["issues"];
+
     public FakeServerDefinition Clone()
         => new(Root.DeepClone());
 
