@@ -23,13 +23,15 @@ public sealed class CommandCenterViewModel : ReactiveObject
         InterfaceController controller,
         BridgeViewModel? bridge = null,
         TaskQueueViewModel? tasks = null,
-        TrainingViewModel? training = null)
+        TrainingViewModel? training = null,
+        TaskSourceViewModel? taskSource = null)
     {
         _controller = controller;
         _active = controller.UsesCommandCenter;
         Bridge = bridge;
         Tasks = tasks;
         Training = training;
+        TaskSource = taskSource;
         ToggleCommand = ReactiveCommand.Create(Toggle);
         CloseAgentCommand = ReactiveCommand.Create(CloseAgent);
         OpenAgentCommand = ReactiveCommand.Create<TeamStanding>(OpenAgent);
@@ -106,6 +108,12 @@ public sealed class CommandCenterViewModel : ReactiveObject
     /// composed without the reads behind it.
     /// </summary>
     public TrainingViewModel? Training { get; }
+
+    /// <summary>
+    /// Where this Server's agents take their work from, or null where the shell was composed
+    /// without the reads behind it.
+    /// </summary>
+    public TaskSourceViewModel? TaskSource { get; }
 
     /// <summary>True while the command center is the shell on screen.</summary>
     public bool Active

@@ -524,6 +524,68 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Where this Server's agents take their work from. -->
+                <Border Background="{DynamicResource AgentUpColorSurfaceBrush}"
+                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="20"
+                        IsVisible="{Binding CommandCenter.TaskSource, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <StackPanel Spacing="10" DataContext="{Binding CommandCenter.TaskSource}">
+                        <TextBlock Text="TASK SOURCE"
+                                   FontSize="10"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+                        <TextBlock Text="{Binding Label}"
+                                   FontSize="18"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+                        <TextBlock Text="{Binding Detail}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"/>
+
+                        <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding Reading}">
+                            <Button Content="{Binding EditLabel}"
+                                    Classes="au-button au-button--secondary au-button--compact"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TaskSourceEdit}"
+                                    Command="{Binding EditCommand}"/>
+                            <Button Content="Connect"
+                                    Classes="au-button au-button--compact"
+                                    IsVisible="{Binding ShowsConnect}"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TaskSourceConnect}"
+                                    Command="{Binding ConnectCommand}"/>
+                            <Button Content="Re-check"
+                                    Classes="au-button au-button--secondary au-button--compact"
+                                    IsVisible="{Binding Configured}"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TaskSourceRefresh}"
+                                    Command="{Binding RefreshCommand}"/>
+                            <Button Content="Forget"
+                                    Classes="au-button au-button--danger au-button--compact"
+                                    IsVisible="{Binding Configured}"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TaskSourceForget}"
+                                    Command="{Binding ForgetCommand}"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8" IsVisible="{Binding Editing}">
+                            <TextBox PlaceholderText="owner/repository"
+                                     AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TaskSourceRepository}"
+                                     Text="{Binding Typed, Mode=TwoWay}"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="Save"
+                                        Classes="au-button au-button--compact"
+                                        IsEnabled="{Binding CanSave}"
+                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TaskSourceSave}"
+                                        Command="{Binding SaveCommand}"/>
+                                <Button Content="Cancel"
+                                        Classes="au-button au-button--secondary au-button--compact"
+                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.TaskSourceCancel}"
+                                        Command="{Binding CancelCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
                 <!-- Train: the decisions the agents took, and what you make of them. -->
                 <Border Background="{DynamicResource AgentUpColorSurfaceBrush}"
                         BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"

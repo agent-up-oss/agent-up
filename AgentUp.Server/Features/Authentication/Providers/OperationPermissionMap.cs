@@ -94,6 +94,15 @@ public static class OperationPermissionMap
         [("TaskQueueHttp", "Move")] = OperationPermissions.AgentPrompt,
         [("TaskQueueHttp", "Target")] = OperationPermissions.AgentPrompt,
         [("TaskQueueHttp", "Release")] = OperationPermissions.AgentPrompt,
+        // Reading where the work comes from is a read of the Server. Naming it, signing it in or
+        // forgetting it decides what every agent will be handed next, which is the same authority
+        // the queue's own mutations carry, so it is held to the same permission rather than a new
+        // one nobody issues yet.
+        [("TaskSourceHttp", "Get")] = OperationPermissions.ServerRead,
+        [("TaskSourceHttp", "Issues")] = OperationPermissions.ServerRead,
+        [("TaskSourceHttp", "Set")] = OperationPermissions.AgentPrompt,
+        [("TaskSourceHttp", "Clear")] = OperationPermissions.AgentPrompt,
+        [("TaskSourceHttp", "Login")] = OperationPermissions.AgentPrompt,
         [("TrainingHttp", "Repositories")] = OperationPermissions.AgentRead,
         [("TrainingHttp", "Decisions")] = OperationPermissions.AgentRead,
         [("TrainingHttp", "Evidence")] = OperationPermissions.AgentRead,

@@ -182,26 +182,26 @@ public sealed class BridgeViewModel : ReactiveObject
 
         // The rest are exceptions. A zero there is the absence of a problem rather than a fact
         // worth its own tile, so each one appears only once it has something to report.
-        foreach (var tile in new[]
-                 {
-                     new FleetTileViewModel("Waiting on you", of(TeamStandingKind.WaitingOnYou), FleetTone.Warning),
-                     new FleetTileViewModel("Halted", of(TeamStandingKind.Halted), FleetTone.Danger),
-                     new FleetTileViewModel(
-                         "Proposals open",
-                         standings.Count(standing => standing.Forge.ProposalNumber is not null)),
-                     new FleetTileViewModel("Checks running", standings.Sum(standing => standing.Forge.ChecksRunning)),
-                     new FleetTileViewModel(
-                         "Checks failed",
-                         standings.Sum(standing => standing.Forge.ChecksFailed),
-                         FleetTone.Danger),
-                     new FleetTileViewModel(
-                         "Threads unresolved",
-                         standings.Sum(standing => standing.Forge.UnresolvedThreads),
-                         FleetTone.Warning)
-                 })
+        var exceptions = new[]
         {
-            if (tile.Count != "0") yield return tile;
-        }
+            new FleetTileViewModel("Waiting on you", of(TeamStandingKind.WaitingOnYou), FleetTone.Warning),
+            new FleetTileViewModel("Halted", of(TeamStandingKind.Halted), FleetTone.Danger),
+            new FleetTileViewModel(
+                "Proposals open",
+                standings.Count(standing => standing.Forge.ProposalNumber is not null)),
+            new FleetTileViewModel("Checks running", standings.Sum(standing => standing.Forge.ChecksRunning)),
+            new FleetTileViewModel(
+                "Checks failed",
+                standings.Sum(standing => standing.Forge.ChecksFailed),
+                FleetTone.Danger),
+            new FleetTileViewModel(
+                "Threads unresolved",
+                standings.Sum(standing => standing.Forge.UnresolvedThreads),
+                FleetTone.Warning)
+        };
+
+        foreach (var tile in exceptions.Where(tile => tile.Count != "0"))
+            yield return tile;
     }
 
     /// <summary>

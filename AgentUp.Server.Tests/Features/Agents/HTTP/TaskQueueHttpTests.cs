@@ -197,6 +197,9 @@ public sealed class TaskQueueHttpTests
         builder.Services.AddSingleton<ForgeController>();
         builder.Services.AddSingleton<ITaskQueueStore, MemoryTaskQueueStore>();
         builder.Services.AddSingleton<TaskQueueService>();
+        // Picking can come from the Server's own task source, so the host needs one even when
+        // these tests pick through a workspace.
+        builder.Services.AddSingleton(_ => TaskSourceComposition.Controller());
         builder.Services.AddSingleton<TaskPickingService>();
         builder.Services.AddSingleton<TaskQueueController>();
 

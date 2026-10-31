@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
   type ViewStyle,
 } from 'react-native';
@@ -17,6 +18,7 @@ import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { PublicIcon } from '@/features/shell/components/PublicIcon';
 import type { PublicIconName } from '@/features/shell/providers/PublicIconProvider';
 import { useTaskQueue, type TaskQueueState } from '../controllers/TaskQueueContext';
+import { useTaskSource } from '../controllers/TaskSourceContext';
 import { useTraining } from '../controllers/TrainingContext';
 import { useTeamStanding } from '../controllers/TeamStandingContext';
 import {
@@ -29,6 +31,7 @@ import {
   taskLabel,
   type QueuedTask,
 } from '../models/TaskQueue';
+import { canSaveSource, sourceLabel, splitRepository } from '../models/TaskSource';
 import type { TeamStanding } from '../models/TeamStanding';
 import {
   checksCount,
@@ -766,6 +769,8 @@ function Settings({ onSignOut, serverLabel }: { onSignOut: () => void; serverLab
     <>
       <Section title="INTERFACE" tone="muted" />
       <InterfaceToggleRow />
+      <Section title="TASK SOURCE" tone="muted" />
+      <TaskSourceRow />
       <Section title="SERVER" tone="muted" />
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Connected to</Text>
@@ -775,6 +780,97 @@ function Settings({ onSignOut, serverLabel }: { onSignOut: () => void; serverLab
         <Text style={styles.cardTitleDanger}>Sign out of this server</Text>
       </Pressable>
     </>
+  );
+}
+
+/**
+ * The repository this Server's agents take work from.
+ *
+ * Naming it and signing in are two steps because they are two decisions: which repository, and
+ * then letting this Server read it. The sign-in leaves the app for the host's own authorize page,
+ * which is the only place a password or a passkey should ever be typed.
+ */
+function TaskSourceRow() {
+  const tasks = useTaskSource();
+  const [typed, setTyped] = useState('');
+  const [editing, setEditing] = useState(false);
+  const source = tasks.source;
+  const moduleId = source?.moduleId ?? source?.modules[0]?.moduleId ?? '';
+
+  const save = async () => {
+    const split = splitRepository(typed);
+    if (!split || !canSaveSource(moduleId, split.owner, split.repository)) return;
+    await tasks.save(moduleId, split.owner, split.repository);
+    setEditing(false);
+    setTyped('');
+  };
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>{source ? sourceLabel(source) : 'Not set'}</Text>
+      <Text style={[styles.note, source?.connected ? styles.ok : undefined]}>
+        {tasks.error ?? source?.detail ?? 'Reading the task source.'}
+      </Text>
+
+      {editing ? (
+        <>
+          <TextInput
+            accessibilityLabel="Repository"
+            placeholder="owner/repository"
+            placeholderTextColor={agentUpTheme.colors.textMuted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={typed}
+            onChangeText={setTyped}
+            style={styles.input}
+          />
+          <View style={styles.sourceActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: splitRepository(typed) === null }}
+              disabled={splitRepository(typed) === null}
+              style={[styles.button, splitRepository(typed) === null && styles.buttonOff]}
+              onPress={save}
+            >
+              <Text style={styles.buttonText}>Save</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              style={styles.buttonSecondary}
+              onPress={() => { setEditing(false); setTyped(''); }}
+            >
+              <Text style={styles.buttonSecondaryText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </>
+      ) : (
+        <View style={styles.sourceActions}>
+          <Pressable
+            accessibilityRole="button"
+            style={styles.buttonSecondary}
+            onPress={() => { setEditing(true); setTyped(source ? sourceLabel(source) : ''); }}
+          >
+            <Text style={styles.buttonSecondaryText}>{source?.configured ? 'Change' : 'Set repository'}</Text>
+          </Pressable>
+          {source?.configured && !source.connected && source.canConnect ? (
+            <Pressable accessibilityRole="button" style={styles.button} onPress={() => void tasks.connect()}>
+              <Text style={styles.buttonText}>Connect</Text>
+            </Pressable>
+          ) : null}
+          {source?.configured ? (
+            <Pressable accessibilityRole="button" style={styles.buttonSecondary} onPress={() => void tasks.forget()}>
+              <Text style={styles.cardTitleDanger}>Forget</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      )}
+
+      {source?.connected ? (
+        <Pressable accessibilityRole="button" style={styles.buttonSecondary} onPress={tasks.refresh}>
+          <Text style={styles.buttonSecondaryText}>Re-check</Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
@@ -850,6 +946,12 @@ const styles = StyleSheet.create({
   title: { color: agentUpTheme.colors.textPrimary, fontSize: 20, fontWeight: '700' },
   subtitle: { color: agentUpTheme.colors.textMuted, fontSize: 12 },
   body: { padding: agentUpTheme.spacing[4], gap: 10, paddingBottom: agentUpTheme.spacing[8] },
+  sourceActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  input: { ...auBox('input'), marginTop: 8 },
+  buttonSecondary: { ...auBox('button', 'buttonSecondary'), paddingHorizontal: 14 },
+  buttonSecondaryText: { color: agentUpTheme.colors.textPrimary, fontSize: 14, fontWeight: '600' },
+  buttonOff: auBox('buttonDisabled'),
+  ok: { color: agentUpTheme.colors.accentBright },
   board: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   // A fixed width rather than a share of the row: a tile stretched across a desktop window is a
   // very large box holding one small number.

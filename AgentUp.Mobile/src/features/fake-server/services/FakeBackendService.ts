@@ -215,6 +215,9 @@ export class FakeBackendService {
     if (method === 'GET' && path === '/api/tasks') return json(this.taskQueue());
     if (method === 'POST' && path === '/api/tasks') return this.enqueueTask(request.body);
     if (path.startsWith('/api/tasks/')) return this.taskMutation(method, path.slice('/api/tasks/'.length), request.body);
+    if (path.startsWith('/api/task-source'))
+      return this.taskSource(method, path + (request.query ?? ''), request.body ?? undefined);
+
     if (path.startsWith('/api/training'))
       return this.training(method, path + (request.query ?? ''), request.body ?? undefined);
     if (method === 'GET' && path.startsWith('/apps/')) return this.appPage(path);
@@ -412,6 +415,72 @@ export class FakeBackendService {
 
     return notFound();
   }
+
+  /**
+   * The Demo's own task source. It starts already pointed at the example repository and signed
+   * in, because the Demo is there to show the product working rather than to walk a reader
+   * through an OAuth round trip against a host that does not exist.
+   */
+  private taskSource(method: string, path: string, body: string | undefined): FakeBackendResponse {
+    const rest = path.slice('/api/task-source'.length);
+
+    if (method === 'GET' && (rest === '' || rest === '/')) return json(this.describeSource());
+
+    if (method === 'PUT') {
+      const asked = body ? (JSON.parse(body) as { moduleId?: string; owner?: string; repository?: string }) : {};
+      this.source = {
+        moduleId: asked.moduleId?.trim() || 'github',
+        owner: asked.owner?.trim() ?? '',
+        repository: asked.repository?.trim() ?? '',
+        connected: this.source?.connected ?? true,
+      };
+      return json(this.describeSource());
+    }
+
+    if (method === 'DELETE') {
+      this.source = null;
+      return json(this.describeSource());
+    }
+
+    if (method === 'POST' && rest === '/login') {
+      if (!this.source) return { status: 409, contentType: 'application/json', body: '{}' };
+      this.source = { ...this.source, connected: true };
+      return json({ authorizeUrl: 'https://example.test/login/oauth/authorize?demo=1' });
+    }
+
+    if (method === 'GET' && rest.startsWith('/issues')) {
+      // The Demo's issues belong to the example repository, which is the first workspace's.
+      const first = (this.state.workspaces[0] as { id?: string } | undefined)?.id;
+      return json(this.source?.connected && first ? this.openIssues(first) : []);
+    }
+
+    return notFound();
+  }
+
+  private describeSource() {
+    const source = this.source;
+    return {
+      moduleId: source?.moduleId ?? null,
+      owner: source?.owner ?? null,
+      repository: source?.repository ?? null,
+      configured: !!source && !!source.owner && !!source.repository,
+      connected: !!source?.connected,
+      canConnect: true,
+      detail: source?.connected
+        ? `Reading issues from ${source.owner}/${source.repository}.`
+        : source
+          ? `Sign in to read issues from ${source.owner}/${source.repository}.`
+          : 'Name the repository the agents take their work from.',
+      modules: [{ moduleId: 'github', displayName: 'GitHub' }],
+    };
+  }
+
+  private source: { moduleId: string; owner: string; repository: string; connected: boolean } | null = {
+    moduleId: 'github',
+    owner: 'example',
+    repository: 'repository',
+    connected: true,
+  };
 
   private decisions(): FakeProductDecision[] {
     return this.state.productDecisions ?? [];

@@ -7,6 +7,10 @@ using AgentUp.Registry.Composition;
 using AgentUp.Registry.Features.RemoteCatalog.Interfaces;
 using AgentUp.Registry.Features.RemoteCatalog.Providers;
 using AgentUp.Server.Features.Training.Controllers;
+using AgentUp.Server.Features.TaskSource.Interfaces;
+using AgentUp.Server.Features.TaskSource.Providers;
+using AgentUp.Server.Features.TaskSource.Services;
+using AgentUp.Server.Features.TaskSource.Controllers;
 using AgentUp.Server.Features.Training.Interfaces;
 using AgentUp.Server.Features.Training.Providers;
 using AgentUp.Server.Features.Training.Services;
@@ -229,6 +233,13 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<ForgeService>();
         builder.Services.AddSingleton<ForgeController>();
         builder.Services.AddSingleton<ITaskQueueStore>(_ => new JsonTaskQueueStore(dataDir));
+        // The repository the agents take work from, named once for the Server rather than
+        // inferred from whichever workspace a reader happened to open.
+        builder.Services.AddSingleton<ITaskSourceStore>(_ => new JsonTaskSourceStore(dataDir));
+        builder.Services.AddSingleton<ITaskSourceCredentialStore>(_ => new JsonTaskSourceCredentialStore(dataDir));
+        builder.Services.AddSingleton<ITaskSourceStateStore, TaskSourceStateStore>();
+        builder.Services.AddSingleton<TaskSourceService>();
+        builder.Services.AddSingleton<TaskSourceController>();
         builder.Services.AddSingleton<TaskQueueService>();
         builder.Services.AddSingleton<TaskPickingService>();
         builder.Services.AddSingleton<TaskQueueController>();

@@ -15,11 +15,7 @@ public sealed class TaskQueueController(TaskQueueService queue, TaskPickingServi
         EnqueueTaskRequest request,
         CancellationToken cancellationToken = default)
     {
-        var task = await picking.PickAsync(
-            request.WorkspaceId,
-            request.IssueId,
-            request.TargetWorkspaceId,
-            cancellationToken);
+        var task = await picking.PickAsync(request, cancellationToken);
         return task is null ? null : Dto(task);
     }
 

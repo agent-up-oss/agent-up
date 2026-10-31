@@ -121,7 +121,10 @@ public sealed class TaskQueueControllerTests
             new FixedForgeOAuthExchange("token"));
         var tasks = new TaskQueueService(new MemoryTaskQueueStore());
         var forge = new ForgeController(service);
-        return (new TaskQueueController(tasks, new TaskPickingService(tasks, forge)), tasks, workspace.Id);
+        return (
+            new TaskQueueController(tasks, new TaskPickingService(tasks, forge, TaskSourceComposition.Controller())),
+            tasks,
+            workspace.Id);
     }
 
     private sealed class MemoryTaskQueueStore : ITaskQueueStore

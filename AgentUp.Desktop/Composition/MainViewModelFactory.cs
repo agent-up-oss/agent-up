@@ -115,6 +115,7 @@ public static class MainViewModelFactory
         CommandCenterViewModel? commandCenter = null,
         ITaskQueueApiProvider? taskQueueClient = null,
         ITrainingApiProvider? trainingClient = null,
+        ITaskSourceApiProvider? taskSourceClient = null,
         IReviewReportSavePrompt? reviewReportSave = null,
         IDecisionExportSink? decisionExport = null)
     {
@@ -180,7 +181,10 @@ public static class MainViewModelFactory
                     ? null
                     : new TrainingViewModel(
                         new TrainingController(new TrainingService(trainingClient)),
-                        decisionExport)));
+                        decisionExport),
+                taskSourceClient is null
+                    ? null
+                    : new TaskSourceViewModel(new TaskSourceController(new TaskSourceService(taskSourceClient)))));
     }
 
     public static MainViewModel Create(
@@ -206,6 +210,7 @@ public static class MainViewModelFactory
             commandCenter: commandCenter,
             taskQueueClient: new TaskQueueApiClient(http),
             trainingClient: new TrainingApiClient(http),
+            taskSourceClient: new TaskSourceApiClient(http),
             reviewReportSave: reviewReportSave,
             decisionExport: decisionExport);
     }

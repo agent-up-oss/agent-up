@@ -125,6 +125,8 @@ public sealed class FakeBackendService
             return EnqueueTask(request.Body);
         if (path.StartsWith("/api/tasks/", StringComparison.Ordinal))
             return TaskMutation(method, path["/api/tasks/".Length..], request.Body);
+        if (path.StartsWith("/api/task-source", StringComparison.Ordinal))
+            return TaskSourceRoute(method, path["/api/task-source".Length..], request.Body);
         if (path.StartsWith("/api/training", StringComparison.Ordinal))
             return TrainingRoute(method, path["/api/training".Length..], request);
         if (method == "GET" && path.StartsWith("/apps/", StringComparison.Ordinal))
@@ -999,6 +1001,86 @@ public sealed class FakeBackendService
     /// </summary>
     private const string DemoOwner = "example";
     private const string DemoRepository = "repository";
+
+    /// <summary>
+    /// The Demo's own task source.
+    ///
+    /// It starts pointed at the example repository and signed in: the Demo exists to show the
+    /// product working, not to walk a reader through an OAuth round trip against a host that is
+    /// not there. Naming another repository and signing in again still behave as they would.
+    /// </summary>
+    private FakeBackendResponseDto TaskSourceRoute(string method, string rest, string? body)
+    {
+        lock (_gate)
+        {
+            if (method == "GET" && rest is "" or "/")
+                return Json(DescribeSource());
+
+            if (method == "PUT")
+            {
+                _sourceOwner = ReadJsonString(body, "owner")?.Trim() ?? string.Empty;
+                _sourceRepository = ReadJsonString(body, "repository")?.Trim() ?? string.Empty;
+                _sourceModule = ReadJsonString(body, "moduleId")?.Trim() is { Length: > 0 } module ? module : "github";
+                return Json(DescribeSource());
+            }
+
+            if (method == "DELETE")
+            {
+                _sourceOwner = string.Empty;
+                _sourceRepository = string.Empty;
+                _sourceConnected = false;
+                return Json(DescribeSource());
+            }
+
+            if (method == "POST" && rest == "/login")
+            {
+                if (_sourceOwner.Length == 0 || _sourceRepository.Length == 0)
+                    return new FakeBackendResponseDto(409, "application/json", "{}");
+                _sourceConnected = true;
+                return Json(new JsonObject
+                {
+                    ["authorizeUrl"] = "https://example.test/login/oauth/authorize?demo=1"
+                });
+            }
+
+            if (method == "GET" && rest.StartsWith("/issues", StringComparison.Ordinal))
+            {
+                var first = _state.Workspaces.OfType<JsonObject>().FirstOrDefault()?["id"]?.GetValue<string>();
+                return Json(_sourceConnected && first is not null ? OpenIssues(first) : new JsonArray());
+            }
+
+            return NotFound();
+        }
+    }
+
+    private JsonObject DescribeSource()
+    {
+        var configured = _sourceOwner.Length > 0 && _sourceRepository.Length > 0;
+        return new JsonObject
+        {
+            ["moduleId"] = configured ? _sourceModule : null,
+            ["owner"] = configured ? _sourceOwner : null,
+            ["repository"] = configured ? _sourceRepository : null,
+            ["configured"] = configured,
+            ["connected"] = configured && _sourceConnected,
+            ["canConnect"] = true,
+            ["detail"] = !configured
+                ? "Name the repository the agents take their work from."
+                : _sourceConnected
+                    ? $"Reading issues from {_sourceOwner}/{_sourceRepository}."
+                    : $"Sign in to read issues from {_sourceOwner}/{_sourceRepository}.",
+            ["modules"] = new JsonArray(new JsonObject
+            {
+                ["moduleId"] = "github",
+                ["displayName"] = "GitHub"
+            })
+        };
+    }
+
+    private string _sourceModule = "github";
+    private string _sourceOwner = DemoOwner;
+    private string _sourceRepository = DemoRepository;
+    private bool _sourceConnected = true;
 
     /// <summary>
     /// The decision backlog the Train surface reads.

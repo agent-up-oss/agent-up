@@ -134,6 +134,14 @@ public static class DesktopAutomationIds
     public const string GitDiffDismiss = "git.diff.dismiss";
     public const string CapabilityClose = "capability.close";
 
+    public const string TaskSourceEdit = "task-source.edit";
+    public const string TaskSourceRepository = "task-source.repository";
+    public const string TaskSourceSave = "task-source.save";
+    public const string TaskSourceCancel = "task-source.cancel";
+    public const string TaskSourceConnect = "task-source.connect";
+    public const string TaskSourceForget = "task-source.forget";
+    public const string TaskSourceRefresh = "task-source.refresh";
+
     public const string TrainExport = "train.export";
     public const string TrainBack = "train.back";
     public const string TrainPrevious = "train.previous";

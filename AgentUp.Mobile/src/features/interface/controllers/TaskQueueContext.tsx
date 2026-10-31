@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import {
   inProgress,
@@ -9,6 +10,7 @@ import {
   type QueuedTask,
 } from '../models/TaskQueue';
 import { moveTask, pickIssue, readIssues, readQueue, releaseTask, removeTask } from '../providers/TaskQueueProvider';
+import { readSourceIssues, readTaskSource } from '../providers/TaskSourceProvider';
 
 /** How often the Tasks tab re-reads the queue, matching the bridge's own refresh. */
 const taskQueueRefreshMs = 10_000;
@@ -66,9 +68,12 @@ export function useTaskQueue(): TaskQueueState {
     const ticket = ++newest.current;
     setLoading(true);
     try {
+      // The Server's own task source is where issues come from once one is configured. Only when
+      // none is does the opened workspace's repository stand in, which is how a Server that was
+      // never pointed anywhere still offers something to pick.
       const [queued, open] = await Promise.all([
         readQueue(server),
-        offeringWorkspaceId === null ? Promise.resolve([]) : readIssues(server, offeringWorkspaceId),
+        offeredIssues(server, offeringWorkspaceId),
       ]);
       if (ticket !== newest.current) return;
       setQueue(queued);
@@ -130,4 +135,19 @@ export function useTaskQueue(): TaskQueueState {
       void change(() => moveTask(server, task, queueIndexFor(queue, task, index)));
     },
   };
+}
+
+/**
+ * The issues a reader can pick from.
+ *
+ * A configured source answers for the whole Server. Without one, the opened workspace's own
+ * repository answers, which is what every Server did before a source could be named.
+ */
+async function offeredIssues(
+  server: ServerSession,
+  offeringWorkspaceId: string | null,
+): Promise<OfferedIssue[]> {
+  const source = await readTaskSource(server);
+  if (source?.configured) return readSourceIssues(server);
+  return offeringWorkspaceId === null ? [] : readIssues(server, offeringWorkspaceId);
 }
