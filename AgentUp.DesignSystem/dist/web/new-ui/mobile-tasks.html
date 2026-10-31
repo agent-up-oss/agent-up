@@ -15,12 +15,54 @@
 <div class="aun-frame">
 <div class="aun-phone">
       <header class="aun-phone__head"><div class="aun-phone__head-row">
-        <span class="aun-phone__head-copy"><span class="aun-phone__title">Tasks</span></span>
+        <div class="aun-phone__head-copy"><h1 class="au-page-title">Tasks</h1></div>
       </div></header>
-      <div class="aun-phone__body"><div>
-        <p class="aun-rail__section">IN PROGRESS</p>
-        <p class="aun-rail__section">QUEUE</p>
-        <p class="aun-rail__section">OPEN ISSUES</p>
+      <div class="aun-phone__body"><div class="aun-task-board">
+        <div class="aun-group">
+        <p class="au-field-label">In progress · 1</p>
+        <div class="aun-task-row">
+          <span class="aun-task-row__body">
+            <span class="aun-task-row__title">#44 · Restock featured products</span>
+            <span class="aun-task-row__agent">Bob</span>
+            <span class="aun-task-row__repo">example/repository</span>
+          </span>
+          <button class="aun-btn aun-btn--danger" type="button">Stop</button>
+        </div>
+        </div>
+        <div class="aun-group">
+        <p class="au-field-label">Queue · 2</p>
+        <div class="aun-task-row">
+          <span class="aun-task__grip" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="aun-task-row__body">
+            <span class="aun-task-row__title">#51 · Broken anchors in the docs nav</span>
+            <span class="aun-task-row__repo">example/repository</span>
+          </span>
+          <button class="aun-btn aun-btn--danger" type="button">Dequeue</button>
+        </div>
+        <div class="aun-task-row">
+          <span class="aun-task__grip" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="aun-task-row__body">
+            <span class="aun-task-row__title">#48 · Express checkout drops the promo code</span>
+            <span class="aun-task-row__repo">example/repository</span>
+          </span>
+          <button class="aun-btn aun-btn--danger" type="button">Dequeue</button>
+        </div>
+        </div>
+        <div class="aun-group">
+        <p class="au-field-label">Open issues · 3</p>
+        <div class="aun-task-row">
+          <span class="aun-task-row__body"><span class="aun-task-row__title">#57 · Cart badge lags behind the cart</span></span>
+          <button class="aun-btn aun-btn--primary" type="button">Queue</button>
+        </div>
+        <div class="aun-task-row">
+          <span class="aun-task-row__body"><span class="aun-task-row__title">#58 · Search ignores a trailing space</span></span>
+          <button class="aun-btn aun-btn--primary" type="button">Queue</button>
+        </div>
+        <div class="aun-task-row">
+          <span class="aun-task-row__body"><span class="aun-task-row__title">#61 · Order confirmation email omits tax</span></span>
+          <button class="aun-btn aun-btn--primary" type="button">Queue</button>
+        </div>
+        </div>
       </div></div>
       <div class="au-mobile-tab-bar" role="tablist">
         <button class="au-subtab au-nav-tab" type="button">

@@ -11,6 +11,14 @@
   -->
   <section data-au-surface="new-ui" data-au-title="New UI" data-au-intro="Command center modules taken from the Desktop and Mobile views.">
 
+    <article data-au-component="page-title" data-au-title="Page title" data-au-note="The product page headline. Screens and heads pass the words; the type stays this one class." data-au-avalonia="TextBlock" data-au-class="au-page-title">
+      <h1 class="au-page-title" data-au-text="title">Tasks</h1>
+    </article>
+
+    <article data-au-component="section-label" data-au-title="Section label" data-au-note="The small headline above a group. Settings and Tasks use this same label." data-au-avalonia="TextBlock" data-au-class="au-field-label">
+      <p class="au-field-label" data-au-text="label">In progress · 1</p>
+    </article>
+
     <article data-au-component="sidebar" data-au-title="Sidebar" data-au-note="Desktop only. Team, Tasks, and Settings. Workspaces are sub-options under Team, five at most; a longer list keeps Load more. The rail does not collapse. Add stays, on the right of Team. Logout lives on Settings." data-au-avalonia="Border" data-au-class="au-screen-rail" data-au-states="nav=aun-nav/aun-nav--current" data-au-parts=" ">
       <aside class="au-rail au-screen-rail" aria-label="Sidebar">
         <div class="aun-nav-row">
@@ -46,8 +54,8 @@
 
     <article data-au-component="settings-panel" data-au-title="Settings panel" data-au-note="Forge connection, capability modules, and Login. Each group has the same small headline." data-au-avalonia="Border" data-au-class="aun-settings">
       <div class="aun-settings">
-        <div class="aun-settings__group">
-          <p class="au-field-label">Forge connection</p>
+        <div class="aun-group">
+          <div data-au-use="section-label" data-au-props="label=Forge connection"></div>
           <div class="aun-settings__list">
             <div class="aun-settings__row">
               <span class="aun-settings__name">Task source</span>
@@ -55,8 +63,8 @@
             </div>
           </div>
         </div>
-        <div class="aun-settings__group">
-          <p class="au-field-label">Capabilities</p>
+        <div class="aun-group">
+          <div data-au-use="section-label" data-au-props="label=Capabilities"></div>
           <div class="aun-settings__list">
             <div class="aun-settings__row">
               <span class="aun-settings__id"><span class="aun-settings__name">.NET</span><span class="aun-settings__state"><span class="au-status-dot au-status-dot--healthy"></span>Ready</span></span>
@@ -80,8 +88,8 @@
             </div>
           </div>
         </div>
-        <div class="aun-settings__group">
-          <p class="au-field-label">Login</p>
+        <div class="aun-group">
+          <div data-au-use="section-label" data-au-props="label=Login"></div>
           <div class="aun-settings__list">
             <div class="aun-settings__row">
               <span class="aun-settings__name">Demo</span>
@@ -102,7 +110,7 @@
 
     <article data-au-component="bridge-heading" data-au-title="Bridge heading" data-au-note="Desktop bridge title and the headline the view binds." data-au-avalonia="Border" data-au-class="aun-main">
       <div>
-        <h1 class="aun-phone__title">Team</h1>
+        <div data-au-use="page-title" data-au-props="title=Team"></div>
         <p class="aun-muted">Reading the team…</p>
       </div>
     </article>
@@ -173,33 +181,33 @@
 
     <article data-au-component="mobile-head-team" data-au-title="Mobile Team head" data-au-note="Team and the fleet headline. The phone has no drawer." data-au-avalonia="Border" data-au-class="aun-phone__head-row">
       <div class="aun-phone__head-row">
-        <span class="aun-phone__head-copy"><span class="aun-phone__title">Team</span><span class="aun-phone__subtitle">Reading the team…</span></span>
+        <div class="aun-phone__head-copy"><div data-au-use="page-title" data-au-props="title=Team"></div><span class="aun-phone__subtitle">Reading the team…</span></div>
       </div>
     </article>
 
     <article data-au-component="mobile-head-tasks" data-au-title="Mobile Tasks head" data-au-note="Tasks. The phone has no drawer." data-au-avalonia="Border" data-au-class="aun-phone__head-row">
       <div class="aun-phone__head-row">
-        <span class="aun-phone__head-copy"><span class="aun-phone__title">Tasks</span></span>
+        <div class="aun-phone__head-copy"><div data-au-use="page-title" data-au-props="title=Tasks"></div></div>
       </div>
     </article>
 
     <article data-au-component="mobile-head-settings" data-au-title="Mobile Settings head" data-au-note="Settings. The phone has no drawer." data-au-avalonia="Border" data-au-class="aun-phone__head-row">
       <div class="aun-phone__head-row">
-        <span class="aun-phone__head-copy"><span class="aun-phone__title">Settings</span></span>
+        <div class="aun-phone__head-copy"><div data-au-use="page-title" data-au-props="title=Settings"></div></div>
       </div>
     </article>
 
     <article data-au-component="mobile-application-head" data-au-title="Mobile application head" data-au-note="An open application is an inner page: a chevron back to Apps, and the application name. No reload." data-au-avalonia="Border" data-au-class="aun-agent-head">
       <div class="aun-agent-head">
         <button type="button" class="aun-agent-back" aria-label="Go back">‹</button>
-        <span class="aun-phone__head-copy"><span class="aun-phone__title">Storefront</span></span>
+        <div class="aun-phone__head-copy"><div data-au-use="page-title" data-au-props="title=Storefront"></div></div>
       </div>
     </article>
 
     <article data-au-component="mobile-agent-head" data-au-title="Mobile agent head" data-au-note="Back is a chevron, the workspace name sits above its branch, and Reload is accent text. No boxed control." data-au-avalonia="Border" data-au-class="aun-agent-head">
       <div class="aun-agent-head">
         <button type="button" class="aun-agent-back" aria-label="Back to the team">‹</button>
-        <span class="aun-phone__head-copy"><span class="aun-phone__title">Harbor Shop</span><span class="aun-phone__subtitle">main</span></span>
+        <div class="aun-phone__head-copy"><div data-au-use="page-title" data-au-props="title=Harbor Shop"></div><span class="aun-phone__subtitle">main</span></div>
         <button type="button" class="aun-agent-reload">Reload</button>
       </div>
     </article>
@@ -245,11 +253,54 @@
       </div>
     </article>
 
-    <article data-au-component="mobile-tasks" data-au-title="Mobile tasks" data-au-note="In progress, queue, and open issues." data-au-avalonia="Border" data-au-class="aun-card">
-      <div>
-        <p class="aun-rail__section">IN PROGRESS</p>
-        <p class="aun-rail__section">QUEUE</p>
-        <p class="aun-rail__section">OPEN ISSUES</p>
+    <article data-au-component="task-board" data-au-title="Task board" data-au-note="The Demo queue: one task in progress, two waiting, and three open issues. Desktop keeps the page title; the phone puts that title in its head." data-au-avalonia="Border" data-au-class="aun-task-board" data-au-parts="title">
+      <div class="aun-task-board">
+        <div data-au-part="title" data-au-use="page-title" data-au-props="title=Tasks"></div>
+        <div class="aun-group">
+        <div data-au-use="section-label" data-au-props="label=In progress · 1"></div>
+        <div class="aun-task-row">
+          <span class="aun-task-row__body">
+            <span class="aun-task-row__title">#44 · Restock featured products</span>
+            <span class="aun-task-row__agent">Bob</span>
+            <span class="aun-task-row__repo">example/repository</span>
+          </span>
+          <button class="aun-btn aun-btn--danger" type="button">Stop</button>
+        </div>
+        </div>
+        <div class="aun-group">
+        <div data-au-use="section-label" data-au-props="label=Queue · 2"></div>
+        <div class="aun-task-row">
+          <span class="aun-task__grip" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="aun-task-row__body">
+            <span class="aun-task-row__title">#51 · Broken anchors in the docs nav</span>
+            <span class="aun-task-row__repo">example/repository</span>
+          </span>
+          <button class="aun-btn aun-btn--danger" type="button">Dequeue</button>
+        </div>
+        <div class="aun-task-row">
+          <span class="aun-task__grip" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="aun-task-row__body">
+            <span class="aun-task-row__title">#48 · Express checkout drops the promo code</span>
+            <span class="aun-task-row__repo">example/repository</span>
+          </span>
+          <button class="aun-btn aun-btn--danger" type="button">Dequeue</button>
+        </div>
+        </div>
+        <div class="aun-group">
+        <div data-au-use="section-label" data-au-props="label=Open issues · 3"></div>
+        <div class="aun-task-row">
+          <span class="aun-task-row__body"><span class="aun-task-row__title">#57 · Cart badge lags behind the cart</span></span>
+          <button class="aun-btn aun-btn--primary" type="button">Queue</button>
+        </div>
+        <div class="aun-task-row">
+          <span class="aun-task-row__body"><span class="aun-task-row__title">#58 · Search ignores a trailing space</span></span>
+          <button class="aun-btn aun-btn--primary" type="button">Queue</button>
+        </div>
+        <div class="aun-task-row">
+          <span class="aun-task-row__body"><span class="aun-task-row__title">#61 · Order confirmation email omits tax</span></span>
+          <button class="aun-btn aun-btn--primary" type="button">Queue</button>
+        </div>
+        </div>
       </div>
     </article>
 

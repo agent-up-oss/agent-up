@@ -284,6 +284,39 @@
   padding: var(--au-space-4) var(--au-space-5);
 }
 
+.aun-task-board {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--au-space-5);
+  width: min(100%, 36rem);
+}
+.aun-group { display: flex; flex-direction: column; gap: var(--au-space-2); }
+.aun-task-row {
+  display: flex;
+  align-items: center;
+  gap: var(--au-space-3);
+  min-height: 4rem;
+  padding: var(--au-space-3) var(--au-space-4);
+  border: var(--au-stroke) solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-lg);
+  background: var(--au-color-surface);
+}
+.aun-task-row__body { display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0; }
+.aun-task-row__title {
+  overflow: hidden;
+  color: var(--au-color-text-primary);
+  font-size: var(--au-font-size-ui-md);
+  font-weight: var(--au-weight-ui-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aun-task-row__agent { color: var(--au-color-text-secondary); font-size: var(--au-font-size-ui-sm); }
+.aun-task-row__repo { color: var(--au-color-text-muted); font-size: var(--au-font-size-ui-sm); }
+.aun-task__grip { display: flex; flex: 0 0 auto; flex-direction: column; gap: 3px; }
+.aun-task__grip span { width: 18px; height: 2px; border-radius: 1px; background: var(--au-color-text-muted); }
+.aun-task-row > .aun-btn { flex: 0 0 auto; }
+
 .aun-settings {
   align-self: center;
   display: flex;
@@ -291,7 +324,6 @@
   gap: var(--au-space-5);
   width: min(100%, 36rem);
 }
-.aun-settings__group { display: flex; flex-direction: column; gap: var(--au-space-2); }
 .aun-settings__list {
   border: var(--au-stroke) solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-lg);
@@ -546,7 +578,6 @@
 .aun-phone__head { padding: var(--au-space-3) var(--au-space-4); border-bottom: var(--au-stroke) solid var(--au-color-border-subtle); flex-shrink: 0; }
 .aun-phone__head-row { display: flex; align-items: center; gap: var(--au-space-2); }
 .aun-phone__head-copy { flex: 1 1 auto; min-width: 0; }
-.aun-phone__title { display: block; font-size: 20px; font-weight: 700; }
 .aun-phone__subtitle { display: block; overflow: hidden; color: var(--au-color-text-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .aun-phone__body { flex-grow: 1; overflow-y: auto; padding: var(--au-space-4); display: flex; flex-direction: column; gap: 10px; }
 

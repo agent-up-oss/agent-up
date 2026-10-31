@@ -836,6 +836,20 @@ test('new UI screens pair desktop and mobile instead of a chip per surface', asy
   assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Capabilities</);
   assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Login</);
   assert.doesNotMatch(scenes.find(item => item.id === 'team').html, />Capabilities</);
+  assert.match(scenes.find(item => item.id === 'tasks').html, /class="au-page-title"/);
+  assert.match(scenes.find(item => item.id === 'tasks').html, /class="au-field-label"/);
+  assert.match(scenes.find(item => item.id === 'settings').html, /class="au-field-label"/);
+  assert.match(scenes.find(item => item.id === 'mobile-tasks').html, /class="au-page-title"/);
+  assert.doesNotMatch(scenes.find(item => item.id === 'tasks').html, /aun-phone__title/);
+  assert.match(scenes.find(item => item.id === 'tasks').html, /Restock featured products/);
+  assert.match(scenes.find(item => item.id === 'tasks').html, />Bob</);
+  assert.match(scenes.find(item => item.id === 'tasks').html, />Dequeue</);
+  assert.doesNotMatch(scenes.find(item => item.id === 'tasks').html, /Reported/);
+  assert.doesNotMatch(scenes.find(item => item.id === 'tasks').html, /waiting on you/);
+  assert.doesNotMatch(scenes.find(item => item.id === 'mobile-tasks').html, /waiting on you/);
+  assert.match(scenes.find(item => item.id === 'mobile-tasks').html, /Restock featured products/);
+  assert.match(scenes.find(item => item.id === 'mobile-tasks').html, />Queue</);
+  assert.doesNotMatch(scenes.find(item => item.id === 'tasks').html, /Nothing is queued/);
   assert.match(scenes.find(item => item.id === 'agent-overview').html, /au-workspace--selected/);
   assert.doesNotMatch(scenes.find(item => item.id === 'team').html, /au-workspace--selected/);
   for (const scene of scenes.filter(item => item.surface === 'mobile')) {

@@ -69,18 +69,53 @@
           
           
           
-          <div class="au-screen-pane"><div class="aun-card">
-        <p class="aun-rail__section">QUEUE</p>
-        <p class="aun-faint">Nothing is queued, so the agents have nothing to take. Pick an issue below.</p>
-        <p class="aun-rail__section">OPEN ISSUES</p>
-        <p class="aun-faint">Open a workspace to see the issues on its repository.</p>
-      </div><div class="aun-card">
-        <p class="aun-rail__section">TASKS</p>
-        <p class="aun-faint">TASK</p>
-        <p class="aun-faint">STATE</p>
-        <p class="aun-faint">ASSIGNED TO</p>
-        <p class="aun-faint">No agent reports a task in hand.</p>
-        <p class="aun-faint">These are the tasks the agents report holding. Unassigned issues live on the repository host; this Server does not expose its queue to clients, so they are not listed here.</p>
+          <div class="au-screen-pane"><div class="aun-task-board">
+        <h1 class="au-page-title">Tasks</h1>
+        <div class="aun-group">
+        <p class="au-field-label">In progress · 1</p>
+        <div class="aun-task-row">
+          <span class="aun-task-row__body">
+            <span class="aun-task-row__title">#44 · Restock featured products</span>
+            <span class="aun-task-row__agent">Bob</span>
+            <span class="aun-task-row__repo">example/repository</span>
+          </span>
+          <button class="aun-btn aun-btn--danger" type="button">Stop</button>
+        </div>
+        </div>
+        <div class="aun-group">
+        <p class="au-field-label">Queue · 2</p>
+        <div class="aun-task-row">
+          <span class="aun-task__grip" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="aun-task-row__body">
+            <span class="aun-task-row__title">#51 · Broken anchors in the docs nav</span>
+            <span class="aun-task-row__repo">example/repository</span>
+          </span>
+          <button class="aun-btn aun-btn--danger" type="button">Dequeue</button>
+        </div>
+        <div class="aun-task-row">
+          <span class="aun-task__grip" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="aun-task-row__body">
+            <span class="aun-task-row__title">#48 · Express checkout drops the promo code</span>
+            <span class="aun-task-row__repo">example/repository</span>
+          </span>
+          <button class="aun-btn aun-btn--danger" type="button">Dequeue</button>
+        </div>
+        </div>
+        <div class="aun-group">
+        <p class="au-field-label">Open issues · 3</p>
+        <div class="aun-task-row">
+          <span class="aun-task-row__body"><span class="aun-task-row__title">#57 · Cart badge lags behind the cart</span></span>
+          <button class="aun-btn aun-btn--primary" type="button">Queue</button>
+        </div>
+        <div class="aun-task-row">
+          <span class="aun-task-row__body"><span class="aun-task-row__title">#58 · Search ignores a trailing space</span></span>
+          <button class="aun-btn aun-btn--primary" type="button">Queue</button>
+        </div>
+        <div class="aun-task-row">
+          <span class="aun-task-row__body"><span class="aun-task-row__title">#61 · Order confirmation email omits tax</span></span>
+          <button class="aun-btn aun-btn--primary" type="button">Queue</button>
+        </div>
+        </div>
       </div></div>
         </main>
       </div>
