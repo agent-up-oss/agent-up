@@ -117,7 +117,35 @@
 .aun-rail__agent .aun-glyph--running { color: var(--au-color-text-info); }
 .aun-rail__agent .aun-glyph--halted { color: var(--au-color-text-danger); }
 
-.au-screen-rail .aun-rail__switch { margin-top: auto; }
+.aun-nav-row { display: flex; align-items: center; gap: var(--au-space-2); }
+.aun-nav-row > .aun-nav { flex: 1 1 auto; min-width: 0; }
+.aun-nav-subs { display: flex; flex-direction: column; padding-left: var(--au-space-4); }
+.aun-nav {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: var(--au-space-2) var(--au-space-3);
+  border: 0;
+  border-radius: var(--au-radius-sm);
+  background: transparent;
+  color: var(--au-color-text-secondary);
+  font: inherit;
+  font-size: var(--au-font-size-ui-md);
+  font-weight: var(--au-weight-ui-strong);
+  text-align: left;
+}
+.aun-nav--current {
+  background: var(--au-color-surface-selected);
+  color: var(--au-color-text-primary);
+}
+.aun-nav-subs .aun-rail__link {
+  padding: var(--au-space-2) var(--au-space-3);
+  color: var(--au-color-text-muted);
+  background: transparent;
+  border: 0;
+  text-align: left;
+  font: inherit;
+}
 
 .aun-rail__switch {
   width: 100%;

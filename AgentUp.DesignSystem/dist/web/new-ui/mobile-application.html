@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent · Application — Agent-Up new UI</title>
+  <link rel="stylesheet" href="../new-ui.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
+    .aun-frame { width: 390px; height: 844px; overflow: hidden; display: flex; }
+    .aun-frame > * { flex: 1 1 auto; min-width: 0; }
+  </style>
+</head>
+<body>
+<div class="aun-frame">
+<div class="aun-phone">
+      <header class="aun-phone__head"><div class="aun-agent-head">
+        <button type="button" class="aun-agent-back" aria-label="Go back">‹</button>
+        <span class="aun-phone__head-copy"><span class="aun-phone__title">Storefront</span></span>
+      </div></header>
+      <div class="aun-phone__body"><div class="au-storefront">
+        <p class="au-field-label">Storefront</p>
+        <h1 class="au-page-title">Harbor Shop</h1>
+        <p class="au-muted">Featured goods from the harbor catalog.</p>
+        <div class="au-storefront-grid">
+          <div class="au-card">
+            <strong>Harbor Mug</strong>
+            <p class="au-muted">Stoneware, fog glaze</p>
+            <p class="au-accent">$18</p>
+            <button class="au-button au-button--compact" type="button">Add to cart</button>
+          </div>
+          <div class="au-card">
+            <strong>Canvas Tote</strong>
+            <p class="au-muted">Waxed canvas, brass snap</p>
+            <p class="au-accent">$32</p>
+            <button class="au-button au-button--compact" type="button">Add to cart</button>
+          </div>
+          <div class="au-card">
+            <strong>Chart Lamp</strong>
+            <p class="au-muted">Brass shade, linen cord</p>
+            <p class="au-accent">$54</p>
+            <button class="au-button au-button--compact" type="button">Add to cart</button>
+          </div>
+        </div>
+        <div class="au-card">
+          <strong>Cart</strong>
+          <div class="au-cart-row"><span>Harbor Mug × 1</span><span>$18</span></div>
+          <div class="au-cart-row"><span>Canvas Tote × 1</span><span>$32</span></div>
+          <div class="au-cart-row"><strong>Total</strong><strong class="au-accent">$50</strong></div>
+          <button class="au-button au-button--compact" type="button">Place order</button>
+        </div>
+        <h2 class="au-heading">Recent orders</h2>
+        <div class="au-card">
+          <div class="au-cart-row"><span>Harbor Mug × 1</span><span class="au-accent">$18</span></div>
+        </div>
+      </div><div class="au-validation-dock">
+        <button class="au-title-tool au-chrome-icon" type="button">▶</button>
+        <div class="au-validation-dock-copy">
+          <strong>Checkout featured goods</strong>
+          <p class="au-muted">Starting page</p>
+        </div>
+        <button class="au-title-tool au-chrome-icon" type="button"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></button>
+      </div></div>
+      <div class="au-mobile-tab-bar" role="tablist">
+        <button class="au-subtab au-nav-tab au-subtab--selected" type="button">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 19v-1.2a3.8 3.8 0 0 0-3.8-3.8H6.8A3.8 3.8 0 0 0 3 17.8V19"></path><circle cx="9" cy="7.2" r="3.2"></circle><path d="M21 19v-1.2a3.8 3.8 0 0 0-2.9-3.7"></path><path d="M16.2 4.2a3.2 3.2 0 0 1 0 6"></path></svg>
+          Team
+        </button>
+        <button class="au-subtab au-nav-tab" type="button">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"></path><path d="m3.5 5.8 1.3 1.3L7.4 4.5"></path><path d="m3.5 11.8 1.3 1.3L7.4 10.5"></path><path d="M4 18h1.5"></path></svg>
+          Tasks
+        </button>
+        <button class="au-subtab au-nav-tab" type="button">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Settings
+        </button>
+      </div>
+    </div>
+</div>
+</body>
+</html>

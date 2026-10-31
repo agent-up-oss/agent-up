@@ -790,35 +790,45 @@ async function assembleNewUi() {
 test('new UI screens pair desktop and mobile instead of a chip per surface', async () => {
   const { screens, scenes } = await assembleNewUi();
   assert.deepEqual(screens.map(item => item.id), [
-    'bridge', 'train', 'tasks', 'team', 'agent-overview', 'agent-chat',
-    'agent-git', 'application', 'settings', 'sidebar', 'menu',
+    'team', 'agent-overview', 'application', 'agent-chat',
+    'agent-git', 'tasks', 'settings',
   ]);
   assert.deepEqual(screens.map(item => item.title), [
-    'Bridge', 'Train', 'Tasks', 'Team', 'Agent · Overview', 'Agent · Chat',
-    'Agent · Git', 'Application', 'Settings', 'Sidebar', 'Menu',
+    'Team', 'Agent · Overview', 'Agent · Application', 'Agent · Chat',
+    'Agent · Git', 'Tasks', 'Settings',
   ]);
-  const bridge = screens.find(item => item.id === 'bridge');
-  assert.equal(bridge.desktopId, 'bridge');
-  assert.equal(bridge.mobileId, 'mobile-bridge');
-  const train = screens.find(item => item.id === 'train');
-  assert.equal(train.desktopId, '');
-  assert.equal(train.mobileId, 'mobile-train');
+  const team = screens.find(item => item.id === 'team');
+  assert.equal(team.desktopId, 'team');
+  assert.equal(team.mobileId, 'mobile-team');
   const application = screens.find(item => item.id === 'application');
-  assert.equal(application.mobileId, '');
-  const sidebar = screens.find(item => item.id === 'sidebar');
-  assert.equal(sidebar.desktopId, 'sidebar');
-  assert.equal(sidebar.mobileId, '');
-  const menu = screens.find(item => item.id === 'menu');
-  assert.equal(menu.desktopId, '');
-  assert.equal(menu.mobileId, 'mobile-menu');
+  assert.equal(application.desktopId, 'application');
+  assert.equal(application.mobileId, 'mobile-application');
+  assert.equal(screens.some(item => item.id === 'menu' || item.id === 'bridge' || item.id === 'train' || item.id === 'sidebar'), false);
   for (const scene of scenes.filter(item => item.surface === 'desktop')) {
     assert.match(scene.html, /aria-label="Sidebar"/, `${scene.id} is missing the sidebar`);
     assert.match(scene.html, /SERVER ONLINE/, `${scene.id} is missing the window bar`);
     assert.match(scene.html, /Harbor Shop/, `${scene.id} is missing a workspace`);
+    assert.match(scene.html, /Add workspace/, `${scene.id} is missing Add`);
+    assert.match(scene.html, />Team</, `${scene.id} is missing Team`);
+    assert.match(scene.html, />Tasks</, `${scene.id} is missing Tasks`);
+    assert.match(scene.html, />Settings</, `${scene.id} is missing Settings`);
     assert.doesNotMatch(scene.html, /‹ Team/, `${scene.id} still has a Team back button`);
-    assert.doesNotMatch(scene.html, /no workspaces yet/, `${scene.id} still shows the empty rail`);
+    assert.doesNotMatch(scene.html, /Switch back/, `${scene.id} still switches back from the rail`);
   }
-  assert.doesNotMatch(scenes.find(item => item.id === 'mobile-menu').html, /aria-label="Sidebar"/);
+  assert.doesNotMatch(scenes.find(item => item.id === 'team').html, />Logout</);
+  const phoneApp = scenes.find(item => item.id === 'mobile-application');
+  assert.match(phoneApp.html, /Storefront/);
+  assert.match(phoneApp.html, /au-validation-dock/);
+  assert.match(phoneApp.html, /Go back/);
+  assert.match(scenes.find(item => item.id === 'settings').html, />Logout</);
+  assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Logout</);
+  assert.match(scenes.find(item => item.id === 'agent-overview').html, /au-workspace--selected/);
+  assert.doesNotMatch(scenes.find(item => item.id === 'team').html, /au-workspace--selected/);
+  for (const scene of scenes.filter(item => item.surface === 'mobile')) {
+    assert.doesNotMatch(scene.html, /aria-label="Sidebar"/, `${scene.id} still has a sidebar`);
+    assert.doesNotMatch(scene.html, />Bridge</, `${scene.id} still has Bridge`);
+    assert.doesNotMatch(scene.html, />Train</, `${scene.id} still has Train`);
+  }
   const overview = scenes.find(item => item.id === 'mobile-agent-overview');
   assert.match(overview.html, /Back to the team/);
   assert.match(overview.html, /Reload/);
@@ -867,7 +877,7 @@ test('new UI agent git assembles the client git pane', async () => {
   assert.match(mobile.html, />Fetch</);
   assert.match(mobile.html, /au-nav-icon/);
   assert.match(mobile.html, /au-subtab--selected/);
-  assert.equal(assembled.screens.find(item => item.id === 'bridge').mobileId, 'mobile-bridge');
+  assert.equal(assembled.screens.find(item => item.id === 'team').mobileId, 'mobile-team');
 });
 
 test('reading a long tag that is not a scene stays linear', () => {
