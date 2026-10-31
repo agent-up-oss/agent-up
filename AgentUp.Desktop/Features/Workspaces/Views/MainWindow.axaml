@@ -1301,7 +1301,7 @@
                                 <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto" RowSpacing="10">
                                     <Grid ColumnDefinitions="*,Auto">
                                         <StackPanel>
-                                            <TextBlock Classes="au-page-title" Text="Workspace agent"/>
+                                            <TextBlock Classes="au-page-title" Text="Chat"/>
                                             <TextBlock Classes="au-muted" Text="{Binding Agent.StatusLine}"/>
                                             <TextBlock Classes="au-muted"
                                                        Text="{Binding Agent.LoopLine}"
@@ -1372,29 +1372,6 @@
                                         </StackPanel>
                                     </Border>
                                     <StackPanel Grid.Row="2" Spacing="8" HorizontalAlignment="Stretch">
-                                        <TextBlock Classes="au-field-label" Text="Workspace sessions"/>
-                                        <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                        <ItemsControl x:Name="AgentSessionList" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentSessions}" ItemsSource="{Binding Agent.Sessions}">
-                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Button Classes="au-choice" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                                                            AutomationProperties.AutomationId="{Binding AutomationId}"
-                                                            Command="{Binding $parent[Window].DataContext.Agent.ResumeSessionCommand}" CommandParameter="{Binding SessionId}">
-                                                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-                                                            <Border Classes="au-badge"><TextBlock Classes="au-accent" Text="{Binding Agent}"/></Border>
-                                                            <TextBlock Grid.Column="1" Classes="wsName" Text="{Binding Description}" TextTrimming="CharacterEllipsis"/>
-                                                            <TextBlock Grid.Column="2" Classes="au-muted" Text="{Binding Branch}"/>
-                                                            <TextBlock Grid.Row="1" Grid.Column="1" Classes="au-muted" Text="{Binding ActionLabel}"/>
-                                                        </Grid>
-                                                    </Button>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                        </ScrollViewer>
-                                        <TextBlock Classes="au-muted"
-                                                   Text="No saved sessions yet."
-                                                   IsVisible="{Binding Agent.HasNoSavedSessions}"/>
                                         <Button Classes="au-button au-button--compact"
                                                 AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentStartBound}"
                                                 HorizontalAlignment="Stretch"

@@ -47,7 +47,7 @@ public sealed class AgentWorkspacePaneTests
             Assert.That(tabs.IsVisible, Is.True);
             Assert.That(
                 tabs.ItemsSource!.Cast<WorkspaceShellTabItemViewModel>().Select(tab => tab.Label),
-                Is.EqualTo(new[] { "Overview", "Agent", "Git" }));
+                Is.EqualTo(new[] { "Overview", "Chat", "Git" }));
             Assert.That(driver.Window.FindControl<ListBox>("ApplicationTabs")!.IsVisible, Is.True);
         });
     }

@@ -74,7 +74,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public ObservableCollection<WorkspaceShellTabItemViewModel> ShellTabs { get; } =
     [
         new(WorkspaceShellTab.Overview, "Overview"),
-        new(WorkspaceShellTab.Agent, "Agent"),
+        new(WorkspaceShellTab.Agent, "Chat"),
         new(WorkspaceShellTab.Git, "Git")
     ];
 

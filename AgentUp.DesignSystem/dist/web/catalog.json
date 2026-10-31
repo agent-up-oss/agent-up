@@ -844,7 +844,7 @@
         {
           "id": "workspace-tabs",
           "title": "Workspace tabs",
-          "note": "Overview, Agent, and Git sit with the application tabs. Overview is selected. A hairline separates workspace chrome from running apps.",
+          "note": "Overview, Chat, and Git sit with the application tabs. Overview is selected. A hairline separates workspace chrome from running apps.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -855,21 +855,21 @@
           "stateExamples": [
             {
               "state": "selected:1",
-              "title": "Agent tab selected",
-              "note": "The live ACP session is the primary selection when Agent is open.",
-              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
+              "title": "Chat tab selected",
+              "note": "The live ACP session is the primary selection when Chat is open.",
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Chat</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
             },
             {
               "state": "selected:2",
               "title": "Git tab selected",
               "note": "Working-tree review is the primary selection when Git is open.",
-              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Chat</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
             },
             {
               "state": "selected:3",
               "title": "Application tab selected",
               "note": "Storefront is the primary selection when the running app is open.",
-              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Chat</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
             }
           ],
           "rootClass": "au-app-tab",
@@ -881,7 +881,7 @@
             "au-status-dot",
             "au-status-dot--healthy"
           ],
-          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\">Overview</button>\n        <button class=\"au-app-tab\">Chat</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
         },
         {
           "id": "subtab",
