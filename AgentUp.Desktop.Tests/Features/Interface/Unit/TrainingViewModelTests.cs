@@ -265,6 +265,243 @@ public sealed class TrainingViewModelTests
         });
     }
 
+    [Test]
+    public async Task OpenRepository_putsTheCardsOwnWordsOnScreen()
+    {
+        var api = new FakeTrainingApi
+        {
+            Repositories = [Repository("example", "repository", 1, 0)],
+            Decisions = [Decision("1")]
+        };
+        var training = ViewModel(api);
+        await training.LoadAsync();
+
+        await Open(training);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(training.RepositoryName, Is.EqualTo("example/repository"));
+            Assert.That(training.Headline, Is.EqualTo("Headline 1"));
+            Assert.That(training.Detail, Is.EqualTo("Detail 1"));
+            Assert.That(training.Evidence, Is.EqualTo("Evidence 1"));
+            Assert.That(training.DecidedBy, Is.EqualTo("Lucy · Product vision"));
+            Assert.That(training.HasShown, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task ShowCategory_saysNothingWasRecordedInAnEmptyPartOfTheProduct()
+    {
+        var api = new FakeTrainingApi
+        {
+            Repositories = [Repository("example", "repository", 1, 0)],
+            Decisions = [Decision("1")]
+        };
+        var training = ViewModel(api);
+        await training.LoadAsync();
+        await Open(training);
+
+        training.ShowCategoryCommand.Execute("code-architecture").Subscribe();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(training.HasShown, Is.False);
+            Assert.That(training.Decision, Is.Null);
+            Assert.That(training.Headline, Is.Empty);
+            Assert.That(training.Position, Is.Empty);
+            Assert.That(training.EmptyCategoryHint, Does.Contain("No decisions"));
+        });
+    }
+
+    [Test]
+    public async Task OpenRepository_saysWhatWentWrongWhereTheDecisionsCouldNotBeRead()
+    {
+        var api = new FakeTrainingApi
+        {
+            Repositories = [Repository("example", "repository", 1, 0)],
+            DecisionsFailure = new HttpRequestException("read refused")
+        };
+        var training = ViewModel(api);
+        await training.LoadAsync();
+
+        await Open(training);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(training.HasError, Is.True);
+            Assert.That(training.ErrorMessage, Is.EqualTo("read refused"));
+            Assert.That(training.ShowsDecisions, Is.True, "the repository still opened");
+        });
+    }
+
+    [Test]
+    public async Task Judging_dropsTheCountBesideThatCategory()
+    {
+        var api = new FakeTrainingApi
+        {
+            Repositories = [Repository("example", "repository", 2, 0)],
+            Decisions = [Decision("1"), Decision("2")]
+        };
+        var training = ViewModel(api);
+        await training.LoadAsync();
+        await Open(training);
+        var category = training.Categories.First();
+
+        Assert.That(category.Count, Is.EqualTo("2"));
+
+        training.GoodCommand.Execute().Subscribe();
+        await training.SubmitCommand.Execute();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(category.Count, Is.EqualTo("1"));
+            Assert.That(category.HasCount, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task Judging_everythingLeavesNoCountBesideTheCategory()
+    {
+        var api = new FakeTrainingApi
+        {
+            Repositories = [Repository("example", "repository", 1, 0)],
+            Decisions = [Decision("1")]
+        };
+        var training = ViewModel(api);
+        await training.LoadAsync();
+        await Open(training);
+
+        training.BadCommand.Execute().Subscribe();
+        await training.SubmitCommand.Execute();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(training.Categories.First().Count, Is.Empty);
+            Assert.That(training.Categories.First().HasCount, Is.False);
+            Assert.That(training.ChoseBad, Is.True, "the card kept the call that was just sent");
+        });
+    }
+
+    [Test]
+    public async Task Export_saysSoWhereThisBuildCannotSaveAFile()
+    {
+        var training = ViewModel(new FakeTrainingApi { Export = "{\"id\":\"1\"}\n" });
+
+        await training.ExportCommand.Execute();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(training.ExportMessage, Is.EqualTo("Saving an export is not available here."));
+            Assert.That(training.HasExportMessage, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task Export_saysNothingWhereTheReaderChangesTheirMindAboutTheFile()
+    {
+        var sink = new FakeExportSink { Accepts = false };
+        var training = ViewModel(new FakeTrainingApi { Export = "{\"id\":\"1\"}\n" }, sink);
+
+        await training.ExportCommand.Execute();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(training.ExportMessage, Is.Empty);
+            Assert.That(training.HasExportMessage, Is.False);
+        });
+    }
+
+    [Test]
+    public async Task Export_reportsAServerThatWouldNotHandOverTheBacklog()
+    {
+        var api = new FakeTrainingApi { ExportFailure = new HttpRequestException("export refused") };
+        var training = ViewModel(api, new FakeExportSink());
+
+        await training.ExportCommand.Execute();
+
+        Assert.That(training.ExportMessage, Is.EqualTo("Could not export the decisions: export refused"));
+    }
+
+    [Test]
+    public async Task AGoodCallReadsBackAsOneBeforeItIsSubmitted()
+    {
+        var api = new FakeTrainingApi
+        {
+            Repositories = [Repository("example", "repository", 1, 0)],
+            Decisions = [Decision("1")]
+        };
+        var training = ViewModel(api);
+        await training.LoadAsync();
+        await Open(training);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(training.ChoseGood, Is.False);
+            Assert.That(training.VerdictLabel, Is.EqualTo("No call yet."));
+        });
+
+        training.GoodCommand.Execute().Subscribe();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(training.ChoseGood, Is.True);
+            Assert.That(training.ChoseBad, Is.False);
+            Assert.That(training.VerdictLabel, Is.EqualTo("Your call: a good one."));
+            Assert.That(training.CanSubmit, Is.True);
+        });
+    }
+
+    [Test]
+    public async Task EvidenceThatIsNotBase64IsDroppedRatherThanThrown()
+    {
+        var api = new FakeTrainingApi
+        {
+            Evidence = new DecisionEvidenceImage("ev-1", "image/png", "not base64 at all")
+        };
+        var service = new TrainingService(api);
+
+        Assert.That(await service.EvidenceAsync("ev-1"), Is.Null);
+    }
+
+    [Test]
+    public async Task EvidenceWithNoBytesBehindItIsNoPicture()
+    {
+        var api = new FakeTrainingApi { Evidence = new DecisionEvidenceImage("ev-1", "image/png", "   ") };
+        var service = new TrainingService(api);
+
+        Assert.That(await service.EvidenceAsync("ev-1"), Is.Null);
+    }
+
+    [Test]
+    public void ADecisionRemembersWhenItWasTaken()
+    {
+        var decision = Decision("5");
+
+        Assert.That(decision.RecordedAt, Is.EqualTo(DateTimeOffset.UnixEpoch.AddMinutes(5)));
+    }
+
+    [Test]
+    public void ADecisionNamesItsRepositoryAndCarriesWhatTheOwnerSaid()
+    {
+        var reviewed = Decision("1", verdict: "good", note: "right call") with
+        {
+            ReviewedAt = DateTimeOffset.UnixEpoch,
+            EvidenceImages = [new DecisionEvidence("ev-1", "artifact-1", "image/png")]
+        };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reviewed.RepositoryKey, Is.EqualTo("example/repository"));
+            Assert.That(reviewed.Owner, Is.EqualTo("example"));
+            Assert.That(reviewed.WorkspaceId, Is.EqualTo("ws-lucy"));
+            Assert.That(reviewed.Reviewed, Is.True);
+            Assert.That(reviewed.Note, Is.EqualTo("right call"));
+            Assert.That(reviewed.ReviewedAt, Is.EqualTo(DateTimeOffset.UnixEpoch));
+            Assert.That(reviewed.EvidenceImages.Single().SourceArtifactId, Is.EqualTo("artifact-1"));
+            Assert.That(reviewed.EvidenceImages.Single().MimeType, Is.EqualTo("image/png"));
+        });
+    }
+
     private static async Task Open(TrainingViewModel training)
         => await training.OpenRepositoryCommand.Execute(training.Repositories.Single());
 
@@ -300,6 +537,12 @@ public sealed class TrainingViewModelTests
 
         public Exception? ReviewFailure { get; init; }
 
+        public Exception? DecisionsFailure { get; init; }
+
+        public Exception? ExportFailure { get; init; }
+
+        public DecisionEvidenceImage? Evidence { get; init; }
+
         public List<(string Id, string Verdict, string? Note)> Reviewed { get; } = [];
 
         public Task<IReadOnlyList<DecisionRepository>> ListRepositoriesAsync(CancellationToken cancellationToken)
@@ -311,10 +554,12 @@ public sealed class TrainingViewModelTests
             string owner,
             string repository,
             CancellationToken cancellationToken)
-            => Task.FromResult(Decisions);
+            => DecisionsFailure is null
+                ? Task.FromResult(Decisions)
+                : Task.FromException<IReadOnlyList<ProductDecision>>(DecisionsFailure);
 
         public Task<DecisionEvidenceImage?> EvidenceAsync(string evidenceId, CancellationToken cancellationToken)
-            => Task.FromResult<DecisionEvidenceImage?>(null);
+            => Task.FromResult(Evidence);
 
         public Task ReviewAsync(string decisionId, string verdict, string? note, CancellationToken cancellationToken)
         {
@@ -324,7 +569,9 @@ public sealed class TrainingViewModelTests
         }
 
         public Task<string> ExportAsync(bool includePending, CancellationToken cancellationToken)
-            => Task.FromResult(Export);
+            => ExportFailure is null
+                ? Task.FromResult(Export)
+                : Task.FromException<string>(ExportFailure);
     }
 
     private sealed class FakeExportSink : IDecisionExportSink
@@ -333,11 +580,14 @@ public sealed class TrainingViewModelTests
 
         public string? Saved { get; private set; }
 
+        /// <summary>False stands for the reader dismissing the file picker.</summary>
+        public bool Accepts { get; init; } = true;
+
         public Task<bool> SaveAsync(string suggestedFileName, string jsonl, CancellationToken cancellationToken = default)
         {
             FileName = suggestedFileName;
             Saved = jsonl;
-            return Task.FromResult(true);
+            return Task.FromResult(Accepts);
         }
     }
 }

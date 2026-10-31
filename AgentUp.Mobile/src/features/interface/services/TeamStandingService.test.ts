@@ -122,10 +122,19 @@ test('the identity reads as the handle a reviewer sees on a thread', () => {
 test('who an agent is drops the parts the Server did not report', () => {
   const identity = { login: 'lucy-aup[bot]', displayName: 'Lucy', isBot: true, url: 'u' };
   assert.equal(
-    whoIs(standing({ role: 'reviewer', identity, agent: 'Claude', state: 'Running' })),
-    'Reviewer · @lucy-aup[bot] · Claude · Running',
+    whoIs(standing({ role: 'reviewer', identity, agent: 'Claude' })),
+    'Reviewer · @lucy-aup[bot] · Claude',
   );
-  assert.equal(whoIs(standing({ agent: null, state: 'Stopped' })), 'Stopped');
+  assert.equal(whoIs(standing({ agent: null })), '');
+});
+
+test('who an agent is never reports the workspace lifecycle as what the agent is doing', () => {
+  // A running workspace whose agent has nothing in hand: the row says idle, and must not also
+  // say Running, which is Agent-Up's state for the workspace rather than the agent's own.
+  const idleInARunningWorkspace = standing({ agent: 'Codex', kind: 'idle', state: 'Running' });
+
+  assert.equal(whoIs(idleInARunningWorkspace), 'Codex');
+  assert.equal(stateLabel(idleInARunningWorkspace.kind), '○ idle');
 });
 
 

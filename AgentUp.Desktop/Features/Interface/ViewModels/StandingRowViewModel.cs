@@ -153,12 +153,18 @@ public sealed class StandingRowViewModel
     /// </summary>
     public bool HasStatusRow => Standing.Forge.HasProposal && !Standing.ReviewsOthersWork;
 
+    /// <summary>
+    /// Who this agent is: what they are for, which account they act as, and which model drives
+    /// them. The workspace's own lifecycle state is not among them. It says whether Agent-Up has
+    /// the workspace running, not what the agent is doing, so a running workspace whose agent is
+    /// idle would read "Running" here and "idle" on the status line below. What the agent is
+    /// doing is <see cref="StateLabel"/>.
+    /// </summary>
     private IEnumerable<string> SubtitleParts()
     {
         if (Standing.RoleLabel is { Length: > 0 } role) yield return role;
         if (Standing.Identity is { } identity) yield return identity.Handle;
         if (Standing.Agent is { Length: > 0 } agent) yield return agent;
-        yield return Standing.WorkspaceState;
     }
 
 }

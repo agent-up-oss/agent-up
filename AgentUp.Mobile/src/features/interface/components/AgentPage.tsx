@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AgentCreationScreen } from '@/features/agents/components/AgentCreationScreen';
 import { AgentPermissionPolicyScreen } from '@/features/agents/components/AgentPermissionPolicyScreen';
-import { AgentsOverviewScreen } from '@/features/agents/components/AgentsOverviewScreen';
 import { WorkspaceAgentChatScreen } from '@/features/agents/components/WorkspaceAgentChatScreen';
 import { ApplicationSpaceScreen } from '@/features/applications/components/ApplicationSpaceScreen';
 import { GitHistoryScreen } from '@/features/git/components/GitHistoryScreen';
@@ -10,7 +9,6 @@ import { GitOverviewScreen } from '@/features/git/components/GitOverviewScreen';
 import { GitReviewScreen } from '@/features/git/components/GitReviewScreen';
 import { AppShellProvider, useAppShell } from '@/features/shell/controllers/AppShellContext';
 import { WorkspaceDashboardScreen } from '@/features/workspaces/components/WorkspaceDashboardScreen';
-import { WorkspaceSettingsScreen } from '@/features/workspaces/components/WorkspaceSettingsScreen';
 import {
   WorkspaceHostProvider,
   type WorkspaceHost,
@@ -21,12 +19,18 @@ import type { Workspace } from '@/features/workspaces/models/Workspace';
 import { agentUpTheme, auBox } from '@agent-up/design-system/native';
 import type { TeamStanding } from '../models/TeamStanding';
 
-/** The tabs an agent's workspace opens on, which are the workspace's own tabs. */
+/**
+ * The tabs an agent's workspace opens on.
+ *
+ * Chat is the transcript itself rather than the picker the classic shell opens: reaching this page
+ * meant naming an agent, so asking which agent again would be asking a question already answered.
+ * There is no Settings tab either - what it holds is the Server's own capability modules, which
+ * belong to the Server rather than to one agent, and the sidebar already carries them.
+ */
 const tabs = [
   { place: 'apps', label: 'Apps' },
   { place: 'git', label: 'Git' },
-  { place: 'agents', label: 'Agent' },
-  { place: 'settings', label: 'Settings' },
+  { place: 'agent', label: 'Chat' },
 ] as const;
 
 type TabPlace = (typeof tabs)[number]['place'];
@@ -75,17 +79,19 @@ function AgentPageBody({
 
   const host = useCallback((): WorkspaceHost => ({
     open: (place, options) => {
-      if (isTab(place)) {
-        setTab(place.kind);
+      const landed = here(place);
+      if (isTab(landed)) {
+        setTab(landed.kind);
         setStack([]);
         return;
       }
-      setStack(current => (options?.replace ? [...current.slice(0, -1), place] : [...current, place]));
+      setStack(current => (options?.replace ? [...current.slice(0, -1), landed] : [...current, landed]));
     },
     back: fallback => {
+      const landed = here(fallback);
       setStack(current => {
         if (current.length > 0) return current.slice(0, -1);
-        if (isTab(fallback)) setTab(fallback.kind);
+        if (isTab(landed)) setTab(landed.kind);
         return current;
       });
     },
@@ -178,10 +184,6 @@ function Screen({
       return workspace ? <WorkspaceDashboardScreen workspace={workspace} /> : <Missing />;
     case 'git':
       return <GitOverviewScreen workspaceId={workspaceId} />;
-    case 'agents':
-      return <AgentsOverviewScreen workspaceId={workspaceId} />;
-    case 'settings':
-      return <WorkspaceSettingsScreen workspaceId={workspaceId} />;
     case 'application':
       return workspace
         ? <ApplicationSpaceScreen workspace={workspace} applicationName={place.name} />
@@ -190,6 +192,11 @@ function Screen({
       return <GitHistoryScreen workspaceId={workspaceId} />;
     case 'gitReview':
       return <GitReviewScreen workspaceId={workspaceId} />;
+    // Neither reaches this page: the picker is translated to the transcript, and the Server's own
+    // settings belong to the sidebar rather than to one agent.
+    case 'agents':
+    case 'settings':
+      return null;
     case 'agent':
       return (
         <WorkspaceAgentChatScreen
@@ -216,6 +223,17 @@ function Missing() {
 
 function isTab(place: WorkspacePlace): place is { kind: TabPlace } {
   return tabs.some(tab => tab.place === place.kind);
+}
+
+/**
+ * Where a place the classic shell knows lands on this page.
+ *
+ * A screen that asks for the agent picker - the policy screen does, once it has saved - is asking
+ * to go back to where the agent is. Here that is the transcript, because the agent was named
+ * before this page opened.
+ */
+function here(place: WorkspacePlace): WorkspacePlace {
+  return place.kind === 'agents' ? { kind: 'agent' } : place;
 }
 
 /** What the agent is, under their name: what they are doing, and where. */

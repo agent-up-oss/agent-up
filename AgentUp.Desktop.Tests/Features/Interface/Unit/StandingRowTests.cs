@@ -100,6 +100,21 @@ public sealed class StandingRowTests
     }
 
     [Test]
+    public void Subtitle_neverReportsTheWorkspaceLifecycleAsWhatTheAgentIsDoing()
+    {
+        // A running workspace whose agent has nothing in hand: the row says idle, and must not
+        // also say Running, which is Agent-Up's state for the workspace rather than the agent's.
+        var row = Row(Standing(TeamStandingKind.Idle, TeamRoleKind.None));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(row.Subtitle, Is.EqualTo("codex"));
+            Assert.That(row.Subtitle, Does.Not.Contain("Running"));
+            Assert.That(row.StateLabel, Is.EqualTo("○ idle"));
+        });
+    }
+
+    [Test]
     public void Subtitle_dropsEveryPartTheServerDidNotReport()
     {
         var full = Row(Standing(TeamStandingKind.Working, TeamRoleKind.Developer,
@@ -108,10 +123,10 @@ public sealed class StandingRowTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(full.Subtitle, Is.EqualTo("Developer · @bob-aup[bot] · codex · Running"));
+            Assert.That(full.Subtitle, Is.EqualTo("Developer · @bob-aup[bot] · codex"));
             Assert.That(full.IdentityHandle, Is.EqualTo("@bob-aup[bot]"));
             Assert.That(full.IdentityToolTip, Is.EqualTo("Bob · https://example.test/bob"));
-            Assert.That(bare.Subtitle, Is.EqualTo("Running"), "nothing is padded out with placeholders");
+            Assert.That(bare.Subtitle, Is.Empty, "nothing is padded out with placeholders");
             Assert.That(bare.HasIdentity, Is.False);
             Assert.That(bare.HasRole, Is.False);
         });

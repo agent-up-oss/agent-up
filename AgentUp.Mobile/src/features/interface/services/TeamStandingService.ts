@@ -99,9 +99,14 @@ export function identityHandle(standing: TeamStanding): string | null {
  * Who this agent is, under their name: what they are for, which account they act as, and which
  * model drives them. Each part is dropped when the Server did not report it, so the line never
  * pads itself out with placeholders.
+ *
+ * The workspace's own lifecycle state is not one of these parts. It says whether Agent-Up has the
+ * workspace running, which is not what the agent is doing: a running workspace whose agent is idle
+ * would read "Running" here and "idle" on the status line underneath, and the row would be
+ * claiming both at once. What the agent is doing is `kind`, which `stateLabel` reports.
  */
 export function whoIs(standing: TeamStanding): string {
-  return [roleLabel(standing), identityHandle(standing), standing.agent, standing.state]
+  return [roleLabel(standing), identityHandle(standing), standing.agent]
     .filter((part): part is string => !!part)
     .join(' · ');
 }
