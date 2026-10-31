@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mobile · Team — Agent-Up new UI</title>
+  <title>Team — Agent-Up new UI</title>
   <link rel="stylesheet" href="../new-ui.css" />
   <style>
     html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
@@ -14,42 +14,33 @@
 <body>
 <div class="aun-frame">
 <div class="aun-phone">
-    <header class="aun-phone__head">
-      <div class="aun-phone__head-row">
-        <button type="button" class="aun-iconbtn" aria-label="Open menu">&#9776;</button>
-        <span class="aun-phone__head-copy"><span class="aun-phone__title">Team</span><span class="aun-phone__subtitle">3 agents &middot; 1 waiting on you &middot; 1 halted</span></span>
+      <header class="aun-phone__head"><div class="aun-phone__head-row">
+        <button type="button" class="aun-btn">☰</button>
+        <span class="aun-phone__head-copy"><span class="aun-phone__title">Team</span></span>
+      </div></header>
+      <div class="aun-phone__body"><div>
+        <p>No agents yet</p>
+        <p class="aun-faint">Each workspace on this Server is one agent's own space.</p>
+      </div></div>
+      <div class="au-mobile-tab-bar" role="tablist">
+        <button class="au-subtab au-nav-tab" type="button">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3.5"></circle><path d="M12 3v3M12 18v3M3 12h3M18 12h3"></path></svg>
+          Bridge
+        </button>
+        <button class="au-subtab au-nav-tab" type="button">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 2 9l10 5 10-5-10-5z"></path><path d="M6 11.5V16c0 1.6 2.7 2.9 6 2.9s6-1.3 6-2.9v-4.5"></path></svg>
+          Train
+        </button>
+        <button class="au-subtab au-nav-tab" type="button">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"></path><path d="m3.5 5.8 1.3 1.3L7.4 4.5"></path><path d="m3.5 11.8 1.3 1.3L7.4 10.5"></path><path d="M4 18h1.5"></path></svg>
+          Tasks
+        </button>
+        <button class="au-subtab au-nav-tab au-subtab--selected" type="button">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 19v-1.2a3.8 3.8 0 0 0-3.8-3.8H6.8A3.8 3.8 0 0 0 3 17.8V19"></path><circle cx="9" cy="7.2" r="3.2"></circle><path d="M21 19v-1.2a3.8 3.8 0 0 0-2.9-3.7"></path><path d="M16.2 4.2a3.2 3.2 0 0 1 0 6"></path></svg>
+          Team
+        </button>
       </div>
-    </header>
-    <div class="aun-phone__body">
-      <article class="aun-card aun-card--gate">
-        <h2 class="aun-card__title">Lucy &middot; Review #412</h2>
-        <p class="aun-row__meta">Reviewer &middot; interface &middot; @lucy-aup[bot]</p>
-        <p class="aun-glyph--gate">Waiting on you &middot; feat/412-agent-remedy</p>
-        <p class="aun-row__meta">Permission decision required</p>
-        <p class="aun-row__meta">#431 Give the agent list a remedy</p>
-        <p class="aun-status-line"><span class="aun-glyph--done">&#9679; 8</span><span>&mdash;</span><span class="aun-perm">review &#10003;</span><span class="aun-perm">merge &mdash;</span></p>
-      </article>
-      <article class="aun-card">
-        <h2 class="aun-card__title">Bob &middot; Build #398</h2>
-        <p class="aun-row__meta">Developer &middot; @bob-aup[bot]</p>
-        <p class="aun-glyph--running">Working &middot; feat/398-capabilities-cli</p>
-        <p class="aun-status-line"><span class="aun-glyph--running">&#9679; 5</span><span>&mdash;</span><span class="aun-perm">review &mdash;</span><span class="aun-perm">merge &mdash;</span></p>
-      </article>
-      <article class="aun-card aun-card--halted">
-        <h2 class="aun-card__title">Hector &middot; Review #405</h2>
-        <p class="aun-row__meta">Reviewer &middot; code &middot; @hector-aup[bot]</p>
-        <p class="aun-glyph--halted">Halted &middot; fix/405-forge-surface</p>
-        <p class="aun-row__meta">Forge returned 502</p>
-        <code class="aun-diag__code">forge.unreachable</code>
-      </article>
     </div>
-    <nav class="aun-tabbar" aria-label="Sections">
-      <a class="aun-tabbar__item" href="#bridge"><span class="aun-tabbar__icon">&#9632;</span>Bridge</a>
-      <a class="aun-tabbar__item" href="#train"><span class="aun-tabbar__icon">&#9651;</span>Train</a>
-      <a class="aun-tabbar__item" href="#tasks"><span class="aun-tabbar__icon">&#9644;</span>Tasks</a>
-      <a class="aun-tabbar__item" href="#team" aria-current="page"><span class="aun-tabbar__icon">&#9679;</span>Team</a>
-    </nav>
-  </div>
 </div>
 </body>
 </html>

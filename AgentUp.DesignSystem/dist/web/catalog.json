@@ -651,7 +651,8 @@
             "au-workspace-branch",
             "au-workspace-delete"
           ],
-          "html": "<div class=\"au-workspace\">\n        <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n        <span class=\"au-status-dot au-status-dot--healthy\"></span>\n        <span>\n          <strong class=\"au-workspace-name\">Harbor Shop</strong>\n          <small class=\"au-workspace-branch\">main</small>\n        </span>\n        <button class=\"au-workspace-delete\" type=\"button\">×</button>\n      </div>"
+          "html": "<div class=\"au-workspace\">\n        <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n        <span class=\"au-status-dot au-status-dot--healthy\"></span>\n        <span>\n          <strong class=\"au-workspace-name\">Harbor Shop</strong>\n          <small class=\"au-workspace-branch\">main</small>\n        </span>\n        <button class=\"au-workspace-delete\" type=\"button\">×</button>\n      </div>",
+          "source": "<div class=\"au-workspace\">\n        <button class=\"au-lifecycle-button\" type=\"button\">■</button>\n        <span class=\"au-status-dot au-status-dot--healthy\"></span>\n        <span>\n          <strong class=\"au-workspace-name\" data-au-text=\"name\">Harbor Shop</strong>\n          <small class=\"au-workspace-branch\" data-au-text=\"branch\">main</small>\n        </span>\n        <button class=\"au-workspace-delete\" type=\"button\">×</button>\n      </div>"
         },
         {
           "id": "workspace-head",

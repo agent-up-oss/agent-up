@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mobile · Menu — Agent-Up new UI</title>
+  <title>Menu — Agent-Up new UI</title>
   <link rel="stylesheet" href="../new-ui.css" />
   <style>
     html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
@@ -13,48 +13,14 @@
 </head>
 <body>
 <div class="aun-frame">
-<div class="aun-phone">
-    <header class="aun-phone__head">
-      <div style="display: flex; align-items: center; gap: 8px">
-        <button type="button" class="aun-iconbtn" aria-label="Open menu">&#9776;</button>
-        <span style="flex-grow: 1; min-width: 0">
-          <span class="aun-title" style="display: block; font-size: var(--au-font-size-ui-lg)">Bridge</span>
-          <span class="aun-rail__url">dev-box &middot; localhost:5000</span>
-        </span>
-        <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live</span>
-      </div>
-    </header>
-    <div class="aun-phone__body">
-      <article class="aun-card aun-card--gate" style="padding: 13px 14px">
-        <p class="aun-row__title">Lucy wants to submit her review on #412</p>
-        <p class="aun-row__meta">14 findings &middot; 3 blocking</p>
-      </article>
-    </div>
-    <nav class="aun-tabbar" aria-label="Sections">
-      <a class="aun-tabbar__item" href="#bridge" aria-current="page"><span class="aun-tabbar__icon">&#9632;</span>Bridge</a>
-      <a class="aun-tabbar__item" href="#train"><span class="aun-tabbar__icon">&#9651;</span>Train</a>
-      <a class="aun-tabbar__item" href="#tasks"><span class="aun-tabbar__icon">&#9644;</span>Tasks</a>
-      <a class="aun-tabbar__item" href="#team"><span class="aun-tabbar__icon">&#9679;</span>Team</a>
-    </nav>
-
-    <div class="aun-drawer">
-      <div class="aun-drawer__scrim"></div>
-      <nav class="aun-drawer__panel" aria-label="Server menu">
-        <div class="aun-drawer__server">
-          <span class="aun-dot aun-dot--live"></span>
-          <span style="flex-grow: 1; min-width: 0">
-            <span class="aun-rail__name" style="display: block">dev-box</span>
-            <span class="aun-rail__url">localhost:5000</span>
-          </span>
-        </div>
-        <a class="aun-drawer__link" href="#bridge" aria-current="page">Bridge</a>
-        <a class="aun-drawer__link" href="#train">Train</a>
-        <a class="aun-drawer__link" href="#tasks">Tasks</a>
-        <a class="aun-drawer__link" href="#team">Team</a>
-        <a class="aun-drawer__link" href="#settings">Settings</a>
-      </nav>
-    </div>
-  </div>
+<div class="aun-phone"><div class="aun-phone__body"><nav aria-label="Menu">
+        <p>Server</p>
+        <a>Bridge</a>
+        <a>Train</a>
+        <a>Tasks</a>
+        <a>Team</a>
+        <a>Settings</a>
+      </nav></div></div>
 </div>
 </body>
 </html>

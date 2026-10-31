@@ -13,98 +13,150 @@
 </head>
 <body>
 <div class="aun-frame">
-<div class="aun">
-    <nav class="aun-rail" aria-label="Command center">
-    <p class="aun-rail__section">TEAM</p>
-    <a class="aun-rail__agent" data-aun-nav="lucy" aria-current="page" href="#lucy">
-      <strong>Lucy</strong><span>Reviewer &middot; interface</span><code>@lucy-aup[bot]</code>
-      <span class="aun-glyph--gate">Waiting on you</span><span>Review #412</span>
-    </a>
-    <a class="aun-rail__agent" data-aun-nav="bob" href="#bob">
-      <strong>Bob</strong><span>Developer</span><code>@bob-aup[bot]</code>
-      <span class="aun-glyph--running">Working</span><span>Build #398</span>
-    </a>
-    <a class="aun-rail__agent" data-aun-nav="hector" href="#hector">
-      <strong>Hector</strong><span>Reviewer &middot; code</span><code>@hector-aup[bot]</code>
-      <span class="aun-glyph--halted">Halted</span><span>Review #405</span>
-    </a>
-    <span class="aun-rail__spacer"></span>
-    <button type="button" class="aun-rail__switch">Switch back to the classic interface</button>
-  </nav>
-    <main class="aun-main">
-      <header class="aun-head" style="align-items: center">
-    <span class="aun-avatar aun-avatar--lg">L</span>
-    <span style="flex: 1 1 18rem; min-width: 0">
-      <span class="aun-title" style="display: block">Lucy</span>
-      <span class="aun-subtitle">Reviewer &middot; interface &nbsp;&middot;&nbsp; <span class="aun-mono">@lucy-aup[bot]</span> &nbsp;&middot;&nbsp; <span class="aun-mono">agent-up-qa</span></span>
-    </span>
-    <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live</span>
-  </header>
-      <nav class="aun-tabs" aria-label="Agent sections">
-        <a class="aun-tab" href="#overview">Overview</a>
-        <a class="aun-tab" href="#chat">Chat</a>
-        <a class="aun-tab" href="#git" aria-current="page">Git</a>
-      </nav>
-
-      <div class="aun-row" style="align-items: center">
-        <div class="aun-row__body">
-          <p class="aun-row__title">PR #431 &mdash; Give the agent list a remedy</p>
-          <p class="aun-mono aun-muted" style="font-size: var(--au-font-size-ui-sm); margin-top: 3px">feat/412-agent-remedy &rarr; main &middot; a71f093 &middot; bob-aup[bot]</p>
-        </div>
-        <div class="aun-wrap" style="gap: 16px">
-          <span style="color: var(--au-color-accent-soft)">+240</span>
-          <span style="color: var(--au-color-text-danger)">&minus;58</span>
-          <span class="aun-muted">4 files</span>
-        </div>
-        <div class="aun-row__actions"><button type="button" class="aun-btn">Fetch</button><button type="button" class="aun-btn">History</button></div>
+<div class="au-screen">
+      <div class="au-chrome">
+        <span class="au-cluster">
+          <span class="au-title-tool au-chrome-icon"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></span>
+          <span class="au-title-tool au-chrome-icon"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 4v6h-6"></path></svg></span>
+          <span class="au-badge au-badge--healthy"><span class="au-status-dot au-status-dot--healthy"></span>SERVER ONLINE</span>
+        </span>
+        <span class="au-logo-lockup"><span class="au-chrome-mark"></span><strong class="au-chrome-title">Agent-Up</strong></span>
+        <span class="au-cluster">
+          <span class="au-chrome-button au-chrome-icon">−</span>
+          <span class="au-chrome-button au-chrome-icon">□</span>
+          <span class="au-chrome-button au-chrome-close au-chrome-icon">×</span>
+        </span>
       </div>
-
-      <div class="aun-wrap" style="gap: 16px; flex-grow: 1; min-height: 0">
-        <article class="aun-card" style="flex: 1 1 16rem; min-width: 0; padding: 14px">
-          <p class="aun-rail__section" style="padding: 0 11px 8px">CHANGED</p>
-          <a class="aun-file" href="#f1" aria-current="true"><span class="aun-glyph--gate">&#9670;</span><span class="aun-mono" style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis">AgentDtos.cs</span><span style="color: var(--au-color-accent-soft)">+18</span></a>
-          <a class="aun-file" href="#f2"><span class="aun-glyph--gate">&#9670;</span><span class="aun-mono" style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis">MainWindow.axaml</span><span style="color: var(--au-color-accent-soft)">+96</span></a>
-          <a class="aun-file" href="#f3"><span class="aun-glyph--idle">&#9675;</span><span class="aun-mono" style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis">AgentsScreen.tsx</span><span style="color: var(--au-color-accent-soft)">+104</span></a>
-          <a class="aun-file" href="#f4"><span class="aun-glyph--idle">&#9675;</span><span class="aun-mono" style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis">AgentsHttpController.cs</span><span style="color: var(--au-color-accent-soft)">+22</span></a>
-          <p class="aun-rail__section" style="padding: 16px 11px 8px">FINDINGS &middot; 14</p>
-          <div class="aun-stack" style="padding: 0 11px">
-            <p class="aun-kv"><span style="color: var(--au-color-text-danger); font-weight: 600; width: 1.5rem">3</span>blocking</p>
-            <p class="aun-kv"><span style="color: var(--au-color-text-warning); font-weight: 600; width: 1.5rem">6</span>should fix</p>
-            <p class="aun-kv"><span class="aun-muted" style="font-weight: 600; width: 1.5rem">5</span>nits</p>
-          </div>
-        </article>
-
-        <article class="aun-card" style="flex: 999 1 30rem; min-width: 0; padding: 0; overflow: hidden; display: flex; flex-direction: column">
-          <div style="padding: 12px 16px; border-bottom: 1px solid var(--au-color-border-subtle); display: flex; align-items: center; gap: 10px">
-            <span class="aun-mono" style="font-size: var(--au-font-size-ui-sm)">AgentUp.Desktop/Features/Agents/DTOs/AgentDtos.cs</span>
-            <span class="aun-rail__spacer"></span>
-            <span style="color: var(--au-color-accent-soft); font-size: var(--au-font-size-ui-sm)">+18</span>
-            <span style="color: var(--au-color-text-danger); font-size: var(--au-font-size-ui-sm)">&minus;2</span>
-          </div>
-          <div class="aun-diff" style="padding: 12px 0; overflow: auto; flex-grow: 1">
-            <div class="aun-diff__line"><span class="aun-diff__num">12</span><span class="aun-faint">&nbsp;public sealed record AgentDescriptorDto(</span></div>
-            <div class="aun-diff__line aun-diff__line--del"><span class="aun-diff__num">13</span><span>&minus;&nbsp;&nbsp;&nbsp;&nbsp;string Agent, bool Available, string DisplayName);</span></div>
-            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">13</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;string Agent,</span></div>
-            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">14</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;bool Available,</span></div>
-            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">15</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;string DisplayName,</span></div>
-            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">16</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;string? Unavailability,</span></div>
-            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">17</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;string? Detail,</span></div>
-            <div class="aun-diff__line aun-diff__line--add"><span class="aun-diff__num">18</span><span>+&nbsp;&nbsp;&nbsp;&nbsp;string? Remedy);</span></div>
-          </div>
-          <div class="aun-card aun-card--gate" style="margin: 0 16px 16px">
-            <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 7px">
-              <span class="aun-avatar aun-avatar--sm">L</span>
-              <span style="font-weight: 600; font-size: var(--au-font-size-ui-sm)">Lucy</span>
-              <span class="aun-state aun-state--halted">blocking</span>
-              <span class="aun-rail__spacer"></span>
-              <span class="aun-faint" style="font-size: var(--au-font-size-ui-xs)">line 16</span>
-            </div>
-            <p class="aun-row__meta">Three nullable strings with no enum behind <span class="aun-mono">Unavailability</span> means every client re-invents the branch. Make it a typed discriminator so the remedy can be rendered without string comparison.</p>
-          </div>
-        </article>
+      <div class="au-screen-body">
+        <aside class="au-rail au-screen-rail" aria-label="Sidebar">
+        <div class="au-workspace-head">
+        <span class="au-muted">Workspaces</span>
+        <button class="au-workspace-add" type="button">+</button>
+        <button class="au-workspace-add" type="button">‹</button>
       </div>
-    </main>
-  </div>
+        <div class="au-workspace au-workspace--selected">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span>
+          <strong class="au-workspace-name">Harbor Shop</strong>
+          <small class="au-workspace-branch">main</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+        <div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span>
+          <strong class="au-workspace-name">Harbor Checkout</strong>
+          <small class="au-workspace-branch">feat/48-express-checkout</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+        <div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span>
+          <strong class="au-workspace-name">Harbor Docs</strong>
+          <small class="au-workspace-branch">fix/51-broken-anchors</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+        <button type="button" class="aun-rail__switch">Switch back to the classic interface</button>
+      </aside>
+        <main class="au-screen-main">
+          <div class="au-screen-tabs"><div class="au-cluster">
+        <button class="au-app-tab">Overview</button>
+        <button class="au-app-tab">Chat</button>
+        <button class="au-app-tab au-app-tab--selected">Git</button>
+        <span class="au-tab-sep"></span>
+        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
+        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
+        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Inventory</button>
+      </div></div>
+          
+          
+          <div class="au-screen-pane"><div class="au-git-toolbar">
+        <div class="au-git-branch-row">
+          <button class="au-button au-button--secondary au-button--compact au-git-branch" type="button">main <span class="au-muted">▾</span></button>
+          <button class="au-browser-button" type="button"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14l6-6 6 6"></path></svg></button>
+          <button class="au-browser-button" type="button"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10l6 6 6-6"></path></svg></button>
+        </div>
+        <div class="au-git-actions">
+          <button class="au-browser-button" type="button">↻</button>
+          <button class="au-button au-button--secondary au-button--compact" type="button">Fetch</button>
+          <button class="au-button au-button--secondary au-button--compact" type="button">Pull</button>
+          <button class="au-button au-button--compact" type="button">Push</button>
+          <button class="au-button au-button--danger au-button--compact" type="button">Discard</button>
+          <button class="au-button au-button--secondary au-button--compact au-git-history" type="button">History</button>
+        </div>
+      </div><div class="au-git-heading">
+        <p class="au-accent">Git changes</p>
+        <p class="au-muted">2 of 4 file(s) selected</p>
+      </div><div class="au-git-change-list">
+        <div class="au-git-row">
+          <span class="au-checkbox"></span>
+          <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
+          <span class="au-git-change-name au-git-change-name--directory">Changes</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
+          <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
+          <span class="au-git-change-name au-git-change-name--directory">apps</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
+          <span class="au-git-change-name au-git-change-name--directory">storefront</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-change-name">ProductGrid.tsx</span>
+          <span class="au-git-status au-git-status--modified">M</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox au-checkbox--checked"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-change-name">PromoBanner.tsx</span>
+          <span class="au-git-status au-git-status--added">+</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox au-checkbox--checked"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-change-name">PromoBanner2.tsx</span>
+          <span class="au-git-status au-git-status--added">+</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
+          <span class="au-git-change-name au-git-change-name--directory">api</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-checkbox"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-change-name">orders.ts</span>
+          <span class="au-git-status au-git-status--modified">M</span>
+        </div>
+      </div><div class="au-git-commit">
+        <textarea class="au-input" readonly autofocus>feat(storefront): add the weekly promo banner</textarea>
+        <button class="au-button" type="button">Commit</button>
+      </div></div>
+        </main>
+      </div>
+    </div>
 </div>
 </body>
 </html>

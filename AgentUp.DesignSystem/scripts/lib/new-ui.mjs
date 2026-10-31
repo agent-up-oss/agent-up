@@ -1,22 +1,32 @@
 /**
  * The New UI space.
  *
- * A second arrangement of the same design tokens, kept entirely out of the compiled product
- * pipeline. Nothing here reaches `parseCatalog`, `parseRules`, `emitNative` or `emitStyles`, so
- * adding or changing a scene cannot move a single byte in the Avalonia resources, the React
- * Native bindings or `dist/web/agent-up.css` that the shipping clients consume.
+ * Screens are assembled the same way the Old UI screens are. `src/new-ui/screens.html` names which
+ * component fills each region, and `assembleScreens` inserts that component's HTML. A region may
+ * name a component from the product catalog (`chrome`, `workspace`, `workspace-tabs`) or from
+ * `src/new-ui/catalog.html`. The New UI catalog stays out of the Old UI stylesheet, so Avalonia
+ * and React Native bindings for the classic catalog stay put.
  *
- * Scenes are authored in `src/new-ui/screens.html` as plain markup. A file at
- * `src/new-ui/screens/<id>.html` replaces the inline scene sections it names. The inline
- * section stays in `screens.html` and is what renders when that file is missing or does not
- * parse. A `<template data-aun-partial>` is inserted wherever a scene writes
- * `<div data-aun-include>`, so the rail and the agent header are written once rather than
- * copied into every screen.
+ * `parseNewUi` still reads a scene written as its own markup. The showcase build does not use that
+ * path.
  *
  * A screen is the showcase chip. It names the desktop scene and the mobile scene that belong
  * together, so the two surfaces share one tab and sit side by side. A scene that exists on
  * only one surface is still one screen. Scene documents stay one file per surface.
  */
+
+/** Product catalog first, then New UI components. A repeated id is a build error. */
+export function withProductCatalog(product, extra) {
+  const ids = new Set();
+  const surfaces = [...product.surfaces, ...extra.surfaces];
+  for (const surface of surfaces) {
+    for (const component of surface.components) {
+      if (ids.has(component.id)) throw new Error(`Duplicate catalog component '${component.id}'.`);
+      ids.add(component.id);
+    }
+  }
+  return { surfaces };
+}
 
 export const newUiDesktopSize = { width: 1440, height: 900 };
 export const newUiMobileSize = { width: 390, height: 844 };
@@ -49,6 +59,26 @@ export function parseNewUi(html) {
 
 export function newUiSceneSize(scene) {
   return scene.surface === 'mobile' ? newUiMobileSize : newUiDesktopSize;
+}
+
+/** The assembled screen document, in the shape the showcase manifest already stores. */
+export function newUiFromAssembled(assembled) {
+  return {
+    screens: assembled.screens.map(screen => ({
+      id: screen.id,
+      title: screen.title,
+      intro: screen.intro,
+      desktopId: screen.desktopId,
+      mobileId: screen.mobileId,
+    })),
+    scenes: assembled.scenes.map(scene => ({
+      id: scene.id,
+      title: scene.title,
+      surface: scene.surface,
+      intro: '',
+      html: scene.html,
+    })),
+  };
 }
 
 export function newUiManifest({ screens, scenes }) {

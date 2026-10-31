@@ -13,120 +13,87 @@
 </head>
 <body>
 <div class="aun-frame">
-<div class="aun">
-    <nav class="aun-rail" aria-label="Command center">
-    <p class="aun-rail__section">TEAM</p>
-    <a class="aun-rail__agent" data-aun-nav="lucy" aria-current="page" href="#lucy">
-      <strong>Lucy</strong><span>Reviewer &middot; interface</span><code>@lucy-aup[bot]</code>
-      <span class="aun-glyph--gate">Waiting on you</span><span>Review #412</span>
-    </a>
-    <a class="aun-rail__agent" data-aun-nav="bob" href="#bob">
-      <strong>Bob</strong><span>Developer</span><code>@bob-aup[bot]</code>
-      <span class="aun-glyph--running">Working</span><span>Build #398</span>
-    </a>
-    <a class="aun-rail__agent" data-aun-nav="hector" href="#hector">
-      <strong>Hector</strong><span>Reviewer &middot; code</span><code>@hector-aup[bot]</code>
-      <span class="aun-glyph--halted">Halted</span><span>Review #405</span>
-    </a>
-    <span class="aun-rail__spacer"></span>
-    <button type="button" class="aun-rail__switch">Switch back to the classic interface</button>
-  </nav>
-    <main class="aun-main">
-      <header class="aun-head" style="align-items: center">
-    <span class="aun-avatar aun-avatar--lg">L</span>
-    <span style="flex: 1 1 18rem; min-width: 0">
-      <span class="aun-title" style="display: block">Lucy</span>
-      <span class="aun-subtitle">Reviewer &middot; interface &nbsp;&middot;&nbsp; <span class="aun-mono">@lucy-aup[bot]</span> &nbsp;&middot;&nbsp; <span class="aun-mono">agent-up-qa</span></span>
-    </span>
-    <span class="aun-conn"><span class="aun-dot aun-dot--live"></span>Live</span>
-  </header>
-      <nav class="aun-tabs" aria-label="Agent sections">
-        <a class="aun-tab" href="#overview">Overview</a>
-        <a class="aun-tab" href="#chat" aria-current="page">Chat</a>
-        <a class="aun-tab" href="#git">Git</a>
-      </nav>
-
-      <div class="aun-grid aun-grid--cards">
-        <article class="aun-card">
-          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px">
-            <h2 class="aun-card__title" style="margin: 0">Review of #412</h2>
-            <span class="aun-faint" style="font-size: var(--au-font-size-ui-sm)">resumed &middot; attempt 2</span>
-          </div>
-          <div>
-            <div class="aun-event">
-              <span class="aun-event__dot aun-muted">&#9644;</span>
-              <span class="aun-event__body"><strong style="color: var(--au-color-text-primary)">Workspace prepared the branch</strong><br><span class="aun-muted">cleaned, fetched, checked out <span class="aun-mono">feat/412-agent-remedy</span> at <span class="aun-mono">a71f093</span></span></span>
-              <span class="aun-event__time">11m</span>
-            </div>
-            <div class="aun-event">
-              <span class="aun-event__dot aun-glyph--running">&#9679;</span>
-              <span class="aun-event__body"><strong style="color: var(--au-color-text-primary)">Lucy started</strong><br><span class="aun-muted">given the proposal, the issue it closes, and her persona</span></span>
-              <span class="aun-event__time">11m</span>
-            </div>
-            <div class="aun-event">
-              <span class="aun-event__dot aun-muted">&#9656;</span>
-              <span class="aun-event__body">Read #412 and the 4 changed files</span>
-              <span class="aun-event__time">9m</span>
-            </div>
-            <div class="aun-event">
-              <span class="aun-event__dot aun-muted">&#9656;</span>
-              <span class="aun-event__body">Replayed <span class="aun-mono">agents-dead-end</span> at 390, 834 and 1440px</span>
-              <span class="aun-event__time">6m</span>
-            </div>
-            <div class="aun-event">
-              <span class="aun-event__dot aun-glyph--gate">&#9650;</span>
-              <span class="aun-event__body"><strong style="color: var(--au-color-text-primary)">14 findings &middot; 3 blocking</strong><br><span class="aun-muted">&ldquo;Agent rows are unreachable by keyboard at every width; the row is a div with a click handler.&rdquo;</span></span>
-              <span class="aun-event__time">3m</span>
-            </div>
-            <div class="aun-event">
-              <span class="aun-event__dot aun-glyph--gate">&#9670;</span>
-              <span class="aun-event__body"><strong style="color: var(--au-color-text-primary)">Asked to submit the review</strong></span>
-              <span class="aun-event__time">now</span>
-            </div>
-          </div>
-          <details style="margin-top: 12px; border-top: 1px solid var(--au-color-border-subtle); padding-top: 12px">
-            <summary class="aun-muted" style="font-size: var(--au-font-size-ui-sm); cursor: pointer">Token stream</summary>
-            <p class="aun-console" style="margin-top: 9px">&hellip;checking focus order on the agent list. The third row has no tabindex and no role, so Tab skips it entirely. Same defect at all three widths, so I will report it once rather than three times&hellip;</p>
-          </details>
-        </article>
-
-        <div class="aun-stack" style="gap: 14px">
-          <article class="aun-card aun-card--gate">
-            <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 11px">
-              <span class="aun-glyph--gate">&#9670;</span>
-              <h2 class="aun-card__title" style="margin: 0; color: var(--au-color-text-warning)">Approval needed</h2>
-            </div>
-            <p class="aun-row__meta" style="margin-bottom: 11px">Submit a review on <strong>#412</strong> as <span class="aun-mono">@lucy-aup[bot]</span>.</p>
-            <div class="aun-stack" style="margin-bottom: 14px">
-              <p class="aun-kv"><span style="color: var(--au-color-text-danger); font-weight: 600; width: 1.5rem">3</span>blocking</p>
-              <p class="aun-kv"><span style="color: var(--au-color-text-warning); font-weight: 600; width: 1.5rem">6</span>should fix</p>
-              <p class="aun-kv"><span class="aun-muted" style="font-weight: 600; width: 1.5rem">5</span>nits</p>
-            </div>
-            <div class="aun-wrap" style="gap: 8px">
-              <button type="button" class="aun-btn aun-btn--primary">Approve &amp; submit</button>
-              <button type="button" class="aun-btn">View draft</button>
-              <button type="button" class="aun-btn aun-btn--danger">Reject</button>
-            </div>
-          </article>
-
-          <article class="aun-card">
-            <h2 class="aun-card__title">Message Lucy</h2>
-            <div class="aun-wrap" style="gap: 7px; margin-bottom: 11px">
-              <button type="button" class="aun-btn" style="flex: 1 1 0">Preempt</button>
-              <button type="button" class="aun-btn" style="flex: 1 1 0">Join</button>
-              <button type="button" class="aun-btn aun-btn--primary" style="flex: 1 1 0">Queue</button>
-            </div>
-            <label class="aun-rail__section" for="aun-msg" style="padding: 0 0 6px; display: block">MESSAGE</label>
-            <textarea id="aun-msg" class="aun-input aun-textarea" placeholder="Also check the mobile Agents screen before you submit."></textarea>
-            <div class="aun-wrap" style="gap: 8px; margin-top: 11px">
-              <button type="button" class="aun-btn aun-btn--primary">Send</button>
-              <button type="button" class="aun-btn">Stop run</button>
-            </div>
-          </article>
-        </div>
+<div class="au-screen">
+      <div class="au-chrome">
+        <span class="au-cluster">
+          <span class="au-title-tool au-chrome-icon"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></span>
+          <span class="au-title-tool au-chrome-icon"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 4v6h-6"></path></svg></span>
+          <span class="au-badge au-badge--healthy"><span class="au-status-dot au-status-dot--healthy"></span>SERVER ONLINE</span>
+        </span>
+        <span class="au-logo-lockup"><span class="au-chrome-mark"></span><strong class="au-chrome-title">Agent-Up</strong></span>
+        <span class="au-cluster">
+          <span class="au-chrome-button au-chrome-icon">−</span>
+          <span class="au-chrome-button au-chrome-icon">□</span>
+          <span class="au-chrome-button au-chrome-close au-chrome-icon">×</span>
+        </span>
       </div>
-    </main>
-  </div>
+      <div class="au-screen-body">
+        <aside class="au-rail au-screen-rail" aria-label="Sidebar">
+        <div class="au-workspace-head">
+        <span class="au-muted">Workspaces</span>
+        <button class="au-workspace-add" type="button">+</button>
+        <button class="au-workspace-add" type="button">‹</button>
+      </div>
+        <div class="au-workspace au-workspace--selected">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span>
+          <strong class="au-workspace-name">Harbor Shop</strong>
+          <small class="au-workspace-branch">main</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+        <div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span>
+          <strong class="au-workspace-name">Harbor Checkout</strong>
+          <small class="au-workspace-branch">feat/48-express-checkout</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+        <div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span>
+          <strong class="au-workspace-name">Harbor Docs</strong>
+          <small class="au-workspace-branch">fix/51-broken-anchors</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+        <button type="button" class="aun-rail__switch">Switch back to the classic interface</button>
+      </aside>
+        <main class="au-screen-main">
+          <div class="au-screen-tabs"><div class="au-cluster">
+        <button class="au-app-tab">Overview</button>
+        <button class="au-app-tab au-app-tab--selected">Chat</button>
+        <button class="au-app-tab">Git</button>
+        <span class="au-tab-sep"></span>
+        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
+        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
+        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Inventory</button>
+      </div></div>
+          
+          
+          <div class="au-screen-pane"><div class="au-agent-header">
+        <div>
+          <h1 class="au-page-title">Workspace agent</h1>
+          <p class="au-muted">Codex · Idle</p>
+          <p class="au-muted">Workspace sessions</p>
+        </div>
+        <button class="au-button au-button--danger au-button--compact" type="button">Stop agent</button>
+      </div><div class="au-chat-transcript">
+        <div class="au-chat-user">What is running in this workspace?</div>
+        <div class="au-card"><span class="au-muted">Codex</span><p>I added apps/storefront/PromoBanner.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>
+        <div class="au-chat-user">Add a promo banner to the storefront.</div>
+        <div class="au-card"><span class="au-muted">Codex</span><p>I added apps/storefront/PromoBanner2.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>
+      </div><div class="au-agent-prompt">
+        <input class="au-input" placeholder="Ask the agent..." />
+        <button class="au-button" type="button">Send</button>
+      </div></div>
+        </main>
+      </div>
+    </div>
 </div>
 </body>
 </html>

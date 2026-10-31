@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sidebar — Agent-Up new UI</title>
+  <link rel="stylesheet" href="../new-ui.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
+    .aun-frame { width: 1440px; min-height: 900px; overflow: hidden; display: flex; }
+    .aun-frame > * { flex: 1 1 auto; min-width: 0; }
+  </style>
+</head>
+<body>
+<div class="aun-frame">
+<div class="au-screen">
+      <div class="au-chrome">
+        <span class="au-cluster">
+          <span class="au-title-tool au-chrome-icon"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></span>
+          <span class="au-title-tool au-chrome-icon"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 4v6h-6"></path></svg></span>
+          <span class="au-badge au-badge--healthy"><span class="au-status-dot au-status-dot--healthy"></span>SERVER ONLINE</span>
+        </span>
+        <span class="au-logo-lockup"><span class="au-chrome-mark"></span><strong class="au-chrome-title">Agent-Up</strong></span>
+        <span class="au-cluster">
+          <span class="au-chrome-button au-chrome-icon">−</span>
+          <span class="au-chrome-button au-chrome-icon">□</span>
+          <span class="au-chrome-button au-chrome-close au-chrome-icon">×</span>
+        </span>
+      </div>
+      <div class="au-screen-body">
+        <aside class="au-rail au-screen-rail" aria-label="Sidebar">
+        <div class="au-workspace-head">
+        <span class="au-muted">Workspaces</span>
+        <button class="au-workspace-add" type="button">+</button>
+        <button class="au-workspace-add" type="button">‹</button>
+      </div>
+        <div class="au-workspace au-workspace--selected">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span>
+          <strong class="au-workspace-name">Harbor Shop</strong>
+          <small class="au-workspace-branch">main</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+        <div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span>
+          <strong class="au-workspace-name">Harbor Checkout</strong>
+          <small class="au-workspace-branch">feat/48-express-checkout</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+        <div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span>
+          <strong class="au-workspace-name">Harbor Docs</strong>
+          <small class="au-workspace-branch">fix/51-broken-anchors</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+        <button type="button" class="aun-rail__switch">Switch back to the classic interface</button>
+      </aside>
+      </div>
+    </div>
+</div>
+</body>
+</html>

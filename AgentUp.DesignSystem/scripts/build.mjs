@@ -12,7 +12,7 @@ import {
   parseIcons,
 } from './lib/icons.mjs';
 import { emitNative } from './lib/native.mjs';
-import { applyNewUiSceneFiles, newUiManifest, parseNewUi, wrapNewUiScene } from './lib/new-ui.mjs';
+import { newUiFromAssembled, newUiManifest, withProductCatalog, wrapNewUiScene } from './lib/new-ui.mjs';
 import { emitSequencePlayer, emitSequencePlayerTypes } from './lib/sequences.mjs';
 import { assembleScreens, framedSceneHtml, sceneCopy, wrapSceneDocument } from './lib/screens.mjs';
 import { applyDefaultParts, buildPropsExamples, hasContentSlots } from './lib/slots.mjs';
@@ -32,16 +32,13 @@ const screensHtml = expandIcons(await readFile(resolve(src, 'screens.html'), 'ut
 const css = `${primitives.trim()}\n\n${product.trim()}\n`;
 const screenshotCss = `${css}\n${marketing}\n${screenshotShell}\n`;
 /*
- * The New UI space. Read from a directory rather than from `src/` directly, because
- * `readProductCss` globs `src/*.css` and `readCatalogHtml` globs `src/catalog-*.html`: a file
- * placed beside them would join the compiled product stylesheet and the catalog, and from there
- * reach the Avalonia and React Native bindings. Kept here, this space can only ever add outputs.
+ * The New UI space. Its catalog and screens stay out of `src/*.css` and `src/catalog-*.html`,
+ * which are the Old UI stylesheet and catalog. A scene names a component from either catalog.
+ * Product components (the title bar, a workspace row, the Git pane) are inserted as themselves.
  */
-const newUiInline = await readFile(resolve(src, 'new-ui', 'screens.html'), 'utf8');
-const newUiSceneFiles = await readNewUiSceneFiles(resolve(src, 'new-ui', 'screens'));
-const newUiSource = expandIcons(applyNewUiSceneFiles(newUiInline, newUiSceneFiles), icons);
+const newUiCatalog = parseCatalog(await readFile(resolve(src, 'new-ui', 'catalog.html'), 'utf8'));
+const newUiScreens = await readFile(resolve(src, 'new-ui', 'screens.html'), 'utf8');
 const newUiCss = await readFile(resolve(src, 'new-ui', 'new-ui.css'), 'utf8');
-const newUi = parseNewUi(newUiSource);
 const tokens = parseCustomProperties(primitives);
 const required = [
   'color-canvas', 'color-surface', 'color-border-subtle', 'color-text-primary',
@@ -55,8 +52,10 @@ for (const name of required) {
 const catalog = parseCatalog(catalogHtml);
 if (catalog.surfaces.length < 8) throw new Error('Design catalog is missing required product surfaces.');
 resolveDefaultParts(catalog);
+resolveDefaultParts(newUiCatalog);
 expandStateExamples(catalog);
 const assembled = assembleScreens(catalog, screensHtml);
+const newUi = newUiFromAssembled(assembleScreens(withProductCatalog(catalog, newUiCatalog), newUiScreens));
 const rules = parseRules(`${css}\n${marketing}`);
 const index = catalogIndex(catalog);
 const native = emitNative(tokens, rules);
@@ -109,7 +108,7 @@ for (const scene of assembled.scenes) {
 
 // Standalone scene documents carry the foundations with them; a page that already loads the
 // design system embeds the second file so the shared primitives are not applied twice.
-outputs.set('dist/web/new-ui.css', `${primitives.trim()}\n\n${newUiCss.trim()}\n`);
+outputs.set('dist/web/new-ui.css', `${css.trim()}\n\n${newUiCss.trim()}\n`);
 outputs.set('dist/web/new-ui-embed.css', `${newUiCss.trim()}\n`);
 outputs.set('dist/web/new-ui.json', `${JSON.stringify(newUiManifest(newUi), null, 2)}\n`);
 for (const scene of newUi.scenes) {
@@ -126,19 +125,6 @@ for (const [relative, content] of outputs) {
     await mkdir(dirname(path), { recursive: true });
     await writeFile(path, content);
   }
-}
-
-async function readNewUiSceneFiles(directory) {
-  let names;
-  try {
-    names = (await readdir(directory)).filter(name => name.endsWith('.html')).sort();
-  } catch (error) {
-    if (error && error.code === 'ENOENT') return [];
-    throw error;
-  }
-  return Promise.all(names.map(async name => ({
-    html: await readFile(resolve(directory, name), 'utf8'),
-  })));
 }
 
 async function readCatalogHtml(directory) {

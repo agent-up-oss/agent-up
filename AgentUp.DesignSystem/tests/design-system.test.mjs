@@ -16,8 +16,10 @@ import {
   varName,
 } from '../scripts/lib/css.mjs';
 import { emitNative } from '../scripts/lib/native.mjs';
-import { applyNewUiSceneFiles, newUiManifest, parseNewUi, wrapNewUiScene } from '../scripts/lib/new-ui.mjs';
-import { applyProps } from '../scripts/lib/slots.mjs';
+import { parseCatalog } from '../scripts/lib/catalog.mjs';
+import { applyNewUiSceneFiles, newUiFromAssembled, newUiManifest, parseNewUi, withProductCatalog, wrapNewUiScene } from '../scripts/lib/new-ui.mjs';
+import { assembleScreens } from '../scripts/lib/screens.mjs';
+import { applyDefaultParts, applyProps, hasContentSlots } from '../scripts/lib/slots.mjs';
 
 const root = new URL('..', import.meta.url);
 const repository = fileURLToPath(new URL('../..', import.meta.url));
@@ -769,16 +771,31 @@ test('a screen must name a real scene of the surface it claims', () => {
   );
 });
 
+async function assembleNewUi() {
+  const product = parseCatalog(await readFile(new URL('../src/catalog.html', import.meta.url), 'utf8'));
+  const extra = parseCatalog(await readFile(new URL('../src/new-ui/catalog.html', import.meta.url), 'utf8'));
+  const screens = await readFile(new URL('../src/new-ui/screens.html', import.meta.url), 'utf8');
+  for (const value of [product, extra]) {
+    for (const surface of value.surfaces) {
+      for (const component of surface.components) {
+        if (!hasContentSlots(component)) continue;
+        component.source = component.html;
+        component.html = applyDefaultParts(component);
+      }
+    }
+  }
+  return assembleScreens(withProductCatalog(product, extra), screens);
+}
+
 test('new UI screens pair desktop and mobile instead of a chip per surface', async () => {
-  const html = await readFile(new URL('../src/new-ui/screens.html', import.meta.url), 'utf8');
-  const { screens, scenes } = parseNewUi(html);
+  const { screens, scenes } = await assembleNewUi();
   assert.deepEqual(screens.map(item => item.id), [
     'bridge', 'train', 'tasks', 'team', 'agent-overview', 'agent-chat',
-    'agent-git', 'application', 'settings', 'menu',
+    'agent-git', 'application', 'settings', 'sidebar', 'menu',
   ]);
   assert.deepEqual(screens.map(item => item.title), [
     'Bridge', 'Train', 'Tasks', 'Team', 'Agent · Overview', 'Agent · Chat',
-    'Agent · Git', 'Application', 'Settings', 'Menu',
+    'Agent · Git', 'Application', 'Settings', 'Sidebar', 'Menu',
   ]);
   const bridge = screens.find(item => item.id === 'bridge');
   assert.equal(bridge.desktopId, 'bridge');
@@ -788,6 +805,24 @@ test('new UI screens pair desktop and mobile instead of a chip per surface', asy
   assert.equal(train.mobileId, 'mobile-train');
   const application = screens.find(item => item.id === 'application');
   assert.equal(application.mobileId, '');
+  const sidebar = screens.find(item => item.id === 'sidebar');
+  assert.equal(sidebar.desktopId, 'sidebar');
+  assert.equal(sidebar.mobileId, '');
+  const menu = screens.find(item => item.id === 'menu');
+  assert.equal(menu.desktopId, '');
+  assert.equal(menu.mobileId, 'mobile-menu');
+  for (const scene of scenes.filter(item => item.surface === 'desktop')) {
+    assert.match(scene.html, /aria-label="Sidebar"/, `${scene.id} is missing the sidebar`);
+    assert.match(scene.html, /SERVER ONLINE/, `${scene.id} is missing the window bar`);
+    assert.match(scene.html, /Harbor Shop/, `${scene.id} is missing a workspace`);
+    assert.doesNotMatch(scene.html, /‹ Team/, `${scene.id} still has a Team back button`);
+    assert.doesNotMatch(scene.html, /no workspaces yet/, `${scene.id} still shows the empty rail`);
+  }
+  assert.doesNotMatch(scenes.find(item => item.id === 'mobile-menu').html, /aria-label="Sidebar"/);
+  const overview = scenes.find(item => item.id === 'mobile-agent-overview');
+  assert.match(overview.html, /Back to the team/);
+  assert.match(overview.html, /Reload/);
+  assert.match(overview.html, /Storefront/);
   const named = screens.flatMap(item => [item.desktopId, item.mobileId].filter(Boolean));
   assert.equal(named.length, scenes.length);
   assert.ok(screens.every(item => !item.title.startsWith('Mobile')));
@@ -817,18 +852,22 @@ test('a scene file replaces the inline scene and an unclosed file does not', () 
   assert.equal(parsed.scenes.find(item => item.id === 'mobile-bridge').html, 'phone');
 });
 
-test('the bridge screen file replaces both inline scenes', async () => {
-  const inline = await readFile(new URL('../src/new-ui/screens.html', import.meta.url), 'utf8');
-  const file = await readFile(new URL('../src/new-ui/screens/bridge.html', import.meta.url), 'utf8');
-  const parsed = parseNewUi(applyNewUiSceneFiles(inline, [{ html: file }]));
-  const bridge = parsed.scenes.find(item => item.id === 'bridge');
-  const mobile = parsed.scenes.find(item => item.id === 'mobile-bridge');
-  assert.equal(bridge.intro, '');
-  assert.equal(mobile.intro, '');
-  assert.match(bridge.html, /gate open/);
-  assert.doesNotMatch(bridge.html, /one Server root/);
-  assert.equal(parsed.screens.find(item => item.id === 'bridge').mobileId, 'mobile-bridge');
-  assert.match(parsed.scenes.find(item => item.id === 'tasks').intro, /forge queue/);
+test('new UI agent git assembles the client git pane', async () => {
+  const assembled = newUiFromAssembled(await assembleNewUi());
+  const git = assembled.scenes.find(item => item.id === 'agent-git');
+  const mobile = assembled.scenes.find(item => item.id === 'mobile-agent-git');
+  assert.match(git.html, /Git changes/);
+  assert.match(git.html, />Fetch</);
+  assert.match(git.html, /ProductGrid\.tsx/);
+  assert.match(git.html, /class="au-chrome"/);
+  assert.doesNotMatch(git.html, /PR #/);
+  assert.doesNotMatch(git.html, /FINDINGS/);
+  assert.match(mobile.html, /Changes/);
+  assert.match(mobile.html, /Commit message/);
+  assert.match(mobile.html, />Fetch</);
+  assert.match(mobile.html, /au-nav-icon/);
+  assert.match(mobile.html, /au-subtab--selected/);
+  assert.equal(assembled.screens.find(item => item.id === 'bridge').mobileId, 'mobile-bridge');
 });
 
 test('reading a long tag that is not a scene stays linear', () => {

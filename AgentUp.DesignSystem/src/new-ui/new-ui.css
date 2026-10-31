@@ -117,6 +117,8 @@
 .aun-rail__agent .aun-glyph--running { color: var(--au-color-text-info); }
 .aun-rail__agent .aun-glyph--halted { color: var(--au-color-text-danger); }
 
+.au-screen-rail .aun-rail__switch { margin-top: auto; }
+
 .aun-rail__switch {
   width: 100%;
   padding: var(--au-space-2) var(--au-space-3);
@@ -475,7 +477,9 @@
 .aun-phone__subtitle { display: block; overflow: hidden; color: var(--au-color-text-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .aun-phone__body { flex-grow: 1; overflow-y: auto; padding: var(--au-space-4); display: flex; flex-direction: column; gap: 10px; }
 
-.aun-tabbar { display: flex; border-top: var(--au-stroke) solid var(--au-color-border-subtle); background: var(--au-color-surface); flex-shrink: 0; padding-bottom: var(--au-space-2); }
+.au-mobile-tab-bar { flex-shrink: 0; }
+.au-mobile-tab-bar .au-nav-icon { stroke: var(--au-color-text-primary); opacity: 0.55; }
+.au-mobile-tab-bar .au-subtab--selected .au-nav-icon { opacity: 1; }
 
 .aun-tabbar__item {
   display: flex;
@@ -522,10 +526,27 @@
 .aun-queue-row > strong { flex: 1 1 auto; min-width: 0; }
 .aun-grip { color: var(--au-color-text-muted); font-size: 18px; letter-spacing: -5px; }
 .aun-settings-signout { width: 100%; color: var(--au-color-text-danger); font: inherit; font-weight: 600; text-align: left; }
-.aun-agent-back { width: 36px; color: var(--au-color-text-secondary); font-size: 30px; line-height: 32px; text-decoration: none; }
-.aun-agent-head { display: flex; align-items: center; gap: 4px; margin-bottom: 11px; }
-.aun-agent-tabs { border-bottom: none; }
-.aun-agent-tabs .aun-tab { flex: 1 1 0; text-align: center; }
+.aun-agent-back {
+  width: 36px;
+  height: 44px;
+  margin-left: -6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--au-color-text-secondary);
+  font-size: 30px;
+  line-height: 32px;
+  text-align: left;
+}
+.aun-agent-reload {
+  border: 0;
+  background: transparent;
+  color: var(--au-color-accent-bright);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px var(--au-space-2);
+}
+.aun-agent-head { display: flex; align-items: center; gap: 4px; }
 .aun-chat-page { gap: var(--au-space-3); }
 .aun-chat-user { align-self: flex-end; max-width: 82%; padding: var(--au-space-3); border-radius: var(--au-radius-lg); background: var(--au-color-surface-selected); font-size: var(--au-font-size-ui-sm); }
 .aun-chat-composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--au-space-2); margin-top: auto; }

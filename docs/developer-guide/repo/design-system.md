@@ -73,7 +73,7 @@ shows the live components that surface uses.
   Unicode glyphs and Mobile hosts the same drawings as public SVGs today; those two surfaces adopting the
   emitted geometry is what makes a documented screen match a real one at the icon
   level.
-- `src/new-ui/screens.html` owns the New UI space. A `data-aun-screen` row pairs one desktop scene and one mobile scene under a single showcase chip. A file at `src/new-ui/screens/<id>.html` replaces the inline scenes it names; the inline section stays and is used when that file is missing or does not parse. The chip is the label. Scene documents stay one file per surface under `dist/web/new-ui/`.
+- `src/new-ui/catalog.html` and `src/new-ui/screens.html` own the New UI space. The catalog is the components, and each scene fills regions with `data-au-use` of those component ids, assembled by the same `assembleScreens` path as `src/screens.html`. The component markup is the structure the Desktop and Mobile command center already draw. A `data-au-screen` row pairs one desktop scene and one mobile scene under a single showcase chip. The `sidebar` component is the Desktop rail: it composes `workspace-head` and `workspace` rows, and the desktop layout includes that rail plus the `chrome` title bar on every desktop scene. The Sidebar chip is that module on its own. Menu is the mobile drawer. Scene documents stay one file per surface under `dist/web/new-ui/`. This catalog stays out of the Old UI stylesheet, so it does not move the classic Avalonia or React Native bindings.
 - `src/screens.html` owns assembled screens: named layouts plus scenes that
   fill regions with `data-au-use` of catalog component ids, including the
   `screen*` layout shells. `scripts/lib/screens.mjs` inserts leaf catalog HTML
