@@ -22,19 +22,19 @@
         </span>
         <span class="au-logo-lockup"><span class="au-chrome-mark"></span><strong class="au-chrome-title">Agent-Up</strong></span>
         <span class="au-cluster">
-          <span class="au-chrome-button au-chrome-icon">−</span>
-          <span class="au-chrome-button au-chrome-icon">□</span>
-          <span class="au-chrome-button au-chrome-close au-chrome-icon">×</span>
+          <span class="au-chrome-button au-chrome-icon" data-au-action="window-minimize">−</span>
+          <span class="au-chrome-button au-chrome-icon" data-au-action="window-restore">□</span>
+          <span class="au-chrome-button au-chrome-close au-chrome-icon" data-au-action="window-close">×</span>
         </span>
       </div>
       <div class="au-screen-body">
         <aside class="au-rail au-screen-rail" aria-label="Sidebar">
         <div class="aun-nav-row">
-          <button type="button" class="aun-nav aun-nav--current">Team</button>
-          <button type="button" class="au-workspace-add" aria-label="Add workspace">+</button>
+          <button type="button" class="aun-nav aun-nav--current" data-au-action="nav-team" data-au-selection="nav:0:aun-nav--current">Team</button>
+          <button type="button" class="au-workspace-add" data-au-action="add-workspace" aria-label="Add workspace">+</button>
         </div>
         <div class="aun-nav-subs">
-          <div data-au-demo="workspaces"><div class="au-workspace">
+          <div data-au-demo="workspaces" data-au-repeat="workspace" data-au-action="open-workspace"><div class="au-workspace">
         <button class="au-lifecycle-button" type="button">■</button>
         <span class="au-status-dot au-status-dot--healthy"></span>
         <span>
@@ -78,8 +78,8 @@
         <button class="au-workspace-delete" type="button">×</button>
       </div></div>
         </div>
-        <button type="button" class="aun-nav">Tasks</button>
-        <button type="button" class="aun-nav">Settings</button>
+        <button type="button" class="aun-nav" data-au-action="nav-tasks" data-au-selection="nav:1:aun-nav--current">Tasks</button>
+        <button type="button" class="aun-nav" data-au-action="nav-settings" data-au-selection="nav:2:aun-nav--current">Settings</button>
       </aside>
         <main class="au-screen-main">
           
@@ -87,13 +87,13 @@
           
           <div class="au-screen-pane"><div>
         <h1 class="au-page-title">Team</h1>
-        <div data-au-demo="headline"><p class="aun-muted">5 agents · 1 working · 2 idle · 1 waiting for approval · 1 error</p></div>
-      </div><div class="aun-state-map" data-au-demo="fleet">
-    <div class="aun-state-map__head"><div><p class="aun-state-map__kicker">AGENT STATE MAP</p><p class="aun-state-map__dek">Live fleet topology</p></div><span class="aun-live">LIVE</span></div>
-    <div class="aun-state-map__root"><div><p class="aun-state-map__total">5</p><p class="aun-state-map__total-label">AGENTS</p></div>
-      <div><p class="aun-state-map__root-title">SERVER FLEET</p><p class="aun-state-map__root-meta">1 active · 2 ready · 2 need attention</p></div></div>
-    <div class="aun-state-map__stem"></div><div class="aun-state-map__crossbar" style="--aun-lanes: 4"></div>
-    <div class="aun-state-map__lanes" style="--aun-lanes: 4">
+        <p class="aun-muted" data-au-demo="headline">5 agents · 1 working · 2 idle · 1 waiting for approval · 1 error</p>
+      </div><div class="aun-state-map" style="--aun-lanes: 4">
+        <div class="aun-state-map__head"><div><p class="aun-state-map__kicker">AGENT STATE MAP</p><p class="aun-state-map__dek">Live fleet topology</p></div><span class="aun-live">LIVE</span></div>
+        <div class="aun-state-map__root"><div><p class="aun-state-map__total">5</p><p class="aun-state-map__total-label">AGENTS</p></div><div><p class="aun-state-map__root-title">SERVER FLEET</p><p class="aun-state-map__root-meta">1 active · 2 ready · 2 need attention</p></div></div>
+        <div class="aun-state-map__stem"></div>
+        <div class="aun-state-map__crossbar"></div>
+        <div class="aun-state-map__lanes" data-au-demo="fleet" data-au-repeat="fleet-lane">
     <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch aun-state-map__branch--waiting">
       <div class="aun-state-map__branch-head">
         <span class="aun-state-map__mark" aria-hidden="true"></span>
@@ -125,7 +125,8 @@
         <span class="aun-state-map__count">2</span>
       </div>
       <div class="aun-state-map__host"><div class="aun-state-map__agent"><span class="aun-state-map__agent-name">Frank</span><span class="aun-state-map__agent-task">No task in hand</span></div></div><div class="aun-state-map__host"><div class="aun-state-map__agent"><span class="aun-state-map__agent-name">Mia</span><span class="aun-state-map__agent-task">No task in hand</span></div></div>
-    </div></div></div></div></div>
+    </div></div></div>
+      </div></div>
         </main>
         
       </div>

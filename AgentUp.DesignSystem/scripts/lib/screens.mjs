@@ -139,9 +139,7 @@ ${framedSceneHtml(scene)}
 }
 
 function assembleScene(scene, layouts, components) {
-  const layout = layouts.get(scene.layout);
-  if (!layout) throw new Error(`${scene.id} references unknown layout '${scene.layout}'.`);
-  const slotted = applySlots(layout, scene.regions);
+  const slotted = slottedScene(scene, layouts);
   const uses = [...slotted.matchAll(/data-au-use="([^"]+)"/g)].map(match => match[1]);
   // A component whose copy the scene replaced cannot be re-derived from the catalog, so the
   // resolved fragment is recorded and the screenshot contract compares against that instead.
@@ -184,6 +182,16 @@ function sceneStateModifiers(ids, components) {
     }
   }
   return [...modifiers].sort();
+}
+
+/**
+ * The layout with this scene's regions dropped into its slots, before catalog components are
+ * expanded. The native scene walks that same HTML so Desktop and Mobile mount one tree.
+ */
+export function slottedScene(scene, layouts) {
+  const layout = layouts.get(scene.layout);
+  if (!layout) throw new Error(`${scene.id} references unknown layout '${scene.layout}'.`);
+  return applySlots(layout, scene.regions);
 }
 
 function applySlots(layout, regions) {

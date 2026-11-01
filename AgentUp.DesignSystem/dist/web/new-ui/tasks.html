@@ -22,19 +22,19 @@
         </span>
         <span class="au-logo-lockup"><span class="au-chrome-mark"></span><strong class="au-chrome-title">Agent-Up</strong></span>
         <span class="au-cluster">
-          <span class="au-chrome-button au-chrome-icon">−</span>
-          <span class="au-chrome-button au-chrome-icon">□</span>
-          <span class="au-chrome-button au-chrome-close au-chrome-icon">×</span>
+          <span class="au-chrome-button au-chrome-icon" data-au-action="window-minimize">−</span>
+          <span class="au-chrome-button au-chrome-icon" data-au-action="window-restore">□</span>
+          <span class="au-chrome-button au-chrome-close au-chrome-icon" data-au-action="window-close">×</span>
         </span>
       </div>
       <div class="au-screen-body">
         <aside class="au-rail au-screen-rail" aria-label="Sidebar">
         <div class="aun-nav-row">
-          <button type="button" class="aun-nav">Team</button>
-          <button type="button" class="au-workspace-add" aria-label="Add workspace">+</button>
+          <button type="button" class="aun-nav" data-au-action="nav-team" data-au-selection="nav:0:aun-nav--current">Team</button>
+          <button type="button" class="au-workspace-add" data-au-action="add-workspace" aria-label="Add workspace">+</button>
         </div>
         <div class="aun-nav-subs">
-          <div data-au-demo="workspaces"><div class="au-workspace">
+          <div data-au-demo="workspaces" data-au-repeat="workspace" data-au-action="open-workspace"><div class="au-workspace">
         <button class="au-lifecycle-button" type="button">■</button>
         <span class="au-status-dot au-status-dot--healthy"></span>
         <span>
@@ -78,16 +78,16 @@
         <button class="au-workspace-delete" type="button">×</button>
       </div></div>
         </div>
-        <button type="button" class="aun-nav aun-nav--current">Tasks</button>
-        <button type="button" class="aun-nav">Settings</button>
+        <button type="button" class="aun-nav aun-nav--current" data-au-action="nav-tasks" data-au-selection="nav:1:aun-nav--current">Tasks</button>
+        <button type="button" class="aun-nav" data-au-action="nav-settings" data-au-selection="nav:2:aun-nav--current">Settings</button>
       </aside>
         <main class="au-screen-main">
           
           
           
-          <div class="au-screen-pane"><div class="aun-task-board" data-au-demo="queue">
-    <h1 class="au-page-title">Tasks</h1>
-    
+          <div class="au-screen-pane"><div class="aun-task-board">
+        <h1 class="au-page-title">Tasks</h1>
+        <div data-au-demo="queue" data-au-repeat="task-row">
     <div class="aun-group">
       <p class="au-field-label">In progress · 1</p>
       
@@ -138,7 +138,8 @@
         <span class="aun-task-row__body"><span class="aun-task-row__title">#61 · Order confirmation email omits tax</span></span>
         <button class="aun-btn aun-btn--primary" type="button">Queue</button>
       </div>
-    </div></div></div>
+    </div></div>
+      </div></div>
         </main>
         
       </div>

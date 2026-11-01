@@ -1903,8 +1903,8 @@
  *
  * This file is deliberately NOT part of the compiled product stylesheet. `readProductCss` in
  * scripts/build.mjs globs `src/*.css`; keeping this one a directory deeper means it never joins
- * `dist/web/agent-up.css`, so it cannot reach `parseRules` and therefore cannot alter the
- * Avalonia styles or the React Native bindings the shipping clients consume.
+ * `dist/web/agent-up.css`. The New UI scene build reads it into its own Avalonia stylesheet
+ * and React Native module. It does not alter the classic AgentUpStyles or agentUpTheme.
  *
  * Every value here resolves to a canonical `--au-*` token from src/agent-up.css. The new space
  * is a second arrangement of the same design system, not a second design system.
@@ -2632,6 +2632,8 @@
   margin-bottom: var(--au-space-3);
   font-weight: var(--au-weight-ui-strong);
 }
+.aun-validate__menu[data-au-when="open"] { display: none; }
+.aun-validate--open .aun-validate__menu[data-au-when="open"] { display: flex; }
 .aun-validate__menu {
   display: flex;
   flex-direction: column;

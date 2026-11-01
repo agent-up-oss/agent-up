@@ -17,6 +17,8 @@ public sealed class CommandCenterViewModel : ReactiveObject
     private readonly InterfaceController _controller;
     private bool _active;
     private bool _persists = true;
+    private int _nav;
+    private string _section = "overview";
     private TeamStanding? _agent;
 
     public CommandCenterViewModel(
@@ -54,6 +56,7 @@ public sealed class CommandCenterViewModel : ReactiveObject
             this.RaisePropertyChanged(nameof(ShowsOwnSurfaces));
             this.RaisePropertyChanged(nameof(ShowsClassicLayout));
             this.RaisePropertyChanged(nameof(AgentName));
+            this.RaisePropertyChanged(nameof(SceneId));
         }
     }
 
@@ -65,18 +68,11 @@ public sealed class CommandCenterViewModel : ReactiveObject
     /// <summary>True while the bridge and the queue are what the main pane draws.</summary>
     public bool ShowsSurfaces => Agent is null;
 
-    /// <summary>
-    /// True while the command center draws its own surfaces. With an agent open it does not: the
-    /// workspace detail underneath is the thing on screen, so this shell steps out of its way.
-    /// </summary>
-    public bool ShowsOwnSurfaces => Active && Agent is null;
+    /// <summary>True while the command center scene is the page, including an open agent.</summary>
+    public bool ShowsOwnSurfaces => Active;
 
-    /// <summary>
-    /// True while the window draws the classic layout: always under the classic shell, and under
-    /// the command center once an agent is open, because that agent's workspace is drawn by the
-    /// very same detail rather than by a copy of it.
-    /// </summary>
-    public bool ShowsClassicLayout => !Active || Agent is not null;
+    /// <summary>True while the window draws the classic layout.</summary>
+    public bool ShowsClassicLayout => !Active;
 
     public ReactiveCommand<Unit, Unit> CloseAgentCommand { get; }
 
@@ -87,7 +83,11 @@ public sealed class CommandCenterViewModel : ReactiveObject
     /// Opens one agent's workspace. Nothing is read here: naming the agent is the whole of it,
     /// and the window answers by selecting that workspace and showing its detail.
     /// </summary>
-    public void OpenAgent(TeamStanding standing) => Agent = standing;
+    public void OpenAgent(TeamStanding standing)
+    {
+        _section = "overview";
+        Agent = standing;
+    }
 
     private void CloseAgent() => Agent = null;
 
@@ -148,5 +148,36 @@ public sealed class CommandCenterViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(ToggleToolTip));
         this.RaisePropertyChanged(nameof(ShowsOwnSurfaces));
         this.RaisePropertyChanged(nameof(ShowsClassicLayout));
+        this.RaisePropertyChanged(nameof(SceneId));
+    }
+
+    /// <summary>Which command-center page is mounted. The scene is that page.</summary>
+    public string SceneId => !Active
+        ? "team"
+        : Agent is null
+            ? _nav switch { 1 => "tasks", 2 => "settings", _ => "team" }
+            : _section switch
+            {
+                "chat" => "agent-chat",
+                "git" => "agent-git",
+                "application" => "application",
+                _ => "agent-overview",
+            };
+
+    /// <summary>Team, Tasks, or Settings, as the catalog nav numbers them.</summary>
+    public void ShowNav(int index)
+    {
+        _nav = index is 1 or 2 ? index : 0;
+        _section = "overview";
+        Agent = null;
+        this.RaisePropertyChanged(nameof(SceneId));
+    }
+
+    /// <summary>Overview, Chat, Git, or the running application, once an agent is open.</summary>
+    public void ShowSection(string section)
+    {
+        if (Agent is null) return;
+        _section = section;
+        this.RaisePropertyChanged(nameof(SceneId));
     }
 }

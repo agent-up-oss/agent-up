@@ -18,17 +18,22 @@ import type { ValidationReplayHost } from '@/features/validation/providers/Valid
 import { useWorkspaceInnerShell } from '@/features/shell/hooks/useWorkspaceInnerShell';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 
-type ApplicationSpaceScreenProps = { workspace: Workspace; applicationName: string };
+type ApplicationSpaceScreenProps = {
+  workspace: Workspace;
+  applicationName: string;
+  /** The command-center scene draws the catalog dock, so this screen leaves its own dock off. */
+  showValidation?: boolean;
+};
 
 /** Displays an HTTP application through the Server proxy, a database explorer, or a desktop viewer. */
-export function ApplicationSpaceScreen({ workspace, applicationName }: ApplicationSpaceScreenProps) {
+export function ApplicationSpaceScreen({ workspace, applicationName, showValidation: showValidationProp = true }: ApplicationSpaceScreenProps) {
   const { server } = useWorkspaces();
   const { activeServer } = useServers();
   const application = workspace.applications?.find(entry => entry.name === applicationName);
   const allocatedHttpPort = application ? applicationHttpPort(application) : null;
   const applicationKind = application?.kind;
   const database = isDatabaseApplication(application);
-  const showValidation = showsValidationChrome(application);
+  const showValidation = showValidationProp && showsValidationChrome(application);
   const [source, setSource] = useState<ApplicationProxySource | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);

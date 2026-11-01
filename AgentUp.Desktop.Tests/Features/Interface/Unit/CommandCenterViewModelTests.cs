@@ -68,9 +68,9 @@ public sealed class CommandCenterViewModelTests
             Assert.That(view.HasAgent, Is.True);
             Assert.That(view.AgentName, Is.EqualTo("Lucy"));
             Assert.That(view.Agent!.WorkspaceId, Is.EqualTo("lucy"));
-            // The command center stops drawing its own surfaces so the workspace detail shows.
-            Assert.That(view.ShowsOwnSurfaces, Is.False);
-            Assert.That(view.ShowsSurfaces, Is.False);
+            Assert.That(view.SceneId, Is.EqualTo("agent-overview"));
+            Assert.That(view.ShowsOwnSurfaces, Is.True);
+            Assert.That(view.ShowsClassicLayout, Is.False);
         });
     }
 
@@ -87,6 +87,23 @@ public sealed class CommandCenterViewModelTests
             Assert.That(view.Agent, Is.Null);
             Assert.That(view.HasAgent, Is.False);
             Assert.That(view.ShowsOwnSurfaces, Is.True);
+            Assert.That(view.SceneId, Is.EqualTo("team"));
+        });
+    }
+
+    [Test]
+    public void The_open_agent_page_is_a_scene_the_command_center_keeps_mounted()
+    {
+        var view = InterfaceTestComposition.CommandCenter();
+        view.OpenAgentCommand.Execute(TeamStandingComposition.Standing()).Subscribe();
+
+        view.ShowSection("git");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.SceneId, Is.EqualTo("agent-git"));
+            Assert.That(view.ShowsOwnSurfaces, Is.True);
+            Assert.That(view.ShowsClassicLayout, Is.False);
         });
     }
 

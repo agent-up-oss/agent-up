@@ -64,7 +64,8 @@ export function emitThemeResources(tokens) {
   return `${lines.join('\n')}\n`;
 }
 
-export function emitStyles(rules, tokens, index) {
+export function emitStyles(rules, tokens, index, options = {}) {
+  const keep = options.keep ?? new Set();
   const styleMap = new Map();
   const add = (selector, setters) => {
     if (!selector || !setters.length) return;
@@ -76,7 +77,7 @@ export function emitStyles(rules, tokens, index) {
     const templateSetters = setters.filter(([property]) => ['Background', 'Foreground', 'BorderBrush', 'Padding'].includes(property));
     for (const selector of rule.selectors) {
       const parsed = parseSelector(selector);
-      if (!parsed || layoutOnly.has(parsed.baseClass) || webOnly.has(parsed.baseClass)) continue;
+      if (!parsed || layoutOnly.has(parsed.baseClass) || (webOnly.has(parsed.baseClass) && !keep.has(parsed.baseClass))) continue;
       for (const avaloniaSelector of avaloniaSelectors(parsed, index)) {
         add(avaloniaSelector, allowedSetters(avaloniaSelector, setters));
         const hostType = avaloniaSelector.split(/[:.\s]/)[0];

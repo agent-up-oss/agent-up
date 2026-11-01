@@ -959,6 +959,49 @@ test('new UI agent git assembles the client git pane', async () => {
   assert.equal(assembled.screens.find(item => item.id === 'team').mobileId, 'mobile-team');
 });
 
+test('a New UI scene publishes the slots, states, and actions a command center binds', async () => {
+  const manifest = JSON.parse(await readFile(new URL('./dist/web/new-ui.json', root), 'utf8'));
+  const team = manifest.scenes.find(scene => scene.id === 'team');
+  const phone = manifest.scenes.find(scene => scene.id === 'mobile-application');
+  assert.ok(team.slots.some(slot => slot.name === 'workspaces' && slot.kind === 'repeat' && slot.repeat === 'workspace'));
+  assert.ok(team.slots.some(slot => slot.name === 'headline' && slot.kind === 'text'));
+  assert.ok(team.slots.some(slot => slot.name === 'fleet' && slot.kind === 'repeat' && slot.repeat === 'fleet-lane'));
+  assert.ok(team.actions.includes('add-workspace'));
+  assert.ok(team.states.includes('nav'));
+  assert.ok(phone.slots.some(slot => slot.name === 'application' && slot.kind === 'content'));
+  assert.ok(phone.slots.some(slot => slot.name === 'summary' && slot.kind === 'text'));
+  assert.ok(phone.slots.some(slot => slot.name === 'flows' && slot.repeat === 'command-flow'));
+  assert.ok(phone.actions.includes('run'));
+  assert.ok(phone.states.includes('open'));
+});
+
+test('the mounted scene lays the title bar and fleet out, and keeps text inside a text node', async () => {
+  const scene = await readFile(new URL('./dist/native/new-ui-scene.js', root), 'utf8');
+  assert.equal(scene.includes('"t":"path"'), false, 'an svg path leaked out of its svg');
+  assert.match(scene, /if \(node\.t === '#text'\) return h\(Text/);
+  assert.match(scene, /"layout":"chrome"/);
+  assert.match(scene, /"layout":"lanes"/);
+  const name = scene.indexOf('"text":"name"');
+  assert.ok(name > 0);
+  assert.equal(scene.slice(name, name + 80).includes('"t":"#text"'), false, 'a bound name still carries the sample text');
+});
+
+test('command centers mount the generated scene instead of drawing its regions again', async () => {
+  const manifest = JSON.parse(await readFile(new URL('./dist/web/new-ui.json', root), 'utf8'));
+  const desktop = await readFile(new URL('../AgentUp.Desktop/Features/Interface/Views/CommandCenterView.axaml', root), 'utf8');
+  const mobile = await readFile(new URL('../AgentUp.Mobile/src/features/interface/components/CommandCenterShell.tsx', root), 'utf8');
+  const regions = manifest.regions.filter(name => name.startsWith('aun-') || name.startsWith('au-screen') || name === 'au-mobile-tab-bar' || name === 'au-validation-sidebar');
+  for (const name of regions) {
+    assert.equal(desktop.includes(name), false, `desktop redraws ${name}`);
+    assert.equal(mobile.includes(name), false, `mobile redraws ${name}`);
+  }
+  assert.equal(desktop.includes('ColumnDefinitions="208,'), false);
+  assert.equal(mobile.includes('tabBar'), false);
+  assert.equal(mobile.includes('drawer'), false);
+  assert.match(desktop, /NewUiScene/);
+  assert.match(mobile, /createNewUiScene/);
+});
+
 test('reading a long tag that is not a scene stays linear', () => {
   // The shape this guards: two unbounded runs around a literal backtrack quadratically here.
   const haystack = `<section ${'data-other="x" '.repeat(20000)}>no scene</section>`;

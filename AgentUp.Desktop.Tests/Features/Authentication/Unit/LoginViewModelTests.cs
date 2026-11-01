@@ -269,6 +269,31 @@ public sealed class LoginViewModelTests
     }
 
     [Test]
+    public void ShowPicker_FillsTheUrlFromTheHighlightedServerWithoutOpeningIt()
+    {
+        using var savedHttp = new DisposableTestHttpClient(request =>
+            AuthJson(request, HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var store = new InMemoryServerConnectionStore();
+        AuthenticationTestController.Create(savedHttp, store)
+            .SaveServer("https://agent-up.example.com", "remote-token");
+
+        using var launchHttp = new DisposableTestHttpClient(request =>
+            AuthJson(request, HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var login = new LoginViewModel(AuthenticationTestController.Create(launchHttp, store));
+
+        login.ShowPicker();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.ServerUrl, Is.EqualTo("https://agent-up.example.com"));
+            Assert.That(login.CurrentServerUrl, Is.EqualTo("http://127.0.0.1:5000"));
+            Assert.That(
+                login.SavedServers.Single(server => server.Url == "https://agent-up.example.com").IsActive,
+                Is.True);
+        });
+    }
+
+    [Test]
     public void ShowPicker_ListsDemoWithoutAskingForAPassword()
     {
         using var http = new DisposableTestHttpClient(request =>

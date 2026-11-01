@@ -81,10 +81,12 @@ export function newUiFromAssembled(assembled) {
   };
 }
 
-export function newUiManifest({ screens, scenes }) {
+export function newUiManifest({ screens, scenes }, bundle = null) {
+  const contracts = new Map((bundle?.contracts ?? []).map(contract => [contract.id, contract]));
   return {
     space: 'new-ui',
     stylesheet: 'new-ui.css',
+    regions: bundle?.regions ?? [],
     screens: screens.map(screen => ({
       id: screen.id,
       title: screen.title,
@@ -92,16 +94,22 @@ export function newUiManifest({ screens, scenes }) {
       desktopId: screen.desktopId,
       mobileId: screen.mobileId,
     })),
-    scenes: scenes.map(scene => ({
-      id: scene.id,
-      title: scene.title,
-      surface: scene.surface,
-      intro: scene.intro,
-      htmlFile: `new-ui/${scene.id}.html`,
-      width: newUiSceneSize(scene).width,
-      height: newUiSceneSize(scene).height,
-      html: scene.html,
-    })),
+    scenes: scenes.map(scene => {
+      const contract = contracts.get(scene.id);
+      return {
+        id: scene.id,
+        title: scene.title,
+        surface: scene.surface,
+        intro: scene.intro,
+        htmlFile: `new-ui/${scene.id}.html`,
+        width: newUiSceneSize(scene).width,
+        height: newUiSceneSize(scene).height,
+        html: scene.html,
+        slots: contract?.slots ?? [],
+        states: contract?.states ?? [],
+        actions: contract?.actions ?? [],
+      };
+    }),
   };
 }
 

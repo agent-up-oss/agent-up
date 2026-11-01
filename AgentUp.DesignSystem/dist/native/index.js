@@ -358,15 +358,23 @@ export const agentUpTheme = Object.freeze({
       borderRadius: 8,
     }),
     example: Object.freeze({
+
+    }),
+    example__preview: Object.freeze({
       minHeight: 96,
       paddingHorizontal: 20,
       paddingVertical: 20,
-      color: "#8a9a92",
+      color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 12,
+    }),
+    example__meta: Object.freeze({
+      color: "#8a9a92",
       fontSize: 12,
+    }),
+    example__state: Object.freeze({
       borderLeftWidth: 2,
       borderLeftColor: "#00b85059",
     }),
@@ -1379,13 +1387,18 @@ export const agentUpTheme = Object.freeze({
       height: 8,
       borderRadius: 999,
     }),
+    marketingHero__emphasis: Object.freeze({
+      color: "#00b850",
+    }),
     productFrame: Object.freeze({
       minWidth: 0,
-      color: "#8a9a92",
+      color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
       borderWidth: 1,
       borderColor: "#ffffff29",
       borderRadius: 8,
+    }),
+    productFrame__chrome: Object.freeze({
       minHeight: 40,
       paddingHorizontal: 12,
       paddingVertical: 0,
@@ -1393,17 +1406,23 @@ export const agentUpTheme = Object.freeze({
       borderBottomColor: "#ffffff14",
       fontSize: 14,
       fontWeight: '700',
-      letterSpacing: 7,
+    }),
+    productFrame__actions: Object.freeze({
+      color: "#8a9a92",
     }),
     featureCard: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
       color: "#f5fbf7",
-      backgroundColor: "#0a0b0c",
+      backgroundColor: "#191c1f",
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 16,
-      maxWidth: "100%",
+    }),
+    featureCard__preview: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      backgroundColor: "#0a0b0c",
     }),
     proof: Object.freeze({
       backgroundColor: "#ffffff14",
@@ -1420,7 +1439,15 @@ export const agentUpTheme = Object.freeze({
       height: 28,
     }),
     doDont: Object.freeze({
+
+    }),
+    doDont__label: Object.freeze({
       fontWeight: '700',
+    }),
+    doDont__labelDo: Object.freeze({
+      color: "#22c55e",
+    }),
+    doDont__labelDont: Object.freeze({
       color: "#d84f4f",
     }),
   }),

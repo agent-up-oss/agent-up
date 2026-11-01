@@ -140,6 +140,12 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     /// </summary>
     public bool ShowsClassicRail => CommandCenter?.HasAgent != true;
 
+    /// <summary>
+    /// The host title bar. Sign-in and the classic shell use it. The command center scene draws
+    /// its own, so the host bar steps aside only while that scene is the page.
+    /// </summary>
+    public bool ShowsWindowChrome => Login.IsVisible || CommandCenter?.Active != true;
+
     public bool ShowOverview => SelectedShellTab == WorkspaceShellTab.Overview;
     public bool ShowAgent => SelectedShellTab == WorkspaceShellTab.Agent;
     public bool ShowGit => SelectedShellTab == WorkspaceShellTab.Git;
@@ -223,7 +229,11 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         _chromeServerStatus = new ChromeServerStatusViewModel(sidebar, SwitchServerCommand);
         UpdateChromeLeftItems(Login.IsVisible);
         Login.WhenAnyValue(viewModel => viewModel.IsVisible)
-            .Subscribe(UpdateChromeLeftItems);
+            .Subscribe(visible =>
+            {
+                UpdateChromeLeftItems(visible);
+                this.RaisePropertyChanged(nameof(ShowsWindowChrome));
+            });
         Login.ServerSwitched.Subscribe(_ => OnServerSwitched());
         Login.SessionRestored.Subscribe(_ => OnSessionRestored());
 
@@ -371,7 +381,19 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
                 if (standing is null) return;
                 var workspace = Sidebar.Workspaces.FirstOrDefault(item => item.Id == standing.WorkspaceId);
                 if (workspace is not null) Sidebar.SelectedWorkspace = workspace;
-                SelectedShellTab = WorkspaceShellTab.Overview;
+            });
+        CommandCenter.WhenAnyValue(x => x.SceneId)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(scene =>
+            {
+                SelectedShellTab = scene switch
+                {
+                    "agent-chat" => WorkspaceShellTab.Agent,
+                    "agent-git" => WorkspaceShellTab.Git,
+                    "application" => WorkspaceShellTab.Application,
+                    "agent-overview" => WorkspaceShellTab.Overview,
+                    _ => SelectedShellTab,
+                };
             });
     }
 
@@ -392,6 +414,9 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     /// </summary>
     private void SubscribeCommandCenter()
     {
+        CommandCenter?.WhenAnyValue(x => x.Active)
+            .Subscribe(_ => this.RaisePropertyChanged(nameof(ShowsWindowChrome)));
+
         // The decision backlog is not a live feed: it changes when an agent records something, not
         // every few seconds, so it is read when the shell comes up rather than on the triage tick.
         if (CommandCenter?.Training is { } training)

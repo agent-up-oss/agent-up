@@ -1,10 +1,13 @@
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Tests.Support;
+using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
+using Avalonia.Input;
 using Avalonia.VisualTree;
+using System.Linq;
 
 namespace AgentUp.Desktop.Tests.Features.Interface.Headless;
 
@@ -27,9 +30,9 @@ public sealed class AgentWorkspacePaneTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(Detail(driver).IsVisible, Is.True, "the workspace detail is the pane");
-            Assert.That(CommandCenter(driver).IsVisible, Is.False, "the command center steps aside");
-            Assert.That(Rail(driver).IsVisible, Is.False, "the team picked the workspace, so the rail stands down");
+            Assert.That(CommandCenter(driver).IsVisible, Is.True, "the agent page is a command-center scene");
+            Assert.That(ViewModel(driver).CommandCenter!.SceneId, Is.EqualTo("agent-overview"));
+            Assert.That(ViewModel(driver).CommandCenter.ShowsClassicLayout, Is.False);
         });
     }
 
@@ -40,15 +43,14 @@ public sealed class AgentWorkspacePaneTests
 
         await OpenAgentAsync(driver);
 
-        var tabs = driver.Window.FindControl<ListBox>("ShellTabs")!;
+        ViewModel(driver).CommandCenter!.ShowSection("chat");
+        await HeadlessExtensions.FlushAsync();
 
         Assert.Multiple(() =>
         {
-            Assert.That(tabs.IsVisible, Is.True);
-            Assert.That(
-                tabs.ItemsSource!.Cast<WorkspaceShellTabItemViewModel>().Select(tab => tab.Label),
-                Is.EqualTo(new[] { "Overview", "Chat", "Git" }));
-            Assert.That(driver.Window.FindControl<ListBox>("ApplicationTabs")!.IsVisible, Is.True);
+            Assert.That(CommandCenter(driver).IsVisible, Is.True);
+            Assert.That(ViewModel(driver).CommandCenter.SceneId, Is.EqualTo("agent-chat"));
+            Assert.That(ViewModel(driver).CommandCenter.ShowsClassicLayout, Is.False);
         });
     }
 
@@ -56,13 +58,12 @@ public sealed class AgentWorkspacePaneTests
     public async Task The_way_back_to_the_team_shows_only_while_an_agent_is_open()
     {
         var driver = await LaunchOnTheCommandCenterAsync();
-        var back = BackToTeam(driver);
 
-        Assert.That(back.IsVisible, Is.False, "nothing to go back from yet");
+        Assert.That(ViewModel(driver).CommandCenter!.SceneId, Is.EqualTo("team"));
 
         await OpenAgentAsync(driver);
 
-        Assert.That(back.IsVisible, Is.True);
+        Assert.That(ViewModel(driver).CommandCenter.SceneId, Is.EqualTo("agent-overview"));
     }
 
     [AvaloniaTest]
@@ -71,14 +72,86 @@ public sealed class AgentWorkspacePaneTests
         var driver = await LaunchOnTheCommandCenterAsync();
         await OpenAgentAsync(driver);
 
-        await driver.Window.ClickControlAsync(BackToTeam(driver));
+        ViewModel(driver).CommandCenter!.CloseAgentCommand.Execute().Subscribe();
         await HeadlessExtensions.FlushAsync();
 
         Assert.Multiple(() =>
         {
             Assert.That(CommandCenter(driver).IsVisible, Is.True);
-            Assert.That(Rail(driver).IsVisible, Is.True);
+            Assert.That(ViewModel(driver).CommandCenter.SceneId, Is.EqualTo("team"));
         });
+    }
+
+    [AvaloniaTest]
+    public async Task Sign_in_keeps_the_host_title_bar_while_the_command_center_is_the_shell()
+    {
+        var driver = await LaunchOnTheCommandCenterAsync();
+        var chrome = driver.Window.FindControl<Border>("WindowChrome")!;
+
+        Assert.That(chrome.IsVisible, Is.False);
+
+        ViewModel(driver).Login.ShowPicker();
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(chrome.IsVisible, Is.True);
+    }
+
+    [AvaloniaTest]
+    public async Task A_click_on_Tasks_opens_the_tasks_page()
+    {
+        var driver = await LaunchOnTheCommandCenterAsync();
+        var window = driver.Window;
+
+        await window.ClickControlAsync(ButtonNamed(window, "Tasks"));
+
+        Assert.That(ViewModel(driver).CommandCenter!.SceneId, Is.EqualTo("tasks"));
+    }
+
+    [AvaloniaTest]
+    public async Task Sign_in_clicks_reach_Connect_while_the_command_center_is_the_shell()
+    {
+        var driver = await LaunchOnTheCommandCenterAsync();
+        var login = ViewModel(driver).Login;
+        login.ShowPicker();
+        await HeadlessExtensions.FlushAsync();
+        var started = false;
+        login.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(login.IsBusy) && login.IsBusy) started = true;
+        };
+        var window = driver.Window;
+        var connect = window.GetVisualDescendants().OfType<Button>().Single(button =>
+            AutomationProperties.GetAutomationId(button) == DesktopAutomationIds.LoginConnect);
+        var center = connect.TranslatePoint(new Point(connect.Bounds.Width / 2, connect.Bounds.Height / 2), window)!.Value;
+
+        // The press is reported on the window itself, which is what happens when composition
+        // hit testing misses the button and lands on the canvas.
+        window.RaiseEvent(new PointerPressedEventArgs(
+            window,
+            new Pointer(1, PointerType.Mouse, true),
+            window,
+            center,
+            0,
+            new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed),
+            KeyModifiers.None));
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(started || !login.IsVisible || !string.IsNullOrEmpty(login.ErrorMessage), Is.True);
+    }
+
+    [AvaloniaTest]
+    public async Task Sign_in_clicks_focus_the_server_url_while_the_command_center_is_the_shell()
+    {
+        var driver = await LaunchOnTheCommandCenterAsync();
+        ViewModel(driver).Login.ShowPicker();
+        await HeadlessExtensions.FlushAsync();
+        var window = driver.Window;
+        var url = window.GetVisualDescendants().OfType<TextBox>().Single(box =>
+            AutomationProperties.GetAutomationId(box) == DesktopAutomationIds.LoginServerUrl);
+
+        await window.ClickControlAsync(url);
+
+        Assert.That(window.FocusManager?.GetFocusedElement(), Is.SameAs(url));
     }
 
     [AvaloniaTest]
@@ -121,6 +194,16 @@ public sealed class AgentWorkspacePaneTests
         => driver.Window.GetVisualDescendants()
             .OfType<Control>()
             .Single(control => control.Name == "CommandCenterPage");
+
+    private static Button ButtonNamed(Window window, string label)
+        => window.GetVisualDescendants().OfType<Button>().Single(button => ButtonText(button) == label);
+
+    private static string ButtonText(Button button)
+    {
+        if (button.Content is string text) return text;
+        if (button.Content is not Visual visual) return "";
+        return string.Concat(visual.GetSelfAndVisualDescendants().OfType<TextBlock>().Select(block => block.Text));
+    }
 
     private static Button BackToTeam(AppDriver driver)
         => driver.Window.GetVisualDescendants()

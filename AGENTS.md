@@ -1411,7 +1411,7 @@ Read: `docs/user-docs/agents/index.md`, `docs/developer-guide/agents/index.md`, 
 
 ## Training
 
-The product decision backlog is what the agents learn the product from. `AgentUp.Server`'s Training slice owns it; Desktop's command center and Mobile's **Train** tab read the same endpoints, and nothing is kept client-side.
+The product decision backlog is what the agents learn the product from. `AgentUp.Server`'s Training slice owns it; Desktop and Mobile read the same endpoints, and nothing is kept client-side. The New UI command-center scene does not include a Train page.
 
 An agent records a decision with `train_record_decision` on `/mcp/training` and carries on: recording never blocks, never returns a verdict, and never says what to do next. Record a decision when real alternatives existed and a reasonable person could have chosen differently — scope and priorities, what a screen says and how it behaves, where a boundary in the code goes. Do not record an instruction you were given, a question with one sensible answer, or routine work: a backlog full of small things is a backlog nobody reads. The headline is the decision in one line a product owner can judge at a glance, 12 to 120 characters, starting with the decision rather than with "I decided"; the detail is what was decided and the evidence is what it was based on. `DecisionDraftProvider` refuses an empty opening, a headline or detail that is too thin, and a decision that repeats one already recorded, returning every fault at once.
 

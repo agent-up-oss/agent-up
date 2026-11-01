@@ -14,16 +14,16 @@
 <body>
 <div class="aun-frame">
 <div class="aun-phone">
-    <header class="aun-phone__head"><div class="aun-phone__head-row">
+      <header class="aun-phone__head"><div class="aun-phone__head-row">
         <div class="aun-phone__head-copy"><h1 class="au-page-title">Settings</h1></div>
       </div></header>
-    <div class="aun-phone__body"><div class="aun-settings">
+      <div class="aun-phone__body"><div class="aun-settings">
         <div class="aun-group">
           <p class="au-field-label">Forge connection</p>
           <div class="aun-settings__list">
             <div class="aun-settings__row">
               <span class="aun-settings__name">Task source</span>
-              <button class="aun-btn aun-btn--primary" type="button">Connect</button>
+              <button class="aun-btn aun-btn--primary" type="button" data-au-action="connect-source">Connect</button>
             </div>
           </div>
         </div>
@@ -57,22 +57,22 @@
           <div class="aun-settings__list">
             <div class="aun-settings__row">
               <span class="aun-settings__name">Demo</span>
-              <button class="aun-btn" type="button">Logout</button>
+              <button class="aun-btn" type="button" data-au-action="logout">Logout</button>
             </div>
           </div>
         </div>
       </div></div>
-    
-    <div class="au-mobile-tab-bar" role="tablist">
-        <button class="au-subtab au-nav-tab" type="button">
+      
+      <div class="au-mobile-tab-bar" role="tablist">
+        <button class="au-subtab au-nav-tab" type="button" data-au-action="nav-team" data-au-selection="selected:0:au-subtab--selected">
           <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 19v-1.2a3.8 3.8 0 0 0-3.8-3.8H6.8A3.8 3.8 0 0 0 3 17.8V19"></path><circle cx="9" cy="7.2" r="3.2"></circle><path d="M21 19v-1.2a3.8 3.8 0 0 0-2.9-3.7"></path><path d="M16.2 4.2a3.2 3.2 0 0 1 0 6"></path></svg>
           Team
         </button>
-        <button class="au-subtab au-nav-tab" type="button">
+        <button class="au-subtab au-nav-tab" type="button" data-au-action="nav-tasks" data-au-selection="selected:1:au-subtab--selected">
           <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"></path><path d="m3.5 5.8 1.3 1.3L7.4 4.5"></path><path d="m3.5 11.8 1.3 1.3L7.4 10.5"></path><path d="M4 18h1.5"></path></svg>
           Tasks
         </button>
-        <button class="au-subtab au-nav-tab au-subtab--selected" type="button">
+        <button class="au-subtab au-nav-tab au-subtab--selected" type="button" data-au-action="nav-settings" data-au-selection="selected:2:au-subtab--selected">
           <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
           Settings
         </button>

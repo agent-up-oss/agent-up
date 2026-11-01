@@ -249,6 +249,12 @@
     </Window.DataTemplates>
 
     <Window.Styles>
+        <!-- A press has to run the command. Release clicks ask the compositor which control is
+             still under the pointer, and that answer is empty while a hover style is invalidating
+             the control, so the click never lands. -->
+        <Style Selector="Button">
+            <Setter Property="ClickMode" Value="Press"/>
+        </Style>
         <!-- Strip default ListBox chrome -->
         <Style Selector="ListBox">
             <Setter Property="Background" Value="Transparent"/>
@@ -502,7 +508,7 @@
 
     <Border Background="{DynamicResource AgentUpColorCanvasBrush}"
             BorderThickness="0">
-    <Grid RowDefinitions="42,*">
+    <Grid RowDefinitions="Auto,*">
 
         <Control x:Name="FocusSink"
                  Width="1"
@@ -514,6 +520,8 @@
         <!-- Integrated window controls / drag surface -->
         <Border Grid.Row="0"
                 x:Name="WindowChrome"
+                Height="42"
+                IsVisible="{Binding ShowsWindowChrome, FallbackValue=True}"
                 Background="{DynamicResource AgentUpColorCanvasBrush}"
                 BorderThickness="0"
                 PointerPressed="OnWindowChromePointerPressed">
@@ -1297,7 +1305,7 @@
                                 </Grid>
                             </ScrollViewer>
 
-                            <Border IsVisible="{Binding ShowAgent}" Background="{DynamicResource AgentUpColorCanvasBrush}" Padding="20">
+                            <Border x:Name="AgentChatPane" IsVisible="{Binding ShowAgent}" Background="{DynamicResource AgentUpColorCanvasBrush}" Padding="20">
                                 <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto" RowSpacing="10">
                                     <Grid ColumnDefinitions="*,Auto">
                                         <StackPanel>

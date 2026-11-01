@@ -71,14 +71,32 @@ export function applyDemo(catalog, demo) {
     if (next === component.html) throw new Error(`${id} is missing demo slot '${name}'.`);
     component.html = next;
   };
+  const write = (id, name, value) => {
+    const component = byId.get(id);
+    if (!component) throw new Error(`New UI catalog is missing '${id}'.`);
+    const next = setText(component.html, name, esc(value));
+    if (next == null) throw new Error(`${id} is missing data-au-text="${name}".`);
+    component.html = next;
+  };
 
   fill('sidebar', 'workspaces', workspaceRows(demo.workspaces, demo.standings, false));
   fill('sidebar-member', 'workspaces', workspaceRows(demo.workspaces, demo.standings, true));
-  fill('bridge-heading', 'headline', `<p class="aun-muted">${esc(demo.headline)}</p>`);
-  fill('mobile-head-team', 'headline', `<span class="aun-phone__subtitle">${esc(demo.headline)}</span>`);
+  fill('bridge-heading', 'headline', esc(demo.headline));
+  fill('mobile-head-team', 'headline', esc(demo.headline));
   const graph = fleetMap(demo);
   fill('agent-state-map', 'fleet', graph);
   fill('mobile-state-map', 'fleet', graph);
+  const lanes = Math.max(demo.lanes.length, 1);
+  for (const id of ['agent-state-map', 'mobile-state-map']) {
+    const component = byId.get(id);
+    component.html = component.html.replace(
+      /class="aun-state-map([^"]*)"/,
+      `class="aun-state-map$1" style="--aun-lanes: ${lanes}"`,
+    );
+  }
+  write('agent-state-map', 'total', String(demo.fleet.agents));
+  write('agent-state-map', 'totalLabel', demo.fleet.agents === 1 ? 'AGENT' : 'AGENTS');
+  write('agent-state-map', 'meta', fleetMeta(demo.fleet));
   fill('bridge-task-table', 'reported', reportedTable(demo));
   fill('task-board', 'queue', taskBoard(demo));
   fill('task-source', 'source', taskSource(demo));
@@ -87,7 +105,7 @@ export function applyDemo(catalog, demo) {
   const open = demo.open;
   fill('mobile-agent-head', 'member', memberHead(open));
   const application = open?.applications?.[0]?.name ?? '';
-  fill('mobile-application-head', 'application', `<div data-au-use="page-title" data-au-props="title=${esc(application)}"></div>`);
+  fill('mobile-application-head', 'application-name', `<div data-au-use="page-title" data-au-props="title=${esc(application)}"></div>`);
   fill('application-validation', 'rail', validationRail(demo.flows));
   fill('application-dock', 'dock', validationDock(demo.flows));
 }
@@ -243,7 +261,6 @@ function workspaceRows(workspaces, standings, selectFirst) {
 }
 
 function fleetMap(demo) {
-  const fleet = demo.fleet;
   const lanes = demo.lanes.map(lane => `
     <div class="aun-state-map__lane"><div class="aun-state-map__drop"></div><div class="aun-state-map__branch aun-state-map__branch--${lane.kind}">
       <div class="aun-state-map__branch-head">
@@ -253,13 +270,7 @@ function fleetMap(demo) {
       </div>
       ${lane.members.map(agentCard).join('')}
     </div></div>`).join('');
-  const count = Math.max(demo.lanes.length, 1);
-  return `
-    <div class="aun-state-map__head"><div><p class="aun-state-map__kicker">AGENT STATE MAP</p><p class="aun-state-map__dek">Live fleet topology</p></div><span class="aun-live">LIVE</span></div>
-    <div class="aun-state-map__root"><div><p class="aun-state-map__total">${fleet.agents}</p><p class="aun-state-map__total-label">${fleet.agents === 1 ? 'AGENT' : 'AGENTS'}</p></div>
-      <div><p class="aun-state-map__root-title">SERVER FLEET</p><p class="aun-state-map__root-meta">${esc(fleetMeta(fleet))}</p></div></div>
-    <div class="aun-state-map__stem"></div><div class="aun-state-map__crossbar" style="--aun-lanes: ${count}"></div>
-    <div class="aun-state-map__lanes" style="--aun-lanes: ${count}">${lanes}</div>`;
+  return lanes;
 }
 
 function agentCard(agent) {
@@ -299,9 +310,7 @@ function taskBoard(demo) {
       <div data-au-use="section-label" data-au-props="label=${esc(`${label} · ${items.length}`)}"></div>
       ${items.map(row).join('')}
     </div>`).join('');
-  return `
-    <div data-au-part="title" data-au-use="page-title" data-au-props="title=Tasks"></div>
-    ${groups}`;
+  return groups;
 }
 
 function queuedRow(task, names, action, buttonClass, grip) {
@@ -531,8 +540,47 @@ function same(left, right) {
 }
 
 function fillSlot(html, name, inner) {
-  const pattern = new RegExp(`(<([a-zA-Z][\\w:-]*)\\b[^>]*\\sdata-au-demo="${name}"[^>]*>)\\s*(</\\2>)`);
-  return html.replace(pattern, `$1${inner}$3`);
+  const marker = `data-au-demo="${name}"`;
+  const at = html.indexOf(marker);
+  if (at < 0) return html;
+  const start = html.lastIndexOf('<', at);
+  const open = html.indexOf('>', at);
+  const tag = html.slice(start + 1).match(/^([a-zA-Z][\w:-]*)/);
+  if (!tag || open < 0) return html;
+  const closeAt = closeOf(html, tag[1], open + 1);
+  if (closeAt < 0) return html;
+  return `${html.slice(0, open + 1)}${inner}${html.slice(closeAt)}`;
+}
+
+function setText(html, name, value) {
+  const marker = `data-au-text="${name}"`;
+  const at = html.indexOf(marker);
+  if (at < 0) return null;
+  const open = html.indexOf('>', at);
+  const close = html.indexOf('<', open + 1);
+  if (open < 0 || close < 0) return null;
+  return `${html.slice(0, open + 1)}${value}${html.slice(close)}`;
+}
+
+function closeOf(html, tag, from) {
+  const open = `<${tag}`;
+  const close = `</${tag}>`;
+  let depth = 1;
+  let cursor = from;
+  while (cursor < html.length && depth > 0) {
+    const nextClose = html.indexOf(close, cursor);
+    if (nextClose < 0) return -1;
+    const nextOpen = html.indexOf(open, cursor);
+    if (nextOpen >= 0 && nextOpen < nextClose) {
+      depth += 1;
+      cursor = nextOpen + open.length;
+      continue;
+    }
+    depth -= 1;
+    if (depth === 0) return nextClose;
+    cursor = nextClose + close.length;
+  }
+  return -1;
 }
 
 function esc(value) {

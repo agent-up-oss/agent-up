@@ -22,19 +22,19 @@
         </span>
         <span class="au-logo-lockup"><span class="au-chrome-mark"></span><strong class="au-chrome-title">Agent-Up</strong></span>
         <span class="au-cluster">
-          <span class="au-chrome-button au-chrome-icon">−</span>
-          <span class="au-chrome-button au-chrome-icon">□</span>
-          <span class="au-chrome-button au-chrome-close au-chrome-icon">×</span>
+          <span class="au-chrome-button au-chrome-icon" data-au-action="window-minimize">−</span>
+          <span class="au-chrome-button au-chrome-icon" data-au-action="window-restore">□</span>
+          <span class="au-chrome-button au-chrome-close au-chrome-icon" data-au-action="window-close">×</span>
         </span>
       </div>
       <div class="au-screen-body">
         <aside class="au-rail au-screen-rail" aria-label="Sidebar">
         <div class="aun-nav-row">
-          <button type="button" class="aun-nav aun-nav--current">Team</button>
-          <button type="button" class="au-workspace-add" aria-label="Add workspace">+</button>
+          <button type="button" class="aun-nav" data-au-action="nav-team" data-au-selection="nav:0:aun-nav--current">Team</button>
+          <button type="button" class="au-workspace-add" data-au-action="add-workspace" aria-label="Add workspace">+</button>
         </div>
         <div class="aun-nav-subs">
-          <div data-au-demo="workspaces"><div class="au-workspace au-workspace--selected">
+          <div data-au-demo="workspaces" data-au-repeat="workspace" data-au-action="open-workspace"><div class="au-workspace au-workspace--selected">
         <button class="au-lifecycle-button" type="button">■</button>
         <span class="au-status-dot au-status-dot--healthy"></span>
         <span>
@@ -78,22 +78,23 @@
         <button class="au-workspace-delete" type="button">×</button>
       </div></div>
         </div>
-        <button type="button" class="aun-nav">Tasks</button>
-        <button type="button" class="aun-nav">Settings</button>
+        <button type="button" class="aun-nav" data-au-action="nav-tasks" data-au-selection="nav:1:aun-nav--current">Tasks</button>
+        <button type="button" class="aun-nav" data-au-action="nav-settings" data-au-selection="nav:2:aun-nav--current">Settings</button>
       </aside>
         <main class="au-screen-main">
           <div class="au-screen-tabs"><div class="au-cluster">
-        <button class="au-app-tab">Overview</button>
-        <button class="au-app-tab">Chat</button>
-        <button class="au-app-tab au-app-tab--selected">Git</button>
+        <button class="au-app-tab" type="button" data-au-action="tab-overview" data-au-selection="selected:0:au-app-tab--selected">Overview</button>
+        <button class="au-app-tab" type="button" data-au-action="tab-chat" data-au-selection="selected:1:au-app-tab--selected">Chat</button>
+        <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="tab-git" data-au-selection="selected:2:au-app-tab--selected">Git</button>
         <span class="au-tab-sep"></span>
-        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
+        <button class="au-app-tab" type="button" data-au-action="tab-application" data-au-selection="selected:3:au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
         <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
         <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Inventory</button>
       </div></div>
           
           
-          <div class="au-screen-pane"><div class="au-git-toolbar">
+          <div class="au-screen-pane"><div data-au-slot="changes">
+        <div class="au-git-toolbar">
         <div class="au-git-branch-row">
           <button class="au-button au-button--secondary au-button--compact au-git-branch" type="button">main <span class="au-muted">▾</span></button>
           <button class="au-browser-button" type="button"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14l6-6 6 6"></path></svg></button>
@@ -107,10 +108,12 @@
           <button class="au-button au-button--danger au-button--compact" type="button">Discard</button>
           <button class="au-button au-button--secondary au-button--compact au-git-history" type="button">History</button>
         </div>
-      </div><div class="au-git-heading">
+      </div>
+        <div class="au-git-heading">
         <p class="au-accent">Git changes</p>
         <p class="au-muted">2 of 4 file(s) selected</p>
-      </div><div class="au-git-change-list">
+      </div>
+        <div class="au-git-change-list">
         <div class="au-git-row">
           <span class="au-checkbox"></span>
           <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
@@ -168,9 +171,11 @@
           <span class="au-git-change-name">orders.ts</span>
           <span class="au-git-status au-git-status--modified">M</span>
         </div>
-      </div><div class="au-git-commit">
+      </div>
+        <div class="au-git-commit">
         <textarea class="au-input" readonly autofocus>feat(storefront): add the weekly promo banner</textarea>
         <button class="au-button" type="button">Commit</button>
+      </div>
       </div></div>
         </main>
         

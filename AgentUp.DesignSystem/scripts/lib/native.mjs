@@ -9,7 +9,15 @@ const boxKeys = new Set([
 ]);
 const textKeys = new Set(['color', 'fontSize', 'fontWeight', 'opacity', 'fontFamily', 'fontStyle', 'textTransform', 'letterSpacing']);
 
-export function emitNative(tokens, rules) {
+/**
+ * `keep` is the set of classes the classic bindings skip (the screen shells) that a New UI
+ * scene still has to paint. `themeName` keeps that stylesheet off `agentUpTheme`.
+ */
+export function emitNative(tokens, rules, options = {}) {
+  const keep = options.keep ?? new Set();
+  const themeName = options.themeName ?? 'agentUpTheme';
+  const boxName = options.boxName ?? 'auBox';
+  const textName = options.textName ?? 'auText';
   const groups = {
     colors: Object.entries(tokens).filter(([name]) => name.startsWith('color-')),
     spacing: Object.entries(tokens).filter(([name]) => name.startsWith('space-')),
@@ -22,10 +30,11 @@ export function emitNative(tokens, rules) {
   for (const rule of rules) {
     for (const selector of rule.selectors) {
       const parsed = parseSelector(selector);
-      if (!parsed || layoutOnly.has(parsed.baseClass) || webOnly.has(parsed.baseClass)) continue;
+      if (!parsed || layoutOnly.has(parsed.baseClass) || skipped(parsed.baseClass, keep)) continue;
       if (parsed.pseudo && parsed.pseudo !== 'disabled') continue;
       if (parsed.selected) continue;
-      const baseName = (parsed.modifierClass ?? parsed.baseClass).replace(/^au-/, '').replaceAll('--', '-');
+      const named = parsed.modifierClass ?? parsed.baseClass;
+      const baseName = bindingName(named);
       const name = camel(parsed.pseudo === 'disabled' ? `${baseName}-disabled` : baseName);
       const style = rnStyle(rule.declarations, tokens);
       // Keep the catalog name even when every declaration is web-only. `.au-mono`
@@ -47,37 +56,50 @@ export function emitNative(tokens, rules) {
   const themeExpression = `Object.freeze({\n${Object.entries(groups).map(([group, values]) =>
     `  ${group}: Object.freeze({\n${values.map(([name, value]) => `    ${nativeKey(group, name)}: ${nativeLiteral(value, tokens)},`).join('\n')}\n  }),`
   ).join('\n')}\n  components: Object.freeze({\n${componentBlock}\n  }),\n})`;
-  const js = `// Generated from src/agent-up.css by scripts/build.mjs. Do not edit.\nexport const agentUpTheme = ${themeExpression};\n${helpers.esm}\n`;
-  const cjs = `// Generated from src/agent-up.css by scripts/build.mjs. Do not edit.\nconst agentUpTheme = ${themeExpression};\n${helpers.cjs}\nmodule.exports = { agentUpTheme, auBox, auText };\n`;
+  const js = `// Generated from src/agent-up.css by scripts/build.mjs. Do not edit.\nexport const ${themeName} = ${themeExpression};\n${helpers.esm(themeName, boxName, textName)}\n`;
+  const cjs = `// Generated from src/agent-up.css by scripts/build.mjs. Do not edit.\nconst ${themeName} = ${themeExpression};\n${helpers.cjs(themeName, boxName, textName)}\nmodule.exports = { ${themeName}, ${boxName}, ${textName} };\n`;
   const dts = `// Generated from src/agent-up.css. Do not edit.\nexport declare const agentUpTheme: {\n  readonly colors: Readonly<Record<string, string>>;\n  readonly spacing: Readonly<Record<string, number>>;\n  readonly radii: Readonly<Record<string, number>>;\n  readonly typography: {\n    readonly sizeXs: number;\n    readonly sizeSm: number;\n    readonly sizeMd: number;\n    readonly sizeLg: number;\n    readonly sizeXl: number;\n    readonly sizeDisplay: number;\n    readonly sizeUiXs: number;\n    readonly sizeUiSm: number;\n    readonly sizeUiMd: number;\n    readonly sizeUiLg: number;\n    readonly sizeUiXl: number;\n    readonly tight: number;\n    readonly normal: number;\n    readonly relaxed: number;\n    readonly regular: number;\n    readonly medium: number;\n    readonly semibold: number;\n    readonly bold: number;\n    readonly black: number;\n    readonly ui: number;\n    readonly uiStrong: number;\n  };\n  readonly controls: Readonly<Record<string, number>>;\n  readonly fonts: Readonly<Record<string, string>>;\n  readonly components: Readonly<Record<string, Readonly<Record<string, string | number>>>>;\n};\nexport declare function auBox(...names: Array<string | false | null | undefined>): {\n  backgroundColor?: string;\n  borderWidth?: number;\n  borderColor?: string;\n  borderRadius?: number;\n  borderTopWidth?: number;\n  borderTopColor?: string;\n  borderRightWidth?: number;\n  borderRightColor?: string;\n  borderBottomWidth?: number;\n  borderBottomColor?: string;\n  borderLeftWidth?: number;\n  borderLeftColor?: string;\n  width?: number;\n  height?: number;\n  minHeight?: number;\n  minWidth?: number;\n  maxWidth?: number | '80%';\n  marginLeft?: number;\n  paddingHorizontal?: number;\n  paddingVertical?: number;\n  opacity?: number;\n  color?: string;\n};\nexport declare function auText(...names: Array<string | false | null | undefined>): {\n  color?: string;\n  fontSize?: number;\n  fontWeight?: '400' | '500' | '600' | '700' | '800';\n  opacity?: number;\n  fontFamily?: string;\n  textTransform?: 'none' | 'capitalize' | 'uppercase' | 'lowercase';\n  letterSpacing?: number;\n  fontStyle?: 'normal' | 'italic';\n};\n`;
   return { js, cjs, dts };
 }
 
 function nativeHelpers() {
-  const body = `const auBoxKeys = new Set(${JSON.stringify([...boxKeys])});
+  return {
+    esm: (themeName, boxName, textName) => helperBody(themeName, boxName, textName, true),
+    cjs: (themeName, boxName, textName) => helperBody(themeName, boxName, textName, false),
+  };
+}
+
+function helperBody(themeName, boxName, textName, exported) {
+  const keyword = exported ? 'export function' : 'function';
+  return `const auBoxKeys = new Set(${JSON.stringify([...boxKeys])});
 const auTextKeys = new Set(${JSON.stringify([...textKeys])});
 function auPick(names, keys) {
   const out = {};
   for (const name of names) {
     if (!name) continue;
-    const style = agentUpTheme.components[name];
+    const style = ${themeName}.components[name];
     if (!style) throw new Error("Unknown Agent-Up component '" + name + "'.");
     for (const [key, value] of Object.entries(style)) {
       if (keys.has(key)) out[key] = value;
     }
   }
   return out;
-}`;
-  return {
-    esm: `${body}
-export function auBox(...names) { return auPick(names, auBoxKeys); }
-export function auText(...names) { return auPick(names, auTextKeys); }
-`,
-    cjs: `${body}
-function auBox(...names) { return auPick(names, auBoxKeys); }
-function auText(...names) { return auPick(names, auTextKeys); }
-`,
-  };
+}
+${keyword} ${boxName}(...names) { return auPick(names, auBoxKeys); }
+${keyword} ${textName}(...names) { return auPick(names, auTextKeys); }
+`;
+}
+
+function skipped(className, keep) {
+  return webOnly.has(className) && !keep.has(className);
+}
+
+/** React Native component key for a catalog class. `aun-*` is not the `au-` prefix. */
+export function bindingName(className) {
+  if (className.startsWith('aun-')) {
+    return camel(className.replaceAll('__', '-').replaceAll('--', '-'));
+  }
+  return camel(className.replace(/^au-/, '').replaceAll('--', '-'));
 }
 
 function nativeKey(group, name) {

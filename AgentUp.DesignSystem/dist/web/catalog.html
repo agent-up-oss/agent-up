@@ -165,9 +165,9 @@
         </span>
         <span class="au-logo-lockup"><span class="au-chrome-mark"></span><strong class="au-chrome-title">Agent-Up</strong></span>
         <span class="au-cluster">
-          <span class="au-chrome-button au-chrome-icon">−</span>
-          <span class="au-chrome-button au-chrome-icon">□</span>
-          <span class="au-chrome-button au-chrome-close au-chrome-icon">×</span>
+          <span class="au-chrome-button au-chrome-icon" data-au-action="window-minimize">−</span>
+          <span class="au-chrome-button au-chrome-icon" data-au-action="window-restore">□</span>
+          <span class="au-chrome-button au-chrome-close au-chrome-icon" data-au-action="window-close">×</span>
         </span>
       </div>
     </article>
@@ -283,11 +283,11 @@
     </article>
     <article data-au-component="workspace-tabs" data-au-title="Workspace tabs" data-au-note="Overview, Chat, and Git sit with the application tabs. Overview is selected. A hairline separates workspace chrome from running apps." data-au-avalonia="Border" data-au-class="au-app-tab" data-au-states="selected=au-app-tab/au-app-tab--selected" data-au-state-examples="selected:1|Chat tab selected|The live ACP session is the primary selection when Chat is open.;selected:2|Git tab selected|Working-tree review is the primary selection when Git is open.;selected:3|Application tab selected|Storefront is the primary selection when the running app is open.">
       <div class="au-cluster">
-        <button class="au-app-tab au-app-tab--selected">Overview</button>
-        <button class="au-app-tab">Chat</button>
-        <button class="au-app-tab">Git</button>
+        <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="tab-overview" data-au-selection="selected:0:au-app-tab--selected">Overview</button>
+        <button class="au-app-tab" type="button" data-au-action="tab-chat" data-au-selection="selected:1:au-app-tab--selected">Chat</button>
+        <button class="au-app-tab" type="button" data-au-action="tab-git" data-au-selection="selected:2:au-app-tab--selected">Git</button>
         <span class="au-tab-sep"></span>
-        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
+        <button class="au-app-tab" type="button" data-au-action="tab-application" data-au-selection="selected:3:au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
         <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
         <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Inventory</button>
       </div>
