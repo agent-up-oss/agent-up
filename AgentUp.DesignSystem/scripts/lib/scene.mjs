@@ -23,19 +23,20 @@ export const sceneRegionClasses = [
   'au-validation-sidebar', 'au-mobile-tab-bar',
 ];
 
-const columnFill = new Set(['au-screen', 'aun-phone', 'au-screen-main']);
+const columnFill = new Set(['au-screen', 'aun-phone', 'au-screen-main', 'au-screen-pane']);
 const gridBody = new Set(['au-screen-body']);
 const chromeLayout = new Set(['au-chrome']);
 const rowLayout = new Set([
   'au-screen-tabs', 'au-screen-subtabs', 'au-screen-toolbar', 'au-mobile-tab-bar', 'au-tabs',
-  'aun-nav-row', 'aun-agent-head', 'aun-phone__head-row', 'au-validation-dock',
+  'aun-agent-head', 'aun-phone__head-row', 'au-validation-dock',
   'au-cluster', 'au-logo-lockup', 'au-workspace', 'au-workspace-head', 'au-badge',
-  'au-validation-flow-head', 'aun-settings__row', 'aun-task-row',
-  'aun-state-map__head', 'aun-state-map__root', 'aun-state-map__branch-head',
+  'au-validation-flow-head', 'aun-state-map__root',
 ]);
+const spreadLayout = new Set(['aun-nav-row', 'aun-state-map__head', 'aun-settings__row']);
+const trioLayout = new Set(['aun-state-map__branch-head', 'aun-task-row']);
 const columnLayout = new Set([
-  'au-screen-pane', 'au-screen-rail', 'au-screen-aside', 'aun-phone__body', 'aun-phone__head',
-  'aun-settings', 'aun-task-board', 'aun-state-map', 'aun-validate', 'au-validation-sidebar',
+  'au-screen-rail', 'au-screen-aside', 'aun-phone__body', 'aun-phone__head',
+  'aun-settings', 'aun-settings__list', 'aun-task-board', 'aun-state-map', 'aun-validate', 'au-validation-sidebar',
   'aun-state-map__lane', 'aun-state-map__branch', 'aun-state-map__branch-copy', 'aun-task-row__body',
 ]);
 
@@ -217,6 +218,10 @@ export function parseNodes(html) {
       if (!tag.selfClosing) {
         const close = `</${tag.name}>`;
         const innerEnd = findClose(html, tag.name, index);
+        if (tag.name === 'svg' && innerEnd >= 0) {
+          const drawn = [...html.slice(index, innerEnd).matchAll(/\bd="([^"]+)"/g)].map(match => match[1]);
+          if (drawn.length) node.d = drawn;
+        }
         index = innerEnd < 0 ? html.length : innerEnd + close.length;
       }
       nodes.push(node);
@@ -283,6 +288,8 @@ function layoutOf(classes) {
   if (classes.some(name => chromeLayout.has(name))) return 'chrome';
   if (classes.some(name => gridBody.has(name))) return 'grid';
   if (classes.some(name => columnFill.has(name))) return 'fill';
+  if (classes.some(name => spreadLayout.has(name))) return 'spread';
+  if (classes.some(name => trioLayout.has(name))) return 'trio';
   if (classes.some(name => rowLayout.has(name))) return 'row';
   if (classes.some(name => columnLayout.has(name))) return 'column';
   return '';
@@ -430,7 +437,8 @@ export function createNewUiScene(React, native) {
   const { View, Text, Pressable, ScrollView } = native;
   const h = React.createElement;
   function render(node, model, item, key) {
-    if (!node || node.t === 'svg' || node.t === 'style' || node.t === 'script' || node.t === 'path' || node.t === 'circle') return null;
+    if (!node || node.t === 'style' || node.t === 'script' || node.t === 'path' || node.t === 'circle') return null;
+    if (node.t === 'svg') return node.d ? h(View, { key, style: { width: 20, height: 20 } }) : null;
     if (node.t === '#text') return h(Text, { key }, node.x);
     if (node.when && !model.state[node.when]) return null;
     if (node.part && item?.parts && !item.parts.includes(node.part)) return null;
@@ -482,7 +490,8 @@ export function createNewUiScene(React, native) {
   }
   function layoutStyle(layout) {
     if (layout === 'fill' || layout === 'column') return { flex: layout === 'fill' ? 1 : undefined, flexDirection: 'column' };
-    if (layout === 'row') return { flexDirection: 'row', alignItems: 'center' };
+    if (layout === 'row' || layout === 'trio') return { flexDirection: 'row', alignItems: 'center' };
+    if (layout === 'spread') return { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' };
     if (layout === 'chrome') return { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' };
     if (layout === 'grid' || layout === 'lanes') return { flexDirection: 'row', flex: 1, alignItems: 'stretch' };
     return { flexDirection: 'column' };
@@ -498,7 +507,7 @@ export function createNewUiScene(React, native) {
     if (layout === 'grid') {
       return children.map((child, index) => create(Box, {
         key: 'col-' + index,
-        style: index === 0 ? { width: 208 } : index === children.length - 1 && children.length > 2 ? null : { flex: 1 },
+        style: index === 0 ? { width: 264 } : index === children.length - 1 && children.length > 2 ? null : { flex: 1 },
       }, child));
     }
     if (layout === 'lanes') {
@@ -533,6 +542,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.Media;
 
@@ -647,7 +657,8 @@ public sealed class NewUiScene : UserControl
 
     private Control? Render(SceneNode node, NewUiSlotItem? item)
     {
-        if (node.T is "svg" or "style" or "script" or "path" or "circle" or "#text") return node.T == "#text" ? new TextBlock { Text = node.X ?? "" } : null;
+        if (node.T == "svg") return Icon(node.D);
+        if (node.T is "style" or "script" or "path" or "circle" or "#text") return node.T == "#text" ? new TextBlock { Text = node.X ?? "" } : null;
         if (!string.IsNullOrEmpty(node.When) && !_state.ContainsKey(node.When)) return null;
         if (!string.IsNullOrEmpty(node.Part) && item is not null && !item.Parts.Contains(node.Part)) return null;
         var slot = node.Slot ?? node.Demo;
@@ -687,7 +698,9 @@ public sealed class NewUiScene : UserControl
         if (node.Content == true && node.Slot is not null && _content.TryGetValue(node.Slot, out var hosted))
         {
             Detach(hosted);
-            return hosted;
+            hosted.HorizontalAlignment = HorizontalAlignment.Stretch;
+            hosted.VerticalAlignment = VerticalAlignment.Stretch;
+            return Layout("fill", new List<Control> { hosted }, new List<string>(node.C ?? []));
         }
         var text = node.Text is not null
             ? item is not null && item.Text.TryGetValue(node.Text, out var fromItem) ? fromItem
@@ -711,15 +724,49 @@ public sealed class NewUiScene : UserControl
         {
             var button = new Button
             {
-                Content = string.IsNullOrEmpty(text) ? Host(children) : text,
                 ClickMode = ClickMode.Press,
+                Padding = new Thickness(0),
             };
-            Paint(button, classes);
+            if (HostsFace(classes))
+            {
+                var face = new Border
+                {
+                    Child = string.IsNullOrEmpty(text)
+                        ? Host(children)
+                        : new TextBlock { Text = text, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                };
+                Paint(face, classes);
+                button.Content = face;
+                button.Background = Brushes.Transparent;
+                button.BorderThickness = new Thickness(0);
+                button.MinWidth = 0;
+                button.MinHeight = 0;
+            }
+            else
+            {
+                button.Content = string.IsNullOrEmpty(text) ? Host(children) : text;
+                Paint(button, classes);
+                if (classes.Contains("aun-nav"))
+                {
+                    button.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    button.HorizontalContentAlignment = HorizontalAlignment.Left;
+                }
+            }
             var id = item?.Id;
             var name = action ?? "";
             button.Click += (_, _) => ActionInvoked?.Invoke(this, new NewUiActionEventArgs { Name = name, Id = id });
             return button;
         }
+        if (classes.Contains("au-chrome-mark"))
+            return Mark();
+        if (classes.Contains("aun-state-map__drop"))
+            return Drop();
+        if (classes.Contains("aun-state-map__crossbar"))
+            return Crossbar();
+        if (classes.Contains("aun-state-map__root-title") && !string.IsNullOrEmpty(text))
+            return FleetTitle(text, classes);
         if (!string.IsNullOrEmpty(text) && children.Count == 0)
         {
             var block = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap };
@@ -758,16 +805,39 @@ public sealed class NewUiScene : UserControl
                 lanes.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 Grid.SetColumn(children[i], i);
                 children[i].HorizontalAlignment = HorizontalAlignment.Stretch;
+                var last = i == children.Count - 1;
+                children[i].Margin = new Thickness(i == 0 ? 0 : 6, 0, last ? 0 : 6, 0);
                 lanes.Children.Add(children[i]);
             }
             laid = lanes;
+        }
+        else if (kind == "spread" || kind == "trio")
+        {
+            var spread = kind == "spread";
+            var grid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions(spread ? "*,Auto" : "Auto,*,Auto"),
+            };
+            for (var i = 0; i < children.Count; i++)
+            {
+                var column = spread
+                    ? (i == children.Count - 1 && children.Count > 1 ? 1 : 0)
+                    : (children.Count >= 3 ? Math.Min(i, 2) : i == children.Count - 1 ? 2 : i);
+                Grid.SetColumn(children[i], column);
+                children[i].VerticalAlignment = VerticalAlignment.Center;
+                if (spread && column == 0) children[i].HorizontalAlignment = HorizontalAlignment.Stretch;
+                if (!spread && column == 1) children[i].HorizontalAlignment = HorizontalAlignment.Stretch;
+                if (i > 0) children[i].Margin = new Thickness(spread ? 12 : 8, 0, 0, 0);
+                grid.Children.Add(children[i]);
+            }
+            laid = grid;
         }
         else if (kind == "grid")
         {
             var aside = children.Count > 2;
             var grid = new Grid
             {
-                ColumnDefinitions = new ColumnDefinitions(aside ? "208,*,Auto" : "208,*"),
+                ColumnDefinitions = new ColumnDefinitions(aside ? "264,*,Auto" : "264,*"),
             };
             for (var i = 0; i < children.Count; i++)
             {
@@ -791,6 +861,8 @@ public sealed class NewUiScene : UserControl
                 rows.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                 if (Fills(children[i])) fillAt = i;
             }
+            if (kind == "fill" && fillAt < 0 && children.Count == 1)
+                fillAt = 0;
             if (kind == "fill" && fillAt >= 0)
                 rows.RowDefinitions[fillAt].Height = new GridLength(1, GridUnitType.Star);
             for (var i = 0; i < children.Count; i++)
@@ -798,7 +870,20 @@ public sealed class NewUiScene : UserControl
                 Grid.SetRow(children[i], i);
                 rows.Children.Add(children[i]);
             }
-            laid = kind == "column" ? new ScrollViewer { Content = rows } : rows;
+            if (classes.Contains("aun-settings__list"))
+            {
+                for (var i = 1; i < rows.Children.Count; i++)
+                {
+                    if (rows.Children[i] is Border rule)
+                    {
+                        rule.BorderThickness = new Thickness(0, 1, 0, 0);
+                        rule.BorderBrush = ThemeBrush("AgentUpColorBorderSubtleBrush");
+                    }
+                }
+            }
+            laid = kind == "column" && !classes.Contains("aun-settings__list")
+                ? new ScrollViewer { Content = rows }
+                : rows;
         }
         else
         {
@@ -813,15 +898,114 @@ public sealed class NewUiScene : UserControl
 
     private static void Place(Control control, IReadOnlyList<string> classes)
     {
-        if (classes.Contains("aun-state-map__stem") || classes.Contains("aun-state-map__drop") || classes.Contains("aun-state-map__root"))
+        if (classes.Contains("aun-state-map__stem") || classes.Contains("aun-state-map__root"))
             control.HorizontalAlignment = HorizontalAlignment.Center;
         if (classes.Contains("aun-state-map__root")) control.MaxWidth = 256;
+        if (classes.Contains("au-title-tool") && control is Border tool && tool.Child is Control icon)
+        {
+            icon.HorizontalAlignment = HorizontalAlignment.Center;
+            icon.VerticalAlignment = VerticalAlignment.Center;
+        }
         if (classes.Contains("aun-settings"))
         {
             control.HorizontalAlignment = HorizontalAlignment.Center;
             control.MaxWidth = 576;
         }
     }
+
+    private static bool HostsFace(IReadOnlyList<string> classes) =>
+        classes.Any(name => name is "au-lifecycle-button" or "au-chrome-button" or "au-chrome-close" or "au-workspace-add" or "au-workspace-delete" or "au-title-tool" or "au-app-tab" or "au-subtab" or "au-browser-button");
+
+    private static Control Mark() => new Avalonia.Controls.Shapes.Path
+    {
+        Width = 18,
+        Height = 18,
+        Stretch = Stretch.Fill,
+        Fill = ThemeBrush("AgentUpColorAccentBrush"),
+        Data = Geometry.Parse("M1.44,16.56 L8.64,1.44 L10.44,1.44 L16.56,12.24 L14.04,12.24 L10.08,5.04 L3.96,16.56 Z"),
+        VerticalAlignment = VerticalAlignment.Center,
+    };
+
+    private static Control Drop()
+    {
+        var stack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
+        stack.Children.Add(new Border
+        {
+            Width = 2,
+            Height = 16,
+            Background = ThemeBrush("AgentUpColorTextFaintBrush"),
+            HorizontalAlignment = HorizontalAlignment.Center,
+        });
+        stack.Children.Add(new Ellipse
+        {
+            Width = 8,
+            Height = 8,
+            Fill = ThemeBrush("AgentUpColorTextFaintBrush"),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, -4, 0, 0),
+        });
+        return stack;
+    }
+
+    private static Control Crossbar()
+    {
+        var inset = new Grid { Height = 2 };
+        inset.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        inset.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6, GridUnitType.Star) });
+        inset.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var bar = new Border
+        {
+            Height = 2,
+            Background = ThemeBrush("AgentUpColorTextFaintBrush"),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        Grid.SetColumn(bar, 1);
+        inset.Children.Add(bar);
+        return inset;
+    }
+
+    private static Control FleetTitle(string text, IReadOnlyList<string> classes)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        row.Children.Add(new Ellipse
+        {
+            Width = 14,
+            Height = 14,
+            Fill = ThemeBrush("AgentUpColorStatusHealthyBrush"),
+            VerticalAlignment = VerticalAlignment.Center,
+        });
+        var block = new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center };
+        Paint(block, classes);
+        row.Children.Add(block);
+        return row;
+    }
+
+    private static Control? Icon(IReadOnlyList<string>? paths)
+    {
+        if (paths is null || paths.Count == 0) return null;
+        var canvas = new Grid { Width = 20, Height = 20 };
+        foreach (var data in paths)
+        {
+            canvas.Children.Add(new Avalonia.Controls.Shapes.Path
+            {
+                Data = Geometry.Parse(data),
+                Stroke = ThemeBrush("AgentUpColorTextPrimaryBrush"),
+                StrokeThickness = 1.75,
+                StrokeJoin = PenLineJoin.Round,
+                StrokeLineCap = PenLineCap.Round,
+                Stretch = Stretch.Uniform,
+                Width = 20,
+                Height = 20,
+            });
+        }
+        return canvas;
+    }
+
+    private static IBrush ThemeBrush(string key) =>
+        Application.Current?.TryGetResource(key, null, out var value) == true && value is IBrush brush
+            ? brush
+            : Brushes.Transparent;
 
     private static bool Fills(Control control) =>
         control is Border border && (
@@ -885,6 +1069,7 @@ internal sealed class SceneNode
     public List<string>? Selection { get; set; }
     public List<List<string>>? Flags { get; set; }
     public bool? KindHost { get; set; }
+    public List<string>? D { get; set; }
     public List<SceneNode>? K { get; set; }
 }
 `;

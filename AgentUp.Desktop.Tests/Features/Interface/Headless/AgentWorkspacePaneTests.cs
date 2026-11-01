@@ -155,6 +155,74 @@ public sealed class AgentWorkspacePaneTests
     }
 
     [AvaloniaTest]
+    public async Task The_team_page_lays_the_rail_and_fleet_out_the_way_the_scene_specifies()
+    {
+        var driver = await LaunchOnTheCommandCenterAsync();
+        var window = driver.Window;
+        window.Width = 1440;
+        window.Height = 900;
+        await HeadlessExtensions.FlushAsync();
+
+        var body = (Grid)window.GetVisualDescendants().OfType<Border>()
+            .Single(border => border.Classes.Contains("au-screen-body")).Child!;
+        var head = (Grid)window.GetVisualDescendants().OfType<Border>()
+            .Single(border => border.Classes.Contains("aun-state-map__head")).Child!;
+        var add = window.GetVisualDescendants().OfType<Border>()
+            .First(border => border.Classes.Contains("au-workspace-add"));
+        var mark = window.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single(path => path.Width == 18);
+        var crossbar = window.GetVisualDescendants().OfType<Grid>()
+            .Single(grid => grid.ColumnDefinitions.Count == 3 && grid.Height == 2);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(body.ColumnDefinitions[0].Width, Is.EqualTo(new GridLength(264)));
+            Assert.That(head.ColumnDefinitions, Has.Count.EqualTo(2));
+            Assert.That(add.Width, Is.EqualTo(24));
+            Assert.That(mark.Data, Is.Not.Null);
+            Assert.That(crossbar.ColumnDefinitions[1].Width, Is.EqualTo(new GridLength(6, GridUnitType.Star)));
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task The_application_page_gives_the_running_app_the_remaining_pane()
+    {
+        var driver = await LaunchOnTheCommandCenterAsync();
+        await OpenAgentAsync(driver);
+        ViewModel(driver).CommandCenter!.ShowSection("application");
+        await HeadlessExtensions.FlushAsync();
+
+        var window = driver.Window;
+        var pane = (Grid)window.GetVisualDescendants().OfType<Border>()
+            .Single(border => border.Classes.Contains("au-screen-pane")).Child!;
+        var tab = window.GetVisualDescendants().OfType<Border>()
+            .First(border => border.Classes.Contains("au-app-tab"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ViewModel(driver).CommandCenter!.SceneId, Is.EqualTo("application"));
+            Assert.That(pane.RowDefinitions[^1].Height.IsStar, Is.True);
+            Assert.That(tab.Classes, Does.Contain("au-app-tab"));
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task Settings_switches_back_to_the_classic_shell()
+    {
+        var driver = await LaunchOnTheCommandCenterAsync();
+        ViewModel(driver).CommandCenter!.ShowNav(2);
+        await HeadlessExtensions.FlushAsync();
+
+        await driver.Window.ClickControlAsync(ButtonNamed(driver.Window, "Use classic"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ViewModel(driver).CommandCenter!.ShowsClassicLayout, Is.True);
+            Assert.That(CommandCenter(driver).IsVisible, Is.False);
+            Assert.That(driver.Window.FindControl<Border>("WindowChrome")!.IsVisible, Is.True);
+        });
+    }
+
+    [AvaloniaTest]
     public async Task The_classic_shell_keeps_its_rail_and_draws_no_command_center()
     {
         // The guard on all of this: with the setting off, the window is the one it has always been.

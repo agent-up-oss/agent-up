@@ -10,6 +10,7 @@ import { listValidationFlows } from '@/features/validation/providers/ValidationF
 import { WorkspaceDashboardScreen } from '@/features/workspaces/components/WorkspaceDashboardScreen';
 import { WorkspaceHostProvider, type WorkspaceHost, type WorkspacePlace } from '@/features/workspaces/controllers/WorkspaceHostContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
+import { useInterfaceChoice } from '../controllers/InterfaceContext';
 import { useTaskQueue } from '../controllers/TaskQueueContext';
 import { useTeamStanding } from '../controllers/TeamStandingContext';
 import {
@@ -37,6 +38,7 @@ function CommandCenterBinder() {
   const standing = useTeamStanding();
   const tasks = useTaskQueue();
   const { activeServer, logout } = useServers();
+  const { choose } = useInterfaceChoice();
   const { workspaces, refresh } = useWorkspaces();
   const [nav, setNav] = useState<0 | 1 | 2>(0);
   const [section, setSection] = useState<Section>('overview');
@@ -127,6 +129,7 @@ function CommandCenterBinder() {
     if (name === 'tab-application') { setSection('application'); return; }
     if (name === 'open-workspace' && id) { setOpenAgent(id); setSection('overview'); return; }
     if (name === 'logout') { logout(); return; }
+    if (name === 'use-classic') { choose('classic'); return; }
     if (name === 'reload') { refresh(); return; }
     if (name === 'open-validations') { setValidationsOpen(open => !open); return; }
     if (name === 'dequeue') { const task = tasks.queue.find(item => item.id === id); if (task) tasks.remove(task); return; }

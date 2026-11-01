@@ -76,6 +76,16 @@ export function emitStyles(rules, tokens, index, options = {}) {
     if (!setters.length) continue;
     const templateSetters = setters.filter(([property]) => ['Background', 'Foreground', 'BorderBrush', 'Padding'].includes(property));
     for (const selector of rule.selectors) {
+      const descendant = selector.trim().match(/^\.([a-z0-9_-]+)\s+\.([a-z0-9_-]+)$/);
+      if (descendant) {
+        const [, parent, child] = descendant;
+        if (webOnly.has(child) && !keep.has(child)) continue;
+        const parentType = index.typeFor(parent) || inferAvaloniaType(parent.split('--')[0]);
+        const childType = index.typeFor(child) || inferAvaloniaType(child.split('--')[0]);
+        const avalonia = `${parentType}.${parent} ${childType}.${child}`;
+        add(avalonia, allowedSetters(avalonia, setters));
+        continue;
+      }
       const parsed = parseSelector(selector);
       if (!parsed || layoutOnly.has(parsed.baseClass) || (webOnly.has(parsed.baseClass) && !keep.has(parsed.baseClass))) continue;
       for (const avaloniaSelector of avaloniaSelectors(parsed, index)) {
@@ -135,6 +145,9 @@ function avaloniaSelectors(parsed, index) {
     }
   }
   if (type === 'Window') selectors.add('Window');
+  // A span painted as a Border still carries button classes (the title tools). The button
+  // style has to land on that Border too, or the control keeps the theme's default size.
+  if (type === 'Button') selectors.add(`Border.${className}${pseudo}`);
   return [...selectors];
 }
 
@@ -221,6 +234,15 @@ function declarationsToSetters(declarations, tokens) {
       case 'border-color':
         borderBrush = brushValue(value, tokens);
         break;
+      case 'box-shadow': {
+        const inset = value.match(/^inset\s+0\s+0\s+0\s+([0-9.]+)px\s+(\S+)$/);
+        const brush = inset ? brushValue(inset[2], tokens) : null;
+        if (inset && brush) {
+          setters.push(['BorderThickness', inset[1]]);
+          setters.push(['BorderBrush', brush]);
+        }
+        break;
+      }
       default:
         break;
     }
@@ -354,6 +376,7 @@ function thicknessValue(value, tokens) {
   const token = varName(value);
   if (token?.startsWith('space-')) return `{DynamicResource ${tokenKey(token.replace('space-', 'thickness-'))}}`;
   const parts = value.trim().split(/\s+/).map(part => {
+    if (part === 'auto') return 0;
     const name = varName(part);
     if (name) return toPx(tokens[name]);
     return toPx(part);
@@ -361,6 +384,8 @@ function thicknessValue(value, tokens) {
   if (parts.some(part => part == null)) return null;
   if (parts.length === 1) return formatNumber(parts[0]);
   if (parts.length === 2) return `${formatNumber(parts[1])},${formatNumber(parts[0])}`;
+  // CSS three-value padding is top, horizontal, bottom.
+  if (parts.length === 3) return `${formatNumber(parts[1])},${formatNumber(parts[0])},${formatNumber(parts[1])},${formatNumber(parts[2])}`;
   if (parts.length === 4) return `${formatNumber(parts[3])},${formatNumber(parts[0])},${formatNumber(parts[1])},${formatNumber(parts[2])}`;
   return null;
 }

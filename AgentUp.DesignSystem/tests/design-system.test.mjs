@@ -968,6 +968,8 @@ test('a New UI scene publishes the slots, states, and actions a command center b
   assert.ok(team.slots.some(slot => slot.name === 'fleet' && slot.kind === 'repeat' && slot.repeat === 'fleet-lane'));
   assert.ok(team.actions.includes('add-workspace'));
   assert.ok(team.states.includes('nav'));
+  const settings = manifest.scenes.find(scene => scene.id === 'settings');
+  assert.ok(settings.actions.includes('use-classic'));
   assert.ok(phone.slots.some(slot => slot.name === 'application' && slot.kind === 'content'));
   assert.ok(phone.slots.some(slot => slot.name === 'summary' && slot.kind === 'text'));
   assert.ok(phone.slots.some(slot => slot.name === 'flows' && slot.repeat === 'command-flow'));
@@ -981,6 +983,15 @@ test('the mounted scene lays the title bar and fleet out, and keeps text inside 
   assert.match(scene, /if \(node\.t === '#text'\) return h\(Text/);
   assert.match(scene, /"layout":"chrome"/);
   assert.match(scene, /"layout":"lanes"/);
+  assert.match(scene, /"layout":"spread"/);
+  assert.match(scene, /M4 7h16M4 12h16M4 17h16/);
+  assert.match(scene, /width: 264/);
+  const generated = await readFile(new URL('./dist/dotnet/NewUiScene.g.cs', root), 'utf8');
+  assert.match(generated, /264,\*/);
+  const styles = await readFile(new URL('./dist/avalonia/AgentUpNewUiStyles.axaml', root), 'utf8');
+  assert.match(styles, /Border\.aun-state-map__branch--working Border\.aun-state-map__mark/);
+  assert.match(styles, /Border\.aun-state-map__branch--idle Border\.aun-state-map__mark/);
+  assert.match(styles, /22,20,22,22/);
   const name = scene.indexOf('"text":"name"');
   assert.ok(name > 0);
   assert.equal(scene.slice(name, name + 80).includes('"t":"#text"'), false, 'a bound name still carries the sample text');

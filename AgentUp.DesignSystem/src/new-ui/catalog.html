@@ -48,8 +48,17 @@
       </aside>
     </article>
 
-    <article data-au-component="settings-panel" data-au-title="Settings panel" data-au-note="Forge connection, capability modules, and Login. Each group has the same small headline." data-au-avalonia="Border" data-au-class="aun-settings">
+    <article data-au-component="settings-panel" data-au-title="Settings panel" data-au-note="Interface switch, forge connection, capability modules, and Login. Each group has the same small headline." data-au-avalonia="Border" data-au-class="aun-settings">
       <div class="aun-settings">
+        <div class="aun-group">
+          <div data-au-use="section-label" data-au-props="label=Interface"></div>
+          <div class="aun-settings__list">
+            <div class="aun-settings__row">
+              <span class="aun-settings__id"><span class="aun-settings__name">Classic interface</span><span class="aun-settings__state">The previous workspace shell</span></span>
+              <button class="aun-btn" type="button" data-au-action="use-classic">Use classic</button>
+            </div>
+          </div>
+        </div>
         <div class="aun-group">
           <div data-au-use="section-label" data-au-props="label=Forge connection"></div>
           <div class="aun-settings__list">

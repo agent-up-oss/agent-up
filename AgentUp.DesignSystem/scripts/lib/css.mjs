@@ -106,7 +106,7 @@ export function nativeLiteral(value, tokens) {
 
 export function parseSelector(selector) {
   const raw = selector.trim();
-  if (!raw || raw === '*' || raw.includes('::') || raw.startsWith(':root') || raw.includes(' ')) return null;
+  if (!raw || raw === '*' || raw.includes('::') || raw.includes(':has(') || raw.startsWith(':root') || raw.includes(' ')) return null;
   const selected = /\[aria-selected=['"]true['"]\]/.test(raw);
   const withoutAttr = raw.replace(/\[aria-selected=['"]true['"]\]/, '');
   const pseudoMatch = withoutAttr.match(/:(hover|focus|focus-visible|disabled|checked)$/);

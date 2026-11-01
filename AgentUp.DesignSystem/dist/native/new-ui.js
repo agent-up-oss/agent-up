@@ -1122,8 +1122,8 @@ export const newUiTheme = Object.freeze({
     }),
     screenPane: Object.freeze({
       minHeight: 0,
-      paddingHorizontal: 0,
-      paddingVertical: 0,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
     }),
     screenAside: Object.freeze({
       minWidth: 0,
@@ -2180,8 +2180,8 @@ export const newUiTheme = Object.freeze({
       fontSize: 12,
     }),
     aunPhoneBody: Object.freeze({
-      paddingHorizontal: 0,
-      paddingVertical: 0,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
       minHeight: 0,
     }),
     aunPhoneDock: Object.freeze({

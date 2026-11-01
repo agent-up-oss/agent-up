@@ -216,6 +216,9 @@ public partial class CommandCenterView : UserControl
             case "logout":
                 main.ResetLocalSession();
                 break;
+            case "use-classic":
+                center.ToggleCommand.Execute().Subscribe();
+                break;
             case "open-workspace":
                 Open(center, action.Id);
                 break;
