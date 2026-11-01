@@ -154,7 +154,15 @@
       </div>
     </article>
 
-    <article data-au-component="mobile-application-head" data-au-title="Mobile application head" data-au-note="An open application is an inner page: a chevron back to Apps, and the application name. No reload." data-au-avalonia="Border" data-au-class="aun-agent-head">
+    <article data-au-component="application-validation" data-au-title="Application validation" data-au-note="The right rail on Agent · Application. Status is the sidebar LED: green passed, yellow running, red failed, hollow not yet run." data-au-avalonia="Border" data-au-class="au-validation-sidebar">
+      <aside class="au-validation-sidebar aun-validate-rail" aria-label="Validation" data-au-demo="rail"></aside>
+    </article>
+
+    <article data-au-component="application-dock" data-au-title="Application validation dock" data-au-note="50px under the open application. The dock starts with nothing selected, opens the dropup, selects the second flow, runs each of its checks, then opens the overview." data-au-avalonia="Border" data-au-class="aun-validate">
+      <div class="aun-validate" data-au-demo="dock"></div>
+    </article>
+
+    <article data-au-component="mobile-application-head" data-au-title="Mobile application head" data-au-note="An open application is an inner page: a chevron back to Apps, and the application name. No tab bar and no reload." data-au-avalonia="Border" data-au-class="aun-agent-head">
       <div class="aun-agent-head">
         <button type="button" class="aun-agent-back" aria-label="Go back">‹</button>
         <div class="aun-phone__head-copy" data-au-demo="application"></div>

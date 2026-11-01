@@ -141,6 +141,81 @@
         </div>
       </div></div>
         </main>
+        <aside class="au-screen-aside"><aside class="au-validation-sidebar aun-validate-rail" aria-label="Validation" data-au-demo="rail">
+    <div class="au-validation-sidebar-head"><strong>Validation</strong><p class="au-muted">Checks for the displayed app</p></div>
+    <div class="au-validation-sidebar-list">
+    <div class="au-validation-flow">
+      <div class="au-validation-flow-head"><span class="au-status-dot au-status-dot--warning" aria-hidden="true"></span><div class="au-validation-copy"><strong>Checkout featured goods</strong><p class="au-muted">Reset the catalog, refuse an empty cart, then order a Harbor Mug.</p></div><button class="au-validation-play" type="button">▶ Play</button></div>
+      
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--healthy" aria-hidden="true"></span><span>Starting page</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--healthy" aria-hidden="true"></span><span>Title is Harbor Shop</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--healthy" aria-hidden="true"></span><span>Harbor Mug</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--healthy" aria-hidden="true"></span><span>Reset the catalog to the seed tickets</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--healthy" aria-hidden="true"></span><span>Your cart is empty.</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--healthy" aria-hidden="true"></span><span>Order 1008</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--warning" aria-hidden="true"></span><span>Place order does nothing while the cart is empty</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--warning" aria-hidden="true"></span><span>Your cart is empty.</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Order 1008</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Add Harbor Mug to the cart</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Cart · Harbor Mug × 1</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Place the Harbor Mug order</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Order 1009</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Your cart is empty.</span></div>
+    </div>
+    </div>
+    <div class="au-validation-flow">
+      <div class="au-validation-flow-head"><span class="au-status-dot au-status-dot--danger" aria-hidden="true"></span><div class="au-validation-copy"><strong>Checkout tote and lamp</strong><p class="au-muted">Add the tote and lamp together, then place one combined order.</p></div><button class="au-validation-play" type="button">▶ Play</button></div>
+      
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--danger" aria-hidden="true"></span><span>Starting page</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--danger" aria-hidden="true"></span><span>Title is Harbor Shop</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Canvas Tote</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Reset the catalog to the seed tickets</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Your cart is empty.</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Add Canvas Tote to the cart</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Cart · Canvas Tote × 1</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Add Chart Lamp beside the tote</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Cart · Chart Lamp × 1</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Cart · Canvas Tote × 1</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Place the combined tote and lamp order</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Order 1009</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Chart Lamp × 1</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Your cart is empty.</span></div>
+    </div>
+    </div>
+    <div class="au-validation-flow">
+      <div class="au-validation-flow-head"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><div class="au-validation-copy"><strong>Stack Harbor Mugs</strong><p class="au-muted">Add the mug twice so the cart quantity stacks, then place that order.</p></div><button class="au-validation-play" type="button">▶ Play</button></div>
+      
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Starting page</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Title is Harbor Shop</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Harbor Mug</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Reset the catalog to the seed tickets</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Your cart is empty.</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Add the first Harbor Mug</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Cart · Harbor Mug × 1</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Stack a second Harbor Mug in the cart</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Cart · Harbor Mug × 2</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Place the stacked mug order</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Order 1009</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Your cart is empty.</span></div>
+    </div>
+    </div></div></aside></aside>
       </div>
     </div>
 </div>

@@ -51,6 +51,7 @@ export function projectDemo(definition) {
     source: sourceTask ? { owner: sourceTask.owner, repository: sourceTask.repository } : null,
     decisions: definition.productDecisions ?? [],
     overview: definition.overview ?? {},
+    flows: validationFor(definition, workspaces[0] ?? null),
   };
 }
 
@@ -87,6 +88,8 @@ export function applyDemo(catalog, demo) {
   fill('mobile-agent-head', 'member', memberHead(open));
   const application = open?.applications?.[0]?.name ?? '';
   fill('mobile-application-head', 'application', `<div data-au-use="page-title" data-au-props="title=${esc(application)}"></div>`);
+  fill('application-validation', 'rail', validationRail(demo.flows));
+  fill('application-dock', 'dock', validationDock(demo.flows));
 }
 
 function orderWorkspaces(workspaces) {
@@ -347,6 +350,158 @@ function memberOverview(demo) {
         <div><span class="au-field-label">Repository</span><p class="au-mono">${esc(workspace.repositoryPath)}</p></div>
         <div><span class="au-field-label">Worktree</span><p class="au-mono">${esc(workspace.worktreePath)}</p></div>
         <div><span class="au-field-label">Commit</span><p class="au-mono">${esc(workspace.commit)}</p></div>
+      </div>
+    </div>`;
+}
+
+const showcaseStatus = ['running', 'failed', 'pending'];
+const ledTone = { passed: 'healthy', running: 'warning', failed: 'danger', pending: 'idle' };
+
+function validationFor(definition, workspace) {
+  const application = workspace?.applications?.[0]?.name;
+  if (!workspace || !application) return [];
+  return (definition.validationFlows ?? [])
+    .filter(flow => flow.workspaceId === workspace.id && flow.application === application)
+    .map((flow, index) => presentFlow(flow, showcaseStatus[index] ?? 'pending'));
+}
+
+function presentFlow(flow, status) {
+  const stages = paintStages(stagesOf(flow), status);
+  return { name: flow.name, description: flow.description ?? '', status, stages };
+}
+
+function stagesOf(flow) {
+  const stages = [];
+  if (flow.initialExpectations?.length) {
+    stages.push({ label: 'Starting page', checks: flow.initialExpectations.map(checkOf) });
+  }
+  for (const step of flow.steps ?? []) {
+    stages.push({ label: step.description || step.id, checks: (step.expectations ?? []).map(checkOf) });
+  }
+  return stages;
+}
+
+function checkOf(expectation) {
+  const value = expectation.value ?? '';
+  const label = expectation.kind === 'Title' ? `Title is ${value}` : value || expectation.kind || '';
+  return { label, status: 'pending' };
+}
+
+function paintStages(stages, status) {
+  return stages.map((stage, index) => {
+    const stageStatus = status === 'passed' ? 'passed'
+      : status === 'pending' ? 'pending'
+      : status === 'failed' ? (index === 0 ? 'failed' : 'pending')
+      : index < 2 ? 'passed' : index === 2 ? 'running' : 'pending';
+    return { label: stage.label, status: stageStatus, checks: paintChecks(stage.checks, stageStatus) };
+  });
+}
+
+function paintChecks(checks, stageStatus) {
+  return checks.map((check, index) => ({
+    label: check.label,
+    status: stageStatus === 'passed' ? 'passed'
+      : stageStatus === 'pending' ? 'pending'
+      : stageStatus === 'failed' ? (index === 0 ? 'failed' : 'pending')
+      : index === 0 ? 'running' : 'pending',
+  }));
+}
+
+function visibleStage(flow) {
+  if (flow.status === 'passed') return flow.stages.at(-1) ?? null;
+  return flow.stages.find(stage => stage.status === 'running')
+    ?? flow.stages.find(stage => stage.status === 'failed')
+    ?? flow.stages.find(stage => stage.status === 'pending')
+    ?? flow.stages.at(-1)
+    ?? null;
+}
+
+function led(status) {
+  return `<span class="au-status-dot au-status-dot--${ledTone[status] ?? 'idle'}" aria-hidden="true"></span>`;
+}
+
+function flowCard(flow, withPlay) {
+  const play = withPlay ? '<button class="au-validation-play" type="button">▶ Play</button>' : '';
+  const stages = flow.stages.map(stage => `
+    <div class="au-validation-stage">
+      <div class="au-validation-step">${led(stage.status)}<span>${esc(stage.label)}</span></div>
+      ${stage.checks.map(check => `<div class="au-validation-check">${led(check.status)}<span>${esc(check.label)}</span></div>`).join('')}
+    </div>`).join('');
+  return `
+    <div class="au-validation-flow">
+      <div class="au-validation-flow-head">${led(flow.status)}<div class="au-validation-copy"><strong>${esc(flow.name)}</strong><p class="au-muted">${esc(flow.description)}</p></div>${play}</div>
+      ${stages}
+    </div>`;
+}
+
+function validationRail(flows) {
+  return `
+    <div class="au-validation-sidebar-head"><strong>Validation</strong><p class="au-muted">Checks for the displayed app</p></div>
+    <div class="au-validation-sidebar-list">${flows.map(flow => flowCard(flow, true)).join('')}</div>`;
+}
+
+function validationDock(flows) {
+  const chosen = flows[1] ?? flows[0] ?? null;
+  if (!chosen) return '';
+  const checks = chosen.stages.flatMap(stage => stage.checks);
+  const frames = [
+    { kind: 'idle' },
+    { kind: 'idle' },
+    { kind: 'menu' },
+    { kind: 'menu', current: 1 },
+    { kind: 'selected' },
+    { kind: 'selected' },
+    ...checks.flatMap(check => [
+      { kind: 'check', check, status: 'running' },
+      { kind: 'check', check, status: 'passed' },
+    ]),
+    { kind: 'overview', check: checks.at(-1), status: 'passed' },
+    { kind: 'overview', check: checks.at(-1), status: 'passed' },
+    { kind: 'overview', check: checks.at(-1), status: 'passed' },
+  ];
+  const count = frames.length;
+  const slice = 100 / count;
+  const showUntil = (slice - 0.02).toFixed(4);
+  const beat = (index, extra = '') => ` class="aun-beat${extra}" style="--aun-i:${index}"`;
+  const menu = current => `<div class="aun-validate__menu" role="listbox" aria-label="Validations">${flows.map((flow, index) => {
+    const marked = index === current ? ' aria-current="true"' : '';
+    return `<button class="aun-validate__item" type="button" role="option"${marked}>${led('pending')}<span>${esc(flow.name)}</span></button>`;
+  }).join('')}</div>`;
+  const sheet = `
+    <div class="aun-validate__sheet" role="dialog" aria-label="${esc(chosen.name)}">
+      <div class="aun-validate__sheet-title">${led('passed')}<span>${esc(chosen.name)}</span></div>
+      ${chosen.stages.map(stage => `
+        <div class="au-validation-stage">
+          <div class="au-validation-step">${led('passed')}<span>${esc(stage.label)}</span></div>
+          ${stage.checks.map(check => `<div class="au-validation-check">${led('passed')}<span>${esc(check.label)}</span></div>`).join('')}
+        </div>`).join('')}
+    </div>`;
+  const line = frame => {
+    if (frame.kind === 'idle' || frame.kind === 'menu') return '<p class="au-muted">No check selected</p>';
+    const titleStatus = frame.kind === 'overview' ? 'passed' : frame.kind === 'selected' ? 'pending' : 'running';
+    const sub = frame.check
+      ? `<p class="aun-validate__step">${led(frame.status)}<span>${esc(frame.check.label)}</span></p>`
+      : '';
+    return `<strong class="aun-validate__title">${led(titleStatus)}<span>${esc(chosen.name)}</span></strong>${sub}`;
+  };
+  const overlays = frames.map((frame, index) => {
+    if (frame.kind === 'menu') return `<div${beat(index, ' aun-validate__overlay')}>${menu(frame.current)}</div>`;
+    if (frame.kind === 'overview') return `<div${beat(index, ' aun-validate__overlay')}>${sheet}</div>`;
+    return '';
+  }).join('');
+  const lines = frames.map((frame, index) => `<div${beat(index)}>${line(frame)}</div>`).join('');
+  const chevrons = frames.map((frame, index) => {
+    const open = frame.kind === 'menu';
+    return `<button${beat(index)} type="button" aria-label="Validations" aria-expanded="${open ? 'true' : 'false'}">${open ? '▴' : '▾'}</button>`;
+  }).join('');
+  return `
+    <div class="aun-validate__player" style="--aun-n:${count};--aun-run:${(count * 0.85).toFixed(2)}s">
+      <style>@keyframes aun-validate-beat{0%,${showUntil}%{opacity:1;visibility:visible}${slice.toFixed(4)}%,100%{opacity:0;visibility:hidden}}</style>
+      ${overlays}
+      <div class="au-validation-dock">
+        <button class="au-validation-play aun-validate__run" type="button" aria-label="Run">▶</button>
+        <div class="au-validation-dock-copy aun-validate__copy">${lines}</div>
+        <div class="aun-validate__chevron">${chevrons}</div>
       </div>
     </div>`;
 }

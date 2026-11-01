@@ -21,15 +21,17 @@
           <div data-au-use="screen-toolbar" data-au-slot="toolbar"></div>
           <div data-au-use="screen-pane" data-au-slot="main"></div>
         </div>
+        <aside class="au-screen-aside" data-au-slot="aside"></aside>
       </div>
     </div>
   </section>
 
   <section data-au-layout="mobile-command">
     <div class="aun-phone">
-      <header class="aun-phone__head" data-au-slot="head"></header>
-      <div class="aun-phone__body" data-au-slot="body"></div>
-      <div data-au-slot="nav"></div>
+    <header class="aun-phone__head" data-au-slot="head"></header>
+    <div class="aun-phone__body" data-au-slot="body"></div>
+    <div class="aun-phone__dock" data-au-slot="dock"></div>
+    <div data-au-slot="nav"></div>
     </div>
   </section>
 
@@ -90,6 +92,7 @@
     <div data-au-region="subtabs" data-au-use="subtab"></div>
     <div data-au-region="toolbar" data-au-use="address-bar"></div>
     <div data-au-region="main" data-au-use="storefront"></div>
+    <div data-au-region="aside" data-au-use="application-validation"></div>
   </section>
 
   <section data-au-scene="settings" data-au-platform="desktop" data-au-view="settings" data-au-title="Settings" data-au-layout="desktop">
@@ -112,8 +115,7 @@
   <section data-au-scene="mobile-application" data-au-platform="mobile" data-au-view="application" data-au-title="Agent · Application" data-au-layout="mobile-command">
     <div data-au-region="head" data-au-use="mobile-application-head"></div>
     <div data-au-region="body" data-au-use="storefront"></div>
-    <div data-au-region="body" data-au-use="validation-dock"></div>
-    <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:0"></div>
+    <div data-au-region="dock" data-au-use="application-dock"></div>
   </section>
 
   <section data-au-scene="mobile-agent-overview" data-au-platform="mobile" data-au-view="apps" data-au-title="Agent · Overview" data-au-layout="mobile-agent">
