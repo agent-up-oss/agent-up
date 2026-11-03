@@ -7,6 +7,7 @@
  * Clients bind Server state into the holes. They do not draw the page again.
  */
 
+import { parseSelector, resolveVars, toPx } from './css.mjs';
 import { parseScreens, slottedScene } from './screens.mjs';
 import { parsePartDeclarations, parseProps } from './slots.mjs';
 import { applyStates } from './states.mjs';
@@ -30,10 +31,11 @@ const rowLayout = new Set([
   'au-screen-tabs', 'au-screen-subtabs', 'au-screen-toolbar', 'au-mobile-tab-bar', 'au-tabs',
   'aun-agent-head', 'aun-phone__head-row', 'au-validation-dock',
   'au-cluster', 'au-logo-lockup', 'au-workspace', 'au-workspace-head', 'au-badge',
-  'au-validation-flow-head', 'aun-state-map__root',
+  'aun-state-map__root',
 ]);
 const spreadLayout = new Set(['aun-nav-row', 'aun-state-map__head', 'aun-settings__row']);
-const trioLayout = new Set(['aun-state-map__branch-head', 'aun-task-row']);
+const trioLayout = new Set(['aun-state-map__branch-head', 'aun-task-row', 'au-validation-flow-head']);
+const pairLayout = new Set(['au-validation-step', 'au-validation-check']);
 const columnLayout = new Set([
   'au-screen-rail', 'au-screen-aside', 'aun-phone__body', 'aun-phone__head',
   'aun-settings', 'aun-settings__list', 'aun-task-board', 'aun-state-map', 'aun-validate', 'au-validation-sidebar',
@@ -45,7 +47,7 @@ const columnLayout = new Set([
  * `components` is a Map of catalog id to the component record. New UI records are the
  * pre-demo markup so a demo fill stays a showcase and the holes stay open.
  */
-export function sceneBundle(screensHtml, components) {
+export function sceneBundle(screensHtml, components, rules = [], tokens = {}) {
   const { layouts, scenes } = parseScreens(screensHtml);
   const templates = {};
   const built = scenes.map(scene => {
@@ -60,6 +62,9 @@ export function sceneBundle(screensHtml, components) {
   for (const scene of built) collectTemplates(scene.tree, components, templates);
   for (const scene of built) tune(scene.tree, false);
   for (const template of Object.values(templates)) tune([template], false);
+  const facts = flexFacts(rules, tokens);
+  for (const scene of built) applyFlow(scene.tree, facts);
+  for (const template of Object.values(templates)) applyFlow([template], facts);
   const contracts = built.map(scene => sceneContract(scene, templates));
   const regions = sceneRegionClasses.filter(name => built.some(scene => hasClass(scene.tree, name)));
   return { scenes: built, templates, contracts, regions };
@@ -69,11 +74,15 @@ export function sceneContract(scene, templates = {}) {
   const slots = new Map();
   const states = new Set();
   const actions = new Set();
-  const visit = (node, insideRepeat) => {
+  const visit = (node, insideRepeat, seen = new Set()) => {
     recordNode(node, slots, states, actions, insideRepeat);
     const nested = insideRepeat || Boolean(node.repeat) || Boolean(node.content);
-    for (const child of node.k ?? []) visit(child, nested);
-    if (node.repeat && templates[node.repeat]) visit(templates[node.repeat], true);
+    for (const child of node.k ?? []) visit(child, nested, seen);
+    if (node.repeat && templates[node.repeat] && !seen.has(node.repeat)) {
+      const next = new Set(seen);
+      next.add(node.repeat);
+      visit(templates[node.repeat], true, next);
+    }
   };
   for (const node of scene.tree) visit(node, false);
   for (const request of scene.requests ?? []) {
@@ -138,6 +147,7 @@ function expand(nodes, components, depth) {
     const component = components.get(node.use);
     if (!component) throw new Error(`Assembled screen references unknown catalog component '${node.use}'.`);
     const instance = expand(instantiate(component, node.props, node.state), components, depth + 1);
+    if (node.when && instance.length === 1) instance[0].when = node.when;
     const inner = node.k?.length ? expand(node.k, components, depth + 1) : [];
     if (inner.length && instance.length === 1) {
       instance[0].k = [...(instance[0].k ?? []), ...inner];
@@ -263,6 +273,8 @@ function nodeFrom(tag) {
   if (part) node.part = part;
   const action = data(tag.attrs, 'action');
   if (action) node.action = action;
+  const id = data(tag.attrs, 'id');
+  if (id) node.id = id;
   const actions = data(tag.attrs, 'actions');
   if (actions) node.actions = actions.split(/\s+/).filter(Boolean);
   const repeat = data(tag.attrs, 'repeat');
@@ -278,6 +290,10 @@ function nodeFrom(tag) {
   }
   const flags = data(tag.attrs, 'flags');
   if (flags) node.flags = flags.split(/\s+/).filter(Boolean).map(entry => entry.split(':'));
+  if (tag.name === 'input') {
+    const value = attr(tag.attrs, 'value');
+    if (value) node.x = decode(value);
+  }
   if (data(tag.attrs, 'kind') === '1') node.kindHost = true;
   const layout = layoutOf(node.c ?? []);
   if (layout) node.layout = layout;
@@ -290,9 +306,64 @@ function layoutOf(classes) {
   if (classes.some(name => columnFill.has(name))) return 'fill';
   if (classes.some(name => spreadLayout.has(name))) return 'spread';
   if (classes.some(name => trioLayout.has(name))) return 'trio';
+  if (classes.some(name => pairLayout.has(name))) return 'pair';
   if (classes.some(name => rowLayout.has(name))) return 'row';
   if (classes.some(name => columnLayout.has(name))) return 'column';
   return '';
+}
+
+/**
+ * The scene mounts the same CSS the catalog does. Flex, alignment, gap, and an auto margin are
+ * the layout; the hardcoded kinds above only name regions the page shell already treats specially.
+ */
+function flexFacts(rules, tokens) {
+  const facts = new Map();
+  for (const rule of rules) {
+    for (const selector of rule.selectors) {
+      const parsed = parseSelector(selector);
+      if (!parsed || parsed.pseudo || parsed.classes.length !== 1) continue;
+      const fact = facts.get(parsed.classes[0]) ?? {};
+      for (const [property, raw] of rule.declarations) {
+        const value = resolveVars(raw, tokens);
+        if (property === 'display' && (value === 'flex' || value === 'inline-flex')) fact.display = 'flex';
+        if (property === 'flex-direction' && (value === 'row' || value === 'column')) fact.dir = value;
+        if (property === 'align-items' && (value === 'center' || value === 'flex-start' || value === 'start' || value === 'stretch')) fact.align = value === 'flex-start' || value === 'start' ? 'start' : value;
+        if (property === 'justify-content' && (value === 'space-between' || value === 'center')) fact.justify = value === 'space-between' ? 'between' : 'center';
+        if (property === 'gap') {
+          const gap = toPx(value.split(/\s+/)[0]);
+          if (gap != null) fact.gap = gap;
+        }
+        if ((property === 'margin-left' || property === 'margin-inline-start') && value.trim() === 'auto') fact.push = true;
+      }
+      facts.set(parsed.classes[0], fact);
+    }
+  }
+  return facts;
+}
+
+function applyFlow(nodes, facts) {
+  for (const node of nodes ?? []) {
+    const flow = {};
+    let push = false;
+    for (const name of node.c ?? []) {
+      const fact = facts.get(name);
+      if (!fact) continue;
+      if (fact.display) flow.display = fact.display;
+      if (fact.dir) flow.dir = fact.dir;
+      if (fact.align) flow.align = fact.align;
+      if (fact.justify) flow.justify = fact.justify;
+      if (fact.gap != null) flow.gap = fact.gap;
+      if (fact.push) push = true;
+    }
+    if (push) node.push = true;
+    if (flow.display) {
+      node.flow = { d: flow.dir ?? 'row' };
+      if (flow.align) node.flow.a = flow.align;
+      if (flow.justify) node.flow.j = flow.justify;
+      if (flow.gap != null) node.flow.g = flow.gap;
+    }
+    if (node.k) applyFlow(node.k, facts);
+  }
 }
 
 /** The phone stacks fleet lanes. A text slot keeps its default as `x` and drops the sample text node. */
@@ -456,23 +527,35 @@ export function createNewUiScene(React, native) {
           style: { alignSelf: 'stretch' },
         }, row);
       });
-      return h(View, { key, style: [paint(node.c), layoutStyle(node.layout)] }, rows);
+      return h(View, { key, style: [paint(node.c), layoutStyle(node)] }, rows);
     }
     if (node.content && model.content && model.content[node.slot] != null) return model.content[node.slot];
     const classes = [...(node.c ?? []), ...flagged(node, model)];
-    if (item?.state && (node.kindHost || (node.c ?? []).includes('au-workspace'))) classes.push(item.state);
+    if (item?.state && (node.kindHost || (node.c ?? []).includes('au-workspace') || (node.c ?? []).includes('au-status-dot'))) classes.push(item.state);
+    if (node.selection?.[0] === 'app' && String(model.state.app ?? '') !== String(node.selection[1])) {
+      const baked = classes.indexOf(node.selection[2]);
+      if (baked >= 0) classes.splice(baked, 1);
+    }
     const textValue = node.text
       ? (item?.text?.[node.text] ?? model.text[node.text] ?? node.x ?? '')
       : node.x;
     const children = (node.k ?? []).map((child, index) => render(child, model, item, index)).filter(child => child != null);
     const action = node.action ? (item?.action || node.action) : null;
     if (node.t === 'button' || action) {
+      const column = node.flow?.d === 'column';
+      const body = [...children];
+      if (textValue && !(node.k ?? []).some(child => child.t === '#text')) {
+        body.push(h(Text, { key: 'label', style: paint(classes, 'text') }, String(textValue).trim()));
+      }
+      const inner = body.length > 1
+        ? h(View, { style: { flexDirection: column ? 'column' : 'row', alignItems: 'center', gap: node.flow?.g ?? (column ? 2 : 6) } }, body)
+        : body;
       return h(Pressable, {
         key,
         accessibilityRole: 'button',
         onPress: () => model.onAction(action, item?.id ?? null),
-        style: paint(classes),
-      }, textValue ? h(Text, { style: paint(classes, 'text') }, textValue) : children);
+        style: [paint(classes), node.push ? { marginLeft: 'auto' } : null],
+      }, inner);
     }
     if (textValue && !(node.k ?? []).some(child => child.t !== '#text')) {
       return h(Text, { key, style: paint(classes, 'text') }, textValue);
@@ -481,20 +564,35 @@ export function createNewUiScene(React, native) {
     const grows = (node.c ?? []).some(name => name === 'au-screen-body' || name === 'au-screen-pane' || name === 'aun-phone__body' || name === 'aun-application');
     const arranged = arrange(h, View, body, node.layout);
     if (node.layout === 'column') {
-      return h(ScrollView, { key, style: [{ flex: grows ? 1 : undefined }, paint(classes)] }, arranged);
+      return h(ScrollView, { key, style: [{ flex: grows ? 1 : undefined }, paint(classes), flowStyle(node)] }, arranged);
     }
     return h(View, {
       key,
-      style: [paint(classes), measure(node.c), layoutStyle(node.layout), grows ? { flex: 1 } : null],
+      style: [paint(classes), measure(node.c), layoutStyle(node), grows ? { flex: 1 } : null, node.push ? { marginLeft: 'auto' } : null],
     }, arranged);
   }
-  function layoutStyle(layout) {
-    if (layout === 'fill' || layout === 'column') return { flex: layout === 'fill' ? 1 : undefined, flexDirection: 'column' };
-    if (layout === 'row' || layout === 'trio') return { flexDirection: 'row', alignItems: 'center' };
-    if (layout === 'spread') return { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' };
-    if (layout === 'chrome') return { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' };
-    if (layout === 'grid' || layout === 'lanes') return { flexDirection: 'row', flex: 1, alignItems: 'stretch' };
-    return { flexDirection: 'column' };
+  function layoutStyle(node) {
+    const layout = node?.layout || (node?.flow?.d === 'row' ? 'row' : '');
+    const flow = flowStyle(node);
+    if (layout === 'fill' || layout === 'column') return { flex: layout === 'fill' ? 1 : undefined, flexDirection: 'column', ...flow };
+    if (layout === 'row' || layout === 'trio') return { flexDirection: 'row', alignItems: 'center', ...flow };
+    if (layout === 'spread') return { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', ...flow };
+    if (layout === 'chrome') return { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', ...flow };
+    if (layout === 'grid' || layout === 'lanes') return { flexDirection: 'row', flex: 1, alignItems: 'stretch', ...flow };
+    return { flexDirection: 'column', ...flow };
+  }
+  function flowStyle(node) {
+    const flow = node?.flow;
+    if (!flow) return {};
+    const style = {};
+    if (flow.d === 'column') style.flexDirection = 'column';
+    if (flow.d === 'row') style.flexDirection = 'row';
+    if (flow.a === 'center') style.alignItems = 'center';
+    if (flow.a === 'start') style.alignItems = 'flex-start';
+    if (flow.j === 'between') style.justifyContent = 'space-between';
+    if (flow.j === 'center') style.justifyContent = 'center';
+    if (flow.g != null) style.gap = flow.g;
+    return style;
   }
   function measure(classes) {
     const names = classes ?? [];
@@ -542,9 +640,13 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 
 namespace AgentUp.Desktop.DesignSystem;
 
@@ -552,6 +654,7 @@ public sealed class NewUiActionEventArgs : EventArgs
 {
     public required string Name { get; init; }
     public string? Id { get; init; }
+    public string? Text { get; init; }
 }
 
 public sealed class NewUiSlotItem
@@ -650,7 +753,11 @@ public sealed class NewUiScene : UserControl
         foreach (var node in nodes)
         {
             var control = Render(node, item);
-            if (control is not null) controls.Add(control);
+            if (control is not null)
+            {
+                if (node.Push == true) control.SetValue(ScenePushProperty, true);
+                controls.Add(control);
+            }
         }
         return controls;
     }
@@ -692,7 +799,7 @@ public sealed class NewUiScene : UserControl
                     else rows.Add(row);
                 }
             }
-            var repeated = Layout(node.Layout, rows, node.C ?? []);
+            var repeated = Layout(node.Layout, rows, node.C ?? [], node.Flow);
             return repeated;
         }
         if (node.Content == true && node.Slot is not null && _content.TryGetValue(node.Slot, out var hosted))
@@ -700,7 +807,7 @@ public sealed class NewUiScene : UserControl
             Detach(hosted);
             hosted.HorizontalAlignment = HorizontalAlignment.Stretch;
             hosted.VerticalAlignment = VerticalAlignment.Stretch;
-            return Layout("fill", new List<Control> { hosted }, new List<string>(node.C ?? []));
+            return Layout("fill", new List<Control> { hosted }, new List<string>(node.C ?? []), node.Flow);
         }
         var text = node.Text is not null
             ? item is not null && item.Text.TryGetValue(node.Text, out var fromItem) ? fromItem
@@ -716,9 +823,19 @@ public sealed class NewUiScene : UserControl
         {
             if (flag.Count == 2 && _state.ContainsKey(flag[0])) classes.Add(flag[1]);
         }
+        if (_state.ContainsKey("tool")
+            && node.Selection is { Count: 3 } toolSelection
+            && toolSelection[0] == "tool"
+            && !(_state.TryGetValue("tool", out var tool) && tool == toolSelection[1]))
+            classes.Remove("au-subtab--selected");
         var children = RenderList(node.K ?? [], item);
-        if (!string.IsNullOrEmpty(item?.State) && (node.KindHost == true || (node.C?.Contains("au-workspace") ?? false)))
+        if (classes.Contains("au-screen-toolbar") && children.Count == 0) return null;
+        if (!string.IsNullOrEmpty(item?.State) && (node.KindHost == true || (node.C?.Contains("au-workspace") ?? false) || (node.C?.Contains("au-status-dot") ?? false)))
             classes.Add(item.State);
+        if (node.Selection is { Count: 3 } appSelection
+            && appSelection[0] == "app"
+            && !(_state.TryGetValue("app", out var appName) && appName == appSelection[1]))
+            classes.Remove(appSelection[2]);
         var action = string.IsNullOrEmpty(node.Action) ? null : (item?.Action ?? node.Action);
         if (node.T == "button" || !string.IsNullOrEmpty(action))
         {
@@ -727,13 +844,15 @@ public sealed class NewUiScene : UserControl
                 ClickMode = ClickMode.Press,
                 Padding = new Thickness(0),
             };
+            var inline = new List<Control>(children);
+            if (!string.IsNullOrEmpty(text))
+                inline.Add(new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center });
+            var content = ArrangeButton(node.Flow, inline, classes);
             if (HostsFace(classes))
             {
                 var face = new Border
                 {
-                    Child = string.IsNullOrEmpty(text)
-                        ? Host(children)
-                        : new TextBlock { Text = text, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+                    Child = content,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
                 };
@@ -746,7 +865,7 @@ public sealed class NewUiScene : UserControl
             }
             else
             {
-                button.Content = string.IsNullOrEmpty(text) ? Host(children) : text;
+                button.Content = content;
                 Paint(button, classes);
                 if (classes.Contains("aun-nav"))
                 {
@@ -754,11 +873,23 @@ public sealed class NewUiScene : UserControl
                     button.HorizontalContentAlignment = HorizontalAlignment.Left;
                 }
             }
-            var id = item?.Id;
+            var id = item?.Id ?? node.Id;
             var name = action ?? "";
+            if (item?.Parts.Contains("locked") == true)
+            {
+                button.IsEnabled = false;
+                button.Opacity = 0.4;
+            }
+            if (name == "toggle-validation")
+            {
+                button.MinWidth = 32;
+                button.MinHeight = 32;
+            }
             button.Click += (_, _) => ActionInvoked?.Invoke(this, new NewUiActionEventArgs { Name = name, Id = id });
             return button;
         }
+        if (node.T == "input")
+            return AddressField(text, classes);
         if (classes.Contains("au-chrome-mark"))
             return Mark();
         if (classes.Contains("aun-state-map__drop"))
@@ -773,11 +904,14 @@ public sealed class NewUiScene : UserControl
             Paint(block, classes);
             return block;
         }
-        var layout = Layout(node.Layout, children, classes);
+        var kind = node.Layout;
+        if (string.IsNullOrEmpty(kind) && node.Flow?.D == "row") kind = "row";
+        if (string.IsNullOrEmpty(kind) && node.Flow?.J == "between") kind = "spread";
+        var layout = Layout(kind, children, classes, node.Flow);
         return layout;
     }
 
-    private static Control Layout(string? kind, IReadOnlyList<Control> children, IReadOnlyList<string> classes)
+    private static Control Layout(string? kind, IReadOnlyList<Control> children, IReadOnlyList<string> classes, SceneFlow? flow)
     {
         Control laid;
         if (kind == "chrome")
@@ -826,11 +960,32 @@ public sealed class NewUiScene : UserControl
                 Grid.SetColumn(children[i], column);
                 children[i].VerticalAlignment = VerticalAlignment.Center;
                 if (spread && column == 0) children[i].HorizontalAlignment = HorizontalAlignment.Stretch;
-                if (!spread && column == 1) children[i].HorizontalAlignment = HorizontalAlignment.Stretch;
+                if (!spread && column == 1)
+                {
+                    children[i].HorizontalAlignment = HorizontalAlignment.Stretch;
+                    children[i].MinWidth = 0;
+                }
                 if (i > 0) children[i].Margin = new Thickness(spread ? 12 : 8, 0, 0, 0);
                 grid.Children.Add(children[i]);
             }
             laid = grid;
+        }
+        else if (kind == "pair")
+        {
+            var pair = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
+            for (var i = 0; i < children.Count && i < 2; i++)
+            {
+                Grid.SetColumn(children[i], i);
+                children[i].VerticalAlignment = VerticalAlignment.Center;
+                if (i == 1)
+                {
+                    children[i].HorizontalAlignment = HorizontalAlignment.Stretch;
+                    children[i].MinWidth = 0;
+                }
+                if (i > 0) children[i].Margin = new Thickness(8, 0, 0, 0);
+                pair.Children.Add(children[i]);
+            }
+            laid = pair;
         }
         else if (kind == "grid")
         {
@@ -848,9 +1003,61 @@ public sealed class NewUiScene : UserControl
         }
         else if (kind == "row")
         {
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-            foreach (var child in children) row.Children.Add(child);
-            laid = row;
+            var gap = flow?.G ?? 8;
+            var pushed = children.Where(child => child.GetValue(ScenePushProperty)).ToList();
+            if (pushed.Count > 0)
+            {
+                var dock = new DockPanel { LastChildFill = true };
+                var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = gap };
+                foreach (var child in pushed)
+                {
+                    Align(child, flow, horizontal: true);
+                    trailing.Children.Add(child);
+                }
+                DockPanel.SetDock(trailing, Dock.Right);
+                trailing.VerticalAlignment = VerticalAlignment.Center;
+                dock.Children.Add(trailing);
+                var leading = new StackPanel { Orientation = Orientation.Horizontal, Spacing = gap, VerticalAlignment = VerticalAlignment.Center };
+                foreach (var child in children.Where(child => !child.GetValue(ScenePushProperty)))
+                {
+                    Align(child, flow, horizontal: true);
+                    leading.Children.Add(child);
+                }
+                dock.Children.Add(leading);
+                laid = dock;
+            }
+            else if (children.Any(child => child.GetValue(SceneGrowProperty)))
+            {
+                var grid = new Grid();
+                for (var i = 0; i < children.Count; i++)
+                {
+                    var grow = children[i].GetValue(SceneGrowProperty);
+                    grid.ColumnDefinitions.Add(new ColumnDefinition
+                    {
+                        Width = grow ? new GridLength(1, GridUnitType.Star) : GridLength.Auto,
+                    });
+                    Grid.SetColumn(children[i], i);
+                    Align(children[i], flow, horizontal: true);
+                    if (grow) children[i].HorizontalAlignment = HorizontalAlignment.Stretch;
+                    if (i > 0)
+                    {
+                        var margin = children[i].Margin;
+                        children[i].Margin = new Thickness(margin.Left + gap, margin.Top, margin.Right, margin.Bottom);
+                    }
+                    grid.Children.Add(children[i]);
+                }
+                laid = grid;
+            }
+            else
+            {
+                var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = gap };
+                foreach (var child in children)
+                {
+                    Align(child, flow, horizontal: true);
+                    row.Children.Add(child);
+                }
+                laid = row;
+            }
         }
         else if (kind is "fill" or "column")
         {
@@ -865,9 +1072,19 @@ public sealed class NewUiScene : UserControl
                 fillAt = 0;
             if (kind == "fill" && fillAt >= 0)
                 rows.RowDefinitions[fillAt].Height = new GridLength(1, GridUnitType.Star);
+            if (flow?.G is double columnGap && columnGap > 0)
+            {
+                for (var i = 1; i < children.Count; i++)
+                {
+                    var margin = children[i].Margin;
+                    children[i].Margin = new Thickness(margin.Left, margin.Top + columnGap, margin.Right, margin.Bottom);
+                }
+            }
             for (var i = 0; i < children.Count; i++)
             {
                 Grid.SetRow(children[i], i);
+                if (classes.Contains("au-validation-sidebar--collapsed"))
+                    children[i].HorizontalAlignment = HorizontalAlignment.Center;
                 rows.Children.Add(children[i]);
             }
             if (classes.Contains("aun-settings__list"))
@@ -881,14 +1098,31 @@ public sealed class NewUiScene : UserControl
                     }
                 }
             }
-            laid = kind == "column" && !classes.Contains("aun-settings__list")
-                ? new ScrollViewer { Content = rows }
-                : rows;
+            ScrollViewer? columnScroll = null;
+            if (kind == "column" && !classes.Contains("aun-settings__list"))
+            {
+                columnScroll = new ScrollViewer { Content = rows };
+                if (classes.Contains("au-validation-sidebar"))
+                    columnScroll.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
+            }
+            laid = columnScroll ?? (Control)rows;
         }
         else
         {
-            var stack = new StackPanel { Spacing = 4 };
+            var stack = new StackPanel { Spacing = classes.Contains("aun-settings__subs") ? 0 : 4 };
             foreach (var child in children) stack.Children.Add(child);
+            if (classes.Contains("aun-settings__subs"))
+            {
+                for (var i = 0; i < stack.Children.Count; i++)
+                {
+                    if (stack.Children[i] is Border rule)
+                    {
+                        rule.BorderThickness = new Thickness(0, 1, 0, 0);
+                        rule.BorderBrush = ThemeBrush("AgentUpColorBorderSubtleBrush");
+                        rule.Padding = new Thickness(16, 0, 0, 0);
+                    }
+                }
+            }
             laid = stack;
         }
         var framed = Frame(laid, classes);
@@ -911,20 +1145,34 @@ public sealed class NewUiScene : UserControl
             control.HorizontalAlignment = HorizontalAlignment.Center;
             control.MaxWidth = 576;
         }
+        if (classes.Contains("au-validation-sidebar"))
+            control.ClipToBounds = true;
+        if (classes.Contains("au-validation-flow") || classes.Contains("au-validation-flow-head") || classes.Contains("au-validation-copy"))
+        {
+            control.HorizontalAlignment = HorizontalAlignment.Stretch;
+            control.MinWidth = 0;
+        }
     }
 
     private static bool HostsFace(IReadOnlyList<string> classes) =>
-        classes.Any(name => name is "au-lifecycle-button" or "au-chrome-button" or "au-chrome-close" or "au-workspace-add" or "au-workspace-delete" or "au-title-tool" or "au-app-tab" or "au-subtab" or "au-browser-button");
+        classes.Any(name => IconFace(name) || name is "au-app-tab" or "au-subtab");
 
-    private static Control Mark() => new Avalonia.Controls.Shapes.Path
+    private static bool IconFace(string name) =>
+        name is "au-lifecycle-button" or "au-chrome-button" or "au-chrome-close" or "au-workspace-add" or "au-workspace-delete" or "au-title-tool" or "au-browser-button";
+
+    private static Bitmap? _logo;
+
+    private static Control Mark()
     {
-        Width = 18,
-        Height = 18,
-        Stretch = Stretch.Fill,
-        Fill = ThemeBrush("AgentUpColorAccentBrush"),
-        Data = Geometry.Parse("M1.44,16.56 L8.64,1.44 L10.44,1.44 L16.56,12.24 L14.04,12.24 L10.08,5.04 L3.96,16.56 Z"),
-        VerticalAlignment = VerticalAlignment.Center,
-    };
+        _logo ??= new Bitmap(AssetLoader.Open(new Uri("avares://AgentUp.Desktop/media/logo.png")));
+        return new Image
+        {
+            Source = _logo,
+            Width = 18,
+            Height = 18,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+    }
 
     private static Control Drop()
     {
@@ -984,22 +1232,52 @@ public sealed class NewUiScene : UserControl
     private static Control? Icon(IReadOnlyList<string>? paths)
     {
         if (paths is null || paths.Count == 0) return null;
-        var canvas = new Grid { Width = 20, Height = 20 };
+        var canvas = new Canvas { Width = 24, Height = 24 };
         foreach (var data in paths)
         {
-            canvas.Children.Add(new Avalonia.Controls.Shapes.Path
+            var geometry = IconGeometry(data);
+            if (geometry is not null)
             {
-                Data = Geometry.Parse(data),
-                Stroke = ThemeBrush("AgentUpColorTextPrimaryBrush"),
-                StrokeThickness = 1.75,
-                StrokeJoin = PenLineJoin.Round,
-                StrokeLineCap = PenLineCap.Round,
-                Stretch = Stretch.Uniform,
-                Width = 20,
-                Height = 20,
-            });
+                canvas.Children.Add(new Avalonia.Controls.Shapes.Path
+                {
+                    Data = geometry,
+                    Stroke = ThemeBrush("AgentUpColorTextPrimaryBrush"),
+                    StrokeThickness = 1.75,
+                    StrokeJoin = PenLineJoin.Round,
+                    StrokeLineCap = PenLineCap.Round,
+                });
+            }
         }
-        return canvas;
+        if (canvas.Children.Count == 0) return null;
+        return new Viewbox { Width = 16, Height = 16, Stretch = Stretch.Uniform, Child = canvas };
+    }
+
+    private static Geometry? IconGeometry(string data)
+    {
+        try
+        {
+            return Geometry.Parse(data);
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+    }
+
+    private Control AddressField(string? text, IReadOnlyList<string> classes)
+    {
+        var box = new TextBox { Text = text ?? "", MinWidth = 0 };
+        Paint(box, classes);
+        box.HorizontalAlignment = HorizontalAlignment.Stretch;
+        box.VerticalAlignment = VerticalAlignment.Center;
+        box.SetValue(SceneGrowProperty, true);
+        box.KeyDown += (_, key) =>
+        {
+            if (key.Key != Key.Enter) return;
+            ActionInvoked?.Invoke(this, new NewUiActionEventArgs { Name = "navigate-address", Text = box.Text });
+            key.Handled = true;
+        };
+        return box;
     }
 
     private static IBrush ThemeBrush(string key) =>
@@ -1013,6 +1291,64 @@ public sealed class NewUiScene : UserControl
             || border.Classes.Contains("au-screen-pane")
             || border.Classes.Contains("aun-phone__body")
             || border.Classes.Contains("aun-application"));
+
+    private static readonly AttachedProperty<bool> ScenePushProperty =
+        AvaloniaProperty.RegisterAttached<NewUiScene, Control, bool>("ScenePush");
+
+    private static readonly AttachedProperty<bool> SceneGrowProperty =
+        AvaloniaProperty.RegisterAttached<NewUiScene, Control, bool>("SceneGrow");
+
+    private static void Align(Control child, SceneFlow? flow, bool horizontal)
+    {
+        if (flow?.A == "center" && horizontal) child.VerticalAlignment = VerticalAlignment.Center;
+        if (flow?.A == "start" && horizontal) child.VerticalAlignment = VerticalAlignment.Top;
+        if (flow?.A == "center" && !horizontal) child.HorizontalAlignment = HorizontalAlignment.Center;
+    }
+
+    /// <summary>
+    /// Button content is inline unless its own CSS says otherwise. A status mark and its label
+    /// therefore sit on one line, the way the catalog writes them.
+    /// </summary>
+    private static Control ArrangeButton(SceneFlow? flow, IReadOnlyList<Control> children, IReadOnlyList<string> classes)
+    {
+        foreach (var child in children) DressLabel(child, classes);
+        if (children.Count == 0) return new Panel();
+        if (children.Count == 1) return children[0];
+        var column = flow?.D == "column";
+        var stack = new StackPanel
+        {
+            Orientation = column ? Orientation.Vertical : Orientation.Horizontal,
+            Spacing = flow?.G ?? (column ? 2 : 6),
+        };
+        foreach (var child in children)
+        {
+            if (column) child.HorizontalAlignment = HorizontalAlignment.Center;
+            else child.VerticalAlignment = VerticalAlignment.Center;
+            stack.Children.Add(child);
+        }
+        return stack;
+    }
+
+    /// <summary>
+    /// The catalog puts color and type on the control. The label is a separate text block, so it
+    /// carries the same classes, minus the box padding the face already applied.
+    /// </summary>
+    private static void DressLabel(Control child, IReadOnlyList<string> classes)
+    {
+        if (child is not TextBlock block || block.Classes.Count > 0) return;
+        if (block.Text is { } label) block.Text = label.Trim();
+        if (classes.Any(IconFace))
+        {
+            block.Foreground = ThemeBrush("AgentUpColorTextPrimaryBrush");
+            block.HorizontalAlignment = HorizontalAlignment.Center;
+            block.VerticalAlignment = VerticalAlignment.Center;
+            block.TextAlignment = TextAlignment.Center;
+            return;
+        }
+        Paint(block, classes);
+        block.Padding = new Thickness(0);
+        block.Background = Brushes.Transparent;
+    }
 
     private static Control Frame(Control child, IReadOnlyList<string> classes)
     {
@@ -1060,6 +1396,7 @@ internal sealed class SceneNode
     public string? Text { get; set; }
     public string? Part { get; set; }
     public string? Action { get; set; }
+    public string? Id { get; set; }
     public List<string>? Actions { get; set; }
     public string? Repeat { get; set; }
     public string? Demo { get; set; }
@@ -1070,7 +1407,17 @@ internal sealed class SceneNode
     public List<List<string>>? Flags { get; set; }
     public bool? KindHost { get; set; }
     public List<string>? D { get; set; }
+    public bool? Push { get; set; }
+    public SceneFlow? Flow { get; set; }
     public List<SceneNode>? K { get; set; }
+}
+
+internal sealed class SceneFlow
+{
+    public string? D { get; set; }
+    public string? A { get; set; }
+    public string? J { get; set; }
+    public double? G { get; set; }
 }
 `;
   return source.replace('SCENE_JSON_PLACEHOLDER', JSON.stringify(payload));

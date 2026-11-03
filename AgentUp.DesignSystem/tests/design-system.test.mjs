@@ -975,6 +975,29 @@ test('a New UI scene publishes the slots, states, and actions a command center b
   assert.ok(phone.slots.some(slot => slot.name === 'flows' && slot.repeat === 'command-flow'));
   assert.ok(phone.actions.includes('run'));
   assert.ok(phone.states.includes('open'));
+  const application = manifest.scenes.find(scene => scene.id === 'application');
+  assert.ok(application.actions.includes('browser-back'));
+  assert.ok(application.actions.includes('browser-forward'));
+  assert.ok(application.actions.includes('browser-reload'));
+  assert.ok(application.actions.includes('refresh'));
+  assert.ok(application.actions.includes('subtab-console'));
+  assert.ok(application.actions.includes('subtab-diagnostics'));
+  assert.ok(application.actions.includes('select-application'));
+  assert.ok(application.actions.includes('run'));
+  assert.ok(application.slots.some(slot => slot.name === 'address' && slot.kind === 'text'));
+  assert.ok(application.states.includes('checks'));
+  assert.ok(application.states.includes('tool'));
+  assert.ok(application.states.includes('browser'));
+  assert.ok(application.states.includes('console'));
+  assert.ok(application.actions.includes('toggle-validation'));
+  assert.ok(application.states.includes('collapsed'));
+  assert.ok(application.states.includes('expanded'));
+  assert.ok(application.states.includes('app'));
+  const settingsScene = manifest.scenes.find(scene => scene.id === 'settings');
+  assert.ok(settingsScene.actions.includes('settings-workspace'));
+  assert.ok(settingsScene.slots.some(slot => slot.name === 'chatFields' && slot.repeat === 'settings-field'));
+  assert.ok(settingsScene.slots.some(slot => slot.name === 'settingsWorkspaces' && slot.repeat === 'settings-workspace'));
+  assert.ok(settingsScene.states.includes('chatSettings'));
 });
 
 test('the mounted scene lays the title bar and fleet out, and keeps text inside a text node', async () => {
@@ -988,10 +1011,17 @@ test('the mounted scene lays the title bar and fleet out, and keeps text inside 
   assert.match(scene, /width: 264/);
   const generated = await readFile(new URL('./dist/dotnet/NewUiScene.g.cs', root), 'utf8');
   assert.match(generated, /264,\*/);
+  assert.match(generated, /avares:\/\/AgentUp.Desktop\/media\/logo.png/);
+  assert.match(generated, /new Viewbox/);
+  assert.match(generated, /au-validation-flow-head\\"],\\"layout\\":\\"trio\\"/);
+  assert.match(generated, /IconFace/);
   const styles = await readFile(new URL('./dist/avalonia/AgentUpNewUiStyles.axaml', root), 'utf8');
   assert.match(styles, /Border\.aun-state-map__branch--working Border\.aun-state-map__mark/);
   assert.match(styles, /Border\.aun-state-map__branch--idle Border\.aun-state-map__mark/);
   assert.match(styles, /22,20,22,22/);
+  assert.match(styles, /Selector="Border\.au-status-dot"[\s\S]*?CornerRadius" Value="999"/);
+  assert.match(scene, /"c":\["au-workspace"\],"layout":"row"[\s\S]*?"flow":\{"d":"row","a":"center","g":12\}/);
+  assert.match(scene, /"c":\["au-workspace-delete"\][\s\S]{0,80}"push":true/);
   const name = scene.indexOf('"text":"name"');
   assert.ok(name > 0);
   assert.equal(scene.slice(name, name + 80).includes('"t":"#text"'), false, 'a bound name still carries the sample text');

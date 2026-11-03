@@ -199,7 +199,8 @@ function applySlots(layout, regions) {
   for (const region of regions) {
     const state = region.state ? ` data-au-state="${region.state}"` : '';
     const props = region.props ? ` data-au-props="${region.props}"` : '';
-    const marker = `<div data-au-use="${region.use}"${state}${props}></div>`;
+    const when = region.when ? ` data-au-when="${region.when}"` : '';
+    const marker = `<div data-au-use="${region.use}"${state}${props}${when}></div>`;
     slots.set(region.name, `${slots.get(region.name) ?? ''}${marker}`);
   }
   return layout.replace(slotPattern(), (full, tag, before, name, after) => {
@@ -302,6 +303,7 @@ function parseRegions(body) {
       use: match[2],
       state: attr(match[3] ?? '', 'state'),
       props: attr(match[3] ?? '', 'props'),
+      when: attr(match[3] ?? '', 'when'),
     });
   }
   return regions;

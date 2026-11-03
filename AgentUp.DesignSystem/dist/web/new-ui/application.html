@@ -17,7 +17,7 @@
       <div class="au-chrome">
         <span class="au-cluster">
           <span class="au-title-tool au-chrome-icon"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></span>
-          <span class="au-title-tool au-chrome-icon"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 4v6h-6"></path></svg></span>
+          <span class="au-title-tool au-chrome-icon" data-au-action="refresh"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 4v6h-6"></path></svg></span>
           <span class="au-badge au-badge--healthy"><span class="au-status-dot au-status-dot--healthy"></span>SERVER ONLINE</span>
         </span>
         <span class="au-logo-lockup"><span class="au-chrome-mark"></span><strong class="au-chrome-title">Agent-Up</strong></span>
@@ -87,22 +87,22 @@
         <button class="au-app-tab" type="button" data-au-action="tab-chat" data-au-selection="selected:1:au-app-tab--selected">Chat</button>
         <button class="au-app-tab" type="button" data-au-action="tab-git" data-au-selection="selected:2:au-app-tab--selected">Git</button>
         <span class="au-tab-sep"></span>
-        <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="tab-application" data-au-selection="selected:3:au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
-        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
-        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Inventory</button>
+        <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="select-application" data-au-id="Storefront" data-au-selection="app:Storefront:au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
+        <button class="au-app-tab" type="button" data-au-action="select-application" data-au-id="Orders API" data-au-selection="app:Orders API:au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
+        <button class="au-app-tab" type="button" data-au-action="select-application" data-au-id="Inventory" data-au-selection="app:Inventory:au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Inventory</button>
       </div></div>
           <div class="au-screen-subtabs"><div class="au-cluster">
-        <button class="au-subtab au-subtab--selected"><span class="au-status-dot au-status-dot--healthy"></span> 3000:9100</button>
-        <button class="au-subtab">Console</button>
-        <button class="au-subtab">Diagnostics</button>
-        <button class="au-subtab">Metrics</button>
-        <button class="au-subtab">Database</button>
+        <button class="au-subtab au-subtab--selected" type="button" data-au-action="subtab-port" data-au-when="port" data-au-selection="tool:port:au-subtab--selected"><span class="au-status-dot au-status-dot--healthy"></span> 3000:9100</button>
+        <button class="au-subtab" type="button" data-au-action="subtab-console" data-au-when="console" data-au-selection="tool:console:au-subtab--selected">Console</button>
+        <button class="au-subtab" type="button" data-au-action="subtab-diagnostics" data-au-when="diagnostics" data-au-selection="tool:diagnostics:au-subtab--selected">Diagnostics</button>
+        <button class="au-subtab" type="button" data-au-action="subtab-metrics" data-au-when="metrics" data-au-selection="tool:metrics:au-subtab--selected">Metrics</button>
+        <button class="au-subtab" type="button" data-au-action="subtab-database" data-au-when="database" data-au-selection="tool:database:au-subtab--selected">Database</button>
       </div></div>
           <div class="au-screen-toolbar"><div class="au-cluster">
-        <button class="au-browser-button" type="button">‹</button>
-        <button class="au-browser-button" type="button">›</button>
-        <button class="au-browser-button" type="button">↻</button>
-        <input class="au-address-bar" value="http://localhost:9100/" readonly />
+        <button class="au-browser-button" type="button" data-au-action="browser-back">‹</button>
+        <button class="au-browser-button" type="button" data-au-action="browser-forward">›</button>
+        <button class="au-browser-button" type="button" data-au-action="browser-reload">↻</button>
+        <input class="au-address-bar" value="http://localhost:9100/" />
       </div></div>
           <div class="au-screen-pane"><div class="aun-application" data-au-slot="application">
         <div class="au-storefront">
@@ -143,8 +143,14 @@
       </div>
       </div></div>
         </main>
-        <aside class="au-screen-aside"><aside class="au-validation-sidebar aun-validate-rail" aria-label="Validation" data-au-demo="rail">
-    <div class="au-validation-sidebar-head"><strong>Validation</strong><p class="au-muted">Checks for the displayed app</p></div>
+        <aside class="au-screen-aside" data-au-when="checks"><aside class="au-validation-sidebar aun-validate-rail" aria-label="Validation" data-au-demo="rail" data-au-flags="collapsed:au-validation-sidebar--collapsed">
+    <div class="au-validation-sidebar-head">
+      <div class="au-validation-sidebar-copy">
+        <p class="au-accent">Validation</p>
+        <p class="au-muted">Checks for the displayed app</p>
+      </div>
+      <button class="au-workspace-add" type="button" aria-label="Validation">›</button>
+    </div>
     <div class="au-validation-sidebar-list">
     <div class="au-validation-flow">
       <div class="au-validation-flow-head"><span class="au-status-dot au-status-dot--warning" aria-hidden="true"></span><div class="au-validation-copy"><strong>Checkout featured goods</strong><p class="au-muted">Reset the catalog, refuse an empty cart, then order a Harbor Mug.</p></div><button class="au-validation-play" type="button">▶ Play</button></div>

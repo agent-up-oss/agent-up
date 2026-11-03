@@ -380,6 +380,8 @@
   font-size: var(--au-font-size-ui-sm);
 }
 .aun-settings__row > .aun-btn { flex: 0 0 auto; margin-left: auto; }
+.aun-settings__field { display: flex; flex-direction: column; }
+.aun-settings__subs { display: flex; flex-direction: column; }
 
 .aun-card--gate { border-color: var(--au-color-status-warning); background: var(--au-color-surface-raised); }
 .aun-card--halted { border-color: var(--au-color-border-danger); background: var(--au-color-surface-danger); }

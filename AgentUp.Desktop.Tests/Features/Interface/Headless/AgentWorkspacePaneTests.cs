@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Tests.Support;
@@ -5,7 +6,10 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
+using AgentUp.Desktop.Features.Validation.DTOs;
+using AgentUp.Desktop.Features.Validation.ViewModels;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.VisualTree;
 using System.Linq;
 
@@ -206,6 +210,123 @@ public sealed class AgentWorkspacePaneTests
     }
 
     [AvaloniaTest]
+    public async Task Catalog_tabs_keep_the_status_mark_beside_the_label()
+    {
+        var driver = await LaunchOnTheCommandCenterAsync();
+        await OpenAgentAsync(driver);
+
+        var storefront = ButtonNamed(driver.Window, "Storefront");
+        var dot = storefront.GetVisualDescendants().OfType<Border>().Single(border => border.Classes.Contains("au-status-dot"));
+        var line = (StackPanel)dot.Parent!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(line.Orientation, Is.EqualTo(Orientation.Horizontal));
+            Assert.That(dot.Width, Is.EqualTo(8));
+            Assert.That(dot.Height, Is.EqualTo(8));
+            Assert.That(dot.CornerRadius.TopLeft, Is.EqualTo(999));
+            Assert.That(dot.VerticalAlignment, Is.EqualTo(VerticalAlignment.Center));
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task Application_chrome_uses_the_logo_the_address_field_and_a_visible_stop_glyph()
+    {
+        var driver = await LaunchOnTheCommandCenterAsync();
+        await OpenAgentAsync(driver);
+        ViewModel(driver).CommandCenter!.ShowSection("application");
+        await HeadlessExtensions.FlushAsync();
+
+        var page = CommandCenter(driver);
+        var address = page.GetVisualDescendants().OfType<TextBox>().Single(box => box.Classes.Contains("au-address-bar"));
+        var logo = page.GetVisualDescendants().OfType<Image>().Single(image => image.IsVisible && Math.Abs(image.Width - 18) < 0.1);
+        var glyphs = page.GetVisualDescendants().OfType<TextBlock>().Where(block => block.Text == "■").ToArray();
+        var rail = page.GetVisualDescendants().OfType<Border>().Any(border => border.Classes.Contains("au-validation-sidebar"));
+        var flows = ViewModel(driver).Validation?.Flows.Count ?? 0;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(address.Parent, Is.InstanceOf<Grid>());
+            Assert.That(((Grid)address.Parent!).ColumnDefinitions[Grid.GetColumn(address)].Width.IsStar, Is.True);
+            Assert.That(logo.Source, Is.Not.Null);
+            Assert.That(glyphs, Has.All.Matches<TextBlock>(block => !block.Classes.Contains("au-lifecycle-button")));
+            Assert.That(rail, Is.EqualTo(flows > 0));
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task Console_subtab_selects_the_console_and_hosts_its_pane()
+    {
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.WorkspaceServing().Build());
+        ViewModel(driver).CommandCenter!.ToggleCommand.Execute().Subscribe();
+        await HeadlessExtensions.FlushAsync();
+        await OpenAgentAsync(driver);
+        ViewModel(driver).CommandCenter!.ShowSection("application");
+        await HeadlessExtensions.FlushAsync();
+
+        var page = CommandCenter(driver);
+        await driver.Window.ClickControlAsync(ButtonOn(page, "Console"));
+        await HeadlessExtensions.FlushAsync();
+
+        var console = ButtonOn(page, "Console");
+        var host = driver.Window.FindControl<Control>("ConsoleHost")!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(ViewModel(driver).SelectedSubTab, Is.InstanceOf<ConsoleSubTabViewModel>());
+            Assert.That(((Border)console.Content!).Classes, Does.Contain("au-subtab--selected"));
+            Assert.That(host.GetVisualAncestors().OfType<Control>().Any(control => control.Name == "CommandCenterPage"), Is.True);
+            Assert.That(page.GetVisualDescendants().OfType<TextBox>().Any(box => box.Classes.Contains("au-address-bar")), Is.False);
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task Chat_settings_move_to_the_settings_page()
+    {
+        var driver = await LaunchOnTheCommandCenterAsync();
+        await OpenAgentAsync(driver);
+        ViewModel(driver).CommandCenter!.ShowSection("chat");
+        await HeadlessExtensions.FlushAsync();
+
+        var chat = driver.Window.FindControl<Control>("AgentChatPane")!;
+        var settings = driver.Window.FindControl<Control>("ChatSettings")!;
+        ViewModel(driver).CommandCenter!.ShowNav(2);
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(chat.GetVisualDescendants().Contains(settings), Is.False);
+            Assert.That(settings.GetVisualAncestors().OfType<Control>().Any(control => control.Name == "CommandCenterPage"), Is.False);
+            Assert.That(settings.Parent, Is.Null);
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task The_validation_rail_expands_from_its_toggle()
+    {
+        var driver = await LaunchOnTheCommandCenterAsync();
+        await OpenAgentAsync(driver);
+        ViewModel(driver).CommandCenter!.ShowSection("application");
+        ViewModel(driver).Validation!.Flows.Add(new ValidationFlowItemViewModel(
+            new ValidationFlowDto("checkout", "ws", "shop", "Checkout", "A shopper checks out", "/", [], [], 1),
+            _ => Task.CompletedTask));
+        await HeadlessExtensions.FlushAsync();
+
+        var collapsed = driver.Window.GetVisualDescendants().OfType<Border>()
+            .Single(border => border.Classes.Contains("au-validation-sidebar"));
+        await driver.Window.ClickControlAsync(collapsed.GetVisualDescendants().OfType<Button>().Single());
+        await HeadlessExtensions.FlushAsync();
+
+        var expanded = driver.Window.GetVisualDescendants().OfType<Border>()
+            .Single(border => border.Classes.Contains("au-validation-sidebar"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(ViewModel(driver).Validation!.IsCollapsed, Is.False);
+            Assert.That(expanded.Classes, Does.Not.Contain("au-validation-sidebar--collapsed"));
+            Assert.That(expanded.GetVisualDescendants().OfType<TextBlock>().Any(block => block.Text == "Checkout"), Is.True);
+        });
+    }
+
+    [AvaloniaTest]
     public async Task Settings_switches_back_to_the_classic_shell()
     {
         var driver = await LaunchOnTheCommandCenterAsync();
@@ -232,6 +353,7 @@ public sealed class AgentWorkspacePaneTests
         {
             Assert.That(Rail(driver).IsVisible, Is.True);
             Assert.That(CommandCenter(driver).IsVisible, Is.False);
+            Assert.That(driver.Window.FindControl<Control>("AgentChatPane")!.GetVisualDescendants().Contains(driver.Window.FindControl<Control>("ChatSettings")), Is.True);
             Assert.That(BackToTeam(driver).IsVisible, Is.False);
             Assert.That(Detail(driver).IsVisible, Is.True);
         });
@@ -265,6 +387,9 @@ public sealed class AgentWorkspacePaneTests
 
     private static Button ButtonNamed(Window window, string label)
         => window.GetVisualDescendants().OfType<Button>().Single(button => ButtonText(button) == label);
+
+    private static Button ButtonOn(Control root, string label)
+        => root.GetVisualDescendants().OfType<Button>().Single(button => ButtonText(button) == label);
 
     private static string ButtonText(Button button)
     {

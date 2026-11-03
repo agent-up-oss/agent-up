@@ -445,7 +445,13 @@ function flowCard(flow, withPlay) {
 
 function validationRail(flows) {
   return `
-    <div class="au-validation-sidebar-head"><strong>Validation</strong><p class="au-muted">Checks for the displayed app</p></div>
+    <div class="au-validation-sidebar-head">
+      <div class="au-validation-sidebar-copy">
+        <p class="au-accent">Validation</p>
+        <p class="au-muted">Checks for the displayed app</p>
+      </div>
+      <button class="au-workspace-add" type="button" aria-label="Validation">›</button>
+    </div>
     <div class="au-validation-sidebar-list">${flows.map(flow => flowCard(flow, true)).join('')}</div>`;
 }
 

@@ -1802,6 +1802,12 @@ export const newUiTheme = Object.freeze({
       color: "#8a9a92",
       fontSize: 12,
     }),
+    aunSettingsField: Object.freeze({
+
+    }),
+    aunSettingsSubs: Object.freeze({
+
+    }),
     aunCardGate: Object.freeze({
       borderColor: "#e0a128",
       backgroundColor: "#191c1f",

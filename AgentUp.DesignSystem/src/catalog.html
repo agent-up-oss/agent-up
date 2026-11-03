@@ -156,7 +156,7 @@
       <div class="au-chrome">
         <span class="au-cluster">
           <span class="au-title-tool au-chrome-icon"><span data-au-icon="menu"></span></span>
-          <span class="au-title-tool au-chrome-icon"><span data-au-icon="reload"></span></span>
+          <span class="au-title-tool au-chrome-icon" data-au-action="refresh"><span data-au-icon="reload"></span></span>
           <span class="au-badge au-badge--healthy"><span class="au-status-dot au-status-dot--healthy"></span>SERVER ONLINE</span>
         </span>
         <span class="au-logo-lockup"><span class="au-chrome-mark"></span><strong class="au-chrome-title">Agent-Up</strong></span>
@@ -283,18 +283,18 @@
         <button class="au-app-tab" type="button" data-au-action="tab-chat" data-au-selection="selected:1:au-app-tab--selected">Chat</button>
         <button class="au-app-tab" type="button" data-au-action="tab-git" data-au-selection="selected:2:au-app-tab--selected">Git</button>
         <span class="au-tab-sep"></span>
-        <button class="au-app-tab" type="button" data-au-action="tab-application" data-au-selection="selected:3:au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
-        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
-        <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Inventory</button>
+        <button class="au-app-tab" type="button" data-au-action="select-application" data-au-id="Storefront" data-au-selection="app:Storefront:au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
+        <button class="au-app-tab" type="button" data-au-action="select-application" data-au-id="Orders API" data-au-selection="app:Orders API:au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
+        <button class="au-app-tab" type="button" data-au-action="select-application" data-au-id="Inventory" data-au-selection="app:Inventory:au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Inventory</button>
       </div>
     </article>
     <article data-au-component="subtab" data-au-title="Port and tool tabs" data-au-note="The second row is secondary to the application tabs, so its selected state stays neutral: the active state layer, not the accent. Desktop builds the allocated port, then Console, Diagnostics, Metrics and Database." data-au-avalonia="Border" data-au-class="au-subtab" data-au-desktop-class="subTab" data-au-desktop-host="ListBoxItem" data-au-states="selected=au-subtab/au-subtab--selected" data-au-state-examples="selected:1|Console subtab selected|Console is still a secondary selection. It uses the active layer, not the accent underline.;selected:2|Diagnostics subtab selected|The audit trail for the selected application sits beside Console.;selected:3|Metrics subtab selected|CPU, memory and request duration for the selected application.;selected:4|Database subtab selected|The database explorer for the selected application.">
       <div class="au-cluster">
-        <button class="au-subtab au-subtab--selected"><span class="au-status-dot au-status-dot--healthy"></span> 3000:9100</button>
-        <button class="au-subtab">Console</button>
-        <button class="au-subtab">Diagnostics</button>
-        <button class="au-subtab">Metrics</button>
-        <button class="au-subtab">Database</button>
+        <button class="au-subtab au-subtab--selected" type="button" data-au-action="subtab-port" data-au-when="port" data-au-selection="tool:port:au-subtab--selected" data-au-text="port"><span class="au-status-dot au-status-dot--healthy"></span> 3000:9100</button>
+        <button class="au-subtab" type="button" data-au-action="subtab-console" data-au-when="console" data-au-selection="tool:console:au-subtab--selected">Console</button>
+        <button class="au-subtab" type="button" data-au-action="subtab-diagnostics" data-au-when="diagnostics" data-au-selection="tool:diagnostics:au-subtab--selected">Diagnostics</button>
+        <button class="au-subtab" type="button" data-au-action="subtab-metrics" data-au-when="metrics" data-au-selection="tool:metrics:au-subtab--selected">Metrics</button>
+        <button class="au-subtab" type="button" data-au-action="subtab-database" data-au-when="database" data-au-selection="tool:database:au-subtab--selected">Database</button>
       </div>
     </article>
     <article data-au-component="storefront" data-au-title="Storefront pane" data-au-note="The application surface is catalog cards and buttons, not a restyled screenshot shell. Prices and the primary cart action carry green because they are meaning." data-au-avalonia="Border" data-au-class="au-storefront">
@@ -340,10 +340,10 @@
   <section data-au-surface="browser" data-au-title="Browser" data-au-intro="A workspace has independent human and automation browser sessions. Never describe them as a shared profile or shared storage.">
     <article data-au-component="address-bar" data-au-title="Address bar" data-au-note="Monospace URL, compact height, neutral field. Focus stays blue." data-au-avalonia="TextBox" data-au-class="au-address-bar" data-au-desktop-class="addressBar">
       <div class="au-cluster">
-        <button class="au-browser-button" type="button">‹</button>
-        <button class="au-browser-button" type="button">›</button>
-        <button class="au-browser-button" type="button">↻</button>
-        <input class="au-address-bar" value="http://localhost:9100/" readonly />
+        <button class="au-browser-button" type="button" data-au-action="browser-back">‹</button>
+        <button class="au-browser-button" type="button" data-au-action="browser-forward">›</button>
+        <button class="au-browser-button" type="button" data-au-action="browser-reload">↻</button>
+        <input class="au-address-bar" data-au-text="address" value="http://localhost:9100/" />
       </div>
     </article>
     <article data-au-component="browser-button" data-au-title="Browser chrome button" data-au-note="Back, forward, and reload use the compact raised icon treatment." data-au-avalonia="Border" data-au-class="au-browser-button" data-au-desktop-class="browserButton" data-au-desktop-host="Button">

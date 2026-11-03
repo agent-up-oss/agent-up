@@ -8,9 +8,12 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AgentUp.Desktop.DesignSystem;
+using AgentUp.Desktop.Features.Agents.ViewModels;
+using AgentUp.Desktop.Features.Applications.ViewModels;
 using AgentUp.Desktop.Features.Interface.Models;
 using AgentUp.Desktop.Features.Interface.Services;
 using AgentUp.Desktop.Features.Interface.ViewModels;
+using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Validation.Models;
 using AgentUp.Desktop.Features.Validation.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -25,6 +28,8 @@ public partial class CommandCenterView : UserControl
     private bool _validationsOpen;
     private string? _runningFlowId;
     private string? _applied;
+    private string? _heldScene;
+    private string? _heldChrome;
     private bool _applyQueued;
 
     public CommandCenterView()
@@ -55,6 +60,14 @@ public partial class CommandCenterView : UserControl
             Disposable.Create(() => bridge.PropertyChanged -= OnBridgeChanged).DisposeWith(_subscriptions);
         }
         main.Login.WhenAnyValue(login => login.IsVisible).Subscribe(_ => Apply()).DisposeWith(_subscriptions);
+        main.WhenAnyValue(item => item.AddressBarUrl).Subscribe(_ => Apply()).DisposeWith(_subscriptions);
+        main.WhenAnyValue(item => item.SelectedSubTab).Subscribe(_ => Apply()).DisposeWith(_subscriptions);
+        main.Applications.WhenAnyValue(item => item.SelectedApplication).Subscribe(_ => Apply()).DisposeWith(_subscriptions);
+        main.Sidebar.WhenAnyValue(item => item.SelectedWorkspace).Subscribe(_ => Apply()).DisposeWith(_subscriptions);
+        if (main.Validation is { } validation)
+            validation.WhenAnyValue(item => item.IsCollapsed).Subscribe(_ => Apply()).DisposeWith(_subscriptions);
+        WatchAgent(main.Agent);
+        Watch(main.SubTabs);
         Watch(center.Tasks?.Queue);
         Watch(center.Tasks?.Working);
         Watch(center.Tasks?.Offered);
@@ -97,7 +110,10 @@ public partial class CommandCenterView : UserControl
             return;
         }
         if (DataContext is not MainViewModel main || main.CommandCenter is not { } center) return;
-        PlaceSceneSurfaces(center);
+        var tool = ToolOf(main.SelectedSubTab);
+        var browser = tool is "port" or "desktop";
+        PlaceChatSettings(center);
+        var swapped = PlaceSceneSurfaces(center, main);
         var team = center.Bridge?.Team.Select(row => row.Standing).ToArray() ?? [];
         var running = main.Validation?.Flows.FirstOrDefault(flow => flow.IsRunning);
         var passed = running is null && _runningFlowId is not null
@@ -116,10 +132,30 @@ public partial class CommandCenterView : UserControl
             summary,
             team,
             TasksOf(center.Tasks),
-            FlowsOf(main.Validation)));
+            FlowsOf(main.Validation),
+            main.AddressBarUrl ?? "",
+            main.SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault(tab => tab.IsHttp)?.Label ?? "",
+            tool,
+            browser,
+            ToolsOf(main),
+            main.Validation?.IsCollapsed != false,
+            main.Sidebar.SelectedWorkspace?.Id ?? center.Agent?.WorkspaceId,
+            ChatSettingsOf(main.Agent),
+            main.Applications.SelectedApplication?.Name));
+        binding.State["chatSettings"] = "1";
         var stamp = Stamp(center.SceneId, binding);
         if (stamp == _applied) return;
+        var app = binding.State.TryGetValue("app", out var selectedApp) ? selectedApp : "";
+        var chrome = tool + "|" + browser + "|" + (running is not null) + "|" + binding.State.ContainsKey("checks") + "|" + binding.State.ContainsKey("collapsed") + "|" + app;
+        if (!swapped && _heldScene == center.SceneId && _heldChrome == chrome && HostsNativeView())
+        {
+            _applied = stamp;
+            ShowAddress(binding.Text);
+            return;
+        }
         _applied = stamp;
+        _heldScene = center.SceneId;
+        _heldChrome = chrome;
         Scene.Apply(center.SceneId, binding.Text, binding.Items, binding.State);
     }
 
@@ -139,27 +175,109 @@ public partial class CommandCenterView : UserControl
            + string.Join(",", item.Text.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => pair.Key + "=" + pair.Value)) + "|"
            + StampItems(item.Items);
 
-    private void PlaceSceneSurfaces(CommandCenterViewModel center)
+    private bool PlaceSceneSurfaces(CommandCenterViewModel center, MainViewModel main)
     {
-        RestoreSceneSurfaces();
-        if (!center.Active) return;
-        var window = TopLevel.GetTopLevel(this);
-        if (window is null) return;
-        switch (center.SceneId)
+        if (TopLevel.GetTopLevel(this) is not TopLevel window) return false;
+        if (!center.Active)
         {
-            case "application":
-                Take("application", window.FindControl<Control>("PortPane"));
-                break;
-            case "agent-git":
-                Take("changes", window.FindControl<Control>("GitPanel"));
-                break;
-            case "agent-chat":
-                Take("transcript", window.FindControl<Control>("AgentChatPane"));
-                break;
-            case "agent-overview":
-                Take("overview", window.FindControl<Control>("OverviewContent"));
-                break;
+            RestoreSceneSurfaces();
+            return false;
         }
+        var (slot, control) = Surface(center.SceneId, window, main);
+        if (control is not null && Inside(Scene, control)) return false;
+        RestoreSceneSurfaces();
+        if (control is null) return false;
+        control.ClipToBounds = true;
+        Take(slot, control);
+        return true;
+    }
+
+    private static (string Slot, Control? Control) Surface(string sceneId, TopLevel window, MainViewModel main) => sceneId switch
+    {
+        "application" => ("application", ApplicationSurface(window, main)),
+        "agent-git" => ("changes", window.FindControl<Control>("GitPanel")),
+        "agent-chat" => ("transcript", window.FindControl<Control>("AgentChatPane")),
+        "agent-overview" => ("overview", window.FindControl<Control>("OverviewContent")),
+        _ => ("", null),
+    };
+
+    private static Control? ApplicationSurface(TopLevel window, MainViewModel main) => main.SelectedSubTab switch
+    {
+        ConsoleSubTabViewModel => window.FindControl<Control>("ConsoleHost"),
+        AuditSubTabViewModel => window.FindControl<Control>("AuditPanel"),
+        MetricsSubTabViewModel => window.FindControl<Control>("MetricsPanel"),
+        DatabaseSubTabViewModel => window.FindControl<Control>("DatabasePanel"),
+        PortSubTabViewModel { IsHttp: false } => window.FindControl<Control>("TcpInfo"),
+        _ => window.FindControl<Control>("PortPane"),
+    };
+
+    private static string ToolOf(SubTabViewModel? tab) => tab switch
+    {
+        ConsoleSubTabViewModel => "console",
+        AuditSubTabViewModel => "diagnostics",
+        MetricsSubTabViewModel => "metrics",
+        DatabaseSubTabViewModel => "database",
+        PortSubTabViewModel { IsHttp: false } => "tcp",
+        _ => "port",
+    };
+
+    private static string[] ToolsOf(MainViewModel main)
+    {
+        var tools = new List<string>();
+        if (main.SubTabs.Any(tab => tab is PortSubTabViewModel { IsHttp: true } or DesktopSubTabViewModel))
+            tools.Add("port");
+        if (main.SubTabs.OfType<ConsoleSubTabViewModel>().Any()) tools.Add("console");
+        if (main.SubTabs.OfType<AuditSubTabViewModel>().Any()) tools.Add("diagnostics");
+        if (main.SubTabs.OfType<MetricsSubTabViewModel>().Any()) tools.Add("metrics");
+        if (main.SubTabs.OfType<DatabaseSubTabViewModel>().Any()) tools.Add("database");
+        return tools.ToArray();
+    }
+
+    private static bool Inside(Control root, Control control)
+    {
+        for (StyledElement? node = control; node is not null; node = node.Parent)
+        {
+            if (ReferenceEquals(node, root)) return true;
+        }
+        return false;
+    }
+
+    private bool HostsNativeView()
+        => Scene.GetVisualDescendants().OfType<NativeWebView>().Any(view => view.IsEffectivelyVisible);
+
+    private void ShowAddress(IReadOnlyDictionary<string, string> text)
+    {
+        if (!text.TryGetValue("address", out var url)) return;
+        var box = Scene.GetVisualDescendants().OfType<TextBox>().FirstOrDefault(item => item.Classes.Contains("au-address-bar"));
+        if (box is null || box.IsFocused || box.Text == url) return;
+        box.Text = url;
+    }
+
+    private void PlaceChatSettings(CommandCenterViewModel center)
+    {
+        if (TopLevel.GetTopLevel(this) is not TopLevel window) return;
+        var settings = window.FindControl<Control>("ChatSettings");
+        if (settings is null) return;
+        if (Inside(Scene, settings)) Scene.DetachContent("chat-settings");
+        if (!center.Active)
+        {
+            RestoreHome(settings);
+            return;
+        }
+        if (settings.Parent is not null) Park(settings);
+    }
+
+    private void Park(Control control)
+    {
+        if (control.Parent is Panel panel && !_homes.ContainsKey(control))
+            _homes[control] = (panel, panel.Children.IndexOf(control));
+        if (control.Parent is Panel parent) parent.Children.Remove(control);
+    }
+
+    private void RestoreHome(Control control)
+    {
+        if (!_homes.TryGetValue(control, out var home) || control.Parent is not null) return;
+        home.Parent.Children.Insert(Math.Min(home.Index, home.Parent.Children.Count), control);
     }
 
     private void Take(string slot, Control? control)
@@ -207,6 +325,26 @@ public partial class CommandCenterView : UserControl
             case "tab-application":
                 center.ShowSection("application");
                 break;
+            case "select-application":
+                center.ShowSection("application");
+                var application = main.Applications.Applications.FirstOrDefault(item => item.Name == action.Id);
+                if (application is not null) main.Applications.SelectedApplication = application;
+                break;
+            case "subtab-port":
+                SelectSubTab(main, tab => tab is PortSubTabViewModel { IsHttp: true } or DesktopSubTabViewModel);
+                break;
+            case "subtab-console":
+                SelectSubTab(main, tab => tab is ConsoleSubTabViewModel);
+                break;
+            case "subtab-diagnostics":
+                SelectSubTab(main, tab => tab is AuditSubTabViewModel);
+                break;
+            case "subtab-metrics":
+                SelectSubTab(main, tab => tab is MetricsSubTabViewModel);
+                break;
+            case "subtab-database":
+                SelectSubTab(main, tab => tab is DatabaseSubTabViewModel);
+                break;
             case "back":
                 center.CloseAgentCommand.Execute().Subscribe();
                 break;
@@ -228,9 +366,52 @@ public partial class CommandCenterView : UserControl
             case "reload":
                 main.Git.RefreshCommand.Execute().Subscribe();
                 break;
+            case "refresh":
+                main.Sidebar.RefreshCommand.Execute().Subscribe();
+                break;
+            case "browser-back":
+                main.BrowserBackCommand.Execute().Subscribe();
+                break;
+            case "browser-forward":
+                main.BrowserForwardCommand.Execute().Subscribe();
+                break;
+            case "browser-reload":
+                main.BrowserReloadCommand.Execute().Subscribe();
+                break;
+            case "navigate-address":
+                if (string.IsNullOrWhiteSpace(action.Text)) break;
+                main.AddressBarUrl = action.Text;
+                main.NavigateAddressCommand.Execute().Subscribe();
+                break;
             case "open-validations":
                 _validationsOpen = !_validationsOpen;
                 Apply();
+                break;
+            case "toggle-validation":
+                main.Validation?.ToggleCommand.Execute().Subscribe();
+                Apply();
+                break;
+            case "settings-workspace":
+                var workspace = main.Sidebar.Workspaces.FirstOrDefault(item => item.Id == action.Id);
+                if (workspace is not null) main.Sidebar.SelectedWorkspace = workspace;
+                break;
+            case "enable-autonomy":
+                main.Agent.EnableAutonomyCommand.Execute().Subscribe();
+                break;
+            case "activate-loop":
+                main.Agent.ActivateLoopCommand.Execute().Subscribe();
+                break;
+            case "cancel-loop":
+                main.Agent.CancelLoopCommand.Execute().Subscribe();
+                break;
+            case "start-bound":
+                main.Agent.StartBoundCommand.Execute().Subscribe();
+                break;
+            case "select-agent":
+                if (!string.IsNullOrEmpty(action.Id)) main.Agent.SelectAgentCommand.Execute(action.Id).Subscribe();
+                break;
+            case "enable-agent":
+                if (!string.IsNullOrEmpty(action.Id)) main.Agent.EnableAgentCommand.Execute(action.Id).Subscribe();
                 break;
             case "run":
                 Run(main, action.Id);
@@ -279,6 +460,12 @@ public partial class CommandCenterView : UserControl
         return false;
     }
 
+    private static void SelectSubTab(MainViewModel main, Func<SubTabViewModel, bool> match)
+    {
+        var tab = main.SubTabs.FirstOrDefault(match);
+        if (tab is not null) main.SelectedSubTab = tab;
+    }
+
     private static void Open(CommandCenterViewModel center, string? id)
     {
         var standing = center.Bridge?.Team.FirstOrDefault(row => row.WorkspaceId == id)?.Standing;
@@ -306,7 +493,54 @@ public partial class CommandCenterView : UserControl
         ];
     }
 
+    private void WatchAgent(AgentChatViewModel agent)
+    {
+        Watch(agent.Preconditions);
+        Watch(agent.Agents);
+        void OnChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+        {
+            if (args.PropertyName is nameof(AgentChatViewModel.BoundAgent)
+                or nameof(AgentChatViewModel.Loop)
+                or nameof(AgentChatViewModel.IsBusy)
+                or nameof(AgentChatViewModel.CanEnableAutonomy)
+                or nameof(AgentChatViewModel.CanActivateLoop)
+                or nameof(AgentChatViewModel.CanCancelLoop)
+                or nameof(AgentChatViewModel.CanStartBound))
+                Apply();
+        }
+        agent.PropertyChanged += OnChanged;
+        Disposable.Create(() => agent.PropertyChanged -= OnChanged).DisposeWith(_subscriptions);
+    }
+
+    private static IReadOnlyList<CommandCenterSettingSlot> ChatSettingsOf(AgentChatViewModel agent)
+        => CommandCenterScene.ChatFields(new CommandCenterChatSettings(
+            agent.Preconditions.ToArray(),
+            agent.Agents.ToArray(),
+            agent.BoundAgent,
+            agent.LoopLine,
+            agent.CanEnableAutonomy,
+            agent.CanActivateLoop,
+            agent.CanCancelLoop,
+            agent.CanStartBound));
+
     private static IReadOnlyList<CommandCenterFlowSlot> FlowsOf(ValidationViewModel? validation)
-        => validation?.Flows.Select(flow => new CommandCenterFlowSlot(flow.Flow.Id, flow.Name, flow.Description)).ToArray()
+        => validation?.Flows.Select(flow => new CommandCenterFlowSlot(
+            flow.Flow.Id,
+            flow.Name,
+            flow.Description,
+            Tone(flow.RunState),
+            flow.Stages.Select(stage => new CommandCenterStageSlot(
+                stage.Id,
+                stage.Title,
+                Tone(stage.State),
+                stage.Checks.Select(check => new CommandCenterCheckSlot(check.Label, Tone(check.State))).ToArray())).ToArray())).ToArray()
            ?? [];
+
+    private static string Tone(ValidationRunState state) => state switch
+    {
+        ValidationRunState.Passed => "passed",
+        ValidationRunState.Failed => "failed",
+        ValidationRunState.Running => "running",
+        _ => "pending",
+    };
 }

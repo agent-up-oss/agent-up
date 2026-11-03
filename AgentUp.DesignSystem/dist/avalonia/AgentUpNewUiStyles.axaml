@@ -386,6 +386,7 @@
   <Style Selector="Border.au-status-dot">
     <Setter Property="Width" Value="8"/>
     <Setter Property="Height" Value="8"/>
+    <Setter Property="CornerRadius" Value="999"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-status-dot">
@@ -1080,6 +1081,36 @@
   <Style Selector="TextBlock.wsLifecycleButton:disabled">
     <Setter Property="Opacity" Value="0.45"/>
   </Style>
+  <Style Selector="Button.au-app-tab">
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
+    <Setter Property="BorderThickness" Value="0,0,0,2"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="Button.au-app-tab /template/ ContentPresenter">
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="Button.appTab">
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
+    <Setter Property="BorderThickness" Value="0,0,0,2"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="Button.appTab /template/ ContentPresenter">
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
   <Style Selector="Border.au-app-tab">
     <Setter Property="Padding" Value="12,8"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
@@ -1093,23 +1124,25 @@
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
   </Style>
-  <Style Selector="Border.appTab">
-    <Setter Property="Padding" Value="12,8"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
-    <Setter Property="BorderThickness" Value="0,0,0,2"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
-  </Style>
-  <Style Selector="TextBlock.appTab">
-    <Setter Property="Padding" Value="12,8"/>
-    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
-    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
-    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
-  </Style>
-  <Style Selector="TextBlock.au-app-tab:pointerover">
+  <Style Selector="Button.au-app-tab:pointerover">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
-  <Style Selector="TextBlock.appTab:pointerover">
+  <Style Selector="Button.au-app-tab:pointerover /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+  </Style>
+  <Style Selector="Button.appTab:pointerover">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+  </Style>
+  <Style Selector="Button.appTab:pointerover /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+  </Style>
+  <Style Selector="ListBoxItem:pointerover Button.au-app-tab">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+  </Style>
+  <Style Selector="ListBoxItem:pointerover Button.appTab">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-app-tab:pointerover">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="Border.au-app-tab--selected">
@@ -1834,6 +1867,13 @@
   <Style Selector="TextBlock.au-validation-sidebar--collapsed">
     <Setter Property="Width" Value="56"/>
     <Setter Property="Padding" Value="0,10,0,6"/>
+  </Style>
+  <Style Selector="Border.au-validation-sidebar--collapsed Border.au-validation-sidebar-head">
+    <Setter Property="Padding" Value="0"/>
+  </Style>
+  <Style Selector="Border.au-validation-sidebar--collapsed Border.au-workspace-add">
+    <Setter Property="Width" Value="32"/>
+    <Setter Property="Height" Value="32"/>
   </Style>
   <Style Selector="Border.au-validation-sidebar-head">
     <Setter Property="Padding" Value="16,10,10,6"/>

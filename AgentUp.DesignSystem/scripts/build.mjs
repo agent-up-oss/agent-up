@@ -65,8 +65,8 @@ for (const listed of [catalog, sceneCatalog]) {
     for (const component of surface.components) sceneComponents.set(component.id, component);
   }
 }
-const bundle = sceneBundle(newUiScreens, sceneComponents);
 const newUiRules = parseRules(`${css}\n${newUiCss}`);
+const bundle = sceneBundle(newUiScreens, sceneComponents, newUiRules, tokens);
 const sceneIndex = catalogIndex(withProductCatalog(catalog, sceneCatalog));
 const sceneKeep = new Set(bundle.regions);
 expandStateExamples(catalog);

@@ -361,6 +361,8 @@ function letterSpacingValue(value, tokens, fontSizePx) {
 }
 
 function cornerValue(value, tokens) {
+  // A percentage radius is a circle or pill. Avalonia has no percentage radius, and 999 is the pill already used for dots.
+  if (String(value).trim().endsWith('%')) return '999';
   const token = varName(value);
   if (token?.startsWith('radius-')) {
     const suffix = pascal(token.slice('radius-'.length));

@@ -93,6 +93,19 @@
             </div>
           </div>
         </div>
+        <div class="aun-group" data-au-when="chatSettings">
+          <div data-au-use="section-label" data-au-props="label=Chat"></div>
+          <div class="au-cluster" data-au-slot="settingsWorkspaces" data-au-repeat="settings-workspace">
+            <button class="au-app-tab au-app-tab--selected" type="button">Bob</button>
+            <button class="au-app-tab" type="button">Frank</button>
+          </div>
+          <div class="aun-settings__list" data-au-slot="chatFields" data-au-repeat="settings-field">
+            <div class="aun-settings__row">
+              <span class="aun-settings__id"><span class="aun-settings__name">Autonomy enabled</span><span class="aun-settings__state">Enable autonomy for this Server</span></span>
+              <button class="aun-btn" type="button">Enable</button>
+            </div>
+          </div>
+        </div>
         <div class="aun-group">
           <div data-au-use="section-label" data-au-props="label=Login"></div>
           <div class="aun-settings__list">
@@ -102,6 +115,23 @@
             </div>
           </div>
         </div>
+      </div>
+    </article>
+
+    <article data-au-component="settings-workspace" data-au-title="Settings workspace" data-au-note="One workspace in Settings · Chat. The selected tab is the workspace whose agent and unattended loop are shown." data-au-avalonia="Button" data-au-class="au-app-tab">
+      <button class="au-app-tab" type="button" data-au-kind="1" data-au-action="settings-workspace" data-au-text="name"></button>
+    </article>
+
+    <article data-au-component="settings-field" data-au-title="Settings field" data-au-note="One chat property. Its control is greyed when the value cannot be changed. Nested rows are that property's own fields." data-au-avalonia="Border" data-au-class="aun-settings__field" data-au-parts="control">
+      <div class="aun-settings__field">
+        <div class="aun-settings__row">
+          <span class="aun-settings__id">
+            <span class="aun-settings__name" data-au-text="title"></span>
+            <span class="aun-settings__state" data-au-text="detail"></span>
+          </span>
+          <button class="aun-btn" type="button" data-au-part="control" data-au-action="setting" data-au-text="action"></button>
+        </div>
+        <div class="aun-settings__subs" data-au-slot="fields" data-au-repeat="settings-field"></div>
       </div>
     </article>
 
@@ -169,10 +199,16 @@
       </div>
     </article>
 
-    <article data-au-component="application-validation" data-au-title="Application validation" data-au-note="The right rail on Agent · Application. Status is the sidebar LED: green passed, yellow running, red failed, hollow not yet run." data-au-avalonia="Border" data-au-class="au-validation-sidebar">
-      <aside class="au-validation-sidebar aun-validate-rail" aria-label="Validation" data-au-demo="rail">
-        <div class="au-validation-sidebar-head"><strong>Validation</strong><p class="au-muted">Checks for the displayed app</p></div>
-        <div class="au-validation-sidebar-list" data-au-slot="flows" data-au-repeat="command-flow"></div>
+    <article data-au-component="application-validation" data-au-title="Application validation" data-au-note="The right rail on Agent · Application. It starts collapsed. The toggle expands it, and each check wraps inside the card." data-au-avalonia="Border" data-au-class="au-validation-sidebar">
+      <aside class="au-validation-sidebar aun-validate-rail" aria-label="Validation" data-au-demo="rail" data-au-flags="collapsed:au-validation-sidebar--collapsed">
+        <div class="au-validation-sidebar-head">
+          <div class="au-validation-sidebar-copy" data-au-when="expanded">
+            <p class="au-accent">Validation</p>
+            <p class="au-muted">Checks for the displayed app</p>
+          </div>
+          <button class="au-workspace-add" type="button" data-au-action="toggle-validation" data-au-text="validationToggle" aria-label="Validation">›</button>
+        </div>
+        <div class="au-validation-sidebar-list" data-au-when="expanded" data-au-slot="flows" data-au-repeat="command-flow" data-au-action="run"></div>
       </aside>
     </article>
 
@@ -337,10 +373,22 @@
       </div>
     </article>
 
-    <article data-au-component="command-flow" data-au-title="Validation flow" data-au-note="One recorded flow. Play reports progress through the dock's states; it does not start a timer of its own." data-au-avalonia="Border" data-au-class="au-validation-flow" data-au-parts="play" data-au-actions="run">
+    <article data-au-component="command-flow" data-au-title="Validation flow" data-au-note="One recorded flow. The head is the name, the description, and Play. The stages and checks underneath are that flow's own steps." data-au-avalonia="Border" data-au-class="au-validation-flow" data-au-parts="play" data-au-actions="run">
       <div class="au-validation-flow">
-        <div class="au-validation-flow-head"><span class="au-status-dot" data-au-part="led"></span><div class="au-validation-copy"><strong data-au-text="name"></strong><p class="au-muted" data-au-text="description"></p></div><button class="au-validation-play" type="button" data-au-action="run" data-au-part="play">▶ Play</button></div>
+        <div class="au-validation-flow-head"><span class="au-status-dot"></span><div class="au-validation-copy"><strong data-au-text="name"></strong><p class="au-muted" data-au-text="description"></p></div><button class="au-validation-play" type="button" data-au-action="run" data-au-part="play">▶ Play</button></div>
+        <div class="au-validation-steps" data-au-slot="stages" data-au-repeat="command-stage"></div>
       </div>
+    </article>
+
+    <article data-au-component="command-stage" data-au-title="Validation stage" data-au-note="One step of a recorded flow, with the expectations it checks." data-au-avalonia="Border" data-au-class="au-validation-stage">
+      <div class="au-validation-stage">
+        <div class="au-validation-step"><span class="au-status-dot"></span><span data-au-text="label"></span></div>
+        <div class="au-validation-checks" data-au-slot="checks" data-au-repeat="command-check"></div>
+      </div>
+    </article>
+
+    <article data-au-component="command-check" data-au-title="Validation check" data-au-note="One expectation under a stage." data-au-avalonia="Border" data-au-class="au-validation-check">
+      <div class="au-validation-check"><span class="au-status-dot"></span><span data-au-text="label"></span></div>
     </article>
 
   </section>
