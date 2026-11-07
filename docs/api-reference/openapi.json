@@ -1004,6 +1004,30 @@
         }
       }
     },
+    "/api/workspaces/{workspaceId}/agent/member": {
+      "get": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_GetMember",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Agents"
+        ],
+        "operationId": "AgentsHttpController_PutMember",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/workspaces/{workspaceId}/agent/messages": {
       "post": {
         "tags": [

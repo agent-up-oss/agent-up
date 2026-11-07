@@ -44,6 +44,16 @@ Choosing an agent on Desktop binds that module to the workspace, then starts the
 
 Autonomy is experimental and off by default. Enablement persists on the Server; the environment variable still wins when it is set. Desktop Agent and Mobile Agents show the ordered Server and workspace precondition checklist, Enable autonomy, Activate, Cancel, and the typed terminal for how the loop stopped. When a workspace has no permission policy, Mobile offers **Configure permissions** for worktree reads, worktree writes, commands, and network access; anything not allowed stays blocked. Mobile chat hides the checklist while subscription sign-in is in progress so the sign-in action stays on screen. A message typed while a turn is running is steering for the next turn; it does not cancel the loop.
 
+## Team members
+
+Every workspace on a Server is one team member, and each has its own checkout and its own running applications.
+
+- **Author** writes code with Claude, Codex, or Cursor. It can read and change the repository and use the browser.
+- **Dev reviewer** reviews code with the same coding agents. It can read the repository but cannot change it or use the browser.
+- **PM reviewer** reviews the product. It never sees the code: it uses the running application through the browser, takes screenshots, and reports what a user would notice.
+
+Only reviewers submit reviews, so only their comments become threads an author must address. A PM reviewer runs on a local Ollama-compatible model the Server talks to directly. Set `AGENTUP_OLLAMA_MODEL` on the Server, and `AGENTUP_OLLAMA_URL` when the model is not at `http://127.0.0.1:11434`, then choose **Ollama (in-process)** for that workspace.
+
 <DocNext href="/docs/configuration" title="Configuration">
 How to declare `dotnet[]` and `docker[]` shims.
 </DocNext>

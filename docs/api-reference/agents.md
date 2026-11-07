@@ -28,6 +28,8 @@ HTTP routes owned by the Agents slice.
 | `POST` | `/api/workspaces/{workspaceId}/agent/login/callback` | SubmitLoginCallback |
 | `POST` | `/api/workspaces/{workspaceId}/agent/login/code` | SubmitLoginCode |
 | `GET` | `/api/workspaces/{workspaceId}/agent/loop` | GetLoop |
+| `GET` | `/api/workspaces/{workspaceId}/agent/member` | GetMember |
+| `PUT` | `/api/workspaces/{workspaceId}/agent/member` | PutMember |
 | `POST` | `/api/workspaces/{workspaceId}/agent/messages` | Prompt |
 | `POST` | `/api/workspaces/{workspaceId}/agent/permissions` | Decide |
 | `GET` | `/api/workspaces/{workspaceId}/agent/policy` | GetPolicy |

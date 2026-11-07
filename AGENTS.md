@@ -664,6 +664,7 @@ The Server owns all orchestration:
 - Health monitoring.
 - Playwright generation.
 - One active ACP agent session plus workspace-scoped saved session history, including process lifecycle, prompts, permission decisions, and event streaming.
+- Team member kind per workspace and the in-process review agent that PM reviewers run.
 - MCP servers.
 - REST API, including anonymous connection metadata and the authenticated entitlement document keyed by operation permissions.
 
@@ -1398,7 +1399,11 @@ Autonomy is off by default (`AGENTUP_AUTONOMY_ENABLED` still wins over persisted
 
 A role is a prompt prefix plus an MCP tool allowlist, a trigger (`IssueAssigned` or `ProposalAwaitingReview`), and a termination (`ProposalOpened` or `ReviewSubmitted`). An empty allowlist keeps the default toolset. An unmet termination after `Completed` is `blocked:awaiting-input`.
 
-Read: `docs/user-docs/agents/index.md`, `docs/developer-guide/agents/index.md`, and `docs/developer-guide/agents/autonomy.md`.
+One Server hosts many workspaces; each is one **team member** with its own checkout and orchestration. The kind is `Author`, `DevReviewer`, or `PmReviewer`, and `TeamMemberGrants` is the only definition of what it may do. Authors read and write the repository. Reviewers never write. Dev reviewers read the repository but cannot drive the browser. PM reviewers never read the repository but drive the browser. Only reviewers submit reviews, which are the threads an author must address; authors still comment.
+
+Authors and dev reviewers run an ACP coding CLI (Claude, Codex, Cursor). PM reviewers skip that layer: they bind the in-process `ollama` agent, an Ollama-compatible chat model the Server drives behind the ACP v1 surface, whose only tools are Agent-Up MCP tools pinned to its workspace and narrowed to its grant. Binding the other fixture, an allow rule outside the grant, and a review from an author are all refused at the Server.
+
+Read: `docs/user-docs/agents/index.md`, `docs/developer-guide/agents/index.md`, `docs/developer-guide/agents/autonomy.md`, and `docs/developer-guide/agents/team-members.md`.
 
 ## Browser
 

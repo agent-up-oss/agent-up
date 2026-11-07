@@ -51,6 +51,10 @@ Agent-Up advertises no terminal-auth capability because the authenticated HTTP c
 
 A workspace may record one bound agent module id. Unbound is the interactive picker. Autonomy stays off until the Server is enabled (persisted, env var still wins) and the workspace is activated against the ordered `GET /api/autonomy` chain, a policy, a host connection, and assigned issues. Roles prefix the prompt and may filter advertised MCP tools. The full contract is on Autonomy.
 
+## Team members
+
+Each workspace is one team member: `Author`, `DevReviewer`, or `PmReviewer`. The kind fixes repository read and write, browser control, and who may submit reviews. Authors and dev reviewers run ACP coding CLIs; PM reviewers run the in-process `ollama` agent, which reaches the workspace only through pinned Agent-Up MCP tools. The contract is on Team members.
+
 ## Loop coverage
 
 CI runs the Server loop kernel against a locally-inferring ACP test agent on CPU llama.cpp. Hard invariants fail the run. Pooled task-completion outcomes are compared to a versioned baseline. Scenario files under `loop-coverage/` do not name an agent, so the same prompts can drive CPU inference and `test-agent-scripted`. Concurrency and restart for at least three autonomous workspaces stay in the normal E2E tier. A separate soak check drains hundreds of scripted tasks.
