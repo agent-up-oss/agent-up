@@ -1,3 +1,6 @@
+using AgentUp.Server.Features.Agents.Services;
+using AgentUp.Server.Features.Agents.Models;
+using AgentUp.Server.Features.Agents.Controllers;
 using AgentUp.Sdk.Forge;
 using AgentUp.Server.Features.Forge.DTOs;
 using AgentUp.Server.Features.Forge.Interfaces;
@@ -512,6 +515,48 @@ public sealed class ForgeServiceTests
     }
 
     [Test]
+    public async Task SubmitReviewAsync_refusesAnAuthorWorkspace()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var forge = new StubForgeCapability();
+        var (service, workspaceId) = await ArrangeAsync(forge, credentials, member: TeamMemberKind.Author);
+        credentials.Write(workspaceId, "github", "token");
+
+        var outcome = await service.SubmitReviewAsync(
+            workspaceId,
+            new ForgeReviewRequest("42", "please change", "REQUEST_CHANGES"),
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.Submitted, Is.False);
+            Assert.That(outcome.Refusal, Does.Contain("Author team member cannot submit reviews"));
+            Assert.That(forge.ReviewCalls, Is.Zero);
+        });
+    }
+
+    [TestCase(TeamMemberKind.DevReviewer)]
+    [TestCase(TeamMemberKind.PmReviewer)]
+    public async Task SubmitReviewAsync_submitsForAReviewerWorkspace(TeamMemberKind member)
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var forge = new StubForgeCapability();
+        var (service, workspaceId) = await ArrangeAsync(forge, credentials, member: member);
+        credentials.Write(workspaceId, "github", "token");
+
+        var outcome = await service.SubmitReviewAsync(
+            workspaceId,
+            new ForgeReviewRequest("42", "the save button does nothing", "REQUEST_CHANGES"),
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome, Is.EqualTo(new ForgeReviewOutcome(true, null)));
+            Assert.That(forge.ReviewCalls, Is.EqualTo(1));
+        });
+    }
+
+    [Test]
     public async Task OpenProposalAsync_returnsTheOpenedProposal()
     {
         var credentials = new MemoryForgeCredentialStore();
@@ -611,10 +656,17 @@ public sealed class ForgeServiceTests
         ForgeOAuthConfiguration? oauth = null,
         ForgeOAuthStateStore? states = null,
         FixedForgeOAuthExchange? exchange = null,
-        GithubAppConnectionService? githubApps = null)
+        GithubAppConnectionService? githubApps = null,
+        TeamMemberKind? member = null)
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
         var workspace = await workspaces.RegisterAsync(ServerDomain.Workspace().Build());
+        TeamMemberController? members = null;
+        if (member is { } kind)
+        {
+            members = new TeamMemberController(new TeamMemberService(new InMemoryAgentWorkspaceSettingsRepository(), workspaces));
+            members.Set(workspace.Id, kind);
+        }
         var packages = new FakeEnabledCapabilityPackages();
         if (forge is not null)
             packages.WithForges(forge);
@@ -629,7 +681,8 @@ public sealed class ForgeServiceTests
             new FixedForgeOAuthSettings(oauth ?? new ForgeOAuthConfiguration("", "", "")),
             states ?? new ForgeOAuthStateStore(),
             exchange ?? new FixedForgeOAuthExchange("exchanged"),
-            githubApps);
+            githubApps,
+            members);
         return (service, workspace.Id);
     }
 

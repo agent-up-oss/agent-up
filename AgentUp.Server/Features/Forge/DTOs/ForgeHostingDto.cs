@@ -36,3 +36,6 @@ public sealed record ForgeUpdateRefRequest(string Ref, string Sha);
 public sealed record ForgeCommentRequest(string ProposalNumber, string Body);
 
 public sealed record ForgeReviewRequest(string ProposalNumber, string Body, string Event);
+
+/// <summary>Submitted is false when the workspace has no usable forge; Refusal is set when its team member may not review.</summary>
+public sealed record ForgeReviewOutcome(bool Submitted, string? Refusal);

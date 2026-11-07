@@ -100,7 +100,7 @@ public sealed class ForgeHttpTests
     }
 
     [Test]
-    public async Task CommentAndReview_returnNoContentWhenNoForgeIsEnabled()
+    public async Task Comment_returnsNoContentButAnAuthorReviewIsForbidden()
     {
         using var host = await HostAsync();
         using var client = host.Factory.CreateClient();
@@ -113,8 +113,10 @@ public sealed class ForgeHttpTests
             $"/api/workspaces/{workspaceId}/forge/reviews",
             new ForgeReviewRequest("42", "lgtm", "COMMENT"));
 
+        // A registered workspace is an Author until it is made a reviewer, and only reviewers
+        // raise review threads; a plain comment stays open to everyone.
         Assert.That(comment.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
-        Assert.That(review.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        Assert.That(review.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
     }
 
     [Test]

@@ -62,7 +62,9 @@ public sealed class ForgeHttpController(ForgeController forge) : ControllerBase
         [FromBody] ForgeReviewRequest request,
         CancellationToken cancellationToken)
     {
-        await forge.SubmitReviewAsync(workspaceId, request, cancellationToken);
-        return NoContent();
+        var outcome = await forge.SubmitReviewAsync(workspaceId, request, cancellationToken);
+        return outcome.Refusal is null
+            ? NoContent()
+            : Problem(statusCode: 403, title: "Review refused", detail: outcome.Refusal);
     }
 }

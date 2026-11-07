@@ -54,6 +54,6 @@ public sealed class ForgeController(ForgeService service)
     public Task CommentAsync(string workspaceId, ForgeCommentRequest command, CancellationToken cancellationToken = default)
         => service.CommentAsync(workspaceId, command, cancellationToken);
 
-    public Task SubmitReviewAsync(string workspaceId, ForgeReviewRequest command, CancellationToken cancellationToken = default)
+    public Task<ForgeReviewOutcome> SubmitReviewAsync(string workspaceId, ForgeReviewRequest command, CancellationToken cancellationToken = default)
         => service.SubmitReviewAsync(workspaceId, command, cancellationToken);
 }

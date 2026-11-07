@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.Agents.Controllers;
 using AgentUp.Sdk.Forge;
 using AgentUp.Server.Features.Capabilities.Interfaces;
 using Microsoft.AspNetCore.Http;
@@ -16,7 +17,8 @@ public sealed class ForgeService(
     IForgeOAuthSettings oauth,
     IForgeOAuthStateStore states,
     IForgeOAuthExchange exchange,
-    GithubAppConnectionService? githubApps = null)
+    GithubAppConnectionService? githubApps = null,
+    TeamMemberController? members = null)
 {
     public async Task<ForgeHostingDto?> GetHostingAsync(string workspaceId, CancellationToken cancellationToken)
     {
@@ -248,14 +250,29 @@ public sealed class ForgeService(
             (forge, request) => forge.CommentAsync(request, new ForgeCommentCommand(command.ProposalNumber, command.Body), cancellationToken),
             cancellationToken);
 
-    public async Task SubmitReviewAsync(string workspaceId, ForgeReviewRequest command, CancellationToken cancellationToken)
-        => await MutateAsync(
+    /// <summary>
+    /// A review raises threads another team member must address, so the workspace submitting it
+    /// has to be a reviewer. The check sits here rather than in a client so REST, an in-process
+    /// agent, and any later caller meet the same rule.
+    /// </summary>
+    public async Task<ForgeReviewOutcome> SubmitReviewAsync(string workspaceId, ForgeReviewRequest command, CancellationToken cancellationToken)
+    {
+        var refusal = members?.ReviewRefusal(workspaceId);
+        if (refusal is not null)
+            return new ForgeReviewOutcome(false, refusal);
+        var submitted = await MutateAsync(
             workspaceId,
-            (forge, request) => forge.SubmitReviewAsync(
-                request,
-                new ForgeSubmitReviewCommand(command.ProposalNumber, command.Body, command.Event),
-                cancellationToken),
+            async (forge, request) =>
+            {
+                await forge.SubmitReviewAsync(
+                    request,
+                    new ForgeSubmitReviewCommand(command.ProposalNumber, command.Body, command.Event),
+                    cancellationToken);
+                return true;
+            },
             cancellationToken);
+        return new ForgeReviewOutcome(submitted, null);
+    }
 
     private async Task<T?> MutateAsync<T>(
         string workspaceId,
