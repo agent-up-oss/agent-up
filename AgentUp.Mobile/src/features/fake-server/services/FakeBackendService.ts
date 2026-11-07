@@ -1,4 +1,10 @@
-import { cloneDefinition, type FakeServerDefinition } from '../models/FakeServerDefinition';
+import {
+  cloneDefinition,
+  type FakeOfferedIssue,
+  type FakeProductDecision,
+  type FakeQueuedTask,
+  type FakeServerDefinition,
+} from '../models/FakeServerDefinition';
 import { fakeServerEventFrame, type FakeServerEvent } from '../models/FakeServerEvent';
 import { fakeServerId, fakeServerUrl, isFakeServerUrl } from '../models/FakeServerIdentity';
 import {
@@ -114,6 +120,15 @@ const defaultScheduler: FakeScheduler = (delayMs, work) => {
   return () => clearTimeout(timer);
 };
 
+/**
+ * Whether this workspace's agent reviews somebody else's work. The role's trigger and termination
+ * say so: a proposal awaiting review in, a review out.
+ */
+function reviewsOthersWork(session: unknown): boolean {
+  const role = (session as { role?: { trigger?: string; termination?: string } } | null)?.role;
+  return role?.trigger === 'ProposalAwaitingReview' && role?.termination === 'ReviewSubmitted';
+}
+
 export class FakeBackendService {
   private readonly template: FakeServerDefinition;
   private readonly schedule: FakeScheduler;
@@ -197,6 +212,14 @@ export class FakeBackendService {
     if (method === 'POST' && path === '/api/capabilities/enable') return this.enableCapability(request.body);
     if (method === 'POST' && path.startsWith('/api/capabilities/disable/'))
       return this.disableCapability(decodeURIComponent(path.slice('/api/capabilities/disable/'.length)));
+    if (method === 'GET' && path === '/api/tasks') return json(this.taskQueue());
+    if (method === 'POST' && path === '/api/tasks') return this.enqueueTask(request.body);
+    if (path.startsWith('/api/tasks/')) return this.taskMutation(method, path.slice('/api/tasks/'.length), request.body);
+    if (path.startsWith('/api/task-source'))
+      return this.taskSource(method, path + (request.query ?? ''), request.body ?? undefined);
+
+    if (path.startsWith('/api/training'))
+      return this.training(method, path + (request.query ?? ''), request.body ?? undefined);
     if (method === 'GET' && path.startsWith('/apps/')) return this.appPage(path);
 
     const workspacePath = parseWorkspacePath(path);
@@ -241,18 +264,8 @@ export class FakeBackendService {
     if (method === 'GET' && rest === 'git/head') return this.gitHead(workspaceId);
     if (method === 'GET' && rest === 'git/log') return this.gitLog(workspaceId);
     if (method === 'GET' && rest === 'commit-queue') return this.gitQueue(workspaceId);
-    if (method === 'GET' && rest === 'forge') {
-      return json({
-        availability: 'notInstalled',
-        moduleId: null,
-        proposal: null,
-        checks: [],
-        threads: [],
-        mergeability: null,
-        detail: 'No forge capability package is enabled.',
-        remedy: 'Run: agent-up capabilities bootstrap',
-      });
-    }
+    if (method === 'GET' && rest === 'forge') return json(this.forge(workspaceId));
+    if (method === 'GET' && rest === 'forge/issues') return json(this.openIssues(workspaceId));
     if (method === 'GET' && rest.startsWith('git/file')) return this.gitDiff(workspaceId, request.query);
     if (method === 'POST' && rest.startsWith('git/')) return this.gitMutation(workspaceId, rest.slice('git/'.length), request.body);
     if (method === 'GET' && rest === 'agent/loop') return this.agentLoop(workspaceId);
@@ -360,6 +373,282 @@ export class FakeBackendService {
       processCount: overview.processCount ?? 0,
       applicationCount: live.applications?.length ?? 0,
     });
+  }
+
+  /**
+   * What the repository host reports for this workspace. The Demo answers the same shape a real
+   * forge capability returns, so a client fills from it without a demo-only path; a workspace the
+   * definition says nothing about reads as no host connected.
+   */
+  /**
+   * The Demo's one repository. Every demo workspace is a worktree of it, which is why one queue
+   * serves them all.
+   */
+  private static readonly demoOwner = 'example';
+  private static readonly demoRepository = 'repository';
+
+  /**
+   * The picked queue, shared by every workspace. The Demo answers the shape the Server serves, so
+   * the Tasks tab arranges it here exactly as it would against a real Server.
+   */
+  /**
+   * The decision backlog the Train tab reads. Verdicts given here stay for the life of the Demo
+   * session, so judging a card and coming back to it shows what you said.
+   */
+  private training(method: string, path: string, body: string | undefined): FakeBackendResponse {
+    const rest = path.slice('/api/training'.length);
+
+    if (method === 'GET' && rest === '/repositories') return json(this.decisionRepositories());
+
+    if (method === 'GET' && rest.startsWith('/decisions')) {
+      const query = new URLSearchParams(rest.includes('?') ? rest.slice(rest.indexOf('?') + 1) : '');
+      return json(this.decisionsFor(query.get('owner'), query.get('repository'), query.get('category')));
+    }
+
+    if (method === 'POST' && rest.startsWith('/decisions/') && rest.endsWith('/review'))
+      return this.reviewDecision(rest.slice('/decisions/'.length, rest.length - '/review'.length), body);
+
+    if (method === 'GET' && rest.startsWith('/evidence/'))
+      return this.decisionEvidence(decodeURIComponent(rest.slice('/evidence/'.length)));
+
+    if (method === 'GET' && rest.startsWith('/export')) return this.decisionExport(rest.includes('includePending=true'));
+
+    return notFound();
+  }
+
+  /**
+   * The Demo's own task source. It starts already pointed at the example repository and signed
+   * in, because the Demo is there to show the product working rather than to walk a reader
+   * through an OAuth round trip against a host that does not exist.
+   */
+  private taskSource(method: string, path: string, body: string | undefined): FakeBackendResponse {
+    const rest = path.slice('/api/task-source'.length);
+
+    if (method === 'GET' && (rest === '' || rest === '/')) return json(this.describeSource());
+
+    if (method === 'PUT') {
+      const asked = body ? (JSON.parse(body) as { moduleId?: string; owner?: string; repository?: string }) : {};
+      this.source = {
+        moduleId: asked.moduleId?.trim() || 'github',
+        owner: asked.owner?.trim() ?? '',
+        repository: asked.repository?.trim() ?? '',
+        connected: this.source?.connected ?? true,
+      };
+      return json(this.describeSource());
+    }
+
+    if (method === 'DELETE') {
+      this.source = null;
+      return json(this.describeSource());
+    }
+
+    if (method === 'POST' && rest === '/login') {
+      if (!this.source) return { status: 409, contentType: 'application/json', body: '{}' };
+      this.source = { ...this.source, connected: true };
+      return json({ authorizeUrl: 'https://example.test/login/oauth/authorize?demo=1' });
+    }
+
+    if (method === 'GET' && rest.startsWith('/issues')) {
+      // The Demo's issues belong to the example repository, which is the first workspace's.
+      const first = (this.state.workspaces[0] as { id?: string } | undefined)?.id;
+      return json(this.source?.connected && first ? this.openIssues(first) : []);
+    }
+
+    return notFound();
+  }
+
+  private describeSource() {
+    const source = this.source;
+    return {
+      moduleId: source?.moduleId ?? null,
+      owner: source?.owner ?? null,
+      repository: source?.repository ?? null,
+      configured: !!source && !!source.owner && !!source.repository,
+      connected: !!source?.connected,
+      canConnect: true,
+      detail: source?.connected
+        ? `Reading issues from ${source.owner}/${source.repository}.`
+        : source
+          ? `Sign in to read issues from ${source.owner}/${source.repository}.`
+          : 'Name the repository the agents take their work from.',
+      modules: [{ moduleId: 'github', displayName: 'GitHub' }],
+    };
+  }
+
+  private source: { moduleId: string; owner: string; repository: string; connected: boolean } | null = {
+    moduleId: 'github',
+    owner: 'example',
+    repository: 'repository',
+    connected: true,
+  };
+
+  private decisions(): FakeProductDecision[] {
+    return this.state.productDecisions ?? [];
+  }
+
+  private decisionRepositories() {
+    const byRepository = new Map<string, FakeProductDecision[]>();
+    for (const decision of this.decisions()) {
+      const key = `${decision.owner}/${decision.repository}`;
+      byRepository.set(key, [...(byRepository.get(key) ?? []), decision]);
+    }
+
+    return [...byRepository.values()]
+      .map(group => ({
+        owner: group[0].owner,
+        repository: group[0].repository,
+        pending: group.filter(decision => decision.verdict === 'pending').length,
+        reviewed: group.filter(decision => decision.verdict !== 'pending').length,
+        categories: decisionCategoryIds.map(category => ({
+          category,
+          label: decisionCategoryLabels[category],
+          pending: group.filter(d => d.category === category && d.verdict === 'pending').length,
+          reviewed: group.filter(d => d.category === category && d.verdict !== 'pending').length,
+        })),
+      }))
+      .sort((left, right) => right.pending - left.pending || left.repository.localeCompare(right.repository));
+  }
+
+  private decisionsFor(owner: string | null, repository: string | null, category: string | null) {
+    return this.decisions()
+      .filter(decision => !owner || decision.owner.toLowerCase() === owner.toLowerCase())
+      .filter(decision => !repository || decision.repository.toLowerCase() === repository.toLowerCase())
+      .filter(decision => !category || decision.category === category)
+      .sort((left, right) =>
+        Number(left.verdict !== 'pending') - Number(right.verdict !== 'pending')
+        || left.recordedAt.localeCompare(right.recordedAt));
+  }
+
+  private reviewDecision(id: string, body: string | undefined): FakeBackendResponse {
+    const decision = this.decisions().find(item => item.id === decodeURIComponent(id));
+    if (!decision) return notFound();
+
+    const asked = body ? (JSON.parse(body) as { verdict?: string; note?: string | null }) : {};
+    const verdict = asked.verdict ?? 'pending';
+    if (!['good', 'bad', 'pending'].includes(verdict)) return notFound();
+
+    decision.verdict = verdict;
+    decision.note = asked.note?.trim() ? asked.note.trim() : null;
+    decision.reviewedAt = verdict === 'pending' ? null : new Date().toISOString();
+    return json(decision);
+  }
+
+  private decisionEvidence(evidenceId: string): FakeBackendResponse {
+    const image = this.state.decisionEvidence?.[evidenceId];
+    return image ? json({ evidenceId, mimeType: image.mimeType, base64: image.base64 }) : notFound();
+  }
+
+  private decisionExport(includePending: boolean): FakeBackendResponse {
+    const lines = this.decisions()
+      .filter(decision => includePending || decision.verdict !== 'pending')
+      .map(decision => JSON.stringify({
+        id: decision.id,
+        repository: `${decision.owner}/${decision.repository}`,
+        agent: decision.agent,
+        category: decision.category,
+        headline: decision.headline,
+        detail: decision.detail,
+        evidence: decision.evidence,
+        evidenceImageIds: decision.evidenceImages.map(image => image.evidenceId),
+        recordedAt: decision.recordedAt,
+        verdict: decision.verdict,
+        note: decision.note,
+        reviewedAt: decision.reviewedAt,
+      }));
+    return { status: 200, contentType: 'application/x-ndjson', body: lines.join('\n') + (lines.length ? '\n' : '') };
+  }
+
+  private taskQueue(): FakeQueuedTask[] {
+    return this.state.taskQueue ?? [];
+  }
+
+  /**
+   * Open issues on a workspace's repository, minus the ones already queued. A queued issue is not
+   * offered again, which is what the Server's own picker does.
+   */
+  private openIssues(workspaceId: string): FakeOfferedIssue[] {
+    const queued = new Set(this.taskQueue().map(task => task.id));
+    return (this.state.issues?.[workspaceId] ?? []).filter(issue => !queued.has(issue.id));
+  }
+
+  private enqueueTask(body: string | null): FakeBackendResponse {
+    const workspaceId = readJsonString(body, 'workspaceId');
+    const issueId = readJsonString(body, 'issueId');
+    if (!workspaceId || !issueId) return notFound();
+
+    const issue = (this.state.issues?.[workspaceId] ?? []).find(item => item.id === issueId);
+    if (!issue) return notFound();
+
+    const task: FakeQueuedTask = {
+      id: issue.id,
+      owner: FakeBackendService.demoOwner,
+      repository: FakeBackendService.demoRepository,
+      number: issue.number,
+      title: issue.title,
+      body: issue.body,
+      url: issue.url,
+      queuedAt: new Date().toISOString(),
+      targetWorkspaceId: readJsonString(body, 'targetWorkspaceId'),
+      heldByWorkspaceId: null,
+    };
+    this.state.taskQueue = [...this.taskQueue(), task];
+    return json(task);
+  }
+
+  /**
+   * Changes to one queued task. The path carries owner and repository the way the Server's routes
+   * do, so only the trailing id and verb decide what happens.
+   */
+  private taskMutation(method: string, rest: string, body: string | null): FakeBackendResponse {
+    const segments = rest.split('/').filter(segment => segment.length > 0);
+    if (segments.length < 3) return notFound();
+
+    const id = decodeURIComponent(segments[2]);
+    const verb = segments[3];
+    const task = this.taskQueue().find(item => item.id === id);
+    if (!task) return notFound();
+
+    if (method === 'DELETE' && verb === undefined) {
+      // A task a workspace is carrying stays, the same refusal the Server gives.
+      if (task.heldByWorkspaceId !== null) return { status: 409, contentType: 'application/json' };
+      this.state.taskQueue = this.taskQueue().filter(item => item.id !== id);
+      return { status: 204, contentType: 'application/json' };
+    }
+
+    if (method === 'POST' && verb === 'release') {
+      this.state.taskQueue = this.taskQueue().map(item =>
+        item.id === id ? { ...item, heldByWorkspaceId: null } : item);
+      return { status: 204, contentType: 'application/json' };
+    }
+
+    if (method === 'PUT' && verb === 'position') {
+      const index = readJsonNumber(body, 'index');
+      if (index === null) return notFound();
+      this.state.taskQueue = movedTo(this.taskQueue(), id, index);
+      return { status: 204, contentType: 'application/json' };
+    }
+
+    if (method === 'PUT' && verb === 'target') {
+      const workspaceId = readJsonString(body, 'workspaceId');
+      this.state.taskQueue = this.taskQueue().map(item =>
+        item.id === id ? { ...item, targetWorkspaceId: workspaceId } : item);
+      return { status: 204, contentType: 'application/json' };
+    }
+
+    return notFound();
+  }
+
+  private forge(workspaceId: string): unknown {
+    return this.state.forge?.[workspaceId] ?? {
+      availability: 'notInstalled',
+      moduleId: null,
+      proposal: null,
+      checks: [],
+      threads: [],
+      mergeability: null,
+      detail: 'No forge capability package is enabled.',
+      remedy: 'Run: agent-up capabilities bootstrap',
+    };
   }
 
   private gitChanges(workspaceId: string): FakeBackendResponse {
@@ -590,13 +879,19 @@ export class FakeBackendService {
     const git = this.git.get(workspaceId);
     if (!session) return notFound();
     const message = readJsonString(body, 'message') ?? '';
-    const added = git ? addAgentWorkingTreeFile(git) : null;
+    // A reviewer has the author's branch checked out to read it. Writing a file into it would put
+    // their name on work that is not theirs, so only a role that opens its own proposal touches
+    // the tree.
+    const reviewing = reviewsOthersWork(session.session);
+    const added = git && !reviewing ? addAgentWorkingTreeFile(git) : null;
     const snapshot = this.liveAgentSession(session.session);
     this.publishAgent(workspaceId, 'user_message', { text: message });
     this.publishAgent(workspaceId, 'state', { ...snapshot, state: 'running' });
     const text = added
       ? `I added \`${added.path}\` so the storefront can show the weekly harbor special. It is uncommitted in the working tree.`
-      : 'Harbor Shop is running locally.';
+      : reviewing
+        ? 'I have read the branch for this proposal and left my notes on the thread. The review is submitted.'
+        : 'Harbor is running locally.';
     this.publishAgent(workspaceId, 'session_update', {
       sessionUpdate: 'agent_message_chunk',
       content: { type: 'text', text },
@@ -905,6 +1200,19 @@ function parseBody(body: string | null): Record<string, unknown> | null {
   }
 }
 
+/**
+ * The queue with one task lifted out and put back at a position, the way the Server rewrites it.
+ * The position is clamped, so a drag that overshoots either end parks the task there rather than
+ * dropping it out of the queue.
+ */
+function movedTo(queue: FakeQueuedTask[], id: string, index: number): FakeQueuedTask[] {
+  const from = queue.findIndex(item => item.id === id);
+  if (from < 0) return queue;
+  const rest = queue.filter(item => item.id !== id);
+  const to = Math.min(Math.max(index, 0), rest.length);
+  return [...rest.slice(0, to), queue[from], ...rest.slice(to)];
+}
+
 function readJsonString(body: string | null, name: string): string | null {
   const parsed = parseBody(body);
   return typeof parsed?.[name] === 'string' ? parsed[name] : null;
@@ -933,6 +1241,15 @@ function readJsonArray(body: string | null, name: string): unknown[] {
 function workspaceIdOf(item: unknown): string | undefined {
   return item && typeof item === 'object' && 'id' in item && typeof item.id === 'string' ? item.id : undefined;
 }
+
+/** The three categories, in the order the Train tab shows them. */
+const decisionCategoryIds = ['product-vision', 'gui-decisions', 'code-architecture'] as const;
+
+const decisionCategoryLabels: Record<string, string> = {
+  'product-vision': 'Product vision',
+  'gui-decisions': 'GUI',
+  'code-architecture': 'Architecture',
+};
 
 function json(body: unknown): FakeBackendResponse {
   return { status: 200, contentType: 'application/json', body: JSON.stringify(body) };

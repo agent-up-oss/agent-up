@@ -99,6 +99,6 @@ public sealed class DesktopCommandService
         await _windows.OpenAgentAsync(cancellationToken);
         var path = _sessions.ScreenshotPath("desktop");
         await _windows.CaptureAsync(path, cancellationToken);
-        return CommandResultDto.Ok("Opened the Desktop Agent tab.", path);
+        return CommandResultDto.Ok("Opened the Desktop Chat tab.", path);
     }
 }

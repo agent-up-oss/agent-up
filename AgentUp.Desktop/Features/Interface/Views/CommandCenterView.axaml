@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:scene="using:AgentUp.Desktop.DesignSystem"
+             x:Class="AgentUp.Desktop.Features.Interface.Views.CommandCenterView"
+             x:CompileBindings="False"
+             Background="{DynamicResource AgentUpColorCanvasBrush}">
+    <!--
+        The command center is the generated New UI scene. This host selects that scene and
+        fills its slots. It does not draw a second page.
+    -->
+    <scene:NewUiScene x:Name="Scene"/>
+</UserControl>

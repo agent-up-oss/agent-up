@@ -1,40 +1,18 @@
-import { AgentChatScreen } from '@agent-up/chat';
 import { WorkspaceRouteGate } from '@/features/workspaces/components/WorkspaceRouteGate';
+import { WorkspaceAgentChatScreen } from '@/features/agents/components/WorkspaceAgentChatScreen';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
-import { useInnerShell } from '@/features/shell/hooks/useInnerShell';
-import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
-import { useCallback, useMemo, useState } from 'react';
-import { useRouter } from 'expo-router';
 
 export default function WorkspaceAgentRoute() {
   const { server } = useWorkspaces();
   return (
     <WorkspaceRouteGate>
-      {workspace => <WorkspaceAgentChat workspaceId={workspace.id} displayName={workspace.displayName} server={server} />}
+      {workspace => (
+        <WorkspaceAgentChatScreen
+          workspaceId={workspace.id}
+          displayName={workspace.displayName}
+          server={server}
+        />
+      )}
     </WorkspaceRouteGate>
   );
-}
-
-function WorkspaceAgentChat({
-  workspaceId,
-  displayName,
-  server,
-}: {
-  workspaceId: string;
-  displayName: string;
-  server: ReturnType<typeof useWorkspaces>['server'];
-}) {
-  const router = useRouter();
-  const [title, setTitle] = useState('Workspace agent');
-  const present = useCallback((value: { title: string }) => setTitle(value.title), []);
-  const inner = useInnerShell(title, `/(main)/workspace/${workspaceId}/agents`);
-  const config = useMemo(() => ({ ...inner, title }), [inner, title]);
-  useShellConfig(config);
-
-  return <AgentChatScreen
-    workspace={{ id: workspaceId, displayName }}
-    server={server}
-    onPresent={present}
-    onConfigurePolicy={() => router.push(`/(main)/workspace/${workspaceId}/agent-policy`)}
-  />;
 }

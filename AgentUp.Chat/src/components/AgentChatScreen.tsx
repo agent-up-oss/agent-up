@@ -220,7 +220,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
   return <View style={styles.screen}>
     <View style={styles.content}>{tab === 'changes' && changesPanel
       ? <View style={styles.changesPane}>{changesPanel}</View>
-      : <View style={styles.chat}>
+      : <ScrollView style={styles.chatScroll} contentContainerStyle={styles.chat} keyboardShouldPersistTaps="handled">
           <View style={styles.heading}>
             <View style={styles.headingCopy}>
               <Text style={styles.chatTitle}>{workspace.displayName}</Text>
@@ -272,7 +272,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
             {session.state === 'authenticating' && loginApi && <AgentSignIn challenge={session.loginChallenge} api={loginApi} copy={copyToClipboard} onError={setError} />}
             {session.state === 'authentication_required' && session.authMethods?.map(method => <Pressable key={method.id} testID={`agent-auth-method-${method.id}`} style={styles.option} onPress={() => void authenticate(method.id)}><Text style={styles.optionText}>{method.name}</Text>{method.description && <Text style={styles.meta}>{method.description}</Text>}</Pressable>)}
           </View>}
-          <ScrollView style={styles.messages} contentContainerStyle={styles.messageContent}>
+          <View style={styles.messageContent}>
             {blocks.map(block => {
               if (block.type === 'user') {
                 return <View key={block.item.id} style={styles.userBubble}><Text style={styles.userText}>{visibleText(block.item.text)}</Text></View>;
@@ -291,7 +291,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
                 })}
               </View>;
             })}
-          </ScrollView>
+          </View>
           {permission && <View style={styles.permission}>
             <Text style={styles.permissionKicker}>Decision needed</Text>
             <Text style={styles.permissionTitle}>{permission.title}</Text>
@@ -307,7 +307,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
             <TextInput accessibilityLabel="Message the agent" multiline value={message} onChangeText={setMessage} editable={!waiting} placeholder={permission ? 'Choose an option to continue…' : 'Ask the agent…'} placeholderTextColor={agentUpTheme.colors.textFaint} style={styles.input}/>
             <Pressable accessibilityRole="button" disabled={waiting || !message.trim()} onPress={() => void send()} style={[styles.send, (waiting || !message.trim()) && styles.disabled]}>{session?.state === 'running' && !permission ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.sendText}>Send</Text>}</Pressable>
           </View>}
-        </View>}
+        </ScrollView>}
     </View>
     {changesPanel ? <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 8 }]}><TabButton label="Chat" active={tab === 'chat'} onPress={() => setTab('chat')} /><TabButton label="Changes" active={tab === 'changes'} onPress={() => setTab('changes')} /></View> : null}
   </View>;
@@ -360,7 +360,8 @@ function TabButton({ label, active, onPress }: { label: string; active: boolean;
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
   content: { flex: 1 },
-  chat: { flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', padding: agentUpTheme.spacing[4], gap: 10 },
+  chatScroll: { flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center' },
+  chat: { padding: agentUpTheme.spacing[4], gap: 10 },
   changesPane: { flex: 1, paddingHorizontal: agentUpTheme.spacing[5], paddingTop: agentUpTheme.spacing[4], paddingBottom: 8 },
   heading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
   headingCopy: { flex: 1, minWidth: 0 },
@@ -384,7 +385,6 @@ const styles = StyleSheet.create({
   available: auText('accent'),
   unavailable: auText('muted'),
   disabled: { opacity: 0.4 },
-  messages: { flex: 1 },
   messageContent: { gap: 10, paddingVertical: 10 },
   userBubble: { ...auBox('chatUser'), alignSelf: 'flex-end' },
   userText: { ...auText('workspaceName'), lineHeight: 20 },

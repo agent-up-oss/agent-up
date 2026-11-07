@@ -24,9 +24,16 @@ const SINGLETONS = new Set([
 const config = getDefaultConfig(__dirname);
 const appEntry = path.join(__dirname, 'package.json');
 const inherited = config.resolver.resolveRequest;
+// File dependencies live beside this app. Metro only rebuilds a folder it watches, so a change
+// in one of these packages never reached a server that was already running.
 config.watchFolders = [
   ...(config.watchFolders ?? []),
   path.resolve(__dirname, '../AgentUp.FakeServer'),
+  path.resolve(__dirname, '../AgentUp.AgentAuth'),
+  path.resolve(__dirname, '../AgentUp.Chat'),
+  path.resolve(__dirname, '../AgentUp.DesignSystem'),
+  path.resolve(__dirname, '../AgentUp.ServerClient'),
+  path.resolve(__dirname, '../AgentUp.WebAudit'),
 ];
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {

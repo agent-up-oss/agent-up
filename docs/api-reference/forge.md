@@ -18,6 +18,7 @@ HTTP routes owned by the Forge slice.
 | `GET` | `/api/forge/github/register` | GithubRegister |
 | `GET` | `/api/workspaces/{workspaceId}/forge` | Get |
 | `POST` | `/api/workspaces/{workspaceId}/forge/comments` | Comment |
+| `GET` | `/api/workspaces/{workspaceId}/forge/issues` | Issues |
 | `POST` | `/api/workspaces/{workspaceId}/forge/login` | Login |
 | `POST` | `/api/workspaces/{workspaceId}/forge/logout` | Logout |
 | `POST` | `/api/workspaces/{workspaceId}/forge/proposals` | OpenProposal |

@@ -145,7 +145,8 @@ internal sealed class AppDriver
             gitClient: gitClient,
             validationClient: validationClient,
             agentClient: agentClient,
-            entitlementsHttp: serverHttp);
+            entitlementsHttp: serverHttp,
+            commandCenter: InterfaceTestComposition.Classic());
         var window = serverHttp is null
             ? new MainWindow { DataContext = vm }
             : new MainWindow(serverHttp) { DataContext = vm };

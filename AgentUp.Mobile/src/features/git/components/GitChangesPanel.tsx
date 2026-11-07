@@ -270,8 +270,32 @@ export function GitChangesPanel({
     </Pressable>
   );
 
+  const changeRows = (
+    <>
+      {!loading && !error && nodes.length === 0 && selectedWorkspace &&
+        <Text style={styles.empty}>No uncommitted changes.</Text>}
+      {visible.map(node => {
+        const checked = node.isDirectory
+          ? isDirectorySelected(nodes, node, selected)
+          : selected.includes(node.path);
+        return (
+          <GitChangeRow
+            key={node.key}
+            node={node}
+            checked={checked}
+            open={!node.isDirectory && diffPath === node.path}
+            expanded={!collapsed.includes(node.path)}
+            onToggle={() => setSelected(current => toggleNodeSelection(nodes, node, current))}
+            onToggleExpand={() => setCollapsed(current => toggleDirectoryCollapsed(current, node.path))}
+            onOpenFile={() => void openDiff(node)}
+          />
+        );
+      })}
+    </>
+  );
+
   return (
-    <View style={styles.panel}>
+    <View style={overview ? styles.overviewPanel : styles.panel}>
       {!overview &&
         <View style={styles.header}>
           <View style={styles.titleRow}>
@@ -303,27 +327,13 @@ export function GitChangesPanel({
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
       {!!status && <Text style={styles.status}>{status}</Text>}
 
-      <ScrollView style={overview ? styles.overviewTree : styles.tree} contentContainerStyle={styles.treeContent} keyboardShouldPersistTaps="handled">
-        {!loading && !error && nodes.length === 0 && selectedWorkspace &&
-          <Text style={styles.empty}>No uncommitted changes.</Text>}
-        {visible.map(node => {
-          const checked = node.isDirectory
-            ? isDirectorySelected(nodes, node, selected)
-            : selected.includes(node.path);
-          return (
-            <GitChangeRow
-              key={node.key}
-              node={node}
-              checked={checked}
-              open={!node.isDirectory && diffPath === node.path}
-              expanded={!collapsed.includes(node.path)}
-              onToggle={() => setSelected(current => toggleNodeSelection(nodes, node, current))}
-              onToggleExpand={() => setCollapsed(current => toggleDirectoryCollapsed(current, node.path))}
-              onOpenFile={() => void openDiff(node)}
-            />
-          );
-        })}
-      </ScrollView>
+      {overview ? (
+        <View style={styles.overviewTree}>{changeRows}</View>
+      ) : (
+        <ScrollView style={styles.tree} contentContainerStyle={styles.treeContent} keyboardShouldPersistTaps="handled">
+          {changeRows}
+        </ScrollView>
+      )}
 
       {canWrite ? (
         <View style={styles.footer}>
@@ -366,6 +376,7 @@ export function GitChangesPanel({
 
 const styles = StyleSheet.create({
   panel: { flex: 1, gap: 12 },
+  overviewPanel: { gap: 12 },
   header: { gap: 4, paddingBottom: 4 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   discardButton: { ...auBox('button', 'buttonDanger', 'buttonCompact'), minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
@@ -380,7 +391,7 @@ const styles = StyleSheet.create({
   error: { ...auText('badgeDanger'), lineHeight: 21 },
   status: { ...auText('accent'), lineHeight: 21 },
   tree: { flex: 1, minHeight: 80, ...auBox('gitChangeList') },
-  overviewTree: { flex: 1, minHeight: 120, ...auBox('gitChangeList') },
+  overviewTree: { ...auBox('gitChangeList') },
   treeContent: { paddingVertical: 6, flexGrow: 1 },
   footer: { gap: 12, zIndex: 2 },
   actions: { flexDirection: 'row', gap: 8 },

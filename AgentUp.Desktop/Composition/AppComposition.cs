@@ -9,6 +9,7 @@ using AgentUp.Desktop.Features.Authentication.ViewModels;
 using AgentUp.Desktop.Features.FakeServer.Controllers;
 using AgentUp.Desktop.Features.FakeServer.Providers;
 using AgentUp.Desktop.Features.FakeServer.Services;
+using AgentUp.Desktop.Features.Interface.Providers;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.Views;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -135,7 +136,8 @@ public static class AppComposition
             http,
             login,
             agentEventsHttp,
-            new ReviewReportSavePrompt(window.StorageProvider));
+            reviewReportSave: new ReviewReportSavePrompt(window.StorageProvider),
+            decisionExport: new DecisionExportSavePrompt(window.StorageProvider));
         window.DataContext = viewModel;
         window.CreateWorkspaceEventHttpClient = url =>
         {

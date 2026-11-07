@@ -294,6 +294,67 @@ public sealed class ForgeServiceTests
     }
 
     [Test]
+    public async Task ListIssuesAsync_returnsTheRepositorysOpenIssues()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var issue = new ForgeIssue("7", 3, "Restock", "do it", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example.test/3");
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability { Issues = [issue] },
+            credentials);
+        credentials.Write(workspaceId, "github", "token");
+
+        var issues = await service.ListIssuesAsync(workspaceId, CancellationToken.None);
+
+        Assert.That(issues.Single().Number, Is.EqualTo(3));
+    }
+
+    [Test]
+    public async Task ListIssuesAsync_returnsEmptyWhenTheHostFails()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability { ListIssuesFailure = new HttpRequestException("offline") },
+            credentials);
+        credentials.Write(workspaceId, "github", "token");
+
+        Assert.That(await service.ListIssuesAsync(workspaceId, CancellationToken.None), Is.Empty);
+    }
+
+    [Test]
+    public async Task ListIssuesAsync_returnsEmptyWhenTheCredentialItselfCannotBeRead()
+    {
+        // Reading the credential can go to the host: a GitHub App installation token is minted on
+        // demand. That read sat outside the guard, so a host that refused it failed the whole
+        // request and the Tasks surface showed a 500 instead of an empty list.
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability(),
+            new ThrowingForgeCredentialStore(new HttpRequestException("github unreachable")));
+
+        Assert.That(await service.ListIssuesAsync(workspaceId, CancellationToken.None), Is.Empty);
+    }
+
+    [Test]
+    public async Task ListAssignedAsync_returnsEmptyWhenTheCredentialItselfCannotBeRead()
+    {
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability(),
+            new ThrowingForgeCredentialStore(new HttpRequestException("github unreachable")));
+
+        Assert.That(await service.ListAssignedAsync(workspaceId, CancellationToken.None), Is.Empty);
+    }
+
+    [Test]
+    public async Task ListIssuesAsync_returnsEmptyWithoutACredential()
+    {
+        var (service, workspaceId) = await ArrangeAsync(new StubForgeCapability
+        {
+            Issues = [new ForgeIssue("7", 3, "Restock", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example.test/3")]
+        });
+
+        Assert.That(await service.ListIssuesAsync(workspaceId, CancellationToken.None), Is.Empty);
+    }
+
+    [Test]
     public async Task UpdateRefAsync_returnsNotFoundWhenTheRequestCannotBeBuilt()
     {
         var (service, workspaceId) = await ArrangeAsync();
@@ -605,7 +666,7 @@ public sealed class ForgeServiceTests
 
     private static async Task<(ForgeService Service, string WorkspaceId)> ArrangeAsync(
         StubForgeCapability? forge = null,
-        MemoryForgeCredentialStore? credentials = null,
+        IForgeCredentialStore? credentials = null,
         ForgeGitRemote? remote = null,
         bool noRemote = false,
         ForgeOAuthConfiguration? oauth = null,
@@ -631,6 +692,16 @@ public sealed class ForgeServiceTests
             exchange ?? new FixedForgeOAuthExchange("exchanged"),
             githubApps);
         return (service, workspace.Id);
+    }
+
+    /// <summary>A credential source that cannot answer, which is what an unreachable host is.</summary>
+    private sealed class ThrowingForgeCredentialStore(Exception failure) : IForgeCredentialStore
+    {
+        public string? Read(string workspaceId, string moduleId) => throw failure;
+
+        public void Write(string workspaceId, string moduleId, string token) { }
+
+        public void Delete(string workspaceId, string moduleId) { }
     }
 
     private static GithubAppConnectionService GithubApps()

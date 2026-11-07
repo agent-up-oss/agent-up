@@ -106,13 +106,13 @@ export function nativeLiteral(value, tokens) {
 
 export function parseSelector(selector) {
   const raw = selector.trim();
-  if (!raw || raw === '*' || raw.includes('::') || raw.startsWith(':root') || raw.includes(' ')) return null;
+  if (!raw || raw === '*' || raw.includes('::') || raw.includes(':has(') || raw.startsWith(':root') || raw.includes(' ')) return null;
   const selected = /\[aria-selected=['"]true['"]\]/.test(raw);
   const withoutAttr = raw.replace(/\[aria-selected=['"]true['"]\]/, '');
   const pseudoMatch = withoutAttr.match(/:(hover|focus|focus-visible|disabled|checked)$/);
   const pseudo = pseudoMatch ? pseudoMatch[1].replace('focus-visible', 'focus') : null;
   const classPart = withoutAttr.replace(/:(hover|focus|focus-visible|disabled|checked)$/, '');
-  const classes = [...classPart.matchAll(/\.([a-z0-9-]+)/g)].map(match => match[1]);
+  const classes = [...classPart.matchAll(/\.([a-z0-9_-]+)/g)].map(match => match[1]);
   if (!classes.length) return null;
   const modifierClass = classes.find(name => name.includes('--')) ?? null;
   const baseClass = classes.find(name => !name.includes('--'))
@@ -122,7 +122,7 @@ export function parseSelector(selector) {
 
 export function inferAvaloniaType(className) {
   if (className === 'au-theme') return 'Window';
-  if (/^au-button(?:--|$)|au-chip(?:--|$)|au-tab(?:--|$)|au-chrome-button|au-title-tool|au-workspace-delete|au-workspace-add|au-lifecycle-button|au-browser-button|au-page-jump|au-db-run|au-tutorial-button|au-app-tab|au-subtab|au-nav-tab|au-session-logout|au-choice(?:--|$)|au-chat-thought$|au-chat-run$|au-git-log-ref(?:--|$)|au-file-viewer-jump$|au-git-tree-toggle(?:--|$)/.test(className)) {
+  if (/^au-button(?:--|$)|au-chip(?:--|$)|au-tab(?:--|$)|au-chrome-button|au-title-tool|au-workspace-delete|au-workspace-add|au-lifecycle-button|au-browser-button|au-page-jump|au-db-run|au-tutorial-button|au-app-tab|au-subtab|au-nav-tab|au-session-logout|au-choice(?:--|$)|au-chat-thought$|au-chat-run$|au-git-log-ref(?:--|$)|au-file-viewer-jump$|au-git-tree-toggle(?:--|$)|aun-btn|aun-nav(?:--|$)|aun-agent-back|aun-agent-reload|aun-rail__link/.test(className)) {
     return 'Button';
   }
   if (/(au-input|au-address-bar|au-code-editor|au-console|au-code$|au-file-viewer-goto$)/.test(className)) return 'TextBox';
@@ -134,9 +134,9 @@ export function inferAvaloniaType(className) {
  * Classes the HTML surface owns outright, which are not ported to Avalonia or React Native.
  *
  * Two kinds live here. The screen shell (`au-screen*`) is a CSS flex and grid layout that
- * describes how a scene document is composed for a screenshot; Desktop builds its own shell
- * from Grid and DockPanel and references none of it, and a Border cannot carry a flex model,
- * so emitting it produced bindings no surface could use. The Demo fixtures (`au-storefront`,
+ * describes how a classic screenshot is composed. Those classes stay out of the classic
+ * bindings. The New UI scene opts them back in and lays them out as the page, because a
+ * Border has no flex model of its own. The Demo fixtures (`au-storefront`,
  * `au-capability-catalog`) are the Harbor Shop sample a screenshot needs, not product UI, and
  * have no business in a shipped client bundle.
  *

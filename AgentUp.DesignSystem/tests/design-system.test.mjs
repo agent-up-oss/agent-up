@@ -16,7 +16,11 @@ import {
   varName,
 } from '../scripts/lib/css.mjs';
 import { emitNative } from '../scripts/lib/native.mjs';
-import { applyProps } from '../scripts/lib/slots.mjs';
+import { parseCatalog } from '../scripts/lib/catalog.mjs';
+import { applyDemo, loadDemo } from '../scripts/lib/demo.mjs';
+import { applyNewUiSceneFiles, newUiFromAssembled, newUiManifest, parseNewUi, withProductCatalog, wrapNewUiScene } from '../scripts/lib/new-ui.mjs';
+import { assembleScreens } from '../scripts/lib/screens.mjs';
+import { applyDefaultParts, applyProps, hasContentSlots } from '../scripts/lib/slots.mjs';
 
 const root = new URL('..', import.meta.url);
 const repository = fileURLToPath(new URL('../..', import.meta.url));
@@ -640,3 +644,409 @@ async function readProductCss(base) {
   const fragments = await Promise.all(extras.map(name => readFile(new URL(name, src), 'utf8')));
   return `${product}\n\n${fragments.join('\n\n')}`;
 }
+
+function scene(attributes, body = '<p>body</p>') {
+  return `<section ${attributes}>${body}</section>`;
+}
+
+function chipFor(attributes) {
+  const id = attributes.match(/data-aun-scene="([^"]*)"/)?.[1] ?? 'screen';
+  const surface = attributes.match(/data-aun-surface="([^"]*)"/)?.[1] === 'mobile' ? 'mobile' : 'desktop';
+  const slot = surface === 'mobile' ? 'data-aun-mobile' : 'data-aun-desktop';
+  return `<section data-aun-screen="${id}" data-aun-title="Screen" ${slot}="${id}"></section>`;
+}
+
+test('a New UI scene is read from its attributes', () => {
+  const attributes = 'data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop" data-aun-intro="Triage"';
+  const parsed = parseNewUi(`${chipFor(attributes)}\n${scene(attributes)}`);
+  const scenes = parsed.scenes;
+  assert.equal(scenes.length, 1);
+  assert.equal(scenes[0].id, 'bridge');
+  assert.equal(scenes[0].title, 'Bridge');
+  assert.equal(scenes[0].surface, 'desktop');
+  assert.equal(scenes[0].intro, 'Triage');
+  assert.equal(scenes[0].html, '<p>body</p>');
+  assert.equal(parsed.screens[0].intro, 'Triage');
+});
+
+test('a section that is not a scene is skipped rather than parsed as one', () => {
+  const attributes = 'data-aun-scene="tasks" data-aun-title="Tasks" data-aun-surface="mobile" data-aun-intro="Queue"';
+  const html = [
+    '<section class="decoration">ignored</section>',
+    chipFor(attributes),
+    scene(attributes),
+  ].join('\n');
+  const parsed = parseNewUi(html);
+  assert.deepEqual(parsed.scenes.map(item => item.id), ['tasks']);
+  assert.deepEqual(parsed.screens.map(item => item.id), ['tasks']);
+});
+
+test('a scene keeps its own nested sections rather than ending at the first one', () => {
+  const attributes = 'data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop" data-aun-intro="Triage"';
+  const parsed = parseNewUi(`${chipFor(attributes)}\n${scene(attributes, '<section>inner</section><p>after</p>')}`);
+  assert.match(parsed.scenes[0].html, /<p>after<\/p>$/, 'the scene must not be truncated at the inner close');
+});
+
+test('a scene must name itself, say which surface it is, and carry a title', () => {
+  assert.throws(() => parseNewUi(scene('data-aun-scene="" data-aun-title="T" data-aun-surface="desktop"')),
+    /no id/);
+  assert.throws(() => parseNewUi(scene('data-aun-scene="a" data-aun-title="T" data-aun-surface="watch"')),
+    /desktop or mobile/);
+  assert.throws(() => parseNewUi(scene('data-aun-scene="a" data-aun-surface="desktop"')),
+    /missing data-aun-title/);
+  assert.throws(() => parseNewUi('<p>no scenes here</p>'), /no scenes/);
+});
+
+test('a duplicate scene id is refused', () => {
+  const one = scene('data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop"');
+  assert.throws(() => parseNewUi(`${one}\n${one}`), /Duplicate New UI scene id "bridge"/);
+});
+
+test('an unclosed scene is refused rather than silently swallowing the file', () => {
+  assert.throws(
+    () => parseNewUi('<section data-aun-scene="a" data-aun-title="T" data-aun-surface="desktop"><p>x</p>'),
+    /missing its closing/);
+});
+
+test('a scene title carries no markup into the page, however it is nested', () => {
+  const plain = wrapNewUiScene(
+    { id: 'a', title: 'Br<span>idge', surface: 'desktop', intro: '', html: '<p>body</p>' });
+  const nested = wrapNewUiScene(
+    { id: 'b', title: 'Br<<span>span>idge', surface: 'desktop', intro: '', html: '<p>body</p>' });
+
+  assert.match(plain, /<title>Bridge — Agent-Up new UI<\/title>/);
+  // What is left of a nested tag stays text, and the escape makes it text on the page too, so
+  // nothing in a title can open an element whatever the strip leaves behind.
+  assert.match(nested, /<title>Brspan&gt;idge — Agent-Up new UI<\/title>/);
+  assert.ok(!nested.includes('<span>'), 'no tag may survive the strip');
+});
+
+test('a screen pairs its desktop and mobile scenes under one chip', () => {
+  const desktop = scene('data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop" data-aun-intro="Desk"');
+  const mobile = scene('data-aun-scene="mobile-bridge" data-aun-title="Mobile · Bridge" data-aun-surface="mobile" data-aun-intro="Phone"');
+  const row = '<section data-aun-screen="bridge" data-aun-title="Bridge" data-aun-desktop="bridge" data-aun-mobile="mobile-bridge"></section>';
+  const parsed = parseNewUi(`${row}\n${desktop}\n${mobile}`);
+  assert.equal(parsed.screens.length, 1);
+  assert.equal(parsed.screens[0].desktopId, 'bridge');
+  assert.equal(parsed.screens[0].mobileId, 'mobile-bridge');
+  assert.equal(parsed.screens[0].intro, 'Desk');
+  const manifest = newUiManifest(parsed);
+  assert.equal(manifest.screens[0].title, 'Bridge');
+  assert.equal(manifest.scenes.length, 2);
+});
+
+test('a screen intro is kept when the row writes one', () => {
+  const desktop = scene('data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop" data-aun-intro="Desk"');
+  const row = '<section data-aun-screen="bridge" data-aun-title="Bridge" data-aun-intro="Both" data-aun-desktop="bridge"></section>';
+  const parsed = parseNewUi(`${row}\n${desktop}`);
+  assert.equal(parsed.screens[0].intro, 'Both');
+  assert.equal(parsed.screens[0].mobileId, '');
+});
+
+test('a scene left off every screen is refused', () => {
+  const desktop = scene('data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop" data-aun-intro="Desk"');
+  const mobile = scene('data-aun-scene="mobile-bridge" data-aun-title="Bridge" data-aun-surface="mobile" data-aun-intro="Phone"');
+  const row = '<section data-aun-screen="bridge" data-aun-title="Bridge" data-aun-desktop="bridge"></section>';
+  assert.throws(() => parseNewUi(`${row}\n${desktop}\n${mobile}`), /mobile-bridge" is not on a screen/);
+});
+
+test('a screen must name a real scene of the surface it claims', () => {
+  const desktop = scene('data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop" data-aun-intro="Desk"');
+  assert.throws(
+    () => parseNewUi(`<section data-aun-screen="bridge" data-aun-title="Bridge" data-aun-desktop="missing"></section>\n${desktop}`),
+    /unknown scene "missing"/,
+  );
+  assert.throws(
+    () => parseNewUi(`<section data-aun-screen="bridge" data-aun-title="Bridge" data-aun-mobile="bridge"></section>\n${desktop}`),
+    /names "bridge" as mobile, but that scene is desktop/,
+  );
+  assert.throws(
+    () => parseNewUi(`<section data-aun-screen="bridge" data-aun-title="Bridge"></section>\n${desktop}`),
+    /neither a desktop nor a mobile/,
+  );
+  const first = '<section data-aun-screen="bridge" data-aun-title="Bridge" data-aun-desktop="bridge"></section>';
+  const second = '<section data-aun-screen="other" data-aun-title="Other" data-aun-desktop="bridge"></section>';
+  assert.throws(
+    () => parseNewUi(`${first}\n${second}\n${desktop}`),
+    /already on screen "bridge"/,
+  );
+});
+
+async function assembleNewUi() {
+  const directory = fileURLToPath(new URL('../src', import.meta.url));
+  const main = await readFile(new URL('../src/catalog.html', import.meta.url), 'utf8');
+  const extras = (await readdir(directory))
+    .filter(name => name.startsWith('catalog-') && name.endsWith('.html'))
+    .sort();
+  const fragments = await Promise.all(extras.map(name => readFile(new URL(`../src/${name}`, import.meta.url), 'utf8')));
+  const close = main.lastIndexOf('</body>');
+  const product = parseCatalog(`${main.slice(0, close)}\n${fragments.join('\n')}\n${main.slice(close)}`);
+  const extra = parseCatalog(await readFile(new URL('../src/new-ui/catalog.html', import.meta.url), 'utf8'));
+  applyDemo(extra, await loadDemo());
+  const screens = await readFile(new URL('../src/new-ui/screens.html', import.meta.url), 'utf8');
+  for (const value of [product, extra]) {
+    for (const surface of value.surfaces) {
+      for (const component of surface.components) {
+        if (!hasContentSlots(component)) continue;
+        component.source = component.html;
+        component.html = applyDefaultParts(component);
+      }
+    }
+  }
+  return assembleScreens(withProductCatalog(product, extra), screens);
+}
+
+test('new UI screens pair desktop and mobile instead of a chip per surface', async () => {
+  const { screens, scenes } = await assembleNewUi();
+  assert.deepEqual(screens.map(item => item.id), [
+    'team', 'agent-overview', 'application', 'agent-chat',
+    'agent-git', 'tasks', 'settings',
+  ]);
+  assert.deepEqual(screens.map(item => item.title), [
+    'Team', 'Agent · Overview', 'Agent · Application', 'Agent · Chat',
+    'Agent · Git', 'Tasks', 'Settings',
+  ]);
+  const team = screens.find(item => item.id === 'team');
+  assert.equal(team.desktopId, 'team');
+  assert.equal(team.mobileId, 'mobile-team');
+  const application = screens.find(item => item.id === 'application');
+  assert.equal(application.desktopId, 'application');
+  assert.equal(application.mobileId, 'mobile-application');
+  assert.equal(screens.some(item => item.id === 'menu' || item.id === 'bridge' || item.id === 'train' || item.id === 'sidebar'), false);
+  for (const scene of scenes.filter(item => item.surface === 'desktop')) {
+    assert.match(scene.html, /aria-label="Sidebar"/, `${scene.id} is missing the sidebar`);
+    assert.match(scene.html, /SERVER ONLINE/, `${scene.id} is missing the window bar`);
+    assert.match(scene.html, />Bob</, `${scene.id} is missing Bob`);
+    assert.match(scene.html, />Hector</, `${scene.id} is missing Hector`);
+    assert.match(scene.html, />Lucy</, `${scene.id} is missing Lucy`);
+    assert.match(scene.html, />Frank</, `${scene.id} is missing Frank`);
+    assert.match(scene.html, />Mia</, `${scene.id} is missing Mia`);
+    assert.match(scene.html, /Add workspace/, `${scene.id} is missing Add`);
+    assert.match(scene.html, />Team</, `${scene.id} is missing Team`);
+    assert.match(scene.html, />Tasks</, `${scene.id} is missing Tasks`);
+    assert.match(scene.html, />Settings</, `${scene.id} is missing Settings`);
+    assert.doesNotMatch(scene.html, /‹ Team/, `${scene.id} still has a Team back button`);
+    assert.doesNotMatch(scene.html, /Switch back/, `${scene.id} still switches back from the rail`);
+  }
+  assert.doesNotMatch(scenes.find(item => item.id === 'team').html, />Logout</);
+  const teamScene = scenes.find(item => item.id === 'team');
+  assert.match(teamScene.html, /Restock featured products/);
+  assert.match(teamScene.html, /aun-state-map__branch--working/);
+  assert.match(teamScene.html, /aun-state-map__branch--idle/);
+  assert.match(teamScene.html, /aun-state-map__branch--waiting/);
+  assert.match(teamScene.html, /aun-state-map__branch--halted/);
+  assert.match(teamScene.html, /feat\/45-deliver/);
+  assert.match(teamScene.html, /feat\/44-restock/);
+  assert.equal(teamScene.html.match(/class="au-workspace-branch"/g).length, 3);
+  assert.match(teamScene.html, /au-status-dot--healthy/);
+  assert.match(teamScene.html, /au-status-dot--warning/);
+  assert.match(teamScene.html, /au-status-dot--danger/);
+  assert.match(teamScene.html, /au-status-dot--idle/);
+  assert.match(teamScene.html, />Wait for approval</);
+  assert.match(teamScene.html, />Error</);
+  assert.match(teamScene.html, /aun-state-map__message/);
+  assert.doesNotMatch(teamScene.html, /In progress/);
+  assert.doesNotMatch(teamScene.html, /Task source/);
+  const phoneTeam = scenes.find(item => item.id === 'mobile-team');
+  assert.match(phoneTeam.html, /aun-state-map--mobile/);
+  assert.match(phoneTeam.html, /aun-state-map__branch--working/);
+  assert.match(phoneTeam.html, /aun-state-map__branch--idle/);
+  assert.match(phoneTeam.html, /5 agents · 1 working · 2 idle · 1 waiting for approval · 1 error/);
+  assert.doesNotMatch(scenes.find(item => item.id === 'team').html, /Reading the team/);
+  assert.doesNotMatch(scenes.find(item => item.id === 'team').html, /Harbor Shop/);
+  assert.match(scenes.find(item => item.id === 'agent-overview').html, />Bob</);
+  assert.doesNotMatch(scenes.find(item => item.id === 'agent-overview').html, /Harbor Shop/);
+  const desktopApp = scenes.find(item => item.id === 'application');
+  assert.match(desktopApp.html, /au-screen-aside/);
+  assert.match(desktopApp.html, /aun-validate-rail/);
+  assert.match(desktopApp.html, /Checkout featured goods/);
+  assert.match(desktopApp.html, /au-status-dot--healthy/);
+  assert.match(desktopApp.html, /au-status-dot--warning/);
+  assert.match(desktopApp.html, /au-status-dot--danger/);
+  assert.match(desktopApp.html, /au-status-dot--idle/);
+  assert.doesNotMatch(desktopApp.html, /au-validation-glyph/);
+  assert.doesNotMatch(scenes.find(item => item.id === 'team').html, /au-screen-aside/);
+  const phoneApp = scenes.find(item => item.id === 'mobile-application');
+  assert.match(phoneApp.html, /Storefront/);
+  assert.match(phoneApp.html, /au-validation-dock/);
+  assert.match(phoneApp.html, /No check selected/);
+  assert.match(phoneApp.html, /Checkout tote and lamp/);
+  assert.match(phoneApp.html, /aun-validate-beat/);
+  assert.match(phoneApp.html, /aun-validate__menu/);
+  assert.match(phoneApp.html, /aun-validate__sheet/);
+  assert.match(phoneApp.html, /Go back/);
+  assert.match(phoneApp.html, /aria-label="Run"/);
+  assert.doesNotMatch(phoneApp.html, /au-mobile-tab-bar/);
+  assert.doesNotMatch(phoneApp.html, /au-validation-glyph/);
+  assert.match(scenes.find(item => item.id === 'settings').html, />Logout</);
+  assert.match(scenes.find(item => item.id === 'settings').html, />Forge connection</);
+  assert.match(scenes.find(item => item.id === 'settings').html, />Capabilities</);
+  assert.match(scenes.find(item => item.id === 'settings').html, />Login</);
+  assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Logout</);
+  assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Forge connection</);
+  assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Capabilities</);
+  assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Login</);
+  assert.doesNotMatch(scenes.find(item => item.id === 'team').html, />Capabilities</);
+  assert.match(scenes.find(item => item.id === 'tasks').html, /class="au-page-title"/);
+  assert.match(scenes.find(item => item.id === 'tasks').html, /class="au-field-label"/);
+  assert.match(scenes.find(item => item.id === 'settings').html, /class="au-field-label"/);
+  assert.match(scenes.find(item => item.id === 'mobile-tasks').html, /class="au-page-title"/);
+  assert.doesNotMatch(scenes.find(item => item.id === 'tasks').html, /aun-phone__title/);
+  assert.match(scenes.find(item => item.id === 'tasks').html, /Restock featured products/);
+  assert.match(scenes.find(item => item.id === 'tasks').html, />Bob</);
+  assert.match(scenes.find(item => item.id === 'tasks').html, />Dequeue</);
+  assert.doesNotMatch(scenes.find(item => item.id === 'tasks').html, /Reported/);
+  assert.doesNotMatch(scenes.find(item => item.id === 'tasks').html, /waiting on you/);
+  assert.doesNotMatch(scenes.find(item => item.id === 'mobile-tasks').html, /waiting on you/);
+  assert.match(scenes.find(item => item.id === 'mobile-tasks').html, /Restock featured products/);
+  assert.match(scenes.find(item => item.id === 'mobile-tasks').html, />Queue</);
+  assert.doesNotMatch(scenes.find(item => item.id === 'tasks').html, /Nothing is queued/);
+  assert.match(scenes.find(item => item.id === 'agent-overview').html, /au-workspace--selected/);
+  assert.doesNotMatch(scenes.find(item => item.id === 'team').html, /au-workspace--selected/);
+  for (const scene of scenes.filter(item => item.surface === 'mobile')) {
+    assert.doesNotMatch(scene.html, /aria-label="Sidebar"/, `${scene.id} still has a sidebar`);
+    assert.doesNotMatch(scene.html, />Bridge</, `${scene.id} still has Bridge`);
+    assert.doesNotMatch(scene.html, />Train</, `${scene.id} still has Train`);
+  }
+  const overview = scenes.find(item => item.id === 'mobile-agent-overview');
+  assert.match(overview.html, /Back to the team/);
+  assert.match(overview.html, /Reload/);
+  assert.match(overview.html, /Storefront/);
+  const named = screens.flatMap(item => [item.desktopId, item.mobileId].filter(Boolean));
+  assert.equal(named.length, scenes.length);
+  assert.ok(screens.every(item => !item.title.startsWith('Mobile')));
+});
+
+test('a screen may omit its intro', () => {
+  const desktop = scene('data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop"');
+  const row = '<section data-aun-screen="bridge" data-aun-title="Bridge" data-aun-desktop="bridge"></section>';
+  const parsed = parseNewUi(`${row}\n${desktop}`);
+  assert.equal(parsed.screens[0].intro, '');
+  assert.equal(parsed.scenes[0].intro, '');
+});
+
+test('a scene file replaces the inline scene and an unclosed file does not', () => {
+  const inline = [
+    '<section data-aun-screen="bridge" data-aun-title="Bridge" data-aun-desktop="bridge" data-aun-mobile="mobile-bridge"></section>',
+    '<section data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop" data-aun-intro="Inline">inline</section>',
+    '<section data-aun-scene="mobile-bridge" data-aun-title="Mobile" data-aun-surface="mobile" data-aun-intro="Phone">phone</section>',
+  ].join('\n');
+  const merged = applyNewUiSceneFiles(inline, [
+    { html: '<section data-aun-scene="bridge" data-aun-title="Bridge" data-aun-surface="desktop">from file</section>' },
+    { html: '<section data-aun-scene="mobile-bridge" data-aun-title="Mobile" data-aun-surface="mobile">no close' },
+  ]);
+  const parsed = parseNewUi(merged);
+  assert.equal(parsed.scenes.find(item => item.id === 'bridge').html, 'from file');
+  assert.equal(parsed.scenes.find(item => item.id === 'bridge').intro, '');
+  assert.equal(parsed.scenes.find(item => item.id === 'mobile-bridge').html, 'phone');
+});
+
+test('new UI agent git assembles the client git pane', async () => {
+  const assembled = newUiFromAssembled(await assembleNewUi());
+  const git = assembled.scenes.find(item => item.id === 'agent-git');
+  const mobile = assembled.scenes.find(item => item.id === 'mobile-agent-git');
+  assert.match(git.html, /Git changes/);
+  assert.match(git.html, />Fetch</);
+  assert.match(git.html, /ProductGrid\.tsx/);
+  assert.match(git.html, /class="au-chrome"/);
+  assert.doesNotMatch(git.html, /PR #/);
+  assert.doesNotMatch(git.html, /FINDINGS/);
+  assert.match(mobile.html, /Changes/);
+  assert.match(mobile.html, /Commit message/);
+  assert.match(mobile.html, />Fetch</);
+  assert.match(mobile.html, /au-nav-icon/);
+  assert.match(mobile.html, /au-subtab--selected/);
+  assert.equal(assembled.screens.find(item => item.id === 'team').mobileId, 'mobile-team');
+});
+
+test('a New UI scene publishes the slots, states, and actions a command center binds', async () => {
+  const manifest = JSON.parse(await readFile(new URL('./dist/web/new-ui.json', root), 'utf8'));
+  const team = manifest.scenes.find(scene => scene.id === 'team');
+  const phone = manifest.scenes.find(scene => scene.id === 'mobile-application');
+  assert.ok(team.slots.some(slot => slot.name === 'workspaces' && slot.kind === 'repeat' && slot.repeat === 'workspace'));
+  assert.ok(team.slots.some(slot => slot.name === 'headline' && slot.kind === 'text'));
+  assert.ok(team.slots.some(slot => slot.name === 'fleet' && slot.kind === 'repeat' && slot.repeat === 'fleet-lane'));
+  assert.ok(team.actions.includes('add-workspace'));
+  assert.ok(team.states.includes('nav'));
+  const settings = manifest.scenes.find(scene => scene.id === 'settings');
+  assert.ok(settings.actions.includes('use-classic'));
+  assert.ok(phone.slots.some(slot => slot.name === 'application' && slot.kind === 'content'));
+  assert.ok(phone.slots.some(slot => slot.name === 'summary' && slot.kind === 'text'));
+  assert.ok(phone.slots.some(slot => slot.name === 'flows' && slot.repeat === 'command-flow'));
+  assert.ok(phone.actions.includes('run'));
+  assert.ok(phone.states.includes('open'));
+  const application = manifest.scenes.find(scene => scene.id === 'application');
+  assert.ok(application.actions.includes('browser-back'));
+  assert.ok(application.actions.includes('browser-forward'));
+  assert.ok(application.actions.includes('browser-reload'));
+  assert.ok(application.actions.includes('refresh'));
+  assert.ok(application.actions.includes('subtab-console'));
+  assert.ok(application.actions.includes('subtab-diagnostics'));
+  assert.ok(application.actions.includes('select-application'));
+  assert.ok(application.actions.includes('run'));
+  assert.ok(application.slots.some(slot => slot.name === 'address' && slot.kind === 'text'));
+  assert.ok(application.states.includes('checks'));
+  assert.ok(application.states.includes('tool'));
+  assert.ok(application.states.includes('browser'));
+  assert.ok(application.states.includes('console'));
+  assert.ok(application.actions.includes('toggle-validation'));
+  assert.ok(application.states.includes('collapsed'));
+  assert.ok(application.states.includes('expanded'));
+  assert.ok(application.states.includes('app'));
+  const settingsScene = manifest.scenes.find(scene => scene.id === 'settings');
+  assert.ok(settingsScene.actions.includes('settings-workspace'));
+  assert.ok(settingsScene.slots.some(slot => slot.name === 'chatFields' && slot.repeat === 'settings-field'));
+  assert.ok(settingsScene.slots.some(slot => slot.name === 'settingsWorkspaces' && slot.repeat === 'settings-workspace'));
+  assert.ok(settingsScene.states.includes('chatSettings'));
+});
+
+test('the mounted scene lays the title bar and fleet out, and keeps text inside a text node', async () => {
+  const scene = await readFile(new URL('./dist/native/new-ui-scene.js', root), 'utf8');
+  assert.equal(scene.includes('"t":"path"'), false, 'an svg path leaked out of its svg');
+  assert.match(scene, /if \(node\.t === '#text'\) return h\(Text/);
+  assert.match(scene, /"layout":"chrome"/);
+  assert.match(scene, /"layout":"lanes"/);
+  assert.match(scene, /"layout":"spread"/);
+  assert.match(scene, /M4 7h16M4 12h16M4 17h16/);
+  assert.match(scene, /width: 264/);
+  const generated = await readFile(new URL('./dist/dotnet/NewUiScene.g.cs', root), 'utf8');
+  assert.match(generated, /264,\*/);
+  assert.match(generated, /avares:\/\/AgentUp.Desktop\/media\/logo.png/);
+  assert.match(generated, /new Viewbox/);
+  assert.match(generated, /au-validation-flow-head\\"],\\"layout\\":\\"trio\\"/);
+  assert.match(generated, /IconFace/);
+  const styles = await readFile(new URL('./dist/avalonia/AgentUpNewUiStyles.axaml', root), 'utf8');
+  assert.match(styles, /Border\.aun-state-map__branch--working Border\.aun-state-map__mark/);
+  assert.match(styles, /Border\.aun-state-map__branch--idle Border\.aun-state-map__mark/);
+  assert.match(styles, /22,20,22,22/);
+  assert.match(styles, /Selector="Border\.au-status-dot"[\s\S]*?CornerRadius" Value="999"/);
+  assert.match(scene, /"c":\["au-workspace"\],"layout":"row"[\s\S]*?"flow":\{"d":"row","a":"center","g":12\}/);
+  assert.match(scene, /"c":\["au-workspace-delete"\][\s\S]{0,80}"push":true/);
+  const name = scene.indexOf('"text":"name"');
+  assert.ok(name > 0);
+  assert.equal(scene.slice(name, name + 80).includes('"t":"#text"'), false, 'a bound name still carries the sample text');
+});
+
+test('command centers mount the generated scene instead of drawing its regions again', async () => {
+  const manifest = JSON.parse(await readFile(new URL('./dist/web/new-ui.json', root), 'utf8'));
+  const desktop = await readFile(new URL('../AgentUp.Desktop/Features/Interface/Views/CommandCenterView.axaml', root), 'utf8');
+  const mobile = await readFile(new URL('../AgentUp.Mobile/src/features/interface/components/CommandCenterShell.tsx', root), 'utf8');
+  const regions = manifest.regions.filter(name => name.startsWith('aun-') || name.startsWith('au-screen') || name === 'au-mobile-tab-bar' || name === 'au-validation-sidebar');
+  for (const name of regions) {
+    assert.equal(desktop.includes(name), false, `desktop redraws ${name}`);
+    assert.equal(mobile.includes(name), false, `mobile redraws ${name}`);
+  }
+  assert.equal(desktop.includes('ColumnDefinitions="208,'), false);
+  assert.equal(mobile.includes('tabBar'), false);
+  assert.equal(mobile.includes('drawer'), false);
+  assert.match(desktop, /NewUiScene/);
+  assert.match(mobile, /createNewUiScene/);
+});
+
+test('reading a long tag that is not a scene stays linear', () => {
+  // The shape this guards: two unbounded runs around a literal backtrack quadratically here.
+  const haystack = `<section ${'data-other="x" '.repeat(20000)}>no scene</section>`;
+  const started = Date.now();
+  assert.throws(() => parseNewUi(haystack), /no scenes/);
+  assert.ok(Date.now() - started < 2000, 'parsing a long non-scene tag must not blow up');
+});

@@ -10,7 +10,7 @@ namespace AgentUp.AUDebug.Features.Screens.Providers;
 /// Routing is client-side on purpose. The Demo backend is an in-page object, so a document
 /// load would throw away the transcript, files, and commit the earlier screens built - and
 /// the static export has no file for a dynamic route such as
-/// <c>/workspace/harbor-shop/git/review</c> anyway. Pushing the history entry and letting
+/// <c>/workspace/bob/git/review</c> anyway. Pushing the history entry and letting
 /// the router pick it up keeps one session for the whole run.
 /// </remarks>
 public static class MobileScreenScriptProvider

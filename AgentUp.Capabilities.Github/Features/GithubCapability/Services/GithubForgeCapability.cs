@@ -41,10 +41,15 @@ public sealed class GithubForgeCapability : IForgeCapability
     public Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken = default)
         => _api.ReadAsync(request, cancellationToken);
 
-    public Task<IReadOnlyList<ForgeAssignedIssue>> ListAssignedAsync(
+    public Task<IReadOnlyList<ForgeIssue>> ListAssignedAsync(
         ForgeRequest request,
         CancellationToken cancellationToken = default)
         => _api.ListAssignedAsync(request, cancellationToken);
+
+    public Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
+        ForgeRequest request,
+        CancellationToken cancellationToken = default)
+        => _api.ListIssuesAsync(request, cancellationToken);
 
     public Task<ForgeProposal> OpenProposalAsync(
         ForgeRequest request,

@@ -1,0 +1,2450 @@
+// Generated from src/agent-up.css by scripts/build.mjs. Do not edit.
+export const newUiTheme = Object.freeze({
+  colors: Object.freeze({
+    canvas: "#0a0b0c",
+    surface: "#121416",
+    surfaceRaised: "#191c1f",
+    surfaceOverlay: "#202428",
+    surfaceHover: "#202224",
+    surfaceInput: "#17191b",
+    surfaceDanger: "#261a1c",
+    stateHover: "#ffffff0f",
+    stateActive: "#ffffff1a",
+    surfaceSelectedSoft: "#11211b",
+    surfaceSelected: "#10281d",
+    surfaceSelectedStrong: "#0f3220",
+    borderSubtle: "#ffffff14",
+    borderStrong: "#ffffff29",
+    borderSelected: "#00b85059",
+    borderDanger: "#d84f4f4d",
+    textPrimary: "#f5fbf7",
+    textSecondary: "#c2d2ca",
+    textMuted: "#8a9a92",
+    textFaint: "#718077",
+    textDanger: "#e48989",
+    textWarning: "#ffd66b",
+    textInfo: "#8bb7ff",
+    accent: "#00b850",
+    accentBright: "#00d66b",
+    accentSoft: "#2bf27a",
+    accentHover: "#13a35d",
+    accentDark: "#0a8c3c",
+    accentLine: "#00c257",
+    statusHealthy: "#22c55e",
+    statusInfo: "#4fa3d8",
+    statusWarning: "#e0a128",
+    statusDanger: "#d84f4f",
+    focus: "#00a8e8",
+    onAccent: "#000000",
+    scrim: "#0a0b0cb8",
+    overlay: "#0a0b0c73",
+    transparent: "#00000000",
+    gitLane0: "#2bf27a",
+    gitLane1: "#4fa3d8",
+    gitLane2: "#e0a128",
+    gitLane3: "#00a8e8",
+    gitLane4: "#8bb7ff",
+    gitLane5: "#ffd66b",
+    gitLane6: "#00d66b",
+    gitLane7: "#c2d2ca",
+  }),
+  spacing: Object.freeze({
+    1: 4,
+    2: 8,
+    3: 12,
+    4: 16,
+    5: 20,
+    6: 24,
+    8: 32,
+    10: 40,
+    12: 48,
+    16: 64,
+  }),
+  radii: Object.freeze({
+    xs: 4,
+    sm: 6,
+    md: 8,
+    lg: 12,
+    xl: 16,
+    pill: 999,
+  }),
+  typography: Object.freeze({
+    sizeXs: 12,
+    sizeSm: 14,
+    sizeMd: 16,
+    sizeLg: 20,
+    sizeXl: 28,
+    sizeDisplay: 44,
+    sizeUiXs: 11,
+    sizeUiSm: 12,
+    sizeUiMd: 13,
+    sizeUiLg: 14,
+    sizeUiXl: 22,
+    tight: 1.08,
+    normal: 1.5,
+    relaxed: 1.7,
+    regular: 400,
+    medium: 500,
+    semibold: 600,
+    bold: 700,
+    black: 800,
+    ui: 500,
+    uiStrong: 600,
+  }),
+  controls: Object.freeze({
+    heightCompact: 32,
+    height: 44,
+    heightTouch: 44,
+  }),
+  fonts: Object.freeze({
+    sans: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    mono: "\"JetBrains Mono\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace",
+  }),
+  components: Object.freeze({
+    theme: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#0a0b0c",
+      fontSize: 16,
+    }),
+    eyebrow: Object.freeze({
+      color: "#2bf27a",
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 1.54,
+      textTransform: 'uppercase',
+    }),
+    display: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 44,
+      fontWeight: '700',
+      letterSpacing: -1.1,
+    }),
+    title: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 32,
+      fontWeight: '700',
+      letterSpacing: -0.8,
+    }),
+    heading: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 20,
+      fontWeight: '700',
+      letterSpacing: -0.5,
+    }),
+    pageTitle: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 22,
+      fontWeight: '600',
+      letterSpacing: -0.44,
+    }),
+    fieldLabel: Object.freeze({
+      color: "#718077",
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 0.66,
+      textTransform: 'uppercase',
+    }),
+    lede: Object.freeze({
+      maxWidth: 704,
+      color: "#c2d2ca",
+      fontSize: 16.8,
+    }),
+    muted: Object.freeze({
+      color: "#8a9a92",
+    }),
+    mono: Object.freeze({
+
+    }),
+    accent: Object.freeze({
+      color: "#2bf27a",
+    }),
+    card: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+    }),
+    cardSelected: Object.freeze({
+      backgroundColor: "#11211b",
+      borderColor: "#ffffff14",
+    }),
+    cardDanger: Object.freeze({
+      backgroundColor: "#261a1c",
+      borderColor: "#d84f4f4d",
+    }),
+    choice: Object.freeze({
+      minWidth: 0,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+    }),
+    choiceDisabled: Object.freeze({
+      opacity: 0.45,
+    }),
+    choiceSelected: Object.freeze({
+      backgroundColor: "#11211b",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00c257",
+    }),
+    choiceCompact: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    }),
+    choiceLabel: Object.freeze({
+      minWidth: 0,
+    }),
+    button: Object.freeze({
+      minHeight: 44,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderWidth: 1,
+      borderColor: "#00000000",
+      borderRadius: 8,
+      color: "#000000",
+      backgroundColor: "#00b850",
+      fontSize: 14,
+      fontWeight: '600',
+      letterSpacing: -0.07,
+    }),
+    buttonDisabled: Object.freeze({
+      opacity: 0.38,
+    }),
+    buttonSecondary: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
+      borderColor: "#ffffff29",
+    }),
+    buttonDanger: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#d84f4f",
+    }),
+    buttonCompact: Object.freeze({
+      minHeight: 32,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      fontSize: 12,
+    }),
+    input: Object.freeze({
+      minHeight: 44,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      color: "#f5fbf7",
+      backgroundColor: "#17191b",
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      borderRadius: 8,
+      fontSize: 14,
+    }),
+    badge: Object.freeze({
+      minHeight: 28,
+      paddingHorizontal: 10.4,
+      paddingVertical: 4,
+      color: "#c2d2ca",
+      backgroundColor: "#121416",
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      borderRadius: 999,
+      fontSize: 11,
+      fontWeight: '600',
+    }),
+    badgeHealthy: Object.freeze({
+      color: "#f5fbf7",
+      borderColor: "#22c55e",
+    }),
+    badgeWarning: Object.freeze({
+      color: "#ffd66b",
+      borderColor: "#e0a128",
+    }),
+    badgeDanger: Object.freeze({
+      color: "#e48989",
+      borderColor: "#d84f4f",
+    }),
+    badgeInfo: Object.freeze({
+      color: "#8bb7ff",
+      borderColor: "#4fa3d8",
+    }),
+    statusDot: Object.freeze({
+      width: 8,
+      height: 8,
+      borderRadius: 999,
+      backgroundColor: "#8a9a92",
+    }),
+    statusDotHealthy: Object.freeze({
+      backgroundColor: "#22c55e",
+    }),
+    statusDotWarning: Object.freeze({
+      backgroundColor: "#e0a128",
+    }),
+    statusDotDanger: Object.freeze({
+      backgroundColor: "#d84f4f",
+    }),
+    statusDotInfo: Object.freeze({
+      backgroundColor: "#4fa3d8",
+    }),
+    checkbox: Object.freeze({
+      width: 18,
+      height: 18,
+      backgroundColor: "#00000000",
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      borderRadius: 4,
+    }),
+    checkboxChecked: Object.freeze({
+      backgroundColor: "#00b850",
+      borderColor: "#00b850",
+    }),
+    tabs: Object.freeze({
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+    }),
+    tab: Object.freeze({
+      minHeight: 32,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#8a9a92",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderBottomWidth: 2,
+      borderBottomColor: "#00000000",
+      backgroundColor: "#00000000",
+      fontSize: 13,
+      fontWeight: '500',
+    }),
+    tabSelected: Object.freeze({
+      color: "#f5fbf7",
+      fontWeight: '600',
+      borderBottomWidth: 2,
+      borderBottomColor: "#00c257",
+    }),
+    callout: Object.freeze({
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      color: "#c2d2ca",
+      backgroundColor: "#121416",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00c257",
+      borderRadius: 12,
+    }),
+    calloutDanger: Object.freeze({
+      backgroundColor: "#261a1c",
+    }),
+    calloutWarning: Object.freeze({
+
+    }),
+    code: Object.freeze({
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      color: "#c2d2ca",
+      backgroundColor: "#121416",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 8,
+      fontSize: 14,
+    }),
+    swatch: Object.freeze({
+      width: 48,
+      height: 48,
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      borderRadius: 8,
+    }),
+    example: Object.freeze({
+
+    }),
+    example__preview: Object.freeze({
+      minHeight: 96,
+      paddingHorizontal: 20,
+      paddingVertical: 20,
+      color: "#f5fbf7",
+      backgroundColor: "#0a0b0c",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+    }),
+    example__meta: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 12,
+    }),
+    example__state: Object.freeze({
+      borderLeftWidth: 2,
+      borderLeftColor: "#00b85059",
+    }),
+    panel: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#121416",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+    }),
+    pane: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#121416",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+    }),
+    overlayPanel: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#202428",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 16,
+    }),
+    divider: Object.freeze({
+      height: 1,
+      backgroundColor: "#ffffff14",
+      borderWidth: 0,
+      borderColor: "#00000000",
+    }),
+    scrim: Object.freeze({
+      backgroundColor: "#0a0b0cb8",
+    }),
+    chrome: Object.freeze({
+      minHeight: 42,
+      paddingHorizontal: 12,
+      paddingVertical: 0,
+      color: "#f5fbf7",
+      backgroundColor: "#0a0b0c",
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+    }),
+    chromeMark: Object.freeze({
+      width: 18,
+      height: 18,
+      backgroundColor: "#00b850",
+    }),
+    chromeButton: Object.freeze({
+      width: 46,
+      height: 32,
+      color: "#f5fbf7",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderRadius: 0,
+    }),
+    chromeIcon: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 13,
+      fontWeight: '500',
+    }),
+    chromeTitle: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    titleTool: Object.freeze({
+      width: 32,
+      height: 30,
+      backgroundColor: "#00000000",
+      borderRadius: 6,
+    }),
+    workspace: Object.freeze({
+      minWidth: 0,
+      minHeight: 48,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#c2d2ca",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00000000",
+      borderRadius: 8,
+    }),
+    workspaceName: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    workspaceBranch: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 11,
+    }),
+    workspaceSelected: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#10281d",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00c257",
+    }),
+    rail: Object.freeze({
+      backgroundColor: "#0a0b0c",
+      borderRightWidth: 1,
+      borderRightColor: "#ffffff14",
+    }),
+    drawer: Object.freeze({
+      width: 280,
+      maxWidth: "82%",
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      color: "#f5fbf7",
+      backgroundColor: "#0a0b0c",
+      borderRightWidth: 1,
+      borderRightColor: "#ffffff14",
+    }),
+    workspaceAvatar: Object.freeze({
+      width: 32,
+      height: 32,
+      backgroundColor: "#121416",
+      borderRadius: 8,
+    }),
+    workspaceAvatarSelected: Object.freeze({
+      backgroundColor: "#0f3220",
+    }),
+    workspaceAdd: Object.freeze({
+      width: 24,
+      height: 24,
+      color: "#2bf27a",
+      backgroundColor: "#191c1f",
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      borderRadius: 6,
+    }),
+    workspaceDelete: Object.freeze({
+      width: 24,
+      height: 24,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      color: "#8a9a92",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      opacity: 0.7,
+      fontSize: 16,
+    }),
+    lifecycleButton: Object.freeze({
+      width: 28,
+      height: 28,
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      borderRadius: 6,
+    }),
+    lifecycleButtonDisabled: Object.freeze({
+      opacity: 0.45,
+    }),
+    appTab: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#8a9a92",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderBottomWidth: 2,
+      borderBottomColor: "#00000000",
+      fontSize: 13,
+      fontWeight: '500',
+    }),
+    appTabSelected: Object.freeze({
+      color: "#f5fbf7",
+      fontWeight: '600',
+      borderBottomWidth: 2,
+      borderBottomColor: "#00c257",
+    }),
+    subtab: Object.freeze({
+      minHeight: 32,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      color: "#8a9a92",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderRadius: 6,
+      fontSize: 12,
+      fontWeight: '500',
+    }),
+    subtabSelected: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#ffffff1a",
+      fontWeight: '600',
+    }),
+    navTab: Object.freeze({
+      minHeight: 36,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+    }),
+    sessionRow: Object.freeze({
+      minHeight: 44,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#f5fbf7",
+      backgroundColor: "#10281d",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00c257",
+      borderRadius: 8,
+    }),
+    sessionLogout: Object.freeze({
+      minHeight: 44,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#f5fbf7",
+      backgroundColor: "#00000000",
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      borderRadius: 8,
+      fontSize: 13,
+      fontWeight: '500',
+    }),
+    addressBar: Object.freeze({
+      minHeight: 28,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      color: "#c2d2ca",
+      backgroundColor: "#17191b",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 8,
+      fontSize: 11,
+    }),
+    browserButton: Object.freeze({
+      width: 28,
+      height: 28,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      borderRadius: 6,
+    }),
+    errorBanner: Object.freeze({
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      color: "#e48989",
+      backgroundColor: "#261a1c",
+      borderWidth: 1,
+      borderColor: "#d84f4f4d",
+      borderRadius: 12,
+    }),
+    console: Object.freeze({
+      minHeight: 192,
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      color: "#c2d2ca",
+      backgroundColor: "#0a0b0c",
+      fontSize: 11,
+    }),
+    gitChangeList: Object.freeze({
+      minHeight: 0,
+      color: "#f5fbf7",
+      backgroundColor: "#121416",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+      paddingHorizontal: 0,
+      paddingVertical: 4,
+    }),
+    gitRow: Object.freeze({
+      minHeight: 32,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      color: "#c2d2ca",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00000000",
+      borderRadius: 8,
+    }),
+    gitTreeGuide: Object.freeze({
+      width: 20,
+      minHeight: 32,
+      color: "#8a9a92",
+      backgroundColor: "#00000000",
+      borderLeftWidth: 1,
+      borderLeftColor: "#ffffff14",
+    }),
+    gitTreeToggle: Object.freeze({
+      width: 14,
+      minHeight: 32,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      color: "#8a9a92",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    gitTreeToggleExpanded: Object.freeze({
+      color: "#8a9a92",
+    }),
+    gitTreeToggleCollapsed: Object.freeze({
+      color: "#8a9a92",
+    }),
+    gitRowSelected: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#10281d",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00c257",
+    }),
+    gitChangeName: Object.freeze({
+      minWidth: 0,
+      color: "#f5fbf7",
+      fontSize: 13,
+      fontWeight: '500',
+    }),
+    gitChangeNameDirectory: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    gitStatus: Object.freeze({
+      width: 14,
+      color: "#c2d2ca",
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    gitStatusAdded: Object.freeze({
+      color: "#2bf27a",
+    }),
+    gitStatusUntracked: Object.freeze({
+      color: "#22c55e",
+    }),
+    gitStatusDeleted: Object.freeze({
+      color: "#d84f4f",
+    }),
+    gitStatusModified: Object.freeze({
+      color: "#4fa3d8",
+    }),
+    gitStatusRenamed: Object.freeze({
+      color: "#8bb7ff",
+    }),
+    gitStatusConflicted: Object.freeze({
+      color: "#e0a128",
+    }),
+    gitStatusDirectory: Object.freeze({
+      color: "#8a9a92",
+    }),
+    gitInsertions: Object.freeze({
+      color: "#2bf27a",
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    gitDeletions: Object.freeze({
+      color: "#e48989",
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    gitInsertionsOnPrimary: Object.freeze({
+      color: "#000000",
+    }),
+    gitDeletionsOnPrimary: Object.freeze({
+      color: "#000000",
+    }),
+    auditHeader: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#718077",
+      backgroundColor: "#00000000",
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 0.66,
+      textTransform: 'uppercase',
+    }),
+    auditRow: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      color: "#c2d2ca",
+      backgroundColor: "#00000000",
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+      fontSize: 11,
+    }),
+    pageJump: Object.freeze({
+      minWidth: 28,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      color: "#8a9a92",
+      backgroundColor: "#00000000",
+      borderWidth: 1,
+      borderColor: "#00000000",
+      borderRadius: 6,
+      fontSize: 12,
+    }),
+    pageJumpCurrent: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#ffffff1a",
+      borderColor: "#ffffff14",
+    }),
+    metricsCard: Object.freeze({
+      minHeight: 92,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      color: "#f5fbf7",
+      backgroundColor: "#121416",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+    }),
+    metricsChart: Object.freeze({
+      minHeight: 192,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      color: "#8a9a92",
+      backgroundColor: "#121416",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+    }),
+    validationSidebar: Object.freeze({
+      width: 360,
+      minHeight: 0,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      color: "#f5fbf7",
+      backgroundColor: "#0a0b0c",
+      borderLeftWidth: 1,
+      borderLeftColor: "#ffffff14",
+    }),
+    validationSidebarCollapsed: Object.freeze({
+      width: 56,
+    }),
+    validationSidebarHead: Object.freeze({
+      paddingHorizontal: 10,
+      paddingVertical: 10,
+    }),
+    validationSidebarCopy: Object.freeze({
+      minWidth: 0,
+    }),
+    validationDock: Object.freeze({
+      height: 50,
+      minHeight: 50,
+      paddingHorizontal: 12,
+      paddingVertical: 0,
+      color: "#f5fbf7",
+      backgroundColor: "#0a0b0c",
+      borderTopWidth: 1,
+      borderTopColor: "#ffffff14",
+    }),
+    validationDockCopy: Object.freeze({
+      minWidth: 0,
+    }),
+    validationDockList: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#202428",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 8,
+    }),
+    validationPlay: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 7.04,
+      color: "#f5fbf7",
+      backgroundColor: "#0f3220",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderRadius: 6,
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    validationFlow: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 8,
+    }),
+    validationFlowHead: Object.freeze({
+
+    }),
+    validationCopy: Object.freeze({
+      minWidth: 0,
+    }),
+    validationSteps: Object.freeze({
+      marginLeft: 24,
+    }),
+    validationStage: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#00000000",
+    }),
+    validationStep: Object.freeze({
+      fontSize: 12,
+    }),
+    validationCheck: Object.freeze({
+      fontSize: 12,
+      color: "#c2d2ca",
+    }),
+    validationChecks: Object.freeze({
+      marginLeft: 18,
+    }),
+    validationGlyph: Object.freeze({
+      width: 14,
+      color: "#8a9a92",
+      fontWeight: '600',
+    }),
+    validationGlyphPassed: Object.freeze({
+      color: "#22c55e",
+    }),
+    validationGlyphFailed: Object.freeze({
+      color: "#d84f4f",
+    }),
+    validationGlyphRunning: Object.freeze({
+      color: "#e0a128",
+    }),
+    signIn: Object.freeze({
+      paddingHorizontal: 20,
+      paddingVertical: 20,
+      color: "#f5fbf7",
+      backgroundColor: "#121416",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 16,
+    }),
+    tutorialButton: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#000000",
+      backgroundColor: "#00b850",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderRadius: 8,
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    tutorialButtonDisabled: Object.freeze({
+      backgroundColor: "#202224",
+    }),
+    tutorialButtonSecondary: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+    }),
+    listItem: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#c2d2ca",
+      backgroundColor: "#00000000",
+      borderRadius: 6,
+    }),
+    listItemSelected: Object.freeze({
+      backgroundColor: "#10281d",
+      color: "#f5fbf7",
+    }),
+    codeEditor: Object.freeze({
+      minHeight: 96,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#c2d2ca",
+      backgroundColor: "#17191b",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 8,
+      fontSize: 13,
+    }),
+    dbRun: Object.freeze({
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      color: "#000000",
+      backgroundColor: "#00b850",
+      borderWidth: 1,
+      borderColor: "#00000000",
+      borderRadius: 8,
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    dbHeaderCell: Object.freeze({
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      color: "#718077",
+      backgroundColor: "#191c1f",
+      borderRightWidth: 1,
+      borderRightColor: "#ffffff14",
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 0.66,
+      textTransform: 'uppercase',
+    }),
+    dbDataCell: Object.freeze({
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      color: "#c2d2ca",
+      backgroundColor: "#121416",
+      borderRightWidth: 1,
+      borderRightColor: "#ffffff14",
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+      fontSize: 11,
+    }),
+    mobileBar: Object.freeze({
+      minHeight: 56,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#f5fbf7",
+      backgroundColor: "#0a0b0c",
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+    }),
+    mobileTabBar: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      color: "#f5fbf7",
+      backgroundColor: "#0a0b0c",
+      borderTopWidth: 1,
+      borderTopColor: "#ffffff14",
+    }),
+    mobileCard: Object.freeze({
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      color: "#f5fbf7",
+      backgroundColor: "#121416",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+    }),
+    chip: Object.freeze({
+      minHeight: 28,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      color: "#8a9a92",
+      backgroundColor: "#00000000",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 6,
+      fontSize: 12,
+      fontWeight: '500',
+    }),
+    chipSelected: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#ffffff1a",
+      fontWeight: '600',
+    }),
+    chatThought: Object.freeze({
+      marginLeft: 20,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      color: "#8a9a92",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderLeftWidth: 1,
+      borderLeftColor: "#ffffff14",
+      fontSize: 12,
+      fontWeight: '500',
+    }),
+    chatThoughtBody: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 14,
+      fontStyle: 'italic',
+    }),
+    chatUser: Object.freeze({
+      maxWidth: "80%",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      color: "#f5fbf7",
+      backgroundColor: "#10281d",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+    }),
+    chatWork: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#c2d2ca",
+      backgroundColor: "#121416",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 8,
+    }),
+    chatRun: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      color: "#8a9a92",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderRadius: 8,
+      fontSize: 12,
+      fontWeight: '500',
+    }),
+    chatTranscript: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      backgroundColor: "#00000000",
+    }),
+    screen: Object.freeze({
+      minHeight: "100%",
+      color: "#f5fbf7",
+      backgroundColor: "#0a0b0c",
+    }),
+    screenBody: Object.freeze({
+      minHeight: 0,
+    }),
+    screenRail: Object.freeze({
+      minHeight: 0,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+    }),
+    screenMain: Object.freeze({
+      minWidth: 0,
+      minHeight: 0,
+    }),
+    screenTabs: Object.freeze({
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+      paddingHorizontal: 12,
+      paddingVertical: 0,
+    }),
+    screenSubtabs: Object.freeze({
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    }),
+    tabSep: Object.freeze({
+      width: 1,
+      height: 18,
+      backgroundColor: "#ffffff29",
+    }),
+    screenToolbar: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+    }),
+    screenPane: Object.freeze({
+      minHeight: 0,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+    }),
+    screenAside: Object.freeze({
+      minWidth: 0,
+      minHeight: 0,
+    }),
+    workspaceHead: Object.freeze({
+
+    }),
+    overview: Object.freeze({
+
+    }),
+    overviewGrid: Object.freeze({
+
+    }),
+    gitToolbar: Object.freeze({
+
+    }),
+    gitCommit: Object.freeze({
+
+    }),
+    gitLog: Object.freeze({
+      minHeight: 192,
+      backgroundColor: "#0a0b0c",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+    }),
+    storefrontGrid: Object.freeze({
+
+    }),
+    agentHeader: Object.freeze({
+
+    }),
+    agentPrompt: Object.freeze({
+
+    }),
+    appList: Object.freeze({
+
+    }),
+    cartRow: Object.freeze({
+
+    }),
+    fileViewer: Object.freeze({
+      minHeight: 256,
+      minWidth: 288,
+      color: "#f5fbf7",
+      backgroundColor: "#202428",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 16,
+    }),
+    fileViewerHeader: Object.freeze({
+      minHeight: 32,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+      borderRadius: 16,
+    }),
+    fileViewerPath: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    fileViewerStatus: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 11,
+      fontWeight: '500',
+      textTransform: 'uppercase',
+      letterSpacing: 0.66,
+    }),
+    fileViewerNav: Object.freeze({
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      color: "#c2d2ca",
+      backgroundColor: "#121416",
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+    }),
+    fileViewerJump: Object.freeze({
+      minHeight: 32,
+      paddingHorizontal: 8,
+      paddingVertical: 0,
+      color: "#c2d2ca",
+      backgroundColor: "#191c1f",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 6,
+      fontSize: 11,
+    }),
+    fileViewerGoto: Object.freeze({
+      width: 72,
+      minHeight: 32,
+      paddingHorizontal: 8,
+      paddingVertical: 0,
+      color: "#f5fbf7",
+      backgroundColor: "#17191b",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 6,
+      fontSize: 11,
+    }),
+    fileViewerBody: Object.freeze({
+      minHeight: 160,
+      color: "#c2d2ca",
+      backgroundColor: "#0a0b0c",
+    }),
+    fileViewerLine: Object.freeze({
+      minHeight: 22,
+      paddingHorizontal: 8,
+      paddingVertical: 0,
+      color: "#c2d2ca",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00000000",
+      fontSize: 11,
+    }),
+    fileViewerLineAdded: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#11211b",
+    }),
+    fileViewerLineDeleted: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#261a1c",
+    }),
+    fileViewerLineHunk: Object.freeze({
+      color: "#8bb7ff",
+      backgroundColor: "#121416",
+    }),
+    fileViewerLineMeta: Object.freeze({
+      color: "#8a9a92",
+      backgroundColor: "#121416",
+    }),
+    fileViewerLineCurrent: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#10281d",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00c257",
+    }),
+    fileViewerGutter: Object.freeze({
+      width: 52,
+      color: "#718077",
+      fontSize: 11,
+    }),
+    fileViewerPrefix: Object.freeze({
+      width: 14,
+      color: "#718077",
+      fontSize: 11,
+    }),
+    fileViewerPrefixAdded: Object.freeze({
+      color: "#2bf27a",
+    }),
+    fileViewerPrefixDeleted: Object.freeze({
+      color: "#e48989",
+    }),
+    fileViewerCode: Object.freeze({
+      color: "#c2d2ca",
+      fontSize: 11,
+    }),
+    syntaxPlain: Object.freeze({
+      color: "#c2d2ca",
+    }),
+    syntaxKeyword: Object.freeze({
+      color: "#8bb7ff",
+    }),
+    syntaxType: Object.freeze({
+      color: "#4fa3d8",
+    }),
+    syntaxString: Object.freeze({
+      color: "#ffd66b",
+    }),
+    syntaxComment: Object.freeze({
+      color: "#8a9a92",
+      fontStyle: 'italic',
+    }),
+    syntaxNumber: Object.freeze({
+      color: "#e0a128",
+    }),
+    syntaxFunction: Object.freeze({
+      color: "#f5fbf7",
+    }),
+    syntaxProperty: Object.freeze({
+      color: "#c2d2ca",
+    }),
+    syntaxPunctuation: Object.freeze({
+      color: "#718077",
+    }),
+    syntaxOperator: Object.freeze({
+      color: "#c2d2ca",
+    }),
+    gitLogFlush: Object.freeze({
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderRadius: 0,
+      backgroundColor: "transparent",
+      minHeight: 0,
+    }),
+    gitLogDetail: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+    }),
+    gitLogTrack: Object.freeze({
+      minWidth: 0,
+    }),
+    gitLogGraphScroll: Object.freeze({
+      minWidth: 0,
+    }),
+    gitLogRow: Object.freeze({
+      minHeight: 28,
+      paddingHorizontal: 12,
+      paddingVertical: 0,
+      color: "#c2d2ca",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00000000",
+      borderRadius: 8,
+      fontSize: 12,
+    }),
+    gitLogRowSelected: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#10281d",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00c257",
+    }),
+    gitLogGraph: Object.freeze({
+      backgroundColor: "#00000000",
+    }),
+    gitLogLane0: Object.freeze({
+      color: "#2bf27a",
+    }),
+    gitLogLane1: Object.freeze({
+      color: "#4fa3d8",
+    }),
+    gitLogLane2: Object.freeze({
+      color: "#e0a128",
+    }),
+    gitLogLane3: Object.freeze({
+      color: "#00a8e8",
+    }),
+    gitLogLane4: Object.freeze({
+      color: "#8bb7ff",
+    }),
+    gitLogLane5: Object.freeze({
+      color: "#ffd66b",
+    }),
+    gitLogLane6: Object.freeze({
+      color: "#00d66b",
+    }),
+    gitLogLane7: Object.freeze({
+      color: "#c2d2ca",
+    }),
+    gitLogBody: Object.freeze({
+      minWidth: 0,
+    }),
+    gitLogSubject: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 12,
+      fontWeight: '500',
+    }),
+    gitLogAuthor: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 11,
+      fontWeight: '500',
+    }),
+    gitLogTime: Object.freeze({
+      width: 108,
+      color: "#718077",
+      fontSize: 11,
+    }),
+    gitLogRef: Object.freeze({
+      maxWidth: 176,
+      minHeight: 20,
+      paddingHorizontal: 8,
+      paddingVertical: 0,
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 999,
+      fontSize: 11,
+      fontWeight: '500',
+    }),
+    gitLogRefHead: Object.freeze({
+      color: "#2bf27a",
+      borderColor: "#00b85059",
+    }),
+    gitLogRefRemote: Object.freeze({
+      color: "#8bb7ff",
+    }),
+    gitLogRefTag: Object.freeze({
+      color: "#8a9a92",
+    }),
+    gitLogNode: Object.freeze({
+      width: 8,
+      height: 8,
+      borderRadius: 999,
+    }),
+    aun: Object.freeze({
+      backgroundColor: "#0a0b0c",
+      color: "#f5fbf7",
+      fontSize: 13,
+      minHeight: "100%",
+    }),
+    aunMono: Object.freeze({
+
+    }),
+    aunMuted: Object.freeze({
+      color: "#8a9a92",
+    }),
+    aunFaint: Object.freeze({
+      color: "#718077",
+    }),
+    aunRail: Object.freeze({
+      backgroundColor: "#121416",
+      borderRightWidth: 1,
+      borderRightColor: "#ffffff14",
+      paddingHorizontal: 12,
+      paddingVertical: 16,
+    }),
+    aunRailServer: Object.freeze({
+      minWidth: 0,
+    }),
+    aunRailName: Object.freeze({
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    aunRailUrl: Object.freeze({
+      fontSize: 11,
+      color: "#8a9a92",
+    }),
+    aunRailLink: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: "#00b85059",
+      fontSize: 12,
+      color: "#f5fbf7",
+      backgroundColor: "#10281d",
+      fontWeight: '600',
+    }),
+    aunRailSection: Object.freeze({
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 1.21,
+      color: "#718077",
+    }),
+    aunRailAgent: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: "#00b85059",
+      fontSize: 12,
+      color: "#f5fbf7",
+      backgroundColor: "#10281d",
+      fontWeight: '600',
+    }),
+    aunNavRow: Object.freeze({
+
+    }),
+    aunNavSubs: Object.freeze({
+
+    }),
+    aunNav: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderRadius: 6,
+      backgroundColor: "transparent",
+      color: "#c2d2ca",
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    aunNavCurrent: Object.freeze({
+      backgroundColor: "#10281d",
+      color: "#f5fbf7",
+    }),
+    aunRailSwitch: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      borderRadius: 6,
+      backgroundColor: "#191c1f",
+      color: "#c2d2ca",
+      fontSize: 12,
+    }),
+    aunRailSpacer: Object.freeze({
+
+    }),
+    aunMain: Object.freeze({
+      minWidth: 0,
+      paddingHorizontal: 32,
+      paddingVertical: 24,
+    }),
+    aunMainBridge: Object.freeze({
+      maxWidth: 1040,
+    }),
+    aunStateMap: Object.freeze({
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+      backgroundColor: "#0a0b0c",
+    }),
+    aunStateMapHead: Object.freeze({
+
+    }),
+    aunStateMapKicker: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 0.88,
+    }),
+    aunStateMapDek: Object.freeze({
+      color: "#718077",
+      fontSize: 12,
+    }),
+    aunStateMapRoot: Object.freeze({
+      width: 256,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      borderRadius: 8,
+      backgroundColor: "#191c1f",
+    }),
+    aunStateMapTotal: Object.freeze({
+      fontSize: 22,
+      fontWeight: '600',
+      color: "#f5fbf7",
+    }),
+    aunStateMapTotalLabel: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 0.66,
+    }),
+    aunStateMapRootTitle: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    aunStateMapRootMeta: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 11,
+    }),
+    aunStateMapStem: Object.freeze({
+      backgroundColor: "#718077",
+      width: 2,
+      height: 22,
+    }),
+    aunStateMapCrossbar: Object.freeze({
+      backgroundColor: "#718077",
+      height: 2,
+    }),
+    aunStateMapDrop: Object.freeze({
+      backgroundColor: "#718077",
+      width: 2,
+      height: 16,
+    }),
+    aunStateMapLanes: Object.freeze({
+
+    }),
+    aunStateMapLane: Object.freeze({
+      minWidth: 0,
+    }),
+    aunStateMapBranch: Object.freeze({
+      minHeight: 0,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      borderRadius: 8,
+      backgroundColor: "#191c1f",
+    }),
+    aunStateMapBranchHead: Object.freeze({
+
+    }),
+    aunStateMapMark: Object.freeze({
+      width: 14,
+      height: 14,
+      borderRadius: 999,
+      backgroundColor: "#718077",
+    }),
+    aunStateMapBranchCopy: Object.freeze({
+      minWidth: 0,
+    }),
+    aunStateMapBranchTitle: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    aunStateMapBranchMeta: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 11,
+    }),
+    aunStateMapCount: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 12,
+    }),
+    aunStateMapHost: Object.freeze({
+      minWidth: 0,
+      borderTopWidth: 1,
+      borderTopColor: "#ffffff14",
+    }),
+    aunStateMapAgent: Object.freeze({
+      minWidth: 0,
+      color: "inherit",
+    }),
+    aunStateMapAgentName: Object.freeze({
+      minWidth: 0,
+      color: "#f5fbf7",
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    aunStateMapAgentTask: Object.freeze({
+      minWidth: 0,
+      color: "#8a9a92",
+      fontSize: 11,
+    }),
+    aunStateMapMessage: Object.freeze({
+      minWidth: 0,
+      color: "#c2d2ca",
+      fontSize: 11,
+    }),
+    aunStateMapMessages: Object.freeze({
+      borderTopWidth: 1,
+      borderTopColor: "#ffffff29",
+    }),
+    aunStateMapEmpty: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 11,
+    }),
+    aunTaskSummary: Object.freeze({
+      paddingHorizontal: 20,
+      paddingVertical: 20,
+    }),
+    aunTaskSummaryHead: Object.freeze({
+      color: "#718077",
+      fontSize: 10,
+    }),
+    aunTaskSummaryRow: Object.freeze({
+      borderTopWidth: 1,
+      borderTopColor: "#ffffff14",
+      fontSize: 12,
+    }),
+    aunHead: Object.freeze({
+
+    }),
+    aunTitle: Object.freeze({
+      fontSize: 22,
+      fontWeight: '700',
+      letterSpacing: -0.22,
+    }),
+    aunSubtitle: Object.freeze({
+      fontSize: 12,
+      color: "#8a9a92",
+    }),
+    aunSectionHead: Object.freeze({
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 0.99,
+      color: "#8a9a92",
+    }),
+    aunSectionHeadGate: Object.freeze({
+      color: "#ffd66b",
+    }),
+    aunSectionHeadHalted: Object.freeze({
+      color: "#e48989",
+    }),
+    aunAvatar: Object.freeze({
+      borderRadius: 999,
+      fontWeight: '700',
+      width: 32,
+      height: 32,
+      fontSize: 11,
+      backgroundColor: "#191c1f",
+      color: "#c2d2ca",
+    }),
+    aunAvatarSm: Object.freeze({
+      width: 20,
+      height: 20,
+      fontSize: 9,
+    }),
+    aunAvatarMd: Object.freeze({
+      width: 36,
+      height: 36,
+      fontSize: 12,
+    }),
+    aunAvatarLg: Object.freeze({
+      width: 52,
+      height: 52,
+      fontSize: 14,
+    }),
+    aunCard: Object.freeze({
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+      backgroundColor: "#121416",
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+    }),
+    aunTaskBoard: Object.freeze({
+
+    }),
+    aunGroup: Object.freeze({
+
+    }),
+    aunTaskRow: Object.freeze({
+      minHeight: 64,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+      backgroundColor: "#121416",
+    }),
+    aunTaskRowBody: Object.freeze({
+      minWidth: 0,
+    }),
+    aunTaskRowTitle: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    aunTaskRowAgent: Object.freeze({
+      color: "#c2d2ca",
+      fontSize: 12,
+    }),
+    aunTaskRowRepo: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 12,
+    }),
+    aunTaskGrip: Object.freeze({
+
+    }),
+    aunSettings: Object.freeze({
+
+    }),
+    aunSettingsList: Object.freeze({
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+      backgroundColor: "#121416",
+    }),
+    aunSettingsRow: Object.freeze({
+      minHeight: 44,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    }),
+    aunSettingsId: Object.freeze({
+      minWidth: 0,
+    }),
+    aunSettingsName: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    aunSettingsKicker: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 12,
+    }),
+    aunSettingsState: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 12,
+    }),
+    aunSettingsField: Object.freeze({
+
+    }),
+    aunSettingsSubs: Object.freeze({
+
+    }),
+    aunCardGate: Object.freeze({
+      borderColor: "#e0a128",
+      backgroundColor: "#191c1f",
+    }),
+    aunCardHalted: Object.freeze({
+      borderColor: "#d84f4f4d",
+      backgroundColor: "#261a1c",
+    }),
+    aunCardTitle: Object.freeze({
+      fontSize: 13,
+      fontWeight: '700',
+    }),
+    aunRow: Object.freeze({
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 8,
+      backgroundColor: "#121416",
+      color: "#f5fbf7",
+    }),
+    aunRowGate: Object.freeze({
+      borderColor: "#e0a128",
+    }),
+    aunRowHalted: Object.freeze({
+      borderColor: "#d84f4f4d",
+    }),
+    aunRowBody: Object.freeze({
+      minWidth: 0,
+    }),
+    aunRowTitle: Object.freeze({
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    aunRowMeta: Object.freeze({
+      fontSize: 12,
+      color: "#c2d2ca",
+    }),
+    aunRowTime: Object.freeze({
+      fontSize: 11,
+      color: "#8a9a92",
+    }),
+    aunRowActions: Object.freeze({
+
+    }),
+    aunStack: Object.freeze({
+
+    }),
+    aunGrid: Object.freeze({
+
+    }),
+    aunGridCards: Object.freeze({
+
+    }),
+    aunGridApps: Object.freeze({
+
+    }),
+    aunWrap: Object.freeze({
+
+    }),
+    aunState: Object.freeze({
+      fontSize: 11,
+      fontWeight: '600',
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      color: "#c2d2ca",
+    }),
+    aunStateRunning: Object.freeze({
+      color: "#8bb7ff",
+      borderColor: "#4fa3d8",
+    }),
+    aunStateGate: Object.freeze({
+      color: "#ffd66b",
+      borderColor: "#e0a128",
+    }),
+    aunStateHalted: Object.freeze({
+      color: "#e48989",
+      borderColor: "#d84f4f4d",
+    }),
+    aunStateDone: Object.freeze({
+      color: "#2bf27a",
+      borderColor: "#00b85059",
+    }),
+    aunConn: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 999,
+      backgroundColor: "#121416",
+      fontSize: 12,
+    }),
+    statusDotIdle: Object.freeze({
+      backgroundColor: "transparent",
+    }),
+    aunDot: Object.freeze({
+      width: 7,
+      height: 7,
+      borderRadius: 999,
+    }),
+    aunDotLive: Object.freeze({
+      backgroundColor: "#00b850",
+    }),
+    aunDotInfo: Object.freeze({
+      backgroundColor: "#4fa3d8",
+    }),
+    aunDotWarn: Object.freeze({
+      backgroundColor: "#e0a128",
+    }),
+    aunGlyphRunning: Object.freeze({
+      color: "#8bb7ff",
+    }),
+    aunGlyphGate: Object.freeze({
+      color: "#ffd66b",
+    }),
+    aunGlyphHalted: Object.freeze({
+      color: "#e48989",
+    }),
+    aunGlyphDone: Object.freeze({
+      color: "#2bf27a",
+    }),
+    aunGlyphIdle: Object.freeze({
+      color: "#718077",
+    }),
+    aunBtn: Object.freeze({
+      fontSize: 12,
+      fontWeight: '600',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      minHeight: 32,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      backgroundColor: "#191c1f",
+      color: "#f5fbf7",
+    }),
+    aunBtnPrimary: Object.freeze({
+      backgroundColor: "#10281d",
+      borderColor: "#00b85059",
+      color: "#2bf27a",
+    }),
+    aunBtnDanger: Object.freeze({
+      backgroundColor: "#261a1c",
+      borderColor: "#d84f4f4d",
+      color: "#e48989",
+    }),
+    aunBtnTouch: Object.freeze({
+      minHeight: 44,
+    }),
+    aunInput: Object.freeze({
+      fontSize: 12,
+      minHeight: 44,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      backgroundColor: "#17191b",
+      color: "#c2d2ca",
+    }),
+    aunTextarea: Object.freeze({
+      minHeight: 80,
+    }),
+    aunTabs: Object.freeze({
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+    }),
+    aunTab: Object.freeze({
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      fontSize: 13,
+      color: "#f5fbf7",
+      borderBottomWidth: 2,
+      borderBottomColor: "transparent",
+      fontWeight: '600',
+    }),
+    aunApptabs: Object.freeze({
+      paddingHorizontal: 4,
+      paddingVertical: 4,
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 8,
+      backgroundColor: "#121416",
+    }),
+    aunApptab: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      fontSize: 12,
+      color: "#f5fbf7",
+      borderRadius: 6,
+      backgroundColor: "#191c1f",
+      fontWeight: '600',
+    }),
+    aunTable: Object.freeze({
+
+    }),
+    aunTableScroll: Object.freeze({
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+      backgroundColor: "#121416",
+    }),
+    aunEvent: Object.freeze({
+      paddingHorizontal: 0,
+      paddingVertical: 12,
+      borderBottomWidth: 0,
+      borderBottomColor: "#00000000",
+    }),
+    aunEventDot: Object.freeze({
+      width: 18,
+      fontSize: 11,
+    }),
+    aunEventBody: Object.freeze({
+      minWidth: 0,
+      fontSize: 12,
+      color: "#c2d2ca",
+    }),
+    aunEventTime: Object.freeze({
+      fontSize: 11,
+      color: "#718077",
+    }),
+    aunNote: Object.freeze({
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderLeftWidth: 2,
+      borderLeftColor: "#ffffff29",
+      backgroundColor: "#191c1f",
+      borderRadius: 0,
+      fontSize: 12,
+      color: "#c2d2ca",
+    }),
+    aunDiag: Object.freeze({
+      fontSize: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      borderRadius: 6,
+      backgroundColor: "#261a1c",
+      borderWidth: 1,
+      borderColor: "#d84f4f4d",
+    }),
+    aunDiagCode: Object.freeze({
+      fontSize: 11,
+      color: "#e48989",
+    }),
+    aunDiagRemedy: Object.freeze({
+      color: "#2bf27a",
+    }),
+    aunKv: Object.freeze({
+      fontSize: 12,
+    }),
+    aunKvK: Object.freeze({
+      color: "#8a9a92",
+      width: 88,
+    }),
+    aunStat: Object.freeze({
+      fontSize: 14,
+      fontWeight: '700',
+    }),
+    aunStatLabel: Object.freeze({
+      fontSize: 11,
+      color: "#8a9a92",
+    }),
+    aunStats: Object.freeze({
+      borderTopWidth: 1,
+      borderTopColor: "#ffffff14",
+    }),
+    aunPerm: Object.freeze({
+      fontSize: 11,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 4,
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      backgroundColor: "#191c1f",
+      color: "#c2d2ca",
+    }),
+    aunConsole: Object.freeze({
+      fontSize: 11,
+      color: "#c2d2ca",
+      backgroundColor: "#0a0b0c",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+    }),
+    aunBrowser: Object.freeze({
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+      backgroundColor: "#121416",
+      minHeight: 0,
+    }),
+    aunBrowserBar: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+      backgroundColor: "#191c1f",
+    }),
+    aunBrowserUrl: Object.freeze({
+      minWidth: 0,
+      fontSize: 12,
+      color: "#c2d2ca",
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 6,
+      backgroundColor: "#0a0b0c",
+    }),
+    aunBrowserIcon: Object.freeze({
+      width: 30,
+      height: 30,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      backgroundColor: "#121416",
+      color: "#c2d2ca",
+      fontSize: 12,
+    }),
+    aunBrowserView: Object.freeze({
+      backgroundColor: "#ffffff",
+      color: "#1a1a1a",
+      minHeight: 0,
+    }),
+    aunDiff: Object.freeze({
+      fontSize: 11,
+    }),
+    aunDiffLine: Object.freeze({
+
+    }),
+    aunDiffNum: Object.freeze({
+      width: 44,
+      color: "#718077",
+    }),
+    aunDiffLineAdd: Object.freeze({
+      backgroundColor: "#11211b",
+      color: "#2bf27a",
+    }),
+    aunDiffLineDel: Object.freeze({
+      backgroundColor: "#261a1c",
+      color: "#e48989",
+    }),
+    aunFile: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 6,
+      fontSize: 12,
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
+    }),
+    aunPhone: Object.freeze({
+      width: 390,
+      height: 844,
+      backgroundColor: "#0a0b0c",
+      color: "#f5fbf7",
+    }),
+    aunPhoneHead: Object.freeze({
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+    }),
+    aunPhoneHeadRow: Object.freeze({
+
+    }),
+    aunPhoneHeadCopy: Object.freeze({
+      minWidth: 0,
+    }),
+    aunPhoneSubtitle: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 12,
+    }),
+    aunPhoneBody: Object.freeze({
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      minHeight: 0,
+    }),
+    aunPhoneDock: Object.freeze({
+
+    }),
+    aunTabbarItem: Object.freeze({
+      minHeight: 44,
+      fontSize: 11,
+      color: "#f5fbf7",
+      fontWeight: '600',
+    }),
+    aunTabbarIcon: Object.freeze({
+      fontSize: 20,
+    }),
+    aunStateMapMobile: Object.freeze({
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderRadius: 0,
+      backgroundColor: "transparent",
+    }),
+    aunTrainTiles: Object.freeze({
+
+    }),
+    aunTrainTile: Object.freeze({
+      minHeight: 92,
+    }),
+    aunStatusLine: Object.freeze({
+      fontSize: 12,
+    }),
+    aunQueueRow: Object.freeze({
+      minHeight: 64,
+    }),
+    aunGrip: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 18,
+      letterSpacing: -5,
+    }),
+    aunSettingsSignout: Object.freeze({
+      color: "#e48989",
+      fontWeight: '600',
+    }),
+    aunAgentBack: Object.freeze({
+      width: 28,
+      height: 28,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      borderWidth: 0,
+      borderColor: "#00000000",
+      backgroundColor: "transparent",
+      color: "#c2d2ca",
+      fontSize: 22,
+    }),
+    aunAgentReload: Object.freeze({
+      borderWidth: 0,
+      borderColor: "#00000000",
+      backgroundColor: "transparent",
+      color: "#00d66b",
+      fontSize: 13,
+      fontWeight: '600',
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+    }),
+    aunAgentHead: Object.freeze({
+
+    }),
+    aunValidate: Object.freeze({
+
+    }),
+    aunValidatePlayer: Object.freeze({
+
+    }),
+    aunValidateOverlay: Object.freeze({
+
+    }),
+    aunValidateCopy: Object.freeze({
+      minHeight: 36,
+    }),
+    aunValidateChevron: Object.freeze({
+      width: 32,
+      height: 32,
+    }),
+    aunValidateStep: Object.freeze({
+      minWidth: 0,
+      color: "#8a9a92",
+      fontSize: 12,
+    }),
+    aunValidateSheet: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      backgroundColor: "#202428",
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      borderRadius: 12,
+    }),
+    aunValidateSheetTitle: Object.freeze({
+      fontWeight: '600',
+    }),
+    aunValidateMenu: Object.freeze({
+      backgroundColor: "#202428",
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      borderRadius: 8,
+    }),
+    aunValidateItem: Object.freeze({
+      minHeight: 40,
+      paddingHorizontal: 12,
+      paddingVertical: 0,
+      borderWidth: 0,
+      borderColor: "#00000000",
+      backgroundColor: "#10281d",
+      color: "#f5fbf7",
+      fontSize: 12,
+    }),
+    aunValidateRun: Object.freeze({
+      width: 32,
+      height: 32,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+    }),
+    aunValidateTitle: Object.freeze({
+
+    }),
+    aunValidateMenuButton: Object.freeze({
+      width: 32,
+      height: 32,
+      borderWidth: 0,
+      borderColor: "#00000000",
+      backgroundColor: "transparent",
+      color: "#c2d2ca",
+      fontSize: 14,
+    }),
+    aunChatPage: Object.freeze({
+
+    }),
+    aunChatUser: Object.freeze({
+      maxWidth: "82%",
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      borderRadius: 12,
+      backgroundColor: "#10281d",
+      fontSize: 12,
+    }),
+    aunChatComposer: Object.freeze({
+
+    }),
+    aunAppRow: Object.freeze({
+
+    }),
+    aunDegrade: Object.freeze({
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: "#121416",
+    }),
+    aunIconbtn: Object.freeze({
+      width: 44,
+      height: 44,
+      borderWidth: 0,
+      borderColor: "#00000000",
+      backgroundColor: "none",
+      color: "#c2d2ca",
+      fontSize: 14,
+    }),
+    aunDrawer: Object.freeze({
+
+    }),
+    aunDrawerScrim: Object.freeze({
+      backgroundColor: "#0a0b0cb8",
+    }),
+    aunDrawerPanel: Object.freeze({
+      width: 272,
+      maxWidth: "82%",
+      backgroundColor: "#121416",
+      borderRightWidth: 1,
+      borderRightColor: "#ffffff14",
+      paddingHorizontal: 12,
+      paddingVertical: 16,
+    }),
+    aunDrawerLink: Object.freeze({
+      minHeight: 44,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: "#00b85059",
+      fontSize: 13,
+      color: "#f5fbf7",
+      backgroundColor: "#10281d",
+      fontWeight: '600',
+    }),
+    aunDrawerServer: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 8,
+      backgroundColor: "#191c1f",
+    }),
+    aunSetting: Object.freeze({
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+      backgroundColor: "#121416",
+    }),
+    aunSettingFeature: Object.freeze({
+      borderColor: "#00b85059",
+      backgroundColor: "#11211b",
+    }),
+    aunSettingBody: Object.freeze({
+      minWidth: 0,
+    }),
+    aunSettingName: Object.freeze({
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    aunSettingNote: Object.freeze({
+      fontSize: 12,
+      color: "#8a9a92",
+    }),
+    aunSwitch: Object.freeze({
+      width: 44,
+      height: 24,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: "#00b850",
+      backgroundColor: "#0a8c3c",
+      paddingHorizontal: 2,
+      paddingVertical: 2,
+    }),
+    aunSwitchKnob: Object.freeze({
+      width: 18,
+      height: 18,
+      borderRadius: 999,
+      backgroundColor: "#718077",
+    }),
+  }),
+});
+const auBoxKeys = new Set(["backgroundColor","borderWidth","borderColor","borderRadius","borderTopWidth","borderTopColor","borderRightWidth","borderRightColor","borderBottomWidth","borderBottomColor","borderLeftWidth","borderLeftColor","width","height","minHeight","minWidth","maxWidth","marginLeft","paddingHorizontal","paddingVertical","opacity","color"]);
+const auTextKeys = new Set(["color","fontSize","fontWeight","opacity","fontFamily","fontStyle","textTransform","letterSpacing"]);
+function auPick(names, keys) {
+  const out = {};
+  for (const name of names) {
+    if (!name) continue;
+    const style = newUiTheme.components[name];
+    if (!style) throw new Error("Unknown Agent-Up component '" + name + "'.");
+    for (const [key, value] of Object.entries(style)) {
+      if (keys.has(key)) out[key] = value;
+    }
+  }
+  return out;
+}
+export function newUiBox(...names) { return auPick(names, auBoxKeys); }
+export function newUiText(...names) { return auPick(names, auTextKeys); }
+

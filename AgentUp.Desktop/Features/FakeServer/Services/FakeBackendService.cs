@@ -119,6 +119,16 @@ public sealed class FakeBackendService
             return EnableCapability(request.Body);
         if (method == "POST" && path.StartsWith("/api/capabilities/disable/", StringComparison.Ordinal))
             return DisableCapability(Uri.UnescapeDataString(path["/api/capabilities/disable/".Length..]));
+        if (method == "GET" && path == "/api/tasks")
+            return Json(TaskQueue());
+        if (method == "POST" && path == "/api/tasks")
+            return EnqueueTask(request.Body);
+        if (path.StartsWith("/api/tasks/", StringComparison.Ordinal))
+            return TaskMutation(method, path["/api/tasks/".Length..], request.Body);
+        if (path.StartsWith("/api/task-source", StringComparison.Ordinal))
+            return TaskSourceRoute(method, path["/api/task-source".Length..], request.Body);
+        if (path.StartsWith("/api/training", StringComparison.Ordinal))
+            return TrainingRoute(method, path["/api/training".Length..], request);
         if (method == "GET" && path.StartsWith("/apps/", StringComparison.Ordinal))
             return AppPage(path);
 
@@ -205,17 +215,9 @@ public sealed class FakeBackendService
         if (method == "GET" && rest == "commit-queue")
             return GitNode(workspaceId, "queue");
         if (method == "GET" && rest == "forge")
-            return Json(new JsonObject
-            {
-                ["availability"] = "notInstalled",
-                ["moduleId"] = null,
-                ["proposal"] = null,
-                ["checks"] = new JsonArray(),
-                ["threads"] = new JsonArray(),
-                ["mergeability"] = null,
-                ["detail"] = "No forge capability package is enabled.",
-                ["remedy"] = "Run: agent-up capabilities bootstrap"
-            });
+            return Json(Forge(workspaceId));
+        if (method == "GET" && rest == "forge/issues")
+            return Json(OpenIssues(workspaceId));
         if (method == "GET" && rest.StartsWith("git/file", StringComparison.Ordinal))
             return GitDiff(workspaceId, request.Query);
         if (method == "POST" && rest.StartsWith("git/", StringComparison.Ordinal))
@@ -662,6 +664,7 @@ public sealed class FakeBackendService
     private FakeBackendResponseDto SendAgentMessage(string workspaceId, string? body)
     {
         string? path;
+        bool reviewing;
         JsonObject snapshot;
         lock (_gate)
         {
@@ -669,7 +672,11 @@ public sealed class FakeBackendService
             var git = GitState(workspaceId);
             if (session is null)
                 return NotFound();
-            path = git is null ? null : FakeGitProvider.AddAgentFile(git);
+            // A reviewer has the author's branch checked out to read it. Writing a file into it
+            // would put their name on work that is not theirs, so only a role that opens its own
+            // proposal touches the tree.
+            path = git is null || ReviewsOthersWork(session["session"]) ? null : FakeGitProvider.AddAgentFile(git);
+            reviewing = ReviewsOthersWork(session["session"]);
             snapshot = LiveAgentSession(session["session"]);
         }
 
@@ -678,9 +685,11 @@ public sealed class FakeBackendService
         running["state"] = "running";
         PublishAgent(workspaceId, "user_message", new JsonObject { ["text"] = message });
         PublishAgent(workspaceId, "state", running);
-        var text = path is null
-            ? "Harbor Shop is running locally."
-            : $"I added `{path}` so the storefront can show the weekly harbor special. It is uncommitted in the working tree.";
+        var text = path is not null
+            ? $"I added `{path}` so the storefront can show the weekly harbor special. It is uncommitted in the working tree."
+            : reviewing
+                ? "I have read the branch for this proposal and left my notes on the thread. The review is submitted."
+                : "Harbor is running locally.";
         PublishAgent(workspaceId, "session_update", new JsonObject
         {
             ["sessionUpdate"] = "agent_message_chunk",
@@ -690,6 +699,17 @@ public sealed class FakeBackendService
         ready["state"] = "ready";
         PublishAgent(workspaceId, "state", ready);
         return new FakeBackendResponseDto(204, "application/json");
+    }
+
+    /// <summary>
+    /// Whether this workspace's agent reviews somebody else's work. The role's trigger and
+    /// termination say so: a proposal awaiting review in, a review out.
+    /// </summary>
+    private static bool ReviewsOthersWork(JsonNode? session)
+    {
+        var role = session?["role"];
+        return string.Equals(role?["trigger"]?.GetValue<string>(), "ProposalAwaitingReview", StringComparison.OrdinalIgnoreCase)
+               && string.Equals(role?["termination"]?.GetValue<string>(), "ReviewSubmitted", StringComparison.OrdinalIgnoreCase);
     }
 
     private FakeBackendResponseDto AgentEventStream(string workspaceId, string query)
@@ -973,6 +993,404 @@ public sealed class FakeBackendService
             return Json(module);
         }
     }
+
+
+    /// <summary>
+    /// The Demo's one repository. Every demo workspace is a worktree of it, which is why one queue
+    /// serves them all.
+    /// </summary>
+    private const string DemoOwner = "example";
+    private const string DemoRepository = "repository";
+
+    /// <summary>
+    /// The Demo's own task source.
+    ///
+    /// It starts pointed at the example repository and signed in: the Demo exists to show the
+    /// product working, not to walk a reader through an OAuth round trip against a host that is
+    /// not there. Naming another repository and signing in again still behave as they would.
+    /// </summary>
+    private FakeBackendResponseDto TaskSourceRoute(string method, string rest, string? body)
+    {
+        lock (_gate)
+        {
+            if (method == "GET" && rest is "" or "/")
+                return Json(DescribeSource());
+
+            if (method == "PUT")
+            {
+                _sourceOwner = ReadJsonString(body, "owner")?.Trim() ?? string.Empty;
+                _sourceRepository = ReadJsonString(body, "repository")?.Trim() ?? string.Empty;
+                _sourceModule = ReadJsonString(body, "moduleId")?.Trim() is { Length: > 0 } module ? module : "github";
+                return Json(DescribeSource());
+            }
+
+            if (method == "DELETE")
+            {
+                _sourceOwner = string.Empty;
+                _sourceRepository = string.Empty;
+                _sourceConnected = false;
+                return Json(DescribeSource());
+            }
+
+            if (method == "POST" && rest == "/login")
+            {
+                if (_sourceOwner.Length == 0 || _sourceRepository.Length == 0)
+                    return new FakeBackendResponseDto(409, "application/json", "{}");
+                _sourceConnected = true;
+                return Json(new JsonObject
+                {
+                    ["authorizeUrl"] = "https://example.test/login/oauth/authorize?demo=1"
+                });
+            }
+
+            if (method == "GET" && rest.StartsWith("/issues", StringComparison.Ordinal))
+            {
+                var first = _state.Workspaces.OfType<JsonObject>().FirstOrDefault()?["id"]?.GetValue<string>();
+                return Json(_sourceConnected && first is not null ? OpenIssues(first) : new JsonArray());
+            }
+
+            return NotFound();
+        }
+    }
+
+    private JsonObject DescribeSource()
+    {
+        var configured = _sourceOwner.Length > 0 && _sourceRepository.Length > 0;
+        return new JsonObject
+        {
+            ["moduleId"] = configured ? _sourceModule : null,
+            ["owner"] = configured ? _sourceOwner : null,
+            ["repository"] = configured ? _sourceRepository : null,
+            ["configured"] = configured,
+            ["connected"] = configured && _sourceConnected,
+            ["canConnect"] = true,
+            ["detail"] = !configured
+                ? "Name the repository the agents take their work from."
+                : _sourceConnected
+                    ? $"Reading issues from {_sourceOwner}/{_sourceRepository}."
+                    : $"Sign in to read issues from {_sourceOwner}/{_sourceRepository}.",
+            ["modules"] = new JsonArray(new JsonObject
+            {
+                ["moduleId"] = "github",
+                ["displayName"] = "GitHub"
+            })
+        };
+    }
+
+    private string _sourceModule = "github";
+    private string _sourceOwner = DemoOwner;
+    private string _sourceRepository = DemoRepository;
+    private bool _sourceConnected = true;
+
+    /// <summary>
+    /// The decision backlog the Train surface reads.
+    ///
+    /// Verdicts given here stay for the life of the Demo session, so judging a decision and coming
+    /// back to it shows what you said rather than asking again.
+    /// </summary>
+    private FakeBackendResponseDto TrainingRoute(string method, string rest, FakeBackendRequestDto request)
+    {
+        if (method == "GET" && rest == "/repositories")
+            return Json(DecisionRepositories());
+        if (method == "GET" && rest == "/decisions")
+            return Json(DecisionsFor(
+                QueryValue(request.Query, "owner"),
+                QueryValue(request.Query, "repository"),
+                QueryValue(request.Query, "category"),
+                QueryValue(request.Query, "verdict")));
+        if (method == "POST" && rest.StartsWith("/decisions/", StringComparison.Ordinal)
+            && rest.EndsWith("/review", StringComparison.Ordinal))
+            return ReviewDecision(
+                Uri.UnescapeDataString(rest["/decisions/".Length..^"/review".Length]),
+                request.Body);
+        if (method == "GET" && rest.StartsWith("/evidence/", StringComparison.Ordinal))
+            return DecisionEvidence(Uri.UnescapeDataString(rest["/evidence/".Length..]));
+        if (method == "GET" && rest == "/export")
+            return DecisionExport(QueryValue(request.Query, "includePending") == "true");
+
+        return NotFound();
+    }
+
+    private JsonArray DecisionRepositories()
+    {
+        lock (_gate)
+        {
+            var groups = _state.ProductDecisions
+                .OfType<JsonObject>()
+                .GroupBy(decision => $"{Text(decision, "owner")}/{Text(decision, "repository")}", StringComparer.Ordinal)
+                .Select(group => new JsonObject
+                {
+                    ["owner"] = Text(group.First(), "owner"),
+                    ["repository"] = Text(group.First(), "repository"),
+                    ["pending"] = group.Count(decision => !Judged(decision)),
+                    ["reviewed"] = group.Count(Judged),
+                    ["categories"] = new JsonArray(
+                    [
+                        .. DecisionCategories.Select(category => (JsonNode)new JsonObject
+                        {
+                            ["category"] = category.Key,
+                            ["label"] = category.Value,
+                            ["pending"] = group.Count(decision =>
+                                Text(decision, "category") == category.Key && !Judged(decision)),
+                            ["reviewed"] = group.Count(decision =>
+                                Text(decision, "category") == category.Key && Judged(decision))
+                        })
+                    ])
+                })
+                .OrderByDescending(repository => repository["pending"]!.GetValue<int>())
+                .ThenBy(repository => repository["repository"]!.GetValue<string>(), StringComparer.Ordinal);
+
+            return new JsonArray([.. groups.Select(repository => (JsonNode)repository)]);
+        }
+    }
+
+    private JsonArray DecisionsFor(string? owner, string? repository, string? category, string? verdict)
+    {
+        lock (_gate)
+        {
+            var found = _state.ProductDecisions
+                .OfType<JsonObject>()
+                .Where(decision => owner is null || Same(Text(decision, "owner"), owner))
+                .Where(decision => repository is null || Same(Text(decision, "repository"), repository))
+                .Where(decision => category is null || Text(decision, "category") == category)
+                .Where(decision => verdict is null || Text(decision, "verdict") == verdict)
+                // What nobody has judged comes first: that is what a reader opened the surface for.
+                .OrderBy(Judged)
+                .ThenBy(decision => Text(decision, "recordedAt"), StringComparer.Ordinal);
+
+            return new JsonArray([.. found.Select(decision => decision.DeepClone())]);
+        }
+    }
+
+    private FakeBackendResponseDto ReviewDecision(string decisionId, string? body)
+    {
+        var verdict = ReadJsonString(body, "verdict") ?? "pending";
+        if (verdict is not ("good" or "bad" or "pending"))
+            return NotFound();
+
+        var note = ReadJsonString(body, "note")?.Trim();
+
+        lock (_gate)
+        {
+            var decision = _state.ProductDecisions
+                .OfType<JsonObject>()
+                .FirstOrDefault(item => Text(item, "id") == decisionId);
+            if (decision is null)
+                return NotFound();
+
+            decision["verdict"] = verdict;
+            decision["note"] = string.IsNullOrWhiteSpace(note) ? null : note;
+            decision["reviewedAt"] = verdict == "pending" ? null : DateTimeOffset.UtcNow.ToString("o");
+            return Json(decision.DeepClone());
+        }
+    }
+
+    private FakeBackendResponseDto DecisionEvidence(string evidenceId)
+    {
+        lock (_gate)
+        {
+            var image = _state.DecisionEvidence?[evidenceId];
+            if (image is null)
+                return NotFound();
+
+            return Json(new JsonObject
+            {
+                ["evidenceId"] = evidenceId,
+                ["mimeType"] = image["mimeType"]?.DeepClone(),
+                ["base64"] = image["base64"]?.DeepClone()
+            });
+        }
+    }
+
+    private FakeBackendResponseDto DecisionExport(bool includePending)
+    {
+        lock (_gate)
+        {
+            var lines = _state.ProductDecisions
+                .OfType<JsonObject>()
+                .Where(decision => includePending || Judged(decision))
+                .Select(decision => new JsonObject
+                {
+                    ["id"] = Text(decision, "id"),
+                    ["repository"] = $"{Text(decision, "owner")}/{Text(decision, "repository")}",
+                    ["agent"] = Text(decision, "agent"),
+                    ["category"] = Text(decision, "category"),
+                    ["headline"] = Text(decision, "headline"),
+                    ["detail"] = Text(decision, "detail"),
+                    ["evidence"] = Text(decision, "evidence"),
+                    ["recordedAt"] = Text(decision, "recordedAt"),
+                    ["verdict"] = Text(decision, "verdict"),
+                    ["note"] = decision["note"]?.DeepClone(),
+                    ["reviewedAt"] = decision["reviewedAt"]?.DeepClone()
+                }.ToJsonString())
+                .ToArray();
+
+            var body = lines.Length == 0 ? string.Empty : string.Join("\n", lines) + "\n";
+            return new FakeBackendResponseDto(200, "application/x-ndjson", body);
+        }
+    }
+
+    private static bool Judged(JsonObject decision) => Text(decision, "verdict") != "pending";
+
+    private static string Text(JsonObject node, string name) => node[name]?.GetValue<string>() ?? string.Empty;
+
+    private static bool Same(string left, string right)
+        => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The three categories, in the order both surfaces show them.</summary>
+    private static readonly KeyValuePair<string, string>[] DecisionCategories =
+    [
+        new("product-vision", "Product vision"),
+        new("gui-decisions", "GUI"),
+        new("code-architecture", "Architecture")
+    ];
+
+    /// <summary>
+    /// The picked queue, shared by every workspace. The Demo keeps it in the same shape the Server
+    /// serves, so the Tasks tab arranges it here exactly as it would against a real Server.
+    /// </summary>
+    private JsonArray TaskQueue()
+    {
+        lock (_gate)
+            return _state.TaskQueue.DeepClone().AsArray();
+    }
+
+    /// <summary>
+    /// Open issues on a workspace's repository, minus the ones already queued. A queued issue is
+    /// not offered again, which is what the Server's own picker does.
+    /// </summary>
+    private JsonArray OpenIssues(string workspaceId)
+    {
+        lock (_gate)
+        {
+            var queued = _state.TaskQueue
+                .OfType<JsonObject>()
+                .Select(task => task["id"]?.GetValue<string>())
+                .ToHashSet(StringComparer.Ordinal);
+            return new JsonArray(
+            [
+                .. (_state.Issues?[workspaceId]?.AsArray() ?? []).OfType<JsonObject>()
+                    .Where(issue => !queued.Contains(issue["id"]?.GetValue<string>()))
+                    .Select(issue => issue.DeepClone())
+            ]);
+        }
+    }
+
+    private FakeBackendResponseDto EnqueueTask(string? body)
+    {
+        var workspaceId = ReadJsonString(body, "workspaceId");
+        var issueId = ReadJsonString(body, "issueId");
+        var target = ReadJsonString(body, "targetWorkspaceId");
+        if (workspaceId is null || issueId is null)
+            return NotFound();
+
+        lock (_gate)
+        {
+            var issue = (_state.Issues?[workspaceId]?.AsArray() ?? [])
+                .OfType<JsonObject>()
+                .FirstOrDefault(item => item["id"]?.GetValue<string>() == issueId);
+            if (issue is null)
+                return NotFound();
+
+            var task = new JsonObject
+            {
+                ["id"] = issueId,
+                ["owner"] = DemoOwner,
+                ["repository"] = DemoRepository,
+                ["number"] = issue["number"]?.DeepClone(),
+                ["title"] = issue["title"]?.DeepClone(),
+                ["body"] = issue["body"]?.DeepClone(),
+                ["url"] = issue["url"]?.DeepClone(),
+                ["queuedAt"] = DateTimeOffset.UtcNow.ToString("o"),
+                ["targetWorkspaceId"] = target,
+                ["heldByWorkspaceId"] = null
+            };
+            _state.TaskQueue.Add(task);
+            return Json(task.DeepClone());
+        }
+    }
+
+    /// <summary>
+    /// Changes to one queued task. The path carries owner and repository the way the Server's
+    /// routes do, so only the trailing id and verb decide what happens.
+    /// </summary>
+    private FakeBackendResponseDto TaskMutation(string method, string rest, string? body)
+    {
+        var segments = rest.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length < 3)
+            return NotFound();
+
+        var id = Uri.UnescapeDataString(segments[2]);
+        var verb = segments.Length > 3 ? segments[3] : null;
+        lock (_gate)
+        {
+            var queue = _state.TaskQueue;
+            var task = queue.OfType<JsonObject>().FirstOrDefault(item => item["id"]?.GetValue<string>() == id);
+            if (task is null)
+                return NotFound();
+
+            if (method == "DELETE" && verb is null)
+            {
+                // A task a workspace is carrying stays, the same refusal the Server gives.
+                if (task["heldByWorkspaceId"] is not null)
+                    return new FakeBackendResponseDto(409, "application/json");
+                queue.Remove(task);
+                return new FakeBackendResponseDto(204, "application/json");
+            }
+
+            if (method == "POST" && verb == "release")
+            {
+                task["heldByWorkspaceId"] = null;
+                return new FakeBackendResponseDto(204, "application/json");
+            }
+
+            if (method == "PUT" && verb == "position")
+                return MoveTask(queue, task, ReadJsonInt(body, "index"));
+
+            if (method == "PUT" && verb == "target")
+            {
+                task["targetWorkspaceId"] = ReadJsonString(body, "workspaceId");
+                return new FakeBackendResponseDto(204, "application/json");
+            }
+
+            return NotFound();
+        }
+    }
+
+    /// <summary>
+    /// Lifts one task out of the queue and puts it back at a position, the way the Server rewrites
+    /// the order. The position is clamped, so a drag that overshoots either end parks the task
+    /// there rather than dropping it out of the queue.
+    /// </summary>
+    private static FakeBackendResponseDto MoveTask(JsonArray queue, JsonObject task, int? index)
+    {
+        if (index is null)
+            return NotFound();
+
+        var moved = task.DeepClone();
+        queue.Remove(task);
+        queue.Insert(Math.Clamp(index.Value, 0, queue.Count), moved);
+        return new FakeBackendResponseDto(204, "application/json");
+    }
+
+    /// <summary>
+    /// What the repository host reports for this workspace. The Demo answers the same shape a
+    /// real forge capability returns, so a client fills from it without a demo-only path; a
+    /// workspace the definition says nothing about reads as no host connected.
+    /// </summary>
+    private JsonNode Forge(string workspaceId)
+        => _state.Forge?[workspaceId]?.DeepClone()
+           ?? new JsonObject
+           {
+               ["availability"] = "notInstalled",
+               ["moduleId"] = null,
+               ["proposal"] = null,
+               ["checks"] = new JsonArray(),
+               ["threads"] = new JsonArray(),
+               ["mergeability"] = null,
+               ["detail"] = "No forge capability package is enabled.",
+               ["remedy"] = "Run: agent-up capabilities bootstrap"
+           };
 
     private JsonArray Capabilities()
         => _state.Capabilities as JsonArray ?? [];

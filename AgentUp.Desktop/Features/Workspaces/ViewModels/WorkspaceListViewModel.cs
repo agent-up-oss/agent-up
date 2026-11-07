@@ -465,9 +465,7 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         if (orderedItems.Count != Workspaces.Count)
             return;
 
-        Workspaces.Clear();
-        foreach (var item in orderedItems)
-            Workspaces.Add(item);
+        Reorder(orderedItems);
     }
 
     private void ResortWorkspaces(string? preferWithinTierId = null)
@@ -490,9 +488,23 @@ public sealed class WorkspaceListViewModel : ReactiveObject, IWorkspaceItemHost
         if (ordered.Select(w => w.Id).SequenceEqual(items.Select(w => w.Id)))
             return;
 
+        Reorder(ordered);
+    }
+
+    // Clearing the bound collection makes the list control drop its selection and write the null
+    // back here, so a reorder would silently deselect the open workspace. Put the same item back
+    // afterwards: it is the same reference, so no navigation is triggered.
+    private void Reorder(IReadOnlyList<WorkspaceItemViewModel> ordered)
+    {
+        var selected = SelectedWorkspace;
+
         Workspaces.Clear();
         foreach (var item in ordered)
             Workspaces.Add(item);
+
+        SelectedWorkspace = selected is not null && Workspaces.Contains(selected)
+            ? selected
+            : Workspaces.FirstOrDefault();
     }
 
     private static void PromoteWithinTier(List<WorkspaceItemViewModel> tier, string? workspaceId)

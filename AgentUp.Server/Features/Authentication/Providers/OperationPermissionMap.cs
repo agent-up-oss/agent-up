@@ -79,12 +79,36 @@ public static class OperationPermissionMap
         [("WorkspaceCommitQueue", "Get")] = OperationPermissions.GitRead,
         [("VerificationHttp", "Export")] = OperationPermissions.GitRead,
         [("ForgeHttp", "Get")] = OperationPermissions.GitRead,
+        [("ForgeHttp", "Issues")] = OperationPermissions.GitRead,
         [("ForgeHttp", "Login")] = OperationPermissions.GitWrite,
         [("ForgeHttp", "Logout")] = OperationPermissions.GitWrite,
         [("ForgeHttp", "OpenProposal")] = OperationPermissions.GitWrite,
         [("ForgeHttp", "UpdateRef")] = OperationPermissions.GitWrite,
         [("ForgeHttp", "Comment")] = OperationPermissions.GitWrite,
         [("ForgeHttp", "SubmitReview")] = OperationPermissions.GitWrite,
+        // The queue decides what the agents work on, so arranging it is a Server-level say rather
+        // than a read of the repository.
+        [("TaskQueueHttp", "Get")] = OperationPermissions.ServerRead,
+        [("TaskQueueHttp", "Enqueue")] = OperationPermissions.AgentPrompt,
+        [("TaskQueueHttp", "Remove")] = OperationPermissions.AgentPrompt,
+        [("TaskQueueHttp", "Move")] = OperationPermissions.AgentPrompt,
+        [("TaskQueueHttp", "Target")] = OperationPermissions.AgentPrompt,
+        [("TaskQueueHttp", "Release")] = OperationPermissions.AgentPrompt,
+        // Reading where the work comes from is a read of the Server. Naming it, signing it in or
+        // forgetting it decides what every agent will be handed next, which is the same authority
+        // the queue's own mutations carry, so it is held to the same permission rather than a new
+        // one nobody issues yet.
+        [("TaskSourceHttp", "Get")] = OperationPermissions.ServerRead,
+        [("TaskSourceHttp", "Issues")] = OperationPermissions.ServerRead,
+        [("TaskSourceHttp", "Set")] = OperationPermissions.AgentPrompt,
+        [("TaskSourceHttp", "Clear")] = OperationPermissions.AgentPrompt,
+        [("TaskSourceHttp", "Login")] = OperationPermissions.AgentPrompt,
+        [("TrainingHttp", "Repositories")] = OperationPermissions.AgentRead,
+        [("TrainingHttp", "Decisions")] = OperationPermissions.AgentRead,
+        [("TrainingHttp", "Evidence")] = OperationPermissions.AgentRead,
+        [("TrainingHttp", "Export")] = OperationPermissions.AgentRead,
+        [("TrainingHttp", "Record")] = OperationPermissions.AgentPrompt,
+        [("TrainingHttp", "Review")] = OperationPermissions.AgentPrompt,
 
         [("WorkspaceDiagnosticsHttp", "Get")] = OperationPermissions.DiagnosticsRead,
         [("WorkspaceReviewSnapshotHttp", "Get")] = OperationPermissions.DiagnosticsRead,

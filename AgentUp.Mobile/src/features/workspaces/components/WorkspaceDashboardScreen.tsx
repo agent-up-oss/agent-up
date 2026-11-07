@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { WorkspaceTabBar } from '@/features/shell/components/WorkspaceTabBar';
+import { WorkspaceTabs } from '@/features/shell/components/WorkspaceTabs';
+import { useWorkspaceHost } from '../controllers/WorkspaceHostContext';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import type { Workspace, WorkspaceApplication } from '../models/Workspace';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
@@ -25,15 +25,15 @@ type WorkspaceDashboardScreenProps = {
 };
 
 export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreenProps) {
-  const router = useRouter();
+  const host = useWorkspaceHost(workspace.id);
   const { server, loading, error, refresh, start, stop } = useWorkspaces();
   const [actionPending, setActionPending] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
   const openApplication = useCallback((applicationName: string) => {
-    router.push(`/(main)/workspace/${workspace.id}/application/${encodeURIComponent(applicationName)}`);
-  }, [router, workspace.id]);
+    host.open({ kind: 'application', name: applicationName });
+  }, [host, workspace.id]);
 
   const shellConfig = useMemo(() => ({
     title: workspace.displayName,
@@ -134,7 +134,7 @@ export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreen
               ))}
           </View>}
       </ScrollView>
-      <WorkspaceTabBar workspaceId={workspace.id} active="apps" />
+      <WorkspaceTabs workspaceId={workspace.id} active="apps" />
     </View>
   );
 }

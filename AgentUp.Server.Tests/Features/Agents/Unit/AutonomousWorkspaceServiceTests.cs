@@ -398,6 +398,40 @@ public sealed class AutonomousWorkspaceServiceTests
         host.Process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "end_turn", completed = true });
     }
 
+    [Test]
+    public async Task ActivateAsync_worksNothingTheQueueWillNotHandOver()
+    {
+        var queue = new RefusingAssignedIssueQueue();
+        var host = await HostAsync(queue);
+        await ReadyAsync(host);
+        queue.Replace(host.WorkspaceId, [ServerDomain.Issue().Build()]);
+
+        await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
+        await WaitUntilAsync(() => host.Autonomy.Status(host.WorkspaceId).Terminal == LoopTerminal.Idle);
+
+        Assert.That(host.Process.Prompts, Is.Empty);
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task ActivateAsync_takesTheTaskBeforeItPromptsAndRetiresItWhenDone()
+    {
+        var queue = new RecordingAssignedIssueQueue();
+        var host = await HostAsync(queue);
+        await ReadyAsync(host);
+        queue.Replace(host.WorkspaceId, [ServerDomain.Issue().Build()]);
+
+        await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
+        await WaitUntilAsync(() => host.Autonomy.Status(host.WorkspaceId).Terminal == LoopTerminal.Idle);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(queue.HeldBeforeFirstPrompt, Is.True);
+            Assert.That(queue.Completed, Has.Count.EqualTo(1));
+        });
+        await host.DisposeAsync();
+    }
+
     private static async Task<Host> HostAsync(
         IAssignedIssueQueue? issues = null,
         InMemoryAgentWorkspaceSettingsRepository? settings = null,
@@ -502,6 +536,12 @@ public sealed class AutonomousWorkspaceServiceTests
             if (_items.Count == 0)
                 _items = issues;
         }
+
+        public Task<bool> TryHoldAsync(string workspaceId, string issueId, CancellationToken cancellationToken) =>
+            Task.FromResult(true);
+
+        public Task CompleteAsync(string workspaceId, string issueId, CancellationToken cancellationToken) =>
+            Task.CompletedTask;
     }
 
     private sealed class ThrowingAssignedIssueQueue : IAssignedIssueQueue
@@ -515,6 +555,12 @@ public sealed class AutonomousWorkspaceServiceTests
         public void Replace(string workspaceId, IReadOnlyList<AssignedIssue> issues)
         {
         }
+
+        public Task<bool> TryHoldAsync(string workspaceId, string issueId, CancellationToken cancellationToken) =>
+            Task.FromResult(true);
+
+        public Task CompleteAsync(string workspaceId, string issueId, CancellationToken cancellationToken) =>
+            Task.CompletedTask;
     }
 
     private sealed class ClearingAssignedIssueQueue(InMemoryAgentWorkspaceSettingsRepository settings) : IAssignedIssueQueue
@@ -533,6 +579,63 @@ public sealed class AutonomousWorkspaceServiceTests
             _items = issues;
             if (draining)
                 settings.Save(settings.Get(workspaceId) with { PolicyRules = [] });
+        }
+
+        public Task<bool> TryHoldAsync(string workspaceId, string issueId, CancellationToken cancellationToken) =>
+            Task.FromResult(true);
+
+        public Task CompleteAsync(string workspaceId, string issueId, CancellationToken cancellationToken) =>
+            Task.CompletedTask;
+    }
+
+    /// <summary>A queue whose tasks another workspace already holds: nothing may be worked here.</summary>
+    private sealed class RefusingAssignedIssueQueue : IAssignedIssueQueue
+    {
+        private IReadOnlyList<AssignedIssue> _items = [];
+
+        public Task<IReadOnlyList<AssignedIssue>> ListAssignedAsync(
+            string workspaceId,
+            AssignedIssueOrder order,
+            CancellationToken cancellationToken) => Task.FromResult(_items);
+
+        public void Replace(string workspaceId, IReadOnlyList<AssignedIssue> issues) => _items = issues;
+
+        public Task<bool> TryHoldAsync(string workspaceId, string issueId, CancellationToken cancellationToken)
+        {
+            _items = [];
+            return Task.FromResult(false);
+        }
+
+        public Task CompleteAsync(string workspaceId, string issueId, CancellationToken cancellationToken) =>
+            Task.CompletedTask;
+    }
+
+    private sealed class RecordingAssignedIssueQueue : IAssignedIssueQueue
+    {
+        private IReadOnlyList<AssignedIssue> _items = [];
+
+        public bool HeldBeforeFirstPrompt { get; private set; }
+
+        public List<string> Completed { get; } = [];
+
+        public Task<IReadOnlyList<AssignedIssue>> ListAssignedAsync(
+            string workspaceId,
+            AssignedIssueOrder order,
+            CancellationToken cancellationToken) => Task.FromResult(_items);
+
+        public void Replace(string workspaceId, IReadOnlyList<AssignedIssue> issues) => _items = issues;
+
+        public Task<bool> TryHoldAsync(string workspaceId, string issueId, CancellationToken cancellationToken)
+        {
+            HeldBeforeFirstPrompt = true;
+            _items = [];
+            return Task.FromResult(true);
+        }
+
+        public Task CompleteAsync(string workspaceId, string issueId, CancellationToken cancellationToken)
+        {
+            Completed.Add(issueId);
+            return Task.CompletedTask;
         }
     }
 

@@ -8,7 +8,15 @@ public sealed record ForgeHostingDto(
     IReadOnlyList<ForgeReviewThreadDto> Threads,
     ForgeMergeabilityDto? Mergeability,
     string? Detail,
-    string? Remedy);
+    string? Remedy,
+    ForgeAccountDto? Account = null,
+    IReadOnlyList<ForgeReviewDto>? Reviews = null);
+
+/// <summary>A verdict left on the proposal; the state is the host's own word for it.</summary>
+public sealed record ForgeReviewDto(string Login, string State);
+
+/// <summary>The account this workspace acts as on its host; null until the host names one.</summary>
+public sealed record ForgeAccountDto(string Login, string DisplayName, bool IsBot, string Url);
 
 public sealed record ForgeProposalDto(
     string Id,
@@ -24,6 +32,19 @@ public sealed record ForgeCheckDto(string Name, string Status, string Conclusion
 public sealed record ForgeReviewThreadDto(string Id, string Url, string Summary, bool IsResolved);
 
 public sealed record ForgeMergeabilityDto(bool Mergeable, string State);
+
+/// <summary>An open issue on the workspace's repository, offered for picking into the queue.</summary>
+public sealed record ForgeIssueDto(
+    string Id,
+    int Number,
+    string Title,
+    string Body,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    string Url);
+
+/// <summary>The owner and repository a workspace's checkout points at.</summary>
+public sealed record ForgeRepositoryDto(string Owner, string Repository);
 
 public sealed record ForgeLoginStartDto(string AuthorizationUrl);
 

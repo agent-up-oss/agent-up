@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Agent-Up new UI screens</title>
+</head>
+<body>
+  <!--
+    Layouts and scenes. A scene names catalog components. It does not draw them.
+    The component markup is the Desktop or Mobile view those regions already are.
+  -->
+
+  <section data-au-layout="desktop">
+    <div data-au-use="screen">
+      <div data-au-use="chrome"></div>
+      <div data-au-use="screen-body">
+        <div data-au-slot="rail"></div>
+        <div data-au-use="screen-main">
+          <div data-au-use="screen-tabs" data-au-slot="tabs"></div>
+          <div data-au-use="screen-subtabs" data-au-slot="subtabs"></div>
+          <div data-au-use="screen-toolbar" data-au-slot="toolbar"></div>
+          <div data-au-use="screen-pane" data-au-slot="main"></div>
+        </div>
+        <aside class="au-screen-aside" data-au-slot="aside" data-au-when="checks"></aside>
+      </div>
+    </div>
+  </section>
+
+  <section data-au-layout="mobile-command">
+    <div data-au-use="phone">
+      <header class="aun-phone__head" data-au-slot="head"></header>
+      <div class="aun-phone__body" data-au-slot="body"></div>
+      <div class="aun-phone__dock" data-au-slot="dock"></div>
+      <div data-au-slot="nav"></div>
+    </div>
+  </section>
+
+  <section data-au-layout="mobile-agent">
+    <div data-au-use="phone">
+      <header class="aun-phone__head" data-au-slot="head"></header>
+      <div data-au-slot="tabs"></div>
+      <div class="aun-phone__body" data-au-slot="body"></div>
+      <div data-au-slot="nav"></div>
+    </div>
+  </section>
+
+  <section data-au-screen="team" data-au-title="Team" data-au-desktop="team" data-au-mobile="mobile-team"></section>
+  <section data-au-screen="agent-overview" data-au-title="Agent · Overview" data-au-desktop="agent-overview" data-au-mobile="mobile-agent-overview"></section>
+  <section data-au-screen="application" data-au-title="Agent · Application" data-au-desktop="application" data-au-mobile="mobile-application"></section>
+  <section data-au-screen="agent-chat" data-au-title="Agent · Chat" data-au-desktop="agent-chat" data-au-mobile="mobile-chat"></section>
+  <section data-au-screen="agent-git" data-au-title="Agent · Git" data-au-desktop="agent-git" data-au-mobile="mobile-agent-git"></section>
+  <section data-au-screen="tasks" data-au-title="Tasks" data-au-desktop="tasks" data-au-mobile="mobile-tasks"></section>
+  <section data-au-screen="settings" data-au-title="Settings" data-au-desktop="settings" data-au-mobile="mobile-settings"></section>
+
+  <section data-au-scene="team" data-au-platform="desktop" data-au-view="team" data-au-title="Team" data-au-layout="desktop">
+    <div data-au-region="rail" data-au-use="sidebar" data-au-state="nav:0"></div>
+    <div data-au-region="main" data-au-use="bridge-heading"></div>
+    <div data-au-region="main" data-au-use="agent-state-map"></div>
+  </section>
+
+  <section data-au-scene="tasks" data-au-platform="desktop" data-au-view="tasks" data-au-title="Tasks" data-au-layout="desktop">
+    <div data-au-region="rail" data-au-use="sidebar" data-au-state="nav:1"></div>
+    <div data-au-region="main" data-au-use="task-board"></div>
+  </section>
+
+  <section data-au-scene="agent-overview" data-au-platform="desktop" data-au-view="overview" data-au-title="Agent · Overview" data-au-layout="desktop">
+    <div data-au-region="rail" data-au-use="sidebar-member"></div>
+    <div data-au-region="tabs" data-au-use="workspace-tabs"></div>
+    <div data-au-region="main" data-au-use="member-overview"></div>
+  </section>
+
+  <section data-au-scene="agent-chat" data-au-platform="desktop" data-au-view="chat" data-au-title="Agent · Chat" data-au-layout="desktop">
+    <div data-au-region="rail" data-au-use="sidebar-member"></div>
+    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:1"></div>
+    <div data-au-region="main" data-au-use="chat-body"></div>
+  </section>
+
+  <section data-au-scene="agent-git" data-au-platform="desktop" data-au-view="git" data-au-title="Agent · Git" data-au-layout="desktop">
+    <div data-au-region="rail" data-au-use="sidebar-member"></div>
+    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:2"></div>
+    <div data-au-region="main" data-au-use="git-body"></div>
+  </section>
+
+  <section data-au-scene="application" data-au-platform="desktop" data-au-view="application" data-au-title="Agent · Application" data-au-layout="desktop">
+    <div data-au-region="rail" data-au-use="sidebar-member"></div>
+    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:3"></div>
+    <div data-au-region="subtabs" data-au-use="subtab"></div>
+    <div data-au-region="toolbar" data-au-use="address-bar" data-au-when="browser"></div>
+    <div data-au-region="main" data-au-use="application-host"></div>
+    <div data-au-region="aside" data-au-use="application-validation"></div>
+  </section>
+
+  <section data-au-scene="settings" data-au-platform="desktop" data-au-view="settings" data-au-title="Settings" data-au-layout="desktop">
+    <div data-au-region="rail" data-au-use="sidebar" data-au-state="nav:2"></div>
+    <div data-au-region="main" data-au-use="settings-panel"></div>
+  </section>
+
+  <section data-au-scene="mobile-team" data-au-platform="mobile" data-au-view="team" data-au-title="Team" data-au-layout="mobile-command">
+    <div data-au-region="head" data-au-use="mobile-head-team"></div>
+    <div data-au-region="body" data-au-use="mobile-state-map"></div>
+    <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:0"></div>
+  </section>
+
+  <section data-au-scene="mobile-tasks" data-au-platform="mobile" data-au-view="tasks" data-au-title="Tasks" data-au-layout="mobile-command">
+    <div data-au-region="head" data-au-use="mobile-head-tasks"></div>
+    <div data-au-region="body" data-au-use="task-board" data-au-props="parts="></div>
+    <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:1"></div>
+  </section>
+
+  <section data-au-scene="mobile-application" data-au-platform="mobile" data-au-view="application" data-au-title="Agent · Application" data-au-layout="mobile-command">
+    <div data-au-region="head" data-au-use="mobile-application-head"></div>
+    <div data-au-region="body" data-au-use="application-host"></div>
+    <div data-au-region="dock" data-au-use="application-dock"></div>
+  </section>
+
+  <section data-au-scene="mobile-agent-overview" data-au-platform="mobile" data-au-view="apps" data-au-title="Agent · Overview" data-au-layout="mobile-agent">
+    <div data-au-region="head" data-au-use="mobile-agent-head"></div>
+    <div data-au-region="tabs" data-au-use="mobile-tabs-apps"></div>
+    <div data-au-region="body" data-au-use="mobile-apps-body"></div>
+    <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:0"></div>
+  </section>
+
+  <section data-au-scene="mobile-chat" data-au-platform="mobile" data-au-view="chat" data-au-title="Agent · Chat" data-au-layout="mobile-agent">
+    <div data-au-region="head" data-au-use="mobile-agent-head"></div>
+    <div data-au-region="tabs" data-au-use="mobile-tabs-chat"></div>
+    <div data-au-region="body" data-au-use="mobile-chat"></div>
+    <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:0"></div>
+  </section>
+
+  <section data-au-scene="mobile-agent-git" data-au-platform="mobile" data-au-view="git" data-au-title="Agent · Git" data-au-layout="mobile-agent">
+    <div data-au-region="head" data-au-use="mobile-agent-head"></div>
+    <div data-au-region="tabs" data-au-use="mobile-tabs-git"></div>
+    <div data-au-region="body" data-au-use="mobile-git-body"></div>
+    <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:0"></div>
+  </section>
+
+  <section data-au-scene="mobile-settings" data-au-platform="mobile" data-au-view="settings" data-au-title="Settings" data-au-layout="mobile-command">
+    <div data-au-region="head" data-au-use="mobile-head-settings"></div>
+    <div data-au-region="body" data-au-use="settings-panel"></div>
+    <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:2"></div>
+  </section>
+</body>
+</html>

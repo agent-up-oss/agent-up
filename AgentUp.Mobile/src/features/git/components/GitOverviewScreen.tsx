@@ -1,15 +1,15 @@
 import { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { WorkspaceBranchPicker } from './WorkspaceBranchPicker';
 import { GitChangesPanel } from './GitChangesPanel';
 import { GitHostingRow } from './GitHostingRow';
-import { WorkspaceTabBar } from '@/features/shell/components/WorkspaceTabBar';
+import { WorkspaceTabs } from '@/features/shell/components/WorkspaceTabs';
+import { useWorkspaceHost } from '@/features/workspaces/controllers/WorkspaceHostContext';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { agentUpTheme, auText } from '@agent-up/design-system/native';
 
 export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
-  const router = useRouter();
+  const host = useWorkspaceHost(workspaceId);
   const [reloadNonce, setReloadNonce] = useState(0);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const reload = useCallback(() => setReloadNonce(current => current + 1), []);
@@ -23,10 +23,14 @@ export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.body}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.body}
+        keyboardShouldPersistTaps="handled"
+      >
         <WorkspaceBranchPicker
           workspaceId={workspaceId}
-          onHistory={() => router.push(`/(main)/workspace/${workspaceId}/git/history`)}
+          onHistory={() => host.open({ kind: 'gitHistory' })}
           onReload={reload}
           reloadNonce={reloadNonce}
           selectedFiles={selectedFiles}
@@ -42,15 +46,16 @@ export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
             onSelectedFilesChange={setSelectedFiles}
           />
         </View>
-      </View>
-      <WorkspaceTabBar workspaceId={workspaceId} active="git" />
+      </ScrollView>
+      <WorkspaceTabs workspaceId={workspaceId} active="git" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
-  body: { flex: 1, padding: agentUpTheme.spacing[4], gap: 16, maxWidth: 672, width: '100%', alignSelf: 'center' },
-  section: { flex: 1, gap: 8, minHeight: 0 },
+  scroll: { flex: 1 },
+  body: { padding: agentUpTheme.spacing[4], gap: 16, maxWidth: 672, width: '100%', alignSelf: 'center' },
+  section: { gap: 8 },
   sectionTitle: auText('fieldLabel'),
 });

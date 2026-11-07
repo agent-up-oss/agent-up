@@ -277,7 +277,7 @@ public sealed class ServerConnectionServiceTests
         var backend = FakeServerTestComposition.Backend();
         using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
         var service = FakeServerTestComposition.Connections(store, http, backend);
-        backend.Handle(new FakeBackendRequestDtoBuilder().Delete("/api/workspaces/harbor-shop").Build());
+        backend.Handle(new FakeBackendRequestDtoBuilder().Delete("/api/workspaces/bob").Build());
 
         service.Prepare("http://127.0.0.1:9");
 
