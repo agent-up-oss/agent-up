@@ -329,6 +329,94 @@ public sealed class AutonomyHttpTests
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
     }
 
+    [Test]
+    public async Task GetMember_defaultsToAnAuthorOnTheCodingFixture()
+    {
+        await using var host = await HostAsync();
+        var workspace = await host.RegisterAsync();
+
+        var member = await host.Client.GetFromJsonAsync<TeamMemberDto>($"/api/workspaces/{workspace.Id}/agent/member", Json);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(member!.Kind, Is.EqualTo(TeamMemberKind.Author));
+            Assert.That(member.WritesRepository, Is.True);
+            Assert.That(member.SubmitsReviews, Is.False);
+            Assert.That(member.Fixture, Is.EqualTo(AgentFixtureKind.CodingAgent));
+        });
+    }
+
+    [Test]
+    public async Task PutMember_pmReviewerRefusesACodingAgentBinding()
+    {
+        await using var host = await HostAsync();
+        var workspace = await host.RegisterAsync();
+
+        using var member = await host.Client.PutAsJsonAsync(
+            $"/api/workspaces/{workspace.Id}/agent/member", new { kind = "PmReviewer" });
+        using var binding = await host.Client.PutAsJsonAsync(
+            $"/api/workspaces/{workspace.Id}/agent/binding", new { agent = "codex" });
+        var body = await binding.Content.ReadAsStringAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(member.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(binding.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+            Assert.That(body, Does.Contain("PmReviewer team member runs an in-process agent"));
+        });
+    }
+
+    [Test]
+    public async Task PutMember_refusesAKindTheBoundAgentCannotServe()
+    {
+        await using var host = await HostAsync();
+        var workspace = await host.RegisterAsync();
+        using var binding = await host.Client.PutAsJsonAsync(
+            $"/api/workspaces/{workspace.Id}/agent/binding", new { agent = "codex" });
+
+        using var member = await host.Client.PutAsJsonAsync(
+            $"/api/workspaces/{workspace.Id}/agent/member", new { kind = "PmReviewer" });
+        var body = await member.Content.ReadAsStringAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(member.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+            Assert.That(body, Does.Contain("bound to 'codex'"));
+        });
+    }
+
+    [Test]
+    public async Task PutPolicy_devReviewerRefusesAWriteAllowRule()
+    {
+        await using var host = await HostAsync();
+        var workspace = await host.RegisterAsync();
+        using var member = await host.Client.PutAsJsonAsync(
+            $"/api/workspaces/{workspace.Id}/agent/member", new { kind = "DevReviewer" });
+
+        using var write = await host.Client.PutAsJsonAsync(
+            $"/api/workspaces/{workspace.Id}/agent/policy",
+            new { rules = new[] { new { id = "write", kind = "WorktreeWrite", allow = true, scope = "src/" } } });
+        using var read = await host.Client.PutAsJsonAsync(
+            $"/api/workspaces/{workspace.Id}/agent/policy",
+            new { rules = new[] { new { id = "read", kind = "WorktreeRead", allow = true, scope = (string?)null } } });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(write.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+            Assert.That(read.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+        });
+    }
+
+    [Test]
+    public async Task PutMember_unknownWorkspaceReturnsNotFound()
+    {
+        await using var host = await HostAsync();
+
+        using var response = await host.Client.PutAsJsonAsync("/api/workspaces/missing/agent/member", new { kind = "DevReviewer" });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
     private static async Task<Host> HostAsync()
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = ["--urls=http://127.0.0.1:0"] });
@@ -381,6 +469,8 @@ public sealed class AutonomyHttpTests
         builder.Services.AddSingleton<CommitsController>();
         builder.Services.AddSingleton<LoopPreconditionProvider>();
         builder.Services.AddSingleton<AutonomousWorkspaceService>();
+        builder.Services.AddSingleton<TeamMemberService>();
+        builder.Services.AddSingleton<TeamMemberController>();
         var app = builder.Build();
         app.MapControllers();
         await app.StartAsync();

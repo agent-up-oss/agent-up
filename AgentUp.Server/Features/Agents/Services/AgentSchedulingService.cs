@@ -142,6 +142,9 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         if (string.IsNullOrWhiteSpace(agent))
             return new AgentBindingResult(null, true, "The requested agent is not supported.");
         var agentId = NormalizeAgentId(agent);
+        var fixtureRefusal = FixtureRefusal(workspaceId, agentId);
+        if (fixtureRefusal is not null)
+            return new AgentBindingResult(await GetAsync(workspaceId, cancellationToken), true, fixtureRefusal, 409);
         if (_sessions.TryGetValue(workspaceId, out var live)
             && !string.Equals(live.Agent, agentId, StringComparison.OrdinalIgnoreCase))
         {
@@ -182,6 +185,9 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             var workspace = workspaces.GetById(workspaceId);
             if (workspace is null) return new AgentScheduleResult(null, false, null);
             var agentId = NormalizeAgentId(agent);
+            var fixtureRefusal = FixtureRefusal(workspaceId, agentId);
+            if (fixtureRefusal is not null)
+                return new AgentScheduleResult(null, true, fixtureRefusal);
             if (!await commands.IsAvailableAsync(agentId, cancellationToken)) throw new InvalidOperationException($"{agentId} ACP executable is not installed or is not on PATH.");
             if (_sessions.TryGetValue(workspaceId, out var live))
             {
@@ -202,7 +208,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             }
             await workspaces.UpdateBoundAgentAsync(workspaceId, agentId);
 
-            var state = new AgentSessionState(agentId, workspace.WorktreePath, processes.Create());
+            var state = new AgentSessionState(agentId, workspace.WorktreePath, processes.Create(agentId, workspaceId));
             if (!_sessions.TryAdd(workspaceId, state)) throw new InvalidOperationException("This workspace already has an agent.");
             BindProcess(workspaceId, state, state.Process);
             try
@@ -269,6 +275,9 @@ public sealed class AgentSchedulingService : IAsyncDisposable
                     true,
                     $"This workspace is bound to '{workspace.BoundAgentModuleId}'. Session '{sessionId}' belongs to '{saved.Agent}'.");
             }
+            var fixtureRefusal = FixtureRefusal(workspaceId, saved.Agent);
+            if (fixtureRefusal is not null)
+                return new AgentScheduleResult(null, true, fixtureRefusal);
             if (string.IsNullOrWhiteSpace(workspace.BoundAgentModuleId))
                 await workspaces.UpdateBoundAgentAsync(workspaceId, saved.Agent);
             if (!await commands.IsAvailableAsync(saved.Agent, cancellationToken))
@@ -277,7 +286,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
                 return new AgentScheduleResult(await GetAsync(workspaceId, cancellationToken), true, null);
             if (_sessions.ContainsKey(workspaceId)) await StopCoreAsync(workspaceId, cancellationToken);
 
-            var state = new AgentSessionState(saved.Agent, workspace.WorktreePath, processes.Create());
+            var state = new AgentSessionState(saved.Agent, workspace.WorktreePath, processes.Create(saved.Agent, workspaceId));
             _sessions[workspaceId] = state;
             BindProcess(workspaceId, state, state.Process);
             try
@@ -448,7 +457,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         catch (Exception exception) when (exception is InvalidOperationException or IOException)
         { logger.LogInformation(exception, "Could not stop the previous ACP process before subscription login restart."); }
         await previous.DisposeAsync();
-        var next = processes.Create();
+        var next = processes.Create(state.Agent, workspaceId);
         state.Process = next;
         BindProcess(workspaceId, state, next);
         await next.StartAsync(state.Agent, state.WorkingDirectory, environment.EnvironmentFor(state.Agent), state.Lifetime.Token);
@@ -807,6 +816,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         var listed = FirstPartyAgents
             .Concat(enabledAgents.Select(agent => agent.Identity.Id))
             .Concat(IncludeDevelopmentAgents ? [AgentUnavailability.ScriptedTestAgent] : [])
+            .Concat(commands.InProcessConfigured(InProcessAgents.Ollama) ? [InProcessAgents.Ollama] : [])
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -824,7 +834,8 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         var module = enabledAgents.FirstOrDefault(agent =>
             agent.Identity.Id.Equals(agentId, StringComparison.OrdinalIgnoreCase));
         var packageEnabled = module is not null || packages?.GetEnabled(agentId) is not null;
-        var developmentAgent = agentId.Equals(AgentUnavailability.ScriptedTestAgent, StringComparison.OrdinalIgnoreCase);
+        var developmentAgent = agentId.Equals(AgentUnavailability.ScriptedTestAgent, StringComparison.OrdinalIgnoreCase)
+            || InProcessAgents.IsInProcess(agentId);
         var displayName = module?.Identity.DisplayName
             ?? packages?.GetEnabled(agentId)?.DisplayName
             ?? DisplayName(agentId);
@@ -856,6 +867,27 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             AgentUnavailability.ExecutableNotFoundRemedy(commands.LaunchCommandName(agentId), agentId));
     }
 
+    /// <summary>
+    /// Authors and dev reviewers work on code through an ACP coding CLI; PM reviewers skip that
+    /// layer and run in-process. Binding the other kind would hand a PM a filesystem or strip a
+    /// developer of one, so it is refused with the member kind named.
+    /// </summary>
+    private string? FixtureRefusal(string workspaceId, string agentId)
+    {
+        var member = settings?.Get(workspaceId).Member ?? TeamMemberKind.Author;
+        var grants = TeamMemberGrants.For(member);
+        var fixture = InProcessAgents.FixtureOf(agentId);
+        return grants.AllowsFixture(fixture)
+            ? null
+            : $"A {member} team member runs {FixtureName(grants.Fixture)} agent; '{agentId}' is {FixtureName(fixture)} agent.";
+    }
+
+    private static string FixtureName(AgentFixtureKind fixture) => fixture switch
+    {
+        AgentFixtureKind.InProcess => "an in-process",
+        _ => "an ACP coding"
+    };
+
     private bool IncludeDevelopmentAgents =>
         host is not null && (host.IsDevelopment() || host.IsEnvironment("Testing"));
 
@@ -880,6 +912,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         "cursor" => "Cursor",
         "claude" => "Claude",
         AgentUnavailability.ScriptedTestAgent => AgentUnavailability.ScriptedTestAgentDisplayName,
+        InProcessAgents.Ollama => InProcessAgents.OllamaDisplayName,
         _ => agent
     };
 

@@ -1,4 +1,5 @@
 using System.Net;
+using AgentUp.Server.Features.Agents.Controllers;
 using AgentUp.Server.Features.Authentication.Controllers;
 using AgentUp.Server.Features.Orchestration.DTOs;
 using AgentUp.Server.Features.Orchestration.Providers;
@@ -117,9 +118,27 @@ public sealed class McpEndpointSessionProvider
         ConfigureEndpoint(context, options, instructions);
         context.RequestServices.GetService<McpToolPermissionController>()?.Restrict(context, options);
         binding?.Pin(context, options);
+        var bound = binding?.BoundWorkspace(context);
         context.RequestServices.GetService<AgentUp.Server.Features.Agents.Services.AutonomousWorkspaceService>()
-            ?.RestrictRoleTools(options, binding?.BoundWorkspace(context));
+            ?.RestrictRoleTools(options, bound);
+        RestrictTeamMember(context, options, bound);
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// A session pinned to a workspace also gets that workspace's team member grant: a reviewer
+    /// pinned session loses the write tools, a PM pinned session loses the repository tools.
+    /// Like the other narrowings it only removes.
+    /// </summary>
+    private static void RestrictTeamMember(HttpContext context, McpServerOptions options, string? boundWorkspace)
+    {
+        if (string.IsNullOrWhiteSpace(boundWorkspace))
+            return;
+        var members = context.RequestServices.GetService<TeamMemberController>();
+        var permissions = context.RequestServices.GetService<McpToolPermissionController>();
+        if (members is null || permissions is null)
+            return;
+        permissions.RestrictTo(options, members.OperationPermissions(boundWorkspace));
     }
 
     private static void ConfigureEndpoint(HttpContext context, McpServerOptions options, McpInstructionContext instructions)

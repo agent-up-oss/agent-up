@@ -200,6 +200,14 @@ public static class ServiceRegistration
         builder.Services.AddHttpClient("agent-login-callback");
         builder.Services.AddSingleton<AgentLoginCallbackRelay>();
         builder.Services.AddSingleton<IAgentSubscriptionLoginProvider, AgentSubscriptionLoginProvider>();
+        builder.Services.AddHttpClient(OllamaChatModelProvider.HttpClientName, client => client.Timeout = TimeSpan.FromMinutes(5));
+        builder.Services.AddHttpClient(LoopbackMcpClientProvider.HttpClientName, client => client.Timeout = TimeSpan.FromMinutes(2));
+        builder.Services.AddSingleton<IInProcessChatModel, OllamaChatModelProvider>();
+        builder.Services.AddSingleton<ILoopbackMcpClient, LoopbackMcpClientProvider>();
+        builder.Services.AddSingleton<InProcessToolCatalogProvider>();
+        builder.Services.AddSingleton<TeamMemberService>();
+        builder.Services.AddSingleton<TeamMemberController>();
+        builder.Services.AddSingleton<IInProcessToolHost, InProcessAgentToolService>();
         builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
         builder.Services.AddSingleton<AgentEventFrameProvider>();
         builder.Services.AddSingleton<AgentEventService>();

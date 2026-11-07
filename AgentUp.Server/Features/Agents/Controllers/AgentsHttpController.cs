@@ -9,7 +9,8 @@ namespace AgentUp.Server.Features.Agents.Controllers;
 [Route("api/workspaces/{workspaceId}/agent")]
 public sealed class AgentsHttpController(
     AgentsController agents,
-    AutonomousWorkspaceService? autonomy = null) : ControllerBase
+    AutonomousWorkspaceService? autonomy = null,
+    TeamMemberController? members = null) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<AgentSessionDto>> Get(string workspaceId, CancellationToken cancellationToken) =>
@@ -58,6 +59,32 @@ public sealed class AgentsHttpController(
     [HttpDelete("role")]
     public async Task<IActionResult> DeleteRole(string workspaceId) =>
         await AutonomyActionAsync(workspaceId, current => current.SetRoleAsync(workspaceId, null));
+
+    [HttpGet("member")]
+    public IActionResult GetMember(string workspaceId)
+    {
+        var member = members?.Describe(workspaceId);
+        return member is null ? NotFound() : Ok(member);
+    }
+
+    [HttpPut("member")]
+    public IActionResult PutMember(string workspaceId, TeamMemberRequest request) =>
+        MemberResult(this, members, workspaceId, request.Kind);
+
+    private static IActionResult MemberResult(
+        ControllerBase controller,
+        TeamMemberController? members,
+        string workspaceId,
+        TeamMemberKind kind)
+    {
+        if (members is null)
+            return controller.Problem(statusCode: 409, title: "Agent operation failed", detail: "Team members are not configured.");
+        var result = members.Set(workspaceId, kind);
+        if (!result.Found) return controller.NotFound();
+        return result.Error is null
+            ? controller.Ok(members.Describe(workspaceId))
+            : controller.Problem(statusCode: 409, title: "Team member could not be changed", detail: result.Error);
+    }
 
     [HttpPut("host-connection")]
     public async Task<IActionResult> PutHostConnection(string workspaceId, HostConnectionRequest request) =>

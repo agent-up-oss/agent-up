@@ -11,7 +11,14 @@ public sealed class AgentCommandProvider(
     IAgentRuntimePathProvider? runtime = null)
 {
     public Task<bool> IsAvailableAsync(string agent, CancellationToken cancellationToken)
-        => Task.FromResult(IsLaunchExecutableAvailable(agent));
+        => Task.FromResult(InProcessAgents.IsInProcess(agent)
+            ? InProcessConfigured(agent)
+            : IsLaunchExecutableAvailable(agent));
+
+    /// <summary>An in-process agent has no executable; it is available once its model is named.</summary>
+    public bool InProcessConfigured(string agent) =>
+        InProcessAgents.IsInProcess(agent)
+        && !string.IsNullOrWhiteSpace(configuration[InProcessAgents.OllamaModelSetting]);
 
     public string? LaunchCommandName(string agent)
     {

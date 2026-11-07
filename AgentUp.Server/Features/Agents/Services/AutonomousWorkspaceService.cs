@@ -101,6 +101,10 @@ public sealed class AutonomousWorkspaceService(
         if (workspaces.GetById(workspaceId) is null)
             return Task.FromResult(AgentActionResult.NotFound());
         var current = settings.Get(workspaceId);
+        var grants = TeamMemberGrants.For(current.Member);
+        var exceeded = rules.Select(grants.Exceeds).FirstOrDefault(reason => reason is not null);
+        if (exceeded is not null)
+            return Task.FromResult(AgentActionResult.Failed(exceeded));
         settings.Save(current with { PolicyRules = rules });
         var policy = rules.Count == 0 ? null : new DeclaredPermissionPolicy(rules);
         scheduling.AttachPolicy(workspaceId, policy);
@@ -233,9 +237,10 @@ public sealed class AutonomousWorkspaceService(
 
                 Record(workspaceId, "running", task, null, null, null, []);
                 var policy = new DeclaredPermissionPolicy(current.PolicyRules);
-                var prompt = current.Role is null
-                    ? $"Work on issue #{task.Number}: {task.Title}\n\n{task.Body}"
-                    : $"{current.Role.Prompt}\n\nWork on issue #{task.Number}: {task.Title}\n\n{task.Body}";
+                var work = current.Role?.Trigger == RoleTriggerKind.ProposalAwaitingReview
+                    ? $"Review proposal {task.Id}: {task.Title}\n{task.Url}\n\n{task.Body}"
+                    : $"Work on issue #{task.Number}: {task.Title}\n\n{task.Body}";
+                var prompt = current.Role is null ? work : $"{current.Role.Prompt}\n\n{work}";
                 var result = await loop.RunAsync(
                     new LoopRunRequest(workspaceId, prompt, 32, policy, 200_000, StandingPolicyReplies: current.StandingPolicyReplies),
                     cancellationToken);

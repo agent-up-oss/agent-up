@@ -102,6 +102,18 @@ public sealed class DeclaredPermissionPolicyTests
         });
     }
 
+    [Test]
+    public void Classify_treatsTheAcpFetchKindAsNetworkEvenWhenTheTitleMentionsReading()
+    {
+        var policy = new DeclaredPermissionPolicy([
+            new PermissionRule("browser", PermissionRuleKind.Network, true)
+        ]);
+
+        var decision = policy.Decide(Request("fetch", "fetch read_page", ""));
+
+        Assert.That(decision!.RuleId, Is.EqualTo("browser"));
+    }
+
     private static JsonElement Request(string kind, string title, string path, string? command = null)
     {
         var json = JsonSerializer.Serialize(new
