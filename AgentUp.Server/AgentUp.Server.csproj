@@ -9,8 +9,8 @@
   <ItemGroup>
     <PackageReference Include="Devolutions.IronRdp" Version="2026.10.29" />
     <PackageReference Include="LocalInstaller.Core" Version="$(LocalInstallerVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="10.0.13" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="10.0.14" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.14" />
     <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.4.0" />
     <PackageReference Include="Npgsql" Version="10.0.3" />
     <PackageReference Include="Sentry.AspNetCore" Version="6.12.1" />
