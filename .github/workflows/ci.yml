@@ -253,6 +253,9 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      - name: Check WebKit package selection
+        run: ./.github/scripts/install-ubuntu-browser-test-deps.test.sh
+
       - name: Install GUI watchdog dependencies
         run: ./.github/scripts/install-ubuntu-browser-test-deps.sh
 
