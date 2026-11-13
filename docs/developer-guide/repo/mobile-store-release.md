@@ -24,7 +24,7 @@ installation runs the design-system generator with `--check` so stale committed
 outputs fail instead of being rewritten. It does not call
 semantic-release or use `.releaserc.json`. Android compiles on Ubuntu. iOS
 compiles on `macos-26` with Xcode 26.4 because CocoaPods and `xcodebuild` cannot
-run on Linux, and Expo SDK 57 rejects Xcode 16.
+run on Linux, and Expo SDK 58 requires the iOS 27 SDK that Xcode 16 does not ship.
 
 ## Inputs
 
