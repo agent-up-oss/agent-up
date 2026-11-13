@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { findNodeHandle, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { findNodeHandle, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { PublicIcon } from '@/features/shell/components/PublicIcon';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
@@ -42,7 +42,7 @@ export function ValidationDock({ workspaceId, applicationName, replayHost }: Val
   const playAbort = useRef<AbortController | null>(null);
   const selectedIndexRef = useRef(0);
   const itemCountRef = useRef(0);
-  const copyRef = useRef<View>(null);
+  const copyRef = useRef<ViewInstance>(null);
   selectedIndexRef.current = selectedIndex;
   itemCountRef.current = items.length;
 

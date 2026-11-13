@@ -1030,7 +1030,7 @@ Changes under `AgentUp.Mobile/` must run `./au-debug test mobile` (typecheck, te
 
 Every public mobile npm script must invoke its Expo or TypeScript command through the repository `shell.nix`, except `build:cloudflare`, which runs the shared web-export entrypoint directly in Cloudflare Pages' Node.js build image. GitHub Actions jobs in `.github/workflows/mobile-ci.yaml` also invoke Expo from `AgentUp.Mobile` and Fastlane from the repository root on GitHub-hosted runners that do not enter `shell.nix`; do not add matching public npm scripts. Do not add other duplicate direct or `:nix` script variants. Expo commands must use the local `node_modules/.bin` CLI, and TypeScript commands must use `npx`; `nix-shell` replaces `PATH`, so a bare `expo` or `tsc` binary is not available. Keep Node.js, `zip`, `unzip`, `NIX_LD`, `patchelf`, the DotSlash DevTools preparation, and the React Native DevTools Electron runtime libraries in `shell.nix` so NixOS launches use the same reproducible environment.
 
-Mobile development servers use Expo LAN mode so Metro is reachable through the host network. Production web builds must export through Metro. Keep the web manifest and install icons under `public/` synchronized with the exported PWA.
+Mobile development servers use Expo LAN mode so Metro is reachable through the host network. Production web builds must export through Metro. Keep the web manifest and install icons under `public/` synchronized with the exported PWA. A custom `src/app/+html.tsx` must render `bodyNodes` from `useServerDocumentContext()` so the static HTML includes the client bundle.
 
 Forbidden:
 
