@@ -8,6 +8,29 @@ const canvasColor = agentUpTheme.colors.canvas;
 const versionPattern = /^\d+\.\d+\.\d+$/;
 const versionCodePattern = /^[1-9][0-9]*$/;
 
+function pluginName(plugin) {
+  return Array.isArray(plugin) ? plugin[0] : plugin;
+}
+
+function splashScreenPlugin(backgroundColor) {
+  return [
+    'expo-splash-screen',
+    {
+      image: './assets/icon.png',
+      resizeMode: 'contain',
+      backgroundColor,
+    },
+  ];
+}
+
+function withSplashScreenPlugin(plugins, backgroundColor) {
+  const existing = Array.isArray(plugins) ? plugins : [];
+  return [
+    ...existing.filter((plugin) => pluginName(plugin) !== 'expo-splash-screen'),
+    splashScreenPlugin(backgroundColor),
+  ];
+}
+
 function createMobileExpoConfig(appJson, env = {}) {
   const expo = appJson.expo || {};
   const version = String(env.AGENTUP_MOBILE_VERSION || expo.version || '').trim();
@@ -26,11 +49,7 @@ function createMobileExpoConfig(appJson, env = {}) {
       ...expo,
       version,
       icon: './assets/icon.png',
-      splash: {
-        image: './assets/icon.png',
-        resizeMode: 'contain',
-        backgroundColor: canvasColor,
-      },
+      plugins: withSplashScreenPlugin(expo.plugins, canvasColor),
       ios: {
         ...expo.ios,
         bundleIdentifier: iosBundleId,
@@ -59,4 +78,5 @@ module.exports = {
   createMobileExpoConfig,
   iosBundleId,
   androidPackageName,
+  pluginName,
 };

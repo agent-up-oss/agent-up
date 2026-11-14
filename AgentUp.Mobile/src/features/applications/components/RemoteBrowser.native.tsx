@@ -1,6 +1,6 @@
-import { forwardRef, useImperativeHandle, useRef } from 'react';
-import { StyleSheet } from 'react-native';
-import WebView, { type WebViewMessageEvent } from 'react-native-webview';
+import { forwardRef, useImperativeHandle, useRef, type ComponentType, type Ref } from 'react';
+import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { WebView as WebViewComponent, type WebViewMessageEvent } from 'react-native-webview';
 import { agentUpTheme } from '@agent-up/design-system/native';
 import type { ApplicationProxySource } from '../providers/ApplicationBrowserProvider';
 import { javascriptLiteral, type RemoteBrowserHandle } from '../providers/RemoteBrowserHandle';
@@ -9,10 +9,27 @@ type PendingEval = {
   resolve: (value: string | null) => void;
 };
 
+type WebViewHost = {
+  injectJavaScript: (script: string) => void;
+};
+
+type HostedWebViewProps = {
+  ref?: Ref<WebViewHost | null>;
+  source: { html: string } | { uri: string; headers?: Record<string, string> };
+  style?: StyleProp<ViewStyle>;
+  javaScriptEnabled?: boolean;
+  domStorageEnabled?: boolean;
+  onMessage?: (event: WebViewMessageEvent) => void;
+};
+
+// react-native-webview 14 intersects iOS, Android, and Windows props, which collapses
+// to never under React Native 0.88's strict View types.
+const WebView = WebViewComponent as ComponentType<HostedWebViewProps>;
+
 /** Hosts the tunneled application HTTP response in the platform-native WebView. */
 export const RemoteBrowser = forwardRef<RemoteBrowserHandle, { source: ApplicationProxySource }>(
   function RemoteBrowser({ source }, ref) {
-    const webViewRef = useRef<WebView>(null);
+    const webViewRef = useRef<WebViewHost>(null);
     const pending = useRef(new Map<number, PendingEval>());
     const nextId = useRef(1);
 

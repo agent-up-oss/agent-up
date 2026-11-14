@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 const require = createRequire(import.meta.url);
-const { canvasColor, createMobileExpoConfig, iosBundleId, androidPackageName } = require('./mobile-expo-config.js');
+const { canvasColor, createMobileExpoConfig, iosBundleId, androidPackageName, pluginName } = require('./mobile-expo-config.js');
 const { agentUpTheme } = require('../../AgentUp.DesignSystem/dist/web/tokens.cjs');
 const appJson = require('../app.json');
 
@@ -38,8 +38,22 @@ test('keeps local app.json version and a local version code of 1', () => {
   assert.equal(config.expo.android.package, androidPackageName);
   assert.equal(config.expo.android.versionCode, 1);
   assert.equal(config.expo.android.adaptiveIcon.backgroundColor, canvasColor);
-  assert.equal(config.expo.splash.backgroundColor, canvasColor);
+  assert.equal(config.expo.splash, undefined);
+  const splashPlugin = config.expo.plugins.find((plugin) => pluginName(plugin) === 'expo-splash-screen');
+  assert.deepEqual(splashPlugin, [
+    'expo-splash-screen',
+    {
+      image: './assets/icon.png',
+      resizeMode: 'contain',
+      backgroundColor: canvasColor,
+    },
+  ]);
   assert.equal(config.expo.web.bundler, 'metro');
+  assert.equal(config.expo.web.output, 'static');
+  assert.deepEqual(
+    config.expo.plugins.find((plugin) => pluginName(plugin) === 'expo-router'),
+    ['expo-router', { asyncRoutes: { web: false } }],
+  );
 });
 
 test('overlays CI marketing version and store build number', () => {

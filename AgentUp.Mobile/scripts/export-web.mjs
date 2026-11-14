@@ -1,9 +1,11 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveExpoCli } from './expo-cli.mjs';
 
 export const distDirectory = 'dist';
+export const clientBundleScriptPattern = /<script[^>]+src=["'][^"']*_expo\/static\/js\//;
 
 export function webExportEnv(env = process.env) {
   const sentryDsn = env.EXPO_PUBLIC_SENTRY_DSN || env.SENTRY_DSN_MOBILE;
@@ -24,6 +26,19 @@ export function cleanDist(directory = distDirectory) {
   }
 }
 
+export function exportedHtmlIncludesClientBundle(html) {
+  return clientBundleScriptPattern.test(html);
+}
+
+export function assertExportedHtmlHydrates(directory = distDirectory) {
+  const html = readFileSync(join(directory, 'index.html'), 'utf8');
+  if (!exportedHtmlIncludesClientBundle(html)) {
+    throw new Error(
+      'Static export HTML is missing the client bundle. src/app/+html.tsx must render bodyNodes from useServerDocumentContext().',
+    );
+  }
+}
+
 function runExport() {
   console.log('Exporting AgentUp.Mobile web build.');
   cleanDist();
@@ -33,7 +48,12 @@ function runExport() {
   });
 
   if (result.error) throw result.error;
-  process.exitCode = result.status ?? 1;
+  if (result.status) {
+    process.exitCode = result.status;
+    return;
+  }
+
+  assertExportedHtmlHydrates();
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

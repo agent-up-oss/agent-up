@@ -34,9 +34,45 @@ public sealed class AgentSubscriptionLoginProviderTests
             Assert.Multiple(() =>
             {
                 Assert.That(result.Succeeded, Is.True);
+                Assert.That(challenge, Is.Not.Null,
+                    "A CLI that prints a link and exits must still publish the challenge; cancelling stdout before draining it used to drop the last line.");
                 Assert.That(challenge!.Url, Does.Contain("loginDeepControl"));
                 Assert.That(challenge.Transport, Is.EqualTo(AgentLoginTransport.Poll));
                 Assert.That(challenge.CanSubmitCode, Is.False, "Nothing is carried back for a polling sign-in");
+            });
+        }
+        finally
+        {
+            File.Delete(script);
+        }
+    }
+
+    [Test]
+    public async Task LoginAsync_publishesALinkPrintedWithoutATrailingNewlineBeforeExit()
+    {
+        var script = WriteScript(
+            OperatingSystem.IsWindows()
+                ? "<nul set /p=\"Open https://cursor.com/loginDeepControl?challenge=abc\""
+                : "printf 'Open https://cursor.com/loginDeepControl?challenge=abc'");
+        try
+        {
+            var provider = CreateProvider(script);
+            AgentLoginChallengeDto? challenge = null;
+
+            var result = await provider.LoginAsync(
+                "cursor",
+                new AgentCommand(script, []),
+                "cursor_login",
+                value => challenge = value,
+                new AgentLoginInbox(),
+                CancellationToken.None);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Succeeded, Is.True);
+                Assert.That(challenge, Is.Not.Null,
+                    "EOF must flush a URL that was never followed by a newline.");
+                Assert.That(challenge!.Url, Does.Contain("loginDeepControl"));
             });
         }
         finally
@@ -182,6 +218,8 @@ public sealed class AgentSubscriptionLoginProviderTests
             Assert.Multiple(() =>
             {
                 Assert.That(result.Succeeded, Is.True);
+                Assert.That(challenge, Is.Not.Null,
+                    "A CLI that prints a redirect URL and exits must still publish the challenge.");
                 Assert.That(challenge!.Transport, Is.EqualTo(AgentLoginTransport.Redirect));
                 Assert.That(challenge.RedirectUri, Is.EqualTo("http://localhost:1455/auth/callback"),
                     "The client needs the exact address to recognise the redirect it must hand back");

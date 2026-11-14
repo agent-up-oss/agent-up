@@ -19,12 +19,16 @@ to GitHub Actions artifacts (`mobile-android`, `mobile-ios`) with 1-day
 retention, including on smoke, before any Play or App Store Connect submit.
 
 The workflow runs Mobile typechecking, provider and script tests, and a web
-export in a dedicated Ubuntu job before either native build. Dependency
+export in a dedicated Ubuntu job before either native build. That job then
+runs `Examples/browser-sso` Playwright against the export; pin
+`@playwright/test` to 1.61.1 so Chromium installs on `ubuntu-latest` (26.04).
+SDK 58 custom `src/app/+html.tsx` must render `bodyNodes` from
+`useServerDocumentContext()` so the static HTML hydrates. Dependency
 installation runs the design-system generator with `--check` so stale committed
 outputs fail instead of being rewritten. It does not call
 semantic-release or use `.releaserc.json`. Android compiles on Ubuntu. iOS
 compiles on `macos-26` with Xcode 26.4 because CocoaPods and `xcodebuild` cannot
-run on Linux, and Expo SDK 57 rejects Xcode 16.
+run on Linux, and Expo SDK 58 requires the iOS 27 SDK that Xcode 16 does not ship.
 
 ## Inputs
 

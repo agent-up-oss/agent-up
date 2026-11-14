@@ -4,7 +4,7 @@ import { mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
-import { cleanDist, webExportEnv } from './export-web.mjs';
+import { assertExportedHtmlHydrates, cleanDist, exportedHtmlIncludesClientBundle, webExportEnv } from './export-web.mjs';
 
 test('cleanDist removes an existing export directory', () => {
   const root = mkdtempSync(join(tmpdir(), 'agent-up-export-'));
@@ -40,4 +40,27 @@ test('webExportEnv leaves Sentry unset when no DSN is provided', () => {
   const env = webExportEnv({ AGENT_UP_APPLICATION: 'Mobile' });
 
   assert.equal(env.EXPO_PUBLIC_SENTRY_DSN, undefined);
+});
+
+test('exportedHtmlIncludesClientBundle requires the Expo client script tag', () => {
+  assert.equal(
+    exportedHtmlIncludesClientBundle('<script src="/_expo/static/js/web/entry-abc.js"></script>'),
+    true,
+  );
+  assert.equal(
+    exportedHtmlIncludesClientBundle('<script id="_R_">globalThis.__EXPO_ROUTER_HYDRATE__=true;</script>'),
+    false,
+  );
+});
+
+test('assertExportedHtmlHydrates rejects HTML that cannot hydrate', () => {
+  const root = mkdtempSync(join(tmpdir(), 'agent-up-export-'));
+  writeFileSync(join(root, 'index.html'), '<html><body><div id="root"></div></body></html>');
+  assert.throws(() => assertExportedHtmlHydrates(root), /client bundle/);
+});
+
+test('assertExportedHtmlHydrates accepts HTML with the client bundle', () => {
+  const root = mkdtempSync(join(tmpdir(), 'agent-up-export-'));
+  writeFileSync(join(root, 'index.html'), '<script src="/_expo/static/js/web/entry-abc.js"></script>');
+  assert.doesNotThrow(() => assertExportedHtmlHydrates(root));
 });

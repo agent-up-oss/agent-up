@@ -33,7 +33,9 @@ It used to. That could not work for two of the three shapes:
 - `claude setup-token` writes its prompt with **no trailing newline** and then blocks on stdin, so
   a line-oriented read never returns and the link printed above it is never surfaced.
   `AgentLoginOutputReader` reads characters and flushes whatever is pending once the CLI goes
-  quiet, which is what makes an unterminated prompt observable.
+  quiet, which is what makes an unterminated prompt observable. After the CLI exits, remaining
+  stdout and stderr are still parsed so a URL printed on the last line is published rather than
+  dropped.
 - There was no way to answer that prompt at all. The Server now keeps stdin open and
   `POST api/workspaces/{id}/agent/login/code` delivers a code to a CLI that is waiting for one.
   A pasted-code challenge (transport `code` with no user code) that exits without leaving a

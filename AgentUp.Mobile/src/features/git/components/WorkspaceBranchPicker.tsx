@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ViewInstance } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
@@ -45,7 +45,7 @@ export function WorkspaceBranchPicker({ workspaceId, onHistory, onReload, reload
   const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
   const [menuLayout, setMenuLayout] = useState<MenuLayout | null>(null);
   const request = useRef(0);
-  const wrapRef = useRef<View>(null);
+  const wrapRef = useRef<ViewInstance>(null);
   const seenReloadNonce = useRef(reloadNonce);
   const [writeAllowed, setWriteAllowed] = useState(true);
 

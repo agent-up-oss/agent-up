@@ -100,9 +100,12 @@ public sealed class AgentSubscriptionLoginProvider(
             throw;
         }
 
-        await lifetime.CancelAsync();
+        // WaitForExit can complete while redirected stdout still has unread bytes. Drain
+        // those pipes before cancelling so a URL on the last line is still parsed and
+        // published; then cancel the inbox consumer that would otherwise wait forever.
         await DrainAsync(stdout);
         await DrainAsync(stderr);
+        await lifetime.CancelAsync();
         await DrainAsync(submissions);
 
         if (process.ExitCode != 0)
@@ -117,8 +120,9 @@ public sealed class AgentSubscriptionLoginProvider(
     }
 
     /// <summary>
-    /// Waits for the CLI to print its sign-in link. A CLI that exits first has failed outright,
-    /// and one that simply stops talking is bounded rather than left pending.
+    /// Waits for the CLI to print its sign-in link, exit, or hit the challenge timeout.
+    /// Exit is not a missing link by itself: redirected stdout may still be in flight, and
+    /// LoginAsync drains it after WaitForExit before deciding whether a URL was published.
     /// </summary>
     private static async Task AwaitChallengeAsync(Task challenged, Process process, AgentLoginFlow flow, CancellationToken cancellationToken)
     {
