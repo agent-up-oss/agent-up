@@ -19,9 +19,9 @@ import {
 } from './FakeGitProvider';
 
 function harborGit() {
-  return loadFakeGitState('harbor-shop', {
+  return loadFakeGitState('bob', {
     changes: {
-      workspaceId: 'harbor-shop',
+      workspaceId: 'bob',
       branch: 'main',
       commit: 'a1b2c3d',
       ahead: 0,
@@ -133,10 +133,10 @@ test('switch and checkout reject empty names and add remotes', () => {
 });
 
 test('loadFakeGitState defaults sparse nodes and later agent files', () => {
-  assert.equal(loadFakeGitState('harbor-shop', undefined), null);
+  assert.equal(loadFakeGitState('bob', undefined), null);
   assert.equal(normalizeGitStatus(undefined), 'Modified');
   assert.equal(normalizeGitStatus('mystery'), 'Modified');
-  const git = loadFakeGitState('harbor-shop', { incomingPulled: true })!;
+  const git = loadFakeGitState('bob', { incomingPulled: true })!;
   git.nextAgentFile = 2;
   const added = addAgentWorkingTreeFile(git);
   assert.equal(added.path, 'apps/storefront/PromoBanner2.tsx');

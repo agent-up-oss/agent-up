@@ -37,7 +37,7 @@ public static class DesktopScreenGeometry
 
     public const int ConsoleSubTabX = 377;
 
-    /// <summary>Agent composer, pinned to the bottom of the Agent tab.</summary>
+    /// <summary>Agent composer, pinned to the bottom of the Chat tab.</summary>
     public const int AgentPromptX = 780;
 
     public const int AgentPromptY = 857;

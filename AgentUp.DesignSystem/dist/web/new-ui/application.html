@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent · Application — Agent-Up new UI</title>
+  <link rel="stylesheet" href="../new-ui.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
+    .aun-frame { width: 1440px; min-height: 900px; overflow: hidden; display: flex; }
+    .aun-frame > * { flex: 1 1 auto; min-width: 0; }
+  </style>
+</head>
+<body>
+<div class="aun-frame">
+<div class="au-screen">
+      <div class="au-chrome">
+        <span class="au-cluster">
+          <span class="au-title-tool au-chrome-icon"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></span>
+          <span class="au-title-tool au-chrome-icon" data-au-action="refresh"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 4v6h-6"></path></svg></span>
+          <span class="au-badge au-badge--healthy"><span class="au-status-dot au-status-dot--healthy"></span>SERVER ONLINE</span>
+        </span>
+        <span class="au-logo-lockup"><span class="au-chrome-mark"></span><strong class="au-chrome-title">Agent-Up</strong></span>
+        <span class="au-cluster">
+          <span class="au-chrome-button au-chrome-icon" data-au-action="window-minimize">−</span>
+          <span class="au-chrome-button au-chrome-icon" data-au-action="window-restore">□</span>
+          <span class="au-chrome-button au-chrome-close au-chrome-icon" data-au-action="window-close">×</span>
+        </span>
+      </div>
+      <div class="au-screen-body">
+        <aside class="au-rail au-screen-rail" aria-label="Sidebar">
+        <div class="aun-nav-row">
+          <button type="button" class="aun-nav" data-au-action="nav-team" data-au-selection="nav:0:aun-nav--current">Team</button>
+          <button type="button" class="au-workspace-add" data-au-action="add-workspace" aria-label="Add workspace">+</button>
+        </div>
+        <div class="aun-nav-subs">
+          <div data-au-demo="workspaces" data-au-repeat="workspace" data-au-action="open-workspace"><div class="au-workspace au-workspace--selected">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span>
+          <strong class="au-workspace-name">Bob</strong>
+          <small class="au-workspace-branch">feat/45-deliver</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+<div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--idle"></span>
+        <span>
+          <strong class="au-workspace-name">Frank</strong>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+<div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--danger"></span>
+        <span>
+          <strong class="au-workspace-name">Hector</strong>
+          <small class="au-workspace-branch">feat/44-restock</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+<div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--warning"></span>
+        <span>
+          <strong class="au-workspace-name">Lucy</strong>
+          <small class="au-workspace-branch">feat/44-restock</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+<div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--idle"></span>
+        <span>
+          <strong class="au-workspace-name">Mia</strong>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div></div>
+        </div>
+        <button type="button" class="aun-nav" data-au-action="nav-tasks" data-au-selection="nav:1:aun-nav--current">Tasks</button>
+        <button type="button" class="aun-nav" data-au-action="nav-settings" data-au-selection="nav:2:aun-nav--current">Settings</button>
+      </aside>
+        <main class="au-screen-main">
+          <div class="au-screen-tabs"><div class="au-cluster">
+        <button class="au-app-tab" type="button" data-au-action="tab-overview" data-au-selection="selected:0:au-app-tab--selected">Overview</button>
+        <button class="au-app-tab" type="button" data-au-action="tab-chat" data-au-selection="selected:1:au-app-tab--selected">Chat</button>
+        <button class="au-app-tab" type="button" data-au-action="tab-git" data-au-selection="selected:2:au-app-tab--selected">Git</button>
+        <span class="au-tab-sep"></span>
+        <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="select-application" data-au-id="Storefront" data-au-selection="app:Storefront:au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
+        <button class="au-app-tab" type="button" data-au-action="select-application" data-au-id="Orders API" data-au-selection="app:Orders API:au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
+        <button class="au-app-tab" type="button" data-au-action="select-application" data-au-id="Inventory" data-au-selection="app:Inventory:au-app-tab--selected"><span class="au-status-dot au-status-dot--healthy"></span> Inventory</button>
+      </div></div>
+          <div class="au-screen-subtabs"><div class="au-cluster">
+        <button class="au-subtab au-subtab--selected" type="button" data-au-action="subtab-port" data-au-when="port" data-au-selection="tool:port:au-subtab--selected"><span class="au-status-dot au-status-dot--healthy"></span> 3000:9100</button>
+        <button class="au-subtab" type="button" data-au-action="subtab-console" data-au-when="console" data-au-selection="tool:console:au-subtab--selected">Console</button>
+        <button class="au-subtab" type="button" data-au-action="subtab-diagnostics" data-au-when="diagnostics" data-au-selection="tool:diagnostics:au-subtab--selected">Diagnostics</button>
+        <button class="au-subtab" type="button" data-au-action="subtab-metrics" data-au-when="metrics" data-au-selection="tool:metrics:au-subtab--selected">Metrics</button>
+        <button class="au-subtab" type="button" data-au-action="subtab-database" data-au-when="database" data-au-selection="tool:database:au-subtab--selected">Database</button>
+      </div></div>
+          <div class="au-screen-toolbar"><div class="au-cluster">
+        <button class="au-browser-button" type="button" data-au-action="browser-back">‹</button>
+        <button class="au-browser-button" type="button" data-au-action="browser-forward">›</button>
+        <button class="au-browser-button" type="button" data-au-action="browser-reload">↻</button>
+        <input class="au-address-bar" value="http://localhost:9100/" />
+      </div></div>
+          <div class="au-screen-pane"><div class="aun-application" data-au-slot="application">
+        <div class="au-storefront">
+        <p class="au-field-label">Storefront</p>
+        <h1 class="au-page-title">Harbor Shop</h1>
+        <p class="au-muted">Featured goods from the harbor catalog.</p>
+        <div class="au-storefront-grid">
+          <div class="au-card">
+            <strong>Harbor Mug</strong>
+            <p class="au-muted">Stoneware, fog glaze</p>
+            <p class="au-accent">$18</p>
+            <button class="au-button au-button--compact" type="button">Add to cart</button>
+          </div>
+          <div class="au-card">
+            <strong>Canvas Tote</strong>
+            <p class="au-muted">Waxed canvas, brass snap</p>
+            <p class="au-accent">$32</p>
+            <button class="au-button au-button--compact" type="button">Add to cart</button>
+          </div>
+          <div class="au-card">
+            <strong>Chart Lamp</strong>
+            <p class="au-muted">Brass shade, linen cord</p>
+            <p class="au-accent">$54</p>
+            <button class="au-button au-button--compact" type="button">Add to cart</button>
+          </div>
+        </div>
+        <div class="au-card">
+          <strong>Cart</strong>
+          <div class="au-cart-row"><span>Harbor Mug × 1</span><span>$18</span></div>
+          <div class="au-cart-row"><span>Canvas Tote × 1</span><span>$32</span></div>
+          <div class="au-cart-row"><strong>Total</strong><strong class="au-accent">$50</strong></div>
+          <button class="au-button au-button--compact" type="button">Place order</button>
+        </div>
+        <h2 class="au-heading">Recent orders</h2>
+        <div class="au-card">
+          <div class="au-cart-row"><span>Harbor Mug × 1</span><span class="au-accent">$18</span></div>
+        </div>
+      </div>
+      </div></div>
+        </main>
+        <aside class="au-screen-aside" data-au-when="checks"><aside class="au-validation-sidebar aun-validate-rail" aria-label="Validation" data-au-demo="rail" data-au-flags="collapsed:au-validation-sidebar--collapsed">
+    <div class="au-validation-sidebar-head">
+      <div class="au-validation-sidebar-copy">
+        <p class="au-accent">Validation</p>
+        <p class="au-muted">Checks for the displayed app</p>
+      </div>
+      <button class="au-workspace-add" type="button" aria-label="Validation">›</button>
+    </div>
+    <div class="au-validation-sidebar-list">
+    <div class="au-validation-flow">
+      <div class="au-validation-flow-head"><span class="au-status-dot au-status-dot--warning" aria-hidden="true"></span><div class="au-validation-copy"><strong>Checkout featured goods</strong><p class="au-muted">Reset the catalog, refuse an empty cart, then order a Harbor Mug.</p></div><button class="au-validation-play" type="button">▶ Play</button></div>
+      
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--healthy" aria-hidden="true"></span><span>Starting page</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--healthy" aria-hidden="true"></span><span>Title is Harbor Shop</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--healthy" aria-hidden="true"></span><span>Harbor Mug</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--healthy" aria-hidden="true"></span><span>Reset the catalog to the seed tickets</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--healthy" aria-hidden="true"></span><span>Your cart is empty.</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--healthy" aria-hidden="true"></span><span>Order 1008</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--warning" aria-hidden="true"></span><span>Place order does nothing while the cart is empty</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--warning" aria-hidden="true"></span><span>Your cart is empty.</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Order 1008</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Add Harbor Mug to the cart</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Cart · Harbor Mug × 1</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Place the Harbor Mug order</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Order 1009</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Your cart is empty.</span></div>
+    </div>
+    </div>
+    <div class="au-validation-flow">
+      <div class="au-validation-flow-head"><span class="au-status-dot au-status-dot--danger" aria-hidden="true"></span><div class="au-validation-copy"><strong>Checkout tote and lamp</strong><p class="au-muted">Add the tote and lamp together, then place one combined order.</p></div><button class="au-validation-play" type="button">▶ Play</button></div>
+      
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--danger" aria-hidden="true"></span><span>Starting page</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--danger" aria-hidden="true"></span><span>Title is Harbor Shop</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Canvas Tote</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Reset the catalog to the seed tickets</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Your cart is empty.</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Add Canvas Tote to the cart</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Cart · Canvas Tote × 1</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Add Chart Lamp beside the tote</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Cart · Chart Lamp × 1</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Cart · Canvas Tote × 1</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Place the combined tote and lamp order</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Order 1009</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Chart Lamp × 1</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Your cart is empty.</span></div>
+    </div>
+    </div>
+    <div class="au-validation-flow">
+      <div class="au-validation-flow-head"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><div class="au-validation-copy"><strong>Stack Harbor Mugs</strong><p class="au-muted">Add the mug twice so the cart quantity stacks, then place that order.</p></div><button class="au-validation-play" type="button">▶ Play</button></div>
+      
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Starting page</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Title is Harbor Shop</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Harbor Mug</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Reset the catalog to the seed tickets</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Your cart is empty.</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Add the first Harbor Mug</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Cart · Harbor Mug × 1</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Stack a second Harbor Mug in the cart</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Cart · Harbor Mug × 2</span></div>
+    </div>
+    <div class="au-validation-stage">
+      <div class="au-validation-step"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Place the stacked mug order</span></div>
+      <div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Order 1009</span></div><div class="au-validation-check"><span class="au-status-dot au-status-dot--idle" aria-hidden="true"></span><span>Your cart is empty.</span></div>
+    </div>
+    </div></div></aside></aside>
+      </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import {
   AgentLoopControls,
   getAgent,
@@ -12,7 +11,8 @@ import {
   type ServerAutonomy,
 } from '@agent-up/chat';
 import { boundAgentActionLabel, formatLoopLine } from '@/features/agents/providers/LoopLineProvider';
-import { WorkspaceTabBar } from '@/features/shell/components/WorkspaceTabBar';
+import { WorkspaceTabs } from '@/features/shell/components/WorkspaceTabs';
+import { useWorkspaceHost } from '@/features/workspaces/controllers/WorkspaceHostContext';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
@@ -20,7 +20,7 @@ import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesConte
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 
 export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
-  const router = useRouter();
+  const host = useWorkspaceHost(workspaceId);
   const { expireActiveCredential } = useServers();
   const { server } = useWorkspaces();
   const [session, setSession] = useState<AgentSession | null>(null);
@@ -76,7 +76,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
     finally { setBusy(false); }
   };
 
-  const openChat = () => router.push(`/(main)/workspace/${workspaceId}/agent`);
+  const openChat = () => host.open({ kind: 'agent' });
 
   return (
     <View style={styles.screen}>
@@ -105,7 +105,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
             const loop = await getLoop(server, workspaceId);
             setSession(current => current ? { ...current, loop } : current);
           }, 'Could not cancel the loop.')}
-          onConfigurePolicy={() => router.push(`/(main)/workspace/${workspaceId}/agent-policy`)}
+          onConfigurePolicy={() => host.open({ kind: 'agentPolicy' })}
         />
 
         {session?.boundAgent && hasCreatedBoundAgent ? (
@@ -128,13 +128,13 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
             accessibilityRole="button"
             accessibilityLabel="Create bound agent"
             disabled={busy}
-            onPress={() => router.push(`/(main)/workspace/${workspaceId}/agent-create`)}
+            onPress={() => host.open({ kind: 'agentCreate' })}
             style={styles.createButton}>
             <Text style={styles.createIcon}>+</Text>
           </Pressable>
         )}
       </ScrollView>
-      <WorkspaceTabBar workspaceId={workspaceId} active="agents" />
+      <WorkspaceTabs workspaceId={workspaceId} active="agents" />
     </View>
   );
 }

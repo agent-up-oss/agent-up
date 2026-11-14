@@ -12,8 +12,11 @@ import {
   parseIcons,
 } from './lib/icons.mjs';
 import { emitNative } from './lib/native.mjs';
+import { newUiFromAssembled, newUiManifest, withProductCatalog, wrapNewUiScene } from './lib/new-ui.mjs';
 import { emitSequencePlayer, emitSequencePlayerTypes } from './lib/sequences.mjs';
 import { assembleScreens, framedSceneHtml, sceneCopy, wrapSceneDocument } from './lib/screens.mjs';
+import { emitSceneAvalonia, emitSceneNative, sceneBundle } from './lib/scene.mjs';
+import { applyDemo, loadDemo } from './lib/demo.mjs';
 import { applyDefaultParts, buildPropsExamples, hasContentSlots } from './lib/slots.mjs';
 import { buildStateExamples } from './lib/states.mjs';
 
@@ -30,6 +33,17 @@ const catalogHtml = expandIcons(await readCatalogHtml(src), icons);
 const screensHtml = expandIcons(await readFile(resolve(src, 'screens.html'), 'utf8'), icons);
 const css = `${primitives.trim()}\n\n${product.trim()}\n`;
 const screenshotCss = `${css}\n${marketing}\n${screenshotShell}\n`;
+/*
+ * The New UI space. Its catalog and screens stay out of `src/*.css` and `src/catalog-*.html`,
+ * which are the Old UI stylesheet and catalog. A scene names a component from either catalog.
+ * Product components (the title bar, a workspace row, the Git pane) are inserted as themselves.
+ */
+const newUiHtml = await readFile(resolve(src, 'new-ui', 'catalog.html'), 'utf8');
+const newUiCatalog = parseCatalog(newUiHtml);
+const sceneCatalog = parseCatalog(newUiHtml);
+applyDemo(newUiCatalog, await loadDemo());
+const newUiScreens = await readFile(resolve(src, 'new-ui', 'screens.html'), 'utf8');
+const newUiCss = await readFile(resolve(src, 'new-ui', 'new-ui.css'), 'utf8');
 const tokens = parseCustomProperties(primitives);
 const required = [
   'color-canvas', 'color-surface', 'color-border-subtle', 'color-text-primary',
@@ -43,8 +57,21 @@ for (const name of required) {
 const catalog = parseCatalog(catalogHtml);
 if (catalog.surfaces.length < 8) throw new Error('Design catalog is missing required product surfaces.');
 resolveDefaultParts(catalog);
+resolveDefaultParts(newUiCatalog);
+resolveDefaultParts(sceneCatalog);
+const sceneComponents = new Map();
+for (const listed of [catalog, sceneCatalog]) {
+  for (const surface of listed.surfaces) {
+    for (const component of surface.components) sceneComponents.set(component.id, component);
+  }
+}
+const newUiRules = parseRules(`${css}\n${newUiCss}`);
+const bundle = sceneBundle(newUiScreens, sceneComponents, newUiRules, tokens);
+const sceneIndex = catalogIndex(withProductCatalog(catalog, sceneCatalog));
+const sceneKeep = new Set(bundle.regions);
 expandStateExamples(catalog);
 const assembled = assembleScreens(catalog, screensHtml);
+const newUi = newUiFromAssembled(assembleScreens(withProductCatalog(catalog, newUiCatalog), newUiScreens));
 const rules = parseRules(`${css}\n${marketing}`);
 const index = catalogIndex(catalog);
 const native = emitNative(tokens, rules);
@@ -93,6 +120,24 @@ const outputs = new Map([
 
 for (const scene of assembled.scenes) {
   outputs.set(`dist/web/screenshots/${scene.htmlFile}`, wrapSceneDocument(scene));
+}
+
+// Standalone scene documents carry the foundations with them; a page that already loads the
+// design system embeds the second file so the shared primitives are not applied twice.
+outputs.set('dist/web/new-ui.css', `${css.trim()}\n\n${newUiCss.trim()}\n`);
+outputs.set('dist/web/new-ui-embed.css', `${newUiCss.trim()}\n`);
+outputs.set('dist/web/new-ui.json', `${JSON.stringify(newUiManifest(newUi, bundle), null, 2)}\n`);
+outputs.set('dist/native/new-ui.js', emitNative(tokens, newUiRules, {
+  keep: sceneKeep,
+  themeName: 'newUiTheme',
+  boxName: 'newUiBox',
+  textName: 'newUiText',
+}).js);
+outputs.set('dist/native/new-ui-scene.js', emitSceneNative(bundle));
+outputs.set('dist/dotnet/NewUiScene.g.cs', emitSceneAvalonia(bundle));
+outputs.set('dist/avalonia/AgentUpNewUiStyles.axaml', emitStyles(newUiRules, tokens, sceneIndex, { keep: sceneKeep }));
+for (const scene of newUi.scenes) {
+  outputs.set(`dist/web/new-ui/${scene.id}.html`, wrapNewUiScene(scene));
 }
 
 for (const [relative, content] of outputs) {

@@ -41,9 +41,11 @@
     <Compile Include="../AgentUp.DesignSystem/dist/dotnet/AgentUpThemeColors.g.cs" Link="Shared/Models/AgentUpThemeColors.g.cs" />
     <Compile Include="../AgentUp.DesignSystem/dist/dotnet/AgentUpSyntaxGrammars.g.cs" Link="Shared/Models/AgentUpSyntaxGrammars.g.cs" />
     <Compile Include="../AgentUp.DesignSystem/dist/dotnet/AgentUpIcons.g.cs" Link="Shared/Models/AgentUpIcons.g.cs" />
+    <Compile Include="../AgentUp.DesignSystem/dist/dotnet/NewUiScene.g.cs" Link="Shared/Models/NewUiScene.g.cs" />
     <AvaloniaResource Include="../media/logo.png" Link="media/logo.png" />
     <AvaloniaResource Include="../AgentUp.DesignSystem/dist/avalonia/AgentUpTheme.axaml" Link="DesignSystem/AgentUpTheme.axaml" />
     <AvaloniaResource Include="../AgentUp.DesignSystem/dist/avalonia/AgentUpStyles.axaml" Link="DesignSystem/AgentUpStyles.axaml" />
+    <AvaloniaResource Include="../AgentUp.DesignSystem/dist/avalonia/AgentUpNewUiStyles.axaml" Link="DesignSystem/AgentUpNewUiStyles.axaml" />
     <Content Include="../media/logo.png" Link="media/logo.png" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="../AgentUp.FakeServer/definition.json" LogicalName="AgentUp.FakeServer.definition.json" />
     <EmbeddedResource Include="../AgentUp.DesignSystem/dist/web/agent-up.css" LogicalName="AgentUp.DesignSystem.agent-up.css" />

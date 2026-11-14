@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Agent-Up new UI components</title>
+</head>
+<body>
+  <!--
+    Components for the New UI. Each one is a module the Desktop or Mobile command center already
+    draws. Screens name these ids; they do not redraw the module.
+  -->
+  <section data-au-surface="new-ui" data-au-title="New UI" data-au-intro="Command center modules taken from the Desktop and Mobile views.">
+
+    <article data-au-component="page-title" data-au-title="Page title" data-au-note="The product page headline. Screens and heads pass the words; the type stays this one class." data-au-avalonia="TextBlock" data-au-class="au-page-title">
+      <h1 class="au-page-title" data-au-text="title">Tasks</h1>
+    </article>
+
+    <article data-au-component="section-label" data-au-title="Section label" data-au-note="The small headline above a group. Settings and Tasks use this same label." data-au-avalonia="TextBlock" data-au-class="au-field-label">
+      <p class="au-field-label" data-au-text="label">In progress · 1</p>
+    </article>
+
+    <article data-au-component="sidebar" data-au-title="Sidebar" data-au-note="Desktop only. Team, Tasks, and Settings. Workspaces are sub-options under Team, five at most; a longer list keeps Load more. The rail does not collapse. Add stays, on the right of Team. Logout lives on Settings." data-au-avalonia="Border" data-au-class="au-screen-rail" data-au-states="nav=aun-nav/aun-nav--current" data-au-parts=" ">
+      <aside class="au-rail au-screen-rail" aria-label="Sidebar">
+        <div class="aun-nav-row">
+          <button type="button" class="aun-nav" data-au-action="nav-team" data-au-selection="nav:0:aun-nav--current">Team</button>
+          <button type="button" class="au-workspace-add" data-au-action="add-workspace" aria-label="Add workspace">+</button>
+        </div>
+        <div class="aun-nav-subs">
+          <div data-au-demo="workspaces" data-au-repeat="workspace" data-au-action="open-workspace"></div>
+          <button type="button" class="aun-rail__link" data-au-part="more" data-au-action="load-more">Load more</button>
+        </div>
+        <button type="button" class="aun-nav" data-au-action="nav-tasks" data-au-selection="nav:1:aun-nav--current">Tasks</button>
+        <button type="button" class="aun-nav" data-au-action="nav-settings" data-au-selection="nav:2:aun-nav--current">Settings</button>
+      </aside>
+    </article>
+
+    <article data-au-component="sidebar-member" data-au-title="Sidebar, member open" data-au-note="The same rail while a workspace is open. That row is selected under Team." data-au-avalonia="Border" data-au-class="au-screen-rail">
+      <aside class="au-rail au-screen-rail" aria-label="Sidebar">
+        <div class="aun-nav-row">
+          <button type="button" class="aun-nav" data-au-action="nav-team" data-au-selection="nav:0:aun-nav--current">Team</button>
+          <button type="button" class="au-workspace-add" data-au-action="add-workspace" aria-label="Add workspace">+</button>
+        </div>
+        <div class="aun-nav-subs">
+          <div data-au-demo="workspaces" data-au-repeat="workspace" data-au-action="open-workspace"></div>
+        </div>
+        <button type="button" class="aun-nav" data-au-action="nav-tasks" data-au-selection="nav:1:aun-nav--current">Tasks</button>
+        <button type="button" class="aun-nav" data-au-action="nav-settings" data-au-selection="nav:2:aun-nav--current">Settings</button>
+      </aside>
+    </article>
+
+    <article data-au-component="settings-panel" data-au-title="Settings panel" data-au-note="Interface switch, forge connection, capability modules, and Login. Each group has the same small headline." data-au-avalonia="Border" data-au-class="aun-settings">
+      <div class="aun-settings">
+        <div class="aun-group">
+          <div data-au-use="section-label" data-au-props="label=Interface"></div>
+          <div class="aun-settings__list">
+            <div class="aun-settings__row">
+              <span class="aun-settings__id"><span class="aun-settings__name">Classic interface</span><span class="aun-settings__state">The previous workspace shell</span></span>
+              <button class="aun-btn" type="button" data-au-action="use-classic">Use classic</button>
+            </div>
+          </div>
+        </div>
+        <div class="aun-group">
+          <div data-au-use="section-label" data-au-props="label=Forge connection"></div>
+          <div class="aun-settings__list">
+            <div class="aun-settings__row">
+              <span class="aun-settings__name">Task source</span>
+              <button class="aun-btn aun-btn--primary" type="button" data-au-action="connect-source">Connect</button>
+            </div>
+          </div>
+        </div>
+        <div class="aun-group">
+          <div data-au-use="section-label" data-au-props="label=Capabilities"></div>
+          <div class="aun-settings__list">
+            <div class="aun-settings__row">
+              <span class="aun-settings__id"><span class="aun-settings__name">.NET</span><span class="aun-settings__state"><span class="au-status-dot au-status-dot--healthy"></span>Ready</span></span>
+              <button class="aun-btn" type="button">Disable</button>
+            </div>
+            <div class="aun-settings__row">
+              <span class="aun-settings__id"><span class="aun-settings__name">Docker</span><span class="aun-settings__state"><span class="au-status-dot au-status-dot--healthy"></span>Ready</span></span>
+              <button class="aun-btn" type="button">Disable</button>
+            </div>
+            <div class="aun-settings__row">
+              <span class="aun-settings__id"><span class="aun-settings__name">Codex</span><span class="aun-settings__state"><span class="au-status-dot au-status-dot--healthy"></span>Ready</span></span>
+              <button class="aun-btn" type="button">Disable</button>
+            </div>
+            <div class="aun-settings__row">
+              <span class="aun-settings__id"><span class="aun-settings__name">Cursor</span><span class="aun-settings__state">Disabled</span></span>
+              <button class="aun-btn aun-btn--primary" type="button">Enable</button>
+            </div>
+            <div class="aun-settings__row">
+              <span class="aun-settings__id"><span class="aun-settings__name">Claude</span><span class="aun-settings__state"><span class="au-status-dot au-status-dot--healthy"></span>Ready</span></span>
+              <button class="aun-btn" type="button">Disable</button>
+            </div>
+          </div>
+        </div>
+        <div class="aun-group" data-au-when="chatSettings">
+          <div data-au-use="section-label" data-au-props="label=Chat"></div>
+          <div class="au-cluster" data-au-slot="settingsWorkspaces" data-au-repeat="settings-workspace">
+            <button class="au-app-tab au-app-tab--selected" type="button">Bob</button>
+            <button class="au-app-tab" type="button">Frank</button>
+          </div>
+          <div class="aun-settings__list" data-au-slot="chatFields" data-au-repeat="settings-field">
+            <div class="aun-settings__row">
+              <span class="aun-settings__id"><span class="aun-settings__name">Autonomy enabled</span><span class="aun-settings__state">Enable autonomy for this Server</span></span>
+              <button class="aun-btn" type="button">Enable</button>
+            </div>
+          </div>
+        </div>
+        <div class="aun-group">
+          <div data-au-use="section-label" data-au-props="label=Login"></div>
+          <div class="aun-settings__list">
+            <div class="aun-settings__row">
+              <span class="aun-settings__name" data-au-text="server">Demo</span>
+              <button class="aun-btn" type="button" data-au-action="logout">Logout</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article data-au-component="settings-workspace" data-au-title="Settings workspace" data-au-note="One workspace in Settings · Chat. The selected tab is the workspace whose agent and unattended loop are shown." data-au-avalonia="Button" data-au-class="au-app-tab">
+      <button class="au-app-tab" type="button" data-au-kind="1" data-au-action="settings-workspace" data-au-text="name"></button>
+    </article>
+
+    <article data-au-component="settings-field" data-au-title="Settings field" data-au-note="One chat property. Its control is greyed when the value cannot be changed. Nested rows are that property's own fields." data-au-avalonia="Border" data-au-class="aun-settings__field" data-au-parts="control">
+      <div class="aun-settings__field">
+        <div class="aun-settings__row">
+          <span class="aun-settings__id">
+            <span class="aun-settings__name" data-au-text="title"></span>
+            <span class="aun-settings__state" data-au-text="detail"></span>
+          </span>
+          <button class="aun-btn" type="button" data-au-part="control" data-au-action="setting" data-au-text="action"></button>
+        </div>
+        <div class="aun-settings__subs" data-au-slot="fields" data-au-repeat="settings-field"></div>
+      </div>
+    </article>
+
+    <article data-au-component="settings-logout" data-au-title="Settings logout" data-au-note="The Server and Logout section. It lives on Settings, on Desktop and Mobile." data-au-avalonia="Border" data-au-class="au-drawer-server">
+      <div class="aun-card">
+        <p class="aun-rail__section">SERVER</p>
+        <strong class="au-workspace-name">Demo</strong>
+        <button class="au-session-logout" type="button" data-au-action="logout">Logout</button>
+      </div>
+    </article>
+
+    <article data-au-component="bridge-heading" data-au-title="Bridge heading" data-au-note="Desktop bridge title and the headline the view binds." data-au-avalonia="Border" data-au-class="aun-main">
+      <div>
+        <div data-au-use="page-title" data-au-props="title=Team"></div>
+        <p class="aun-muted" data-au-demo="headline" data-au-text="headline"></p>
+      </div>
+    </article>
+
+    <article data-au-component="agent-state-map" data-au-title="Agent state map" data-au-note="Desktop fleet graph. Only lanes with an agent are drawn. A host's messages sit under the host." data-au-avalonia="Border" data-au-class="aun-state-map">
+      <div class="aun-state-map">
+        <div class="aun-state-map__head"><div><p class="aun-state-map__kicker">AGENT STATE MAP</p><p class="aun-state-map__dek">Live fleet topology</p></div><span class="aun-live">LIVE</span></div>
+        <div class="aun-state-map__root"><div><p class="aun-state-map__total" data-au-text="total"></p><p class="aun-state-map__total-label" data-au-text="totalLabel"></p></div><div><p class="aun-state-map__root-title">SERVER FLEET</p><p class="aun-state-map__root-meta" data-au-text="meta"></p></div></div>
+        <div class="aun-state-map__stem"></div>
+        <div class="aun-state-map__crossbar"></div>
+        <div class="aun-state-map__lanes" data-au-demo="fleet" data-au-repeat="fleet-lane"></div>
+      </div>
+    </article>
+
+    <article data-au-component="bridge-task-table" data-au-title="Bridge tasks" data-au-note="The task table on the Desktop bridge." data-au-avalonia="Border" data-au-class="aun-card">
+      <div class="aun-card" data-au-demo="reported"></div>
+    </article>
+
+    <article data-au-component="task-queue" data-au-title="Task queue" data-au-note="In progress, queue, and open issues, with the empty copy the Desktop queue shows after a read." data-au-avalonia="Border" data-au-class="aun-card">
+      <div class="aun-card">
+        <p class="aun-rail__section">QUEUE</p>
+        <p class="aun-faint">Nothing is queued, so the agents have nothing to take. Pick an issue below.</p>
+        <p class="aun-rail__section">OPEN ISSUES</p>
+        <p class="aun-faint">Open a workspace to see the issues on its repository.</p>
+      </div>
+    </article>
+
+    <article data-au-component="task-source" data-au-title="Task source" data-au-note="Where the Server's agents take work from." data-au-avalonia="Border" data-au-class="aun-card">
+      <div class="aun-card" data-au-demo="source"></div>
+    </article>
+
+    <article data-au-component="train-panel" data-au-title="Train panel" data-au-note="The train block on the Desktop command center." data-au-avalonia="Border" data-au-class="aun-card">
+      <div class="aun-card" data-au-demo="decisions"></div>
+    </article>
+
+    <article data-au-component="mobile-head-team" data-au-title="Mobile Team head" data-au-note="Team and the fleet headline. The phone has no drawer." data-au-avalonia="Border" data-au-class="aun-phone__head-row">
+      <div class="aun-phone__head-row">
+        <div class="aun-phone__head-copy"><div data-au-use="page-title" data-au-props="title=Team"></div><span class="aun-phone__subtitle" data-au-demo="headline" data-au-text="headline"></span></div>
+      </div>
+    </article>
+
+    <article data-au-component="mobile-head-tasks" data-au-title="Mobile Tasks head" data-au-note="Tasks. The phone has no drawer." data-au-avalonia="Border" data-au-class="aun-phone__head-row">
+      <div class="aun-phone__head-row">
+        <div class="aun-phone__head-copy"><div data-au-use="page-title" data-au-props="title=Tasks"></div></div>
+      </div>
+    </article>
+
+    <article data-au-component="mobile-head-settings" data-au-title="Mobile Settings head" data-au-note="Settings. The phone has no drawer." data-au-avalonia="Border" data-au-class="aun-phone__head-row">
+      <div class="aun-phone__head-row">
+        <div class="aun-phone__head-copy"><div data-au-use="page-title" data-au-props="title=Settings"></div></div>
+      </div>
+    </article>
+
+    <article data-au-component="application-validation" data-au-title="Application validation" data-au-note="The right rail on Agent · Application. It starts collapsed. The toggle expands it, and each check wraps inside the card." data-au-avalonia="Border" data-au-class="au-validation-sidebar">
+      <aside class="au-validation-sidebar aun-validate-rail" aria-label="Validation" data-au-demo="rail" data-au-flags="collapsed:au-validation-sidebar--collapsed">
+        <div class="au-validation-sidebar-head">
+          <div class="au-validation-sidebar-copy" data-au-when="expanded">
+            <p class="au-accent">Validation</p>
+            <p class="au-muted">Checks for the displayed app</p>
+          </div>
+          <button class="au-workspace-add" type="button" data-au-action="toggle-validation" data-au-text="validationToggle" aria-label="Validation">›</button>
+        </div>
+        <div class="au-validation-sidebar-list" data-au-when="expanded" data-au-slot="flows" data-au-repeat="command-flow" data-au-action="run"></div>
+      </aside>
+    </article>
+
+    <article data-au-component="application-dock" data-au-title="Application validation dock" data-au-note="50px under the open application. The dock starts with nothing selected, opens the dropup, selects the second flow, runs each of its checks, then opens the overview. The showcase plays those states; the product advances them when a run moves." data-au-avalonia="Border" data-au-class="aun-validate">
+      <div class="aun-validate" data-au-demo="dock" data-au-flags="open:aun-validate--open running:aun-validate--running passed:aun-validate--passed">
+        <div class="aun-validate__menu" data-au-when="open" data-au-slot="flows" data-au-repeat="command-flow"></div>
+        <div class="au-validation-dock">
+          <button class="au-validation-play aun-validate__run" type="button" data-au-action="run" aria-label="Run">▶</button>
+          <div class="au-validation-dock-copy" data-au-text="summary">No check selected</div>
+          <button type="button" data-au-action="open-validations" aria-label="Validations">▾</button>
+        </div>
+      </div>
+    </article>
+
+    <article data-au-component="mobile-application-head" data-au-title="Mobile application head" data-au-note="An open application is an inner page: a chevron back to Apps, and the application name. No tab bar and no reload." data-au-avalonia="Border" data-au-class="aun-agent-head">
+      <div class="aun-agent-head">
+        <button type="button" class="aun-agent-back" data-au-action="back" aria-label="Go back">‹</button>
+        <div class="aun-phone__head-copy" data-au-demo="application-name"></div>
+      </div>
+    </article>
+
+    <article data-au-component="mobile-agent-head" data-au-title="Mobile agent head" data-au-note="Back is a chevron, the workspace name sits above its branch, and Reload is accent text. No boxed control." data-au-avalonia="Border" data-au-class="aun-agent-head">
+      <div class="aun-agent-head">
+        <button type="button" class="aun-agent-back" data-au-action="back" aria-label="Back to the team">‹</button>
+        <div class="aun-phone__head-copy" data-au-demo="member"></div>
+        <button type="button" class="aun-agent-reload" data-au-action="reload">Reload</button>
+      </div>
+    </article>
+
+    <article data-au-component="mobile-tabs-apps" data-au-title="Agent tabs, Apps" data-au-note="Apps, Git, Chat. Apps selected. The accent underline is the catalog tab." data-au-avalonia="Border" data-au-class="au-tabs">
+      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-apps" data-au-selection="selected:0:au-tab--selected">Apps</button><button class="au-tab" type="button" data-au-action="tab-git" data-au-selection="selected:1:au-tab--selected">Git</button><button class="au-tab" type="button" data-au-action="tab-chat" data-au-selection="selected:2:au-tab--selected">Chat</button></nav>
+    </article>
+
+    <article data-au-component="mobile-tabs-git" data-au-title="Agent tabs, Git" data-au-note="Apps, Git, Chat. Git selected." data-au-avalonia="Border" data-au-class="au-tabs">
+      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab" type="button" data-au-action="tab-apps" data-au-selection="selected:0:au-tab--selected">Apps</button><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-git" data-au-selection="selected:1:au-tab--selected">Git</button><button class="au-tab" type="button" data-au-action="tab-chat" data-au-selection="selected:2:au-tab--selected">Chat</button></nav>
+    </article>
+
+    <article data-au-component="mobile-tabs-chat" data-au-title="Agent tabs, Chat" data-au-note="Apps, Git, Chat. Chat selected." data-au-avalonia="Border" data-au-class="au-tabs">
+      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab" type="button" data-au-action="tab-apps" data-au-selection="selected:0:au-tab--selected">Apps</button><button class="au-tab" type="button" data-au-action="tab-git" data-au-selection="selected:1:au-tab--selected">Git</button><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-chat" data-au-selection="selected:2:au-tab--selected">Chat</button></nav>
+    </article>
+
+    <article data-au-component="mobile-tabbar" data-au-title="Command tabs" data-au-note="Team, Tasks, Settings. The phone bar is these three. Unselected icons sit at 55% opacity." data-au-avalonia="Border" data-au-class="au-mobile-tab-bar" data-au-states="selected=au-nav-tab/au-subtab--selected">
+      <div class="au-mobile-tab-bar" role="tablist">
+        <button class="au-subtab au-nav-tab" type="button" data-au-action="nav-team" data-au-selection="selected:0:au-subtab--selected">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 19v-1.2a3.8 3.8 0 0 0-3.8-3.8H6.8A3.8 3.8 0 0 0 3 17.8V19"></path><circle cx="9" cy="7.2" r="3.2"></circle><path d="M21 19v-1.2a3.8 3.8 0 0 0-2.9-3.7"></path><path d="M16.2 4.2a3.2 3.2 0 0 1 0 6"></path></svg>
+          Team
+        </button>
+        <button class="au-subtab au-nav-tab" type="button" data-au-action="nav-tasks" data-au-selection="selected:1:au-subtab--selected">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"></path><path d="m3.5 5.8 1.3 1.3L7.4 4.5"></path><path d="m3.5 11.8 1.3 1.3L7.4 10.5"></path><path d="M4 18h1.5"></path></svg>
+          Tasks
+        </button>
+        <button class="au-subtab au-nav-tab" type="button" data-au-action="nav-settings" data-au-selection="selected:2:au-subtab--selected">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Settings
+        </button>
+      </div>
+    </article>
+
+    <article data-au-component="mobile-state-map" data-au-title="Mobile state map" data-au-note="The same fleet graph, stacked for the phone." data-au-avalonia="Border" data-au-class="aun-state-map">
+      <div class="aun-state-map aun-state-map--mobile">
+        <div class="aun-state-map__head"><div><p class="aun-state-map__kicker">AGENT STATE MAP</p><p class="aun-state-map__dek">Live fleet topology</p></div><span class="aun-live">LIVE</span></div>
+        <div class="aun-state-map__lanes" data-au-demo="fleet" data-au-repeat="fleet-lane"></div>
+      </div>
+    </article>
+
+    <article data-au-component="task-board" data-au-title="Task board" data-au-note="The Demo queue: one task in progress, two waiting, and three open issues. Desktop keeps the page title; the phone puts that title in its head." data-au-avalonia="Border" data-au-class="aun-task-board" data-au-parts="title">
+      <div class="aun-task-board">
+        <div data-au-part="title" data-au-use="page-title" data-au-props="title=Tasks"></div>
+        <div data-au-demo="queue" data-au-repeat="task-row"></div>
+      </div>
+    </article>
+
+    <article data-au-component="mobile-settings" data-au-title="Mobile settings" data-au-note="Interface and task source. Capability modules and logout are their own sections." data-au-avalonia="Border" data-au-class="aun-card">
+      <div>
+        <p class="aun-rail__section">INTERFACE</p>
+        <p class="aun-rail__section">TASK SOURCE</p>
+      </div>
+    </article>
+
+    <article data-au-component="member-overview" data-au-title="Member overview" data-au-note="The open workspace, read from the Demo definition." data-au-avalonia="Border" data-au-class="au-overview">
+      <div data-au-demo="overview" data-au-slot="overview"></div>
+    </article>
+
+    <article data-au-component="mobile-chat" data-au-title="Mobile chat" data-au-note="The shared chat composer. The live transcript fills this slot." data-au-avalonia="Border" data-au-class="aun-wrap">
+      <div data-au-slot="transcript">
+        <textarea class="aun-input" placeholder="Ask the agent…"></textarea>
+        <button type="button" class="aun-btn aun-btn--primary" data-au-action="send">Send</button>
+      </div>
+    </article>
+
+    <article data-au-component="mobile-git-body" data-au-title="Mobile Git slot" data-au-note="Git changes fill this slot. The catalog git pane is what the showcase shows." data-au-avalonia="Border" data-au-class="aun-wrap">
+      <div data-au-slot="changes">
+        <div data-au-use="git-toolbar-mobile"></div>
+        <div data-au-use="git-change-list"></div>
+        <div data-au-use="git-commit-mobile"></div>
+      </div>
+    </article>
+
+    <article data-au-component="mobile-apps-body" data-au-title="Mobile apps slot" data-au-note="The open workspace fills this slot. The catalog app list is what the showcase shows." data-au-avalonia="Border" data-au-class="aun-wrap">
+      <div data-au-slot="overview">
+        <div data-au-use="app-list"></div>
+      </div>
+    </article>
+
+    <article data-au-component="phone" data-au-title="Phone column" data-au-note="The phone page is a column: head, body, dock, then the tab bar. Desktop does not use it." data-au-avalonia="Border" data-au-class="aun-phone">
+      <div class="aun-phone"></div>
+    </article>
+
+    <article data-au-component="application-host" data-au-title="Application slot" data-au-note="The running application stays the client's application surface. The scene owns the chrome around this slot." data-au-avalonia="ContentControl" data-au-class="aun-application">
+      <div class="aun-application" data-au-slot="application">
+        <div data-au-use="storefront"></div>
+      </div>
+    </article>
+
+    <article data-au-component="chat-body" data-au-title="Chat slot" data-au-note="The live transcript fills this slot. The catalog transcript is what the showcase shows." data-au-avalonia="Border" data-au-class="au-screen-pane">
+      <div data-au-slot="transcript">
+        <div data-au-use="agent-header"></div>
+        <div data-au-use="chat-transcript"></div>
+        <div data-au-use="agent-prompt"></div>
+      </div>
+    </article>
+
+    <article data-au-component="git-body" data-au-title="Git slot" data-au-note="Git changes fill this slot. The catalog git pane is what the showcase shows." data-au-avalonia="Border" data-au-class="au-screen-pane">
+      <div data-au-slot="changes">
+        <div data-au-use="git-toolbar"></div>
+        <div data-au-use="git-heading"></div>
+        <div data-au-use="git-change-list"></div>
+        <div data-au-use="git-commit"></div>
+      </div>
+    </article>
+
+    <article data-au-component="fleet-lane" data-au-title="Fleet lane" data-au-note="One state branch. The title, the count, and the hosts come from the standing the client passes in." data-au-avalonia="Border" data-au-class="aun-state-map__lane">
+      <div class="aun-state-map__lane">
+        <div class="aun-state-map__drop"></div>
+        <div class="aun-state-map__branch" data-au-kind="1">
+          <div class="aun-state-map__branch-head">
+            <span class="aun-state-map__mark" aria-hidden="true"></span>
+            <span class="aun-state-map__branch-copy"><span class="aun-state-map__branch-title" data-au-text="title">Working</span><span class="aun-state-map__branch-meta" data-au-text="meta">Moving work forward</span></span>
+            <span class="aun-state-map__count" data-au-text="count">1</span>
+          </div>
+          <div data-au-slot="hosts" data-au-repeat="fleet-host"></div>
+        </div>
+      </div>
+    </article>
+
+    <article data-au-component="fleet-host" data-au-title="Fleet host" data-au-note="One agent on a lane. The name, the task, and at most one host message are slots." data-au-avalonia="Border" data-au-class="aun-state-map__host" data-au-actions="open-workspace">
+      <div class="aun-state-map__host" data-au-action="open-workspace">
+        <div class="aun-state-map__agent"><span class="aun-state-map__agent-name" data-au-text="name">Bob</span><span class="aun-state-map__agent-task" data-au-text="task">No task in hand</span></div>
+        <div class="aun-state-map__messages" data-au-part="messages"><p class="aun-state-map__message" data-au-text="message"></p></div>
+      </div>
+    </article>
+
+    <article data-au-component="task-row" data-au-title="Task row" data-au-note="One queued task. Dequeue, stop, and queue are the same button; the client names which action this row runs." data-au-avalonia="Border" data-au-class="aun-task-row" data-au-parts="grip agent" data-au-actions="dequeue queue stop">
+      <div class="aun-task-row" data-au-actions="queue stop">
+        <span class="aun-task__grip" data-au-part="grip" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span class="aun-task-row__body">
+          <span class="aun-task-row__title" data-au-text="title"></span>
+          <span class="aun-task-row__agent" data-au-part="agent" data-au-text="agent"></span>
+          <span class="aun-task-row__repo" data-au-text="repo"></span>
+        </span>
+        <button class="aun-btn aun-btn--danger" type="button" data-au-action="dequeue" data-au-text="action">Dequeue</button>
+      </div>
+    </article>
+
+    <article data-au-component="command-flow" data-au-title="Validation flow" data-au-note="One recorded flow. The head is the name, the description, and Play. The stages and checks underneath are that flow's own steps." data-au-avalonia="Border" data-au-class="au-validation-flow" data-au-parts="play" data-au-actions="run">
+      <div class="au-validation-flow">
+        <div class="au-validation-flow-head"><span class="au-status-dot"></span><div class="au-validation-copy"><strong data-au-text="name"></strong><p class="au-muted" data-au-text="description"></p></div><button class="au-validation-play" type="button" data-au-action="run" data-au-part="play">▶ Play</button></div>
+        <div class="au-validation-steps" data-au-slot="stages" data-au-repeat="command-stage"></div>
+      </div>
+    </article>
+
+    <article data-au-component="command-stage" data-au-title="Validation stage" data-au-note="One step of a recorded flow, with the expectations it checks." data-au-avalonia="Border" data-au-class="au-validation-stage">
+      <div class="au-validation-stage">
+        <div class="au-validation-step"><span class="au-status-dot"></span><span data-au-text="label"></span></div>
+        <div class="au-validation-checks" data-au-slot="checks" data-au-repeat="command-check"></div>
+      </div>
+    </article>
+
+    <article data-au-component="command-check" data-au-title="Validation check" data-au-note="One expectation under a stage." data-au-avalonia="Border" data-au-class="au-validation-check">
+      <div class="au-validation-check"><span class="au-status-dot"></span><span data-au-text="label"></span></div>
+    </article>
+
+  </section>
+</body>
+</html>

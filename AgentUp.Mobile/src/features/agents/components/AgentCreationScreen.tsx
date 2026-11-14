@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { getAgent, scheduleAgent, unbindAgent, type AgentDescriptor } from '@agent-up/chat';
-import { useInnerShell } from '@/features/shell/hooks/useInnerShell';
+import { useWorkspaceInnerShell } from '@/features/shell/hooks/useWorkspaceInnerShell';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
+import { useWorkspaceHost } from '@/features/workspaces/controllers/WorkspaceHostContext';
 
 export function AgentCreationScreen({ workspaceId }: { workspaceId: string }) {
-  const router = useRouter();
+  const host = useWorkspaceHost(workspaceId);
   const { server } = useWorkspaces();
   const { expireActiveCredential } = useServers();
   const [agents, setAgents] = useState<AgentDescriptor[]>([]);
@@ -18,7 +18,7 @@ export function AgentCreationScreen({ workspaceId }: { workspaceId: string }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const inner = useInnerShell('Create agent', `/(main)/workspace/${workspaceId}/agents`);
+  const inner = useWorkspaceInnerShell(workspaceId, 'Create agent', AGENTS);
   const shellConfig = useMemo(() => inner, [inner]);
   useShellConfig(shellConfig);
 
@@ -51,7 +51,7 @@ export function AgentCreationScreen({ workspaceId }: { workspaceId: string }) {
     try {
       if (staleBinding) await unbindAgent(server, workspaceId);
       await scheduleAgent(server, workspaceId, agent.agent);
-      router.replace(`/(main)/workspace/${workspaceId}/agent`);
+      host.open({ kind: 'agent' }, { replace: true });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not create the agent.');
     } finally {
@@ -99,3 +99,5 @@ const styles = StyleSheet.create({
   error: auText('badgeDanger'),
   disabled: { opacity: 0.5 },
 });
+
+const AGENTS = { kind: 'agents' } as const;

@@ -33,8 +33,8 @@ Non-Git paths still work and display as `not on a git branch`. Agent-Up can also
 <DocSurface mobile>The same `+` control lives on the sidebar workspace list. There is no Workspaces tab. Remove follows `workspace.delete` the same way.</DocSurface>
 </DocSurfaces>
 
-<p><img src="/desktop-workspaces.png" alt="Desktop workspaces showing Harbor Shop on main" /></p>
-<p><img src="/mobile-workspaces.png" alt="Mobile workspaces showing Harbor Shop" /></p>
+<p><img src="/desktop-workspaces.png" alt="Desktop workspaces showing Bob on his feature branch" /></p>
+<p><img src="/mobile-workspaces.png" alt="Mobile workspaces showing the Demo team" /></p>
 
 ## Worktree model
 

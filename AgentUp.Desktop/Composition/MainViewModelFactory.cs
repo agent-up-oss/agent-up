@@ -39,6 +39,11 @@ using AgentUp.Desktop.Features.Workspaces.Controllers;
 using AgentUp.Desktop.Features.Workspaces.Interfaces;
 using AgentUp.Desktop.Features.Workspaces.Providers;
 using AgentUp.Desktop.Features.Workspaces.Services;
+using AgentUp.Desktop.Features.Interface.Interfaces;
+using AgentUp.Desktop.Features.Interface.Controllers;
+using AgentUp.Desktop.Features.Interface.Services;
+using AgentUp.Desktop.Features.Interface.Providers;
+using AgentUp.Desktop.Features.Interface.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Browser.Controllers;
 using AgentUp.Desktop.Features.Capabilities.Controllers;
@@ -107,7 +112,12 @@ public static class MainViewModelFactory
         LoginViewModel? login = null,
         CapabilityModulesApiClient? capabilityModulesClient = null,
         HttpClient? entitlementsHttp = null,
-        IReviewReportSavePrompt? reviewReportSave = null)
+        CommandCenterViewModel? commandCenter = null,
+        ITaskQueueApiProvider? taskQueueClient = null,
+        ITrainingApiProvider? trainingClient = null,
+        ITaskSourceApiProvider? taskSourceClient = null,
+        IReviewReportSavePrompt? reviewReportSave = null,
+        IDecisionExportSink? decisionExport = null)
     {
         var workspaces = new WorkspacesController(new WorkspaceListService(workspaceClient));
         var entitlements = new EntitlementsController(new EntitlementsService(
@@ -162,14 +172,28 @@ public static class MainViewModelFactory
             new ValidationViewModel(validationApi, validationReplay),
             validationReplay,
             modules,
-            desktopLaunch);
+            desktopLaunch,
+            commandCenter ?? new CommandCenterViewModel(
+                new InterfaceController(new FileInterfacePreferenceStore()),
+                new BridgeViewModel(new TeamStandingController(new TeamStandingService(agents, git))),
+                taskQueueClient is null ? null : new TaskQueueViewModel(new TaskQueueController(new TaskQueueService(taskQueueClient))),
+                trainingClient is null
+                    ? null
+                    : new TrainingViewModel(
+                        new TrainingController(new TrainingService(trainingClient)),
+                        decisionExport),
+                taskSourceClient is null
+                    ? null
+                    : new TaskSourceViewModel(new TaskSourceController(new TaskSourceService(taskSourceClient)))));
     }
 
     public static MainViewModel Create(
         HttpClient http,
         LoginViewModel? login = null,
         HttpClient? agentEventsHttp = null,
-        IReviewReportSavePrompt? reviewReportSave = null)
+        CommandCenterViewModel? commandCenter = null,
+        IReviewReportSavePrompt? reviewReportSave = null,
+        IDecisionExportSink? decisionExport = null)
     {
         return Create(
             new WorkspaceApiClient(http),
@@ -183,7 +207,12 @@ public static class MainViewModelFactory
             agentClient: new AgentApiClient(http, agentEventsHttp ?? http),
             login: login ?? CreateLogin(http),
             entitlementsHttp: http,
-            reviewReportSave: reviewReportSave);
+            commandCenter: commandCenter,
+            taskQueueClient: new TaskQueueApiClient(http),
+            trainingClient: new TrainingApiClient(http),
+            taskSourceClient: new TaskSourceApiClient(http),
+            reviewReportSave: reviewReportSave,
+            decisionExport: decisionExport);
     }
 
     public static HostMetricsController CreateHostMetricsController(HttpClient http) =>

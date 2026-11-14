@@ -862,7 +862,7 @@
       "id": "agents",
       "application": "Desktop",
       "name": "See agent availability and start a session",
-      "description": "A person opens the Agent tab, reads availability and remedies, and starts test-agent-scripted. Fixture: isolated Development Server with test-agent-scripted on PATH, listed as Available. Other agent packages are not enabled, so Enable is not clicked.",
+      "description": "A person opens the Chat tab, reads availability and remedies, and starts test-agent-scripted. Fixture: isolated Development Server with test-agent-scripted on PATH, listed as Available. Other agent packages are not enabled, so Enable is not clicked.",
       "surface": "Desktop",
       "initialPath": "login",
       "initialExpectations": [
@@ -912,7 +912,7 @@
         },
         {
           "id": "open-agent",
-          "description": "Open the Agent tab",
+          "description": "Open the Chat tab",
           "action": "Click",
           "target": {
             "testId": "shell.tab.agent"
@@ -973,7 +973,7 @@
       "id": "autonomous-loop",
       "application": "Desktop",
       "name": "Read the unattended loop checklist",
-      "description": "A person opens the Agent tab and reads the unattended-loop preconditions. Fixture: isolated Server with no forge module, so Forge capability is not ready. Enable and Activate are not clicked.",
+      "description": "A person opens the Chat tab and reads the unattended-loop preconditions. Fixture: isolated Server with no forge module, so Forge capability is not ready. Enable and Activate are not clicked.",
       "surface": "Desktop",
       "initialPath": "login",
       "initialExpectations": [
@@ -1023,7 +1023,7 @@
         },
         {
           "id": "open-agent",
-          "description": "Open the Agent tab",
+          "description": "Open the Chat tab",
           "action": "Click",
           "target": {
             "testId": "shell.tab.agent"

@@ -172,12 +172,12 @@ public sealed class LoginViewModel : ReactiveObject
     public void ShowPicker()
     {
         _signIn = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        BeginPrompt(switcher: false);
+        BeginPrompt(switcher: false, followSavedSelection: true);
     }
 
     public void ShowSwitcher()
     {
-        BeginPrompt(switcher: true);
+        BeginPrompt(switcher: true, followSavedSelection: true);
         ErrorMessage = null;
     }
 
@@ -234,16 +234,19 @@ public sealed class LoginViewModel : ReactiveObject
         await SignInAsync();
     }
 
-    private void BeginPrompt(bool switcher)
+    private void BeginPrompt(bool switcher, bool followSavedSelection = false)
     {
         Password = "";
         ErrorMessage = null;
         IsBusy = false;
         IsSwitcher = switcher;
         ClearSignInSurface();
-        ServerUrl = _authentication.CurrentServerUrl();
-        _openedUrl = ServerUrl;
         RefreshSavedServers();
+        var active = followSavedSelection
+            ? SavedServers.FirstOrDefault(server => server.IsActive)
+            : null;
+        ServerUrl = active?.Url ?? _authentication.CurrentServerUrl();
+        _openedUrl = ServerUrl;
         RefreshSurfaces();
         IsVisible = true;
     }

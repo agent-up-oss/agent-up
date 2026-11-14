@@ -168,7 +168,7 @@ public sealed class FakeGitProviderTests
             .Count(item => item?["author"]?.GetValue<string>() == "origin");
 
     private static JsonObject HarborGit()
-        => new FakeServerDefinitionProvider().LoadEmbedded().Git!["harbor-shop"]!.DeepClone().AsObject();
+        => new FakeServerDefinitionProvider().LoadEmbedded().Git!["bob"]!.DeepClone().AsObject();
 
     private static JsonObject SparseGit()
         => new JsonObject

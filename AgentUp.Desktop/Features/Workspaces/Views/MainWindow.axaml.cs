@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Collections.Specialized;
 using System.Net;
 using System.Net.Http.Json;
@@ -1661,11 +1662,68 @@ code {
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        // Hover styles invalidate a control's composition readback, and the next hit test then
+        // falls through to the window canvas. The press is real; deliver it to the control whose
+        // layout bounds contain the pointer.
+        DeliverPressByLayout(e);
+
         if (FocusManager?.GetFocusedElement() != AddressBar) return;
         if (e.Source is not Visual source) return;
         if (ReferenceEquals(source, AddressBar) || AddressBar.IsVisualAncestorOf(source)) return;
 
         FocusSink.Focus(NavigationMethod.Pointer);
+    }
+
+    private static readonly MethodInfo? ButtonOnClick = typeof(Button).GetMethod(
+        "OnClick",
+        BindingFlags.Instance | BindingFlags.NonPublic);
+
+    private void DeliverPressByLayout(PointerPressedEventArgs e)
+    {
+        if (e.Handled || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        if (e.Source is Visual source && InteractiveAncestor(source) is not null) return;
+
+        var target = ControlAt(e.GetPosition(this));
+        switch (target)
+        {
+            case TextBox box:
+                box.Focus();
+                e.Handled = true;
+                break;
+            case Button button:
+                ButtonOnClick?.Invoke(button, null);
+                e.Handled = true;
+                break;
+        }
+    }
+
+    private static Control? InteractiveAncestor(Visual source)
+    {
+        for (Visual? current = source; current is not null; current = current.GetVisualParent())
+        {
+            if (current is Button or TextBox) return (Control)current;
+        }
+        return null;
+    }
+
+    private Control? ControlAt(Point point)
+        => this.GetVisualDescendants()
+            .OfType<Control>()
+            .Where(control => control is Button or TextBox)
+            .Where(control => control.IsEffectivelyVisible && control.IsEffectivelyEnabled)
+            .Select(control => (control, area: HitArea(control, point)))
+            .Where(item => item.area is not null)
+            .OrderBy(item => item.area)
+            .Select(item => item.control)
+            .FirstOrDefault();
+
+    private double? HitArea(Control control, Point point)
+    {
+        var origin = control.TranslatePoint(default, this);
+        if (origin is not { } at) return null;
+        var rect = new Rect(at, control.Bounds.Size);
+        if (rect.Width < 1 || rect.Height < 1 || !rect.Contains(point)) return null;
+        return rect.Width * rect.Height;
     }
 
     private void OnWindowChromePointerPressed(object? sender, PointerPressedEventArgs e)

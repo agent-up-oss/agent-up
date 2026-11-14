@@ -923,6 +923,15 @@
   padding: 0.625rem 0 0.375rem;
   align-items: center;
 }
+.au-validation-sidebar--collapsed .au-validation-sidebar-head {
+  width: 100%;
+  padding: 0;
+  justify-content: center;
+}
+.au-validation-sidebar--collapsed .au-workspace-add {
+  width: 2rem;
+  height: 2rem;
+}
 .au-validation-sidebar-head {
   display: flex;
   align-items: flex-start;

@@ -107,7 +107,8 @@ public sealed class LoginPaneTests
         login.ShowPicker();
         var window = new MainWindow(http.Client)
         {
-            DataContext = MainViewModelFactory.Create(http.Client, login)
+            DataContext = MainViewModelFactory.Create(
+                http.Client, login, commandCenter: InterfaceTestComposition.Classic())
         };
         window.Show();
         await HeadlessExtensions.FlushAsync();

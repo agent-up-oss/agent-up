@@ -94,6 +94,17 @@ test('the showcase is intro, then assembled screens, then the catalog', async ()
   }
 });
 
+test('the new UI chips are screens, and the other space is Old UI', async () => {
+  const page = await readFile(new URL('../src/pages/design-system/index.js', import.meta.url), 'utf8');
+  assert.match(page, />\s*Old UI\s*</);
+  assert.doesNotMatch(page, /Current UI/);
+  assert.match(page, /newUi\.screens/);
+  assert.match(page, /screen\.desktopId \? scenes\[screen\.desktopId\]/);
+  assert.match(page, /screen\.mobileId \? scenes\[screen\.mobileId\]/);
+  assert.match(page, /<NewUiPreview scene=\{desktop\} \/>/);
+  assert.match(page, /<NewUiPreview scene=\{mobile\} \/>/);
+});
+
 test('the showcase is a tabbed catalog of every public design-system surface', async () => {
   const page = await readFile(new URL('../src/pages/design-system/index.js', import.meta.url), 'utf8');
   const css = await readFile(new URL('../src/pages/design-system/index.module.css', import.meta.url), 'utf8');

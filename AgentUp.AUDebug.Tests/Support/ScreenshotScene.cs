@@ -33,7 +33,7 @@ internal static class ScreenshotScene
             Width = 390,
             Height = 844,
             Hero = false,
-            LivePath = $"/workspace/harbor-shop/{view}",
+            LivePath = $"/workspace/bob/{view}",
             Components = ["mobile-tab-bar"],
             RequiredClasses = ["au-mobile-tab-bar"],
         };

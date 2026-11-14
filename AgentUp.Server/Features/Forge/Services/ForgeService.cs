@@ -43,8 +43,10 @@ public sealed class ForgeService(
             var snapshot = await forge.ReadAsync(
                 new ForgeRequest(token, remote.Owner, remote.Repository, remote.Branch),
                 cancellationToken);
+            // The workspace has an account whether or not a proposal is open, so both answers carry it.
+            var account = ToAccount(snapshot.Account);
             if (snapshot.Proposal is null)
-                return NoProposal(forge.Identity.Id);
+                return NoProposal(forge.Identity.Id, account);
 
             return Ready(
                 forge.Identity.Id,
@@ -53,7 +55,9 @@ public sealed class ForgeService(
                 [.. snapshot.Threads.Select(ToThread)],
                 snapshot.Mergeability is null
                     ? null
-                    : new ForgeMergeabilityDto(snapshot.Mergeability.Mergeable, snapshot.Mergeability.State));
+                    : new ForgeMergeabilityDto(snapshot.Mergeability.Mergeable, snapshot.Mergeability.State),
+                account,
+                [.. (snapshot.Reviews ?? []).Select(ToReview)]);
         }
         catch (HttpRequestException exception)
         {
@@ -187,7 +191,7 @@ public sealed class ForgeService(
         return true;
     }
 
-    public async Task<IReadOnlyList<ForgeAssignedIssue>> ListAssignedAsync(
+    public async Task<IReadOnlyList<ForgeIssue>> ListAssignedAsync(
         string workspaceId,
         CancellationToken cancellationToken)
     {
@@ -198,6 +202,28 @@ public sealed class ForgeService(
         try
         {
             return await request.Value.Forge.ListAssignedAsync(request.Value.Request, cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Every open issue on the workspace's own repository. This is what the Tasks tab offers to
+    /// pick from; nothing here is worked on until it is put in the queue.
+    /// </summary>
+    public async Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
+        string workspaceId,
+        CancellationToken cancellationToken)
+    {
+        var request = await RequestForAsync(workspaceId, cancellationToken);
+        if (request is null)
+            return [];
+
+        try
+        {
+            return await request.Value.Forge.ListIssuesAsync(request.Value.Request, cancellationToken);
         }
         catch (HttpRequestException)
         {
@@ -278,6 +304,20 @@ public sealed class ForgeService(
             return true;
         }, cancellationToken);
 
+    /// <summary>
+    /// The repository this workspace's checkout points at. No credential is needed: the queue has
+    /// to tell whose tasks a workspace may take even while the host is signed out.
+    /// </summary>
+    public ForgeRepositoryDto? ResolveRepository(string workspaceId)
+    {
+        var workspace = workspaces.GetById(workspaceId);
+        if (workspace is null)
+            return null;
+
+        var remote = remotes.Resolve(workspace.WorktreePath);
+        return remote is null ? null : new ForgeRepositoryDto(remote.Owner, remote.Repository);
+    }
+
     private async Task<(IForgeCapability Forge, ForgeRequest Request)?> RequestForAsync(
         string workspaceId,
         CancellationToken cancellationToken)
@@ -292,7 +332,25 @@ public sealed class ForgeService(
         var forge = ResolveForge(packages.ListForges(), remote);
         if (forge is null)
             return null;
-        var token = await CredentialAsync(workspaceId, forge, remote, cancellationToken);
+
+        // Reading the credential can go to the host: a GitHub App installation token is minted on
+        // demand. A host that refuses or cannot be reached means this workspace has no usable
+        // credential right now, which is the same answer as having none at all. Letting that throw
+        // here would fail the whole read, because every caller guards only the call that follows -
+        // so a reader asking for issues got a 500 rather than an empty list. What went wrong is
+        // not lost: the hosting read reports it as unreachable, with the reason.
+        string? token;
+        try
+        {
+            token = await CredentialAsync(workspaceId, forge, remote, cancellationToken);
+        }
+        catch (Exception failure) when (failure is HttpRequestException
+                                            or TaskCanceledException
+                                            or InvalidOperationException)
+        {
+            return null;
+        }
+
         if (string.IsNullOrWhiteSpace(token)) return null;
 
         return (forge, new ForgeRequest(token, remote.Owner, remote.Repository, remote.Branch));
@@ -400,7 +458,7 @@ public sealed class ForgeService(
             string.IsNullOrWhiteSpace(detail) ? ForgeHostingCopy.UnreachableDetail : detail,
             ForgeHostingCopy.UnreachableRemedy);
 
-    private static ForgeHostingDto NoProposal(string moduleId)
+    private static ForgeHostingDto NoProposal(string moduleId, ForgeAccountDto? account)
         => new(
             ForgeHostingCopy.NoProposal,
             moduleId,
@@ -409,15 +467,24 @@ public sealed class ForgeService(
             [],
             null,
             ForgeHostingCopy.NoProposalDetail,
-            null);
+            null,
+            account);
 
     private static ForgeHostingDto Ready(
         string moduleId,
         ForgeProposalDto proposal,
         IReadOnlyList<ForgeCheckDto> checks,
         IReadOnlyList<ForgeReviewThreadDto> threads,
-        ForgeMergeabilityDto? mergeability)
-        => new(ForgeHostingCopy.Ready, moduleId, proposal, checks, threads, mergeability, null, null);
+        ForgeMergeabilityDto? mergeability,
+        ForgeAccountDto? account,
+        IReadOnlyList<ForgeReviewDto> reviews)
+        => new(ForgeHostingCopy.Ready, moduleId, proposal, checks, threads, mergeability, null, null, account, reviews);
+
+    private static ForgeReviewDto ToReview(ForgeReview review)
+        => new(review.Login, review.State);
+
+    private static ForgeAccountDto? ToAccount(ForgeAccount? account)
+        => account is null ? null : new ForgeAccountDto(account.Login, account.DisplayName, account.IsBot, account.Url);
 
     private static ForgeProposalDto ToProposal(ForgeProposal proposal)
         => new(proposal.Id, proposal.Number, proposal.Title, proposal.Url, proposal.HeadRef, proposal.BaseRef, proposal.State);

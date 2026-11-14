@@ -35,7 +35,7 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         return new ForgeHostSnapshot(proposal, checks, threads, mergeability);
     }
 
-    public async Task<IReadOnlyList<ForgeAssignedIssue>> ListAssignedAsync(
+    public async Task<IReadOnlyList<ForgeIssue>> ListAssignedAsync(
         ForgeRequest request,
         CancellationToken cancellationToken)
     {
@@ -44,11 +44,29 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
             $"repos/{request.Owner}/{request.Repository}/issues?state=open&assigned=true&type=issues&limit=100",
             Json,
             cancellationToken);
+        return Issues(issues);
+    }
+
+    public async Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
+        ForgeRequest request,
+        CancellationToken cancellationToken)
+    {
+        using var client = CreateClient(request.Token);
+        var issues = await client.GetFromJsonAsync<JsonElement>(
+            $"repos/{request.Owner}/{request.Repository}/issues?state=open&type=issues&sort=recentupdate&limit=100",
+            Json,
+            cancellationToken);
+        return Issues(issues);
+    }
+
+    // type=issues already keeps pull requests out, so both queries map the same payload.
+    private static IReadOnlyList<ForgeIssue> Issues(JsonElement issues)
+    {
         if (issues.ValueKind != JsonValueKind.Array)
             return [];
 
         return issues.EnumerateArray()
-            .Select(issue => new ForgeAssignedIssue(
+            .Select(issue => new ForgeIssue(
                 issue.GetProperty("id").GetRawText(),
                 issue.GetProperty("number").GetInt32(),
                 issue.GetProperty("title").GetString() ?? "",

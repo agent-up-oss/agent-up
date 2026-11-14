@@ -41,7 +41,7 @@ public sealed class DebugOutputService
               desktop login              Type AGENTUP_ADMIN_PASSWORD into Desktop and click Sign in.
               desktop start-workspace <name>
                                          Start the named workspace on the repo Server and screenshot Desktop.
-              desktop open-agent         Click the Agent tab in Desktop and screenshot it.
+              desktop open-agent         Click the Chat tab in Desktop and screenshot it.
 
             Mobile:
               mobile screenshot          Capture Mobile web and print the file path.
