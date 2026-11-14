@@ -44,6 +44,10 @@
     "tsx": "^4.23.12",
     "typescript": "~6.0.3"
   },
+  "overrides": {
+    "minimatch": "11.0.8",
+    "glob": "14.0.6"
+  },
   "expo": {
     "autolinking": {
       "android": {
