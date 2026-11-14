@@ -110,34 +110,11 @@ test('a task row names dequeue and the dock reports a run without a timer', () =
 
   assert.equal(scene.scene, 'mobile-application');
   assert.equal(scene.items.queue[0]?.action, 'dequeue');
-  assert.equal(scene.items.queue[0]?.text?.action, 'Dequeue');
   assert.equal(scene.items.queue[0]?.text?.agent, 'Bob');
   assert.equal(scene.items.flows[0]?.text?.name, 'Checkout featured goods');
   assert.equal(scene.state.open, '1');
   assert.equal(scene.state.running, '1');
   assert.equal(scene.text.summary, 'Checkout featured goods');
-});
-
-test('the board reads in progress, then the queue, then open issues, each group labelled once', () => {
-  const task = (id: string, number: number, held: string | null) => ({
-    id, owner: 'shop', repository: 'store', number, title: `Task ${number}`, url: `https://example/${number}`,
-    targetWorkspaceId: null, heldByWorkspaceId: held,
-  });
-  const scene = commandCenterScene({
-    surface: 'mobile', nav: 1, section: 'overview', agentOpen: false, serverLabel: 'Demo', openWorkspaceId: null,
-    team: [],
-    queue: [task('q1', 51, null), task('q2', 48, null)],
-    working: [task('w1', 44, 'bob')],
-    offered: [{ id: 'o1', number: 57, title: 'Cart badge', url: 'https://example/57' }],
-    names: new Map([['bob', 'Bob']]),
-    flows: [], validationsOpen: false, validationRunning: false, validationPassed: false, validationSummary: '',
-  });
-
-  const rows = scene.items.queue;
-  assert.deepEqual(rows.map(item => item.id), ['w1', 'q1', 'q2', 'o1']);
-  assert.deepEqual(rows.map(item => item.text?.section ?? null), ['In progress · 1', 'Queue · 2', null, 'Open issues · 1']);
-  assert.deepEqual(rows.map(item => item.parts?.includes('grip') ?? false), [false, true, true, false]);
-  assert.deepEqual(rows.map(item => item.state), ['aun-btn--danger', 'aun-btn--danger', 'aun-btn--danger', 'aun-btn--primary']);
 });
 
 test('the Demo is named rather than shown by its internal address', () => {
@@ -161,12 +138,28 @@ test('an open agent names itself and its branch in the head', () => {
   assert.equal(commandCenterScene({ ...input, section: 'application', applicationName: 'Storefront' }).text['application-name'], 'Storefront');
 });
 
-test('a capability row offers the one change it can make and says why a module cannot run', () => {
+test('the board hands over every row with the action it offers, in no particular grouping', () => {
+  const task = (id: string, number: number, held: string | null) => ({
+    id, owner: 'shop', repository: 'store', number, title: `Task ${number}`, url: `https://example/${number}`,
+    targetWorkspaceId: null, heldByWorkspaceId: held,
+  });
+  const scene = commandCenterScene({
+    surface: 'mobile', nav: 1, section: 'overview', agentOpen: false, serverLabel: 'Demo', openWorkspaceId: null,
+    team: [], queue: [task('q1', 51, null)], working: [task('w1', 44, 'bob')],
+    offered: [{ id: 'o1', number: 57, title: 'Cart badge', url: 'u' }], names: new Map([['bob', 'Bob']]), flows: [],
+    validationsOpen: false, validationRunning: false, validationPassed: false, validationSummary: '',
+  });
+
+  assert.deepEqual(scene.items.queue.map(item => [item.id, item.action]), [['w1', 'stop'], ['q1', 'dequeue'], ['o1', 'queue']]);
+  assert.deepEqual(scene.items.queue.map(item => item.text?.agent), ['Bob', '', '']);
+});
+
+test('a capability row names its state and the one change it offers; the scene words both', () => {
   const ready = moduleRow({ id: 'dotnet', displayName: '.NET', enabled: true, canRun: true, state: 'Enabled', messages: [] });
   const blocked = moduleRow({ id: 'docker', displayName: 'Docker', enabled: true, canRun: false, state: 'Unavailable', messages: ['Install Nix first.'] });
   const off = moduleRow({ id: 'cursor', displayName: 'Cursor', enabled: false, canRun: false, state: 'Disabled', messages: [] });
 
-  assert.deepEqual([ready.action, ready.text?.state, ready.parts, ready.state], ['disable-module', 'Ready', ['healthy'], undefined]);
-  assert.deepEqual([blocked.action, blocked.text?.state, blocked.parts], ['disable-module', 'Install Nix first.', []]);
-  assert.deepEqual([off.action, off.text?.action, off.text?.state, off.state], ['enable-module', 'Enable', 'Disabled', 'aun-btn--primary']);
+  assert.deepEqual([ready.action, ready.parts], ['disable-module', ['ready']]);
+  assert.deepEqual([blocked.parts, blocked.text?.why], [['blocked'], 'Install Nix first.']);
+  assert.deepEqual([off.action, off.parts], ['enable-module', ['disabled']]);
 });

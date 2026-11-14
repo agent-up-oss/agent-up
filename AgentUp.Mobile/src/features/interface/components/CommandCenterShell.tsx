@@ -176,6 +176,8 @@ function CommandCenterBinder() {
     if (name === 'nav-team') { setOpenAgent(null); setNav(0); return; }
     if (name === 'nav-tasks') { setOpenAgent(null); setNav(1); return; }
     if (name === 'nav-settings') { setOpenAgent(null); setNav(2); return; }
+    // An application is an inner page of its agent: back returns to Apps, not to the team.
+    if (name === 'back' && section === 'application') { setSection('overview'); return; }
     if (name === 'back') { setOpenAgent(null); setSection('overview'); return; }
     if (name === 'tab-overview') { setSection('overview'); return; }
     if (name === 'tab-chat') { setSection('chat'); return; }

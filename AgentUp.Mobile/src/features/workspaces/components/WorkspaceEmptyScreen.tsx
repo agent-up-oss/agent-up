@@ -7,6 +7,7 @@ import { PlanCard } from '@/features/entitlements/components/PlanCard';
 import { isFeatureAvailable, presentPlanCard, workspaceCreateFeature, workspaceCreateUnavailableMessage, type PlanCard as PlanCardModel } from '@/features/entitlements/models/Entitlements';
 import { getEntitlements } from '@/features/entitlements/providers/EntitlementsApiProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
+import { InterfaceToggleRow } from '@/features/interface/components/InterfaceToggleRow';
 
 export function WorkspaceEmptyScreen() {
   const { server, loading, error, refresh, clone } = useWorkspaces();
@@ -80,6 +81,8 @@ export function WorkspaceEmptyScreen() {
             <Text style={styles.secondaryButtonText}>Reload</Text>
           </Pressable>
         </View>
+        {/* With no workspace there is no Settings tab, so the interface switch lives here too. */}
+        <View style={styles.toggle}><InterfaceToggleRow /></View>
       </ScrollView>
 
       <CloneWorkspaceDialog
@@ -100,6 +103,7 @@ export function WorkspaceEmptyScreen() {
 }
 
 const styles = StyleSheet.create({
+  toggle: { width: '100%', maxWidth: 416 },
   content: {
     flexGrow: 1,
     justifyContent: 'center',

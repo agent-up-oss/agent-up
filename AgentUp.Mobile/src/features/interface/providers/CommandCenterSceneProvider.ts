@@ -157,42 +157,28 @@ function host(standing: TeamStanding): SceneSlotItem {
   return { id: standing.workspaceId, text, parts };
 }
 
-/**
- * The board in the order it is read: what is being worked, then what waits, then what could be
- * picked. The first row of each group carries the group's label; only waiting rows can be dragged.
- */
+/** The board's rows as the Server holds them. The scene groups, labels, and tones them. */
 function tasks(input: CommandCenterSceneInput): SceneSlotItem[] {
   const name = (id: string | null) => (id ? input.names.get(id) ?? '' : '');
-  const groups: Array<[string, SceneSlotItem[]]> = [
-    ['In progress', input.working.map(task => row(task.id, taskLabel(task), repositoryLabel(task), name(task.heldByWorkspaceId), 'stop', 'Stop', false))],
-    ['Queue', input.queue.map(task => row(task.id, taskLabel(task), repositoryLabel(task), name(task.heldByWorkspaceId), 'dequeue', 'Dequeue', true))],
-    ['Open issues', input.offered.map(issue => row(issue.id, issueLabel(issue), '', '', 'queue', 'Queue', false))],
+  return [
+    ...input.working.map(task => row(task.id, 'stop', taskLabel(task), repositoryLabel(task), name(task.heldByWorkspaceId))),
+    ...input.queue.map(task => row(task.id, 'dequeue', taskLabel(task), repositoryLabel(task), name(task.heldByWorkspaceId))),
+    ...input.offered.map(issue => row(issue.id, 'queue', issueLabel(issue), '', '')),
   ];
-  return groups.flatMap(([label, rows]) => rows.map((item, index) => (index === 0
-    ? { ...item, parts: ['section', ...(item.parts ?? [])], text: { ...item.text, section: `${label} · ${rows.length}` } }
-    : item)));
 }
 
-function row(id: string, title: string, repo: string, agent: string, action: string, label: string, grip: boolean): SceneSlotItem {
-  const parts: string[] = [];
-  if (grip) parts.push('grip');
-  if (agent) parts.push('agent');
-  const state = action === 'queue' ? 'aun-btn--primary' : 'aun-btn--danger';
-  return { id, action, parts, state, text: { title, repo, agent, action: label } };
+function row(id: string, action: string, title: string, repo: string, agent: string): SceneSlotItem {
+  return { id, action, parts: agent ? ['agent'] : [], text: { title, repo, agent } };
 }
 
-/**
- * A module the Server has enabled and can run is Ready; one it cannot run says why. Enable is the
- * primary action, because it is the one that gives the agents something they lack.
- */
+/** Which state a capability module is in; the scene words it and picks the button's tone. */
 export function moduleRow(module: CommandCenterModuleSlot): SceneSlotItem {
-  const why = module.messages.join(' ').trim();
-  const state = !module.enabled ? 'Disabled' : module.canRun ? 'Ready' : why || module.state;
+  const why = module.messages.join(' ').trim() || module.state;
+  const part = !module.enabled ? 'disabled' : module.canRun ? 'ready' : 'blocked';
   return {
     id: module.id,
     action: module.enabled ? 'disable-module' : 'enable-module',
-    parts: module.enabled && module.canRun ? ['healthy'] : [],
-    state: module.enabled ? undefined : 'aun-btn--primary',
-    text: { name: module.displayName, state, action: module.enabled ? 'Disable' : 'Enable' },
+    parts: [part],
+    text: { name: module.displayName, why },
   };
 }
