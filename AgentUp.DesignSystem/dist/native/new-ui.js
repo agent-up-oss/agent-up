@@ -2614,6 +2614,9 @@ export const newUiTheme = Object.freeze({
       color: "#f5fbf7",
       backgroundColor: "#191c1f",
     }),
+    aunPhoneLine: Object.freeze({
+      minWidth: 0,
+    }),
     aunPhone: Object.freeze({
       width: 390,
       height: 844,

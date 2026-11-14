@@ -108,6 +108,11 @@ export function applyDemo(catalog, demo) {
   fill('mobile-application-head', 'application-name', `<div data-au-use="page-title" data-au-props="title=${esc(application)}"></div>`);
   fill('application-validation', 'rail', validationRail(demo.flows));
   fill('application-dock', 'dock', validationDock(demo.flows));
+  // An empty state is a client's to show when its read comes back empty; the Demo has a team and a board.
+  const empty = { fleet: demo.fleet.agents === 0, queue: !demo.working.length && !demo.waiting.length && !demo.offered.length };
+  for (const component of byId.values()) {
+    component.html = component.html.replace(/\s*<p\b[^>]*data-au-empty="(fleet|queue)"[^>]*>[^<]*<\/p>/g, (match, slot) => (empty[slot] ? match : ''));
+  }
 }
 
 function orderWorkspaces(workspaces) {

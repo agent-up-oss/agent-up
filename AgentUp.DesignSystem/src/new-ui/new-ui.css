@@ -589,6 +589,9 @@
 
 /* --------------------------------------------------------------- mobile --- */
 
+/* One line in the phone head: a long workspace name truncates rather than pushing the page down. */
+.aun-phone__line { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .aun-phone {
   position: relative;
   width: 390px;

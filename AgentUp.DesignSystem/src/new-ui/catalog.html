@@ -118,10 +118,28 @@
       </div>
     </article>
 
-    <article data-au-component="settings-module" data-au-title="Capability module" data-au-note="One capability module on the Server: its name, whether it can run, and the one change it offers. A module that cannot run says why." data-au-avalonia="Border" data-au-class="aun-settings__row" data-au-parts="healthy" data-au-actions="enable-module disable-module">
+    <article data-au-component="agent-tabs" data-au-title="Agent tabs" data-au-note="Overview, Chat, and Git, then one tab per application the open workspace declares. The application tabs come from that workspace; the three here are the Demo's samples." data-au-avalonia="Border" data-au-class="au-app-tab" data-au-states="selected=au-app-tab/au-app-tab--selected" data-au-state-examples="selected:1|Chat tab selected|The live ACP session is the primary selection when Chat is open.;selected:2|Git tab selected|Working-tree review is the primary selection when Git is open.;selected:3|Application tab selected|Storefront is the primary selection when the running app is open.">
+      <div class="au-cluster">
+        <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="tab-overview" data-au-selection="selected:0:au-app-tab--selected">Overview</button>
+        <button class="au-app-tab" type="button" data-au-action="tab-chat" data-au-selection="selected:1:au-app-tab--selected">Chat</button>
+        <button class="au-app-tab" type="button" data-au-action="tab-git" data-au-selection="selected:2:au-app-tab--selected">Git</button>
+        <span class="au-tab-sep"></span>
+        <span class="au-cluster" data-au-slot="applications" data-au-repeat="application-tab">
+          <button class="au-app-tab" type="button"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
+          <button class="au-app-tab" type="button"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
+          <button class="au-app-tab" type="button"><span class="au-status-dot au-status-dot--healthy"></span> Inventory</button>
+        </span>
+      </div>
+    </article>
+
+    <article data-au-component="application-tab" data-au-title="Application tab" data-au-note="One application of the open workspace. The dot says whether it is running; the selected tab is the application on screen." data-au-avalonia="Button" data-au-class="au-app-tab" data-au-parts="running stopped" data-au-actions="select-application">
+      <button class="au-app-tab" type="button" data-au-action="select-application" data-au-selection="app:@id:au-app-tab--selected" data-au-text="name"><span class="au-status-dot au-status-dot--healthy" data-au-part="running"></span><span class="au-status-dot au-status-dot--idle" data-au-part="stopped"></span></button>
+    </article>
+
+    <article data-au-component="settings-module" data-au-title="Capability module" data-au-note="One capability module on the Server: its name, whether it can run, and the one change it offers. A module that cannot run says why." data-au-avalonia="Border" data-au-class="aun-settings__row" data-au-parts="ready disabled blocked" data-au-actions="enable-module disable-module">
       <div class="aun-settings__row" data-au-actions="enable-module">
-        <span class="aun-settings__id"><span class="aun-settings__name" data-au-text="name">.NET</span><span class="aun-settings__state"><span class="au-status-dot au-status-dot--healthy" data-au-part="healthy"></span><span class="aun-settings__state-text" data-au-text="state">Ready</span></span></span>
-        <button class="aun-btn" type="button" data-au-kind="1" data-au-action="disable-module" data-au-text="action">Disable</button>
+        <span class="aun-settings__id"><span class="aun-settings__name" data-au-text="name">.NET</span><span class="aun-settings__state"><span class="au-status-dot au-status-dot--healthy" data-au-part="ready"></span><span class="aun-settings__state-text" data-au-part="ready">Ready</span><span class="aun-settings__state-text" data-au-part="disabled">Disabled</span><span class="aun-settings__state-text" data-au-part="blocked" data-au-text="why"></span></span></span>
+        <button class="aun-btn" type="button" data-au-action="disable-module" data-au-tone="enable-module:aun-btn--primary" data-au-labels="enable-module:Enable; disable-module:Disable">Disable</button>
       </div>
     </article>
 
@@ -164,6 +182,7 @@
         <div class="aun-state-map__stem"></div>
         <div class="aun-state-map__crossbar"></div>
         <div class="aun-state-map__lanes" data-au-demo="fleet" data-au-repeat="fleet-lane"></div>
+        <p class="aun-state-map__empty" data-au-empty="fleet">No agents on this Server yet. Add a workspace to give the team its first member.</p>
       </div>
     </article>
 
@@ -233,14 +252,14 @@
     <article data-au-component="mobile-application-head" data-au-title="Mobile application head" data-au-note="An open application is an inner page: a chevron back to Apps, and the application name. No tab bar and no reload." data-au-avalonia="Border" data-au-class="aun-agent-head">
       <div class="aun-agent-head">
         <button type="button" class="aun-agent-back" data-au-action="back" aria-label="Go back">‹</button>
-        <div class="aun-phone__head-copy" data-au-demo="application-name"><h1 class="au-page-title" data-au-text="application-name"></h1></div>
+        <div class="aun-phone__head-copy" data-au-demo="application-name"><h1 class="au-page-title aun-phone__line" data-au-text="application-name"></h1></div>
       </div>
     </article>
 
     <article data-au-component="mobile-agent-head" data-au-title="Mobile agent head" data-au-note="Back is a chevron, the workspace name sits above its branch, and Reload is accent text. No boxed control." data-au-avalonia="Border" data-au-class="aun-agent-head">
       <div class="aun-agent-head">
         <button type="button" class="aun-agent-back" data-au-action="back" aria-label="Back to the team">‹</button>
-        <div class="aun-phone__head-copy" data-au-demo="member"><h1 class="au-page-title" data-au-text="member"></h1><span class="aun-phone__subtitle" data-au-text="branch"></span></div>
+        <div class="aun-phone__head-copy" data-au-demo="member"><h1 class="au-page-title aun-phone__line" data-au-text="member"></h1><span class="aun-phone__subtitle aun-phone__line" data-au-text="branch"></span></div>
         <button type="button" class="aun-agent-reload" data-au-action="reload">Reload</button>
       </div>
     </article>
@@ -278,13 +297,15 @@
       <div class="aun-state-map aun-state-map--mobile">
         <div class="aun-state-map__head"><div><p class="aun-state-map__kicker">AGENT STATE MAP</p><p class="aun-state-map__dek">Live fleet topology</p></div><span class="aun-live">LIVE</span></div>
         <div class="aun-state-map__lanes" data-au-demo="fleet" data-au-repeat="fleet-lane"></div>
+        <p class="aun-state-map__empty" data-au-empty="fleet">No agents on this Server yet. Add a workspace to give the team its first member.</p>
       </div>
     </article>
 
     <article data-au-component="task-board" data-au-title="Task board" data-au-note="The Demo queue: one task in progress, two waiting, and three open issues. Desktop keeps the page title; the phone puts that title in its head." data-au-avalonia="Border" data-au-class="aun-task-board" data-au-parts="title">
       <div class="aun-task-board">
         <div data-au-part="title" data-au-use="page-title" data-au-props="title=Tasks"></div>
-        <div class="aun-group" data-au-demo="queue" data-au-repeat="task-row"></div>
+        <div class="aun-group" data-au-demo="queue" data-au-repeat="task-row" data-au-groups="stop:In progress; dequeue:Queue; queue:Open issues"></div>
+        <p class="aun-faint" data-au-empty="queue">Nothing is queued and no open issues are offered. Connect a task source in Settings, or open a workspace whose repository has issues.</p>
       </div>
     </article>
 
@@ -368,17 +389,17 @@
       </div>
     </article>
 
-    <article data-au-component="task-row" data-au-title="Task row" data-au-note="One task on the board. The first row of a group carries that group's label. Dequeue, stop, and queue are the same button; the client names which action this row runs and the tone it takes: danger to take work away, primary to give it." data-au-avalonia="Border" data-au-class="aun-task-slot" data-au-parts="section grip agent" data-au-actions="dequeue queue stop">
+    <article data-au-component="task-row" data-au-title="Task row" data-au-note="One task on the board. The first row of a group carries that group's label. Dequeue, stop, and queue are the same button; the client names which action this row runs and the tone it takes: danger to take work away, primary to give it." data-au-avalonia="Border" data-au-class="aun-task-slot" data-au-parts="section agent" data-au-actions="dequeue queue stop">
       <div class="aun-task-slot">
         <p class="au-field-label aun-task-slot__section" data-au-part="section" data-au-text="section">Queue · 2</p>
         <div class="aun-task-row" data-au-actions="queue stop">
-          <span class="aun-task__grip" data-au-part="grip" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="aun-task__grip" data-au-for="dequeue" aria-hidden="true"><span></span><span></span><span></span></span>
           <span class="aun-task-row__body">
             <span class="aun-task-row__title" data-au-text="title"></span>
             <span class="aun-task-row__agent" data-au-part="agent" data-au-text="agent"></span>
             <span class="aun-task-row__repo" data-au-text="repo"></span>
           </span>
-          <button class="aun-btn" type="button" data-au-kind="1" data-au-action="dequeue" data-au-text="action">Dequeue</button>
+          <button class="aun-btn" type="button" data-au-action="dequeue" data-au-tone="queue:aun-btn--primary; dequeue:aun-btn--danger; stop:aun-btn--danger" data-au-labels="queue:Queue; dequeue:Dequeue; stop:Stop">Dequeue</button>
         </div>
       </div>
     </article>

@@ -4369,6 +4369,12 @@
   <Style Selector="TextBlock.aun-file:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
   </Style>
+  <Style Selector="Border.aun-phone__line">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.aun-phone__line">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
   <Style Selector="Border.aun-phone">
     <Setter Property="Width" Value="390"/>
     <Setter Property="Height" Value="844"/>

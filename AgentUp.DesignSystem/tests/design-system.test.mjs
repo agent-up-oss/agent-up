@@ -992,7 +992,7 @@ test('a New UI scene publishes the slots, states, and actions a command center b
   assert.ok(application.actions.includes('toggle-validation'));
   assert.ok(application.states.includes('collapsed'));
   assert.ok(application.states.includes('expanded'));
-  assert.ok(application.states.includes('app'));
+  assert.ok(application.slots.some(slot => slot.name === 'applications' && slot.repeat === 'application-tab'));
   const settingsScene = manifest.scenes.find(scene => scene.id === 'settings');
   assert.ok(settingsScene.actions.includes('settings-workspace'));
   assert.ok(settingsScene.slots.some(slot => slot.name === 'chatFields' && slot.repeat === 'settings-field'));
@@ -1049,4 +1049,43 @@ test('reading a long tag that is not a scene stays linear', () => {
   const started = Date.now();
   assert.throws(() => parseNewUi(haystack), /no scenes/);
   assert.ok(Date.now() - started < 2000, 'parsing a long non-scene tag must not blow up');
+});
+
+test('the scene owns the board: groups, labels, grips, tones, and the empty copy', async () => {
+  const { createNewUiScene } = await import(new URL('./dist/native/new-ui-scene.js', root));
+  const { newUiTheme } = await import(new URL('./dist/native/new-ui.js', root));
+  const h = (type, props, ...children) => ({ type, props: props ?? {}, children: children.flat() });
+  const React = { createElement: h };
+  const Scene = createNewUiScene(React, { View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView' });
+  const mount = items => {
+    const tree = Scene({ scene: 'mobile-tasks', items });
+    const expand = node => (node && typeof node.type === 'function' ? expand(node.type(node.props)) : node);
+    return expand(tree);
+  };
+  const walk = (node, visit) => {
+    if (!node || typeof node !== 'object') return;
+    visit(node);
+    for (const child of node.children ?? []) walk(child, visit);
+  };
+  const texts = node => {
+    const out = [];
+    walk(node, current => { if (current.type === 'Text') out.push(...current.children.filter(child => typeof child === 'string')); });
+    return out;
+  };
+  const row = (id, action, title) => ({ id, action, text: { title, repo: 'shop/store' } });
+  const board = mount({ queue: [row('q1', 'dequeue', '#51 · Anchors'), row('o1', 'queue', '#57 · Cart'), row('w1', 'stop', '#44 · Restock')] });
+  const words = texts(board);
+  const buttons = [];
+  walk(board, node => { if (node.type === 'Pressable') buttons.push(node); });
+  const background = button => Object.assign({}, ...[button.props.style].flat(Infinity).filter(Boolean)).backgroundColor;
+  let grips = 0;
+  walk(board, node => { if (node.type === 'View' && node.children.length === 3 && node.children.every(bar => bar?.props?.style?.height === 2)) grips += 1; });
+
+  assert.deepEqual(words.filter(word => / · \d$/.test(word)), ['In progress · 1', 'Queue · 1', 'Open issues · 1']);
+  assert.deepEqual(words.filter(word => ['Stop', 'Dequeue', 'Queue'].includes(word)), ['Stop', 'Dequeue', 'Queue']);
+  assert.equal(grips, 1);
+  assert.equal(background(buttons.find(button => button.props.accessibilityLabel === 'Queue')), newUiTheme.components.aunBtnPrimary.backgroundColor);
+  assert.equal(background(buttons.find(button => button.props.accessibilityLabel === 'Stop')), newUiTheme.components.aunBtnDanger.backgroundColor);
+  assert.equal(texts(board).some(word => word.startsWith('Nothing is queued')), false);
+  assert.equal(texts(mount({ queue: [] })).some(word => word.startsWith('Nothing is queued')), true);
 });

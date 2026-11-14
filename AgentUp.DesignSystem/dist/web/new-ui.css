@@ -551,6 +551,9 @@
 }
 .au-workspace-branch {
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--au-color-text-muted);
   font-family: var(--au-font-mono);
   font-size: var(--au-font-size-ui-xs);
@@ -2497,6 +2500,9 @@
 .aun-file[aria-current='true'] { background: var(--au-color-surface-raised); color: var(--au-color-text-primary); }
 
 /* --------------------------------------------------------------- mobile --- */
+
+/* One line in the phone head: a long workspace name truncates rather than pushing the page down. */
+.aun-phone__line { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .aun-phone {
   position: relative;

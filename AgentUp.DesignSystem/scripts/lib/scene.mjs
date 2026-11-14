@@ -291,6 +291,19 @@ function nodeFrom(tag) {
   if (demo) node.demo = demo;
   const when = data(tag.attrs, 'when');
   if (when) node.when = when;
+  // Presentation rules a client must not restate: which rows group under which label, the
+  // tone and copy a button takes for its row's action, which parts belong to which action,
+  // and what an empty slot says.
+  const groups = data(tag.attrs, 'groups');
+  if (groups) node.groups = actionMap(groups);
+  const tone = data(tag.attrs, 'tone');
+  if (tone) node.tone = Object.fromEntries(actionMap(tone));
+  const labels = data(tag.attrs, 'labels');
+  if (labels) node.labels = Object.fromEntries(actionMap(labels));
+  const forActions = data(tag.attrs, 'for');
+  if (forActions) node.for = forActions.split(/\s+/).filter(Boolean);
+  const empty = data(tag.attrs, 'empty');
+  if (empty) node.empty = empty;
   const selection = data(tag.attrs, 'selection');
   if (selection) {
     const [group, index, modifier] = selection.split(':');
@@ -306,6 +319,14 @@ function nodeFrom(tag) {
   const layout = layoutOf(node.c ?? []);
   if (layout) node.layout = layout;
   return node;
+}
+
+/** `action:value; action:value` as ordered pairs. Values may hold spaces; `;` separates entries. */
+function actionMap(raw) {
+  return decode(raw).split(';').map(entry => entry.trim()).filter(Boolean).map(entry => {
+    const at = entry.indexOf(':');
+    return [entry.slice(0, at).trim(), entry.slice(at + 1).trim()];
+  });
 }
 
 function layoutOf(classes) {
@@ -339,6 +360,7 @@ function flexFacts(rules, tokens) {
         if (property === 'justify-content' && (value === 'space-between' || value === 'center' || value === 'space-around')) fact.justify = value === 'space-between' ? 'between' : value === 'space-around' ? 'around' : 'center';
         if ((property === 'flex' && /^1(\s|$)/.test(value.trim())) || (property === 'flex-grow' && value.trim() === '1')) fact.grow = true;
         if (property === 'white-space' && value.trim() === 'nowrap') fact.nowrap = true;
+        if (property === 'flex-wrap' && value.trim() === 'wrap') fact.wrap = true;
         if (property === 'gap') {
           const gap = toPx(value.split(/\s+/)[0]);
           if (gap != null) fact.gap = gap;
@@ -363,6 +385,7 @@ function applyFlow(nodes, facts) {
       if (fact.align) flow.align = fact.align;
       if (fact.justify) flow.justify = fact.justify;
       if (fact.gap != null) flow.gap = fact.gap;
+      if (fact.wrap) flow.wrap = true;
       if (fact.push) push = true;
       if (fact.grow) node.grow = true;
       if (fact.nowrap) node.nowrap = true;
@@ -373,6 +396,7 @@ function applyFlow(nodes, facts) {
       if (flow.align) node.flow.a = flow.align;
       if (flow.justify) node.flow.j = flow.justify;
       if (flow.gap != null) node.flow.g = flow.gap;
+      if (flow.wrap) node.flow.w = 'wrap';
     }
     if (node.k) applyFlow(node.k, facts);
   }
@@ -509,21 +533,40 @@ function paint(classes, kind, scope = []) {
   return kind === 'text' ? newUiText(...names) : newUiBox(...names);
 }
 
-function selected(node, model) {
+/** A selection names a fixed index, or \`@id\`: the row whose id the state names is the selected one. */
+function selected(node, model, item) {
   if (!node.selection) return false;
-  return String(model.state[node.selection[0]] ?? '') === String(node.selection[1]);
+  const target = node.selection[1] === '@id' ? item?.id : node.selection[1];
+  return target != null && String(model.state[node.selection[0]] ?? '') === String(target);
 }
 
-function flagged(node, model) {
+function flagged(node, model, item) {
   const extra = [];
   for (const [name, modifier] of node.flags ?? []) {
     if (model.state[name]) extra.push(modifier);
   }
-  if (selected(node, model)) extra.push(node.selection[2]);
+  if (selected(node, model, item)) extra.push(node.selection[2]);
   return extra;
 }
 
 const inlineTags = new Set(['button', 'a', 'span', 'label', 'strong', 'em', 'code']);
+
+/**
+ * Rows in the order the scene declares their groups, the first row of each group carrying the
+ * group's label and count as its section. Rows whose action names no group follow, unlabelled.
+ */
+function grouped(groups, items) {
+  if (!groups) return items;
+  const out = [];
+  for (const [action, label] of groups) {
+    const rows = items.filter(row => row.action === action);
+    rows.forEach((row, index) => out.push(index === 0
+      ? Object.assign({}, row, { parts: ['section'].concat(row.parts || []), text: Object.assign({}, row.text, { section: label + ' · ' + rows.length }) })
+      : row));
+  }
+  const named = new Set(groups.map(entry => entry[0]));
+  return out.concat(items.filter(row => !named.has(row.action)));
+}
 
 function holdsSlot(node) {
   if (!node) return false;
@@ -549,10 +592,12 @@ export function createNewUiScene(React, native) {
     }
     if (node.t === '#text') return h(Text, { key, style: ctx.ink }, node.x);
     if (node.when && !model.state[node.when]) return null;
+    if (node.empty && ((model.items[node.empty] || []).length > 0)) return null;
+    if (node.for && !(item && node.for.includes(item.action))) return null;
     if (node.part && item?.parts && !item.parts.includes(node.part)) return null;
     const slotName = node.slot || node.demo;
     if (node.repeat) {
-      const items = (item?.items && item.items[slotName]) || model.items[slotName] || [];
+      const items = grouped(node.groups, (item?.items && item.items[slotName]) || model.items[slotName] || []);
       const template = newUiSceneDocument.templates[node.repeat];
       const inner = { scope: [...ctx.scope, ...(node.c ?? []).map(bindingName)], ink: paint(node.c, 'text', ctx.scope) ?? ctx.ink };
       const rows = items.map((child, index) => {
@@ -568,11 +613,12 @@ export function createNewUiScene(React, native) {
       return h(View, { key, style: [paint(node.c, 'box', ctx.scope), layoutStyle(node)] }, rows);
     }
     if (node.content && model.content && model.content[node.slot] != null) return model.content[node.slot];
-    const classes = [...(node.c ?? []), ...flagged(node, model)];
+    const classes = [...(node.c ?? []), ...flagged(node, model, item)];
+    if (node.tone && item?.action && node.tone[item.action]) classes.push(node.tone[item.action]);
     // A row's state names its host; a status dot inside it takes only a dot state.
     const dot = (node.c ?? []).includes('au-status-dot');
     if (item?.state && (node.kindHost || (node.c ?? []).includes('au-workspace') || (dot && item.state.startsWith('au-status-dot')))) classes.push(item.state);
-    if (node.selection?.[0] === 'app' && String(model.state.app ?? '') !== String(node.selection[1])) {
+    if (node.selection?.[0] === 'app' && node.selection[1] !== '@id' && String(model.state.app ?? '') !== String(node.selection[1])) {
       const baked = classes.indexOf(node.selection[2]);
       if (baked >= 0) classes.splice(baked, 1);
     }
@@ -593,9 +639,10 @@ export function createNewUiScene(React, native) {
     const words = (node.k ?? []).length > 0 && node.k.every(child => child.t === '#text')
       ? node.k.map(child => child.x).join(' ').trim()
       : '';
+    const labelled = node.labels && item?.action ? node.labels[item.action] : undefined;
     const textValue = node.text
-      ? (item?.text?.[node.text] ?? model.text[node.text] ?? node.x ?? '')
-      : (node.x ?? (words || undefined));
+      ? (item?.text?.[node.text] ?? labelled ?? model.text[node.text] ?? node.x ?? '')
+      : (labelled ?? node.x ?? (words || undefined));
     const childNodes = words ? [] : (node.k ?? []);
     const children = childNodes.map((child, index) => render(child, model, item, index, inner)).filter(child => child != null);
     const action = node.action ? (item?.action || node.action) : null;
@@ -674,6 +721,7 @@ export function createNewUiScene(React, native) {
     if (flow.j === 'center') style.justifyContent = 'center';
     if (flow.j === 'around') style.justifyContent = 'space-around';
     if (flow.g != null) style.gap = flow.g;
+    if (flow.w === 'wrap') style.flexWrap = 'wrap';
     return style;
   }
   function measure(classes) {
@@ -859,6 +907,8 @@ public sealed class NewUiScene : UserControl
         if (node.T == "svg") return Icon(node.D);
         if (node.T is "style" or "script" or "path" or "circle" or "#text") return node.T == "#text" ? new TextBlock { Text = node.X ?? "" } : null;
         if (!string.IsNullOrEmpty(node.When) && !_state.ContainsKey(node.When)) return null;
+        if (!string.IsNullOrEmpty(node.Empty) && _items.TryGetValue(node.Empty, out var filled) && filled.Count > 0) return null;
+        if (node.For is { Count: > 0 } && !(item?.Action is { } forAction && node.For.Contains(forAction))) return null;
         if (!string.IsNullOrEmpty(node.Part) && item is not null && !item.Parts.Contains(node.Part)) return null;
         var slot = node.Slot ?? node.Demo;
         if (!string.IsNullOrEmpty(node.Repeat))
@@ -866,6 +916,7 @@ public sealed class NewUiScene : UserControl
             var items = item is not null && slot is not null && item.Items.TryGetValue(slot, out var nested)
                 ? nested
                 : slot is not null && _items.TryGetValue(slot, out var top) ? top : Array.Empty<NewUiSlotItem>();
+            items = Grouped(node.Groups, items);
             var rows = new List<Control>();
             if (Document.Templates.TryGetValue(node.Repeat, out var template))
             {
@@ -902,15 +953,17 @@ public sealed class NewUiScene : UserControl
             hosted.VerticalAlignment = VerticalAlignment.Stretch;
             return Layout("fill", new List<Control> { hosted }, new List<string>(node.C ?? []), node.Flow);
         }
+        var labelled = node.Labels is not null && item?.Action is { } labelAction && node.Labels.TryGetValue(labelAction, out var actionLabel) ? actionLabel : null;
         var text = node.Text is not null
             ? item is not null && item.Text.TryGetValue(node.Text, out var fromItem) ? fromItem
-            : _text.TryGetValue(node.Text, out var fromModel) ? fromModel
-            : node.X ?? ""
-            : node.X;
+            : labelled ?? (_text.TryGetValue(node.Text, out var fromModel) ? fromModel : node.X ?? "")
+            : labelled ?? node.X;
         var classes = new List<string>(node.C ?? []);
+        if (node.Tone is not null && item?.Action is { } toneAction && node.Tone.TryGetValue(toneAction, out var tone)) classes.Add(tone);
+        // A selection names a fixed index, or @id: the row whose id the state names is selected.
         if (node.Selection is { Count: 3 } selection
             && _state.TryGetValue(selection[0], out var selected)
-            && selected == selection[1])
+            && selected == (selection[1] == "@id" ? item?.Id : selection[1]))
             classes.Add(selection[2]);
         foreach (var flag in node.Flags ?? [])
         {
@@ -934,6 +987,7 @@ public sealed class NewUiScene : UserControl
             classes.Add(item.State);
         if (node.Selection is { Count: 3 } appSelection
             && appSelection[0] == "app"
+            && appSelection[1] != "@id"
             && !(_state.TryGetValue("app", out var appName) && appName == appSelection[1]))
             classes.Remove(appSelection[2]);
         var action = string.IsNullOrEmpty(node.Action) ? null : (item?.Action ?? node.Action);
@@ -1027,12 +1081,14 @@ public sealed class NewUiScene : UserControl
         if (classes.Contains("aun-task__grip"))
             return Grip();
         if (classes.Contains("aun-state-map__crossbar"))
-            return Crossbar();
+            return Crossbar(_items.TryGetValue("fleet", out var lanes) ? lanes.Count : 4);
         if (classes.Contains("aun-state-map__root-title") && !string.IsNullOrEmpty(text))
             return FleetTitle(text, classes);
         if (!string.IsNullOrEmpty(text) && children.Count == 0)
         {
-            var block = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap };
+            var block = node.Nowrap == true
+                ? new TextBlock { Text = text, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis }
+                : new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap };
             Paint(block, classes);
             return block;
         }
@@ -1149,11 +1205,17 @@ public sealed class NewUiScene : UserControl
                 DockPanel.SetDock(trailing, Dock.Right);
                 trailing.VerticalAlignment = VerticalAlignment.Center;
                 dock.Children.Add(trailing);
-                var leading = new StackPanel { Orientation = Orientation.Horizontal, Spacing = gap, VerticalAlignment = VerticalAlignment.Center };
-                foreach (var child in children.Where(child => !child.GetValue(ScenePushProperty)))
+                // The leading controls take what the trailing ones leave, and the last of them fills
+                // it, so a long name trims at the trailing controls instead of running under them.
+                var leading = new DockPanel { LastChildFill = true, VerticalAlignment = VerticalAlignment.Center };
+                var front = children.Where(child => !child.GetValue(ScenePushProperty)).ToList();
+                for (var i = 0; i < front.Count; i++)
                 {
-                    Align(child, flow, horizontal: true);
-                    leading.Children.Add(child);
+                    Align(front[i], flow, horizontal: true);
+                    DockPanel.SetDock(front[i], Dock.Left);
+                    if (i < front.Count - 1) front[i].Margin = new Thickness(front[i].Margin.Left, front[i].Margin.Top, front[i].Margin.Right + gap, front[i].Margin.Bottom);
+                    else front[i].HorizontalAlignment = HorizontalAlignment.Stretch;
+                    leading.Children.Add(front[i]);
                 }
                 dock.Children.Add(leading);
                 laid = dock;
@@ -1179,6 +1241,17 @@ public sealed class NewUiScene : UserControl
                     grid.Children.Add(children[i]);
                 }
                 laid = grid;
+            }
+            else if (flow?.W == "wrap")
+            {
+                // flex-wrap: wrap. A long label moves to the next line instead of off the edge.
+                var wrap = new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = gap, LineSpacing = gap };
+                foreach (var child in children)
+                {
+                    Align(child, flow, horizontal: true);
+                    wrap.Children.Add(child);
+                }
+                laid = wrap;
             }
             else
             {
@@ -1287,6 +1360,40 @@ public sealed class NewUiScene : UserControl
         }
     }
 
+    /// <summary>
+    /// Rows in the order the scene declares their groups, the first row of each group carrying
+    /// the group's label and count as its section. Rows whose action names no group follow.
+    /// </summary>
+    private static IReadOnlyList<NewUiSlotItem> Grouped(List<List<string>>? groups, IReadOnlyList<NewUiSlotItem> items)
+    {
+        if (groups is not { Count: > 0 }) return items;
+        var output = new List<NewUiSlotItem>();
+        foreach (var group in groups)
+        {
+            var rows = items.Where(row => row.Action == group[0]).ToList();
+            for (var i = 0; i < rows.Count; i++)
+            {
+                if (i > 0)
+                {
+                    output.Add(rows[i]);
+                    continue;
+                }
+                output.Add(new NewUiSlotItem
+                {
+                    Id = rows[i].Id,
+                    Action = rows[i].Action,
+                    State = rows[i].State,
+                    Items = rows[i].Items,
+                    Parts = new HashSet<string>(rows[i].Parts, StringComparer.Ordinal) { "section" },
+                    Text = new Dictionary<string, string>(rows[i].Text, StringComparer.Ordinal) { ["section"] = $"{group[1]} · {rows.Count}" },
+                });
+            }
+        }
+        var named = groups.Select(group => group[0]).ToHashSet(StringComparer.Ordinal);
+        output.AddRange(items.Where(row => row.Action is null || !named.Contains(row.Action)));
+        return output;
+    }
+
     private static readonly HashSet<string> InlineTags = new(StringComparer.Ordinal) { "button", "a", "span", "label", "strong", "em", "code" };
 
     private static bool HostsFace(IReadOnlyList<string> classes) =>
@@ -1330,11 +1437,15 @@ public sealed class NewUiScene : UserControl
         return stack;
     }
 
-    private static Control Crossbar()
+    /// <summary>
+    /// The bar joins the first lane's drop to the last: inset by half a lane at each end, so a
+    /// single lane has nothing to join and the bar has no length.
+    /// </summary>
+    private static Control Crossbar(int lanes)
     {
         var inset = new Grid { Height = 2 };
         inset.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        inset.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6, GridUnitType.Star) });
+        inset.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Max(0, 2 * lanes - 2), GridUnitType.Star) });
         inset.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         var bar = new Border
         {
@@ -1555,6 +1666,12 @@ internal sealed class SceneNode
     public List<string>? D { get; set; }
     public bool? Push { get; set; }
     public bool? Grow { get; set; }
+    public bool? Nowrap { get; set; }
+    public List<List<string>>? Groups { get; set; }
+    public Dictionary<string, string>? Tone { get; set; }
+    public Dictionary<string, string>? Labels { get; set; }
+    public List<string>? For { get; set; }
+    public string? Empty { get; set; }
     public SceneFlow? Flow { get; set; }
     public List<SceneNode>? K { get; set; }
 }
@@ -1565,6 +1682,7 @@ internal sealed class SceneFlow
     public string? A { get; set; }
     public string? J { get; set; }
     public double? G { get; set; }
+    public string? W { get; set; }
 }
 `;
   return source.replace('SCENE_JSON_PLACEHOLDER', JSON.stringify(payload));
