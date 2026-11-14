@@ -41,7 +41,9 @@ public sealed class FileDecisionEvidenceStore : IDecisionEvidenceStore
         string evidenceId,
         CancellationToken cancellationToken)
     {
-        var directory = DirectoryFor(evidenceId);
+        // The id arrives from GET /api/training/evidence/{evidenceId}: a caller can send anything.
+        if (!TryDirectoryFor(evidenceId, out var directory))
+            return null;
         var descriptor = Path.Join(directory, "evidence.json");
         if (!File.Exists(descriptor))
             return null;
@@ -57,8 +59,23 @@ public sealed class FileDecisionEvidenceStore : IDecisionEvidenceStore
             : null;
     }
 
-    /// <summary>Ids are generated here and never come from a caller, so a path cannot escape the root.</summary>
     private string DirectoryFor(string evidenceId) => Path.Join(_root, evidenceId);
+
+    /// <summary>
+    /// Ids are minted here as 32 hex digits. A read accepts only that shape, and the resolved
+    /// directory must still sit under the root, so a caller's id cannot reach another path.
+    /// </summary>
+    private bool TryDirectoryFor(string evidenceId, out string directory)
+    {
+        directory = "";
+        if (evidenceId.Length != 32 || !evidenceId.All(Uri.IsHexDigit))
+            return false;
+        var resolved = Path.GetFullPath(Path.Join(_root, evidenceId));
+        if (!resolved.StartsWith(_root + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            return false;
+        directory = resolved;
+        return true;
+    }
 
     private static string FileName(string mimeType)
         => "evidence" + (mimeType.Equals("image/png", StringComparison.OrdinalIgnoreCase) ? ".png" : ".bin");
