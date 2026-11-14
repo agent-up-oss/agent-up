@@ -164,6 +164,67 @@ public sealed class GithubApiProviderTests
     }
 
     [Test]
+    public async Task ReadAsync_skipsAReviewWithNoReviewerAndToleratesMissingStateOrTime()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/check-runs", Checks),
+            ("GET /repos/acme/widgets/pulls/42/comments", Comments),
+            ("GET /repos/acme/widgets/pulls/42/reviews?per_page=100", PartialReviews));
+
+        var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
+        var reviews = snapshot.Reviews!.OrderBy(review => review.Login).ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reviews.Select(review => review.Login), Is.EqualTo(new[] { "mia-aup[bot]", "ola-aup[bot]" }),
+                "entries without a reviewer login are not verdicts");
+            Assert.That(reviews.Select(review => review.State), Is.EqualTo(new[] { "", "" }));
+            Assert.That(reviews.Select(review => review.SubmittedAt), Is.All.EqualTo(DateTimeOffset.MinValue));
+        });
+    }
+
+    [Test]
+    public async Task ReadAsync_readsNoVerdictsWhenTheReviewsPayloadIsNotAList()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/check-runs", Checks),
+            ("GET /repos/acme/widgets/pulls/42/comments", Comments),
+            ("GET /repos/acme/widgets/pulls/42/reviews?per_page=100", """{"message":"Not Found"}"""));
+
+        var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
+
+        Assert.That(snapshot.Reviews!, Is.Empty);
+    }
+
+    [TestCase("[]")]
+    [TestCase("""{"name":"No login"}""")]
+    [TestCase("""{"login":"  "}""")]
+    public async Task ReadAsync_leavesTheAccountUnsetWhenTheHostNamesNoLogin(string user)
+    {
+        var handler = Recorded(
+            ("GET /user", user),
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", "[]"));
+
+        var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
+
+        Assert.That(snapshot.Account, Is.Null);
+    }
+
+    [Test]
+    public async Task ReadAsync_usesTheLoginWhenTheDisplayNameIsBlank()
+    {
+        var handler = Recorded(
+            ("GET /user", """{"login":"dana","name":" ","html_url":"https://github.com/dana"}"""),
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", "[]"));
+
+        var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
+
+        Assert.That(snapshot.Account!.DisplayName, Is.EqualTo("dana"));
+    }
+
+    [Test]
     public async Task ListAssignedAsync_maps_stable_ids()
     {
         var issues = await new GithubForgeCapability(Recorded(("GET /issues?filter=assigned&state=open&per_page=100", Assigned)))
@@ -192,6 +253,22 @@ public sealed class GithubApiProviderTests
 
         Assert.That(issues.Single().Number, Is.EqualTo(3));
         Assert.That(issues.Single().Id, Is.EqualTo("7"));
+    }
+
+    [Test]
+    public async Task ListIssuesAsync_readsMissingOrNullTextAsEmpty()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/issues?state=open&sort=updated&direction=desc&per_page=100", BodilessIssues));
+
+        var issues = await new GithubForgeCapability(handler).ListIssuesAsync(Request());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(issues.Select(issue => issue.Body), Is.EqualTo(new[] { "", "" }));
+            Assert.That(issues.Select(issue => issue.Title), Is.EqualTo(new[] { "", "Null body" }));
+            Assert.That(issues.Select(issue => issue.Url), Is.EqualTo(new[] { "", "https://github.com/acme/widgets/issues/9" }));
+        });
     }
 
     [Test]
@@ -475,6 +552,16 @@ public sealed class GithubApiProviderTests
          {"user":{"login":"lucy-aup[bot]"},"state":"COMMENTED","submitted_at":"2026-09-22T08:30:00Z"}]
         """;
 
+    /// <summary>Reviews with no user, a user that is not an object, a user with no login, and two reviewers with neither state nor a usable time.</summary>
+    private const string PartialReviews = """
+        [{"user":null,"state":"APPROVED","submitted_at":"2026-09-22T06:00:00Z"},
+         {"user":"ghost","state":"APPROVED"},
+         {"user":{"id":3},"state":"APPROVED"},
+         {"state":"APPROVED"},
+         {"user":{"login":"mia-aup[bot]"},"state":null},
+         {"user":{"login":"ola-aup[bot]"},"submitted_at":null}]
+        """;
+
     private const string Account = """
         {"login":"lucy-aup[bot]","name":"Lucy","type":"Bot","html_url":"https://github.com/apps/lucy-aup"}
         """;
@@ -492,6 +579,12 @@ public sealed class GithubApiProviderTests
     private const string RepositoryIssues = """
         [{"id":9,"number":5,"title":"A proposal","body":"","created_at":"2026-01-03T00:00:00Z","updated_at":"2026-01-04T00:00:00Z","html_url":"https://github.com/acme/widgets/pull/5","pull_request":{"url":"https://api.github.com/repos/acme/widgets/pulls/5"}},
          {"id":7,"number":3,"title":"Restock","body":"do it","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://github.com/acme/widgets/issues/3"}]
+        """;
+
+    /// <summary>One issue with no body member and a null title and URL, and one whose body is null.</summary>
+    private const string BodilessIssues = """
+        [{"id":11,"number":8,"title":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":null},
+         {"id":12,"number":9,"title":"Null body","body":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://github.com/acme/widgets/issues/9"}]
         """;
 
     private const string Opened = """
