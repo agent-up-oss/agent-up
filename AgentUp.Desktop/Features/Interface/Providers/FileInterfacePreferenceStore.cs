@@ -23,7 +23,7 @@ public sealed class FileInterfacePreferenceStore : IInterfacePreferenceStore
 
     public FileInterfacePreferenceStore()
         : this(Path.Join(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.Create),
             "Agent-Up",
             "interface.json"))
     {

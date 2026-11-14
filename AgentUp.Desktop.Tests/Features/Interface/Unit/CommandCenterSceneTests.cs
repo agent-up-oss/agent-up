@@ -50,7 +50,7 @@ public sealed class CommandCenterSceneTests
         var binding = CommandCenterScene.Bind(Input([],
             tasks:
             [
-                new CommandCenterTaskSlot("task-1", "#45 · Deliver", "shop/store", "Bob", "dequeue", "Dequeue"),
+                new CommandCenterTaskSlot("task-1", "#45 · Deliver", "shop/store", "Bob", "dequeue"),
             ],
             flows:
             [
@@ -62,7 +62,7 @@ public sealed class CommandCenterSceneTests
         Assert.Multiple(() =>
         {
             Assert.That(binding.Items["queue"].Single().Action, Is.EqualTo("dequeue"));
-            Assert.That(binding.Items["queue"].Single().Text["action"], Is.EqualTo("Dequeue"));
+            Assert.That(binding.Items["queue"].Single().Text["agent"], Is.EqualTo("Bob"));
             Assert.That(binding.Items["flows"].Single().Text["name"], Is.EqualTo("Checkout featured goods"));
             Assert.That(binding.State.ContainsKey("open"), Is.True);
             Assert.That(binding.State.ContainsKey("running"), Is.True);
@@ -73,25 +73,21 @@ public sealed class CommandCenterSceneTests
     }
 
     [Test]
-    public void The_board_reads_in_progress_then_the_queue_then_open_issues_each_group_labelled_once()
+    public void The_application_tabs_are_the_open_workspaces_own_and_the_one_on_screen_is_selected()
     {
-        var binding = CommandCenterScene.Bind(Input([],
-            tasks:
-            [
-                new CommandCenterTaskSlot("q1", "#51 · Anchors", "shop/store", "", "dequeue", "Dequeue"),
-                new CommandCenterTaskSlot("q2", "#48 · Checkout", "shop/store", "", "dequeue", "Dequeue"),
-                new CommandCenterTaskSlot("w1", "#44 · Restock", "shop/store", "Bob", "stop", "Stop"),
-                new CommandCenterTaskSlot("0", "#57 · Cart badge", "", "", "queue", "Queue"),
-            ]));
+        var binding = CommandCenterScene.Bind(Input([], "application") with
+        {
+            SelectedApplication = "Hello",
+            Applications = [new CommandCenterApplicationSlot("Hello", true), new CommandCenterApplicationSlot("Worker", false)],
+        });
 
-        var rows = binding.Items["queue"];
+        var tabs = binding.Items["applications"];
 
         Assert.Multiple(() =>
         {
-            Assert.That(rows.Select(row => row.Id), Is.EqualTo(new[] { "w1", "q1", "q2", "0" }));
-            Assert.That(rows.Select(row => row.Text.GetValueOrDefault("section")), Is.EqualTo(new[] { "In progress · 1", "Queue · 2", null, "Open issues · 1" }));
-            Assert.That(rows.Select(row => row.Parts.Contains("grip")), Is.EqualTo(new[] { false, true, true, false }));
-            Assert.That(rows.Select(row => row.State), Is.EqualTo(new[] { "aun-btn--danger", "aun-btn--danger", "aun-btn--danger", "aun-btn--primary" }));
+            Assert.That(tabs.Select(tab => tab.Text["name"]), Is.EqualTo(new[] { "Hello", "Worker" }));
+            Assert.That(binding.State["app"], Is.EqualTo("Hello"));
+            Assert.That(tabs.Select(tab => tab.Parts.Single()), Is.EqualTo(new[] { "running", "stopped" }));
         });
     }
 

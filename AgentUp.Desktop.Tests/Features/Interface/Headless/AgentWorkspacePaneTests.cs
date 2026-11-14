@@ -177,6 +177,8 @@ public sealed class AgentWorkspacePaneTests
             image.Width == 18 && image.GetVisualAncestors().OfType<Control>().Any(parent => parent.Classes.Contains("au-logo-lockup")));
         var crossbar = window.GetVisualDescendants().OfType<Grid>()
             .Single(grid => grid.ColumnDefinitions.Count == 3 && grid.Height == 2);
+        // The bar joins the first lane's drop to the last, so its span follows the lanes drawn.
+        var lanes = window.GetVisualDescendants().OfType<Border>().Count(border => border.Classes.Contains("aun-state-map__branch"));
 
         Assert.Multiple(() =>
         {
@@ -184,7 +186,7 @@ public sealed class AgentWorkspacePaneTests
             Assert.That(head.ColumnDefinitions, Has.Count.EqualTo(2));
             Assert.That(add.Width, Is.EqualTo(24));
             Assert.That(mark.Source, Is.Not.Null);
-            Assert.That(crossbar.ColumnDefinitions[1].Width, Is.EqualTo(new GridLength(6, GridUnitType.Star)));
+            Assert.That(crossbar.ColumnDefinitions[1].Width, Is.EqualTo(new GridLength(Math.Max(0, 2 * lanes - 2), GridUnitType.Star)));
         });
     }
 
@@ -213,10 +215,11 @@ public sealed class AgentWorkspacePaneTests
     [AvaloniaTest]
     public async Task Catalog_tabs_keep_the_status_mark_beside_the_label()
     {
-        var driver = await LaunchOnTheCommandCenterAsync();
+        var driver = await LaunchOnTheCommandCenterAsync(DesktopDomain.WorkspaceWithApplications());
         await OpenAgentAsync(driver);
 
-        var storefront = ButtonNamed(driver.Window, "Storefront");
+        var first = ViewModel(driver).Applications.Applications.First().Name;
+        var storefront = ButtonNamed(driver.Window, first);
         var dot = storefront.GetVisualDescendants().OfType<Border>().Single(border => border.Classes.Contains("au-status-dot"));
         var line = (StackPanel)dot.Parent!;
 
@@ -360,9 +363,12 @@ public sealed class AgentWorkspacePaneTests
         });
     }
 
-    private static async Task<AppDriver> LaunchOnTheCommandCenterAsync()
+    private static Task<AppDriver> LaunchOnTheCommandCenterAsync() =>
+        LaunchOnTheCommandCenterAsync(DesktopDomain.Workspace());
+
+    private static async Task<AppDriver> LaunchOnTheCommandCenterAsync(WorkspaceDtoBuilder workspace)
     {
-        var driver = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
+        var driver = await AppDriver.LaunchWithWorkspaceAsync(workspace.Build());
         ViewModel(driver).CommandCenter!.ToggleCommand.Execute().Subscribe();
         await HeadlessExtensions.FlushAsync();
         return driver;

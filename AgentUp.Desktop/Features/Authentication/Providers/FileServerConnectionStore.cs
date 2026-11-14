@@ -16,7 +16,7 @@ public sealed class FileServerConnectionStore : IServerConnectionStore
 
     public FileServerConnectionStore()
         : this(Path.Join(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.Create),
             "Agent-Up",
             "connections.json"))
     {

@@ -4,14 +4,13 @@ using AgentUp.Desktop.Features.Interface.Models;
 
 namespace AgentUp.Desktop.Features.Interface.Services;
 
-/// <summary>One task row the scene repeats. The action is the catalog button the row runs.</summary>
+/// <summary>One task row the scene repeats. The action is the catalog button the row runs; the scene words and tones it.</summary>
 public sealed record CommandCenterTaskSlot(
     string Id,
     string Title,
     string Repository,
     string Agent,
-    string Action,
-    string ActionLabel);
+    string Action);
 
 /// <summary>One recorded validation flow the rail and the dock repeat.</summary>
 public sealed record CommandCenterFlowSlot(
@@ -73,7 +72,11 @@ public sealed record CommandCenterSceneInput(
     string? SettingsWorkspaceId = null,
     IReadOnlyList<CommandCenterSettingSlot>? ChatSettings = null,
     string? SelectedApplication = null,
-    IReadOnlyList<CommandCenterModuleSlot>? Modules = null);
+    IReadOnlyList<CommandCenterModuleSlot>? Modules = null,
+    IReadOnlyList<CommandCenterApplicationSlot>? Applications = null);
+
+/// <summary>One application of the open workspace, as its tab shows it.</summary>
+public sealed record CommandCenterApplicationSlot(string Name, bool Running);
 
 /// <summary>One capability module on the Server, as Settings lists it.</summary>
 public sealed record CommandCenterModuleSlot(string Id, string DisplayName, bool Enabled, bool CanRun, string State);
@@ -107,10 +110,17 @@ public static class CommandCenterScene
         binding.Items["workspaces"] = team.Select(standing => Workspace(standing, input.OpenWorkspaceId)).ToArray();
         binding.Items["settingsWorkspaces"] = team.Select(standing => SettingsWorkspace(standing, input.SettingsWorkspaceId ?? input.OpenWorkspaceId)).ToArray();
         binding.Items["fleet"] = Lanes(team).ToArray();
-        binding.Items["queue"] = Board(input.Tasks).ToArray();
+        binding.Items["queue"] = input.Tasks.Select(Task).ToArray();
         binding.Items["flows"] = input.Flows.Select(Flow).ToArray();
         binding.Items["chatFields"] = (input.ChatSettings ?? []).Select(Setting).ToArray();
         binding.Items["modules"] = (input.Modules ?? []).Select(Module).ToArray();
+        // The open workspace's own applications. The scene marks the one the app state names.
+        binding.Items["applications"] = (input.Applications ?? []).Select(application => new NewUiSlotItem
+        {
+            Id = application.Name,
+            Parts = new HashSet<string>(StringComparer.Ordinal) { application.Running ? "running" : "stopped" },
+            Text = new Dictionary<string, string>(StringComparer.Ordinal) { ["name"] = application.Name },
+        }).ToArray();
         binding.State["nav"] = Nav(input.SceneId);
         binding.State["selected"] = Selected(input.SceneId);
         binding.State["tool"] = input.Tool;
@@ -235,48 +245,22 @@ public static class CommandCenterScene
         };
     }
 
-    /// <summary>
-    /// The board as it is read: what is being worked, then what waits, then what could be picked.
-    /// The first row of each group carries the group's label, and only waiting rows can be dragged.
-    /// </summary>
-    private static IEnumerable<NewUiSlotItem> Board(IReadOnlyList<CommandCenterTaskSlot> tasks)
-    {
-        foreach (var (action, label) in BoardGroups)
-        {
-            var rows = tasks.Where(task => task.Action == action).ToArray();
-            for (var i = 0; i < rows.Length; i++)
-                yield return Task(rows[i], i == 0 ? $"{label} · {rows.Length}" : null);
-        }
-    }
-
-    private static readonly (string Action, string Label)[] BoardGroups =
-    [
-        ("stop", "In progress"),
-        ("dequeue", "Queue"),
-        ("queue", "Open issues"),
-    ];
-
-    private static NewUiSlotItem Task(CommandCenterTaskSlot task, string? section)
+    /// <summary>One row as the Server holds it. The scene groups, labels, and tones the board.</summary>
+    private static NewUiSlotItem Task(CommandCenterTaskSlot task)
     {
         var parts = new HashSet<string>(StringComparer.Ordinal);
-        if (task.Action == "dequeue") parts.Add("grip");
         if (task.Agent.Length > 0) parts.Add("agent");
-        if (section is not null) parts.Add("section");
-        var text = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["title"] = task.Title,
-            ["repo"] = task.Repository,
-            ["agent"] = task.Agent,
-            ["action"] = task.ActionLabel,
-        };
-        if (section is not null) text["section"] = section;
         return new NewUiSlotItem
         {
             Id = task.Id,
             Action = task.Action,
-            State = task.Action == "queue" ? "aun-btn--primary" : "aun-btn--danger",
             Parts = parts,
-            Text = text,
+            Text = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["title"] = task.Title,
+                ["repo"] = task.Repository,
+                ["agent"] = task.Agent,
+            },
         };
     }
 
@@ -374,26 +358,14 @@ public static class CommandCenterScene
         ]);
     }
 
-    /// <summary>A module that is enabled and can run is Ready; one that cannot says why. Enable is the primary action.</summary>
-    private static NewUiSlotItem Module(CommandCenterModuleSlot module)
+    /// <summary>Which state a capability module is in; the scene words it and picks the button's tone.</summary>
+    private static NewUiSlotItem Module(CommandCenterModuleSlot module) => new()
     {
-        var parts = new HashSet<string>(StringComparer.Ordinal);
-        if (module.Enabled && module.CanRun) parts.Add("healthy");
-        var state = !module.Enabled ? "Disabled" : module.CanRun ? "Ready" : module.State;
-        return new NewUiSlotItem
-        {
-            Id = module.Id,
-            Action = module.Enabled ? "disable-module" : "enable-module",
-            State = module.Enabled ? null : "aun-btn--primary",
-            Parts = parts,
-            Text = new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["name"] = module.DisplayName,
-                ["state"] = state,
-                ["action"] = module.Enabled ? "Disable" : "Enable",
-            },
-        };
-    }
+        Id = module.Id,
+        Action = module.Enabled ? "disable-module" : "enable-module",
+        Parts = new HashSet<string>(StringComparer.Ordinal) { !module.Enabled ? "disabled" : module.CanRun ? "ready" : "blocked" },
+        Text = new Dictionary<string, string>(StringComparer.Ordinal) { ["name"] = module.DisplayName, ["why"] = module.State },
+    };
 
     private static NewUiSlotItem Setting(CommandCenterSettingSlot slot)
     {

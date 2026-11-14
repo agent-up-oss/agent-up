@@ -73,6 +73,7 @@ public partial class CommandCenterView : UserControl
         Watch(center.Tasks?.Offered);
         Watch(main.Validation?.Flows);
         Watch(main.Modules?.Modules);
+        Watch(main.Applications.Applications);
         Apply();
     }
 
@@ -143,7 +144,10 @@ public partial class CommandCenterView : UserControl
             main.Sidebar.SelectedWorkspace?.Id ?? center.Agent?.WorkspaceId,
             ChatSettingsOf(main.Agent),
             main.Applications.SelectedApplication?.Name,
-            main.Modules?.Modules.Select(module => new CommandCenterModuleSlot(module.Id, module.DisplayName, module.Enabled, module.CanRun, module.StatusLabel)).ToArray()));
+            main.Modules?.Modules.Select(module => new CommandCenterModuleSlot(module.Id, module.DisplayName, module.Enabled, module.CanRun, module.StatusLabel)).ToArray(),
+            main.Applications.Applications.Select(application => new CommandCenterApplicationSlot(
+                application.Name,
+                string.Equals(application.State, "Running", StringComparison.OrdinalIgnoreCase))).ToArray()));
         binding.State["chatSettings"] = "1";
         var stamp = Stamp(center.SceneId, binding);
         if (stamp == _applied) return;
@@ -497,9 +501,9 @@ public partial class CommandCenterView : UserControl
         string Holder(string? id) => team.FirstOrDefault(standing => standing.WorkspaceId == id)?.DisplayName ?? "";
         return
         [
-            .. tasks.Working.Select(row => new CommandCenterTaskSlot(row.Id, row.TaskLabel, row.RepositoryLabel, Holder(row.HeldByWorkspaceId), "stop", "Stop")),
-            .. tasks.Queue.Select(row => new CommandCenterTaskSlot(row.Id, row.TaskLabel, row.RepositoryLabel, "", "dequeue", "Dequeue")),
-            .. tasks.Offered.Select((row, index) => new CommandCenterTaskSlot(index.ToString(), row.IssueLabel, "", "", "queue", "Queue")),
+            .. tasks.Working.Select(row => new CommandCenterTaskSlot(row.Id, row.TaskLabel, row.RepositoryLabel, Holder(row.HeldByWorkspaceId), "stop")),
+            .. tasks.Queue.Select(row => new CommandCenterTaskSlot(row.Id, row.TaskLabel, row.RepositoryLabel, "", "dequeue")),
+            .. tasks.Offered.Select((row, index) => new CommandCenterTaskSlot(index.ToString(), row.IssueLabel, "", "", "queue")),
         ];
     }
 
