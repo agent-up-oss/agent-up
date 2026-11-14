@@ -25,6 +25,19 @@ public sealed class TaskQueueApiClient(HttpClient http) : ITaskQueueApiProvider
         return await response.Content.ReadFromJsonAsync<IReadOnlyList<OfferedIssue>>(Options, cancellationToken) ?? [];
     }
 
+    public async Task<IReadOnlyList<OfferedIssue>?> ListSourceIssuesAsync(CancellationToken cancellationToken)
+    {
+        using (var described = await http.GetAsync("api/task-source", cancellationToken))
+        {
+            described.EnsureSuccessStatusCode();
+            var source = await described.Content.ReadFromJsonAsync<TaskSource>(Options, cancellationToken);
+            if (source is not { Configured: true }) return null;
+        }
+        using var response = await http.GetAsync("api/task-source/issues", cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<IReadOnlyList<OfferedIssue>>(Options, cancellationToken) ?? [];
+    }
+
     public async Task EnqueueAsync(
         string workspaceId,
         string issueId,

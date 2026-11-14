@@ -72,7 +72,11 @@ public sealed record CommandCenterSceneInput(
     bool ValidationCollapsed = true,
     string? SettingsWorkspaceId = null,
     IReadOnlyList<CommandCenterSettingSlot>? ChatSettings = null,
-    string? SelectedApplication = null);
+    string? SelectedApplication = null,
+    IReadOnlyList<CommandCenterModuleSlot>? Modules = null);
+
+/// <summary>One capability module on the Server, as Settings lists it.</summary>
+public sealed record CommandCenterModuleSlot(string Id, string DisplayName, bool Enabled, bool CanRun, string State);
 
 /// <summary>Text, repeated rows, and states for one scene. The view applies this and nothing else.</summary>
 public sealed class CommandCenterSceneBinding
@@ -103,9 +107,10 @@ public static class CommandCenterScene
         binding.Items["workspaces"] = team.Select(standing => Workspace(standing, input.OpenWorkspaceId)).ToArray();
         binding.Items["settingsWorkspaces"] = team.Select(standing => SettingsWorkspace(standing, input.SettingsWorkspaceId ?? input.OpenWorkspaceId)).ToArray();
         binding.Items["fleet"] = Lanes(team).ToArray();
-        binding.Items["queue"] = input.Tasks.Select(Task).ToArray();
+        binding.Items["queue"] = Board(input.Tasks).ToArray();
         binding.Items["flows"] = input.Flows.Select(Flow).ToArray();
         binding.Items["chatFields"] = (input.ChatSettings ?? []).Select(Setting).ToArray();
+        binding.Items["modules"] = (input.Modules ?? []).Select(Module).ToArray();
         binding.State["nav"] = Nav(input.SceneId);
         binding.State["selected"] = Selected(input.SceneId);
         binding.State["tool"] = input.Tool;
@@ -230,22 +235,48 @@ public static class CommandCenterScene
         };
     }
 
-    private static NewUiSlotItem Task(CommandCenterTaskSlot task)
+    /// <summary>
+    /// The board as it is read: what is being worked, then what waits, then what could be picked.
+    /// The first row of each group carries the group's label, and only waiting rows can be dragged.
+    /// </summary>
+    private static IEnumerable<NewUiSlotItem> Board(IReadOnlyList<CommandCenterTaskSlot> tasks)
     {
-        var parts = new HashSet<string>(StringComparer.Ordinal) { "grip" };
+        foreach (var (action, label) in BoardGroups)
+        {
+            var rows = tasks.Where(task => task.Action == action).ToArray();
+            for (var i = 0; i < rows.Length; i++)
+                yield return Task(rows[i], i == 0 ? $"{label} · {rows.Length}" : null);
+        }
+    }
+
+    private static readonly (string Action, string Label)[] BoardGroups =
+    [
+        ("stop", "In progress"),
+        ("dequeue", "Queue"),
+        ("queue", "Open issues"),
+    ];
+
+    private static NewUiSlotItem Task(CommandCenterTaskSlot task, string? section)
+    {
+        var parts = new HashSet<string>(StringComparer.Ordinal);
+        if (task.Action == "dequeue") parts.Add("grip");
         if (task.Agent.Length > 0) parts.Add("agent");
+        if (section is not null) parts.Add("section");
+        var text = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["title"] = task.Title,
+            ["repo"] = task.Repository,
+            ["agent"] = task.Agent,
+            ["action"] = task.ActionLabel,
+        };
+        if (section is not null) text["section"] = section;
         return new NewUiSlotItem
         {
             Id = task.Id,
             Action = task.Action,
+            State = task.Action == "queue" ? "aun-btn--primary" : "aun-btn--danger",
             Parts = parts,
-            Text = new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["title"] = task.Title,
-                ["repo"] = task.Repository,
-                ["agent"] = task.Agent,
-                ["action"] = task.ActionLabel,
-            },
+            Text = text,
         };
     }
 
@@ -341,6 +372,27 @@ public static class CommandCenterScene
         [
             new("cancel-loop", "Stop the loop", "Stops the running loop", "Cancel", "cancel-loop", settings.CanCancelLoop),
         ]);
+    }
+
+    /// <summary>A module that is enabled and can run is Ready; one that cannot says why. Enable is the primary action.</summary>
+    private static NewUiSlotItem Module(CommandCenterModuleSlot module)
+    {
+        var parts = new HashSet<string>(StringComparer.Ordinal);
+        if (module.Enabled && module.CanRun) parts.Add("healthy");
+        var state = !module.Enabled ? "Disabled" : module.CanRun ? "Ready" : module.State;
+        return new NewUiSlotItem
+        {
+            Id = module.Id,
+            Action = module.Enabled ? "disable-module" : "enable-module",
+            State = module.Enabled ? null : "aun-btn--primary",
+            Parts = parts,
+            Text = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["name"] = module.DisplayName,
+                ["state"] = state,
+                ["action"] = module.Enabled ? "Disable" : "Enable",
+            },
+        };
     }
 
     private static NewUiSlotItem Setting(CommandCenterSettingSlot slot)

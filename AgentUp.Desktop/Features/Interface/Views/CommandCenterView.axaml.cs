@@ -72,6 +72,7 @@ public partial class CommandCenterView : UserControl
         Watch(center.Tasks?.Working);
         Watch(center.Tasks?.Offered);
         Watch(main.Validation?.Flows);
+        Watch(main.Modules?.Modules);
         Apply();
     }
 
@@ -131,7 +132,7 @@ public partial class CommandCenterView : UserControl
             passed,
             summary,
             team,
-            TasksOf(center.Tasks),
+            TasksOf(center.Tasks, team),
             FlowsOf(main.Validation),
             main.AddressBarUrl ?? "",
             main.SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault(tab => tab.IsHttp)?.Label ?? "",
@@ -141,7 +142,8 @@ public partial class CommandCenterView : UserControl
             main.Validation?.IsCollapsed != false,
             main.Sidebar.SelectedWorkspace?.Id ?? center.Agent?.WorkspaceId,
             ChatSettingsOf(main.Agent),
-            main.Applications.SelectedApplication?.Name));
+            main.Applications.SelectedApplication?.Name,
+            main.Modules?.Modules.Select(module => new CommandCenterModuleSlot(module.Id, module.DisplayName, module.Enabled, module.CanRun, module.StatusLabel)).ToArray()));
         binding.State["chatSettings"] = "1";
         var stamp = Stamp(center.SceneId, binding);
         if (stamp == _applied) return;
@@ -312,6 +314,13 @@ public partial class CommandCenterView : UserControl
                 break;
             case "nav-settings":
                 center.ShowNav(2);
+                if (main.Modules is { } listed) _ = listed.RefreshAsync();
+                break;
+            case "enable-module":
+                main.Modules?.Modules.FirstOrDefault(module => module.Id == action.Id)?.EnableCommand.Execute().Subscribe();
+                break;
+            case "disable-module":
+                main.Modules?.Modules.FirstOrDefault(module => module.Id == action.Id)?.DisableCommand.Execute().Subscribe();
                 break;
             case "tab-overview":
                 center.ShowSection("overview");
@@ -482,13 +491,14 @@ public partial class CommandCenterView : UserControl
         Apply();
     }
 
-    private static IReadOnlyList<CommandCenterTaskSlot> TasksOf(TaskQueueViewModel? tasks)
+    private static IReadOnlyList<CommandCenterTaskSlot> TasksOf(TaskQueueViewModel? tasks, IReadOnlyList<TeamStanding> team)
     {
         if (tasks is null) return [];
+        string Holder(string? id) => team.FirstOrDefault(standing => standing.WorkspaceId == id)?.DisplayName ?? "";
         return
         [
+            .. tasks.Working.Select(row => new CommandCenterTaskSlot(row.Id, row.TaskLabel, row.RepositoryLabel, Holder(row.HeldByWorkspaceId), "stop", "Stop")),
             .. tasks.Queue.Select(row => new CommandCenterTaskSlot(row.Id, row.TaskLabel, row.RepositoryLabel, "", "dequeue", "Dequeue")),
-            .. tasks.Working.Select(row => new CommandCenterTaskSlot(row.Id, row.TaskLabel, row.RepositoryLabel, "", "stop", "Stop")),
             .. tasks.Offered.Select((row, index) => new CommandCenterTaskSlot(index.ToString(), row.IssueLabel, "", "", "queue", "Queue")),
         ];
     }

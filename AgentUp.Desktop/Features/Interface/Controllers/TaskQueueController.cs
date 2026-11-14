@@ -12,6 +12,9 @@ public sealed class TaskQueueController(TaskQueueService service)
     public Task<IReadOnlyList<OfferedIssue>> ListIssuesAsync(string workspaceId, CancellationToken cancellationToken) =>
         service.ListIssuesAsync(workspaceId, cancellationToken);
 
+    public Task<IReadOnlyList<OfferedIssue>> ListOfferedAsync(string? workspaceId, CancellationToken cancellationToken) =>
+        service.ListOfferedAsync(workspaceId, cancellationToken);
+
     public Task EnqueueAsync(string workspaceId, string issueId, string? targetWorkspaceId, CancellationToken cancellationToken) =>
         service.EnqueueAsync(workspaceId, issueId, targetWorkspaceId, cancellationToken);
 

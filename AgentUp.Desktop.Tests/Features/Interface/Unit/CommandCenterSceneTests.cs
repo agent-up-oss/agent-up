@@ -73,6 +73,29 @@ public sealed class CommandCenterSceneTests
     }
 
     [Test]
+    public void The_board_reads_in_progress_then_the_queue_then_open_issues_each_group_labelled_once()
+    {
+        var binding = CommandCenterScene.Bind(Input([],
+            tasks:
+            [
+                new CommandCenterTaskSlot("q1", "#51 · Anchors", "shop/store", "", "dequeue", "Dequeue"),
+                new CommandCenterTaskSlot("q2", "#48 · Checkout", "shop/store", "", "dequeue", "Dequeue"),
+                new CommandCenterTaskSlot("w1", "#44 · Restock", "shop/store", "Bob", "stop", "Stop"),
+                new CommandCenterTaskSlot("0", "#57 · Cart badge", "", "", "queue", "Queue"),
+            ]));
+
+        var rows = binding.Items["queue"];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(rows.Select(row => row.Id), Is.EqualTo(new[] { "w1", "q1", "q2", "0" }));
+            Assert.That(rows.Select(row => row.Text.GetValueOrDefault("section")), Is.EqualTo(new[] { "In progress · 1", "Queue · 2", null, "Open issues · 1" }));
+            Assert.That(rows.Select(row => row.Parts.Contains("grip")), Is.EqualTo(new[] { false, true, true, false }));
+            Assert.That(rows.Select(row => row.State), Is.EqualTo(new[] { "aun-btn--danger", "aun-btn--danger", "aun-btn--danger", "aun-btn--primary" }));
+        });
+    }
+
+    [Test]
     public void The_console_surface_names_its_tool_and_a_flow_row_keeps_its_id()
     {
         var binding = CommandCenterScene.Bind(Input([],

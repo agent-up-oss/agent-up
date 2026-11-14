@@ -96,6 +96,22 @@ public sealed class TaskQueueViewModelTests
     }
 
     [Test]
+    public async Task ReadAsync_offersTheTaskSourceIssuesBeforeTheWorkspaceRepository()
+    {
+        var api = new FakeTaskQueueApi
+        {
+            Issues = [new OfferedIssue("8", 8, "From the workspace", "u")],
+            SourceIssues = [new OfferedIssue("57", 57, "From the source", "u")],
+        };
+        var queue = ViewModel(api);
+        queue.Attach([new TeamMember("ws-mia", "Mia", "", "Running")]);
+
+        await queue.ReadAsync();
+
+        Assert.That(queue.Offered.Select(row => row.IssueLabel), Is.EqualTo(new[] { "#57 · From the source" }));
+    }
+
+    [Test]
     public async Task PickCommand_queuesTheIssueAgainstTheOpenWorkspace()
     {
         var api = new FakeTaskQueueApi { Issues = [new OfferedIssue("8", 8, "Task 8", "u")] };
@@ -284,6 +300,11 @@ public sealed class TaskQueueViewModelTests
 
         public Task<IReadOnlyList<OfferedIssue>> ListIssuesAsync(string workspaceId, CancellationToken cancellationToken) =>
             Task.FromResult(Issues);
+
+        public IReadOnlyList<OfferedIssue>? SourceIssues { get; init; }
+
+        public Task<IReadOnlyList<OfferedIssue>?> ListSourceIssuesAsync(CancellationToken cancellationToken) =>
+            Task.FromResult(SourceIssues);
 
         public Task EnqueueAsync(string workspaceId, string issueId, string? targetWorkspaceId, CancellationToken cancellationToken)
         {

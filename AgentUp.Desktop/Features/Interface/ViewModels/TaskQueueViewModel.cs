@@ -85,9 +85,7 @@ public sealed class TaskQueueViewModel : ReactiveObject
         try
         {
             var queued = await _queue.ListAsync(cancellationToken);
-            var offered = _offeringWorkspaceId is null
-                ? []
-                : await _queue.ListIssuesAsync(_offeringWorkspaceId, cancellationToken);
+            var offered = await _queue.ListOfferedAsync(_offeringWorkspaceId, cancellationToken);
             if (read != _reads) return;
             _hasRead = true;
             Apply(queued, offered);
@@ -241,6 +239,9 @@ public sealed class WorkingTaskRowViewModel
     public string TaskLabel => $"#{_task.Number} · {_task.Title}";
 
     public string RepositoryLabel => $"{_task.Owner}/{_task.Repository}";
+
+    /// <summary>The workspace working the task, so the board can name the agent.</summary>
+    public string? HeldByWorkspaceId => _task.HeldByWorkspaceId;
 
     public ReactiveCommand<Unit, Unit> StopCommand { get; }
 }

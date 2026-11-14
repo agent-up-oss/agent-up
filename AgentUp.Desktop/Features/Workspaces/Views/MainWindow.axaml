@@ -294,20 +294,21 @@
         <Style Selector="ListBoxItem:focus /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
-        <!-- Strip default Button chrome without undoing catalog actions. -->
-        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump)">
+        <!-- Strip default Button chrome without undoing catalog actions. The command center's
+             generated buttons carry au-scene and are painted by the design system. -->
+        <Style Selector="Button:not(.au-button):not(.au-scene):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump)">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
-        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump) /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-scene):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump) /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
-        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump):pointerover /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-scene):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump):pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
-        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump):pressed /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-scene):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump):pressed /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
         <!-- Integrated window chrome -->

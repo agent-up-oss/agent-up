@@ -173,7 +173,8 @@ public sealed class AgentWorkspacePaneTests
             .Single(border => border.Classes.Contains("aun-state-map__head")).Child!;
         var add = window.GetVisualDescendants().OfType<Border>()
             .First(border => border.Classes.Contains("au-workspace-add"));
-        var mark = window.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single(path => path.Width == 18);
+        var mark = window.GetVisualDescendants().OfType<Image>().Single(image =>
+            image.Width == 18 && image.GetVisualAncestors().OfType<Control>().Any(parent => parent.Classes.Contains("au-logo-lockup")));
         var crossbar = window.GetVisualDescendants().OfType<Grid>()
             .Single(grid => grid.ColumnDefinitions.Count == 3 && grid.Height == 2);
 
@@ -182,7 +183,7 @@ public sealed class AgentWorkspacePaneTests
             Assert.That(body.ColumnDefinitions[0].Width, Is.EqualTo(new GridLength(264)));
             Assert.That(head.ColumnDefinitions, Has.Count.EqualTo(2));
             Assert.That(add.Width, Is.EqualTo(24));
-            Assert.That(mark.Data, Is.Not.Null);
+            Assert.That(mark.Source, Is.Not.Null);
             Assert.That(crossbar.ColumnDefinitions[1].Width, Is.EqualTo(new GridLength(6, GridUnitType.Star)));
         });
     }

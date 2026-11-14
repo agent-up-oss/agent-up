@@ -15,6 +15,18 @@ public sealed class TaskQueueService(ITaskQueueApiProvider api)
     public Task<IReadOnlyList<OfferedIssue>> ListIssuesAsync(string workspaceId, CancellationToken cancellationToken) =>
         api.ListIssuesAsync(workspaceId, cancellationToken);
 
+    /// <summary>
+    /// The issues a reader can pick from. A configured task source answers for the whole Server;
+    /// without one, the workspace's own repository answers, as every Server did before a source
+    /// could be named.
+    /// </summary>
+    public async Task<IReadOnlyList<OfferedIssue>> ListOfferedAsync(string? workspaceId, CancellationToken cancellationToken)
+    {
+        var fromSource = await api.ListSourceIssuesAsync(cancellationToken);
+        if (fromSource is not null) return fromSource;
+        return workspaceId is null ? [] : await api.ListIssuesAsync(workspaceId, cancellationToken);
+    }
+
     public Task EnqueueAsync(string workspaceId, string issueId, string? targetWorkspaceId, CancellationToken cancellationToken) =>
         api.EnqueueAsync(workspaceId, issueId, targetWorkspaceId, cancellationToken);
 

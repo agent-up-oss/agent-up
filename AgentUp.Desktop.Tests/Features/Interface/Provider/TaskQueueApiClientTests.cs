@@ -120,6 +120,45 @@ public sealed class TaskQueueApiClientTests
             Throws.InstanceOf<HttpRequestException>());
     }
 
+    [Test]
+    public async Task ListSourceIssuesAsync_readsTheSourceIssuesOnlyWhenASourceIsConfigured()
+    {
+        var configured = new RoutedHandler(new Dictionary<string, string>
+        {
+            ["api/task-source"] = SourceJson(configured: true),
+            ["api/task-source/issues"] = """[{"id":"I-57","number":57,"title":"Cart badge","url":"u"}]""",
+        });
+        var unconfigured = new RoutedHandler(new Dictionary<string, string> { ["api/task-source"] = SourceJson(configured: false) });
+
+        var issues = await new TaskQueueApiClient(new HttpClient(configured) { BaseAddress = new Uri("http://localhost:5000/") }).ListSourceIssuesAsync(CancellationToken.None);
+        var none = await new TaskQueueApiClient(new HttpClient(unconfigured) { BaseAddress = new Uri("http://localhost:5000/") }).ListSourceIssuesAsync(CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(issues!.Single().Number, Is.EqualTo(57));
+            Assert.That(configured.Requests, Is.EqualTo(new[] { "GET api/task-source", "GET api/task-source/issues" }));
+            Assert.That(none, Is.Null);
+            Assert.That(unconfigured.Requests, Is.EqualTo(new[] { "GET api/task-source" }));
+        });
+    }
+
+    private static string SourceJson(bool configured) =>
+        $$"""{"moduleId":"github","owner":"example","repository":"repository","configured":{{(configured ? "true" : "false")}},"connected":true,"canConnect":true,"detail":"","modules":[]}""";
+
+    private sealed class RoutedHandler(IReadOnlyDictionary<string, string> bodies) : HttpMessageHandler
+    {
+        public List<string> Requests { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var path = request.RequestUri!.PathAndQuery.TrimStart('/');
+            Requests.Add($"{request.Method.Method} {path}");
+            return System.Threading.Tasks.Task.FromResult(bodies.TryGetValue(path, out var body)
+                ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") }
+                : new HttpResponseMessage(HttpStatusCode.NotFound));
+        }
+    }
+
     private static QueuedTask Task(string id) =>
         new(id, "example", "repository", 44, "Restock", "u", null, null);
 
