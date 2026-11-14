@@ -174,9 +174,9 @@ public sealed class AgentWorkspacePaneTests
         var add = window.GetVisualDescendants().OfType<Border>()
             .First(border => border.Classes.Contains("au-workspace-add"));
         var mark = window.GetVisualDescendants().OfType<Image>().Single(image =>
-            image.Width == 18 && image.GetVisualAncestors().OfType<Control>().Any(parent => parent.Classes.Contains("au-logo-lockup")));
+            Math.Abs(image.Width - 18) < 0.1 && image.GetVisualAncestors().OfType<Control>().Any(parent => parent.Classes.Contains("au-logo-lockup")));
         var crossbar = window.GetVisualDescendants().OfType<Grid>()
-            .Single(grid => grid.ColumnDefinitions.Count == 3 && grid.Height == 2);
+            .Single(grid => grid.ColumnDefinitions.Count == 3 && Math.Abs(grid.Height - 2) < 0.1);
         // The bar joins the first lane's drop to the last, so its span follows the lanes drawn.
         var lanes = window.GetVisualDescendants().OfType<Border>().Count(border => border.Classes.Contains("aun-state-map__branch"));
 
