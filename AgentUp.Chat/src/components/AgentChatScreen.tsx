@@ -46,9 +46,14 @@ export type AgentChatScreenProps = {
   onPresent?: (presentation: { title: string }) => void;
   /** Opens the host's workspace permission-policy editor when autonomy needs one. */
   onConfigurePolicy?: () => void;
+  /**
+   * Whether the unattended-loop checklist sits above the transcript. A host that keeps it in its
+   * own settings turns it off, so the chat is only the conversation.
+   */
+  loopControls?: boolean;
 };
 
-export function AgentChatScreen({ workspace, server, changesPanel, onPresent, onConfigurePolicy }: AgentChatScreenProps) {
+export function AgentChatScreen({ workspace, server, changesPanel, onPresent, onConfigurePolicy, loopControls = true }: AgentChatScreenProps) {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<AgentTab>('chat');
   const [session, setSession] = useState<AgentSession | null>(null);
@@ -234,7 +239,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
               {session?.agent && <Pressable accessibilityRole="button" style={styles.stop} onPress={() => { if (!server) return; void stopAgent(server, workspace.id).then(() => { setSession(current => mergeAgentSession(current, null)); setItems([]); setContext({}); setPermission(null); setHint(null); }).catch(cause => setError(readError(cause))); }}><Text style={styles.stopText}>Stop</Text></Pressable>}
             </View>
           </View>
-          {shouldShowLoopControls(session?.state) && <AgentLoopControls
+          {loopControls && shouldShowLoopControls(session?.state) && <AgentLoopControls
             autonomy={autonomy}
             loop={session?.loop}
             busy={busy}

@@ -13,10 +13,13 @@ export function WorkspaceAgentChatScreen({
   workspaceId,
   displayName,
   server,
+  loopControls = true,
 }: {
   workspaceId: string;
   displayName: string;
   server: ServerSession | null;
+  /** The command center keeps the unattended loop in Settings, not above the conversation. */
+  loopControls?: boolean;
 }) {
   const host = useWorkspaceHost(workspaceId);
   const [title, setTitle] = useState('Workspace agent');
@@ -31,6 +34,7 @@ export function WorkspaceAgentChatScreen({
       server={server}
       onPresent={present}
       onConfigurePolicy={() => host.open({ kind: 'agentPolicy' })}
+      loopControls={loopControls}
     />
   );
 }
