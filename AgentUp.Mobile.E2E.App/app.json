@@ -23,7 +23,8 @@
       "@config-plugins/detox",
       "./plugins/withLocalHttpTransport",
       "./plugins/withDetoxAndroidTestManifest",
-      "./plugins/withoutReleaseLint"
+      "./plugins/withoutReleaseLint",
+      "./plugins/withDetoxAndroidTestR8"
     ]
   }
 }

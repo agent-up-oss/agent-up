@@ -43,6 +43,10 @@ test('the Android build asks for that Detox by version rather than by range', ()
     plugins.includes('./plugins/withExactDetoxVersion'),
     'withExactDetoxVersion is what replaces com.wix:detox:+ with the installed version.',
   );
+  assert.ok(
+    plugins.includes('./plugins/withDetoxAndroidTestR8'),
+    'withDetoxAndroidTestR8 is what stops minifyReleaseAndroidTestWithR8 failing on the RN idle listener Detox still references.',
+  );
 });
 
 // Removing this reintroduces a crash, not a slowdown, so it is worth a test of its own: without it
