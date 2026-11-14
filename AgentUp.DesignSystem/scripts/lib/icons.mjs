@@ -120,7 +120,7 @@ export declare const agentUpIcons: Readonly<Record<AgentUpIconName, readonly str
  * converted. A rounded rect becomes an explicit arc-cornered path and a circle becomes two
  * arcs, so a surface only ever has to understand `path`.
  */
-function pathData(id, geometry) {
+export function pathData(id, geometry) {
   const paths = [];
   for (const match of geometry.matchAll(/<(path|rect|circle)\s+([^>]*?)\/?>/g)) {
     const [, element, attributes] = match;

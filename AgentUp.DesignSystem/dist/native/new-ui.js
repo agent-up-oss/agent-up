@@ -102,11 +102,19 @@ export const newUiTheme = Object.freeze({
   }),
   components: Object.freeze({
     theme: Object.freeze({
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
       color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
       fontSize: 16,
     }),
     eyebrow: Object.freeze({
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 12,
+      marginLeft: 0,
       color: "#2bf27a",
       fontSize: 11,
       fontWeight: '600',
@@ -114,30 +122,50 @@ export const newUiTheme = Object.freeze({
       textTransform: 'uppercase',
     }),
     display: Object.freeze({
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
       color: "#f5fbf7",
       fontSize: 44,
       fontWeight: '700',
       letterSpacing: -1.1,
     }),
     title: Object.freeze({
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
       color: "#f5fbf7",
       fontSize: 32,
       fontWeight: '700',
       letterSpacing: -0.8,
     }),
     heading: Object.freeze({
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
       color: "#f5fbf7",
       fontSize: 20,
       fontWeight: '700',
       letterSpacing: -0.5,
     }),
     pageTitle: Object.freeze({
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
       color: "#f5fbf7",
       fontSize: 22,
       fontWeight: '600',
       letterSpacing: -0.44,
     }),
     fieldLabel: Object.freeze({
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
       color: "#718077",
       fontSize: 11,
       fontWeight: '600',
@@ -164,8 +192,10 @@ export const newUiTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 12,
-      paddingHorizontal: 16,
-      paddingVertical: 16,
+      paddingTop: 16,
+      paddingRight: 16,
+      paddingBottom: 16,
+      paddingLeft: 16,
     }),
     cardSelected: Object.freeze({
       backgroundColor: "#11211b",
@@ -177,8 +207,10 @@ export const newUiTheme = Object.freeze({
     }),
     choice: Object.freeze({
       minWidth: 0,
-      paddingHorizontal: 16,
-      paddingVertical: 16,
+      paddingTop: 16,
+      paddingRight: 16,
+      paddingBottom: 16,
+      paddingLeft: 16,
       color: "#f5fbf7",
       backgroundColor: "#191c1f",
       borderWidth: 1,
@@ -194,16 +226,20 @@ export const newUiTheme = Object.freeze({
       borderLeftColor: "#00c257",
     }),
     choiceCompact: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
     }),
     choiceLabel: Object.freeze({
       minWidth: 0,
     }),
     button: Object.freeze({
       minHeight: 44,
-      paddingHorizontal: 24,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 24,
+      paddingBottom: 12,
+      paddingLeft: 24,
       borderWidth: 1,
       borderColor: "#00000000",
       borderRadius: 8,
@@ -227,14 +263,18 @@ export const newUiTheme = Object.freeze({
     }),
     buttonCompact: Object.freeze({
       minHeight: 32,
-      paddingHorizontal: 14,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 14,
+      paddingBottom: 8,
+      paddingLeft: 14,
       fontSize: 12,
     }),
     input: Object.freeze({
       minHeight: 44,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 16,
+      paddingBottom: 12,
+      paddingLeft: 16,
       color: "#f5fbf7",
       backgroundColor: "#17191b",
       borderWidth: 1,
@@ -244,8 +284,10 @@ export const newUiTheme = Object.freeze({
     }),
     badge: Object.freeze({
       minHeight: 28,
-      paddingHorizontal: 10.4,
-      paddingVertical: 4,
+      paddingTop: 4,
+      paddingRight: 10.4,
+      paddingBottom: 4,
+      paddingLeft: 10.4,
       color: "#c2d2ca",
       backgroundColor: "#121416",
       borderWidth: 1,
@@ -306,8 +348,10 @@ export const newUiTheme = Object.freeze({
     }),
     tab: Object.freeze({
       minHeight: 32,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       color: "#8a9a92",
       borderWidth: 0,
       borderColor: "#00000000",
@@ -324,8 +368,10 @@ export const newUiTheme = Object.freeze({
       borderBottomColor: "#00c257",
     }),
     callout: Object.freeze({
-      paddingHorizontal: 16,
-      paddingVertical: 16,
+      paddingTop: 16,
+      paddingRight: 16,
+      paddingBottom: 16,
+      paddingLeft: 16,
       color: "#c2d2ca",
       backgroundColor: "#121416",
       borderWidth: 1,
@@ -341,8 +387,10 @@ export const newUiTheme = Object.freeze({
 
     }),
     code: Object.freeze({
-      paddingHorizontal: 16,
-      paddingVertical: 16,
+      paddingTop: 16,
+      paddingRight: 16,
+      paddingBottom: 16,
+      paddingLeft: 16,
       color: "#c2d2ca",
       backgroundColor: "#121416",
       borderWidth: 1,
@@ -362,8 +410,10 @@ export const newUiTheme = Object.freeze({
     }),
     example__preview: Object.freeze({
       minHeight: 96,
-      paddingHorizontal: 20,
-      paddingVertical: 20,
+      paddingTop: 20,
+      paddingRight: 20,
+      paddingBottom: 20,
+      paddingLeft: 20,
       color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
       borderWidth: 1,
@@ -371,10 +421,15 @@ export const newUiTheme = Object.freeze({
       borderRadius: 12,
     }),
     example__meta: Object.freeze({
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
       color: "#8a9a92",
       fontSize: 12,
     }),
     example__state: Object.freeze({
+      paddingLeft: 16,
       borderLeftWidth: 2,
       borderLeftColor: "#00b85059",
     }),
@@ -410,8 +465,10 @@ export const newUiTheme = Object.freeze({
     }),
     chrome: Object.freeze({
       minHeight: 42,
-      paddingHorizontal: 12,
-      paddingVertical: 0,
+      paddingTop: 0,
+      paddingRight: 12,
+      paddingBottom: 0,
+      paddingLeft: 12,
       color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
       borderBottomWidth: 1,
@@ -421,6 +478,9 @@ export const newUiTheme = Object.freeze({
       width: 18,
       height: 18,
       backgroundColor: "#00b850",
+    }),
+    chrome__logoLockup: Object.freeze({
+
     }),
     chromeButton: Object.freeze({
       width: 46,
@@ -450,8 +510,10 @@ export const newUiTheme = Object.freeze({
     workspace: Object.freeze({
       minWidth: 0,
       minHeight: 48,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       color: "#c2d2ca",
       backgroundColor: "#00000000",
       borderWidth: 0,
@@ -483,8 +545,10 @@ export const newUiTheme = Object.freeze({
     drawer: Object.freeze({
       width: 280,
       maxWidth: "82%",
-      paddingHorizontal: 16,
-      paddingVertical: 16,
+      paddingTop: 16,
+      paddingRight: 16,
+      paddingBottom: 16,
+      paddingLeft: 16,
       color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
       borderRightWidth: 1,
@@ -511,8 +575,10 @@ export const newUiTheme = Object.freeze({
     workspaceDelete: Object.freeze({
       width: 24,
       height: 24,
-      paddingHorizontal: 0,
-      paddingVertical: 0,
+      paddingTop: 0,
+      paddingRight: 0,
+      paddingBottom: 0,
+      paddingLeft: 0,
       color: "#8a9a92",
       backgroundColor: "#00000000",
       borderWidth: 0,
@@ -533,8 +599,10 @@ export const newUiTheme = Object.freeze({
       opacity: 0.45,
     }),
     appTab: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       color: "#8a9a92",
       backgroundColor: "#00000000",
       borderWidth: 0,
@@ -552,8 +620,10 @@ export const newUiTheme = Object.freeze({
     }),
     subtab: Object.freeze({
       minHeight: 32,
-      paddingHorizontal: 12,
-      paddingVertical: 4,
+      paddingTop: 4,
+      paddingRight: 12,
+      paddingBottom: 4,
+      paddingLeft: 12,
       color: "#8a9a92",
       backgroundColor: "#00000000",
       borderWidth: 0,
@@ -569,13 +639,17 @@ export const newUiTheme = Object.freeze({
     }),
     navTab: Object.freeze({
       minHeight: 36,
-      paddingHorizontal: 8,
-      paddingVertical: 2,
+      paddingTop: 2,
+      paddingRight: 8,
+      paddingBottom: 2,
+      paddingLeft: 8,
     }),
     sessionRow: Object.freeze({
       minHeight: 44,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       color: "#f5fbf7",
       backgroundColor: "#10281d",
       borderWidth: 0,
@@ -586,8 +660,10 @@ export const newUiTheme = Object.freeze({
     }),
     sessionLogout: Object.freeze({
       minHeight: 44,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       color: "#f5fbf7",
       backgroundColor: "#00000000",
       borderWidth: 1,
@@ -598,8 +674,10 @@ export const newUiTheme = Object.freeze({
     }),
     addressBar: Object.freeze({
       minHeight: 28,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
+      paddingTop: 4,
+      paddingRight: 8,
+      paddingBottom: 4,
+      paddingLeft: 8,
       color: "#c2d2ca",
       backgroundColor: "#17191b",
       borderWidth: 1,
@@ -610,17 +688,25 @@ export const newUiTheme = Object.freeze({
     browserButton: Object.freeze({
       width: 28,
       height: 28,
-      paddingHorizontal: 0,
-      paddingVertical: 0,
+      paddingTop: 0,
+      paddingRight: 0,
+      paddingBottom: 0,
+      paddingLeft: 0,
       color: "#f5fbf7",
       backgroundColor: "#191c1f",
       borderWidth: 1,
       borderColor: "#ffffff29",
       borderRadius: 6,
     }),
+    browserButton__navIcon: Object.freeze({
+      width: 14,
+      height: 14,
+    }),
     errorBanner: Object.freeze({
-      paddingHorizontal: 16,
-      paddingVertical: 16,
+      paddingTop: 16,
+      paddingRight: 16,
+      paddingBottom: 16,
+      paddingLeft: 16,
       color: "#e48989",
       backgroundColor: "#261a1c",
       borderWidth: 1,
@@ -629,8 +715,10 @@ export const newUiTheme = Object.freeze({
     }),
     console: Object.freeze({
       minHeight: 192,
-      paddingHorizontal: 20,
-      paddingVertical: 14,
+      paddingTop: 14,
+      paddingRight: 20,
+      paddingBottom: 14,
+      paddingLeft: 20,
       color: "#c2d2ca",
       backgroundColor: "#0a0b0c",
       fontSize: 11,
@@ -642,13 +730,17 @@ export const newUiTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 12,
-      paddingHorizontal: 0,
-      paddingVertical: 4,
+      paddingTop: 4,
+      paddingRight: 0,
+      paddingBottom: 4,
+      paddingLeft: 0,
     }),
     gitRow: Object.freeze({
       minHeight: 32,
-      paddingHorizontal: 8,
-      paddingVertical: 2,
+      paddingTop: 2,
+      paddingRight: 8,
+      paddingBottom: 2,
+      paddingLeft: 6,
       color: "#c2d2ca",
       backgroundColor: "#00000000",
       borderWidth: 0,
@@ -668,8 +760,10 @@ export const newUiTheme = Object.freeze({
     gitTreeToggle: Object.freeze({
       width: 14,
       minHeight: 32,
-      paddingHorizontal: 0,
-      paddingVertical: 0,
+      paddingTop: 0,
+      paddingRight: 0,
+      paddingBottom: 0,
+      paddingLeft: 0,
       color: "#8a9a92",
       backgroundColor: "#00000000",
       borderWidth: 0,
@@ -744,8 +838,10 @@ export const newUiTheme = Object.freeze({
       color: "#000000",
     }),
     auditHeader: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       color: "#718077",
       backgroundColor: "#00000000",
       borderBottomWidth: 1,
@@ -756,8 +852,10 @@ export const newUiTheme = Object.freeze({
       textTransform: 'uppercase',
     }),
     auditRow: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 4,
+      paddingTop: 4,
+      paddingRight: 12,
+      paddingBottom: 4,
+      paddingLeft: 12,
       color: "#c2d2ca",
       backgroundColor: "#00000000",
       borderBottomWidth: 1,
@@ -766,8 +864,10 @@ export const newUiTheme = Object.freeze({
     }),
     pageJump: Object.freeze({
       minWidth: 28,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
+      paddingTop: 4,
+      paddingRight: 8,
+      paddingBottom: 4,
+      paddingLeft: 8,
       color: "#8a9a92",
       backgroundColor: "#00000000",
       borderWidth: 1,
@@ -782,8 +882,10 @@ export const newUiTheme = Object.freeze({
     }),
     metricsCard: Object.freeze({
       minHeight: 92,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 16,
+      paddingBottom: 12,
+      paddingLeft: 16,
       color: "#f5fbf7",
       backgroundColor: "#121416",
       borderWidth: 1,
@@ -792,8 +894,10 @@ export const newUiTheme = Object.freeze({
     }),
     metricsChart: Object.freeze({
       minHeight: 192,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 16,
+      paddingBottom: 12,
+      paddingLeft: 16,
       color: "#8a9a92",
       backgroundColor: "#121416",
       borderWidth: 1,
@@ -803,8 +907,10 @@ export const newUiTheme = Object.freeze({
     validationSidebar: Object.freeze({
       width: 360,
       minHeight: 0,
-      paddingHorizontal: 0,
-      paddingVertical: 0,
+      paddingTop: 0,
+      paddingRight: 0,
+      paddingBottom: 0,
+      paddingLeft: 0,
       color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
       borderLeftWidth: 1,
@@ -812,19 +918,41 @@ export const newUiTheme = Object.freeze({
     }),
     validationSidebarCollapsed: Object.freeze({
       width: 56,
+      paddingTop: 10,
+      paddingRight: 0,
+      paddingBottom: 6,
+      paddingLeft: 0,
+    }),
+    validationSidebarCollapsed__validationSidebarHead: Object.freeze({
+      paddingTop: 0,
+      paddingRight: 0,
+      paddingBottom: 0,
+      paddingLeft: 0,
+    }),
+    validationSidebarCollapsed__workspaceAdd: Object.freeze({
+      width: 32,
+      height: 32,
     }),
     validationSidebarHead: Object.freeze({
-      paddingHorizontal: 10,
-      paddingVertical: 10,
+      paddingTop: 10,
+      paddingRight: 10,
+      paddingBottom: 6,
+      paddingLeft: 16,
     }),
     validationSidebarCopy: Object.freeze({
       minWidth: 0,
     }),
+    validationSidebarHead__accent: Object.freeze({
+      fontSize: 11,
+      fontWeight: '600',
+    }),
     validationDock: Object.freeze({
       height: 50,
       minHeight: 50,
-      paddingHorizontal: 12,
-      paddingVertical: 0,
+      paddingTop: 0,
+      paddingRight: 12,
+      paddingBottom: 0,
+      paddingLeft: 12,
       color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
       borderTopWidth: 1,
@@ -841,8 +969,10 @@ export const newUiTheme = Object.freeze({
       borderRadius: 8,
     }),
     validationPlay: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 7.04,
+      paddingTop: 7.04,
+      paddingRight: 12,
+      paddingBottom: 7.04,
+      paddingLeft: 12,
       color: "#f5fbf7",
       backgroundColor: "#0f3220",
       borderWidth: 0,
@@ -852,8 +982,10 @@ export const newUiTheme = Object.freeze({
       fontWeight: '600',
     }),
     validationFlow: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 12,
+      paddingBottom: 12,
+      paddingLeft: 12,
       color: "#f5fbf7",
       backgroundColor: "#191c1f",
       borderWidth: 1,
@@ -865,6 +997,9 @@ export const newUiTheme = Object.freeze({
     }),
     validationCopy: Object.freeze({
       minWidth: 0,
+    }),
+    validationCopy__muted: Object.freeze({
+      color: "#8a9a92",
     }),
     validationSteps: Object.freeze({
       marginLeft: 24,
@@ -898,17 +1033,27 @@ export const newUiTheme = Object.freeze({
       color: "#e0a128",
     }),
     signIn: Object.freeze({
-      paddingHorizontal: 20,
-      paddingVertical: 20,
+      paddingTop: 20,
+      paddingRight: 20,
+      paddingBottom: 20,
+      paddingLeft: 20,
       color: "#f5fbf7",
       backgroundColor: "#121416",
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 16,
     }),
+    signIn__choice: Object.freeze({
+      maxWidth: "100%",
+    }),
+    signIn__button: Object.freeze({
+      maxWidth: "100%",
+    }),
     tutorialButton: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       color: "#000000",
       backgroundColor: "#00b850",
       borderWidth: 0,
@@ -927,8 +1072,10 @@ export const newUiTheme = Object.freeze({
       borderColor: "#ffffff29",
     }),
     listItem: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       color: "#c2d2ca",
       backgroundColor: "#00000000",
       borderRadius: 6,
@@ -939,8 +1086,10 @@ export const newUiTheme = Object.freeze({
     }),
     codeEditor: Object.freeze({
       minHeight: 96,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       color: "#c2d2ca",
       backgroundColor: "#17191b",
       borderWidth: 1,
@@ -949,8 +1098,10 @@ export const newUiTheme = Object.freeze({
       fontSize: 13,
     }),
     dbRun: Object.freeze({
-      paddingHorizontal: 16,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 16,
+      paddingBottom: 8,
+      paddingLeft: 16,
       color: "#000000",
       backgroundColor: "#00b850",
       borderWidth: 1,
@@ -960,8 +1111,10 @@ export const newUiTheme = Object.freeze({
       fontWeight: '600',
     }),
     dbHeaderCell: Object.freeze({
-      paddingHorizontal: 8,
-      paddingVertical: 4,
+      paddingTop: 4,
+      paddingRight: 8,
+      paddingBottom: 4,
+      paddingLeft: 8,
       color: "#718077",
       backgroundColor: "#191c1f",
       borderRightWidth: 1,
@@ -974,8 +1127,10 @@ export const newUiTheme = Object.freeze({
       textTransform: 'uppercase',
     }),
     dbDataCell: Object.freeze({
-      paddingHorizontal: 8,
-      paddingVertical: 4,
+      paddingTop: 4,
+      paddingRight: 8,
+      paddingBottom: 4,
+      paddingLeft: 8,
       color: "#c2d2ca",
       backgroundColor: "#121416",
       borderRightWidth: 1,
@@ -986,24 +1141,30 @@ export const newUiTheme = Object.freeze({
     }),
     mobileBar: Object.freeze({
       minHeight: 56,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
       borderBottomWidth: 1,
       borderBottomColor: "#ffffff14",
     }),
     mobileTabBar: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 4,
+      paddingTop: 4,
+      paddingRight: 12,
+      paddingBottom: 4,
+      paddingLeft: 12,
       color: "#f5fbf7",
       backgroundColor: "#0a0b0c",
       borderTopWidth: 1,
       borderTopColor: "#ffffff14",
     }),
     mobileCard: Object.freeze({
-      paddingHorizontal: 16,
-      paddingVertical: 16,
+      paddingTop: 16,
+      paddingRight: 16,
+      paddingBottom: 16,
+      paddingLeft: 16,
       color: "#f5fbf7",
       backgroundColor: "#121416",
       borderWidth: 1,
@@ -1012,8 +1173,10 @@ export const newUiTheme = Object.freeze({
     }),
     chip: Object.freeze({
       minHeight: 28,
-      paddingHorizontal: 12,
-      paddingVertical: 4,
+      paddingTop: 4,
+      paddingRight: 12,
+      paddingBottom: 4,
+      paddingLeft: 12,
       color: "#8a9a92",
       backgroundColor: "#00000000",
       borderWidth: 1,
@@ -1029,8 +1192,10 @@ export const newUiTheme = Object.freeze({
     }),
     chatThought: Object.freeze({
       marginLeft: 20,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
+      paddingTop: 4,
+      paddingRight: 8,
+      paddingBottom: 4,
+      paddingLeft: 8,
       color: "#8a9a92",
       backgroundColor: "#00000000",
       borderWidth: 0,
@@ -1044,11 +1209,17 @@ export const newUiTheme = Object.freeze({
       color: "#8a9a92",
       fontSize: 14,
       fontStyle: 'italic',
+      marginTop: 4,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 8,
     }),
     chatUser: Object.freeze({
       maxWidth: "80%",
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 16,
+      paddingBottom: 12,
+      paddingLeft: 16,
       color: "#f5fbf7",
       backgroundColor: "#10281d",
       borderWidth: 1,
@@ -1056,8 +1227,10 @@ export const newUiTheme = Object.freeze({
       borderRadius: 12,
     }),
     chatWork: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       color: "#c2d2ca",
       backgroundColor: "#121416",
       borderWidth: 1,
@@ -1065,8 +1238,10 @@ export const newUiTheme = Object.freeze({
       borderRadius: 8,
     }),
     chatRun: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 12,
+      paddingBottom: 12,
+      paddingLeft: 12,
       color: "#8a9a92",
       backgroundColor: "#00000000",
       borderWidth: 0,
@@ -1076,8 +1251,10 @@ export const newUiTheme = Object.freeze({
       fontWeight: '500',
     }),
     chatTranscript: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 12,
+      paddingBottom: 12,
+      paddingLeft: 12,
       backgroundColor: "#00000000",
     }),
     screen: Object.freeze({
@@ -1090,8 +1267,10 @@ export const newUiTheme = Object.freeze({
     }),
     screenRail: Object.freeze({
       minHeight: 0,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 12,
+      paddingBottom: 12,
+      paddingLeft: 12,
     }),
     screenMain: Object.freeze({
       minWidth: 0,
@@ -1100,36 +1279,72 @@ export const newUiTheme = Object.freeze({
     screenTabs: Object.freeze({
       borderBottomWidth: 1,
       borderBottomColor: "#ffffff14",
-      paddingHorizontal: 12,
-      paddingVertical: 0,
+      paddingTop: 0,
+      paddingRight: 12,
+      paddingBottom: 0,
+      paddingLeft: 12,
     }),
     screenSubtabs: Object.freeze({
       borderBottomWidth: 1,
       borderBottomColor: "#ffffff14",
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
+    }),
+    screenTabs__cluster: Object.freeze({
+
+    }),
+    screenSubtabs__cluster: Object.freeze({
+
     }),
     tabSep: Object.freeze({
       width: 1,
       height: 18,
+      marginTop: 0,
+      marginRight: 8,
+      marginBottom: 0,
+      marginLeft: 8,
       backgroundColor: "#ffffff29",
     }),
     screenToolbar: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       borderBottomWidth: 1,
       borderBottomColor: "#ffffff14",
     }),
+    screenToolbar__cluster: Object.freeze({
+
+    }),
+    screenToolbar__addressBar: Object.freeze({
+      minWidth: 0,
+    }),
     screenPane: Object.freeze({
       minHeight: 0,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 12,
+      paddingBottom: 12,
+      paddingLeft: 12,
     }),
     screenAside: Object.freeze({
       minWidth: 0,
       minHeight: 0,
     }),
+    screenOverlay__overlayPanel: Object.freeze({
+
+    }),
+    screenOverlay__fileViewer: Object.freeze({
+
+    }),
+    screenOverlay__fileViewerMobile: Object.freeze({
+      maxWidth: 720,
+    }),
     workspaceHead: Object.freeze({
+
+    }),
+    workspaceHead__fieldLabel: Object.freeze({
 
     }),
     overview: Object.freeze({
@@ -1138,11 +1353,27 @@ export const newUiTheme = Object.freeze({
     overviewGrid: Object.freeze({
 
     }),
+    overview__fieldLabel: Object.freeze({
+      textTransform: 'none',
+    }),
     gitToolbar: Object.freeze({
+
+    }),
+    gitBranchRow__lifecycleButton: Object.freeze({
+      width: 44,
+      height: 44,
+    }),
+    gitReview__gitChangeList: Object.freeze({
 
     }),
     gitCommit: Object.freeze({
 
+    }),
+    gitCommit__input: Object.freeze({
+      minHeight: 72,
+    }),
+    gitCommitMobile__input: Object.freeze({
+      minHeight: 90,
     }),
     gitLog: Object.freeze({
       minHeight: 192,
@@ -1163,6 +1394,9 @@ export const newUiTheme = Object.freeze({
     appList: Object.freeze({
 
     }),
+    appList__button: Object.freeze({
+
+    }),
     cartRow: Object.freeze({
 
     }),
@@ -1177,8 +1411,10 @@ export const newUiTheme = Object.freeze({
     }),
     fileViewerHeader: Object.freeze({
       minHeight: 32,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 16,
+      paddingBottom: 12,
+      paddingLeft: 16,
       color: "#f5fbf7",
       backgroundColor: "#191c1f",
       borderBottomWidth: 1,
@@ -1198,8 +1434,10 @@ export const newUiTheme = Object.freeze({
       letterSpacing: 0.66,
     }),
     fileViewerNav: Object.freeze({
-      paddingHorizontal: 16,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 16,
+      paddingBottom: 8,
+      paddingLeft: 16,
       color: "#c2d2ca",
       backgroundColor: "#121416",
       borderBottomWidth: 1,
@@ -1207,8 +1445,10 @@ export const newUiTheme = Object.freeze({
     }),
     fileViewerJump: Object.freeze({
       minHeight: 32,
-      paddingHorizontal: 8,
-      paddingVertical: 0,
+      paddingTop: 0,
+      paddingRight: 8,
+      paddingBottom: 0,
+      paddingLeft: 8,
       color: "#c2d2ca",
       backgroundColor: "#191c1f",
       borderWidth: 1,
@@ -1219,8 +1459,10 @@ export const newUiTheme = Object.freeze({
     fileViewerGoto: Object.freeze({
       width: 72,
       minHeight: 32,
-      paddingHorizontal: 8,
-      paddingVertical: 0,
+      paddingTop: 0,
+      paddingRight: 8,
+      paddingBottom: 0,
+      paddingLeft: 8,
       color: "#f5fbf7",
       backgroundColor: "#17191b",
       borderWidth: 1,
@@ -1235,8 +1477,10 @@ export const newUiTheme = Object.freeze({
     }),
     fileViewerLine: Object.freeze({
       minHeight: 22,
-      paddingHorizontal: 8,
-      paddingVertical: 0,
+      paddingTop: 0,
+      paddingRight: 8,
+      paddingBottom: 0,
+      paddingLeft: 8,
       color: "#c2d2ca",
       backgroundColor: "#00000000",
       borderWidth: 0,
@@ -1318,6 +1562,15 @@ export const newUiTheme = Object.freeze({
     syntaxOperator: Object.freeze({
       color: "#c2d2ca",
     }),
+    fileViewerMobile__fileViewerHeader: Object.freeze({
+
+    }),
+    fileViewerMobile__fileViewerNav: Object.freeze({
+
+    }),
+    fileViewerMobile__fileViewerPath: Object.freeze({
+
+    }),
     gitLogFlush: Object.freeze({
       borderWidth: 0,
       borderColor: "#00000000",
@@ -1326,8 +1579,10 @@ export const newUiTheme = Object.freeze({
       minHeight: 0,
     }),
     gitLogDetail: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 12,
+      paddingBottom: 12,
+      paddingLeft: 12,
       color: "#f5fbf7",
       backgroundColor: "#191c1f",
       borderBottomWidth: 1,
@@ -1341,8 +1596,10 @@ export const newUiTheme = Object.freeze({
     }),
     gitLogRow: Object.freeze({
       minHeight: 28,
-      paddingHorizontal: 12,
-      paddingVertical: 0,
+      paddingTop: 0,
+      paddingRight: 12,
+      paddingBottom: 0,
+      paddingLeft: 12,
       color: "#c2d2ca",
       backgroundColor: "#00000000",
       borderWidth: 0,
@@ -1358,8 +1615,21 @@ export const newUiTheme = Object.freeze({
       borderLeftWidth: 2,
       borderLeftColor: "#00c257",
     }),
+    gitLogGraphScroll__gitLogRowSelected: Object.freeze({
+      color: "inherit",
+      backgroundColor: "#00000000",
+    }),
     gitLogGraph: Object.freeze({
       backgroundColor: "#00000000",
+    }),
+    gitLogGraph__gitLogGraphEdge: Object.freeze({
+
+    }),
+    gitLogGraph__gitLogGraphNode: Object.freeze({
+
+    }),
+    gitLogGraph__gitLogGraphNodeFilled: Object.freeze({
+
     }),
     gitLogLane0: Object.freeze({
       color: "#2bf27a",
@@ -1406,8 +1676,10 @@ export const newUiTheme = Object.freeze({
     gitLogRef: Object.freeze({
       maxWidth: 176,
       minHeight: 20,
-      paddingHorizontal: 8,
-      paddingVertical: 0,
+      paddingTop: 0,
+      paddingRight: 8,
+      paddingBottom: 0,
+      paddingLeft: 8,
       color: "#f5fbf7",
       backgroundColor: "#191c1f",
       borderWidth: 1,
@@ -1450,10 +1722,16 @@ export const newUiTheme = Object.freeze({
       backgroundColor: "#121416",
       borderRightWidth: 1,
       borderRightColor: "#ffffff14",
-      paddingHorizontal: 12,
-      paddingVertical: 16,
+      paddingTop: 16,
+      paddingRight: 12,
+      paddingBottom: 16,
+      paddingLeft: 12,
     }),
     aunRailServer: Object.freeze({
+      paddingTop: 4,
+      paddingRight: 12,
+      paddingBottom: 16,
+      paddingLeft: 12,
       minWidth: 0,
     }),
     aunRailName: Object.freeze({
@@ -1465,8 +1743,10 @@ export const newUiTheme = Object.freeze({
       color: "#8a9a92",
     }),
     aunRailLink: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       borderRadius: 6,
       borderWidth: 1,
       borderColor: "#00b85059",
@@ -1480,10 +1760,16 @@ export const newUiTheme = Object.freeze({
       fontWeight: '700',
       letterSpacing: 1.21,
       color: "#718077",
+      paddingTop: 16,
+      paddingRight: 12,
+      paddingBottom: 4,
+      paddingLeft: 12,
     }),
     aunRailAgent: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       borderRadius: 6,
       borderWidth: 1,
       borderColor: "#00b85059",
@@ -1492,15 +1778,30 @@ export const newUiTheme = Object.freeze({
       backgroundColor: "#10281d",
       fontWeight: '600',
     }),
+    aunRailAgent__aunGlyphGate: Object.freeze({
+      color: "#ffd66b",
+    }),
+    aunRailAgent__aunGlyphRunning: Object.freeze({
+      color: "#8bb7ff",
+    }),
+    aunRailAgent__aunGlyphHalted: Object.freeze({
+      color: "#e48989",
+    }),
     aunNavRow: Object.freeze({
 
     }),
     aunNavSubs: Object.freeze({
-
+      paddingLeft: 16,
     }),
     aunNav: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       borderWidth: 0,
       borderColor: "#00000000",
       borderRadius: 6,
@@ -1513,9 +1814,21 @@ export const newUiTheme = Object.freeze({
       backgroundColor: "#10281d",
       color: "#f5fbf7",
     }),
+    aunNavSubs__aunRailLink: Object.freeze({
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
+      color: "#8a9a92",
+      backgroundColor: "transparent",
+      borderWidth: 0,
+      borderColor: "#00000000",
+    }),
     aunRailSwitch: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       borderWidth: 1,
       borderColor: "#ffffff29",
       borderRadius: 6,
@@ -1528,13 +1841,19 @@ export const newUiTheme = Object.freeze({
     }),
     aunMain: Object.freeze({
       minWidth: 0,
-      paddingHorizontal: 32,
-      paddingVertical: 24,
+      paddingTop: 24,
+      paddingRight: 32,
+      paddingBottom: 24,
+      paddingLeft: 32,
     }),
     aunMainBridge: Object.freeze({
       maxWidth: 1040,
     }),
     aunStateMap: Object.freeze({
+      paddingTop: 20,
+      paddingRight: 22,
+      paddingBottom: 22,
+      paddingLeft: 22,
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 12,
@@ -1544,19 +1863,30 @@ export const newUiTheme = Object.freeze({
 
     }),
     aunStateMapKicker: Object.freeze({
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
       color: "#8a9a92",
       fontSize: 11,
       fontWeight: '600',
       letterSpacing: 0.88,
     }),
     aunStateMapDek: Object.freeze({
+      marginTop: 3,
       color: "#718077",
       fontSize: 12,
     }),
     aunStateMapRoot: Object.freeze({
       width: 256,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      marginTop: 20,
+      marginRight: 20,
+      marginBottom: 0,
+      marginLeft: 20,
+      paddingTop: 12,
+      paddingRight: 16,
+      paddingBottom: 12,
+      paddingLeft: 16,
       borderWidth: 1,
       borderColor: "#ffffff29",
       borderRadius: 8,
@@ -1568,17 +1898,26 @@ export const newUiTheme = Object.freeze({
       color: "#f5fbf7",
     }),
     aunStateMapTotalLabel: Object.freeze({
+      marginTop: 2,
       color: "#8a9a92",
       fontSize: 11,
       fontWeight: '600',
       letterSpacing: 0.66,
     }),
     aunStateMapRootTitle: Object.freeze({
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
       color: "#f5fbf7",
       fontSize: 12,
       fontWeight: '600',
     }),
+    aunStateMapRootCopy: Object.freeze({
+      minWidth: 0,
+    }),
     aunStateMapRootMeta: Object.freeze({
+      marginTop: 3,
       color: "#8a9a92",
       fontSize: 11,
     }),
@@ -1586,6 +1925,10 @@ export const newUiTheme = Object.freeze({
       backgroundColor: "#718077",
       width: 2,
       height: 22,
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
     }),
     aunStateMapCrossbar: Object.freeze({
       backgroundColor: "#718077",
@@ -1595,6 +1938,10 @@ export const newUiTheme = Object.freeze({
       backgroundColor: "#718077",
       width: 2,
       height: 16,
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
     }),
     aunStateMapLanes: Object.freeze({
 
@@ -1604,8 +1951,10 @@ export const newUiTheme = Object.freeze({
     }),
     aunStateMapBranch: Object.freeze({
       minHeight: 0,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 12,
+      paddingBottom: 12,
+      paddingLeft: 12,
       borderWidth: 1,
       borderColor: "#ffffff29",
       borderRadius: 8,
@@ -1620,6 +1969,20 @@ export const newUiTheme = Object.freeze({
       borderRadius: 999,
       backgroundColor: "#718077",
     }),
+    aunStateMapBranchWorking__aunStateMapMark: Object.freeze({
+      backgroundColor: "#22c55e",
+    }),
+    aunStateMapBranchWaiting__aunStateMapMark: Object.freeze({
+      backgroundColor: "#e0a128",
+    }),
+    aunStateMapBranchHalted__aunStateMapMark: Object.freeze({
+      backgroundColor: "#d84f4f",
+    }),
+    aunStateMapBranchIdle__aunStateMapMark: Object.freeze({
+      backgroundColor: "transparent",
+      borderWidth: 2,
+      borderColor: "#718077",
+    }),
     aunStateMapBranchCopy: Object.freeze({
       minWidth: 0,
     }),
@@ -1629,6 +1992,7 @@ export const newUiTheme = Object.freeze({
       fontWeight: '600',
     }),
     aunStateMapBranchMeta: Object.freeze({
+      marginTop: 1,
       color: "#8a9a92",
       fontSize: 11,
     }),
@@ -1638,6 +2002,8 @@ export const newUiTheme = Object.freeze({
     }),
     aunStateMapHost: Object.freeze({
       minWidth: 0,
+      marginTop: 12,
+      paddingTop: 12,
       borderTopWidth: 1,
       borderTopColor: "#ffffff14",
     }),
@@ -1658,26 +2024,40 @@ export const newUiTheme = Object.freeze({
     }),
     aunStateMapMessage: Object.freeze({
       minWidth: 0,
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
+      paddingTop: 8,
       color: "#c2d2ca",
       fontSize: 11,
     }),
     aunStateMapMessages: Object.freeze({
+      marginTop: 8,
       borderTopWidth: 1,
       borderTopColor: "#ffffff29",
     }),
     aunStateMapEmpty: Object.freeze({
+      marginTop: 12,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
       color: "#8a9a92",
       fontSize: 11,
     }),
     aunTaskSummary: Object.freeze({
-      paddingHorizontal: 20,
-      paddingVertical: 20,
+      paddingTop: 20,
+      paddingRight: 20,
+      paddingBottom: 20,
+      paddingLeft: 20,
     }),
     aunTaskSummaryHead: Object.freeze({
       color: "#718077",
       fontSize: 10,
     }),
     aunTaskSummaryRow: Object.freeze({
+      paddingTop: 8,
+      paddingBottom: 8,
       borderTopWidth: 1,
       borderTopColor: "#ffffff14",
       fontSize: 12,
@@ -1686,6 +2066,10 @@ export const newUiTheme = Object.freeze({
 
     }),
     aunTitle: Object.freeze({
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 4,
+      marginLeft: 0,
       fontSize: 22,
       fontWeight: '700',
       letterSpacing: -0.22,
@@ -1695,6 +2079,10 @@ export const newUiTheme = Object.freeze({
       color: "#8a9a92",
     }),
     aunSectionHead: Object.freeze({
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 12,
+      marginLeft: 0,
       fontSize: 11,
       fontWeight: '700',
       letterSpacing: 0.99,
@@ -1735,8 +2123,10 @@ export const newUiTheme = Object.freeze({
       borderColor: "#ffffff14",
       borderRadius: 12,
       backgroundColor: "#121416",
-      paddingHorizontal: 20,
-      paddingVertical: 16,
+      paddingTop: 16,
+      paddingRight: 20,
+      paddingBottom: 16,
+      paddingLeft: 20,
     }),
     aunTaskBoard: Object.freeze({
 
@@ -1746,8 +2136,10 @@ export const newUiTheme = Object.freeze({
     }),
     aunTaskRow: Object.freeze({
       minHeight: 64,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 16,
+      paddingBottom: 12,
+      paddingLeft: 16,
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 12,
@@ -1769,6 +2161,15 @@ export const newUiTheme = Object.freeze({
       color: "#8a9a92",
       fontSize: 12,
     }),
+    aunTaskSlot: Object.freeze({
+
+    }),
+    aunTaskSlotSection: Object.freeze({
+      marginTop: 12,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
+    }),
     aunTaskGrip: Object.freeze({
 
     }),
@@ -1783,8 +2184,10 @@ export const newUiTheme = Object.freeze({
     }),
     aunSettingsRow: Object.freeze({
       minHeight: 44,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 16,
+      paddingBottom: 12,
+      paddingLeft: 16,
     }),
     aunSettingsId: Object.freeze({
       minWidth: 0,
@@ -1799,6 +2202,10 @@ export const newUiTheme = Object.freeze({
       fontSize: 12,
     }),
     aunSettingsState: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 12,
+    }),
+    aunSettingsStateText: Object.freeze({
       color: "#8a9a92",
       fontSize: 12,
     }),
@@ -1817,12 +2224,18 @@ export const newUiTheme = Object.freeze({
       backgroundColor: "#261a1c",
     }),
     aunCardTitle: Object.freeze({
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 12,
+      marginLeft: 0,
       fontSize: 13,
       fontWeight: '700',
     }),
     aunRow: Object.freeze({
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 16,
+      paddingBottom: 12,
+      paddingLeft: 16,
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 8,
@@ -1845,10 +2258,12 @@ export const newUiTheme = Object.freeze({
     aunRowMeta: Object.freeze({
       fontSize: 12,
       color: "#c2d2ca",
+      marginTop: 4,
     }),
     aunRowTime: Object.freeze({
       fontSize: 11,
       color: "#8a9a92",
+      marginTop: 4,
     }),
     aunRowActions: Object.freeze({
 
@@ -1871,8 +2286,10 @@ export const newUiTheme = Object.freeze({
     aunState: Object.freeze({
       fontSize: 11,
       fontWeight: '600',
-      paddingHorizontal: 8,
-      paddingVertical: 2,
+      paddingTop: 2,
+      paddingRight: 8,
+      paddingBottom: 2,
+      paddingLeft: 8,
       borderRadius: 999,
       borderWidth: 1,
       borderColor: "#ffffff29",
@@ -1895,8 +2312,10 @@ export const newUiTheme = Object.freeze({
       borderColor: "#00b85059",
     }),
     aunConn: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 4,
+      paddingTop: 4,
+      paddingRight: 12,
+      paddingBottom: 4,
+      paddingLeft: 12,
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 999,
@@ -1905,6 +2324,8 @@ export const newUiTheme = Object.freeze({
     }),
     statusDotIdle: Object.freeze({
       backgroundColor: "transparent",
+      borderWidth: 1.5,
+      borderColor: "#718077",
     }),
     aunDot: Object.freeze({
       width: 7,
@@ -1938,8 +2359,10 @@ export const newUiTheme = Object.freeze({
     aunBtn: Object.freeze({
       fontSize: 12,
       fontWeight: '600',
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       minHeight: 32,
       borderRadius: 6,
       borderWidth: 1,
@@ -1963,8 +2386,10 @@ export const newUiTheme = Object.freeze({
     aunInput: Object.freeze({
       fontSize: 12,
       minHeight: 44,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       borderRadius: 6,
       borderWidth: 1,
       borderColor: "#ffffff14",
@@ -1979,8 +2404,10 @@ export const newUiTheme = Object.freeze({
       borderBottomColor: "#ffffff14",
     }),
     aunTab: Object.freeze({
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 16,
+      paddingBottom: 12,
+      paddingLeft: 16,
       fontSize: 13,
       color: "#f5fbf7",
       borderBottomWidth: 2,
@@ -1988,16 +2415,20 @@ export const newUiTheme = Object.freeze({
       fontWeight: '600',
     }),
     aunApptabs: Object.freeze({
-      paddingHorizontal: 4,
-      paddingVertical: 4,
+      paddingTop: 4,
+      paddingRight: 4,
+      paddingBottom: 4,
+      paddingLeft: 4,
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 8,
       backgroundColor: "#121416",
     }),
     aunApptab: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       fontSize: 12,
       color: "#f5fbf7",
       borderRadius: 6,
@@ -2014,8 +2445,10 @@ export const newUiTheme = Object.freeze({
       backgroundColor: "#121416",
     }),
     aunEvent: Object.freeze({
-      paddingHorizontal: 0,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 0,
+      paddingBottom: 12,
+      paddingLeft: 0,
       borderBottomWidth: 0,
       borderBottomColor: "#00000000",
     }),
@@ -2033,8 +2466,10 @@ export const newUiTheme = Object.freeze({
       color: "#718077",
     }),
     aunNote: Object.freeze({
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 16,
+      paddingBottom: 12,
+      paddingLeft: 16,
       borderLeftWidth: 2,
       borderLeftColor: "#ffffff29",
       backgroundColor: "#191c1f",
@@ -2044,8 +2479,10 @@ export const newUiTheme = Object.freeze({
     }),
     aunDiag: Object.freeze({
       fontSize: 12,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 12,
+      paddingBottom: 12,
+      paddingLeft: 12,
       borderRadius: 6,
       backgroundColor: "#261a1c",
       borderWidth: 1,
@@ -2056,6 +2493,7 @@ export const newUiTheme = Object.freeze({
       color: "#e48989",
     }),
     aunDiagRemedy: Object.freeze({
+      marginTop: 8,
       color: "#2bf27a",
     }),
     aunKv: Object.freeze({
@@ -2072,15 +2510,19 @@ export const newUiTheme = Object.freeze({
     aunStatLabel: Object.freeze({
       fontSize: 11,
       color: "#8a9a92",
+      marginTop: 2,
     }),
     aunStats: Object.freeze({
+      paddingTop: 16,
       borderTopWidth: 1,
       borderTopColor: "#ffffff14",
     }),
     aunPerm: Object.freeze({
       fontSize: 11,
-      paddingHorizontal: 8,
-      paddingVertical: 2,
+      paddingTop: 2,
+      paddingRight: 8,
+      paddingBottom: 2,
+      paddingLeft: 8,
       borderRadius: 4,
       borderWidth: 1,
       borderColor: "#ffffff29",
@@ -2094,8 +2536,10 @@ export const newUiTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 6,
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 12,
+      paddingBottom: 12,
+      paddingLeft: 12,
     }),
     aunBrowser: Object.freeze({
       borderWidth: 1,
@@ -2105,8 +2549,10 @@ export const newUiTheme = Object.freeze({
       minHeight: 0,
     }),
     aunBrowserBar: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       borderBottomWidth: 1,
       borderBottomColor: "#ffffff14",
       backgroundColor: "#191c1f",
@@ -2115,8 +2561,10 @@ export const newUiTheme = Object.freeze({
       minWidth: 0,
       fontSize: 12,
       color: "#c2d2ca",
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 6,
@@ -2145,6 +2593,7 @@ export const newUiTheme = Object.freeze({
     }),
     aunDiffNum: Object.freeze({
       width: 44,
+      paddingRight: 12,
       color: "#718077",
     }),
     aunDiffLineAdd: Object.freeze({
@@ -2156,8 +2605,10 @@ export const newUiTheme = Object.freeze({
       color: "#e48989",
     }),
     aunFile: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       borderRadius: 6,
       fontSize: 12,
       color: "#f5fbf7",
@@ -2170,8 +2621,10 @@ export const newUiTheme = Object.freeze({
       color: "#f5fbf7",
     }),
     aunPhoneHead: Object.freeze({
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 16,
+      paddingBottom: 12,
+      paddingLeft: 16,
       borderBottomWidth: 1,
       borderBottomColor: "#ffffff14",
     }),
@@ -2186,12 +2639,17 @@ export const newUiTheme = Object.freeze({
       fontSize: 12,
     }),
     aunPhoneBody: Object.freeze({
-      paddingHorizontal: 16,
-      paddingVertical: 16,
+      paddingTop: 16,
+      paddingRight: 16,
+      paddingBottom: 16,
+      paddingLeft: 16,
       minHeight: 0,
     }),
     aunPhoneDock: Object.freeze({
 
+    }),
+    mobileTabBar__navIcon: Object.freeze({
+      opacity: 0.55,
     }),
     aunTabbarItem: Object.freeze({
       minHeight: 44,
@@ -2203,12 +2661,26 @@ export const newUiTheme = Object.freeze({
       fontSize: 20,
     }),
     aunStateMapMobile: Object.freeze({
-      paddingHorizontal: 0,
-      paddingVertical: 0,
+      paddingTop: 0,
+      paddingRight: 0,
+      paddingBottom: 0,
+      paddingLeft: 0,
       borderWidth: 0,
       borderColor: "#00000000",
       borderRadius: 0,
       backgroundColor: "transparent",
+    }),
+    aunStateMapMobile__aunStateMapRoot: Object.freeze({
+
+    }),
+    aunStateMapMobile__aunStateMapCrossbar: Object.freeze({
+
+    }),
+    aunStateMapMobile__aunStateMapLanes: Object.freeze({
+
+    }),
+    aunStateMapMobile__aunStateMapLane: Object.freeze({
+
     }),
     aunTrainTiles: Object.freeze({
 
@@ -2217,6 +2689,7 @@ export const newUiTheme = Object.freeze({
       minHeight: 92,
     }),
     aunStatusLine: Object.freeze({
+      marginTop: 8,
       fontSize: 12,
     }),
     aunQueueRow: Object.freeze({
@@ -2234,8 +2707,14 @@ export const newUiTheme = Object.freeze({
     aunAgentBack: Object.freeze({
       width: 28,
       height: 28,
-      paddingHorizontal: 0,
-      paddingVertical: 0,
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
+      paddingTop: 0,
+      paddingRight: 0,
+      paddingBottom: 0,
+      paddingLeft: 0,
       borderWidth: 0,
       borderColor: "#00000000",
       backgroundColor: "transparent",
@@ -2249,8 +2728,10 @@ export const newUiTheme = Object.freeze({
       color: "#00d66b",
       fontSize: 13,
       fontWeight: '600',
-      paddingHorizontal: 8,
-      paddingVertical: 6,
+      paddingTop: 6,
+      paddingRight: 8,
+      paddingBottom: 6,
+      paddingLeft: 8,
     }),
     aunAgentHead: Object.freeze({
 
@@ -2260,6 +2741,9 @@ export const newUiTheme = Object.freeze({
     }),
     aunValidatePlayer: Object.freeze({
 
+    }),
+    aunValidatePlayer__aunBeat: Object.freeze({
+      opacity: 0,
     }),
     aunValidateOverlay: Object.freeze({
 
@@ -2272,19 +2756,41 @@ export const newUiTheme = Object.freeze({
       height: 32,
     }),
     aunValidateStep: Object.freeze({
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
       minWidth: 0,
       color: "#8a9a92",
       fontSize: 12,
     }),
+    aunValidateRail__validationFlowHead: Object.freeze({
+
+    }),
+    aunValidateRail__validationStep: Object.freeze({
+
+    }),
+    aunValidateRail__validationCheck: Object.freeze({
+
+    }),
+    aunValidate__validationStep: Object.freeze({
+
+    }),
+    aunValidate__validationCheck: Object.freeze({
+
+    }),
     aunValidateSheet: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 12,
+      paddingBottom: 12,
+      paddingLeft: 12,
       backgroundColor: "#202428",
       borderWidth: 1,
       borderColor: "#ffffff29",
       borderRadius: 12,
     }),
     aunValidateSheetTitle: Object.freeze({
+      marginBottom: 12,
       fontWeight: '600',
     }),
     aunValidateMenu: Object.freeze({
@@ -2295,8 +2801,10 @@ export const newUiTheme = Object.freeze({
     }),
     aunValidateItem: Object.freeze({
       minHeight: 40,
-      paddingHorizontal: 12,
-      paddingVertical: 0,
+      paddingTop: 0,
+      paddingRight: 12,
+      paddingBottom: 0,
+      paddingLeft: 12,
       borderWidth: 0,
       borderColor: "#00000000",
       backgroundColor: "#10281d",
@@ -2306,8 +2814,10 @@ export const newUiTheme = Object.freeze({
     aunValidateRun: Object.freeze({
       width: 32,
       height: 32,
-      paddingHorizontal: 0,
-      paddingVertical: 0,
+      paddingTop: 0,
+      paddingRight: 0,
+      paddingBottom: 0,
+      paddingLeft: 0,
     }),
     aunValidateTitle: Object.freeze({
 
@@ -2326,8 +2836,10 @@ export const newUiTheme = Object.freeze({
     }),
     aunChatUser: Object.freeze({
       maxWidth: "82%",
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 12,
+      paddingBottom: 12,
+      paddingLeft: 12,
       borderRadius: 12,
       backgroundColor: "#10281d",
       fontSize: 12,
@@ -2342,8 +2854,10 @@ export const newUiTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff29",
       borderRadius: 8,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 16,
+      paddingBottom: 12,
+      paddingLeft: 16,
       backgroundColor: "#121416",
     }),
     aunIconbtn: Object.freeze({
@@ -2367,13 +2881,17 @@ export const newUiTheme = Object.freeze({
       backgroundColor: "#121416",
       borderRightWidth: 1,
       borderRightColor: "#ffffff14",
-      paddingHorizontal: 12,
-      paddingVertical: 16,
+      paddingTop: 16,
+      paddingRight: 12,
+      paddingBottom: 16,
+      paddingLeft: 12,
     }),
     aunDrawerLink: Object.freeze({
       minHeight: 44,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
       borderRadius: 6,
       borderWidth: 1,
       borderColor: "#00b85059",
@@ -2383,16 +2901,21 @@ export const newUiTheme = Object.freeze({
       fontWeight: '600',
     }),
     aunDrawerServer: Object.freeze({
-      paddingHorizontal: 12,
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingRight: 12,
+      paddingBottom: 12,
+      paddingLeft: 12,
+      marginBottom: 12,
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 8,
       backgroundColor: "#191c1f",
     }),
     aunSetting: Object.freeze({
-      paddingHorizontal: 20,
-      paddingVertical: 16,
+      paddingTop: 16,
+      paddingRight: 20,
+      paddingBottom: 16,
+      paddingLeft: 20,
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 12,
@@ -2412,6 +2935,7 @@ export const newUiTheme = Object.freeze({
     aunSettingNote: Object.freeze({
       fontSize: 12,
       color: "#8a9a92",
+      marginTop: 4,
     }),
     aunSwitch: Object.freeze({
       width: 44,
@@ -2420,8 +2944,10 @@ export const newUiTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#00b850",
       backgroundColor: "#0a8c3c",
-      paddingHorizontal: 2,
-      paddingVertical: 2,
+      paddingTop: 2,
+      paddingRight: 2,
+      paddingBottom: 2,
+      paddingLeft: 2,
     }),
     aunSwitchKnob: Object.freeze({
       width: 18,
@@ -2431,7 +2957,7 @@ export const newUiTheme = Object.freeze({
     }),
   }),
 });
-const auBoxKeys = new Set(["backgroundColor","borderWidth","borderColor","borderRadius","borderTopWidth","borderTopColor","borderRightWidth","borderRightColor","borderBottomWidth","borderBottomColor","borderLeftWidth","borderLeftColor","width","height","minHeight","minWidth","maxWidth","marginLeft","paddingHorizontal","paddingVertical","opacity","color"]);
+const auBoxKeys = new Set(["backgroundColor","borderWidth","borderColor","borderRadius","borderTopWidth","borderTopColor","borderRightWidth","borderRightColor","borderBottomWidth","borderBottomColor","borderLeftWidth","borderLeftColor","width","height","minHeight","minWidth","maxWidth","marginLeft","paddingHorizontal","paddingVertical","paddingTop","paddingRight","paddingBottom","paddingLeft","marginTop","marginRight","marginBottom","opacity","color"]);
 const auTextKeys = new Set(["color","fontSize","fontWeight","opacity","fontFamily","fontStyle","textTransform","letterSpacing"]);
 function auPick(names, keys) {
   const out = {};

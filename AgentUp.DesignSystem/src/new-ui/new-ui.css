@@ -202,6 +202,7 @@
 .aun-state-map__total-label { margin-top: 2px; color: var(--au-color-text-muted); font-size: var(--au-font-size-ui-xs); font-weight: var(--au-weight-ui-strong); letter-spacing: .06em; }
 .aun-state-map__root-title { display: flex; align-items: center; gap: var(--au-space-2); margin: 0; color: var(--au-color-text-primary); font-size: var(--au-font-size-ui-sm); font-weight: var(--au-weight-ui-strong); }
 .aun-state-map__root-title::before { content: ''; width: 14px; height: 14px; border-radius: var(--au-radius-pill); background: var(--au-color-status-healthy); flex-shrink: 0; }
+.aun-state-map__root-copy { flex: 1; min-width: 0; }
 .aun-state-map__root-meta { margin-top: 3px; color: var(--au-color-text-muted); font-size: var(--au-font-size-ui-xs); line-height: 1.4; }
 .aun-state-map__stem,
 .aun-state-map__crossbar,
@@ -333,6 +334,8 @@
 }
 .aun-task-row__agent { color: var(--au-color-text-secondary); font-size: var(--au-font-size-ui-sm); }
 .aun-task-row__repo { color: var(--au-color-text-muted); font-size: var(--au-font-size-ui-sm); }
+.aun-task-slot { display: flex; flex-direction: column; gap: var(--au-space-2); }
+.aun-task-slot__section { margin: var(--au-space-3) 0 0; }
 .aun-task__grip { display: flex; flex: 0 0 auto; flex-direction: column; gap: 3px; }
 .aun-task__grip span { width: 18px; height: 2px; border-radius: 1px; background: var(--au-color-text-muted); }
 .aun-task-row > .aun-btn { flex: 0 0 auto; }
@@ -379,6 +382,7 @@
   color: var(--au-color-text-muted);
   font-size: var(--au-font-size-ui-sm);
 }
+.aun-settings__state-text { color: var(--au-color-text-muted); font-size: var(--au-font-size-ui-sm); }
 .aun-settings__row > .aun-btn { flex: 0 0 auto; margin-left: auto; }
 .aun-settings__field { display: flex; flex-direction: column; }
 .aun-settings__subs { display: flex; flex-direction: column; }

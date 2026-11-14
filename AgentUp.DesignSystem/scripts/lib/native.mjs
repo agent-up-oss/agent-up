@@ -5,6 +5,7 @@ const boxKeys = new Set([
   'borderTopWidth', 'borderTopColor', 'borderRightWidth', 'borderRightColor',
   'borderBottomWidth', 'borderBottomColor', 'borderLeftWidth', 'borderLeftColor',
   'width', 'height', 'minHeight', 'minWidth', 'maxWidth', 'marginLeft', 'paddingHorizontal', 'paddingVertical',
+  'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom',
   'opacity', 'color',
 ]);
 const textKeys = new Set(['color', 'fontSize', 'fontWeight', 'opacity', 'fontFamily', 'fontStyle', 'textTransform', 'letterSpacing']);
@@ -18,6 +19,8 @@ export function emitNative(tokens, rules, options = {}) {
   const themeName = options.themeName ?? 'agentUpTheme';
   const boxName = options.boxName ?? 'auBox';
   const textName = options.textName ?? 'auText';
+  // The classic bindings keep their two-axis padding. A scene lays out real cards, so it needs each edge.
+  const edges = options.edges === true;
   const groups = {
     colors: Object.entries(tokens).filter(([name]) => name.startsWith('color-')),
     spacing: Object.entries(tokens).filter(([name]) => name.startsWith('space-')),
@@ -29,6 +32,14 @@ export function emitNative(tokens, rules, options = {}) {
   const components = {};
   for (const rule of rules) {
     for (const selector of rule.selectors) {
+      // `.parent--state .child` is how a scene colours a mark by its branch. The renderer
+      // looks up `parent__child` for each painted ancestor, so a scene keeps that rule.
+      const descendant = edges && selector.trim().match(/^\.([a-z0-9_-]+)\s+\.([a-z0-9_-]+)$/);
+      if (descendant) {
+        const name = `${bindingName(descendant[1])}__${bindingName(descendant[2])}`;
+        components[name] = { ...components[name], ...rnStyle(rule.declarations, tokens, edges) };
+        continue;
+      }
       const parsed = parseSelector(selector);
       if (!parsed || layoutOnly.has(parsed.baseClass) || skipped(parsed.baseClass, keep)) continue;
       if (parsed.pseudo && parsed.pseudo !== 'disabled') continue;
@@ -36,7 +47,7 @@ export function emitNative(tokens, rules, options = {}) {
       const named = parsed.modifierClass ?? parsed.baseClass;
       const baseName = bindingName(named);
       const name = camel(parsed.pseudo === 'disabled' ? `${baseName}-disabled` : baseName);
-      const style = rnStyle(rule.declarations, tokens);
+      const style = rnStyle(rule.declarations, tokens, edges);
       // Keep the catalog name even when every declaration is web-only. `.au-mono`
       // is only a font-family stack; dropping it makes auText('mono') throw at
       // Chat module load, which is a launch abort on iOS.
@@ -114,7 +125,7 @@ function nativeKey(group, name) {
   return camel(name);
 }
 
-function rnStyle(declarations, tokens) {
+function rnStyle(declarations, tokens, edges = false) {
   const style = {};
   let colorLiteral = null;
   let backgroundIsCurrentColor = false;
@@ -200,10 +211,49 @@ function rnStyle(declarations, tokens) {
         style.opacity = value;
         break;
       case 'padding': {
+        if (edges) {
+          const sides = edgeList(value, tokens);
+          if (!sides) break;
+          for (const key of ['paddingHorizontal', 'paddingVertical']) delete style[key];
+          Object.assign(style, sided('padding', sides));
+          break;
+        }
         const parts = padding(value, tokens);
         if (!parts) break;
         style.paddingHorizontal = parts.horizontal;
         style.paddingVertical = parts.vertical;
+        break;
+      }
+      case 'margin':
+      case 'margin-block':
+      case 'margin-inline':
+      case 'margin-top':
+      case 'margin-right':
+      case 'margin-bottom':
+      case 'padding-block':
+      case 'padding-inline':
+      case 'padding-top':
+      case 'padding-right':
+      case 'padding-bottom':
+      case 'padding-left': {
+        if (!edges) break;
+        const [kind, axis] = property.split('-');
+        if (axis === 'block' || axis === 'inline') {
+          const pair = edgeList(value, tokens, true);
+          if (!pair) break;
+          const [first, second] = [pair[0], pair[1] ?? pair[0]];
+          const names = axis === 'block' ? ['Top', 'Bottom'] : ['Left', 'Right'];
+          if (first != null) style[`${kind}${names[0]}`] = first;
+          if (second != null) style[`${kind}${names[1]}`] = second;
+          break;
+        }
+        if (!axis) {
+          const sides = edgeList(value, tokens, true);
+          if (sides) Object.assign(style, sided('margin', sides));
+          break;
+        }
+        const length = edgeLength(value, tokens);
+        if (length != null) style[`${kind}${axis[0].toUpperCase()}${axis.slice(1)}`] = length;
         break;
       }
       case 'border':
@@ -226,6 +276,14 @@ function rnStyle(declarations, tokens) {
       case 'border-color':
         style.borderColor = nativeLiteral(value, tokens);
         break;
+      case 'box-shadow': {
+        const ring = edges && value.match(/^inset\s+0\s+0\s+0\s+([0-9.]+)px\s+(\S+)$/);
+        if (ring) {
+          style.borderWidth = ring[1];
+          style.borderColor = nativeLiteral(ring[2], tokens);
+        }
+        break;
+      }
       default:
         break;
     }
@@ -266,6 +324,28 @@ function parseBorder(value, tokens) {
     }
   }
   return { width, color };
+}
+
+/** CSS one-to-four value edges as [top, right, bottom, left]. `auto` stays unset when allowed. */
+function edgeList(value, tokens, allowAuto = false) {
+  const parts = value.trim().split(/\s+/).map(part => (allowAuto && part === 'auto' ? undefined : edgeLength(part, tokens)));
+  if (parts.some(part => part === null) || !parts.length || parts.length > 4) return null;
+  const [top, right = top, bottom = top, left = right] = parts;
+  return [top, right, bottom, left];
+}
+
+function edgeLength(value, tokens) {
+  if (String(value).trim() === '0') return '0';
+  return rnLengthLiteral(String(value).trim(), tokens);
+}
+
+function sided(kind, [top, right, bottom, left]) {
+  const out = {};
+  const names = ['Top', 'Right', 'Bottom', 'Left'];
+  [top, right, bottom, left].forEach((length, index) => {
+    if (length != null) out[`${kind}${names[index]}`] = length;
+  });
+  return out;
 }
 
 function padding(value, tokens) {

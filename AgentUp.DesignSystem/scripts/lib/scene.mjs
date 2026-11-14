@@ -8,6 +8,7 @@
  */
 
 import { parseSelector, resolveVars, toPx } from './css.mjs';
+import { pathData } from './icons.mjs';
 import { parseScreens, slottedScene } from './screens.mjs';
 import { parsePartDeclarations, parseProps } from './slots.mjs';
 import { applyStates } from './states.mjs';
@@ -76,7 +77,11 @@ export function sceneContract(scene, templates = {}) {
   const actions = new Set();
   const visit = (node, insideRepeat, seen = new Set()) => {
     recordNode(node, slots, states, actions, insideRepeat);
-    const nested = insideRepeat || Boolean(node.repeat) || Boolean(node.content);
+    // A content slot's default is sample copy, except when it declares states of its own (the
+    // dock): then it is a working default and publishes its holes, which a client that fills the
+    // slot simply never binds.
+    const workingDefault = Boolean(node.content) && (node.flags ?? []).length > 0;
+    const nested = insideRepeat || Boolean(node.repeat) || (Boolean(node.content) && !workingDefault);
     for (const child of node.k ?? []) visit(child, nested, seen);
     if (node.repeat && templates[node.repeat] && !seen.has(node.repeat)) {
       const next = new Set(seen);
@@ -229,8 +234,9 @@ export function parseNodes(html) {
         const close = `</${tag.name}>`;
         const innerEnd = findClose(html, tag.name, index);
         if (tag.name === 'svg' && innerEnd >= 0) {
-          const drawn = [...html.slice(index, innerEnd).matchAll(/\bd="([^"]+)"/g)].map(match => match[1]);
-          if (drawn.length) node.d = drawn;
+          // Circles and rects are drawn too: a scene icon is the catalog icon, not its paths alone.
+          const geometry = html.slice(index, innerEnd);
+          if (/<(path|rect|circle)\s/.test(geometry)) node.d = pathData('scene icon', geometry);
         }
         index = innerEnd < 0 ? html.length : innerEnd + close.length;
       }
@@ -273,6 +279,8 @@ function nodeFrom(tag) {
   if (part) node.part = part;
   const action = data(tag.attrs, 'action');
   if (action) node.action = action;
+  const label = attr(tag.attrs, 'aria-label');
+  if (label) node.label = decode(label);
   const id = data(tag.attrs, 'id');
   if (id) node.id = id;
   const actions = data(tag.attrs, 'actions');
@@ -328,7 +336,9 @@ function flexFacts(rules, tokens) {
         if (property === 'display' && (value === 'flex' || value === 'inline-flex')) fact.display = 'flex';
         if (property === 'flex-direction' && (value === 'row' || value === 'column')) fact.dir = value;
         if (property === 'align-items' && (value === 'center' || value === 'flex-start' || value === 'start' || value === 'stretch')) fact.align = value === 'flex-start' || value === 'start' ? 'start' : value;
-        if (property === 'justify-content' && (value === 'space-between' || value === 'center')) fact.justify = value === 'space-between' ? 'between' : 'center';
+        if (property === 'justify-content' && (value === 'space-between' || value === 'center' || value === 'space-around')) fact.justify = value === 'space-between' ? 'between' : value === 'space-around' ? 'around' : 'center';
+        if ((property === 'flex' && /^1(\s|$)/.test(value.trim())) || (property === 'flex-grow' && value.trim() === '1')) fact.grow = true;
+        if (property === 'white-space' && value.trim() === 'nowrap') fact.nowrap = true;
         if (property === 'gap') {
           const gap = toPx(value.split(/\s+/)[0]);
           if (gap != null) fact.gap = gap;
@@ -354,6 +364,8 @@ function applyFlow(nodes, facts) {
       if (fact.justify) flow.justify = fact.justify;
       if (fact.gap != null) flow.gap = fact.gap;
       if (fact.push) push = true;
+      if (fact.grow) node.grow = true;
+      if (fact.nowrap) node.nowrap = true;
     }
     if (push) node.push = true;
     if (flow.display) {
@@ -484,8 +496,15 @@ const bindingName = (className) => {
   return camel(className.replace(/^au-/, '').replaceAll('--', '-'));
 };
 
-function paint(classes, kind) {
-  const names = (classes ?? []).map(bindingName).filter(name => newUiTheme.components[name]);
+function paint(classes, kind, scope = []) {
+  const own = (classes ?? []).map(bindingName);
+  const names = own.filter(name => newUiTheme.components[name]);
+  // \`.branch--waiting .mark\`: an ancestor's class can paint a descendant.
+  for (const outer of scope) {
+    for (const name of own) {
+      if (newUiTheme.components[\`\${outer}__\${name}\`]) names.push(\`\${outer}__\${name}\`);
+    }
+  }
   if (!names.length) return undefined;
   return kind === 'text' ? newUiText(...names) : newUiBox(...names);
 }
@@ -504,21 +523,40 @@ function flagged(node, model) {
   return extra;
 }
 
+const inlineTags = new Set(['button', 'a', 'span', 'label', 'strong', 'em', 'code']);
+
+function holdsSlot(node) {
+  if (!node) return false;
+  if (node.content && !node.repeat) return true;
+  return (node.k ?? []).some(holdsSlot);
+}
+
+/**
+ * \`native\` is { View, Text, Pressable, ScrollView, Icon? }. \`Icon\` receives { paths, color, size }
+ * with 24-unit path data; without it an icon keeps its box and draws nothing.
+ */
 export function createNewUiScene(React, native) {
-  const { View, Text, Pressable, ScrollView } = native;
+  const { View, Text, Pressable, ScrollView, Icon } = native;
   const h = React.createElement;
-  function render(node, model, item, key) {
+  // The page sets the ink on the web (.aun sets color); a React Native Text has none of its own.
+  const root = { scope: [], ink: { color: newUiTheme.colors.textPrimary } };
+  function render(node, model, item, key, ctx = root) {
     if (!node || node.t === 'style' || node.t === 'script' || node.t === 'path' || node.t === 'circle') return null;
-    if (node.t === 'svg') return node.d ? h(View, { key, style: { width: 20, height: 20 } }) : null;
-    if (node.t === '#text') return h(Text, { key }, node.x);
+    if (node.t === 'svg') {
+      if (!node.d) return null;
+      if (!Icon) return h(View, { key, style: { width: 20, height: 20 } });
+      return h(Icon, { key, paths: node.d, color: ctx.ink?.color, size: 20 });
+    }
+    if (node.t === '#text') return h(Text, { key, style: ctx.ink }, node.x);
     if (node.when && !model.state[node.when]) return null;
     if (node.part && item?.parts && !item.parts.includes(node.part)) return null;
     const slotName = node.slot || node.demo;
     if (node.repeat) {
       const items = (item?.items && item.items[slotName]) || model.items[slotName] || [];
       const template = newUiSceneDocument.templates[node.repeat];
+      const inner = { scope: [...ctx.scope, ...(node.c ?? []).map(bindingName)], ink: paint(node.c, 'text', ctx.scope) ?? ctx.ink };
       const rows = items.map((child, index) => {
-        const row = render(template, model, child, String(child.id ?? index));
+        const row = render(template, model, child, String(child.id ?? index), inner);
         if (!node.action || child.action) return row;
         return h(Pressable, {
           key: String(child.id ?? index),
@@ -527,55 +565,98 @@ export function createNewUiScene(React, native) {
           style: { alignSelf: 'stretch' },
         }, row);
       });
-      return h(View, { key, style: [paint(node.c), layoutStyle(node)] }, rows);
+      return h(View, { key, style: [paint(node.c, 'box', ctx.scope), layoutStyle(node)] }, rows);
     }
     if (node.content && model.content && model.content[node.slot] != null) return model.content[node.slot];
     const classes = [...(node.c ?? []), ...flagged(node, model)];
-    if (item?.state && (node.kindHost || (node.c ?? []).includes('au-workspace') || (node.c ?? []).includes('au-status-dot'))) classes.push(item.state);
+    // A row's state names its host; a status dot inside it takes only a dot state.
+    const dot = (node.c ?? []).includes('au-status-dot');
+    if (item?.state && (node.kindHost || (node.c ?? []).includes('au-workspace') || (dot && item.state.startsWith('au-status-dot')))) classes.push(item.state);
     if (node.selection?.[0] === 'app' && String(model.state.app ?? '') !== String(node.selection[1])) {
       const baked = classes.indexOf(node.selection[2]);
       if (baked >= 0) classes.splice(baked, 1);
     }
+    const box = paint(classes, 'box', ctx.scope);
+    const ink = { ...ctx.ink, ...paint(classes, 'text', ctx.scope) };
+    if (classes.includes('aun-task__grip')) {
+      const bar = { width: 18, height: 2, borderRadius: 1, backgroundColor: newUiTheme.colors.textMuted };
+      return h(View, { key, style: { gap: 3 } }, h(View, { style: bar }), h(View, { style: bar }), h(View, { style: bar }));
+    }
+    if (classes.includes('aun-state-map__drop')) {
+      // The stem ends in a dot (\`::after\` on the web).
+      return h(View, { key, style: { alignSelf: 'center', alignItems: 'center', height: 20 } },
+        h(View, { style: [box, { height: 16 }] }),
+        h(View, { style: { width: 8, height: 8, marginTop: -4, borderRadius: 4, backgroundColor: newUiTheme.colors.textFaint } }));
+    }
+    const inner = { scope: [...ctx.scope, ...classes.map(bindingName)], ink };
+    // A block that holds nothing but words is one line of copy, painted by its own class.
+    const words = (node.k ?? []).length > 0 && node.k.every(child => child.t === '#text')
+      ? node.k.map(child => child.x).join(' ').trim()
+      : '';
     const textValue = node.text
       ? (item?.text?.[node.text] ?? model.text[node.text] ?? node.x ?? '')
-      : node.x;
-    const children = (node.k ?? []).map((child, index) => render(child, model, item, index)).filter(child => child != null);
+      : (node.x ?? (words || undefined));
+    const childNodes = words ? [] : (node.k ?? []);
+    const children = childNodes.map((child, index) => render(child, model, item, index, inner)).filter(child => child != null);
     const action = node.action ? (item?.action || node.action) : null;
+    const block = !inlineTags.has(node.t) && (!node.flow || node.flow.d === 'column');
+    if (action && block) {
+      // A card that opens something is still a card: it stacks and spans its column.
+      const body = textValue ? [h(Text, { key: 'label', style: ink }, textValue), ...children] : children;
+      return h(Pressable, {
+        key,
+        accessibilityRole: 'button',
+        accessibilityLabel: node.label,
+        onPress: () => model.onAction(action, item?.id ?? null),
+        style: [box, measure(node.c), layoutStyle(node), { alignSelf: 'stretch' }, node.push ? { marginLeft: 'auto' } : null],
+      }, body);
+    }
     if (node.t === 'button' || action) {
       const column = node.flow?.d === 'column';
       const body = [...children];
-      if (textValue && !(node.k ?? []).some(child => child.t === '#text')) {
-        body.push(h(Text, { key: 'label', style: paint(classes, 'text') }, String(textValue).trim()));
+      if (textValue && !childNodes.some(child => child.t === '#text')) {
+        body.push(h(Text, { key: 'label', style: ink }, String(textValue).trim()));
       }
       const inner = body.length > 1
         ? h(View, { style: { flexDirection: column ? 'column' : 'row', alignItems: 'center', gap: node.flow?.g ?? (column ? 2 : 6) } }, body)
         : body;
+      const spoken = node.label || textValue || (node.k ?? []).filter(child => child.t === '#text').map(child => child.x).join(' ').trim();
+      // A locked field keeps its control so the reader sees what it would do, and it does nothing.
+      const locked = Boolean(node.part && item?.parts?.includes('locked'));
       return h(Pressable, {
         key,
         accessibilityRole: 'button',
+        accessibilityLabel: spoken || undefined,
+        accessibilityState: locked ? { disabled: true } : undefined,
+        disabled: locked,
         onPress: () => model.onAction(action, item?.id ?? null),
-        style: [paint(classes), node.push ? { marginLeft: 'auto' } : null],
+        style: [{ alignItems: 'center', justifyContent: 'center' }, box, node.grow ? { flex: 1 } : null, node.push ? { marginLeft: 'auto' } : null, locked ? { opacity: 0.4 } : null],
       }, inner);
     }
-    if (textValue && !(node.k ?? []).some(child => child.t !== '#text')) {
-      return h(Text, { key, style: paint(classes, 'text') }, textValue);
+    if (textValue && !childNodes.some(child => child.t !== '#text')) {
+      return h(Text, { key, style: [ink, box, node.grow ? { flex: 1, minWidth: 0 } : null], numberOfLines: node.nowrap ? 1 : undefined }, textValue);
     }
-    const body = textValue ? [h(Text, { key: 'label', style: paint(classes, 'text') }, textValue), ...children] : children;
+    const body = textValue ? [h(Text, { key: 'label', style: ink }, textValue), ...children] : children;
     const grows = (node.c ?? []).some(name => name === 'au-screen-body' || name === 'au-screen-pane' || name === 'aun-phone__body' || name === 'aun-application');
     const arranged = arrange(h, View, body, node.layout);
-    if (node.layout === 'column') {
-      return h(ScrollView, { key, style: [{ flex: grows ? 1 : undefined }, paint(classes), flowStyle(node)] }, arranged);
+    // Only the phone body scrolls, and only when no client screen fills it: those scroll themselves.
+    if (grows && node.layout === 'column' && !holdsSlot(node)) {
+      return h(ScrollView, {
+        key,
+        style: [{ flex: 1 }, box],
+        contentContainerStyle: [flowStyle(node), { flexDirection: 'column' }],
+      }, arranged);
     }
     return h(View, {
       key,
-      style: [paint(classes), measure(node.c), layoutStyle(node), grows ? { flex: 1 } : null, node.push ? { marginLeft: 'auto' } : null],
+      style: [box, measure(node.c), layoutStyle(node), grows ? { flex: 1, minHeight: 0 } : null, node.grow ? { flex: 1, minWidth: 0 } : null, node.push ? { marginLeft: 'auto' } : null],
     }, arranged);
   }
   function layoutStyle(node) {
     const layout = node?.layout || (node?.flow?.d === 'row' ? 'row' : '');
     const flow = flowStyle(node);
     if (layout === 'fill' || layout === 'column') return { flex: layout === 'fill' ? 1 : undefined, flexDirection: 'column', ...flow };
-    if (layout === 'row' || layout === 'trio') return { flexDirection: 'row', alignItems: 'center', ...flow };
+    if (layout === 'row' || layout === 'trio') return { flexDirection: 'row', alignItems: 'center', gap: layout === 'trio' ? 8 : undefined, ...flow };
     if (layout === 'spread') return { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', ...flow };
     if (layout === 'chrome') return { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', ...flow };
     if (layout === 'grid' || layout === 'lanes') return { flexDirection: 'row', flex: 1, alignItems: 'stretch', ...flow };
@@ -591,11 +672,14 @@ export function createNewUiScene(React, native) {
     if (flow.a === 'start') style.alignItems = 'flex-start';
     if (flow.j === 'between') style.justifyContent = 'space-between';
     if (flow.j === 'center') style.justifyContent = 'center';
+    if (flow.j === 'around') style.justifyContent = 'space-around';
     if (flow.g != null) style.gap = flow.g;
     return style;
   }
   function measure(classes) {
     const names = classes ?? [];
+    // The catalog frames a phone at 390 by 844; on a device the scene is the screen.
+    if (names.includes('aun-phone')) return { width: '100%', height: '100%' };
     if (names.includes('aun-settings')) return { alignSelf: 'center', width: '100%', maxWidth: 576 };
     if (names.includes('aun-state-map__root')) return { alignSelf: 'center', maxWidth: 256 };
     if (names.includes('aun-state-map__stem') || names.includes('aun-state-map__drop')) return { alignSelf: 'center' };
@@ -607,6 +691,12 @@ export function createNewUiScene(React, native) {
         key: 'col-' + index,
         style: index === 0 ? { width: 264 } : index === children.length - 1 && children.length > 2 ? null : { flex: 1 },
       }, child));
+    }
+    if (layout === 'trio') {
+      // auto, 1fr, auto: the middle takes what the ends leave.
+      return children.map((child, index) => index === 1 && children.length >= 3
+        ? create(Box, { key: 'trio-' + index, style: { flex: 1, minWidth: 0 } }, child)
+        : child);
     }
     if (layout === 'lanes') {
       return children.map((child, index) => create(Box, { key: 'lane-' + index, style: { flex: 1, minWidth: 0 } }, child));
@@ -639,6 +729,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
@@ -756,6 +847,7 @@ public sealed class NewUiScene : UserControl
             if (control is not null)
             {
                 if (node.Push == true) control.SetValue(ScenePushProperty, true);
+                if (node.Grow == true) control.SetValue(SceneGrowProperty, true);
                 controls.Add(control);
             }
         }
@@ -786,6 +878,7 @@ public sealed class NewUiScene : UserControl
                         var name = node.Action;
                         var press = new Button
                         {
+                            Classes = { "au-scene" },
                             Content = row,
                             Background = Brushes.Transparent,
                             Padding = new Thickness(0),
@@ -828,19 +921,56 @@ public sealed class NewUiScene : UserControl
             && toolSelection[0] == "tool"
             && !(_state.TryGetValue("tool", out var tool) && tool == toolSelection[1]))
             classes.Remove("au-subtab--selected");
-        var children = RenderList(node.K ?? [], item);
+        // A block that holds nothing but words is one line of copy, painted by its own class.
+        var words = node.K is { Count: > 0 } kids && kids.All(kid => kid.T == "#text")
+            ? string.Join(" ", kids.Select(kid => kid.X)).Trim()
+            : "";
+        if (string.IsNullOrEmpty(text) && words.Length > 0) text = words;
+        var children = words.Length > 0 ? new List<Control>() : RenderList(node.K ?? [], item);
         if (classes.Contains("au-screen-toolbar") && children.Count == 0) return null;
-        if (!string.IsNullOrEmpty(item?.State) && (node.KindHost == true || (node.C?.Contains("au-workspace") ?? false) || (node.C?.Contains("au-status-dot") ?? false)))
+        // A row's state names its host; a status dot inside it takes only a dot state.
+        if (!string.IsNullOrEmpty(item?.State) && (node.KindHost == true || (node.C?.Contains("au-workspace") ?? false)
+            || ((node.C?.Contains("au-status-dot") ?? false) && item.State.StartsWith("au-status-dot", StringComparison.Ordinal))))
             classes.Add(item.State);
         if (node.Selection is { Count: 3 } appSelection
             && appSelection[0] == "app"
             && !(_state.TryGetValue("app", out var appName) && appName == appSelection[1]))
             classes.Remove(appSelection[2]);
         var action = string.IsNullOrEmpty(node.Action) ? null : (item?.Action ?? node.Action);
+        if (!string.IsNullOrEmpty(action) && !InlineTags.Contains(node.T ?? "") && (node.Flow is null || node.Flow.D == "column"))
+        {
+            // A card that opens something is still a card: it stacks, spans its column, and keeps
+            // the face its classes paint.
+            var body = new List<Control>();
+            if (!string.IsNullOrEmpty(text))
+            {
+                var label = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap };
+                body.Add(label);
+            }
+            body.AddRange(children);
+            var face = Layout(string.IsNullOrEmpty(node.Layout) || node.Layout is "column" or "fill" ? "" : node.Layout, body, classes, node.Flow);
+            var card = new Button
+            {
+                Classes = { "au-scene" },
+                Content = face,
+                ClickMode = ClickMode.Press,
+                Padding = new Thickness(0),
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                VerticalContentAlignment = VerticalAlignment.Stretch,
+            };
+            if (!string.IsNullOrEmpty(node.Label)) AutomationProperties.SetName(card, node.Label);
+            var cardId = item?.Id ?? node.Id;
+            card.Click += (_, _) => ActionInvoked?.Invoke(this, new NewUiActionEventArgs { Name = action, Id = cardId });
+            return card;
+        }
         if (node.T == "button" || !string.IsNullOrEmpty(action))
         {
             var button = new Button
             {
+                Classes = { "au-scene" },
                 ClickMode = ClickMode.Press,
                 Padding = new Thickness(0),
             };
@@ -894,6 +1024,8 @@ public sealed class NewUiScene : UserControl
             return Mark();
         if (classes.Contains("aun-state-map__drop"))
             return Drop();
+        if (classes.Contains("aun-task__grip"))
+            return Grip();
         if (classes.Contains("aun-state-map__crossbar"))
             return Crossbar();
         if (classes.Contains("aun-state-map__root-title") && !string.IsNullOrEmpty(text))
@@ -1140,9 +1272,10 @@ public sealed class NewUiScene : UserControl
             icon.HorizontalAlignment = HorizontalAlignment.Center;
             icon.VerticalAlignment = VerticalAlignment.Center;
         }
-        if (classes.Contains("aun-settings"))
+        if (classes.Contains("aun-settings") || classes.Contains("aun-task-board"))
         {
-            control.HorizontalAlignment = HorizontalAlignment.Center;
+            // width: min(100%, 36rem), centred: a stretched box capped by MaxWidth sits centred.
+            control.HorizontalAlignment = HorizontalAlignment.Stretch;
             control.MaxWidth = 576;
         }
         if (classes.Contains("au-validation-sidebar"))
@@ -1153,6 +1286,8 @@ public sealed class NewUiScene : UserControl
             control.MinWidth = 0;
         }
     }
+
+    private static readonly HashSet<string> InlineTags = new(StringComparer.Ordinal) { "button", "a", "span", "label", "strong", "em", "code" };
 
     private static bool HostsFace(IReadOnlyList<string> classes) =>
         classes.Any(name => IconFace(name) || name is "au-app-tab" or "au-subtab");
@@ -1211,6 +1346,14 @@ public sealed class NewUiScene : UserControl
         Grid.SetColumn(bar, 1);
         inset.Children.Add(bar);
         return inset;
+    }
+
+    private static Control Grip()
+    {
+        var grip = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
+        for (var i = 0; i < 3; i++)
+            grip.Children.Add(new Border { Width = 18, Height = 2, CornerRadius = new CornerRadius(1), Background = ThemeBrush("AgentUpColorTextMutedBrush") });
+        return grip;
     }
 
     private static Control FleetTitle(string text, IReadOnlyList<string> classes)
@@ -1347,6 +1490,8 @@ public sealed class NewUiScene : UserControl
         }
         Paint(block, classes);
         block.Padding = new Thickness(0);
+        block.MinHeight = 0;
+        block.VerticalAlignment = VerticalAlignment.Center;
         block.Background = Brushes.Transparent;
     }
 
@@ -1396,6 +1541,7 @@ internal sealed class SceneNode
     public string? Text { get; set; }
     public string? Part { get; set; }
     public string? Action { get; set; }
+    public string? Label { get; set; }
     public string? Id { get; set; }
     public List<string>? Actions { get; set; }
     public string? Repeat { get; set; }
@@ -1408,6 +1554,7 @@ internal sealed class SceneNode
     public bool? KindHost { get; set; }
     public List<string>? D { get; set; }
     public bool? Push { get; set; }
+    public bool? Grow { get; set; }
     public SceneFlow? Flow { get; set; }
     public List<SceneNode>? K { get; set; }
 }

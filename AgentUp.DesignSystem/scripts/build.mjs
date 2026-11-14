@@ -93,6 +93,8 @@ ${catalogHtml.slice(catalogHtml.indexOf('<body'))}
 
 const outputs = new Map([
   ['dist/web/agent-up.css', css],
+  // The Mobile Demo backend inlines this into exported reports; Metro cannot read a .css file as text.
+  ['../AgentUp.FakeServer/agent-up.css.json', `${JSON.stringify({ css })}\n`],
   ['dist/web/marketing.css', marketing],
   ['dist/web/docs.css', docs],
   ['dist/web/catalog.html', wrappedCatalog],
@@ -132,10 +134,11 @@ outputs.set('dist/native/new-ui.js', emitNative(tokens, newUiRules, {
   themeName: 'newUiTheme',
   boxName: 'newUiBox',
   textName: 'newUiText',
+  edges: true,
 }).js);
 outputs.set('dist/native/new-ui-scene.js', emitSceneNative(bundle));
 outputs.set('dist/dotnet/NewUiScene.g.cs', emitSceneAvalonia(bundle));
-outputs.set('dist/avalonia/AgentUpNewUiStyles.axaml', emitStyles(newUiRules, tokens, sceneIndex, { keep: sceneKeep }));
+outputs.set('dist/avalonia/AgentUpNewUiStyles.axaml', emitStyles(newUiRules, tokens, sceneIndex, { keep: sceneKeep, edges: true, sceneButtons: true }));
 for (const scene of newUi.scenes) {
   outputs.set(`dist/web/new-ui/${scene.id}.html`, wrapNewUiScene(scene));
 }

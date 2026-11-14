@@ -72,7 +72,7 @@ export function emitStyles(rules, tokens, index, options = {}) {
     styleMap.set(selector, mergeSetters(styleMap.get(selector) ?? [], setters));
   };
   for (const rule of rules) {
-    const setters = declarationsToSetters(rule.declarations, tokens);
+    const setters = declarationsToSetters(rule.declarations, tokens, options.edges === true);
     if (!setters.length) continue;
     const templateSetters = setters.filter(([property]) => ['Background', 'Foreground', 'BorderBrush', 'Padding'].includes(property));
     for (const selector of rule.selectors) {
@@ -107,6 +107,25 @@ export function emitStyles(rules, tokens, index, options = {}) {
     '<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">',
     '  <!-- Generated from src/*.css and src/catalog.html by scripts/build.mjs. Do not edit. -->',
   ];
+  if (options.sceneButtons) {
+    // A scene button starts flat; the catalog classes emitted below give it its face.
+    lines.push(
+      '  <Style Selector="Button.au-scene">',
+      '    <Setter Property="Background" Value="Transparent"/>',
+      '    <Setter Property="BorderThickness" Value="0"/>',
+      '    <Setter Property="Padding" Value="0"/>',
+      '    <Setter Property="MinHeight" Value="0"/>',
+      '    <Setter Property="HorizontalContentAlignment" Value="Center"/>',
+      '    <Setter Property="VerticalContentAlignment" Value="Center"/>',
+      '  </Style>',
+      '  <Style Selector="Button.au-scene /template/ ContentPresenter">',
+      '    <Setter Property="Background" Value="Transparent"/>',
+      '  </Style>',
+      '  <Style Selector="Button.au-scene:pointerover /template/ ContentPresenter">',
+      '    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>',
+      '  </Style>',
+    );
+  }
   for (const [selector, setters] of styleMap) {
     lines.push(`  <Style Selector="${escapeAttr(selector)}">`);
     for (const [property, value] of setters) {
@@ -151,8 +170,10 @@ function avaloniaSelectors(parsed, index) {
   return [...selectors];
 }
 
-function declarationsToSetters(declarations, tokens) {
+function declarationsToSetters(declarations, tokens, edges = false) {
   const setters = [];
+  // Scene cards need each edge; the classic stylesheet keeps its shorthand-only output.
+  const spacing = { Padding: null, Margin: null };
   let thickness = null;
   let borderBrush = null;
   let fontSizePx = null;
@@ -172,14 +193,44 @@ function declarationsToSetters(declarations, tokens) {
         setters.push(['CornerRadius', cornerValue(value, tokens)]);
         break;
       case 'padding':
-        setters.push(['Padding', thicknessValue(value, tokens)]);
+        if (edges) setEdges(spacing, 'Padding', value, tokens);
+        else setters.push(['Padding', thicknessValue(value, tokens)]);
         break;
       case 'margin':
-        setters.push(['Margin', thicknessValue(value, tokens)]);
+        if (edges) setEdges(spacing, 'Margin', value, tokens);
+        else setters.push(['Margin', thicknessValue(value, tokens)]);
         break;
       case 'margin-left': {
+        if (edges) {
+          setEdge(spacing, 'Margin', 'left', value, tokens);
+          break;
+        }
         const length = lengthNumber(value, tokens);
         if (length != null) setters.push(['Margin', `${formatNumber(length)},0,0,0`]);
+        break;
+      }
+      case 'margin-top':
+      case 'margin-right':
+      case 'margin-bottom':
+      case 'padding-top':
+      case 'padding-right':
+      case 'padding-bottom':
+      case 'padding-left':
+      case 'margin-block':
+      case 'margin-inline':
+      case 'padding-block':
+      case 'padding-inline': {
+        if (!edges) break;
+        const [kind, axis] = property.split('-');
+        const target = kind === 'margin' ? 'Margin' : 'Padding';
+        if (axis === 'block' || axis === 'inline') {
+          const parts = value.trim().split(/\s+/);
+          const sides = axis === 'block' ? ['top', 'bottom'] : ['left', 'right'];
+          setEdge(spacing, target, sides[0], parts[0], tokens);
+          setEdge(spacing, target, sides[1], parts[1] ?? parts[0], tokens);
+        } else {
+          setEdge(spacing, target, axis, value, tokens);
+        }
         break;
       }
       case 'min-height':
@@ -253,6 +304,11 @@ function declarationsToSetters(declarations, tokens) {
     setters.push(['BorderThickness', uniform ? formatNumber(left) : `${formatNumber(left)},${formatNumber(top)},${formatNumber(right)},${formatNumber(bottom)}`]);
   }
   if (borderBrush) setters.push(['BorderBrush', borderBrush]);
+  for (const [name, sides] of Object.entries(spacing)) {
+    if (!sides) continue;
+    const { left, top, right, bottom } = sides;
+    setters.push([name, `${formatNumber(left)},${formatNumber(top)},${formatNumber(right)},${formatNumber(bottom)}`]);
+  }
   if (letterSpacing) {
     const spacing = letterSpacingValue(letterSpacing, tokens, fontSizePx);
     setters.push(['LetterSpacing', spacing ?? pendingEm(letterSpacing)]);
@@ -372,6 +428,25 @@ function cornerValue(value, tokens) {
   const px = toPx(value);
   if (value.includes('999') || px === 999) return '999';
   return px == null ? null : formatNumber(px);
+}
+
+function edgePx(part, tokens) {
+  if (part === 'auto' || part === '0') return 0;
+  const name = varName(part);
+  return name ? toPx(tokens[name]) : toPx(part);
+}
+
+function setEdges(spacing, target, value, tokens) {
+  const parts = value.trim().split(/\s+/).map(part => edgePx(part, tokens));
+  if (!parts.length || parts.length > 4 || parts.some(part => part == null)) return;
+  const [top, right = top, bottom = top, left = right] = parts;
+  spacing[target] = { top, right, bottom, left };
+}
+
+function setEdge(spacing, target, side, value, tokens) {
+  const px = edgePx(String(value).trim(), tokens);
+  if (px == null) return;
+  spacing[target] = { ...(spacing[target] ?? { top: 0, right: 0, bottom: 0, left: 0 }), [side]: px };
 }
 
 function thicknessValue(value, tokens) {
