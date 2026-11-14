@@ -177,6 +177,25 @@ public sealed class LoopPreconditionProviderTests
         Assert.That(unmet, Does.Contain("hostConnectionAuthorized"));
     }
 
+    [Test]
+    public async Task StatusAsync_reportsAFolderThatIsNotARepositoryWithoutReadingTheCommitQueue()
+    {
+        var host = await HostAsync();
+        await ReadyAsync(host);
+        host.Git.Branch = "";
+        host.Git.Commit = "";
+        host.Queue.NotARepository = true;
+
+        var status = await host.Preconditions.StatusAsync(host.WorkspaceId, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(status.Single(item => item.Id == "gitBranch").Satisfied, Is.False);
+            Assert.That(status.Single(item => item.Id == "commitQueueEdit").Satisfied, Is.True);
+            Assert.That(status.Single(item => item.Id == "unassignedChanges").Satisfied, Is.True);
+        });
+    }
+
     private static async Task ReadyAsync(Host host)
     {
         await host.Workspaces.UpdateBoundAgentAsync(host.WorkspaceId, "codex");
@@ -233,8 +252,13 @@ public sealed class LoopPreconditionProviderTests
     {
         public CommitsQueue Stored { get; set; } = CommitsQueue.Empty();
 
+        /// <summary>The real queue cannot find a repository identity outside a repository.</summary>
+        public bool NotARepository { get; set; }
+
         public Task<CommitsQueue> ReadAsync(string worktreePath, CancellationToken cancellationToken = default)
-            => Task.FromResult(Stored);
+            => NotARepository
+                ? throw new InvalidOperationException("not a git repository")
+                : Task.FromResult(Stored);
 
         public Task WriteAsync(string worktreePath, CommitsQueue queue, CancellationToken cancellationToken = default)
         {
