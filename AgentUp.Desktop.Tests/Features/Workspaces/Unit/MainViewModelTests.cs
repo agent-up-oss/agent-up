@@ -1127,13 +1127,15 @@ public class MainViewModelTests
 
         vm.Sidebar.Workspaces.Add(new WorkspaceItemViewModel(
             "bob", "Bob", "main", "/demo/agents/bob", "/demo/agents/bob", "Running"));
-        await WaitForAsync(() => bridge.Team.Count == 1);
+        // A later refresh may clear and refill the team, so read the member the wait saw.
+        StandingRowViewModel? member = null;
+        await WaitForAsync(() => (member = bridge.Team.ToList().SingleOrDefault()) is not null);
 
         Assert.Multiple(() =>
         {
             Assert.That(vm.CommandCenter.Active, Is.True);
-            Assert.That(bridge.Team[0].WorkspaceId, Is.EqualTo("bob"));
-            Assert.That(bridge.Team[0].TaskLabel, Is.EqualTo("#44 · Restock featured products"));
+            Assert.That(member!.WorkspaceId, Is.EqualTo("bob"));
+            Assert.That(member.TaskLabel, Is.EqualTo("#44 · Restock featured products"));
         });
     }
 
