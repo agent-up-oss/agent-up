@@ -107,8 +107,9 @@ public sealed class ServerConnectionService(
         if (active is not null)
             active.AccessToken = null;
         store.Save(selection);
-        var url = active?.Url ?? CurrentUrl();
-        ApplySession(SecureServerUrlProvider.ResolveServerUri(url), null);
+        ServerSessionProvider.ClearCredential(http);
+        if (agentEventsHttp is not null)
+            ServerSessionProvider.ClearCredential(agentEventsHttp);
     }
 
     public void Prepare(string url)

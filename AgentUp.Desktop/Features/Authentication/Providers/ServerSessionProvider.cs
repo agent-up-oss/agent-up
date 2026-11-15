@@ -39,6 +39,17 @@ public static class ServerSessionProvider
             ? session.CurrentUri
             : http.BaseAddress;
 
+    /// <summary>
+    /// Stops sending a credential without touching the address. A client that has already sent
+    /// requests refuses a new BaseAddress, and logging out does not change which Server is on it.
+    /// </summary>
+    public static void ClearCredential(HttpClient http)
+    {
+        if (Sessions.TryGetValue(http, out var session) && session.CurrentUri is { } uri)
+            session.Apply(uri, null);
+        ApplyAuthorizationHeader(http, null);
+    }
+
     private static void ApplyAuthorizationHeader(HttpClient http, string? accessToken)
         => http.DefaultRequestHeaders.Authorization = string.IsNullOrWhiteSpace(accessToken)
             ? null
