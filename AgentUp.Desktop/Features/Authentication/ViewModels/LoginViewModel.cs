@@ -45,7 +45,9 @@ public sealed class LoginViewModel : ReactiveObject
             (url, busy) => !busy && !string.IsNullOrWhiteSpace(url));
         SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync, canSignIn);
         ConnectCommand = ReactiveCommand.CreateFromTask(ConnectAsync, canConnect);
-        SelectSavedCommand = ReactiveCommand.CreateFromTask<string>(SelectSavedAsync, canConnect);
+        // A saved server carries its own URL, so choosing one does not depend on the typed field.
+        var canSelect = this.WhenAnyValue(x => x.IsBusy, busy => !busy);
+        SelectSavedCommand = ReactiveCommand.CreateFromTask<string>(SelectSavedAsync, canSelect);
         RemoveSavedCommand = ReactiveCommand.Create<string>(RemoveSaved);
         GoBackCommand = ReactiveCommand.Create(GoBack);
     }
@@ -148,6 +150,18 @@ public sealed class LoginViewModel : ReactiveObject
 
     public string CurrentServerUrl => _authentication.CurrentServerUrl();
 
+    /// <summary>The connected Server as the sidebar names it: the Demo by name, a real Server by its saved name or URL.</summary>
+    public string ConnectedServerName
+    {
+        get
+        {
+            var url = CurrentServerUrl;
+            var saved = SavedServers.FirstOrDefault(server => server.IsActive)
+                ?? SavedServers.FirstOrDefault(server => string.Equals(server.Url, url, StringComparison.OrdinalIgnoreCase));
+            return string.IsNullOrWhiteSpace(saved?.DisplayName) ? url : saved.DisplayName;
+        }
+    }
+
     public string CurrentConnectionId => _authentication.CurrentConnectionId();
 
     public ReactiveCommand<Unit, Unit> SignInCommand { get; }
@@ -173,6 +187,22 @@ public sealed class LoginViewModel : ReactiveObject
     {
         _signIn = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
         BeginPrompt(switcher: false, followSavedSelection: true);
+    }
+
+    /// <summary>
+    /// Logs out of the connected Server: its saved sign-in is forgotten and the connect picker
+    /// opens with no way back. Choosing the same Server again reloads it from scratch.
+    /// </summary>
+    public void Logout()
+    {
+        _authentication.ForgetActiveServer();
+        _accessToken = null;
+        _signIn = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        BeginPrompt(switcher: false, followSavedSelection: true);
+        // The Demo has no address worth showing; the field is for typing a real Server.
+        if (SavedServers.Any(server => server.IsActive && server.IsFake))
+            ServerUrl = string.Empty;
+        _resumeRequired = true;
     }
 
     public void ShowSwitcher()
@@ -391,6 +421,7 @@ public sealed class LoginViewModel : ReactiveObject
         foreach (var server in _authentication.ListSavedServers().Servers)
             SavedServers.Add(server);
         RefreshSurfaces();
+        this.RaisePropertyChanged(nameof(ConnectedServerName));
     }
 
     private void RefreshSurfaces()

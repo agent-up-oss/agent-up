@@ -827,8 +827,11 @@ test('new UI screens pair desktop and mobile instead of a chip per surface', asy
     assert.match(scene.html, />Settings</, `${scene.id} is missing Settings`);
     assert.doesNotMatch(scene.html, /‹ Team/, `${scene.id} still has a Team back button`);
     assert.doesNotMatch(scene.html, /Switch back/, `${scene.id} still switches back from the rail`);
+    assert.match(scene.html, /aria-label="Log out of this server"/, `${scene.id} has no Logout at the foot of the rail`);
   }
-  assert.doesNotMatch(scenes.find(item => item.id === 'team').html, />Logout</);
+  for (const id of ['mobile-team', 'mobile-tasks', 'mobile-settings']) {
+    assert.match(scenes.find(item => item.id === id).html, /aria-label="Log out of this server"/, `${id} has no Logout above the tab bar`);
+  }
   const teamScene = scenes.find(item => item.id === 'team');
   assert.match(teamScene.html, /Restock featured products/);
   assert.match(teamScene.html, /aun-state-map__branch--working/);
@@ -878,14 +881,12 @@ test('new UI screens pair desktop and mobile instead of a chip per surface', asy
   assert.match(phoneApp.html, /aria-label="Run"/);
   assert.doesNotMatch(phoneApp.html, /au-mobile-tab-bar/);
   assert.doesNotMatch(phoneApp.html, /au-validation-glyph/);
-  assert.match(scenes.find(item => item.id === 'settings').html, />Logout</);
   assert.match(scenes.find(item => item.id === 'settings').html, />Forge connection</);
   assert.match(scenes.find(item => item.id === 'settings').html, />Capabilities</);
-  assert.match(scenes.find(item => item.id === 'settings').html, />Login</);
-  assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Logout</);
+  assert.doesNotMatch(scenes.find(item => item.id === 'settings').html, />Login</);
   assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Forge connection</);
   assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Capabilities</);
-  assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Login</);
+  assert.doesNotMatch(scenes.find(item => item.id === 'mobile-settings').html, />Login</);
   assert.doesNotMatch(scenes.find(item => item.id === 'team').html, />Capabilities</);
   assert.match(scenes.find(item => item.id === 'tasks').html, /class="au-page-title"/);
   assert.match(scenes.find(item => item.id === 'tasks').html, /class="au-field-label"/);
@@ -1088,4 +1089,35 @@ test('the scene owns the board: groups, labels, grips, tones, and the empty copy
   assert.equal(background(buttons.find(button => button.props.accessibilityLabel === 'Stop')), newUiTheme.components.aunBtnDanger.backgroundColor);
   assert.equal(texts(board).some(word => word.startsWith('Nothing is queued')), false);
   assert.equal(texts(mount({ queue: [] })).some(word => word.startsWith('Nothing is queued')), true);
+});
+
+test('the New UI Avalonia sheet styles what the scene draws, the way the CSS does', async () => {
+  const sheet = await readFile(new URL('./dist/avalonia/AgentUpNewUiStyles.axaml', root), 'utf8');
+  const classic = await readFile(new URL('./dist/avalonia/AgentUpStyles.axaml', root), 'utf8');
+  const style = selector => sheet.match(new RegExp(`<Style Selector="${selector.replace(/[.]/g, '\\.')}">([\\s\\S]*?)</Style>`))?.[1] ?? '';
+  // A class the classic shell lays out by hand still carries its CSS when the scene draws it.
+  assert.match(style('Border.au-validation-sidebar-list'), /Property="Padding" Value="18,8,18,18"/);
+  assert.doesNotMatch(classic, /Selector="Border\.au-validation-sidebar-list"/);
+  // CSS text properties inherit: a container passes them to the text inside it.
+  assert.match(style('Border.au-validation-check'), /Property="TextElement\.FontSize" Value="\{DynamicResource AgentUpFontSizeUiSm\}"/);
+  // A class the scene draws on a button is styled on the Button, not only on the classic Border.
+  assert.match(style('Button.au-validation-play'), /Property="Background" Value="\{DynamicResource AgentUpColorSurfaceSelectedStrongBrush\}"/);
+});
+
+test('a scene control answers only its own click, so a button inside a card does not fire the card', async () => {
+  const scene = await readFile(new URL('./dist/dotnet/NewUiScene.g.cs', root), 'utf8');
+  assert.match(scene, /card\.Click \+= \(_, args\) =>\s*\{\s*if \(!ReferenceEquals\(args\.Source, card\)\) return;/);
+  assert.match(scene, /button\.Click \+= \(_, args\) =>\s*\{\s*if \(!ReferenceEquals\(args\.Source, button\)\) return;/);
+  assert.match(scene, /press\.Click \+= \(_, args\) =>\s*\{\s*if \(!ReferenceEquals\(args\.Source, press\)\) return;/);
+});
+
+test('Server and Logout close the desktop rail and sit above the phone tab bar', async () => {
+  const catalog = await readFile(new URL('./src/new-ui/catalog.html', root), 'utf8');
+  const screens = await readFile(new URL('./src/new-ui/screens.html', root), 'utf8');
+  for (const rail of ['sidebar', 'sidebar-member']) {
+    const block = catalog.slice(catalog.indexOf(`data-au-component="${rail}"`), catalog.indexOf('</article>', catalog.indexOf(`data-au-component="${rail}"`)));
+    assert.match(block, /data-au-use="rail-session"><\/div>\s*<\/aside>/, `${rail} does not end with the session`);
+  }
+  assert.match(screens, /data-au-slot="session"><\/div>\s*<div data-au-slot="nav">/);
+  assert.doesNotMatch(catalog, /data-au-component="settings-logout"/);
 });

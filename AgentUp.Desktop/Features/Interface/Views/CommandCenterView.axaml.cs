@@ -126,7 +126,7 @@ public partial class CommandCenterView : UserControl
             ?? "No check selected";
         var binding = CommandCenterScene.Bind(new CommandCenterSceneInput(
             center.SceneId,
-            main.Login.CurrentServerUrl,
+            main.Login.ConnectedServerName,
             center.Agent?.WorkspaceId,
             _validationsOpen,
             running is not null,
@@ -365,7 +365,7 @@ public partial class CommandCenterView : UserControl
                 main.Sidebar.ShowAddWorkspaceCommand.Execute().Subscribe();
                 break;
             case "logout":
-                main.ResetLocalSession();
+                main.LogoutCommand.Execute().Subscribe();
                 break;
             case "use-classic":
                 center.ToggleCommand.Execute().Subscribe();
@@ -489,6 +489,8 @@ public partial class CommandCenterView : UserControl
     {
         var flow = main.Validation?.Flows.FirstOrDefault(item => item.Flow.Id == id);
         if (flow is null) return;
+        // Two replays on one page interleave their clicks and both fail; the running one finishes first.
+        if (main.Validation!.Flows.Any(item => item.IsRunning)) return;
         _runningFlowId = flow.Flow.Id;
         _validationsOpen = false;
         flow.RunCommand.Execute().Subscribe(_ => Apply());

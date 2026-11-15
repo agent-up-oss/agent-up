@@ -29,6 +29,7 @@
       </div>
       <div class="au-screen-body">
         <aside class="au-rail au-screen-rail" aria-label="Sidebar">
+        <div class="aun-rail__nav">
         <div class="aun-nav-row">
           <button type="button" class="aun-nav" data-au-action="nav-team" data-au-selection="nav:0:aun-nav--current">Team</button>
           <button type="button" class="au-workspace-add" data-au-action="add-workspace" aria-label="Add workspace">+</button>
@@ -80,6 +81,11 @@
         </div>
         <button type="button" class="aun-nav" data-au-action="nav-tasks" data-au-selection="nav:1:aun-nav--current">Tasks</button>
         <button type="button" class="aun-nav aun-nav--current" data-au-action="nav-settings" data-au-selection="nav:2:aun-nav--current">Settings</button>
+        </div>
+        <div class="aun-session">
+        <span class="aun-session__id"><span class="au-field-label">Server</span><span class="aun-session__name">Demo</span></span>
+        <button class="au-session-logout aun-session__logout" type="button" data-au-action="logout" aria-label="Log out of this server">Logout</button>
+      </div>
       </aside>
         <main class="au-screen-main">
           
@@ -139,15 +145,6 @@
             <div class="aun-settings__row">
               <span class="aun-settings__id"><span class="aun-settings__name">Autonomy enabled</span><span class="aun-settings__state">Enable autonomy for this Server</span></span>
               <button class="aun-btn" type="button">Enable</button>
-            </div>
-          </div>
-        </div>
-        <div class="aun-group">
-          <p class="au-field-label">Login</p>
-          <div class="aun-settings__list">
-            <div class="aun-settings__row">
-              <span class="aun-settings__name">Demo</span>
-              <button class="aun-btn" type="button" data-au-action="logout">Logout</button>
             </div>
           </div>
         </div>

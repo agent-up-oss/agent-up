@@ -41,7 +41,7 @@ export function emitNative(tokens, rules, options = {}) {
         continue;
       }
       const parsed = parseSelector(selector);
-      if (!parsed || layoutOnly.has(parsed.baseClass) || skipped(parsed.baseClass, keep)) continue;
+      if (!parsed || (layoutOnly.has(parsed.baseClass) && !keep.has(parsed.baseClass)) || skipped(parsed.baseClass, keep)) continue;
       if (parsed.pseudo && parsed.pseudo !== 'disabled') continue;
       if (parsed.selected) continue;
       const named = parsed.modifierClass ?? parsed.baseClass;

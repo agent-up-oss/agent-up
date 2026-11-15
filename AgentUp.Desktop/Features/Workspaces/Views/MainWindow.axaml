@@ -296,19 +296,19 @@
         </Style>
         <!-- Strip default Button chrome without undoing catalog actions. The command center's
              generated buttons carry au-scene and are painted by the design system. -->
-        <Style Selector="Button:not(.au-button):not(.au-scene):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump)">
+        <Style Selector="Button:not(.au-button):not(.au-scene):not(.au-session-logout):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump)">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
-        <Style Selector="Button:not(.au-button):not(.au-scene):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump) /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-scene):not(.au-session-logout):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump) /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
-        <Style Selector="Button:not(.au-button):not(.au-scene):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump):pointerover /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-scene):not(.au-session-logout):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump):pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
-        <Style Selector="Button:not(.au-button):not(.au-scene):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump):pressed /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-scene):not(.au-session-logout):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump):pressed /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
         <!-- Integrated window chrome -->
@@ -783,6 +783,41 @@
                             </Border>
                         </Button>
                     </StackPanel>
+                </Border>
+
+                <!-- The connected Server and Logout close the rail, expanded or collapsed. -->
+                <Border DockPanel.Dock="Bottom"
+                        Padding="12,10,12,12"
+                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                        BorderThickness="0,1,0,0">
+                    <Panel>
+                        <Grid ColumnDefinitions="*,Auto"
+                              IsVisible="{Binding Sidebar.IsExpanded}">
+                            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                <TextBlock Classes="au-field-label" Text="SERVER"/>
+                                <TextBlock Classes="au-workspace-name"
+                                           Text="{Binding Login.ConnectedServerName}"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTip.Tip="{Binding Login.CurrentServerUrl}"/>
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    Classes="au-session-logout"
+                                    VerticalAlignment="Center"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.SidebarLogout}"
+                                    AutomationProperties.Name="Log out of this server"
+                                    Command="{Binding LogoutCommand}"
+                                    Content="Logout"/>
+                        </Grid>
+                        <Button Classes="au-session-logout"
+                                IsVisible="{Binding !Sidebar.IsExpanded}"
+                                HorizontalAlignment="Center"
+                                Padding="6,4"
+                                AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.SidebarLogoutCollapsed}"
+                                AutomationProperties.Name="Log out of this server"
+                                ToolTip.Tip="Log out of this server"
+                                Command="{Binding LogoutCommand}"
+                                Content="⏻"/>
+                    </Panel>
                 </Border>
 
                 <Border DockPanel.Dock="Bottom"

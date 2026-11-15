@@ -25,7 +25,7 @@ export const sceneRegionClasses = [
   'au-validation-sidebar', 'au-mobile-tab-bar',
 ];
 
-const columnFill = new Set(['au-screen', 'aun-phone', 'au-screen-main', 'au-screen-pane']);
+const columnFill = new Set(['au-screen', 'aun-phone', 'au-screen-main', 'au-screen-pane', 'au-screen-rail']);
 const gridBody = new Set(['au-screen-body']);
 const chromeLayout = new Set(['au-chrome']);
 const rowLayout = new Set([
@@ -34,11 +34,11 @@ const rowLayout = new Set([
   'au-cluster', 'au-logo-lockup', 'au-workspace', 'au-workspace-head', 'au-badge',
   'aun-state-map__root',
 ]);
-const spreadLayout = new Set(['aun-nav-row', 'aun-state-map__head', 'aun-settings__row']);
+const spreadLayout = new Set(['aun-nav-row', 'aun-state-map__head', 'aun-settings__row', 'aun-session']);
 const trioLayout = new Set(['aun-state-map__branch-head', 'aun-task-row', 'au-validation-flow-head']);
 const pairLayout = new Set(['au-validation-step', 'au-validation-check']);
 const columnLayout = new Set([
-  'au-screen-rail', 'au-screen-aside', 'aun-phone__body', 'aun-phone__head',
+  'aun-rail__nav', 'au-screen-aside', 'aun-phone__body', 'aun-phone__head',
   'aun-settings', 'aun-settings__list', 'aun-task-board', 'aun-state-map', 'aun-validate', 'au-validation-sidebar',
   'aun-state-map__lane', 'aun-state-map__branch', 'aun-state-map__branch-copy', 'aun-task-row__body',
 ]);
@@ -684,7 +684,7 @@ export function createNewUiScene(React, native) {
       return h(Text, { key, style: [ink, box, node.grow ? { flex: 1, minWidth: 0 } : null], numberOfLines: node.nowrap ? 1 : undefined }, textValue);
     }
     const body = textValue ? [h(Text, { key: 'label', style: ink }, textValue), ...children] : children;
-    const grows = (node.c ?? []).some(name => name === 'au-screen-body' || name === 'au-screen-pane' || name === 'aun-phone__body' || name === 'aun-application');
+    const grows = (node.c ?? []).some(name => name === 'au-screen-body' || name === 'au-screen-pane' || name === 'aun-phone__body' || name === 'aun-rail__nav' || name === 'aun-application');
     const arranged = arrange(h, View, body, node.layout);
     // Only the phone body scrolls, and only when no client screen fills it: those scroll themselves.
     if (grows && node.layout === 'column' && !holdsSlot(node)) {
@@ -937,7 +937,11 @@ public sealed class NewUiScene : UserControl
                             HorizontalAlignment = HorizontalAlignment.Stretch,
                             HorizontalContentAlignment = HorizontalAlignment.Stretch,
                         };
-                        press.Click += (_, _) => ActionInvoked?.Invoke(this, new NewUiActionEventArgs { Name = name, Id = id });
+                        press.Click += (_, args) =>
+                        {
+                            if (!ReferenceEquals(args.Source, press)) return;
+                            ActionInvoked?.Invoke(this, new NewUiActionEventArgs { Name = name, Id = id });
+                        };
                         rows.Add(press);
                     }
                     else rows.Add(row);
@@ -1017,7 +1021,13 @@ public sealed class NewUiScene : UserControl
             };
             if (!string.IsNullOrEmpty(node.Label)) AutomationProperties.SetName(card, node.Label);
             var cardId = item?.Id ?? node.Id;
-            card.Click += (_, _) => ActionInvoked?.Invoke(this, new NewUiActionEventArgs { Name = action, Id = cardId });
+            // Click bubbles: a button inside the card (Play on a flow) raises it here too. The card
+            // answers only its own click, or one press would run both actions.
+            card.Click += (_, args) =>
+            {
+                if (!ReferenceEquals(args.Source, card)) return;
+                ActionInvoked?.Invoke(this, new NewUiActionEventArgs { Name = action, Id = cardId });
+            };
             return card;
         }
         if (node.T == "button" || !string.IsNullOrEmpty(action))
@@ -1069,7 +1079,11 @@ public sealed class NewUiScene : UserControl
                 button.MinWidth = 32;
                 button.MinHeight = 32;
             }
-            button.Click += (_, _) => ActionInvoked?.Invoke(this, new NewUiActionEventArgs { Name = name, Id = id });
+            button.Click += (_, args) =>
+            {
+                if (!ReferenceEquals(args.Source, button)) return;
+                ActionInvoked?.Invoke(this, new NewUiActionEventArgs { Name = name, Id = id });
+            };
             return button;
         }
         if (node.T == "input")
@@ -1544,6 +1558,7 @@ public sealed class NewUiScene : UserControl
             border.Classes.Contains("au-screen-body")
             || border.Classes.Contains("au-screen-pane")
             || border.Classes.Contains("aun-phone__body")
+            || border.Classes.Contains("aun-rail__nav")
             || border.Classes.Contains("aun-application"));
 
     private static readonly AttachedProperty<bool> ScenePushProperty =

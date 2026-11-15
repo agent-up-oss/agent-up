@@ -68,7 +68,15 @@ for (const listed of [catalog, sceneCatalog]) {
 const newUiRules = parseRules(`${css}\n${newUiCss}`);
 const bundle = sceneBundle(newUiScreens, sceneComponents, newUiRules, tokens);
 const sceneIndex = catalogIndex(withProductCatalog(catalog, sceneCatalog));
-const sceneKeep = new Set(bundle.regions);
+// The scene draws every class its components carry, including ones the classic clients lay out
+// by hand (`layoutOnly`), so the scene's own style sheets keep those classes' CSS.
+const sceneClasses = [...JSON.stringify(bundle).matchAll(/"c":\[([^\]]*)\]/g)]
+  .flatMap(match => [...match[1].matchAll(/"([^"]+)"/g)].map(name => name[1]));
+const sceneKeep = new Set([...bundle.regions, ...sceneClasses]);
+// Classes the scene draws on a button. The classic catalog may type such a class as a Border, but
+// the scene's control is a Button, so its sheet styles the Button too.
+const sceneButtonClasses = new Set([...JSON.stringify(bundle).matchAll(/"t":"button","c":\[([^\]]*)\]/g)]
+  .flatMap(match => [...match[1].matchAll(/"([^"]+)"/g)].map(name => name[1])));
 expandStateExamples(catalog);
 const assembled = assembleScreens(catalog, screensHtml);
 const newUi = newUiFromAssembled(assembleScreens(withProductCatalog(catalog, newUiCatalog), newUiScreens));
@@ -138,7 +146,7 @@ outputs.set('dist/native/new-ui.js', emitNative(tokens, newUiRules, {
 }).js);
 outputs.set('dist/native/new-ui-scene.js', emitSceneNative(bundle));
 outputs.set('dist/dotnet/NewUiScene.g.cs', emitSceneAvalonia(bundle));
-outputs.set('dist/avalonia/AgentUpNewUiStyles.axaml', emitStyles(newUiRules, tokens, sceneIndex, { keep: sceneKeep, edges: true, sceneButtons: true }));
+outputs.set('dist/avalonia/AgentUpNewUiStyles.axaml', emitStyles(newUiRules, tokens, sceneIndex, { keep: sceneKeep, edges: true, sceneButtons: true, inheritText: true, buttonClasses: sceneButtonClasses }));
 for (const scene of newUi.scenes) {
   outputs.set(`dist/web/new-ui/${scene.id}.html`, wrapNewUiScene(scene));
 }

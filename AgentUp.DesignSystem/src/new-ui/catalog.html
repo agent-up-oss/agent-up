@@ -19,8 +19,9 @@
       <p class="au-field-label" data-au-text="label">In progress · 1</p>
     </article>
 
-    <article data-au-component="sidebar" data-au-title="Sidebar" data-au-note="Desktop only. Team, Tasks, and Settings. Workspaces are sub-options under Team, five at most; a longer list keeps Load more. The rail does not collapse. Add stays, on the right of Team. Logout lives on Settings." data-au-avalonia="Border" data-au-class="au-screen-rail" data-au-states="nav=aun-nav/aun-nav--current" data-au-parts=" ">
+    <article data-au-component="sidebar" data-au-title="Sidebar" data-au-note="Desktop only. Team, Tasks, and Settings. Workspaces are sub-options under Team, five at most; a longer list keeps Load more. The rail does not collapse. Add stays, on the right of Team. The Server and Logout close the rail." data-au-avalonia="Border" data-au-class="au-screen-rail" data-au-states="nav=aun-nav/aun-nav--current" data-au-parts=" ">
       <aside class="au-rail au-screen-rail" aria-label="Sidebar">
+        <div class="aun-rail__nav">
         <div class="aun-nav-row">
           <button type="button" class="aun-nav" data-au-action="nav-team" data-au-selection="nav:0:aun-nav--current">Team</button>
           <button type="button" class="au-workspace-add" data-au-action="add-workspace" aria-label="Add workspace">+</button>
@@ -31,11 +32,14 @@
         </div>
         <button type="button" class="aun-nav" data-au-action="nav-tasks" data-au-selection="nav:1:aun-nav--current">Tasks</button>
         <button type="button" class="aun-nav" data-au-action="nav-settings" data-au-selection="nav:2:aun-nav--current">Settings</button>
+        </div>
+        <div data-au-use="rail-session"></div>
       </aside>
     </article>
 
     <article data-au-component="sidebar-member" data-au-title="Sidebar, member open" data-au-note="The same rail while a workspace is open. That row is selected under Team." data-au-avalonia="Border" data-au-class="au-screen-rail">
       <aside class="au-rail au-screen-rail" aria-label="Sidebar">
+        <div class="aun-rail__nav">
         <div class="aun-nav-row">
           <button type="button" class="aun-nav" data-au-action="nav-team" data-au-selection="nav:0:aun-nav--current">Team</button>
           <button type="button" class="au-workspace-add" data-au-action="add-workspace" aria-label="Add workspace">+</button>
@@ -45,10 +49,12 @@
         </div>
         <button type="button" class="aun-nav" data-au-action="nav-tasks" data-au-selection="nav:1:aun-nav--current">Tasks</button>
         <button type="button" class="aun-nav" data-au-action="nav-settings" data-au-selection="nav:2:aun-nav--current">Settings</button>
+        </div>
+        <div data-au-use="rail-session"></div>
       </aside>
     </article>
 
-    <article data-au-component="settings-panel" data-au-title="Settings panel" data-au-note="Interface switch, forge connection, capability modules, and Login. Each group has the same small headline." data-au-avalonia="Border" data-au-class="aun-settings">
+    <article data-au-component="settings-panel" data-au-title="Settings panel" data-au-note="Interface switch, forge connection, capability modules, and chat. Each group has the same small headline." data-au-avalonia="Border" data-au-class="aun-settings">
       <div class="aun-settings">
         <div class="aun-group">
           <div data-au-use="section-label" data-au-props="label=Interface"></div>
@@ -106,15 +112,6 @@
             </div>
           </div>
         </div>
-        <div class="aun-group">
-          <div data-au-use="section-label" data-au-props="label=Login"></div>
-          <div class="aun-settings__list">
-            <div class="aun-settings__row">
-              <span class="aun-settings__name" data-au-text="server">Demo</span>
-              <button class="aun-btn" type="button" data-au-action="logout">Logout</button>
-            </div>
-          </div>
-        </div>
       </div>
     </article>
 
@@ -160,11 +157,10 @@
       </div>
     </article>
 
-    <article data-au-component="settings-logout" data-au-title="Settings logout" data-au-note="The Server and Logout section. It lives on Settings, on Desktop and Mobile." data-au-avalonia="Border" data-au-class="au-drawer-server">
-      <div class="aun-card">
-        <p class="aun-rail__section">SERVER</p>
-        <strong class="au-workspace-name">Demo</strong>
-        <button class="au-session-logout" type="button" data-au-action="logout">Logout</button>
+    <article data-au-component="rail-session" data-au-title="Server session" data-au-note="The connected Server and Logout. It closes the sidebar on Desktop and sits above the tab bar on the phone's Team, Tasks, and Settings, for the Demo and for a real Server alike." data-au-avalonia="Border" data-au-class="aun-session" data-au-actions="logout">
+      <div class="aun-session">
+        <span class="aun-session__id"><span class="au-field-label">Server</span><span class="aun-session__name" data-au-text="server">Demo</span></span>
+        <button class="au-session-logout aun-session__logout" type="button" data-au-action="logout" aria-label="Log out of this server">Logout</button>
       </div>
     </article>
 

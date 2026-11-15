@@ -89,6 +89,7 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="16,16,16,16"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-card">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -131,6 +132,7 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="16,16,16,16"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-choice">
     <Setter Property="MinWidth" Value="0"/>
@@ -228,6 +230,9 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="24,12,24,12"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorOnAccentBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiLg}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.au-button">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeight}"/>
@@ -249,6 +254,7 @@
   </Style>
   <Style Selector="Border.au-button:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorAccentBrightBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorOnAccentBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-button:pointerover">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorOnAccentBrush}"/>
@@ -276,6 +282,7 @@
   <Style Selector="Border.au-button--secondary">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-button--secondary">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -294,6 +301,7 @@
   <Style Selector="Border.au-button--secondary:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateActiveBrush}"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-button--secondary:pointerover">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -309,6 +317,7 @@
   </Style>
   <Style Selector="Border.au-button--danger">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStatusDangerBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-button--danger">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -337,6 +346,7 @@
   <Style Selector="Border.au-button--compact">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
     <Setter Property="Padding" Value="14,8,14,8"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeXs}"/>
   </Style>
   <Style Selector="TextBlock.au-button--compact">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
@@ -364,6 +374,9 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
     <Setter Property="Padding" Value="10.4,4,10.4,4"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.au-badge">
     <Setter Property="MinHeight" Value="28"/>
@@ -375,24 +388,28 @@
   </Style>
   <Style Selector="Border.au-badge--healthy">
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorStatusHealthyBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-badge--healthy">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="Border.au-badge--warning">
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorStatusWarningBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextWarningBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-badge--warning">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextWarningBrush}"/>
   </Style>
   <Style Selector="Border.au-badge--danger">
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorStatusDangerBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-badge--danger">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
   </Style>
   <Style Selector="Border.au-badge--info">
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorStatusInfoBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextInfoBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-badge--info">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextInfoBrush}"/>
@@ -479,6 +496,9 @@
     <Setter Property="BorderThickness" Value="0,0,0,2"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.au-tab">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
@@ -498,6 +518,9 @@
   <Style Selector="TextBlock.au-tab:pointerover">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
+  <Style Selector="Border.au-tab:pointerover">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+  </Style>
   <Style Selector="Button.au-tab--selected">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
@@ -511,6 +534,8 @@
   <Style Selector="Border.au-tab--selected">
     <Setter Property="BorderThickness" Value="0,0,0,2"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.au-tab--selected">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -522,6 +547,7 @@
     <Setter Property="BorderThickness" Value="2,1,1,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
     <Setter Property="Padding" Value="16,16,16,16"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-callout">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
@@ -559,6 +585,7 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="20,20,20,20"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-example__preview">
     <Setter Property="MinHeight" Value="96"/>
@@ -568,6 +595,8 @@
   </Style>
   <Style Selector="Border.au-example__meta">
     <Setter Property="Margin" Value="0,0,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeXs}"/>
   </Style>
   <Style Selector="TextBlock.au-example__meta">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
@@ -588,6 +617,7 @@
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusLg}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-panel">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -598,6 +628,7 @@
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusLg}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-pane">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -608,6 +639,7 @@
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusXl}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-overlay-panel">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -635,6 +667,7 @@
     <Setter Property="BorderThickness" Value="0,0,0,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,0,12,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-chrome">
     <Setter Property="MinHeight" Value="42"/>
@@ -659,6 +692,7 @@
     <Setter Property="CornerRadius" Value="0"/>
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-chrome-button">
     <Setter Property="Width" Value="46"/>
@@ -673,6 +707,7 @@
     <Setter Property="CornerRadius" Value="0"/>
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.chromeButton">
     <Setter Property="Width" Value="46"/>
@@ -774,6 +809,7 @@
     <Setter Property="BorderThickness" Value="2,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-workspace">
     <Setter Property="MinWidth" Value="0"/>
@@ -790,6 +826,7 @@
     <Setter Property="BorderThickness" Value="2,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.wsEntry">
     <Setter Property="MinWidth" Value="0"/>
@@ -820,6 +857,7 @@
   </Style>
   <Style Selector="Border.au-workspace:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-workspace:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
@@ -827,6 +865,7 @@
   </Style>
   <Style Selector="Border.wsEntry:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.wsEntry:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
@@ -842,6 +881,7 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
     <Setter Property="BorderThickness" Value="2,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-workspace--selected">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -866,6 +906,7 @@
     <Setter Property="BorderThickness" Value="0,0,1,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="16,16,16,16"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-drawer">
     <Setter Property="Width" Value="280"/>
@@ -929,6 +970,7 @@
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-workspace-add">
     <Setter Property="Width" Value="24"/>
@@ -943,12 +985,27 @@
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
   </Style>
   <Style Selector="TextBlock.wsAddButton">
     <Setter Property="Width" Value="24"/>
     <Setter Property="Height" Value="24"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+  </Style>
+  <Style Selector="Button.au-workspace-add">
+    <Setter Property="Width" Value="24"/>
+    <Setter Property="Height" Value="24"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+  </Style>
+  <Style Selector="Button.au-workspace-add /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
   </Style>
   <Style Selector="Border.au-workspace-add:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
@@ -966,6 +1023,12 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
   </Style>
   <Style Selector="Button:pointerover Border.wsAddButton">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.au-workspace-add:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.au-workspace-add:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
   </Style>
   <Style Selector="Button.au-workspace-delete">
@@ -1013,6 +1076,8 @@
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="0,0,0,0"/>
     <Setter Property="Margin" Value="0,0,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="16"/>
   </Style>
   <Style Selector="TextBlock.au-workspace-delete">
     <Setter Property="Width" Value="24"/>
@@ -1040,6 +1105,7 @@
   </Style>
   <Style Selector="Border.au-workspace-delete:pointerover">
     <Setter Property="Opacity" Value="1"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-workspace-delete:pointerover">
     <Setter Property="Opacity" Value="1"/>
@@ -1052,6 +1118,7 @@
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-lifecycle-button">
     <Setter Property="Width" Value="28"/>
@@ -1066,12 +1133,27 @@
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.wsLifecycleButton">
     <Setter Property="Width" Value="28"/>
     <Setter Property="Height" Value="28"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+  </Style>
+  <Style Selector="Button.au-lifecycle-button">
+    <Setter Property="Width" Value="28"/>
+    <Setter Property="Height" Value="28"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+  </Style>
+  <Style Selector="Button.au-lifecycle-button /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
   </Style>
   <Style Selector="Border.au-lifecycle-button:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
@@ -1091,6 +1173,12 @@
   <Style Selector="Button:pointerover Border.wsLifecycleButton">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
   </Style>
+  <Style Selector="Button.au-lifecycle-button:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.au-lifecycle-button:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
   <Style Selector="Border.au-lifecycle-button:disabled">
     <Setter Property="Opacity" Value="0.45"/>
   </Style>
@@ -1101,6 +1189,9 @@
     <Setter Property="Opacity" Value="0.45"/>
   </Style>
   <Style Selector="TextBlock.wsLifecycleButton:disabled">
+    <Setter Property="Opacity" Value="0.45"/>
+  </Style>
+  <Style Selector="Button.au-lifecycle-button:disabled">
     <Setter Property="Opacity" Value="0.45"/>
   </Style>
   <Style Selector="Button.au-app-tab">
@@ -1138,6 +1229,9 @@
     <Setter Property="BorderThickness" Value="0,0,0,2"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
   </Style>
   <Style Selector="TextBlock.au-app-tab">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
@@ -1167,9 +1261,14 @@
   <Style Selector="TextBlock.au-app-tab:pointerover">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
+  <Style Selector="Border.au-app-tab:pointerover">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+  </Style>
   <Style Selector="Border.au-app-tab--selected">
     <Setter Property="BorderThickness" Value="0,0,0,2"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.au-app-tab--selected">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -1179,6 +1278,16 @@
     <Setter Property="BorderThickness" Value="0,0,0,2"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
   </Style>
+  <Style Selector="Button.au-app-tab--selected">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+    <Setter Property="BorderThickness" Value="0,0,0,2"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+  </Style>
+  <Style Selector="Button.au-app-tab--selected /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+  </Style>
   <Style Selector="Border.au-subtab">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
@@ -1186,6 +1295,9 @@
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="12,4,12,4"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
   </Style>
   <Style Selector="TextBlock.au-subtab">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
@@ -1202,6 +1314,9 @@
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="12,4,12,4"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
   </Style>
   <Style Selector="TextBlock.subTab">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
@@ -1211,8 +1326,26 @@
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
     <Setter Property="Padding" Value="12,4,12,4"/>
   </Style>
+  <Style Selector="Button.au-subtab">
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="Padding" Value="12,4,12,4"/>
+  </Style>
+  <Style Selector="Button.au-subtab /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="Padding" Value="12,4,12,4"/>
+  </Style>
   <Style Selector="Border.au-subtab:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-subtab:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
@@ -1220,6 +1353,7 @@
   </Style>
   <Style Selector="Border.subTab:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.subTab:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
@@ -1231,8 +1365,18 @@
   <Style Selector="ListBoxItem:pointerover Border.subTab">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
   </Style>
+  <Style Selector="Button.au-subtab:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="Button.au-subtab:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+  </Style>
   <Style Selector="Border.au-subtab--selected">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateActiveBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.au-subtab--selected">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -1240,6 +1384,15 @@
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="ListBoxItem:selected Border.subTab">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateActiveBrush}"/>
+  </Style>
+  <Style Selector="Button.au-subtab--selected">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateActiveBrush}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="Button.au-subtab--selected /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateActiveBrush}"/>
   </Style>
   <Style Selector="Button.au-nav-tab">
@@ -1257,6 +1410,14 @@
     <Setter Property="MinHeight" Value="36"/>
     <Setter Property="Padding" Value="8,2,8,2"/>
   </Style>
+  <Style Selector="Border.au-nav-icon">
+    <Setter Property="Width" Value="20"/>
+    <Setter Property="Height" Value="20"/>
+  </Style>
+  <Style Selector="TextBlock.au-nav-icon">
+    <Setter Property="Width" Value="20"/>
+    <Setter Property="Height" Value="20"/>
+  </Style>
   <Style Selector="Border.au-session-row">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeight}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
@@ -1264,6 +1425,7 @@
     <Setter Property="BorderThickness" Value="2,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-session-row">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeight}"/>
@@ -1295,6 +1457,9 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
   </Style>
   <Style Selector="TextBlock.au-session-logout">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeight}"/>
@@ -1314,6 +1479,7 @@
   </Style>
   <Style Selector="Border.au-session-logout:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-session-logout:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
@@ -1349,6 +1515,7 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
     <Setter Property="Padding" Value="0,0,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-browser-button">
     <Setter Property="Width" Value="28"/>
@@ -1365,12 +1532,29 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
     <Setter Property="Padding" Value="0,0,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.browserButton">
     <Setter Property="Width" Value="28"/>
     <Setter Property="Height" Value="28"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="Padding" Value="0,0,0,0"/>
+  </Style>
+  <Style Selector="Button.au-browser-button">
+    <Setter Property="Width" Value="28"/>
+    <Setter Property="Height" Value="28"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+    <Setter Property="Padding" Value="0,0,0,0"/>
+  </Style>
+  <Style Selector="Button.au-browser-button /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
     <Setter Property="Padding" Value="0,0,0,0"/>
   </Style>
   <Style Selector="Border.au-browser-button Border.au-nav-icon">
@@ -1395,12 +1579,19 @@
   <Style Selector="Button:pointerover Border.browserButton">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
   </Style>
+  <Style Selector="Button.au-browser-button:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="Button.au-browser-button:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
   <Style Selector="Border.au-error-banner">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusLg}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderDangerBrush}"/>
     <Setter Property="Padding" Value="16,16,16,16"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-error-banner">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
@@ -1422,6 +1613,7 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="0,4,0,4"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-git-change-list">
     <Setter Property="MinHeight" Value="0"/>
@@ -1436,6 +1628,7 @@
     <Setter Property="BorderThickness" Value="2,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="6,2,8,2"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-git-row">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
@@ -1450,6 +1643,7 @@
     <Setter Property="BorderThickness" Value="2,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="6,2,8,2"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.gitNodeRow">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
@@ -1463,6 +1657,7 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="BorderThickness" Value="1,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-git-tree-guide">
     <Setter Property="Width" Value="{DynamicResource AgentUpSpace5}"/>
@@ -1476,6 +1671,7 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="BorderThickness" Value="1,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
   <Style Selector="TextBlock.gitTreeGuide">
     <Setter Property="Width" Value="{DynamicResource AgentUpSpace5}"/>
@@ -1524,6 +1720,9 @@
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="0,0,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.au-git-tree-toggle">
     <Setter Property="Width" Value="14"/>
@@ -1561,6 +1760,9 @@
   <Style Selector="TextBlock.au-git-tree-toggle--expanded">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
+  <Style Selector="Border.au-git-tree-toggle--expanded">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
   <Style Selector="Button.au-git-tree-toggle--collapsed">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
@@ -1575,6 +1777,9 @@
   </Style>
   <Style Selector="TextBlock.au-git-tree-toggle--collapsed">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
+  <Style Selector="Border.au-git-tree-toggle--collapsed">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
   <Style Selector="Border.au-git-row:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
@@ -1592,6 +1797,7 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
     <Setter Property="BorderThickness" Value="2,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-git-row--selected">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -1601,6 +1807,7 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
     <Setter Property="BorderThickness" Value="2,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.gitNodeRowSelected">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -1677,6 +1884,9 @@
     <Setter Property="BorderThickness" Value="0,0,0,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.au-audit-header">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
@@ -1691,6 +1901,9 @@
     <Setter Property="BorderThickness" Value="0,0,0,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.auditTableHeader">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
@@ -1705,6 +1918,8 @@
     <Setter Property="BorderThickness" Value="0,0,0,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,4,12,4"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
   </Style>
   <Style Selector="TextBlock.au-audit-row">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
@@ -1717,6 +1932,8 @@
     <Setter Property="BorderThickness" Value="0,0,0,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,4,12,4"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
   </Style>
   <Style Selector="TextBlock.auditTableRow">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
@@ -1743,6 +1960,8 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="8,4,8,4"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="TextBlock.au-page-jump">
     <Setter Property="MinWidth" Value="28"/>
@@ -1758,6 +1977,8 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="8,4,8,4"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="TextBlock.auditPageJumpInner">
     <Setter Property="MinWidth" Value="28"/>
@@ -1768,6 +1989,7 @@
   </Style>
   <Style Selector="Border.au-page-jump:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-page-jump:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
@@ -1775,6 +1997,7 @@
   </Style>
   <Style Selector="Border.auditPageJumpInner:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.auditPageJumpInner:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
@@ -1783,6 +2006,7 @@
   <Style Selector="Border.au-page-jump--current">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateActiveBrush}"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-page-jump--current">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -1791,6 +2015,7 @@
   <Style Selector="Border.auditPageJumpInnerCurrent">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateActiveBrush}"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.auditPageJumpInnerCurrent">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -1803,6 +2028,7 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="16,12,16,12"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-metrics-card">
     <Setter Property="MinHeight" Value="92"/>
@@ -1817,6 +2043,7 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="16,12,16,12"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.metricsSummaryCard">
     <Setter Property="MinHeight" Value="92"/>
@@ -1831,6 +2058,7 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="16,12,16,12"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-metrics-chart">
     <Setter Property="MinHeight" Value="192"/>
@@ -1845,6 +2073,7 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="16,12,16,12"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
   <Style Selector="TextBlock.metricsChartCard">
     <Setter Property="MinHeight" Value="192"/>
@@ -1859,6 +2088,7 @@
     <Setter Property="BorderThickness" Value="1,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="0,0,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-validation-sidebar">
     <Setter Property="Width" Value="360"/>
@@ -1874,6 +2104,7 @@
     <Setter Property="BorderThickness" Value="1,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="0,0,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.validationSidebar">
     <Setter Property="Width" Value="360"/>
@@ -1913,6 +2144,12 @@
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
+  <Style Selector="Border.au-validation-sidebar-list">
+    <Setter Property="Padding" Value="18,8,18,18"/>
+  </Style>
+  <Style Selector="TextBlock.au-validation-sidebar-list">
+    <Setter Property="Padding" Value="18,8,18,18"/>
+  </Style>
   <Style Selector="Border.au-validation-dock">
     <Setter Property="Height" Value="50"/>
     <Setter Property="MinHeight" Value="50"/>
@@ -1920,6 +2157,7 @@
     <Setter Property="BorderThickness" Value="0,1,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,0,12,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-validation-dock">
     <Setter Property="Height" Value="50"/>
@@ -1939,6 +2177,7 @@
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusMd}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-validation-dock-list">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -1950,6 +2189,9 @@
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="12,7.04,12,7.04"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.au-validation-play">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -1958,12 +2200,29 @@
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
     <Setter Property="Padding" Value="12,7.04,12,7.04"/>
   </Style>
+  <Style Selector="Button.au-validation-play">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="Padding" Value="12,7.04,12,7.04"/>
+  </Style>
+  <Style Selector="Button.au-validation-play /template/ ContentPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedStrongBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="Padding" Value="12,7.04,12,7.04"/>
+  </Style>
   <Style Selector="Border.au-validation-flow">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusMd}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,12,12,12"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-validation-flow">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -1976,6 +2235,7 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,12,12,12"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.validationFlow">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -1999,6 +2259,7 @@
   </Style>
   <Style Selector="Border.au-validation-stage">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-validation-stage">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2006,6 +2267,7 @@
   </Style>
   <Style Selector="Border.validationStage">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.validationStage">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2014,13 +2276,24 @@
   <Style Selector="TextBlock.au-validation-step">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
+  <Style Selector="Border.au-validation-step">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
   <Style Selector="TextBlock.au-validation-check">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
+  <Style Selector="Border.au-validation-check">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+  </Style>
   <Style Selector="TextBlock.validationCheck">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+  </Style>
+  <Style Selector="Border.validationCheck">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="Border.au-validation-checks">
     <Setter Property="Margin" Value="18,0,0,0"/>
@@ -2030,6 +2303,8 @@
   </Style>
   <Style Selector="Border.au-validation-glyph">
     <Setter Property="Width" Value="14"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.au-validation-glyph">
     <Setter Property="Width" Value="14"/>
@@ -2039,11 +2314,20 @@
   <Style Selector="TextBlock.au-validation-glyph--passed">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorStatusHealthyBrush}"/>
   </Style>
+  <Style Selector="Border.au-validation-glyph--passed">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorStatusHealthyBrush}"/>
+  </Style>
   <Style Selector="TextBlock.au-validation-glyph--failed">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorStatusDangerBrush}"/>
   </Style>
+  <Style Selector="Border.au-validation-glyph--failed">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorStatusDangerBrush}"/>
+  </Style>
   <Style Selector="TextBlock.au-validation-glyph--running">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorStatusWarningBrush}"/>
+  </Style>
+  <Style Selector="Border.au-validation-glyph--running">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorStatusWarningBrush}"/>
   </Style>
   <Style Selector="Border.au-sign-in">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
@@ -2051,6 +2335,7 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="20,20,20,20"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-sign-in">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2063,6 +2348,9 @@
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorOnAccentBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.au-tutorial-button">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorOnAccentBrush}"/>
@@ -2077,6 +2365,9 @@
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorOnAccentBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.tutorialButton">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorOnAccentBrush}"/>
@@ -2119,6 +2410,7 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-tutorial-button--secondary">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2128,6 +2420,7 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.tutorialSecondaryButton">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2149,6 +2442,7 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-list-item">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
@@ -2159,6 +2453,7 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.dbListItem">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
@@ -2185,6 +2480,7 @@
   </Style>
   <Style Selector="Border.au-list-item--selected">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-list-item--selected">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
@@ -2253,6 +2549,9 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="16,8,16,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorOnAccentBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.au-db-run">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorOnAccentBrush}"/>
@@ -2279,6 +2578,7 @@
   </Style>
   <Style Selector="Border.au-db-run:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorAccentBrightBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorOnAccentBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-db-run:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorAccentBrightBrush}"/>
@@ -2289,6 +2589,9 @@
     <Setter Property="BorderThickness" Value="0,0,1,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="8,4,8,4"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.au-db-header-cell">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
@@ -2303,6 +2606,9 @@
     <Setter Property="BorderThickness" Value="0,0,1,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="8,4,8,4"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.dbHeaderCell">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
@@ -2317,6 +2623,8 @@
     <Setter Property="BorderThickness" Value="0,0,1,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="8,4,8,4"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
   </Style>
   <Style Selector="TextBlock.au-db-data-cell">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
@@ -2330,6 +2638,8 @@
     <Setter Property="BorderThickness" Value="0,0,1,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="8,4,8,4"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
   </Style>
   <Style Selector="TextBlock.dbDataCell">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
@@ -2344,6 +2654,7 @@
     <Setter Property="BorderThickness" Value="0,0,0,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-mobile-bar">
     <Setter Property="MinHeight" Value="56"/>
@@ -2356,6 +2667,7 @@
     <Setter Property="BorderThickness" Value="0,1,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,4,12,4"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-mobile-tab-bar">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2368,6 +2680,7 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="16,16,16,16"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-mobile-card">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2398,6 +2711,9 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,4,12,4"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
   </Style>
   <Style Selector="TextBlock.au-chip">
     <Setter Property="MinHeight" Value="28"/>
@@ -2417,6 +2733,7 @@
   </Style>
   <Style Selector="Border.au-chip:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-chip:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
@@ -2433,6 +2750,8 @@
   </Style>
   <Style Selector="Border.au-chip--selected">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateActiveBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.au-chip--selected">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2461,6 +2780,9 @@
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="8,4,8,4"/>
     <Setter Property="Margin" Value="20,0,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
   </Style>
   <Style Selector="TextBlock.au-chat-thought">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
@@ -2495,6 +2817,7 @@
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="16,12,16,12"/>
     <Setter Property="Margin" Value="0,0,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-chat-user">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2508,6 +2831,7 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-chat-work">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
@@ -2536,6 +2860,9 @@
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="12,12,12,12"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
   </Style>
   <Style Selector="TextBlock.au-chat-run">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
@@ -2566,6 +2893,7 @@
   </Style>
   <Style Selector="Border.au-screen">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-screen">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2651,9 +2979,27 @@
   <Style Selector="Border.au-overview TextBlock.au-field-label">
     <Setter Property="LetterSpacing" Value="0.32"/>
   </Style>
+  <Style Selector="Border.au-git-branch">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-branch">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="Button.au-git-branch">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
   <Style Selector="Border.au-git-branch-row Border.au-lifecycle-button">
     <Setter Property="Width" Value="{DynamicResource AgentUpControlHeight}"/>
     <Setter Property="Height" Value="{DynamicResource AgentUpControlHeight}"/>
+  </Style>
+  <Style Selector="Border.au-git-history">
+    <Setter Property="Margin" Value="0,0,0,0"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-history">
+    <Setter Property="Margin" Value="0,0,0,0"/>
+  </Style>
+  <Style Selector="Button.au-git-history">
+    <Setter Property="Margin" Value="0,0,0,0"/>
   </Style>
   <Style Selector="Border.au-git-commit">
     <Setter Property="Margin" Value="0,0,0,0"/>
@@ -2678,6 +3024,14 @@
     <Setter Property="MinHeight" Value="192"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
   </Style>
+  <Style Selector="Border.au-storefront">
+    <Setter Property="Padding" Value="16,20,16,20"/>
+    <Setter Property="Margin" Value="0,0,0,0"/>
+  </Style>
+  <Style Selector="TextBlock.au-storefront">
+    <Setter Property="Padding" Value="16,20,16,20"/>
+    <Setter Property="Margin" Value="0,0,0,0"/>
+  </Style>
   <Style Selector="Border.au-agent-prompt">
     <Setter Property="Margin" Value="0,0,0,0"/>
   </Style>
@@ -2691,6 +3045,7 @@
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusXl}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-file-viewer">
     <Setter Property="MinHeight" Value="256"/>
@@ -2704,6 +3059,7 @@
     <Setter Property="BorderThickness" Value="0,0,0,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="16,12,16,12"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-file-viewer-header">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
@@ -2728,6 +3084,7 @@
     <Setter Property="BorderThickness" Value="0,0,0,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="16,8,16,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-file-viewer-nav">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
@@ -2758,6 +3115,8 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="8,0,8,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
   </Style>
   <Style Selector="TextBlock.au-file-viewer-jump">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
@@ -2794,6 +3153,7 @@
   <Style Selector="Border.au-file-viewer-body">
     <Setter Property="MinHeight" Value="160"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-file-viewer-body">
     <Setter Property="MinHeight" Value="160"/>
@@ -2806,6 +3166,8 @@
     <Setter Property="BorderThickness" Value="2,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="8,0,8,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
   </Style>
   <Style Selector="TextBlock.au-file-viewer-line">
     <Setter Property="MinHeight" Value="22"/>
@@ -2823,6 +3185,7 @@
   </Style>
   <Style Selector="Border.au-file-viewer-line--added">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedSoftBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-file-viewer-line--added">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2830,6 +3193,7 @@
   </Style>
   <Style Selector="Border.au-file-viewer-line--deleted">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-file-viewer-line--deleted">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2837,6 +3201,7 @@
   </Style>
   <Style Selector="Border.au-file-viewer-line--hunk">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextInfoBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-file-viewer-line--hunk">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextInfoBrush}"/>
@@ -2844,6 +3209,7 @@
   </Style>
   <Style Selector="Border.au-file-viewer-line--meta">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-file-viewer-line--meta">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
@@ -2853,6 +3219,7 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
     <Setter Property="BorderThickness" Value="2,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-file-viewer-line--current">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2862,6 +3229,7 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
     <Setter Property="BorderThickness" Value="2,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.fileViewerLineCurrent">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2937,6 +3305,7 @@
     <Setter Property="BorderThickness" Value="0,0,0,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,12,12,12"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-git-log-detail">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2948,6 +3317,7 @@
     <Setter Property="BorderThickness" Value="0,0,0,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,12,12,12"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.gitLogDetail">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2973,6 +3343,8 @@
     <Setter Property="BorderThickness" Value="2,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="12,0,12,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="TextBlock.au-git-log-row">
     <Setter Property="MinHeight" Value="28"/>
@@ -2988,6 +3360,8 @@
     <Setter Property="BorderThickness" Value="2,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="12,0,12,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="TextBlock.gitLogRow">
     <Setter Property="MinHeight" Value="28"/>
@@ -2998,6 +3372,7 @@
   </Style>
   <Style Selector="Border.au-git-log-row:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-git-log-row:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
@@ -3005,6 +3380,7 @@
   </Style>
   <Style Selector="Border.gitLogRow:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.gitLogRow:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
@@ -3020,6 +3396,7 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
     <Setter Property="BorderThickness" Value="2,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentLineBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-git-log-row--selected">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -3048,26 +3425,50 @@
   <Style Selector="TextBlock.au-git-log-lane-0">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorGitLane0Brush}"/>
   </Style>
+  <Style Selector="Border.au-git-log-lane-0">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorGitLane0Brush}"/>
+  </Style>
   <Style Selector="TextBlock.au-git-log-lane-1">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorGitLane1Brush}"/>
+  </Style>
+  <Style Selector="Border.au-git-log-lane-1">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorGitLane1Brush}"/>
   </Style>
   <Style Selector="TextBlock.au-git-log-lane-2">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorGitLane2Brush}"/>
   </Style>
+  <Style Selector="Border.au-git-log-lane-2">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorGitLane2Brush}"/>
+  </Style>
   <Style Selector="TextBlock.au-git-log-lane-3">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorGitLane3Brush}"/>
+  </Style>
+  <Style Selector="Border.au-git-log-lane-3">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorGitLane3Brush}"/>
   </Style>
   <Style Selector="TextBlock.au-git-log-lane-4">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorGitLane4Brush}"/>
   </Style>
+  <Style Selector="Border.au-git-log-lane-4">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorGitLane4Brush}"/>
+  </Style>
   <Style Selector="TextBlock.au-git-log-lane-5">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorGitLane5Brush}"/>
+  </Style>
+  <Style Selector="Border.au-git-log-lane-5">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorGitLane5Brush}"/>
   </Style>
   <Style Selector="TextBlock.au-git-log-lane-6">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorGitLane6Brush}"/>
   </Style>
+  <Style Selector="Border.au-git-log-lane-6">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorGitLane6Brush}"/>
+  </Style>
   <Style Selector="TextBlock.au-git-log-lane-7">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorGitLane7Brush}"/>
+  </Style>
+  <Style Selector="Border.au-git-log-lane-7">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorGitLane7Brush}"/>
   </Style>
   <Style Selector="Border.au-git-log-body">
     <Setter Property="MinWidth" Value="0"/>
@@ -3131,6 +3532,9 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="8,0,8,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
   </Style>
   <Style Selector="TextBlock.au-git-log-ref">
     <Setter Property="MinHeight" Value="20"/>
@@ -3168,6 +3572,7 @@
   </Style>
   <Style Selector="Border.au-git-log-ref--head">
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSelectedBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-git-log-ref--head">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
@@ -3181,6 +3586,9 @@
   <Style Selector="TextBlock.au-git-log-ref--remote">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextInfoBrush}"/>
   </Style>
+  <Style Selector="Border.au-git-log-ref--remote">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextInfoBrush}"/>
+  </Style>
   <Style Selector="Button.au-git-log-ref--tag">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
@@ -3189,6 +3597,9 @@
   </Style>
   <Style Selector="TextBlock.au-git-log-ref--tag">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
+  <Style Selector="Border.au-git-log-ref--tag">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
   <Style Selector="Border.au-git-log-node">
     <Setter Property="Width" Value="8"/>
@@ -3201,6 +3612,8 @@
   </Style>
   <Style Selector="Border.aun">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
   </Style>
   <Style Selector="TextBlock.aun">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
@@ -3214,8 +3627,14 @@
   <Style Selector="TextBlock.aun-muted">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
+  <Style Selector="Border.aun-muted">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
   <Style Selector="TextBlock.aun-faint">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+  </Style>
+  <Style Selector="Border.aun-faint">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
   </Style>
   <Style Selector="Border.aun-rail">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
@@ -3239,10 +3658,18 @@
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
+  <Style Selector="Border.aun-rail__name">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
   <Style Selector="TextBlock.aun-rail__url">
     <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
+  <Style Selector="Border.aun-rail__url">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
   <Style Selector="Button.aun-rail__link">
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
@@ -3265,7 +3692,10 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSelectedBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.aun-rail__link">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
@@ -3284,6 +3714,7 @@
   </Style>
   <Style Selector="Border.aun-rail__link:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-rail__link:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
@@ -3291,6 +3722,9 @@
   </Style>
   <Style Selector="Border.aun-rail__section">
     <Setter Property="Padding" Value="12,16,12,4"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightBold}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-rail__section">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
@@ -3304,7 +3738,10 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSelectedBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.aun-rail__agent">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
@@ -3343,6 +3780,9 @@
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
     <Setter Property="Margin" Value="0,0,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.aun-nav">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
@@ -3362,6 +3802,7 @@
   </Style>
   <Style Selector="Border.aun-nav--current">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-nav--current">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
@@ -3380,6 +3821,8 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="TextBlock.aun-rail__switch">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
@@ -3389,10 +3832,42 @@
   </Style>
   <Style Selector="Border.aun-rail__agent:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-rail__agent:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="Border.aun-rail__nav">
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.aun-rail__nav">
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="Border.aun-session">
+    <Setter Property="BorderThickness" Value="0,1,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="Padding" Value="0,12,0,0"/>
+  </Style>
+  <Style Selector="TextBlock.aun-session">
+    <Setter Property="Padding" Value="0,12,0,0"/>
+  </Style>
+  <Style Selector="Border.aun-session__id">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.aun-session__id">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.aun-session__name">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+  </Style>
+  <Style Selector="Border.aun-session__name">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+  </Style>
+  <Style Selector="Border.aun-phone Border.aun-session">
+    <Setter Property="Padding" Value="16,8,16,8"/>
   </Style>
   <Style Selector="Border.aun-main">
     <Setter Property="MinWidth" Value="0"/>
@@ -3415,6 +3890,9 @@
   </Style>
   <Style Selector="Border.aun-state-map__kicker">
     <Setter Property="Margin" Value="0,0,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__kicker">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
@@ -3425,6 +3903,8 @@
   </Style>
   <Style Selector="Border.aun-state-map__dek">
     <Setter Property="Margin" Value="0,3,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__dek">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
@@ -3451,8 +3931,16 @@
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
+  <Style Selector="Border.aun-state-map__total">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXl}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+  </Style>
   <Style Selector="Border.aun-state-map__total-label">
     <Setter Property="Margin" Value="0,2,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__total-label">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
@@ -3463,6 +3951,9 @@
   </Style>
   <Style Selector="Border.aun-state-map__root-title">
     <Setter Property="Margin" Value="0,0,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__root-title">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -3478,6 +3969,8 @@
   </Style>
   <Style Selector="Border.aun-state-map__root-meta">
     <Setter Property="Margin" Value="0,3,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__root-meta">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
@@ -3571,8 +4064,15 @@
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
+  <Style Selector="Border.aun-state-map__branch-title">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
   <Style Selector="Border.aun-state-map__branch-meta">
     <Setter Property="Margin" Value="0,1,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__branch-meta">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
@@ -3582,6 +4082,10 @@
   <Style Selector="TextBlock.aun-state-map__count">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
+  <Style Selector="Border.aun-state-map__count">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="Border.aun-state-map__host">
     <Setter Property="MinWidth" Value="0"/>
@@ -3603,6 +4107,9 @@
   </Style>
   <Style Selector="Border.aun-state-map__agent-name">
     <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__agent-name">
     <Setter Property="MinWidth" Value="0"/>
@@ -3612,6 +4119,8 @@
   </Style>
   <Style Selector="Border.aun-state-map__agent-task">
     <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__agent-task">
     <Setter Property="MinWidth" Value="0"/>
@@ -3622,6 +4131,8 @@
     <Setter Property="MinWidth" Value="0"/>
     <Setter Property="Padding" Value="0,8,0,0"/>
     <Setter Property="Margin" Value="0,0,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__message">
     <Setter Property="MinWidth" Value="0"/>
@@ -3640,6 +4151,8 @@
   </Style>
   <Style Selector="Border.aun-state-map__empty">
     <Setter Property="Margin" Value="0,12,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__empty">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
@@ -3656,10 +4169,15 @@
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
     <Setter Property="FontSize" Value="10"/>
   </Style>
+  <Style Selector="Border.aun-task-summary__head">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="10"/>
+  </Style>
   <Style Selector="Border.aun-task-summary__row">
     <Setter Property="BorderThickness" Value="0,1,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="0,8,0,8"/>
+    <Setter Property="TextElement.FontSize" Value="12"/>
   </Style>
   <Style Selector="TextBlock.aun-task-summary__row">
     <Setter Property="FontSize" Value="12"/>
@@ -3667,6 +4185,8 @@
   </Style>
   <Style Selector="Border.aun-title">
     <Setter Property="Margin" Value="0,0,0,4"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXl}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightBold}"/>
   </Style>
   <Style Selector="TextBlock.aun-title">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXl}"/>
@@ -3678,8 +4198,15 @@
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
+  <Style Selector="Border.aun-subtitle">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
   <Style Selector="Border.aun-section__head">
     <Setter Property="Margin" Value="0,0,0,12"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightBold}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-section__head">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
@@ -3691,14 +4218,23 @@
   <Style Selector="TextBlock.aun-section__head--gate">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextWarningBrush}"/>
   </Style>
+  <Style Selector="Border.aun-section__head--gate">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextWarningBrush}"/>
+  </Style>
   <Style Selector="TextBlock.aun-section__head--halted">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
+  </Style>
+  <Style Selector="Border.aun-section__head--halted">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
   </Style>
   <Style Selector="Border.aun-avatar">
     <Setter Property="CornerRadius" Value="999"/>
     <Setter Property="Width" Value="32"/>
     <Setter Property="Height" Value="32"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightBold}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-avatar">
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightBold}"/>
@@ -3711,6 +4247,7 @@
   <Style Selector="Border.aun-avatar--sm">
     <Setter Property="Width" Value="20"/>
     <Setter Property="Height" Value="20"/>
+    <Setter Property="TextElement.FontSize" Value="9"/>
   </Style>
   <Style Selector="TextBlock.aun-avatar--sm">
     <Setter Property="Width" Value="20"/>
@@ -3720,6 +4257,7 @@
   <Style Selector="Border.aun-avatar--md">
     <Setter Property="Width" Value="36"/>
     <Setter Property="Height" Value="36"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="TextBlock.aun-avatar--md">
     <Setter Property="Width" Value="36"/>
@@ -3729,6 +4267,7 @@
   <Style Selector="Border.aun-avatar--lg">
     <Setter Property="Width" Value="52"/>
     <Setter Property="Height" Value="52"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiLg}"/>
   </Style>
   <Style Selector="TextBlock.aun-avatar--lg">
     <Setter Property="Width" Value="52"/>
@@ -3770,13 +4309,26 @@
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
+  <Style Selector="Border.aun-task-row__title">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
   <Style Selector="TextBlock.aun-task-row__agent">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
+  <Style Selector="Border.aun-task-row__agent">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
   <Style Selector="TextBlock.aun-task-row__repo">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
+  <Style Selector="Border.aun-task-row__repo">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="Border.aun-task-slot__section">
     <Setter Property="Margin" Value="0,12,0,0"/>
@@ -3812,17 +4364,34 @@
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
+  <Style Selector="Border.aun-settings__name">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
   <Style Selector="TextBlock.aun-settings__kicker">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
+  <Style Selector="Border.aun-settings__kicker">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="TextBlock.aun-settings__state">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
+  <Style Selector="Border.aun-settings__state">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
   <Style Selector="TextBlock.aun-settings__state-text">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
+  <Style Selector="Border.aun-settings__state-text">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="Border.aun-card--gate">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
@@ -3840,6 +4409,8 @@
   </Style>
   <Style Selector="Border.aun-card__title">
     <Setter Property="Margin" Value="0,0,0,12"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightBold}"/>
   </Style>
   <Style Selector="TextBlock.aun-card__title">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
@@ -3852,6 +4423,7 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="16,12,16,12"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-row">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
@@ -3874,8 +4446,14 @@
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
+  <Style Selector="Border.aun-row__title">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
   <Style Selector="Border.aun-row__meta">
     <Setter Property="Margin" Value="0,4,0,0"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-row__meta">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
@@ -3884,6 +4462,8 @@
   </Style>
   <Style Selector="Border.aun-row__time">
     <Setter Property="Margin" Value="0,4,0,0"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-row__time">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
@@ -3895,6 +4475,9 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
     <Setter Property="Padding" Value="8,2,8,2"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-state">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
@@ -3904,24 +4487,28 @@
   </Style>
   <Style Selector="Border.aun-state--running">
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorStatusInfoBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextInfoBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-state--running">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextInfoBrush}"/>
   </Style>
   <Style Selector="Border.aun-state--gate">
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorStatusWarningBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextWarningBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-state--gate">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextWarningBrush}"/>
   </Style>
   <Style Selector="Border.aun-state--halted">
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderDangerBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-state--halted">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
   </Style>
   <Style Selector="Border.aun-state--done">
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSelectedBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-state--done">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
@@ -3932,6 +4519,7 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,4,12,4"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="TextBlock.aun-conn">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
@@ -3976,17 +4564,32 @@
   <Style Selector="TextBlock.aun-glyph--running">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextInfoBrush}"/>
   </Style>
+  <Style Selector="Border.aun-glyph--running">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextInfoBrush}"/>
+  </Style>
   <Style Selector="TextBlock.aun-glyph--gate">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextWarningBrush}"/>
+  </Style>
+  <Style Selector="Border.aun-glyph--gate">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextWarningBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-glyph--halted">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
   </Style>
+  <Style Selector="Border.aun-glyph--halted">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
+  </Style>
   <Style Selector="TextBlock.aun-glyph--done">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
   </Style>
+  <Style Selector="Border.aun-glyph--done">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+  </Style>
   <Style Selector="TextBlock.aun-glyph--idle">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+  </Style>
+  <Style Selector="Border.aun-glyph--idle">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
   </Style>
   <Style Selector="Button.aun-btn">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
@@ -4012,6 +4615,9 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-btn">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
@@ -4046,6 +4652,7 @@
   <Style Selector="Border.aun-btn--primary">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSelectedBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-btn--primary">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
@@ -4064,6 +4671,7 @@
   <Style Selector="Border.aun-btn--danger">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderDangerBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-btn--danger">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
@@ -4085,6 +4693,8 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-input">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
@@ -4107,6 +4717,9 @@
     <Setter Property="BorderThickness" Value="0,0,0,2"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="16,12,16,12"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.aun-tab">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
@@ -4128,7 +4741,10 @@
   <Style Selector="Border.aun-apptab">
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.aun-apptab">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
@@ -4156,6 +4772,7 @@
   </Style>
   <Style Selector="Border.aun-event__dot">
     <Setter Property="Width" Value="18"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
   </Style>
   <Style Selector="TextBlock.aun-event__dot">
     <Setter Property="Width" Value="18"/>
@@ -4163,6 +4780,8 @@
   </Style>
   <Style Selector="Border.aun-event__body">
     <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-event__body">
     <Setter Property="MinWidth" Value="0"/>
@@ -4173,11 +4792,17 @@
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
   </Style>
+  <Style Selector="Border.aun-event__time">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+  </Style>
   <Style Selector="Border.aun-note">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
     <Setter Property="BorderThickness" Value="2,0,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
     <Setter Property="Padding" Value="16,12,16,12"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-note">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
@@ -4191,6 +4816,7 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderDangerBrush}"/>
     <Setter Property="Padding" Value="12,12,12,12"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="TextBlock.aun-diag">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
@@ -4202,8 +4828,13 @@
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
   </Style>
+  <Style Selector="Border.aun-diag__code">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
+  </Style>
   <Style Selector="Border.aun-diag__remedy">
     <Setter Property="Margin" Value="0,8,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-diag__remedy">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
@@ -4212,8 +4843,12 @@
   <Style Selector="TextBlock.aun-kv">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
+  <Style Selector="Border.aun-kv">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
   <Style Selector="Border.aun-kv__k">
     <Setter Property="Width" Value="88"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-kv__k">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
@@ -4223,8 +4858,14 @@
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiLg}"/>
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightBold}"/>
   </Style>
+  <Style Selector="Border.aun-stat">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiLg}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightBold}"/>
+  </Style>
   <Style Selector="Border.aun-stat__label">
     <Setter Property="Margin" Value="0,2,0,0"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-stat__label">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
@@ -4245,6 +4886,8 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
     <Setter Property="Padding" Value="8,2,8,2"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-perm">
     <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
@@ -4259,6 +4902,8 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,12,12,12"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-console">
     <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
@@ -4295,6 +4940,8 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-browser__url">
     <Setter Property="MinWidth" Value="0"/>
@@ -4311,6 +4958,8 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="TextBlock.aun-browser__icon">
     <Setter Property="Width" Value="30"/>
@@ -4329,9 +4978,13 @@
     <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
   </Style>
+  <Style Selector="Border.aun-diff">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+  </Style>
   <Style Selector="Border.aun-diff__num">
     <Setter Property="Width" Value="44"/>
     <Setter Property="Padding" Value="0,0,12,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-diff__num">
     <Setter Property="Width" Value="44"/>
@@ -4340,6 +4993,7 @@
   </Style>
   <Style Selector="Border.aun-diff__line--add">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedSoftBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-diff__line--add">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedSoftBrush}"/>
@@ -4347,6 +5001,7 @@
   </Style>
   <Style Selector="Border.aun-diff__line--del">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-diff__line--del">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
@@ -4355,6 +5010,8 @@
   <Style Selector="Border.aun-file">
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-file">
@@ -4379,6 +5036,7 @@
     <Setter Property="Width" Value="390"/>
     <Setter Property="Height" Value="844"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-phone">
     <Setter Property="Width" Value="390"/>
@@ -4405,6 +5063,10 @@
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
     <Setter Property="FontSize" Value="12"/>
   </Style>
+  <Style Selector="Border.aun-phone__subtitle">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="12"/>
+  </Style>
   <Style Selector="Border.aun-phone__body">
     <Setter Property="MinHeight" Value="0"/>
     <Setter Property="Padding" Value="16,16,16,16"/>
@@ -4418,6 +5080,9 @@
   </Style>
   <Style Selector="Border.aun-tabbar__item">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightTouch}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.aun-tabbar__item">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightTouch}"/>
@@ -4427,6 +5092,9 @@
   </Style>
   <Style Selector="TextBlock.aun-tabbar__icon">
     <Setter Property="FontSize" Value="20"/>
+  </Style>
+  <Style Selector="Border.aun-tabbar__icon">
+    <Setter Property="TextElement.FontSize" Value="20"/>
   </Style>
   <Style Selector="Border.aun-state-map--mobile">
     <Setter Property="CornerRadius" Value="0"/>
@@ -4447,6 +5115,7 @@
   </Style>
   <Style Selector="Border.aun-status-line">
     <Setter Property="Margin" Value="0,8,0,0"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="TextBlock.aun-status-line">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
@@ -4463,9 +5132,17 @@
     <Setter Property="FontSize" Value="18"/>
     <Setter Property="LetterSpacing" Value="-5"/>
   </Style>
+  <Style Selector="Border.aun-grip">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="18"/>
+  </Style>
   <Style Selector="TextBlock.aun-settings-signout">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
     <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+  <Style Selector="Border.aun-settings-signout">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
+    <Setter Property="TextElement.FontWeight" Value="SemiBold"/>
   </Style>
   <Style Selector="Button.aun-agent-back">
     <Setter Property="Width" Value="28"/>
@@ -4492,6 +5169,8 @@
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="0,0,0,0"/>
     <Setter Property="Margin" Value="0,0,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="22"/>
   </Style>
   <Style Selector="TextBlock.aun-agent-back">
     <Setter Property="Width" Value="28"/>
@@ -4522,6 +5201,9 @@
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="8,6,8,6"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorAccentBrightBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="13"/>
+    <Setter Property="TextElement.FontWeight" Value="SemiBold"/>
   </Style>
   <Style Selector="TextBlock.aun-agent-reload">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
@@ -4550,6 +5232,8 @@
   <Style Selector="Border.aun-validate__step">
     <Setter Property="MinWidth" Value="0"/>
     <Setter Property="Margin" Value="0,0,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="TextBlock.aun-validate__step">
     <Setter Property="MinWidth" Value="0"/>
@@ -4570,6 +5254,7 @@
   </Style>
   <Style Selector="Border.aun-validate__sheet-title">
     <Setter Property="Margin" Value="0,0,0,12"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.aun-validate__sheet-title">
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
@@ -4590,6 +5275,8 @@
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="Padding" Value="12,0,12,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="TextBlock.aun-validate__item">
     <Setter Property="MinHeight" Value="40"/>
@@ -4608,12 +5295,22 @@
     <Setter Property="Height" Value="32"/>
     <Setter Property="Padding" Value="0,0,0,0"/>
   </Style>
+  <Style Selector="Button.aun-validate__run">
+    <Setter Property="Width" Value="32"/>
+    <Setter Property="Height" Value="32"/>
+    <Setter Property="Padding" Value="0,0,0,0"/>
+  </Style>
+  <Style Selector="Button.aun-validate__run /template/ ContentPresenter">
+    <Setter Property="Padding" Value="0,0,0,0"/>
+  </Style>
   <Style Selector="Border.aun-validate__menu-button">
     <Setter Property="Width" Value="32"/>
     <Setter Property="Height" Value="32"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="14"/>
   </Style>
   <Style Selector="TextBlock.aun-validate__menu-button">
     <Setter Property="Width" Value="32"/>
@@ -4626,6 +5323,7 @@
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusLg}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
     <Setter Property="Padding" Value="12,12,12,12"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
   </Style>
   <Style Selector="TextBlock.aun-chat-user">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
@@ -4654,6 +5352,8 @@
     <Setter Property="Height" Value="{DynamicResource AgentUpControlHeightTouch}"/>
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiLg}"/>
   </Style>
   <Style Selector="TextBlock.aun-iconbtn">
     <Setter Property="Width" Value="{DynamicResource AgentUpControlHeightTouch}"/>
@@ -4685,7 +5385,10 @@
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSelectedBrush}"/>
     <Setter Property="Padding" Value="12,8,12,8"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceSelectedBrush}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
   <Style Selector="TextBlock.aun-drawer__link">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightTouch}"/>
@@ -4736,8 +5439,14 @@
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
   </Style>
+  <Style Selector="Border.aun-setting__name">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
   <Style Selector="Border.aun-setting__note">
     <Setter Property="Margin" Value="0,4,0,0"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-setting__note">
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>

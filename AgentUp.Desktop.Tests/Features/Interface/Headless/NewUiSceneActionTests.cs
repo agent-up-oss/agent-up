@@ -1,0 +1,72 @@
+using AgentUp.Desktop.DesignSystem;
+using AgentUp.Desktop.Tests.Support;
+using Avalonia.Controls;
+using Avalonia.Headless.NUnit;
+using Avalonia.VisualTree;
+
+namespace AgentUp.Desktop.Tests.Features.Interface.Headless;
+
+/// <summary>
+/// A scene control answers its own press once. Avalonia's Click bubbles, so a button inside a
+/// card that has an action of its own (Play on a validation flow) must not also fire the card.
+/// </summary>
+[TestFixture]
+public sealed class NewUiSceneActionTests
+{
+    [AvaloniaTest]
+    public async Task PlayInsideAFlowCard_runsTheFlowOnce()
+    {
+        var (window, scene) = ApplicationScene();
+        var actions = new List<string>();
+        scene.ActionInvoked += (_, args) => actions.Add($"{args.Name} {args.Id}");
+        window.Show();
+
+        var play = ButtonWithClass(scene, "au-validation-play");
+        await window.ClickControlAsync(play);
+
+        Assert.That(actions, Is.EqualTo(new[] { "run checkout" }));
+        window.Close();
+    }
+
+    [AvaloniaTest]
+    public async Task LogoutAtTheFootOfTheRail_isOneAction()
+    {
+        var (window, scene) = ApplicationScene();
+        var actions = new List<string>();
+        scene.ActionInvoked += (_, args) => actions.Add(args.Name);
+        window.Show();
+
+        var logout = ButtonWithClass(scene, "au-session-logout");
+        await window.ClickControlAsync(logout);
+
+        Assert.That(actions, Is.EqualTo(new[] { "logout" }));
+        window.Close();
+    }
+
+    /// <summary>A scene button carries its class itself or on the face it paints.</summary>
+    private static Button ButtonWithClass(NewUiScene scene, string name) =>
+        scene.GetVisualDescendants().OfType<Button>().First(button =>
+            button.Classes.Contains(name) || button.Content is Border { } face && face.Classes.Contains(name));
+
+    private static (Window Window, NewUiScene Scene) ApplicationScene()
+    {
+        var scene = new NewUiScene();
+        scene.Apply(
+            "application",
+            new Dictionary<string, string> { ["server"] = "Demo" },
+            new Dictionary<string, IReadOnlyList<NewUiSlotItem>>
+            {
+                ["flows"] =
+                [
+                    new NewUiSlotItem
+                    {
+                        Id = "checkout",
+                        Text = { ["name"] = "Checkout featured goods", ["description"] = "Order a Harbor Mug." },
+                        Parts = { "play" },
+                    },
+                ],
+            },
+            new Dictionary<string, string> { ["checks"] = "1", ["expanded"] = "1" });
+        return (new Window { Width = 1440, Height = 900, Content = scene }, scene);
+    }
+}

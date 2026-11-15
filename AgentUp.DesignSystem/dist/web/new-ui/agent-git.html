@@ -29,6 +29,7 @@
       </div>
       <div class="au-screen-body">
         <aside class="au-rail au-screen-rail" aria-label="Sidebar">
+        <div class="aun-rail__nav">
         <div class="aun-nav-row">
           <button type="button" class="aun-nav" data-au-action="nav-team" data-au-selection="nav:0:aun-nav--current">Team</button>
           <button type="button" class="au-workspace-add" data-au-action="add-workspace" aria-label="Add workspace">+</button>
@@ -80,6 +81,11 @@
         </div>
         <button type="button" class="aun-nav" data-au-action="nav-tasks" data-au-selection="nav:1:aun-nav--current">Tasks</button>
         <button type="button" class="aun-nav" data-au-action="nav-settings" data-au-selection="nav:2:aun-nav--current">Settings</button>
+        </div>
+        <div class="aun-session">
+        <span class="aun-session__id"><span class="au-field-label">Server</span><span class="aun-session__name">Demo</span></span>
+        <button class="au-session-logout aun-session__logout" type="button" data-au-action="logout" aria-label="Log out of this server">Logout</button>
+      </div>
       </aside>
         <main class="au-screen-main">
           <div class="au-screen-tabs"><div class="au-cluster">

@@ -110,6 +110,9 @@ export const newUiTheme = Object.freeze({
       backgroundColor: "#0a0b0c",
       fontSize: 16,
     }),
+    cluster: Object.freeze({
+
+    }),
     eyebrow: Object.freeze({
       marginTop: 0,
       marginRight: 0,
@@ -644,6 +647,11 @@ export const newUiTheme = Object.freeze({
       paddingBottom: 2,
       paddingLeft: 8,
     }),
+    navIcon: Object.freeze({
+      width: 20,
+      height: 20,
+      color: "inherit",
+    }),
     sessionRow: Object.freeze({
       minHeight: 44,
       paddingTop: 8,
@@ -945,6 +953,12 @@ export const newUiTheme = Object.freeze({
     validationSidebarHead__accent: Object.freeze({
       fontSize: 11,
       fontWeight: '600',
+    }),
+    validationSidebarList: Object.freeze({
+      paddingTop: 8,
+      paddingRight: 18,
+      paddingBottom: 18,
+      paddingLeft: 18,
     }),
     validationDock: Object.freeze({
       height: 50,
@@ -1359,9 +1373,24 @@ export const newUiTheme = Object.freeze({
     gitToolbar: Object.freeze({
 
     }),
+    gitBranchRow: Object.freeze({
+
+    }),
+    gitActions: Object.freeze({
+
+    }),
+    gitBranch: Object.freeze({
+      minWidth: 0,
+    }),
     gitBranchRow__lifecycleButton: Object.freeze({
       width: 44,
       height: 44,
+    }),
+    gitHistory: Object.freeze({
+
+    }),
+    gitHeading: Object.freeze({
+
     }),
     gitReview__gitChangeList: Object.freeze({
 
@@ -1381,6 +1410,17 @@ export const newUiTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 12,
+    }),
+    storefront: Object.freeze({
+      maxWidth: 736,
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
+      paddingTop: 20,
+      paddingRight: 16,
+      paddingBottom: 20,
+      paddingLeft: 16,
     }),
     storefrontGrid: Object.freeze({
 
@@ -1838,6 +1878,30 @@ export const newUiTheme = Object.freeze({
     }),
     aunRailSpacer: Object.freeze({
 
+    }),
+    aunRailNav: Object.freeze({
+      minHeight: 0,
+    }),
+    aunSession: Object.freeze({
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: "#ffffff14",
+    }),
+    aunSessionId: Object.freeze({
+      minWidth: 0,
+    }),
+    aunSessionName: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 13,
+    }),
+    aunSessionLogout: Object.freeze({
+
+    }),
+    aunPhone__aunSession: Object.freeze({
+      paddingTop: 8,
+      paddingRight: 16,
+      paddingBottom: 8,
+      paddingLeft: 16,
     }),
     aunMain: Object.freeze({
       minWidth: 0,

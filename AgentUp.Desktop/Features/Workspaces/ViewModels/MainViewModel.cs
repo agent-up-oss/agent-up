@@ -173,6 +173,9 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public ReactiveCommand<Unit, Unit> BrowserReloadCommand { get; }
     public ReactiveCommand<Unit, Unit> SwitchServerCommand { get; }
 
+    /// <summary>Logs out of the connected Server and returns to the connect picker.</summary>
+    public ReactiveCommand<Unit, Unit> LogoutCommand { get; }
+
     // Emits (workspaceId, url) when the browser should navigate.
     // workspaceId drives which isolated session to use; url is the destination.
     public IObservable<(string? WorkspaceId, string? Url)> BrowserNavigation { get; }
@@ -226,6 +229,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         BrowserForwardCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Forward));
         BrowserReloadCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Reload));
         SwitchServerCommand = ReactiveCommand.Create(Login.ShowSwitcher);
+        LogoutCommand = ReactiveCommand.Create(Logout);
         _chromeServerStatus = new ChromeServerStatusViewModel(sidebar, SwitchServerCommand);
         UpdateChromeLeftItems(Login.IsVisible);
         Login.WhenAnyValue(viewModel => viewModel.IsVisible)
@@ -863,6 +867,12 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         Validation?.Clear();
         _ = Agent.LoadAsync(null);
         _serverSessionReset.OnNext(Unit.Default);
+    }
+
+    internal void Logout()
+    {
+        ResetLocalSession();
+        Login.Logout();
     }
 
     private void OnServerSwitched()

@@ -31,6 +31,8 @@ public static class DesktopAutomationIds
     public const string SidebarAddWorkspaceCollapsed = "sidebar.add-workspace.collapsed";
     public const string SidebarToggle = "sidebar.toggle";
     public const string SidebarToggleCollapsed = "sidebar.toggle.collapsed";
+    public const string SidebarLogout = "sidebar.logout";
+    public const string SidebarLogoutCollapsed = "sidebar.logout.collapsed";
     public const string SidebarRetry = "sidebar.retry";
     public const string WorkspaceList = "workspace.list";
     public const string WorkspaceListCollapsed = "workspace.list.collapsed";

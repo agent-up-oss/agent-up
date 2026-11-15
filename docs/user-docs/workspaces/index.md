@@ -29,7 +29,7 @@ Non-Git paths still work and display as `not on a git branch`. Agent-Up can also
 
 <DocSurfaces>
 <DocSurface cli>From the directory that contains `agent-up.json`.</DocSurface>
-<DocSurface desktop>The workspace list `+` control clones a repository at a branch and registers it. The plan card at the bottom of that list names unavailable operations when the Server withholds them, and the `+` and remove controls follow `workspace.create` and `workspace.delete`.</DocSurface>
+<DocSurface desktop>The workspace list `+` control clones a repository at a branch and registers it. The plan card at the bottom of that list names unavailable operations when the Server withholds them, and the `+` and remove controls follow `workspace.create` and `workspace.delete`. Under it, the connected Server and **Logout** close the sidebar.</DocSurface>
 <DocSurface mobile>The same `+` control lives on the sidebar workspace list. There is no Workspaces tab. Remove follows `workspace.delete` the same way.</DocSurface>
 </DocSurfaces>
 
@@ -103,7 +103,7 @@ Switching servers drops that client's local workspace state.
 </DocSteps>
 
 <DocSurfaces>
-<DocSurface mobile>After connect, the sidebar lists workspaces for the signed-in Server and that Server URL with Logout. Each workspace has a bottom bar with Apps, Git, Agents, and Settings. Settings lists capability modules. The Apps tab start/stop control requests the Server-owned lifecycle and shows live health.</DocSurface>
+<DocSurface mobile>After connect, the sidebar lists workspaces for the signed-in Server and that Server URL with Logout. In the command center, the Server and Logout sit above the Team, Tasks, and Settings tabs. Each workspace has a bottom bar with Apps, Git, Agents, and Settings. Settings lists capability modules. The Apps tab start/stop control requests the Server-owned lifecycle and shows live health.</DocSurface>
 </DocSurfaces>
 
 ## CLI workspace commands

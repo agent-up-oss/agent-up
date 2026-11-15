@@ -164,6 +164,24 @@ public class MainViewModelTests
     }
 
     [Test]
+    public async Task LogoutCommand_dropsTheSessionAndOpensThePickerWithNoWayBack()
+    {
+        var dto = DesktopDomain.WorkspaceServing(3000).Build();
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
+        await vm.InitializeAsync();
+
+        vm.LogoutCommand.Execute().Subscribe();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.Sidebar.Workspaces, Is.Empty);
+            Assert.That(vm.Login.IsVisible, Is.True);
+            Assert.That(vm.Login.IsSwitcher, Is.False);
+            Assert.That(vm.Login.CanGoBack, Is.False);
+        });
+    }
+
+    [Test]
     public void SwitchServerCommand_opensTheSwitcherAndHidesChromeActions()
     {
         var vm = CreateVm(NullWorkspaceClient());

@@ -31,6 +31,7 @@
       <header class="aun-phone__head" data-au-slot="head"></header>
       <div class="aun-phone__body" data-au-slot="body"></div>
       <div class="aun-phone__dock" data-au-slot="dock"></div>
+      <div data-au-slot="session"></div>
       <div data-au-slot="nav"></div>
     </div>
   </section>
@@ -98,12 +99,14 @@
   <section data-au-scene="mobile-team" data-au-platform="mobile" data-au-view="team" data-au-title="Team" data-au-layout="mobile-command">
     <div data-au-region="head" data-au-use="mobile-head-team"></div>
     <div data-au-region="body" data-au-use="mobile-state-map"></div>
+    <div data-au-region="session" data-au-use="rail-session"></div>
     <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:0"></div>
   </section>
 
   <section data-au-scene="mobile-tasks" data-au-platform="mobile" data-au-view="tasks" data-au-title="Tasks" data-au-layout="mobile-command">
     <div data-au-region="head" data-au-use="mobile-head-tasks"></div>
     <div data-au-region="body" data-au-use="task-board" data-au-props="parts="></div>
+    <div data-au-region="session" data-au-use="rail-session"></div>
     <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:1"></div>
   </section>
 
@@ -137,6 +140,7 @@
   <section data-au-scene="mobile-settings" data-au-platform="mobile" data-au-view="settings" data-au-title="Settings" data-au-layout="mobile-command">
     <div data-au-region="head" data-au-use="mobile-head-settings"></div>
     <div data-au-region="body" data-au-use="settings-panel"></div>
+    <div data-au-region="session" data-au-use="rail-session"></div>
     <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:2"></div>
   </section>
 </body>

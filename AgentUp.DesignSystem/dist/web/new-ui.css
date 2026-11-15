@@ -2081,6 +2081,19 @@
 }
 
 .aun-rail__spacer { flex-grow: 1; }
+.aun-rail__nav { display: flex; flex-direction: column; gap: var(--au-space-2); flex-grow: 1; min-height: 0; overflow-y: auto; }
+.aun-session {
+  display: flex;
+  align-items: center;
+  gap: var(--au-space-3);
+  flex-shrink: 0;
+  padding-top: var(--au-space-3);
+  border-top: var(--au-stroke) solid var(--au-color-border-subtle);
+}
+.aun-session__id { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; gap: 2px; }
+.aun-session__name { overflow: hidden; color: var(--au-color-text-primary); font-size: var(--au-font-size-ui-md); text-overflow: ellipsis; white-space: nowrap; }
+.aun-session__logout { width: auto; flex-shrink: 0; }
+.aun-phone .aun-session { padding: var(--au-space-2) var(--au-space-4); }
 
 /* ---------------------------------------------------------------- main --- */
 
