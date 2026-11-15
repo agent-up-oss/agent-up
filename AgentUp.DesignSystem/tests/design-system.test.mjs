@@ -1094,7 +1094,7 @@ test('the scene owns the board: groups, labels, grips, tones, and the empty copy
 test('the New UI Avalonia sheet styles what the scene draws, the way the CSS does', async () => {
   const sheet = await readFile(new URL('./dist/avalonia/AgentUpNewUiStyles.axaml', root), 'utf8');
   const classic = await readFile(new URL('./dist/avalonia/AgentUpStyles.axaml', root), 'utf8');
-  const style = selector => sheet.match(new RegExp(`<Style Selector="${selector.replace(/[.]/g, '\\.')}">([\\s\\S]*?)</Style>`))?.[1] ?? '';
+  const style = selector => sheet.match(new RegExp(`<Style Selector="${selector.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')}">([\\s\\S]*?)</Style>`))?.[1] ?? '';
   // A class the classic shell lays out by hand still carries its CSS when the scene draws it.
   assert.match(style('Border.au-validation-sidebar-list'), /Property="Padding" Value="18,8,18,18"/);
   assert.doesNotMatch(classic, /Selector="Border\.au-validation-sidebar-list"/);
