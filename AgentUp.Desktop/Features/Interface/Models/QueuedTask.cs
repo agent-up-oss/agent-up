@@ -15,3 +15,9 @@ public sealed record QueuedTask(
 
 /// <summary>An open issue on a workspace's repository, offered for picking.</summary>
 public sealed record OfferedIssue(string Id, int Number, string Title, string Url);
+
+/// <summary>
+/// The issues on offer and where a pick is taken from. <see cref="PickFrom"/> is null when the
+/// Server's task source offered them: the Server then picks from that source, not from a workspace.
+/// </summary>
+public sealed record OfferedIssues(IReadOnlyList<OfferedIssue> Issues, string? PickFrom);

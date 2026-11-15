@@ -112,6 +112,19 @@ public sealed class TaskQueueViewModelTests
     }
 
     [Test]
+    public async Task PickCommand_takesATaskSourceIssueFromTheSourceRatherThanAWorkspace()
+    {
+        var api = new FakeTaskQueueApi { SourceIssues = [new OfferedIssue("57", 57, "From the source", "u")] };
+        var queue = ViewModel(api);
+        queue.Attach([new TeamMember("ws-mia", "Mia", "", "Running")]);
+        await queue.ReadAsync();
+
+        await queue.Offered.Single().PickCommand.Execute();
+
+        Assert.That(api.Enqueued, Is.EqualTo(new (string?, string)[] { (null, "57") }));
+    }
+
+    [Test]
     public async Task PickCommand_queuesTheIssueAgainstTheOpenWorkspace()
     {
         var api = new FakeTaskQueueApi { Issues = [new OfferedIssue("8", 8, "Task 8", "u")] };
@@ -121,7 +134,7 @@ public sealed class TaskQueueViewModelTests
 
         await queue.Offered.Single().PickCommand.Execute();
 
-        Assert.That(api.Enqueued, Is.EqualTo(new[] { ("ws-bob", "8") }));
+        Assert.That(api.Enqueued, Is.EqualTo(new (string?, string)[] { ("ws-bob", "8") }));
     }
 
     [Test]
@@ -285,7 +298,7 @@ public sealed class TaskQueueViewModelTests
 
         public Exception? Failure { get; init; }
 
-        public List<(string WorkspaceId, string IssueId)> Enqueued { get; } = [];
+        public List<(string? WorkspaceId, string IssueId)> Enqueued { get; } = [];
 
         public List<(string Id, int Index)> Moved { get; } = [];
 
@@ -306,7 +319,7 @@ public sealed class TaskQueueViewModelTests
         public Task<IReadOnlyList<OfferedIssue>?> ListSourceIssuesAsync(CancellationToken cancellationToken) =>
             Task.FromResult(SourceIssues);
 
-        public Task EnqueueAsync(string workspaceId, string issueId, string? targetWorkspaceId, CancellationToken cancellationToken)
+        public Task EnqueueAsync(string? workspaceId, string issueId, string? targetWorkspaceId, CancellationToken cancellationToken)
         {
             Enqueued.Add((workspaceId, issueId));
             return Task.CompletedTask;

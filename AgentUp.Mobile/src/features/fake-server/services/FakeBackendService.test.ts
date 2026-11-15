@@ -585,6 +585,15 @@ test('picking an issue puts it at the back of the queue and stops offering it', 
   assert.deepEqual(offered.map((issue: { number: number }) => issue.number), [58, 61]);
 });
 
+test('picking with no workspace takes the issue from the task source', () => {
+  const service = backend();
+  json(service, 'POST', '/api/tasks', JSON.stringify({ issueId: 'I-57' }));
+  const queue = json(service, 'GET', '/api/tasks');
+  const offered = json(service, 'GET', '/api/task-source/issues');
+  assert.equal(queue[queue.length - 1].number, 57);
+  assert.deepEqual(offered.map((issue: { number: number }) => issue.number), [58, 61]);
+});
+
 test('a task a workspace is carrying is not removed, but can be released first', () => {
   const service = backend();
   const refused = service.handle({ method: 'DELETE', path: '/api/tasks/example/repository/I-44', query: '', body: null });

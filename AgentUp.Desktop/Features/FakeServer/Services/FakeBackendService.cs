@@ -1281,11 +1281,22 @@ public sealed class FakeBackendService
         var workspaceId = ReadJsonString(body, "workspaceId");
         var issueId = ReadJsonString(body, "issueId");
         var target = ReadJsonString(body, "targetWorkspaceId");
-        if (workspaceId is null || issueId is null)
+        if (issueId is null)
             return NotFound();
 
         lock (_gate)
         {
+            // No workspace named means the Server's task source, which the Demo reads from the
+            // first workspace's repository, the same place GET /api/task-source/issues reads.
+            if (workspaceId is null)
+            {
+                if (!_sourceConnected)
+                    return NotFound();
+                workspaceId = _state.Workspaces.OfType<JsonObject>().FirstOrDefault()?["id"]?.GetValue<string>();
+                if (workspaceId is null)
+                    return NotFound();
+            }
+
             var issue = (_state.Issues?[workspaceId]?.AsArray() ?? [])
                 .OfType<JsonObject>()
                 .FirstOrDefault(item => item["id"]?.GetValue<string>() == issueId);

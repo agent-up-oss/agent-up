@@ -953,6 +953,22 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_picksATaskSourceIssueWhenNoWorkspaceIsNamed()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Run(backend, Post("/api/tasks", """{"issueId":"I-57"}"""));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Json(backend, Get("/api/tasks")).AsArray()[^1]!["number"]!.GetValue<int>(), Is.EqualTo(57));
+            Assert.That(
+                Json(backend, Get("/api/task-source/issues")).AsArray().Select(issue => issue!["number"]!.GetValue<int>()),
+                Is.EqualTo(new[] { 58, 61 }));
+        });
+    }
+
+    [Test]
     public void Handle_picksAnIssueOntoTheBackOfTheQueueAndStopsOfferingIt()
     {
         var backend = FakeServerTestComposition.Backend();
@@ -1090,9 +1106,10 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
-    public void Handle_refusesToPickWithoutAWorkspaceAndAnIssue()
+    public void Handle_refusesToPickWithoutAnIssueOrAReadableSource()
     {
         var backend = FakeServerTestComposition.Backend();
+        Run(backend, new FakeBackendRequestDtoBuilder().Delete("/api/task-source"));
 
         Assert.Multiple(() =>
         {

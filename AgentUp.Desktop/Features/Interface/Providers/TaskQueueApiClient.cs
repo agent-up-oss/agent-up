@@ -39,7 +39,7 @@ public sealed class TaskQueueApiClient(HttpClient http) : ITaskQueueApiProvider
     }
 
     public async Task EnqueueAsync(
-        string workspaceId,
+        string? workspaceId,
         string issueId,
         string? targetWorkspaceId,
         CancellationToken cancellationToken)

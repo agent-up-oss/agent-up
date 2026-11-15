@@ -572,9 +572,14 @@ export class FakeBackendService {
   }
 
   private enqueueTask(body: string | null): FakeBackendResponse {
-    const workspaceId = readJsonString(body, 'workspaceId');
+    const named = readJsonString(body, 'workspaceId');
     const issueId = readJsonString(body, 'issueId');
-    if (!workspaceId || !issueId) return notFound();
+    if (!issueId) return notFound();
+    // No workspace named means the Server's task source, which the Demo reads from the first
+    // workspace's repository, the same place GET /api/task-source/issues reads.
+    const workspaceId = named
+      ?? (this.source?.connected ? (this.state.workspaces[0] as { id?: string } | undefined)?.id : undefined);
+    if (!workspaceId) return notFound();
 
     const issue = (this.state.issues?.[workspaceId] ?? []).find(item => item.id === issueId);
     if (!issue) return notFound();

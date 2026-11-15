@@ -9,8 +9,7 @@ import {
   type OfferedIssue,
   type QueuedTask,
 } from '../models/TaskQueue';
-import { moveTask, pickIssue, readIssues, readQueue, releaseTask, removeTask } from '../providers/TaskQueueProvider';
-import { readSourceIssues, readTaskSource } from '../providers/TaskSourceProvider';
+import { moveTask, pickIssue, readOffered, readQueue, releaseTask, removeTask } from '../providers/TaskQueueProvider';
 
 /** How often the Tasks tab re-reads the queue, matching the bridge's own refresh. */
 const taskQueueRefreshMs = 10_000;
@@ -47,6 +46,7 @@ export function useTaskQueue(): TaskQueueState {
   const { server, workspaces, error: workspaceError } = useWorkspaces();
   const [queue, setQueue] = useState<QueuedTask[]>([]);
   const [issues, setIssues] = useState<OfferedIssue[]>([]);
+  const [pickFrom, setPickFrom] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [read, setRead] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,11 +73,12 @@ export function useTaskQueue(): TaskQueueState {
       // never pointed anywhere still offers something to pick.
       const [queued, open] = await Promise.all([
         readQueue(server),
-        offeredIssues(server, offeringWorkspaceId),
+        readOffered(server, offeringWorkspaceId),
       ]);
       if (ticket !== newest.current) return;
       setQueue(queued);
-      setIssues(open);
+      setIssues(open.issues);
+      setPickFrom(open.pickFrom);
       setError(null);
       setRead(true);
     } catch (cause) {
@@ -117,8 +118,11 @@ export function useTaskQueue(): TaskQueueState {
     error: error ?? workspaceError,
     refresh: () => { void load(); },
     pick: issue => {
-      if (!server || offeringWorkspaceId === null) return;
-      void change(() => pickIssue(server, offeringWorkspaceId, issue.id, null));
+      if (!server) return;
+      // A source issue is picked from the source: naming a workspace would send the Server to that
+      // workspace's repository, where the issue may not exist.
+      if (pickFrom !== null && pickFrom !== offeringWorkspaceId) return;
+      void change(() => pickIssue(server, pickFrom, issue.id, null));
     },
     remove: task => {
       if (!server) return;
@@ -135,19 +139,4 @@ export function useTaskQueue(): TaskQueueState {
       void change(() => moveTask(server, task, queueIndexFor(queue, task, index)));
     },
   };
-}
-
-/**
- * The issues a reader can pick from.
- *
- * A configured source answers for the whole Server. Without one, the opened workspace's own
- * repository answers, which is what every Server did before a source could be named.
- */
-async function offeredIssues(
-  server: ServerSession,
-  offeringWorkspaceId: string | null,
-): Promise<OfferedIssue[]> {
-  const source = await readTaskSource(server);
-  if (source?.configured) return readSourceIssues(server);
-  return offeringWorkspaceId === null ? [] : readIssues(server, offeringWorkspaceId);
 }

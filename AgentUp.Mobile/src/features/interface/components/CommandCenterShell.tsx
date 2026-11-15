@@ -20,6 +20,7 @@ import {
   listCapabilityModules,
 } from '@/features/capabilities/providers/CapabilityModulesApiProvider';
 import { SceneIcon } from './SceneIcon';
+import { runTaskAction } from '../providers/TaskActionProvider';
 import {
   bindAgent,
   enableAgentCapability,
@@ -190,6 +191,7 @@ function CommandCenterBinder() {
     if (name === 'connect-source') { void source.connect(); return; }
     if (name === 'enable-module') { changeModule(id, true); return; }
     if (name === 'disable-module') { changeModule(id, false); return; }
+    if (runTaskAction(name, id, tasks)) return;
     if (name === 'settings-workspace' && id) { setSettingsWorkspace(id); return; }
     if (activeServer && chatWorkspace) {
       if (name === 'enable-autonomy') { changeChat(putAutonomy(activeServer, true)); return; }

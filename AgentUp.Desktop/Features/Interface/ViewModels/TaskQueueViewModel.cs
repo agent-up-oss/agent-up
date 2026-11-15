@@ -22,6 +22,8 @@ public sealed class TaskQueueViewModel : ReactiveObject
     private string? _errorMessage;
     private bool _hasRead;
     private string? _offeringWorkspaceId;
+    /// <summary>Where the issues on offer are picked from; null when the Server's task source offered them.</summary>
+    private string? _pickFrom;
     /// <summary>The whole queue as the Server holds it, which the screen shows in two parts.</summary>
     private IReadOnlyList<QueuedTask> _wholeQueue = [];
 
@@ -88,7 +90,8 @@ public sealed class TaskQueueViewModel : ReactiveObject
             var offered = await _queue.ListOfferedAsync(_offeringWorkspaceId, cancellationToken);
             if (read != _reads) return;
             _hasRead = true;
-            Apply(queued, offered);
+            _pickFrom = offered.PickFrom;
+            Apply(queued, offered.Issues);
         }
         catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
         {
@@ -132,8 +135,12 @@ public sealed class TaskQueueViewModel : ReactiveObject
 
     internal async Task PickAsync(OfferedIssue issue)
     {
-        if (_offeringWorkspaceId is null) return;
-        await Run(token => _queue.EnqueueAsync(_offeringWorkspaceId, issue.Id, null, token));
+        // An issue the task source offered is picked from that source, which the Server reads
+        // when no workspace is named. Naming one would send it to that workspace's repository,
+        // where the issue may not exist.
+        // A workspace's own issues are only picked while that workspace is still the one offering.
+        if (_pickFrom is not null && _pickFrom != _offeringWorkspaceId) return;
+        await Run(token => _queue.EnqueueAsync(_pickFrom, issue.Id, null, token));
     }
 
     internal Task RemoveAsync(QueuedTask task) => Run(token => _queue.RemoveAsync(task, token));
