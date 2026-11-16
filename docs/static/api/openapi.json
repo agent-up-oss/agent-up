@@ -600,6 +600,80 @@
         }
       }
     },
+    "/api/task-source": {
+      "delete": {
+        "tags": [
+          "TaskSource"
+        ],
+        "operationId": "TaskSourceHttpController_Clear",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "TaskSource"
+        ],
+        "operationId": "TaskSourceHttpController_Get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "TaskSource"
+        ],
+        "operationId": "TaskSourceHttpController_Set",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/task-source/callback": {
+      "get": {
+        "tags": [
+          "TaskSource"
+        ],
+        "operationId": "TaskSourceOAuthHttpController_Callback",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/task-source/issues": {
+      "get": {
+        "tags": [
+          "TaskSource"
+        ],
+        "operationId": "TaskSourceHttpController_Issues",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/task-source/login": {
+      "post": {
+        "tags": [
+          "TaskSource"
+        ],
+        "operationId": "TaskSourceHttpController_Login",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/tasks": {
       "get": {
         "tags": [
@@ -669,6 +743,82 @@
           "Agents"
         ],
         "operationId": "TaskQueueHttpController_Target",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/training/decisions": {
+      "get": {
+        "tags": [
+          "Training"
+        ],
+        "operationId": "TrainingHttpController_Decisions",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Training"
+        ],
+        "operationId": "TrainingHttpController_Record",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/training/decisions/{id}/review": {
+      "post": {
+        "tags": [
+          "Training"
+        ],
+        "operationId": "TrainingHttpController_Review",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/training/evidence/{evidenceId}": {
+      "get": {
+        "tags": [
+          "Training"
+        ],
+        "operationId": "TrainingHttpController_Evidence",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/training/export": {
+      "get": {
+        "tags": [
+          "Training"
+        ],
+        "operationId": "TrainingHttpController_Export",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/training/repositories": {
+      "get": {
+        "tags": [
+          "Training"
+        ],
+        "operationId": "TrainingHttpController_Repositories",
         "responses": {
           "200": {
             "description": "Success"

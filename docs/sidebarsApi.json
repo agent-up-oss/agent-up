@@ -23,6 +23,8 @@
         "git",
         "service-control",
         "source-clones",
+        "task-source",
+        "training",
         "tray-session",
         "validation",
         "verification",
