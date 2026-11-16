@@ -164,6 +164,21 @@ public class MainViewModelTests
     }
 
     [Test]
+    public void AgentPaneTitle_isTheClassicHeadingUntilTheCommandCenterHostsThePane()
+    {
+        var vm = CreateVm(NullWorkspaceClient(), commandCenter: InterfaceTestComposition.Classic());
+        var classic = vm.AgentPaneTitle;
+
+        vm.CommandCenter!.ToggleCommand.Execute().Subscribe();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(classic, Is.EqualTo("Workspace agent"));
+            Assert.That(vm.AgentPaneTitle, Is.EqualTo("Chat"));
+        });
+    }
+
+    [Test]
     public async Task LogoutCommand_dropsTheSessionAndOpensThePickerWithNoWayBack()
     {
         var dto = DesktopDomain.WorkspaceServing(3000).Build();
@@ -360,7 +375,7 @@ public class MainViewModelTests
             Assert.That(vm.ShowValidation, Is.False);
             Assert.That(vm.IsValidationOpen, Is.False);
             Assert.That(vm.Validation!.IsCollapsed, Is.True);
-            Assert.That(vm.ShellTabs.Select(tab => tab.Label), Is.EqualTo(new[] { "Overview", "Chat", "Git" }));
+            Assert.That(vm.ShellTabs.Select(tab => tab.Label), Is.EqualTo(new[] { "Overview", "Agent", "Git" }));
         });
 
         vm.SelectedShellTab = WorkspaceShellTab.Application;

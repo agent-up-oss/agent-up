@@ -1680,6 +1680,8 @@ code {
 
     private void DeliverPressByLayout(PointerPressedEventArgs e)
     {
+        // Only the command center needs this; the classic shell's clicks stay as they were.
+        if (DataContext is not MainViewModel { CommandCenter.Active: true }) return;
         if (e.Handled || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         if (e.Source is Visual source && InteractiveAncestor(source) is not null) return;
 

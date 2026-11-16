@@ -74,7 +74,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public ObservableCollection<WorkspaceShellTabItemViewModel> ShellTabs { get; } =
     [
         new(WorkspaceShellTab.Overview, "Overview"),
-        new(WorkspaceShellTab.Agent, "Chat"),
+        new(WorkspaceShellTab.Agent, "Agent"),
         new(WorkspaceShellTab.Git, "Git")
     ];
 
@@ -145,6 +145,12 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     /// its own, so the host bar steps aside only while that scene is the page.
     /// </summary>
     public bool ShowsWindowChrome => Login.IsVisible || CommandCenter?.Active != true;
+
+    /// <summary>
+    /// The heading over the agent pane. The classic Agent tab keeps its own; the command center
+    /// hosts the same pane as its Chat page and names it that.
+    /// </summary>
+    public string AgentPaneTitle => CommandCenter?.Active == true ? "Chat" : "Workspace agent";
 
     public bool ShowOverview => SelectedShellTab == WorkspaceShellTab.Overview;
     public bool ShowAgent => SelectedShellTab == WorkspaceShellTab.Agent;
@@ -419,7 +425,11 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     private void SubscribeCommandCenter()
     {
         CommandCenter?.WhenAnyValue(x => x.Active)
-            .Subscribe(_ => this.RaisePropertyChanged(nameof(ShowsWindowChrome)));
+            .Subscribe(_ =>
+            {
+                this.RaisePropertyChanged(nameof(ShowsWindowChrome));
+                this.RaisePropertyChanged(nameof(AgentPaneTitle));
+            });
 
         // The decision backlog is not a live feed: it changes when an agent records something, not
         // every few seconds, so it is read when the shell comes up rather than on the triage tick.
