@@ -61,6 +61,42 @@ public sealed class ForgejoApiProviderTests
     }
 
     [Test]
+    public async Task ListIssuesAsync_readsTheRepositoryWithoutTheAssignedFilter()
+    {
+        var issues = await new ForgejoForgeCapability(Recorded(
+                ("GET /repos/acme/widgets/issues?state=open&type=issues&sort=recentupdate&limit=100", Assigned)))
+            .ListIssuesAsync(Request());
+
+        Assert.That(issues.Single().Number, Is.EqualTo(3));
+        Assert.That(issues.Single().Id, Is.EqualTo("7"));
+    }
+
+    [Test]
+    public async Task ListIssuesAsync_readsMissingOrNullTextAsEmpty()
+    {
+        var issues = await new ForgejoForgeCapability(Recorded(
+                ("GET /repos/acme/widgets/issues?state=open&type=issues&sort=recentupdate&limit=100", SparseIssues)))
+            .ListIssuesAsync(Request());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(issues.Select(issue => issue.Title), Is.EqualTo(new[] { "", "Restock" }));
+            Assert.That(issues.Select(issue => issue.Body), Is.EqualTo(new[] { "", "" }));
+            Assert.That(issues.Select(issue => issue.Url), Is.EqualTo(new[] { "", "https://forgejo.example/acme/widgets/issues/9" }));
+        });
+    }
+
+    [Test]
+    public async Task ListIssuesAsync_returnsEmptyWhenThePayloadIsNotAnArray()
+    {
+        var issues = await new ForgejoForgeCapability(Recorded(
+                ("GET /repos/acme/widgets/issues?state=open&type=issues&sort=recentupdate&limit=100", "{}")))
+            .ListIssuesAsync(Request());
+
+        Assert.That(issues, Is.Empty);
+    }
+
+    [Test]
     public async Task ReadAsync_skipsStatusesWhenTheHeadShaIsMissing()
     {
         const string pulls = """
@@ -350,6 +386,12 @@ public sealed class ForgejoApiProviderTests
 
     private const string Comments = """
         [{"id":99,"html_url":"https://forgejo.example.test/acme/widgets/pulls/42#issuecomment-99","body":"please fix"}]
+        """;
+
+    /// <summary>One issue whose title, body and URL are all null, and one with no body member at all.</summary>
+    private const string SparseIssues = """
+        [{"id":11,"number":8,"title":null,"body":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":null},
+         {"id":12,"number":9,"title":"Restock","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://forgejo.example/acme/widgets/issues/9"}]
         """;
 
     private const string Assigned = """

@@ -1,0 +1,73 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
+import type { TeamMember, TeamStanding } from '../models/TeamStanding';
+import { readStandings } from '../providers/TeamStandingProvider';
+import { triage, type TeamTriage } from '../services/TeamStandingService';
+
+/**
+ * Triage for the whole team, read from the two routes a Server answers per workspace. It re-reads
+ * when the workspace list changes and on a pull, and it reports `read` so an empty bridge can tell
+ * apart "nothing is waiting" from "not yet loaded" — an empty triage list is the good outcome.
+ */
+/** How often the command center re-reads the team, matching Desktop's own refresh. */
+const teamStandingRefreshMs = 10_000;
+
+export function useTeamStanding(): TeamTriage & { loading: boolean; read: boolean; error: string | null; refresh: () => void } {
+  const { server, workspaces, error: workspaceError } = useWorkspaces();
+  const [standings, setStandings] = useState<TeamStanding[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [read, setRead] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const members = useMemo<TeamMember[]>(
+    () => workspaces.map(workspace => ({
+      workspaceId: workspace.id,
+      displayName: workspace.displayName,
+      branch: workspace.branch,
+      state: workspace.state,
+    })),
+    [workspaces],
+  );
+  const signature = useMemo(() => JSON.stringify(members), [members]);
+
+  // Reads overlap: the server or the workspace list can change, and a pull starts one by hand.
+  // Nothing cancels the read already out, so a slower earlier one can land last and draw another
+  // server's team over the current one. Only the newest read may report.
+  const newest = useRef(0);
+
+  const load = useCallback(async () => {
+    if (!server) return;
+    const read = ++newest.current;
+    setLoading(true);
+    try {
+      const standing = await readStandings(server, JSON.parse(signature) as TeamMember[]);
+      if (read !== newest.current) return;
+      setStandings(standing);
+      setError(null);
+      setRead(true);
+    } catch (cause) {
+      if (read !== newest.current) return;
+      setError(cause instanceof Error ? cause.message : 'Could not read the team.');
+    } finally {
+      if (read === newest.current) setLoading(false);
+    }
+  }, [server, signature]);
+
+  useEffect(() => {
+    void load();
+    // Standings go stale on their own: an agent can reach a gate, or a review can land, with the
+    // workspace list unchanged, and nothing else would re-read. The hook lives exactly as long as
+    // the command center is on screen, so the timer stops with it. Desktop re-reads on the same
+    // ten seconds for the same reason.
+    const timer = setInterval(() => { void load(); }, teamStandingRefreshMs);
+    return () => clearInterval(timer);
+  }, [load]);
+
+  return {
+    ...triage(standings),
+    loading,
+    read,
+    error: error ?? workspaceError,
+    refresh: () => { void load(); },
+  };
+}

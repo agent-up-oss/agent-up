@@ -42,10 +42,18 @@ public sealed class LoopPreconditionProvider(
             && !string.Equals(head.Branch, "not on a git branch", StringComparison.Ordinal);
         var pushed = branch && head!.Ahead == 0;
 
-        var changes = await git.GetChangesAsync(workspaceId, cancellationToken);
-        var commitStatus = await commits.GetStatusAsync(workspace.WorktreePath, cancellationToken);
-        var noEdit = commitStatus.ActiveSession is null;
-        var assigned = changes is not { FileCount: > 0 } || commitStatus.UnassignedFiles.Count == 0;
+        // A folder that is not a repository has no commit and no commit queue to read. Its unmet
+        // git branch already blocks activation and says why, so the queue checks are not asked.
+        var repository = head is { Commit.Length: > 0 };
+        var noEdit = true;
+        var assigned = true;
+        if (repository)
+        {
+            var changes = await git.GetChangesAsync(workspaceId, cancellationToken);
+            var commitStatus = await commits.GetStatusAsync(workspace.WorktreePath, cancellationToken);
+            noEdit = commitStatus.ActiveSession is null;
+            assigned = changes is not { FileCount: > 0 } || commitStatus.UnassignedFiles.Count == 0;
+        }
 
         return [
             Item(AutonomyPreconditions.WorkspaceRegistered, true),

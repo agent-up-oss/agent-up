@@ -15,6 +15,7 @@
         xmlns:chromeVm="using:AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome"
         xmlns:authDto="using:AgentUp.Desktop.Features.Authentication.DTOs"
         xmlns:entModels="using:AgentUp.Desktop.Features.Entitlements.Models"
+        xmlns:interfaceViews="using:AgentUp.Desktop.Features.Interface.Views"
         xmlns:ids="using:AgentUp.Desktop.Shared.Providers"
         x:Class="AgentUp.Desktop.Features.Workspaces.Views.MainWindow"
         x:CompileBindings="False"
@@ -287,20 +288,21 @@
         <Style Selector="ListBoxItem:focus /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
-        <!-- Strip default Button chrome without undoing catalog actions. -->
-        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump)">
+        <!-- Strip default Button chrome without undoing catalog actions. The command center's
+             generated buttons carry au-scene and are painted by the design system. -->
+        <Style Selector="Button:not(.au-button):not(.au-scene):not(.au-session-logout):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump)">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
-        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump) /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-scene):not(.au-session-logout):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump) /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
-        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump):pointerover /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-scene):not(.au-session-logout):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump):pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
-        <Style Selector="Button:not(.au-button):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump):pressed /template/ ContentPresenter">
+        <Style Selector="Button:not(.au-button):not(.au-scene):not(.au-session-logout):not(.au-choice):not(.au-chat-thought):not(.au-chat-run):not(.au-workspace-delete):not(.wsDeleteButton):not(.dbRunButton):not(.au-db-run):not(.gitLogRef):not(.au-git-log-ref):not(.au-file-viewer-jump):pressed /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
         <!-- Integrated window chrome -->
@@ -501,7 +503,7 @@
 
     <Border Background="{DynamicResource AgentUpColorCanvasBrush}"
             BorderThickness="0">
-    <Grid RowDefinitions="42,*">
+    <Grid RowDefinitions="Auto,*">
 
         <Control x:Name="FocusSink"
                  Width="1"
@@ -513,6 +515,8 @@
         <!-- Integrated window controls / drag surface -->
         <Border Grid.Row="0"
                 x:Name="WindowChrome"
+                Height="42"
+                IsVisible="{Binding ShowsWindowChrome, FallbackValue=True}"
                 Background="{DynamicResource AgentUpColorCanvasBrush}"
                 BorderThickness="0"
                 PointerPressed="OnWindowChromePointerPressed">
@@ -698,7 +702,8 @@
                 </Grid>
             </Panel>
 
-            <Grid IsVisible="{Binding !Login.IsVisible}"
+            <Panel IsVisible="{Binding !Login.IsVisible}">
+            <Grid IsVisible="{Binding CommandCenter.ShowsClassicLayout, FallbackValue=True}"
                   HorizontalAlignment="Stretch"
                   VerticalAlignment="Stretch">
             <Grid.ColumnDefinitions>
@@ -710,6 +715,7 @@
         <Border Grid.Column="0"
                 x:Name="SidebarRail"
                 Classes="au-rail"
+                IsVisible="{Binding ShowsClassicRail}"
                 Width="{Binding Sidebar.Width}">
             <DockPanel>
 
@@ -771,6 +777,41 @@
                             </Border>
                         </Button>
                     </StackPanel>
+                </Border>
+
+                <!-- The connected Server and Logout close the rail, expanded or collapsed. -->
+                <Border DockPanel.Dock="Bottom"
+                        Padding="12,10,12,12"
+                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
+                        BorderThickness="0,1,0,0">
+                    <Panel>
+                        <Grid ColumnDefinitions="*,Auto"
+                              IsVisible="{Binding Sidebar.IsExpanded}">
+                            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                <TextBlock Classes="au-field-label" Text="SERVER"/>
+                                <TextBlock Classes="au-workspace-name"
+                                           Text="{Binding Login.ConnectedServerName}"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTip.Tip="{Binding Login.CurrentServerUrl}"/>
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    Classes="au-session-logout"
+                                    VerticalAlignment="Center"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.SidebarLogout}"
+                                    AutomationProperties.Name="Log out of this server"
+                                    Command="{Binding LogoutCommand}"
+                                    Content="Logout"/>
+                        </Grid>
+                        <Button Classes="au-session-logout"
+                                IsVisible="{Binding !Sidebar.IsExpanded}"
+                                HorizontalAlignment="Center"
+                                Padding="6,4"
+                                AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.SidebarLogoutCollapsed}"
+                                AutomationProperties.Name="Log out of this server"
+                                ToolTip.Tip="Log out of this server"
+                                Command="{Binding LogoutCommand}"
+                                Content="⏻"/>
+                    </Panel>
                 </Border>
 
                 <Border DockPanel.Dock="Bottom"
@@ -1020,6 +1061,16 @@
                                 BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}"
                                 BorderThickness="0,0,0,1">
                             <StackPanel Orientation="Horizontal">
+                            <!-- Opened from the command center's team: the way back, beside the
+                                 workspace's own tabs rather than above them. -->
+                            <Button Content="‹ Team"
+                                    Classes="au-button au-button--secondary au-button--compact"
+                                    Margin="10,0,4,0"
+                                    VerticalAlignment="Center"
+                                    IsVisible="{Binding CommandCenter.HasAgent, FallbackValue=False}"
+                                    Command="{Binding CommandCenter.CloseAgentCommand}"
+                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentBack}"
+                                    ToolTip.Tip="Back to the team"/>
                             <ListBox x:Name="ShellTabs" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.ShellTabs}"
                                      ItemsSource="{Binding ShellTabs}"
                                      SelectedItem="{Binding SelectedShellTabItem}"
@@ -1284,11 +1335,11 @@
                                 </Grid>
                             </ScrollViewer>
 
-                            <Border IsVisible="{Binding ShowAgent}" Background="{DynamicResource AgentUpColorCanvasBrush}" Padding="20">
-                                <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto" RowSpacing="10">
+                            <Border x:Name="AgentChatPane" IsVisible="{Binding ShowAgent}" Background="{DynamicResource AgentUpColorCanvasBrush}" Padding="20">
+                                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto" RowSpacing="10">
                                     <Grid ColumnDefinitions="*,Auto">
                                         <StackPanel>
-                                            <TextBlock Classes="au-page-title" Text="Workspace agent"/>
+                                            <TextBlock Classes="au-page-title" Text="{Binding AgentPaneTitle}"/>
                                             <TextBlock Classes="au-muted" Text="{Binding Agent.StatusLine}"/>
                                             <TextBlock Classes="au-muted"
                                                        Text="{Binding Agent.LoopLine}"
@@ -1306,8 +1357,8 @@
                                                 Command="{Binding Agent.StopCommand}"
                                                 Content="Stop agent"/>
                                     </Grid>
-                                    <Border Grid.Row="1"
-                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentLoop}"
+                                    <StackPanel x:Name="ChatSettings" Grid.Row="1" Spacing="10">
+                                    <Border AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentLoop}"
                                             Classes="au-choice"
                                             Padding="12"
                                             IsVisible="{Binding Agent.HasAutonomy}">
@@ -1358,7 +1409,7 @@
                                             </StackPanel>
                                         </StackPanel>
                                     </Border>
-                                    <StackPanel Grid.Row="2" Spacing="8" HorizontalAlignment="Stretch">
+                                    <StackPanel Spacing="8" HorizontalAlignment="Stretch">
                                         <TextBlock Classes="au-field-label" Text="Workspace sessions"/>
                                         <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                         <ItemsControl x:Name="AgentSessionList" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentSessions}" ItemsSource="{Binding Agent.Sessions}">
@@ -1484,7 +1535,8 @@
                                         </ItemsControl>
                                         </StackPanel>
                                     </StackPanel>
-                                    <StackPanel Grid.Row="3" Spacing="8">
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="2" Spacing="8">
                                         <ItemsControl ItemsSource="{Binding Agent.AuthenticationOptions}">
                                             <ItemsControl.ItemsPanel>
                                                 <ItemsPanelTemplate>
@@ -1520,7 +1572,7 @@
                                             </StackPanel>
                                         </StackPanel>
                                     </StackPanel>
-                                    <ScrollViewer Grid.Row="4"
+                                    <ScrollViewer Grid.Row="3"
                                                   HorizontalScrollBarVisibility="Disabled"
                                                   VerticalScrollBarVisibility="Auto"
                                                   Background="{DynamicResource AgentUpColorCanvasBrush}">
@@ -1534,7 +1586,7 @@
                                             </ItemsControl.ItemsPanel>
                                         </ItemsControl>
                                     </ScrollViewer>
-                                    <StackPanel Grid.Row="5" IsVisible="{Binding Agent.HasPermission}" Spacing="8">
+                                    <StackPanel Grid.Row="4" IsVisible="{Binding Agent.HasPermission}" Spacing="8">
                                         <TextBlock Text="Decision needed" Foreground="{DynamicResource AgentUpColorTextWarningBrush}" FontSize="10"/>
                                         <TextBlock Text="{Binding Agent.PermissionTitle}" Foreground="{DynamicResource AgentUpColorTextWarningBrush}" FontWeight="Bold" TextWrapping="Wrap"/>
                                         <TextBlock Text="{Binding Agent.PermissionDetail}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" TextWrapping="Wrap"/>
@@ -1543,8 +1595,8 @@
                                             <ItemsControl.ItemTemplate><DataTemplate DataType="agentVm:AgentOptionViewModel"><Button Classes="au-button au-button--secondary au-button--compact" AutomationProperties.AutomationId="{Binding AutomationId}" Command="{Binding Command}" Content="{Binding Label}"/></DataTemplate></ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                     </StackPanel>
-                                    <TextBlock Grid.Row="6" Text="{Binding Agent.Error}" Foreground="{DynamicResource AgentUpColorTextDangerBrush}"/>
-                                    <Grid Grid.Row="7" IsVisible="{Binding Agent.HasSession}" ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBox Classes="au-input" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentMessage}" Text="{Binding Agent.Message}" PlaceholderText="Ask the agent…" AcceptsReturn="True" MaxHeight="100"/><Button Grid.Column="1" Classes="au-button" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentSend}" Command="{Binding Agent.SendCommand}" Content="Send"/></Grid>
+                                    <TextBlock Grid.Row="5" Text="{Binding Agent.Error}" Foreground="{DynamicResource AgentUpColorTextDangerBrush}"/>
+                                    <Grid Grid.Row="6" IsVisible="{Binding Agent.HasSession}" ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBox Classes="au-input" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentMessage}" Text="{Binding Agent.Message}" PlaceholderText="Ask the agent…" AcceptsReturn="True" MaxHeight="100"/><Button Grid.Column="1" Classes="au-button" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentSend}" Command="{Binding Agent.SendCommand}" Content="Send"/></Grid>
                                 </Grid>
                             </Border>
 
@@ -1565,7 +1617,8 @@
                             </StackPanel>
 
                             <!-- Console output — populated by code-behind with a NativeWebView -->
-                            <Grid IsVisible="{Binding ShowConsole}"
+                            <Grid x:Name="ConsoleHost"
+                                  IsVisible="{Binding ShowConsole}"
                                   RowDefinitions="Auto,*,Auto">
                                 <TextBlock Grid.Row="0"
                                            IsVisible="{Binding Console.WasTruncated}"
@@ -1734,7 +1787,8 @@
                             </Panel>
 
                             <!-- TCP port placeholder -->
-                            <StackPanel IsVisible="{Binding ShowTcpInfo}"
+                            <StackPanel x:Name="TcpInfo"
+                                        IsVisible="{Binding ShowTcpInfo}"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Spacing="8">
@@ -1750,7 +1804,8 @@
                             </StackPanel>
 
                             <!-- Database explorer -->
-                            <Grid IsVisible="{Binding ShowDatabase}"
+                            <Grid x:Name="DatabasePanel"
+                                  IsVisible="{Binding ShowDatabase}"
                                   ColumnDefinitions="220,*"
                                   Margin="16,12">
                                 <Grid Grid.Column="0" RowDefinitions="Auto,*,Auto,*" RowSpacing="8" Margin="0,0,12,0">
@@ -1911,7 +1966,8 @@
                             </Grid>
 
                             <!-- Metrics dashboard -->
-                            <Grid IsVisible="{Binding ShowMetrics}"
+                            <Grid x:Name="MetricsPanel"
+                                  IsVisible="{Binding ShowMetrics}"
                                   RowDefinitions="Auto,*">
                                 <DockPanel Grid.Row="0" Margin="20,14,20,0" LastChildFill="False">
                                     <TextBlock DockPanel.Dock="Right"
@@ -2517,6 +2573,10 @@
         </Border>
 
         </Grid>
+            <interfaceViews:CommandCenterView
+                x:Name="CommandCenterPage"
+                IsVisible="{Binding CommandCenter.ShowsOwnSurfaces, FallbackValue=False}"/>
+            </Panel>
 
         <Grid ZIndex="100"
               x:Name="AddWorkspaceOverlay"

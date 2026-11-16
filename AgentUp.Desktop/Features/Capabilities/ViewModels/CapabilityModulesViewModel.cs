@@ -46,6 +46,9 @@ public sealed class CapabilityModulesViewModel : ReactiveObject
 
     public void Close() => IsOpen = false;
 
+    /// <summary>Re-reads the Server's modules without opening the dialog, for surfaces that list them inline.</summary>
+    public Task RefreshAsync() => ReloadAsync();
+
     public async Task EnableAsync(string id, string version)
     {
         Status = $"Enabling {id}…";

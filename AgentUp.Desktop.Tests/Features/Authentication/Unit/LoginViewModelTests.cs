@@ -269,6 +269,31 @@ public sealed class LoginViewModelTests
     }
 
     [Test]
+    public void ShowPicker_FillsTheUrlFromTheHighlightedServerWithoutOpeningIt()
+    {
+        using var savedHttp = new DisposableTestHttpClient(request =>
+            AuthJson(request, HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var store = new InMemoryServerConnectionStore();
+        AuthenticationTestController.Create(savedHttp, store)
+            .SaveServer("https://agent-up.example.com", "remote-token");
+
+        using var launchHttp = new DisposableTestHttpClient(request =>
+            AuthJson(request, HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var login = new LoginViewModel(AuthenticationTestController.Create(launchHttp, store));
+
+        login.ShowPicker();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.ServerUrl, Is.EqualTo("https://agent-up.example.com"));
+            Assert.That(login.CurrentServerUrl, Is.EqualTo("http://127.0.0.1:5000"));
+            Assert.That(
+                login.SavedServers.Single(server => server.Url == "https://agent-up.example.com").IsActive,
+                Is.True);
+        });
+    }
+
+    [Test]
     public void ShowPicker_ListsDemoWithoutAskingForAPassword()
     {
         using var http = new DisposableTestHttpClient(request =>
@@ -439,6 +464,72 @@ public sealed class LoginViewModelTests
         {
             Assert.That(login.IsVisible, Is.False);
             Assert.That(login.CurrentServerUrl, Is.EqualTo("http://127.0.0.1:5100"));
+        });
+    }
+
+    [Test]
+    public async Task Logout_forgetsTheSignInAndOpensThePickerWithNoWayBack()
+    {
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var store = new InMemoryServerConnectionStore();
+        var connections = FakeServerTestComposition.Connections(store, http.Client);
+        var saved = connections.Save("http://127.0.0.1:5100", "token-1");
+        var login = new LoginViewModel(AuthenticationTestController.Create(http, store));
+        login.ShowSwitcher();
+        await login.SelectSavedCommand.Execute(saved.Id).FirstAsync();
+
+        login.Logout();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.IsVisible, Is.True);
+            Assert.That(login.CanGoBack, Is.False);
+            Assert.That(login.SavedServers.Single(server => server.Id == saved.Id).HasCredential, Is.False);
+            Assert.That(http.Client.DefaultRequestHeaders.Authorization, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task Logout_fromTheDemoLeavesTheAddressEmptyAndTheSavedServersChoosable()
+    {
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var login = new LoginViewModel(CreateController(http));
+        login.ShowSwitcher();
+        await login.SelectSavedCommand.Execute(login.SavedServers.Single(server => server.IsFake).Id).FirstAsync();
+
+        login.Logout();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.ServerUrl, Is.Empty);
+            Assert.That(login.ConnectedServerName, Is.EqualTo(login.SavedServers.Single(server => server.IsFake).DisplayName));
+            Assert.That(((System.Windows.Input.ICommand)login.SelectSavedCommand).CanExecute("fake"), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task Logout_thenChoosingTheSameServerAgainRestoresTheSession()
+    {
+        using var http = new DisposableTestHttpClient(request =>
+            AuthJson(request,HttpStatusCode.OK, "{\"authenticationRequired\":false}"));
+        var store = new InMemoryServerConnectionStore();
+        var connections = FakeServerTestComposition.Connections(store, http.Client);
+        var saved = connections.Save("http://127.0.0.1:5100", null);
+        var login = new LoginViewModel(AuthenticationTestController.Create(http, store));
+        login.ShowSwitcher();
+        await login.SelectSavedCommand.Execute(saved.Id).FirstAsync();
+        var restored = 0;
+        using var subscription = login.SessionRestored.Subscribe(_ => restored++);
+
+        login.Logout();
+        await login.SelectSavedCommand.Execute(saved.Id).FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(login.IsVisible, Is.False);
+            Assert.That(restored, Is.EqualTo(1));
         });
     }
 

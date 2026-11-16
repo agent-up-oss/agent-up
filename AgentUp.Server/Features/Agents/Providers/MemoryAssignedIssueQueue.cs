@@ -26,4 +26,12 @@ public sealed class MemoryAssignedIssueQueue : IAssignedIssueQueue
 
     public void Replace(string workspaceId, IReadOnlyList<AssignedIssue> issues) =>
         _issues[workspaceId] = issues;
+
+    /// <summary>Nothing contends for these issues, so the hold always succeeds.</summary>
+    public Task<bool> TryHoldAsync(string workspaceId, string issueId, CancellationToken cancellationToken) =>
+        Task.FromResult(true);
+
+    /// <summary>Completion is recorded by the caller replacing the list.</summary>
+    public Task CompleteAsync(string workspaceId, string issueId, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
 }

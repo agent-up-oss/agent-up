@@ -18,6 +18,10 @@ using AgentUp.Desktop.Features.Agents.Providers;
 using AgentUp.Desktop.Features.Git.Providers;
 using AgentUp.Desktop.Features.Validation.Providers;
 using AgentUp.Desktop.Composition;
+using AgentUp.Desktop.Features.Interface.Controllers;
+using AgentUp.Desktop.Features.Interface.Interfaces;
+using AgentUp.Desktop.Features.Interface.Models;
+using AgentUp.Desktop.Features.Interface.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome;
 using AgentUp.Desktop.Shared.Providers;
@@ -160,6 +164,39 @@ public class MainViewModelTests
     }
 
     [Test]
+    public void AgentPaneTitle_isTheClassicHeadingUntilTheCommandCenterHostsThePane()
+    {
+        var vm = CreateVm(NullWorkspaceClient(), commandCenter: InterfaceTestComposition.Classic());
+        var classic = vm.AgentPaneTitle;
+
+        vm.CommandCenter!.ToggleCommand.Execute().Subscribe();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(classic, Is.EqualTo("Workspace agent"));
+            Assert.That(vm.AgentPaneTitle, Is.EqualTo("Chat"));
+        });
+    }
+
+    [Test]
+    public async Task LogoutCommand_dropsTheSessionAndOpensThePickerWithNoWayBack()
+    {
+        var dto = DesktopDomain.WorkspaceServing(3000).Build();
+        var vm = CreateVm(FakeWorkspaceClient([dto]));
+        await vm.InitializeAsync();
+
+        vm.LogoutCommand.Execute().Subscribe();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.Sidebar.Workspaces, Is.Empty);
+            Assert.That(vm.Login.IsVisible, Is.True);
+            Assert.That(vm.Login.IsSwitcher, Is.False);
+            Assert.That(vm.Login.CanGoBack, Is.False);
+        });
+    }
+
+    [Test]
     public void SwitchServerCommand_opensTheSwitcherAndHidesChromeActions()
     {
         var vm = CreateVm(NullWorkspaceClient());
@@ -195,7 +232,7 @@ public class MainViewModelTests
 
     // Named rather than counted so adding a chrome action reads as a deliberate change here
     // instead of an off-by-one, and so a rename cannot pass by keeping the count the same.
-    private static readonly string[] WorkspaceChromeButtons = ["ReloadButton", "CapabilityModulesButton"];
+    private static readonly string[] WorkspaceChromeButtons = ["ReloadButton", "CapabilityModulesButton", "CommandCenterButton"];
 
     private static string[] ChromeButtonNames(MainViewModel vm)
         => vm.Chrome.LeftItems.OfType<ChromeIconButtonViewModel>().Select(item => item.Name).ToArray();
@@ -1090,10 +1127,45 @@ public class MainViewModelTests
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
+    [Test]
+    public async Task CommandCenter_readsTheBridgeAsSoonAsTheTeamArrives()
+    {
+        var agents = new StandingAgentFake();
+        agents.Sessions["bob"] = TeamStandingComposition.Session(
+            "bob",
+            loop: TeamStandingComposition.Loop(true, "running", 44, "Restock featured products", "Running"));
+        var bridge = new BridgeViewModel(TeamStandingComposition.Controller(agents, new StandingForgeFake()));
+        var vm = CreateVm(
+            NullWorkspaceClient(),
+            commandCenter: InterfaceTestComposition.Classic(bridge));
+        vm.CommandCenter!.ToggleCommand.Execute().Subscribe();
+
+        vm.Sidebar.Workspaces.Add(new WorkspaceItemViewModel(
+            "bob", "Bob", "main", "/demo/agents/bob", "/demo/agents/bob", "Running"));
+        // A later refresh may clear and refill the team, so read the member the wait saw.
+        StandingRowViewModel? member = null;
+        await WaitForAsync(() => (member = bridge.Team.ToList().SingleOrDefault()) is not null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.CommandCenter.Active, Is.True);
+            Assert.That(member!.WorkspaceId, Is.EqualTo("bob"));
+            Assert.That(member.TaskLabel, Is.EqualTo("#44 · Restock featured products"));
+        });
+    }
+
+    /// <summary>The read is fired and forgotten, so the assertion waits on its effect rather than on a task.</summary>
+    private static async Task WaitForAsync(Func<bool> settled)
+    {
+        for (var attempt = 0; attempt < 100 && !settled(); attempt++) await Task.Delay(10);
+        Assert.That(settled(), Is.True, "The bridge never read the team.");
+    }
+
     private static MainViewModel CreateVm(
         WorkspaceApiClient workspaceClient,
         ConsoleApiClient? consoleClient = null,
-        LoginViewModel? login = null)
+        LoginViewModel? login = null,
+        CommandCenterViewModel? commandCenter = null)
         => MainViewModelFactory.Create(
             workspaceClient,
             consoleClient ?? NullConsoleClient(),
@@ -1102,7 +1174,8 @@ public class MainViewModelTests
             validationClient: NullValidationClient(),
             agentClient: NullAgentClient(),
             login: login,
-            entitlementsHttp: NullEntitlementsHttp);
+            entitlementsHttp: NullEntitlementsHttp,
+            commandCenter: commandCenter ?? InterfaceTestComposition.Classic());
 
     private static readonly HttpClient NullEntitlementsHttp = new(new StatusCodeHandler(HttpStatusCode.NotFound))
     {

@@ -20,6 +20,8 @@ using AgentUp.Desktop.Features.Validation.Controllers;
 using AgentUp.Desktop.Features.Validation.Interfaces;
 using AgentUp.Desktop.Features.Validation.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
+using AgentUp.Desktop.Features.Interface.Models;
+using AgentUp.Desktop.Features.Interface.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels.Chrome;
 using AgentUp.Desktop.Shared.Providers;
 using ReactiveUI;
@@ -59,6 +61,9 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public WindowChromeViewModel Chrome { get; } = new();
     public ValidationViewModel? Validation { get; }
     public CapabilityModulesViewModel? Modules { get; }
+
+    /// <summary>Which shell the window draws. Null in hosts that never offer the command center.</summary>
+    public CommandCenterViewModel? CommandCenter { get; }
     internal IValidationReplayConnector? ValidationReplay { get; }
     internal DesktopValidationLaunchController? DesktopValidationLaunch { get; }
     public bool IsValidationOpen => ShowValidation && Validation is { IsCollapsed: false };
@@ -129,6 +134,24 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         set => this.RaiseAndSetIfChanged(ref _selectedSubTab, value);
     }
 
+    /// <summary>
+    /// True while the classic workspace rail is the way between workspaces. With an agent open in
+    /// the command center it is not: the team picked the workspace, and its own head leads back.
+    /// </summary>
+    public bool ShowsClassicRail => CommandCenter?.HasAgent != true;
+
+    /// <summary>
+    /// The host title bar. Sign-in and the classic shell use it. The command center scene draws
+    /// its own, so the host bar steps aside only while that scene is the page.
+    /// </summary>
+    public bool ShowsWindowChrome => Login.IsVisible || CommandCenter?.Active != true;
+
+    /// <summary>
+    /// The heading over the agent pane. The classic Agent tab keeps its own; the command center
+    /// hosts the same pane as its Chat page and names it that.
+    /// </summary>
+    public string AgentPaneTitle => CommandCenter?.Active == true ? "Chat" : "Workspace agent";
+
     public bool ShowOverview => SelectedShellTab == WorkspaceShellTab.Overview;
     public bool ShowAgent => SelectedShellTab == WorkspaceShellTab.Agent;
     public bool ShowGit => SelectedShellTab == WorkspaceShellTab.Git;
@@ -156,6 +179,9 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public ReactiveCommand<Unit, Unit> BrowserReloadCommand { get; }
     public ReactiveCommand<Unit, Unit> SwitchServerCommand { get; }
 
+    /// <summary>Logs out of the connected Server and returns to the connect picker.</summary>
+    public ReactiveCommand<Unit, Unit> LogoutCommand { get; }
+
     // Emits (workspaceId, url) when the browser should navigate.
     // workspaceId drives which isolated session to use; url is the destination.
     public IObservable<(string? WorkspaceId, string? Url)> BrowserNavigation { get; }
@@ -178,9 +204,11 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         ValidationViewModel? validation = null,
         IValidationReplayConnector? validationReplay = null,
         CapabilityModulesViewModel? modules = null,
-        DesktopValidationLaunchController? desktopValidationLaunch = null)
+        DesktopValidationLaunchController? desktopValidationLaunch = null,
+        CommandCenterViewModel? commandCenter = null)
     {
         Sidebar = sidebar;
+        CommandCenter = commandCenter;
         Applications = applications;
         Console = console;
         Metrics = metrics;
@@ -207,10 +235,15 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         BrowserForwardCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Forward));
         BrowserReloadCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Reload));
         SwitchServerCommand = ReactiveCommand.Create(Login.ShowSwitcher);
+        LogoutCommand = ReactiveCommand.Create(Logout);
         _chromeServerStatus = new ChromeServerStatusViewModel(sidebar, SwitchServerCommand);
         UpdateChromeLeftItems(Login.IsVisible);
         Login.WhenAnyValue(viewModel => viewModel.IsVisible)
-            .Subscribe(UpdateChromeLeftItems);
+            .Subscribe(visible =>
+            {
+                UpdateChromeLeftItems(visible);
+                this.RaisePropertyChanged(nameof(ShowsWindowChrome));
+            });
         Login.ServerSwitched.Subscribe(_ => OnServerSwitched());
         Login.SessionRestored.Subscribe(_ => OnSessionRestored());
 
@@ -226,6 +259,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         SubscribeMetricsRefresh();
         SubscribeOverviewRefresh();
         SubscribeClientSurfaces();
+        SubscribeCommandCenter();
+        SubscribeOpenedAgent();
         SubscribeSelectedPortProbe(selectedPortTab);
 
         BrowserTabNavigation = CreateBrowserTabNavigation();
@@ -341,6 +376,37 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(_ => LoadMetricsIfPossible());
 
+    /// <summary>
+    /// Opens the workspace an agent was opened for. Nothing about the detail below changes: the
+    /// command center picks the workspace the way the rail does, and the same tabs answer.
+    /// </summary>
+    private void SubscribeOpenedAgent()
+    {
+        if (CommandCenter is null) return;
+        CommandCenter.WhenAnyValue(x => x.Agent)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(standing =>
+            {
+                this.RaisePropertyChanged(nameof(ShowsClassicRail));
+                if (standing is null) return;
+                var workspace = Sidebar.Workspaces.FirstOrDefault(item => item.Id == standing.WorkspaceId);
+                if (workspace is not null) Sidebar.SelectedWorkspace = workspace;
+            });
+        CommandCenter.WhenAnyValue(x => x.SceneId)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(scene =>
+            {
+                SelectedShellTab = scene switch
+                {
+                    "agent-chat" => WorkspaceShellTab.Agent,
+                    "agent-git" => WorkspaceShellTab.Git,
+                    "application" => WorkspaceShellTab.Application,
+                    "agent-overview" => WorkspaceShellTab.Overview,
+                    _ => SelectedShellTab,
+                };
+            });
+    }
+
     private void SubscribeOverviewRefresh()
         => Sidebar.WhenAnyValue(x => x.SelectedWorkspace)
             .CombineLatest(this.WhenAnyValue(x => x.SelectedShellTab), (workspace, tab) => (workspace, tab))
@@ -351,6 +417,68 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
             .Switch()
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(workspaceId => _ = Overview.LoadAsync(workspaceId));
+
+    /// <summary>
+    /// Keeps the command center's triage current while it is the shell on screen. It reads nothing
+    /// while the classic shell is up, so turning the setting off costs the Server nothing.
+    /// </summary>
+    private void SubscribeCommandCenter()
+    {
+        CommandCenter?.WhenAnyValue(x => x.Active)
+            .Subscribe(_ =>
+            {
+                this.RaisePropertyChanged(nameof(ShowsWindowChrome));
+                this.RaisePropertyChanged(nameof(AgentPaneTitle));
+            });
+
+        // The decision backlog is not a live feed: it changes when an agent records something, not
+        // every few seconds, so it is read when the shell comes up rather than on the triage tick.
+        if (CommandCenter?.Training is { } training)
+            CommandCenter.WhenAnyValue(x => x.Active)
+                .Where(active => active)
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(active => { _ = training.LoadAsync(); });
+
+        // Where the work comes from changes when somebody changes it, not every few seconds.
+        if (CommandCenter?.TaskSource is { } taskSource)
+            CommandCenter.WhenAnyValue(x => x.Active)
+                .Where(active => active)
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(active => { _ = taskSource.LoadAsync(); });
+
+        if (CommandCenter?.Bridge is null && CommandCenter?.Tasks is null) return;
+        CommandCenter.WhenAnyValue(x => x.Active)
+            .Select(active => active
+                ? Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(10), RxApp.TaskpoolScheduler)
+                : Observable.Empty<long>())
+            .Switch()
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(_ => ReadTeamStanding());
+
+        // The timer alone would leave the bridge empty from launch until its next tick, because the
+        // shell is already on screen before the workspace list arrives. The team changing is the
+        // read's real trigger; the timer only keeps standings current afterwards.
+        Sidebar.Workspaces.CollectionChanged += (_, _) =>
+        {
+            if (CommandCenter.Active) ReadTeamStanding();
+        };
+    }
+
+    private void ReadTeamStanding()
+    {
+        var bridge = CommandCenter?.Bridge;
+        if (bridge is null) return;
+        var members = Sidebar.Workspaces
+            .Select(workspace => new TeamMember(workspace.Id, workspace.DisplayName, workspace.Branch, workspace.State))
+            .ToArray();
+        _ = bridge.ReadAsync(members);
+
+        // The queue rides the same tick: it names the workspaces holding and targeted by a task,
+        // so it needs the same team the bridge was just given.
+        if (CommandCenter?.Tasks is not { } tasks) return;
+        tasks.Attach(members);
+        _ = tasks.ReadAsync();
+    }
 
     private void LoadMetricsIfPossible()
     {
@@ -751,6 +879,12 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         _serverSessionReset.OnNext(Unit.Default);
     }
 
+    internal void Logout()
+    {
+        ResetLocalSession();
+        Login.Logout();
+    }
+
     private void OnServerSwitched()
     {
         ResetLocalSession();
@@ -818,6 +952,16 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
                 Modules.OpenCommand,
                 "Capability modules",
                 DesktopAutomationIds.ChromeCapabilities);
+        }
+        if (CommandCenter is not null)
+        {
+            yield return new ChromeIconButtonViewModel(
+                "CommandCenterButton",
+                "◧",
+                14,
+                CommandCenter.ToggleCommand,
+                CommandCenter.ToggleToolTip,
+                DesktopAutomationIds.ChromeCommandCenter);
         }
         yield return _chromeServerStatus;
     }

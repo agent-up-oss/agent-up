@@ -12,8 +12,15 @@ import {
   parseIcons,
 } from './lib/icons.mjs';
 import { emitNative } from './lib/native.mjs';
+import { emitStyles as emitNewUiStyles } from './lib/new-ui/avalonia.mjs';
+import { parseRules as parseNewUiRules } from './lib/new-ui/css.mjs';
+import { emitNative as emitNewUiNative } from './lib/new-ui/native.mjs';
+import { newUiFromAssembled, newUiManifest, wrapNewUiScene } from './lib/new-ui.mjs';
 import { emitSequencePlayer, emitSequencePlayerTypes } from './lib/sequences.mjs';
 import { assembleScreens, framedSceneHtml, sceneCopy, wrapSceneDocument } from './lib/screens.mjs';
+import { emitSceneAvalonia, emitSceneNative, sceneBundle } from './lib/scene.mjs';
+import { applyDemo, loadDemo } from './lib/demo.mjs';
+import { screenComponents } from './lib/showcase.mjs';
 import { applyDefaultParts, buildPropsExamples, hasContentSlots } from './lib/slots.mjs';
 import { buildStateExamples } from './lib/states.mjs';
 
@@ -30,6 +37,18 @@ const catalogHtml = expandIcons(await readCatalogHtml(src), icons);
 const screensHtml = expandIcons(await readFile(resolve(src, 'screens.html'), 'utf8'), icons);
 const css = `${primitives.trim()}\n\n${product.trim()}\n`;
 const screenshotCss = `${css}\n${marketing}\n${screenshotShell}\n`;
+/*
+ * The New UI space. Its catalog and screens stay out of `src/*.css` and `src/catalog-*.html`,
+ * which are the Old UI stylesheet and catalog. The two catalogs share no components: a product
+ * part the command center draws as it is (the title bar, a workspace row, the Git pane) is the
+ * New UI catalog's own copy, so editing one UI's components cannot change the other UI.
+ */
+const newUiHtml = expandIcons(await readFile(resolve(src, 'new-ui', 'catalog.html'), 'utf8'), icons);
+const newUiCatalog = parseCatalog(newUiHtml);
+const sceneCatalog = parseCatalog(newUiHtml);
+applyDemo(newUiCatalog, await loadDemo());
+const newUiScreens = await readFile(resolve(src, 'new-ui', 'screens.html'), 'utf8');
+const newUiCss = await readFile(resolve(src, 'new-ui', 'new-ui.css'), 'utf8');
 const tokens = parseCustomProperties(primitives);
 const required = [
   'color-canvas', 'color-surface', 'color-border-subtle', 'color-text-primary',
@@ -43,8 +62,27 @@ for (const name of required) {
 const catalog = parseCatalog(catalogHtml);
 if (catalog.surfaces.length < 8) throw new Error('Design catalog is missing required product surfaces.');
 resolveDefaultParts(catalog);
+resolveDefaultParts(newUiCatalog);
+resolveDefaultParts(sceneCatalog);
+const sceneComponents = new Map();
+for (const surface of sceneCatalog.surfaces) {
+  for (const component of surface.components) sceneComponents.set(component.id, component);
+}
+const newUiRules = parseNewUiRules(`${css}\n${newUiCss}`);
+const bundle = sceneBundle(newUiScreens, sceneComponents, newUiRules, tokens);
+const sceneIndex = catalogIndex(sceneCatalog);
+// The scene draws every class its components carry, including ones the classic clients lay out
+// by hand (`layoutOnly`), so the scene's own style sheets keep those classes' CSS.
+const sceneClasses = [...JSON.stringify(bundle).matchAll(/"c":\[([^\]]*)\]/g)]
+  .flatMap(match => [...match[1].matchAll(/"([^"]+)"/g)].map(name => name[1]));
+const sceneKeep = new Set([...bundle.regions, ...sceneClasses]);
+// Classes the scene draws on a button. The classic catalog may type such a class as a Border, but
+// the scene's control is a Button, so its sheet styles the Button too.
+const sceneButtonClasses = new Set([...JSON.stringify(bundle).matchAll(/"t":"button","c":\[([^\]]*)\]/g)]
+  .flatMap(match => [...match[1].matchAll(/"([^"]+)"/g)].map(name => name[1])));
 expandStateExamples(catalog);
 const assembled = assembleScreens(catalog, screensHtml);
+const newUi = newUiFromAssembled(assembleScreens(newUiCatalog, newUiScreens));
 const rules = parseRules(`${css}\n${marketing}`);
 const index = catalogIndex(catalog);
 const native = emitNative(tokens, rules);
@@ -66,6 +104,8 @@ ${catalogHtml.slice(catalogHtml.indexOf('<body'))}
 
 const outputs = new Map([
   ['dist/web/agent-up.css', css],
+  // The Mobile Demo backend inlines this into exported reports; Metro cannot read a .css file as text.
+  ['../AgentUp.FakeServer/agent-up.css.json', `${JSON.stringify({ css })}\n`],
   ['dist/web/marketing.css', marketing],
   ['dist/web/docs.css', docs],
   ['dist/web/catalog.html', wrappedCatalog],
@@ -80,7 +120,7 @@ const outputs = new Map([
   ['dist/web/syntax/highlight.d.ts', highlightTypes],
   ['dist/web/syntax/grammars.json', `${JSON.stringify(grammars, null, 2)}\n`],
   ['dist/dotnet/AgentUpSyntaxGrammars.g.cs', emitSyntaxGrammars(grammars)],
-  ['dist/web/screenshots.json', `${JSON.stringify({ screens: assembled.screens, scenes: screenshotManifest(assembled.scenes) }, null, 2)}\n`],
+  ['dist/web/screenshots.json', `${JSON.stringify({ screens: withComponents(assembled.screens, screenComponents(screensHtml, catalogHtml, { renderedScenes: new Map(assembled.scenes.map(scene => [scene.id, scene.html])), components: catalog.surfaces.flatMap(surface => surface.components) })), scenes: screenshotManifest(assembled.scenes) }, null, 2)}\n`],
   ['dist/web/screenshots.css', screenshotCss],
   ['dist/web/screenshot-shell.css', screenshotShell],
   ['dist/web/icons.json', `${JSON.stringify({ viewBox: 24, icons }, null, 2)}\n`],
@@ -93,6 +133,31 @@ const outputs = new Map([
 
 for (const scene of assembled.scenes) {
   outputs.set(`dist/web/screenshots/${scene.htmlFile}`, wrapSceneDocument(scene));
+}
+
+// Standalone scene documents carry the foundations with them; a page that already loads the
+// design system embeds the second file so the shared primitives are not applied twice.
+outputs.set('dist/web/new-ui.css', `${css.trim()}\n\n${newUiCss.trim()}\n`);
+outputs.set('dist/web/new-ui-embed.css', `${newUiCss.trim()}\n`);
+const newUiShowcase = newUiManifest(newUi, bundle);
+newUiShowcase.screens = withComponents(newUiShowcase.screens, screenComponents(newUiScreens, newUiHtml, { renderedScenes: new Map(newUi.scenes.map(scene => [scene.id, scene.html])), components: newUiCatalog.surfaces.flatMap(surface => surface.components) }));
+// The New UI's own component records, so the showcase lists them under each screen, with the
+// same documented variations the Old UI's catalog shows.
+expandStateExamples(newUiCatalog);
+newUiShowcase.components = newUiCatalog.surfaces.flatMap(surface => surface.components);
+outputs.set('dist/web/new-ui.json', `${JSON.stringify(newUiShowcase, null, 2)}\n`);
+outputs.set('dist/native/new-ui.js', emitNewUiNative(tokens, newUiRules, {
+  keep: sceneKeep,
+  themeName: 'newUiTheme',
+  boxName: 'newUiBox',
+  textName: 'newUiText',
+  edges: true,
+}).js);
+outputs.set('dist/native/new-ui-scene.js', emitSceneNative(bundle));
+outputs.set('dist/dotnet/NewUiScene.g.cs', emitSceneAvalonia(bundle));
+outputs.set('dist/avalonia/AgentUpNewUiStyles.axaml', emitNewUiStyles(newUiRules, tokens, sceneIndex, { keep: sceneKeep, edges: true, sceneButtons: true, inheritText: true, buttonClasses: sceneButtonClasses }));
+for (const scene of newUi.scenes) {
+  outputs.set(`dist/web/new-ui/${scene.id}.html`, wrapNewUiScene(scene));
 }
 
 for (const [relative, content] of outputs) {
@@ -130,6 +195,11 @@ ${JSON.stringify(value, null, 2)}
 """;
 }
 `;
+}
+
+/** Each screen with the catalog components it is built from, in the order they appear. */
+function withComponents(screens, components) {
+  return screens.map(screen => ({ ...screen, components: components.get(screen.id) ?? [] }));
 }
 
 function screenshotManifest(scenes) {

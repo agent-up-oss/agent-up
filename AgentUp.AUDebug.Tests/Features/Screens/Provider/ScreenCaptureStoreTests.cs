@@ -40,7 +40,7 @@ public sealed class ScreenCaptureStoreTests
     {
         var root = NewRoot();
         var store = new ScreenCaptureStore(new FakePathValidator(root));
-        var manifest = new ScreenRunManifestDto("Demo", "harbor-shop",
+        var manifest = new ScreenRunManifestDto("Demo", "bob",
         [
             new ScreenCaptureDto("desktop-git", "desktop", "git", "Desktop Git changes", "artifacts/product-screens/desktop/git.png", null),
             new ScreenCaptureDto("desktop-validation", "desktop", "validation", "Desktop validation", null, "Demo hides it")
@@ -52,7 +52,7 @@ public sealed class ScreenCaptureStoreTests
         {
             Assert.That(written, Does.Contain("desktop-validation"));
             Assert.That(written, Does.Contain("Demo hides it"));
-            Assert.That(written, Does.Contain("harbor-shop"));
+            Assert.That(written, Does.Contain("bob"));
         });
     }
 

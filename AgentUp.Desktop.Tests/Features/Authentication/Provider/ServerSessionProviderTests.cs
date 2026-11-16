@@ -61,6 +61,33 @@ public sealed class ServerSessionProviderTests
     }
 
     [Test]
+    public async Task ClearCredential_afterARequest_dropsTheTokenAndKeepsTheServer()
+    {
+        Uri? lastUri = null;
+        AuthenticationHeaderValue? lastAuthorization = null;
+        using var http = new DisposableTestHttpClient(request =>
+        {
+            lastUri = request.RequestUri;
+            lastAuthorization = request.Headers.Authorization;
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            };
+        });
+        ServerSessionProvider.Apply(http.Client, new Uri("http://127.0.0.1:5100/"), "token-1");
+        _ = await http.Client.GetAsync("/api/auth/status");
+
+        ServerSessionProvider.ClearCredential(http.Client);
+        _ = await http.Client.GetAsync("/api/auth/status");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(lastUri!.Port, Is.EqualTo(5100));
+            Assert.That(lastAuthorization, Is.Null);
+        });
+    }
+
+    [Test]
     public void CreateClient_tracksTheSessionForLaterApply()
     {
         using var http = ServerSessionProvider.CreateClient(new Uri("http://127.0.0.1:5000/"), new RecordingHandler());

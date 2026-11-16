@@ -7,6 +7,7 @@ import { streamWorkspaceEvents } from '../providers/WorkspaceEventsApiProvider';
 import { createWorkspaceEventSubscription, type WorkspaceEventSubscription } from '../providers/WorkspaceEventsSubscriptionProvider';
 import { cloneSourceRepository, listWorkspaces, refreshClone, removeWorkspace, startWorkspace, stopWorkspace } from '../providers/WorkspacesApiProvider';
 import { createWorkspaceActions, type WorkspaceActions } from '../providers/WorkspaceActionsProvider';
+import { orderWorkspaces } from '../providers/WorkspaceOrderProvider';
 import { createWorkspaceRefresh, type WorkspaceRefresher } from '../providers/WorkspaceRefreshProvider';
 
 type WorkspacesController = {
@@ -64,7 +65,12 @@ export function WorkspacesProvider({ children }: PropsWithChildren) {
     onWorkspaces: loaded => {
       replaceWorkspaces(loaded);
       setError(null);
-      setSelectedId(current => (current && loaded.some(w => w.id === current) ? current : loaded[0]?.id ?? null));
+      // Default to the workspace at the top of the list the user sees. The lists order for
+      // display, so taking the first the Server happened to send can open one workspace while
+      // the sidebar highlights another.
+      setSelectedId(current => (current && loaded.some(w => w.id === current)
+        ? current
+        : orderWorkspaces(loaded)[0]?.id ?? null));
     },
     onError: message => {
       replaceWorkspaces([]);

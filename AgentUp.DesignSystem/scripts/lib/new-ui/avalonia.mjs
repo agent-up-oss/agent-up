@@ -1,0 +1,517 @@
+/**
+ * The New UI's Avalonia renderer. It writes AgentUpNewUiStyles.axaml only; the classic
+ * AgentUpStyles.axaml stays with scripts/lib/avalonia.mjs, unchanged by the New UI.
+ */
+import {
+  formatNumber,
+  inferAvaloniaType,
+  layoutOnly,
+  webOnly,
+  parseSelector,
+  pascal,
+  toPx,
+  tokenKey,
+  varName,
+} from './css.mjs';
+
+const fontWeights = {
+  400: 'Regular',
+  500: 'Medium',
+  600: 'SemiBold',
+  700: 'Bold',
+  800: 'ExtraBold',
+};
+
+export function emitThemeResources(tokens) {
+  const lines = [
+    '<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">',
+    '  <!-- Generated from src/agent-up.css by scripts/build.mjs. Do not edit. -->',
+  ];
+  for (const [name, value] of Object.entries(tokens)) {
+    if (name.startsWith('color-')) {
+      const key = tokenKey(name);
+      lines.push(`  <Color x:Key="${key}">${toAvaloniaColor(value)}</Color>`);
+      lines.push(`  <SolidColorBrush x:Key="${key}Brush" Color="{StaticResource ${key}}"/>`);
+    } else if (name.startsWith('space-')) {
+      const px = toPx(value);
+      if (px == null) continue;
+      lines.push(`  <x:Double x:Key="${tokenKey(name)}">${formatNumber(px)}</x:Double>`);
+      lines.push(`  <Thickness x:Key="${tokenKey(name.replace('space-', 'thickness-'))}">${formatNumber(px)}</Thickness>`);
+    } else if (name.startsWith('radius-') && !value.includes('999')) {
+      const px = toPx(value);
+      if (px == null) continue;
+      const suffix = pascal(name.slice('radius-'.length));
+      lines.push(`  <x:Double x:Key="${tokenKey(name)}">${formatNumber(px)}</x:Double>`);
+      lines.push(`  <CornerRadius x:Key="AgentUpCornerRadius${suffix}">${formatNumber(px)}</CornerRadius>`);
+    } else if (name.startsWith('font-size-')) {
+      const px = toPx(value);
+      if (px == null) continue;
+      lines.push(`  <x:Double x:Key="${tokenKey(name)}">${formatNumber(px)}</x:Double>`);
+    } else if (name.startsWith('weight-')) {
+      const weight = fontWeights[value] ?? value;
+      lines.push(`  <FontWeight x:Key="${tokenKey(name)}">${weight}</FontWeight>`);
+    } else if (name.startsWith('line-')) {
+      lines.push(`  <x:Double x:Key="${tokenKey(name)}">${value}</x:Double>`);
+    } else if (name.startsWith('control-height')) {
+      const px = toPx(value);
+      if (px == null) continue;
+      lines.push(`  <x:Double x:Key="${tokenKey(name)}">${formatNumber(px)}</x:Double>`);
+    } else if (name === 'font-sans' || name === 'font-mono') {
+      lines.push(`  <FontFamily x:Key="${tokenKey(name)}">${value.replaceAll('"', '')}</FontFamily>`);
+    } else if (name === 'stroke' || name === 'stroke-strong') {
+      const px = toPx(value);
+      if (px == null) continue;
+      lines.push(`  <x:Double x:Key="${tokenKey(name)}">${formatNumber(px)}</x:Double>`);
+    }
+  }
+  lines.push('</ResourceDictionary>');
+  return `${lines.join('\n')}\n`;
+}
+
+export function emitStyles(rules, tokens, index, options = {}) {
+  const keep = options.keep ?? new Set();
+  const styleMap = new Map();
+  const add = (selector, setters) => {
+    if (!selector || !setters.length) return;
+    styleMap.set(selector, mergeSetters(styleMap.get(selector) ?? [], setters));
+  };
+  for (const rule of rules) {
+    const setters = declarationsToSetters(rule.declarations, tokens, options.edges === true);
+    if (!setters.length) continue;
+    const templateSetters = setters.filter(([property]) => ['Background', 'Foreground', 'BorderBrush', 'Padding'].includes(property));
+    for (const selector of rule.selectors) {
+      const descendant = selector.trim().match(/^\.([a-z0-9_-]+)\s+\.([a-z0-9_-]+)$/);
+      if (descendant) {
+        const [, parent, child] = descendant;
+        if (webOnly.has(child) && !keep.has(child)) continue;
+        const parentType = index.typeFor(parent) || inferAvaloniaType(parent.split('--')[0]);
+        const childType = index.typeFor(child) || inferAvaloniaType(child.split('--')[0]);
+        const avalonia = `${parentType}.${parent} ${childType}.${child}`;
+        add(avalonia, allowedSetters(avalonia, setters));
+        continue;
+      }
+      const parsed = parseSelector(selector);
+      if (!parsed || (layoutOnly.has(parsed.baseClass) && !keep.has(parsed.baseClass)) || (webOnly.has(parsed.baseClass) && !keep.has(parsed.baseClass))) continue;
+      for (const avaloniaSelector of avaloniaSelectors(parsed, index, options.buttonClasses)) {
+        add(avaloniaSelector, allowedSetters(avaloniaSelector, setters));
+        const hostType = avaloniaSelector.split(/[:.\s]/)[0];
+        if (hostType === 'Border' || hostType === 'StackPanel') {
+          add(avaloniaSelector.replace(/^(Border|StackPanel)/, 'TextBlock'), allowedSetters('TextBlock', setters));
+          // CSS text properties inherit. A container that sets them passes them to the text
+          // inside it, which a Border only does through TextElement's inherited properties.
+          if (options.inheritText) add(avaloniaSelector, inheritedText(setters));
+        }
+        if (avaloniaSelector.startsWith('Button.') && templateSetters.length) {
+          add(`${avaloniaSelector} /template/ ContentPresenter`, allowedSetters('ContentPresenter', templateSetters));
+        }
+      }
+    }
+  }
+  for (const [selector, setters] of styleMap) {
+    styleMap.set(selector, resolveLetterSpacing(setters, tokens));
+  }
+  const lines = [
+    '<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">',
+    '  <!-- Generated from src/*.css and src/catalog.html by scripts/build.mjs. Do not edit. -->',
+  ];
+  if (options.sceneButtons) {
+    // A scene button starts flat; the catalog classes emitted below give it its face.
+    lines.push(
+      '  <Style Selector="Button.au-scene">',
+      '    <Setter Property="Background" Value="Transparent"/>',
+      '    <Setter Property="BorderThickness" Value="0"/>',
+      '    <Setter Property="Padding" Value="0"/>',
+      '    <Setter Property="MinHeight" Value="0"/>',
+      '    <Setter Property="HorizontalContentAlignment" Value="Center"/>',
+      '    <Setter Property="VerticalContentAlignment" Value="Center"/>',
+      '  </Style>',
+      '  <Style Selector="Button.au-scene /template/ ContentPresenter">',
+      '    <Setter Property="Background" Value="Transparent"/>',
+      '  </Style>',
+      '  <Style Selector="Button.au-scene:pointerover /template/ ContentPresenter">',
+      '    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>',
+      '  </Style>',
+    );
+  }
+  for (const [selector, setters] of styleMap) {
+    lines.push(`  <Style Selector="${escapeAttr(selector)}">`);
+    for (const [property, value] of setters) {
+      lines.push(`    <Setter Property="${property}" Value="${escapeAttr(value)}"/>`);
+    }
+    lines.push('  </Style>');
+  }
+  lines.push('</Styles>');
+  return `${lines.join('\n')}\n`;
+}
+
+export function emitCSharpColors(tokens) {
+  const colors = Object.entries(tokens).filter(([name]) => name.startsWith('color-'));
+  return `// <auto-generated />\n// Generated from src/agent-up.css by scripts/build.mjs. Do not edit.\nnamespace AgentUp.Desktop.Shared.Models;\n\ninternal static class AgentUpThemeColors\n{\n${colors.map(([name, value]) => `    internal const string ${pascal(name.replace(/^color-/, ''))} = "${value}";`).join('\n')}\n}\n`;
+}
+
+function avaloniaSelectors(parsed, index, buttonClasses = new Set()) {
+  const className = parsed.modifierClass ?? parsed.baseClass;
+  const type = index.typeFor(className) || index.typeFor(parsed.baseClass) || inferAvaloniaType(parsed.baseClass);
+  const aliases = index.aliases(className);
+  const host = index.host(parsed.baseClass) || index.host(className);
+  const pseudo = parsed.pseudo === 'hover' ? ':pointerover'
+    : parsed.pseudo === 'focus' ? ':focus'
+      : parsed.pseudo === 'disabled' ? ':disabled'
+        : parsed.pseudo === 'checked' ? ':checked'
+          : '';
+  const selectors = new Set([`${type}.${className}${pseudo}`]);
+  for (const alias of aliases) selectors.add(`${type}.${alias}${pseudo}`);
+  if (host && parsed.pseudo === 'hover' && !parsed.modifierClass) {
+    selectors.add(`${host}:pointerover ${type}.${parsed.baseClass}`);
+    for (const alias of index.aliases(parsed.baseClass)) selectors.add(`${host}:pointerover ${type}.${alias}`);
+  }
+  if (host && (parsed.selected || parsed.modifierClass?.endsWith('--selected'))) {
+    for (const alias of index.aliases(parsed.baseClass).length ? index.aliases(parsed.baseClass) : [parsed.baseClass]) {
+      selectors.add(`${host}:selected ${type}.${alias}`);
+    }
+  }
+  if (type === 'Window') selectors.add('Window');
+  // A span painted as a Border still carries button classes (the title tools). The button
+  // style has to land on that Border too, or the control keeps the theme's default size.
+  if (type === 'Button') selectors.add(`Border.${className}${pseudo}`);
+  if (type !== 'Button' && buttonClasses.has(parsed.baseClass)) selectors.add(`Button.${className}${pseudo}`);
+  return [...selectors];
+}
+
+function declarationsToSetters(declarations, tokens, edges = false) {
+  const setters = [];
+  // Scene cards need each edge; the classic stylesheet keeps its shorthand-only output.
+  const spacing = { Padding: null, Margin: null };
+  let thickness = null;
+  let borderBrush = null;
+  let fontSizePx = null;
+  let letterSpacing = null;
+  for (const [property, value] of declarations) {
+    if (/color-mix\(|min\(|max\(|calc\(/i.test(value) && !value.startsWith('clamp(')) continue;
+    switch (property) {
+      case 'color':
+        setters.push(['Foreground', brushValue(value, tokens)]);
+        break;
+      case 'background':
+      case 'background-color':
+        if (value === 'currentColor') break;
+        setters.push(['Background', brushValue(value, tokens)]);
+        break;
+      case 'border-radius':
+        setters.push(['CornerRadius', cornerValue(value, tokens)]);
+        break;
+      case 'padding':
+        if (edges) setEdges(spacing, 'Padding', value, tokens);
+        else setters.push(['Padding', thicknessValue(value, tokens)]);
+        break;
+      case 'margin':
+        if (edges) setEdges(spacing, 'Margin', value, tokens);
+        else setters.push(['Margin', thicknessValue(value, tokens)]);
+        break;
+      case 'margin-left': {
+        if (edges) {
+          setEdge(spacing, 'Margin', 'left', value, tokens);
+          break;
+        }
+        const length = lengthNumber(value, tokens);
+        if (length != null) setters.push(['Margin', `${formatNumber(length)},0,0,0`]);
+        break;
+      }
+      case 'margin-top':
+      case 'margin-right':
+      case 'margin-bottom':
+      case 'padding-top':
+      case 'padding-right':
+      case 'padding-bottom':
+      case 'padding-left':
+      case 'margin-block':
+      case 'margin-inline':
+      case 'padding-block':
+      case 'padding-inline': {
+        if (!edges) break;
+        const [kind, axis] = property.split('-');
+        const target = kind === 'margin' ? 'Margin' : 'Padding';
+        if (axis === 'block' || axis === 'inline') {
+          const parts = value.trim().split(/\s+/);
+          const sides = axis === 'block' ? ['top', 'bottom'] : ['left', 'right'];
+          setEdge(spacing, target, sides[0], parts[0], tokens);
+          setEdge(spacing, target, sides[1], parts[1] ?? parts[0], tokens);
+        } else {
+          setEdge(spacing, target, axis, value, tokens);
+        }
+        break;
+      }
+      case 'min-height':
+        setters.push(['MinHeight', lengthValue(value, tokens)]);
+        break;
+      case 'min-width':
+        setters.push(['MinWidth', lengthValue(value, tokens)]);
+        break;
+      case 'width':
+        if (value.includes('%') || value.includes('min(') || /fit-content|max-content|min-content|auto/.test(value)) break;
+        setters.push(['Width', lengthValue(value, tokens)]);
+        break;
+      case 'height':
+        if (value.includes('%')) break;
+        setters.push(['Height', lengthValue(value, tokens)]);
+        break;
+      case 'font-size':
+        setters.push(['FontSize', lengthValue(value, tokens)]);
+        fontSizePx = lengthNumber(value, tokens);
+        break;
+      case 'letter-spacing':
+        letterSpacing = value;
+        break;
+      case 'font-weight':
+        setters.push(['FontWeight', weightValue(value, tokens)]);
+        break;
+      case 'font-style':
+        setters.push(['FontStyle', fontStyleValue(value)]);
+        break;
+      case 'font-family':
+        setters.push(['FontFamily', fontFamilyValue(value, tokens)]);
+        break;
+      case 'opacity':
+        setters.push(['Opacity', value]);
+        break;
+      case 'border':
+      case 'border-top':
+      case 'border-right':
+      case 'border-bottom':
+      case 'border-left': {
+        const parsed = parseBorder(value, tokens);
+        thickness = thickness ?? { left: 0, top: 0, right: 0, bottom: 0 };
+        if (property === 'border') {
+          thickness = { left: parsed.width, top: parsed.width, right: parsed.width, bottom: parsed.width };
+        } else {
+          const side = property.slice('border-'.length);
+          thickness[side] = parsed.width;
+        }
+        if (parsed.brush) borderBrush = parsed.brush;
+        break;
+      }
+      case 'border-color':
+        borderBrush = brushValue(value, tokens);
+        break;
+      case 'box-shadow': {
+        const inset = value.match(/^inset\s+0\s+0\s+0\s+([0-9.]+)px\s+(\S+)$/);
+        const brush = inset ? brushValue(inset[2], tokens) : null;
+        if (inset && brush) {
+          setters.push(['BorderThickness', inset[1]]);
+          setters.push(['BorderBrush', brush]);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
+  if (thickness) {
+    const { left, top, right, bottom } = thickness;
+    const uniform = left === top && top === right && right === bottom;
+    setters.push(['BorderThickness', uniform ? formatNumber(left) : `${formatNumber(left)},${formatNumber(top)},${formatNumber(right)},${formatNumber(bottom)}`]);
+  }
+  if (borderBrush) setters.push(['BorderBrush', borderBrush]);
+  for (const [name, sides] of Object.entries(spacing)) {
+    if (!sides) continue;
+    const { left, top, right, bottom } = sides;
+    setters.push([name, `${formatNumber(left)},${formatNumber(top)},${formatNumber(right)},${formatNumber(bottom)}`]);
+  }
+  if (letterSpacing) {
+    const spacing = letterSpacingValue(letterSpacing, tokens, fontSizePx);
+    setters.push(['LetterSpacing', spacing ?? pendingEm(letterSpacing)]);
+  }
+  return setters.filter(([, value]) => value);
+}
+
+function mergeSetters(current, next) {
+  const map = new Map(current);
+  for (const [property, value] of next) map.set(property, value);
+  return [...map];
+}
+
+const controlProperties = {
+  Border: new Set(['Background', 'BorderBrush', 'BorderThickness', 'CornerRadius', 'Padding', 'Margin', 'Width', 'Height', 'MinWidth', 'MinHeight', 'Opacity']),
+  Button: new Set(['Background', 'BorderBrush', 'BorderThickness', 'CornerRadius', 'Padding', 'Margin', 'Width', 'Height', 'MinWidth', 'MinHeight', 'Opacity', 'Foreground', 'FontSize', 'FontWeight', 'FontFamily', 'FontStyle']),
+  TextBox: new Set(['Background', 'BorderBrush', 'BorderThickness', 'CornerRadius', 'Padding', 'Margin', 'Width', 'Height', 'MinWidth', 'MinHeight', 'Opacity', 'Foreground', 'FontSize', 'FontWeight', 'FontFamily']),
+  TextBlock: new Set(['Background', 'Foreground', 'FontSize', 'FontWeight', 'FontFamily', 'FontStyle', 'LetterSpacing', 'Padding', 'Margin', 'Width', 'Height', 'MinWidth', 'MinHeight', 'Opacity']),
+  Window: new Set(['Background', 'Foreground', 'FontFamily', 'FontSize', 'Margin', 'Opacity', 'Width', 'Height', 'MinWidth', 'MinHeight']),
+  StackPanel: new Set(['Background', 'Margin', 'Opacity', 'Width', 'Height', 'MinWidth', 'MinHeight']),
+  ContentPresenter: new Set(['Background', 'Foreground', 'Padding', 'Margin', 'BorderBrush']),
+};
+
+const inheritedTextProperties = new Map([
+  ['FontSize', 'TextElement.FontSize'],
+  ['FontWeight', 'TextElement.FontWeight'],
+  ['Foreground', 'TextElement.Foreground'],
+]);
+
+function inheritedText(setters) {
+  return setters
+    .filter(([property]) => inheritedTextProperties.has(property))
+    .map(([property, value]) => [inheritedTextProperties.get(property), value]);
+}
+
+function allowedSetters(selector, setters) {
+  const type = selector.startsWith('ListBoxItem:') || selector.includes(' ')
+    ? selector.split(' ').at(-1).split('.')[0]
+    : selector.split(/[:.\s]/)[0];
+  const allowed = controlProperties[type];
+  if (!allowed) return setters;
+  return setters.filter(([property]) => allowed.has(property));
+}
+
+function parseBorder(value, tokens) {
+  if (value === '0' || value === 'none') return { width: 0, brush: brushValue('var(--au-color-transparent)', tokens) };
+  const parts = value.split(/\s+/);
+  let width = 1;
+  let brush = null;
+  for (const part of parts) {
+    if (part === 'solid' || part === 'none' || part === 'dashed' || part === 'dotted') continue;
+    const token = varName(part);
+    if (token === 'stroke' || token === 'stroke-strong' || toPx(part) != null || (token && toPx(tokens[token]) != null && !token.startsWith('color-'))) {
+      width = lengthNumber(part, tokens) ?? width;
+    } else {
+      brush = brushValue(part, tokens);
+    }
+  }
+  return { width, brush };
+}
+
+function brushValue(value, tokens) {
+  if (value === 'transparent') return '{DynamicResource AgentUpColorTransparentBrush}';
+  if (value === 'currentColor') return null;
+  const token = varName(value);
+  if (token?.startsWith('color-')) return `{DynamicResource ${tokenKey(token)}Brush}`;
+  if (token && (tokens[token]?.startsWith('#') || tokens[token]?.startsWith('rgba'))) {
+    return `{DynamicResource ${tokenKey(token)}Brush}`;
+  }
+  return null;
+}
+
+function lengthValue(value, tokens) {
+  const token = varName(value);
+  if (token) return `{DynamicResource ${tokenKey(token)}}`;
+  const px = toPx(value);
+  return px == null ? null : formatNumber(px);
+}
+
+function lengthNumber(value, tokens) {
+  const token = varName(value);
+  if (token) return toPx(tokens[token]);
+  return toPx(value);
+}
+
+function pendingEm(value) {
+  const em = String(value).trim().match(/^(-?[0-9.]+)em$/);
+  return em ? String(value).trim() : null;
+}
+
+function resolveLetterSpacing(setters, tokens) {
+  const map = new Map(setters);
+  const pending = map.get('LetterSpacing');
+  const em = pending?.match(/^(-?[0-9.]+)em$/);
+  if (!em) return setters;
+  const fontSizePx = fontSizeFromSetter(map.get('FontSize'), tokens) ?? 16;
+  map.set('LetterSpacing', formatNumber(Number(em[1]) * fontSizePx));
+  return [...map];
+}
+
+function fontSizeFromSetter(value, tokens) {
+  if (!value) return null;
+  const token = String(value).match(/AgentUpFontSize(\w+)/);
+  if (token) {
+    const name = `font-size-${token[1].replace(/^[A-Z]/, letter => letter.toLowerCase()).replaceAll(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`;
+    return toPx(tokens[name]);
+  }
+  return toPx(value);
+}
+
+function letterSpacingValue(value, tokens, fontSizePx) {
+  const token = varName(value);
+  const resolved = token ? tokens[token] : String(value).trim();
+  const em = String(resolved).match(/^(-?[0-9.]+)em$/);
+  if (em && fontSizePx != null) return formatNumber(Number(em[1]) * fontSizePx);
+  const px = toPx(resolved);
+  return px == null ? null : formatNumber(px);
+}
+
+function cornerValue(value, tokens) {
+  // A percentage radius is a circle or pill. Avalonia has no percentage radius, and 999 is the pill already used for dots.
+  if (String(value).trim().endsWith('%')) return '999';
+  const token = varName(value);
+  if (token?.startsWith('radius-')) {
+    const suffix = pascal(token.slice('radius-'.length));
+    if (token.endsWith('pill')) return '999';
+    return `{DynamicResource AgentUpCornerRadius${suffix}}`;
+  }
+  const px = toPx(value);
+  if (value.includes('999') || px === 999) return '999';
+  return px == null ? null : formatNumber(px);
+}
+
+function edgePx(part, tokens) {
+  if (part === 'auto' || part === '0') return 0;
+  const name = varName(part);
+  return name ? toPx(tokens[name]) : toPx(part);
+}
+
+function setEdges(spacing, target, value, tokens) {
+  const parts = value.trim().split(/\s+/).map(part => edgePx(part, tokens));
+  if (!parts.length || parts.length > 4 || parts.some(part => part == null)) return;
+  const [top, right = top, bottom = top, left = right] = parts;
+  spacing[target] = { top, right, bottom, left };
+}
+
+function setEdge(spacing, target, side, value, tokens) {
+  const px = edgePx(String(value).trim(), tokens);
+  if (px == null) return;
+  spacing[target] = { ...(spacing[target] ?? { top: 0, right: 0, bottom: 0, left: 0 }), [side]: px };
+}
+
+function thicknessValue(value, tokens) {
+  const token = varName(value);
+  if (token?.startsWith('space-')) return `{DynamicResource ${tokenKey(token.replace('space-', 'thickness-'))}}`;
+  const parts = value.trim().split(/\s+/).map(part => {
+    if (part === 'auto') return 0;
+    const name = varName(part);
+    if (name) return toPx(tokens[name]);
+    return toPx(part);
+  });
+  if (parts.some(part => part == null)) return null;
+  if (parts.length === 1) return formatNumber(parts[0]);
+  if (parts.length === 2) return `${formatNumber(parts[1])},${formatNumber(parts[0])}`;
+  // CSS three-value padding is top, horizontal, bottom.
+  if (parts.length === 3) return `${formatNumber(parts[1])},${formatNumber(parts[0])},${formatNumber(parts[1])},${formatNumber(parts[2])}`;
+  if (parts.length === 4) return `${formatNumber(parts[3])},${formatNumber(parts[0])},${formatNumber(parts[1])},${formatNumber(parts[2])}`;
+  return null;
+}
+
+function weightValue(value, tokens) {
+  const token = varName(value);
+  if (token?.startsWith('weight-')) return `{DynamicResource ${tokenKey(token)}}`;
+  return fontWeights[value] ?? value;
+}
+
+function fontStyleValue(value) {
+  if (value === 'italic' || value === 'oblique') return 'Italic';
+  if (value === 'normal') return 'Normal';
+  return null;
+}
+
+function fontFamilyValue(value, tokens) {
+  const token = varName(value);
+  if (token === 'font-sans' || token === 'font-mono') return `{DynamicResource ${tokenKey(token)}}`;
+  return null;
+}
+
+function toAvaloniaColor(value) {
+  const cssRgbaHex = value.match(/^#([0-9a-f]{6})([0-9a-f]{2})$/i);
+  if (value === 'rgba(0, 0, 0, 0.72)') return '#B8000000';
+  if (cssRgbaHex) return `#${cssRgbaHex[2]}${cssRgbaHex[1]}`;
+  return value;
+}
+
+function escapeAttr(value) {
+  return String(value).replaceAll('&', '&amp;').replaceAll('"', '&quot;');
+}

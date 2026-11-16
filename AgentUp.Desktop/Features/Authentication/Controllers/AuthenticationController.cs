@@ -23,6 +23,8 @@ public sealed class AuthenticationController(AuthenticationService service, Serv
 
     public void RemoveServer(string id) => connections.Remove(id);
 
+    public void ForgetActiveServer() => connections.ForgetActive();
+
     public void PrepareServer(string url) => connections.Prepare(url);
 
     public string CurrentServerUrl() => connections.CurrentUrl();

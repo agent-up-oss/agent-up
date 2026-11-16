@@ -37,10 +37,18 @@ public sealed class ForgeController(ForgeService service)
     public bool Logout(string workspaceId)
         => service.Logout(workspaceId);
 
-    public Task<IReadOnlyList<ForgeAssignedIssue>> ListAssignedAsync(
+    public Task<IReadOnlyList<ForgeIssue>> ListAssignedAsync(
         string workspaceId,
         CancellationToken cancellationToken = default)
         => service.ListAssignedAsync(workspaceId, cancellationToken);
+
+    public ForgeRepositoryDto? ResolveRepository(string workspaceId)
+        => service.ResolveRepository(workspaceId);
+
+    public Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
+        string workspaceId,
+        CancellationToken cancellationToken = default)
+        => service.ListIssuesAsync(workspaceId, cancellationToken);
 
     public Task<ForgeProposal?> OpenProposalAsync(
         string workspaceId,

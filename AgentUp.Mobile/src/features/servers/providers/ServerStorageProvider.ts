@@ -77,11 +77,16 @@ export function clearActiveCredential(selection: ServerSelection): ServerSelecti
   };
 }
 
+/**
+ * Logout forgets the active Server's sign-in, including open access: a Server that needs no
+ * sign-in would otherwise still count as signed in and be picked again on the next render.
+ * The next connect probes the Server and records open access afresh.
+ */
 export function logoutActiveServer(selection: ServerSelection): ServerSelection {
   if (!selection.activeServerId) return { ...selection, activeServerId: null };
   return {
     servers: selection.servers.map(server =>
-      server.id === selection.activeServerId ? { ...server, accessToken: undefined } : server),
+      server.id === selection.activeServerId ? { ...server, accessToken: undefined, openAccess: undefined } : server),
     activeServerId: null,
   };
 }

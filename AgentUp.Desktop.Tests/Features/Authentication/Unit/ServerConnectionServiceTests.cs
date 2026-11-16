@@ -89,6 +89,25 @@ public sealed class ServerConnectionServiceTests
     }
 
     [Test]
+    public void ForgetActive_dropsTheActiveServersTokenButKeepsTheEntry()
+    {
+        var store = new InMemoryServerConnectionStore();
+        using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
+        var service = FakeServerTestComposition.Connections(store, http);
+        var local = service.Save("http://127.0.0.1:5000", "local-token");
+
+        service.ForgetActive();
+
+        var remaining = UserServers(service);
+        Assert.Multiple(() =>
+        {
+            Assert.That(remaining.Single().Id, Is.EqualTo(local.Id));
+            Assert.That(remaining.Single().HasCredential, Is.False);
+            Assert.That(http.DefaultRequestHeaders.Authorization, Is.Null);
+        });
+    }
+
+    [Test]
     public void Save_withoutTokenKeepsPreviousCredential()
     {
         var store = new InMemoryServerConnectionStore();
@@ -277,7 +296,7 @@ public sealed class ServerConnectionServiceTests
         var backend = FakeServerTestComposition.Backend();
         using var http = new HttpClient { BaseAddress = new Uri("http://127.0.0.1:5000") };
         var service = FakeServerTestComposition.Connections(store, http, backend);
-        backend.Handle(new FakeBackendRequestDtoBuilder().Delete("/api/workspaces/harbor-shop").Build());
+        backend.Handle(new FakeBackendRequestDtoBuilder().Delete("/api/workspaces/bob").Build());
 
         service.Prepare("http://127.0.0.1:9");
 

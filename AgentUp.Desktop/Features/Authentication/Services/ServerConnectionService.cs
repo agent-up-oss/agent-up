@@ -96,6 +96,22 @@ public sealed class ServerConnectionService(
         store.Save(selection);
     }
 
+    /// <summary>
+    /// Forgets the active Server's sign-in and stops sending it. The entry stays saved so
+    /// the picker still lists it; connecting again asks the Server how to sign in.
+    /// </summary>
+    public void ForgetActive()
+    {
+        var selection = store.Load();
+        var active = selection.Servers.FirstOrDefault(server => server.Id == selection.ActiveServerId);
+        if (active is not null)
+            active.AccessToken = null;
+        store.Save(selection);
+        ServerSessionProvider.ClearCredential(http);
+        if (agentEventsHttp is not null)
+            ServerSessionProvider.ClearCredential(agentEventsHttp);
+    }
+
     public void Prepare(string url)
     {
         if (fakeServers.Matches(url))

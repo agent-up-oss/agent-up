@@ -13,14 +13,14 @@ public sealed class ChromiumLiveAppProbeTests
         var root = Path.Join(Path.GetTempPath(), "au-debug-live", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         File.WriteAllText(Path.Join(root, "agent-up.sln"), "");
-        var processes = new FakeProcessRunner { NextResult = new(0, "<p>Harbor Shop</p>", "") };
+        var processes = new FakeProcessRunner { NextResult = new(0, "<p>Bob</p>", "") };
         var environment = new FakeEnvironment();
         environment.Executables["chromium"] = "/bin/chromium";
         var probe = new ChromiumLiveAppProbe(processes, environment, new DebugPathValidator(root));
 
         var html = await probe.ReadPageTextAsync("http://127.0.0.1:10102/connect", CancellationToken.None);
 
-        Assert.That(html, Does.Contain("Harbor Shop"));
+        Assert.That(html, Does.Contain("Bob"));
         Assert.That(processes.Ran[0].FileName, Is.EqualTo("chromium"));
         Assert.That(processes.Ran[0].Arguments, Does.Contain("--dump-dom"));
         Assert.That(processes.Ran[0].Arguments, Does.Contain("http://127.0.0.1:10102/connect"));

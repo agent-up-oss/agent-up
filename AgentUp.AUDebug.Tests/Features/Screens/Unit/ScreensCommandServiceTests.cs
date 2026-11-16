@@ -180,7 +180,7 @@ public sealed class ScreensCommandServiceTests
     }
 
     private static FakeScreenRunStore Run(params ScreenCaptureDto[] captures)
-        => new() { Manifest = new ScreenRunManifestDto("Demo", "harbor-shop", captures) };
+        => new() { Manifest = new ScreenRunManifestDto("Demo", "bob", captures) };
 
 
 

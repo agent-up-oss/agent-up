@@ -83,7 +83,7 @@ public sealed class ScreenManifestReaderTests
         var paths = new DebugPathValidator(root);
         new ScreenCaptureStore(paths).WriteManifest(new ScreenRunManifestDto(
             "Demo",
-            "harbor-shop",
+            "bob",
             [new ScreenCaptureDto("mobile-git", "mobile", "git", "Mobile Git", "git.png", null, "Changes")]));
 
         var run = new ScreenRunStore(paths).Read();

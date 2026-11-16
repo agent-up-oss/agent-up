@@ -3,6 +3,8 @@ import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import catalog from '@agent-up/design-system/catalog';
 import screenshots from '@agent-up/design-system/screenshots';
+import newUi from '@agent-up/design-system/new-ui';
+import '@agent-up/design-system/new-ui-embed.css';
 import { playSequence } from '@agent-up/design-system/sequence';
 import { applyProps } from '@agent-up/design-system/slots';
 import { agentUpTheme } from '@agent-up/design-system/native';
@@ -50,6 +52,21 @@ function Example({ component }) {
 }
 
 /**
+ * The components the selected screen is built from, listed under its previews. A component that
+ * several screens use is shown under each of them; it is still one definition in its catalog.
+ */
+function ScreenComponents({ ids, byId, label }) {
+  const components = ids.map(id => byId[id]).filter(Boolean);
+  if (!components.length) return null;
+  return <section className={styles.screenComponents} aria-label={label}>
+    <p className="au-eyebrow">Components on this screen · {components.length}</p>
+    <div className={styles.examples}>
+      {components.map(component => <Example key={component.id} component={component} />)}
+    </div>
+  </section>;
+}
+
+/**
  * A documented variation of the component above, generated from that one piece of markup rather
  * than authored as a second component. The declaration a screen would write is shown with it,
  * so a reader can see what produced the example.
@@ -70,6 +87,7 @@ const playgroundColumns = [
     { id: 'badge' },
     { id: 'workspace' },
     { id: 'app-tab' },
+    { id: 'git-log-ref' },
     { id: 'git-log-row', props: 'time-0=02.10.26 14:33; time-1=02.10.26 11:04; time-2=01.10.26 19:41; time-3=01.10.26 08:12; time-4=30.09.26 16:20; time-5=22.09.26 09:18; time-6=22.09.26 07:30' },
     { id: 'validation-sidebar' },
     { id: 'git-log-detail', props: 'subject=feat(storefront): add the weekly promo banner; author=Demo' },
@@ -237,22 +255,108 @@ function ScenePreview({ scene, label }) {
   </figure>;
 }
 
+/**
+ * One New UI scene, scaled into the showcase the same way an assembled screen is.
+ *
+ * The New UI space is a second arrangement of the same tokens. It is rendered from its own
+ * manifest and its own `aun-` stylesheet, so nothing here can alter how the old UI above
+ * is defined or drawn.
+ */
+function NewUiPreview({ scene }) {
+  const displayHeight = useShowcaseDisplayHeight();
+  const scale = displayHeight / scene.height;
+  return <figure className="au-screenshot-preview">
+    <div
+      className="au-product-frame au-screenshot-embed"
+      style={{
+        width: scene.width * scale,
+        height: displayHeight,
+        overflow: 'hidden',
+        position: 'relative',
+      }}
+      aria-label={scene.surface === 'mobile' ? 'Mobile' : 'Desktop'}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: scene.width,
+          height: scene.height,
+          transform: `scale(${scale})`,
+          transformOrigin: '0 0',
+        }}
+        ref={node => { if (node) node.inert = true; }}
+        dangerouslySetInnerHTML={{ __html: scene.html }}
+      />
+    </div>
+    <figcaption className="au-field-label">{scene.surface === 'mobile' ? 'Mobile' : 'Desktop'}</figcaption>
+  </figure>;
+}
+
+/** The New UI space: one chip per screen, with that screen's desktop and mobile scenes side by side. */
+function NewUiSpace({ screens, scenes, activeId, onSelect }) {
+  const screen = screens.find(item => item.id === activeId) ?? screens[0];
+  const desktop = screen.desktopId ? scenes[screen.desktopId] : null;
+  const mobile = screen.mobileId ? scenes[screen.mobileId] : null;
+  return <div className={styles.screenNav}>
+    <nav aria-label="New UI screens">
+      <div className={styles.screenChipRow} role="tablist" aria-orientation="horizontal">
+        {screens.map(item => (
+          <button
+            key={item.id}
+            id={`new-ui-tab-${item.id}`}
+            type="button"
+            className={`au-chip${item.id === screen.id ? ' au-chip--selected' : ''} ${styles.screenChip}`}
+            role="tab"
+            aria-selected={item.id === screen.id}
+            aria-controls={`new-ui-panel-${item.id}`}
+            onClick={() => onSelect(item.id)}
+          >
+            {item.title}
+          </button>
+        ))}
+      </div>
+    </nav>
+    <section
+      id={`new-ui-panel-${screen.id}`}
+      className={styles.screenPanel}
+      role="tabpanel"
+      aria-labelledby={`new-ui-tab-${screen.id}`}
+    >
+      <div className="au-screenshot-stage">
+        <div className="au-screenshot-pair">
+          {desktop ? <NewUiPreview scene={desktop} /> : null}
+          {mobile ? <NewUiPreview scene={mobile} /> : null}
+        </div>
+      </div>
+    </section>
+  </div>;
+}
+
 export default function DesignSystemPage() {
-  const surfaces = catalog.surfaces;
-  const ids = useMemo(() => surfaces.map(surface => surface.id), [surfaces]);
   const screens = screenshots.screens;
   const screenIds = useMemo(() => screens.map(item => item.id), [screens]);
   const scenes = useMemo(
     () => Object.fromEntries(screenshots.scenes.map(scene => [scene.id, scene])),
     [],
   );
-  const [active, setActive] = useState(ids[0]);
   const [activeScreen, setActiveScreen] = useState(screenIds.includes('applications') ? 'applications' : screenIds[0]);
+  const newUiScreens = newUi.screens;
+  const newUiScenes = useMemo(
+    () => Object.fromEntries(newUi.scenes.map(scene => [scene.id, scene])),
+    [],
+  );
+  const newUiComponents = useMemo(
+    () => Object.fromEntries((newUi.components ?? []).map(component => [component.id, component])),
+    [],
+  );
+  const [space, setSpace] = useState('old');
+  const [activeNewUi, setActiveNewUi] = useState(newUiScreens[0].id);
 
   useEffect(() => {
     const sync = () => {
-      const hash = window.location.hash.replace('#', '');
-      if (ids.includes(hash)) setActive(hash);
       const selected = new URLSearchParams(window.location.search).get('screen');
       if (selected && screenIds.includes(selected)) setActiveScreen(selected);
     };
@@ -263,12 +367,7 @@ export default function DesignSystemPage() {
       window.removeEventListener('hashchange', sync);
       window.removeEventListener('popstate', sync);
     };
-  }, [ids, screenIds]);
-
-  const select = id => {
-    setActive(id);
-    window.history.replaceState(null, '', `#${id}`);
-  };
+  }, [screenIds]);
 
   const selectScreen = id => {
     setActiveScreen(id);
@@ -277,8 +376,8 @@ export default function DesignSystemPage() {
     window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
   };
 
-  const surface = surfaces.find(item => item.id === active) ?? surfaces[0];
   const screen = screens.find(item => item.id === activeScreen) ?? screens[0];
+  const newUiScreen = newUiScreens.find(item => item.id === activeNewUi) ?? newUiScreens[0];
   const desktop = screen.desktopId ? scenes[screen.desktopId] : null;
   const mobile = screen.mobileId ? scenes[screen.mobileId] : null;
 
@@ -305,111 +404,124 @@ export default function DesignSystemPage() {
               <p className="au-eyebrow">Assembled screens</p>
               <h2 className={`au-title ${styles.overviewTitle}`}>One central definition.</h2>
               <p className="au-lede">Each screen is defined centrally and itself assembled from central component definitions.</p>
+              <div className="au-cluster" role="tablist" aria-label="Interface space">
+                <button
+                  type="button"
+                  role="tab"
+                  id="space-tab-old"
+                  aria-controls="space-panel-old"
+                  aria-selected={space === 'old'}
+                  className={`au-chip${space === 'old' ? ' au-chip--selected' : ''}`}
+                  onClick={() => setSpace('old')}
+                >
+                  Old UI
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  id="space-tab-new"
+                  aria-controls="space-panel-new"
+                  aria-selected={space === 'new'}
+                  className={`au-chip${space === 'new' ? ' au-chip--selected' : ''}`}
+                  onClick={() => setSpace('new')}
+                >
+                  New UI
+                </button>
+              </div>
             </div>
 
-            <div className={styles.screenNav}>
-              <nav aria-label="Assembled screens">
-                <div className={styles.screenChipRow} role="tablist" aria-orientation="horizontal">
-                  {screens.map(item => (
-                    <button
-                      key={item.id}
-                      id={`screen-tab-${item.id}`}
-                      type="button"
-                      className={`au-chip${item.id === activeScreen ? ' au-chip--selected' : ''} ${styles.screenChip}`}
-                      role="tab"
-                      aria-selected={item.id === activeScreen}
-                      aria-controls={`screen-panel-${item.id}`}
-                      onClick={() => selectScreen(item.id)}
-                    >
-                      {item.title}
-                    </button>
-                  ))}
-                </div>
-              </nav>
-
-              <section
-                id={`screen-panel-${screen.id}`}
-                className={styles.screenPanel}
-                role="tabpanel"
-                aria-labelledby={`screen-tab-${screen.id}`}
-              >
-                <div className={styles.screenCopy}>
-                  <h3 className="au-page-title">{screen.title}</h3>
-                  <p className="au-muted">{screen.intro}</p>
-                </div>
-                <div className="au-screenshot-stage">
-                  <div className="au-screenshot-pair">
-                    {desktop ? <ScenePreview scene={desktop} label="Desktop" /> : null}
-                    {mobile ? <ScenePreview scene={mobile} label="Mobile" /> : null}
+            <div
+              id="space-panel-new"
+              role="tabpanel"
+              aria-labelledby="space-tab-new"
+              hidden={space !== 'new'}
+            >
+              <NewUiSpace
+                screens={newUiScreens}
+                scenes={newUiScenes}
+                activeId={activeNewUi}
+                onSelect={setActiveNewUi}
+              />
+            </div>
+            <div
+              id="space-panel-old"
+              role="tabpanel"
+              aria-labelledby="space-tab-old"
+              hidden={space !== 'old'}
+            >
+              <div className={styles.screenNav}>
+                <nav aria-label="Assembled screens">
+                  <div className={styles.screenChipRow} role="tablist" aria-orientation="horizontal">
+                    {screens.map(item => (
+                      <button
+                        key={item.id}
+                        id={`screen-tab-${item.id}`}
+                        type="button"
+                        className={`au-chip${item.id === activeScreen ? ' au-chip--selected' : ''} ${styles.screenChip}`}
+                        role="tab"
+                        aria-selected={item.id === activeScreen}
+                        aria-controls={`screen-panel-${item.id}`}
+                        onClick={() => selectScreen(item.id)}
+                      >
+                        {item.title}
+                      </button>
+                    ))}
                   </div>
-                </div>
-              </section>
+                </nav>
+
+                <section
+                  id={`screen-panel-${screen.id}`}
+                  className={styles.screenPanel}
+                  role="tabpanel"
+                  aria-labelledby={`screen-tab-${screen.id}`}
+                >
+                  <div className={styles.screenCopy}>
+                    <h3 className="au-page-title">{screen.title}</h3>
+                    <p className="au-muted">{screen.intro}</p>
+                  </div>
+                  <div className="au-screenshot-stage">
+                    <div className="au-screenshot-pair">
+                      {desktop ? <ScenePreview scene={desktop} label="Desktop" /> : null}
+                      {mobile ? <ScenePreview scene={mobile} label="Mobile" /> : null}
+                    </div>
+                  </div>
+                </section>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <div className={`au-section ${styles.shell}`} id="catalog">
-        <div className={`au-container ${styles.catalog}`}>
-          <nav className={styles.surfaceNav} aria-label="Design system surfaces">
-            <p className="au-eyebrow">Surfaces</p>
-            <div className={styles.surfaceList} role="tablist" aria-orientation="vertical">
-              {surfaces.map((item, index) => (
-                <button
-                  key={item.id}
-                  id={`tab-${item.id}`}
-                  className={`au-card${item.id === active ? ' au-card--selected' : ''} ${styles.surfaceTab}`}
-                  role="tab"
-                  aria-selected={item.id === active}
-                  aria-controls={`panel-${item.id}`}
-                  onClick={() => select(item.id)}
-                >
-                  <span className="au-mono au-muted">{String(index + 1).padStart(2, '0')}</span>
-                  <span className={styles.surfaceCopy}>
-                    <strong className="au-heading">{item.title}</strong>
-                    <small className="au-muted">{item.intro}</small>
-                    <em className="au-mono au-muted">{item.components.length} {item.components.length === 1 ? 'example' : 'examples'}</em>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </nav>
-
-          <section
-            id={`panel-${surface.id}`}
-            className={styles.panel}
-            role="tabpanel"
-            aria-labelledby={`tab-${surface.id}`}
-          >
-            <p className="au-eyebrow">{String(ids.indexOf(surface.id) + 1).padStart(2, '0')} · {surface.title}</p>
-            <h2 className="au-page-title">{surface.title}</h2>
-            <p className="au-muted">{surface.intro}</p>
-
-            {surface.id === 'foundations' ? <div className="au-grid">{extra.foundations.tokens.map(([name, token, value, description]) => (
-              <article className="au-card" key={token}>
-                <div className="au-swatch" style={{ background: `var(${token})` }} />
-                <h3 className="au-heading">{name}</h3>
-                <code>{token}</code>
-                <p className="au-mono au-muted">{value}</p>
-                <p className="au-muted">{description}</p>
-              </article>
-            ))}</div> : null}
-
-            {surface.id === 'voice' ? <>
-              <div className={styles.voiceGrid}>{extra.voice.cards.map(([label, copy]) => (
-                <article className="au-card" key={label}><p className="au-eyebrow">{label}</p><p className={`au-lede ${styles.voiceCopy}`}>{copy}</p></article>
-              ))}</div>
-              <div className="au-grid">{extra.voice.lifecycle.map(([label, description]) => (
-                <article className="au-card" key={label}><span className="au-badge">{label}</span><p className="au-muted">{description}</p></article>
-              ))}</div>
-            </> : null}
-
-            <div className={styles.examples}>
-              {surface.components.map(component => <Example key={component.id} component={component} />)}
-            </div>
-          </section>
+      <section className={`au-section ${styles.shell}`} id="components">
+        <div className="au-container">
+          {space === 'new'
+            ? <ScreenComponents ids={newUiScreen.components ?? []} byId={newUiComponents} label={`${newUiScreen.title} components`} />
+            : <ScreenComponents ids={screen.components ?? []} byId={catalogById} label={`${screen.title} components`} />}
         </div>
-      </div>
+      </section>
+
+      <section className={`au-section ${styles.shell}`} id="foundations">
+        <div className={`au-container ${styles.foundations}`}>
+          <p className="au-eyebrow">Foundations</p>
+          <h2 className="au-page-title">Tokens and voice</h2>
+          <p className="au-muted">The shared ground both interfaces stand on. Components are listed with the screens that use them, above.</p>
+          <div className="au-grid">{extra.foundations.tokens.map(([name, token, value, description]) => (
+            <article className="au-card" key={token}>
+              <div className="au-swatch" style={{ background: `var(${token})` }} />
+              <h3 className="au-heading">{name}</h3>
+              <code>{token}</code>
+              <p className="au-mono au-muted">{value}</p>
+              <p className="au-muted">{description}</p>
+            </article>
+          ))}</div>
+          <div className={styles.voiceGrid}>{extra.voice.cards.map(([label, copy]) => (
+            <article className="au-card" key={label}><p className="au-eyebrow">{label}</p><p className={`au-lede ${styles.voiceCopy}`}>{copy}</p></article>
+          ))}</div>
+          <div className="au-grid">{extra.voice.lifecycle.map(([label, description]) => (
+            <article className="au-card" key={label}><span className="au-badge">{label}</span><p className="au-muted">{description}</p></article>
+          ))}</div>
+        </div>
+      </section>
     </main>
   </Layout>;
 }

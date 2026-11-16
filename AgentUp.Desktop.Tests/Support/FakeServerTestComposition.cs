@@ -3,6 +3,7 @@ using AgentUp.Desktop.Features.Authentication.Models;
 using AgentUp.Desktop.Features.Authentication.Providers;
 using AgentUp.Desktop.Features.Authentication.Services;
 using AgentUp.Desktop.Features.FakeServer.Controllers;
+using AgentUp.Desktop.Features.FakeServer.Models;
 using AgentUp.Desktop.Features.FakeServer.Providers;
 using AgentUp.Desktop.Features.FakeServer.Services;
 
@@ -10,8 +11,11 @@ namespace AgentUp.Desktop.Tests.Support;
 
 internal static class FakeServerTestComposition
 {
+    public static FakeServerDefinition Definition()
+        => new FakeServerDefinitionProvider().LoadEmbedded();
+
     public static FakeBackendService Backend(Action<int, Action>? schedule = null)
-        => new(new FakeServerDefinitionProvider().LoadEmbedded(), schedule: schedule);
+        => new(Definition(), schedule: schedule);
 
     public static FakeServerController Controller(FakeBackendService? backend = null)
         => new(backend ?? Backend());

@@ -14,11 +14,15 @@ internal sealed class StubForgeCapability : IForgeCapability
 
     public ForgeHostSnapshot Snapshot { get; init; } = new(null, [], [], null);
 
-    public IReadOnlyList<ForgeAssignedIssue> Assigned { get; init; } = [];
+    public IReadOnlyList<ForgeIssue> Assigned { get; init; } = [];
+
+    public IReadOnlyList<ForgeIssue> Issues { get; init; } = [];
 
     public Exception? ReadFailure { get; init; }
 
     public Exception? ListAssignedFailure { get; init; }
+
+    public Exception? ListIssuesFailure { get; init; }
 
     public Exception? UpdateRefFailure { get; init; }
 
@@ -35,12 +39,19 @@ internal sealed class StubForgeCapability : IForgeCapability
             ? Task.FromException<ForgeHostSnapshot>(ReadFailure)
             : Task.FromResult(Snapshot);
 
-    public Task<IReadOnlyList<ForgeAssignedIssue>> ListAssignedAsync(
+    public Task<IReadOnlyList<ForgeIssue>> ListAssignedAsync(
         ForgeRequest request,
         CancellationToken cancellationToken = default)
         => ListAssignedFailure is not null
-            ? Task.FromException<IReadOnlyList<ForgeAssignedIssue>>(ListAssignedFailure)
+            ? Task.FromException<IReadOnlyList<ForgeIssue>>(ListAssignedFailure)
             : Task.FromResult(Assigned);
+
+    public Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
+        ForgeRequest request,
+        CancellationToken cancellationToken = default)
+        => ListIssuesFailure is not null
+            ? Task.FromException<IReadOnlyList<ForgeIssue>>(ListIssuesFailure)
+            : Task.FromResult(Issues);
 
     public Task<ForgeProposal> OpenProposalAsync(
         ForgeRequest request,

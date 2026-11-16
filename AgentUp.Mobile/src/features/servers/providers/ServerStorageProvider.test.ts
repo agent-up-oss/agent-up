@@ -91,6 +91,16 @@ test('logoutActiveServer drops the token and the active selection', () => {
   assert.equal(next.activeServerId, null);
 });
 
+test('logoutActiveServer forgets open access so an auth-free Server is not signed in again', () => {
+  const saved = upsertServer(empty, 'http://localhost:5001');
+  assert.equal(saved.servers[0].openAccess, true);
+  const next = logoutActiveServer(saved);
+  assert.equal(next.servers[0].openAccess, undefined);
+  assert.equal(next.activeServerId, null);
+  const reconnected = upsertServer(next, 'http://localhost:5001');
+  assert.equal(reconnected.servers[0].openAccess, true);
+});
+
 test('removeServer drops the entry and repoints the active selection', () => {
   const first = upsertServer(empty, 'http://localhost:5000', 'one');
   const both = upsertServer(first, 'https://agent-up.example.com', 'two');

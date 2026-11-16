@@ -44,6 +44,8 @@ Previous release snapshots stay on this site. The current pages are the unreleas
 - [Git](./git)
 - [Service Control](./service-control)
 - [Source Clones](./source-clones)
+- [Task Source](./task-source)
+- [Training](./training)
 - [Tray Session](./tray-session)
 - [Validation](./validation)
 - [Verification](./verification)

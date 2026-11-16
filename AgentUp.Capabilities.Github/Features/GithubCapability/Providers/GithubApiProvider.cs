@@ -17,25 +17,108 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
     public async Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken)
     {
         using var client = CreateClient(request.Token);
+        var account = await ReadAccountAsync(client, cancellationToken);
         var pulls = await client.GetFromJsonAsync<JsonElement>(
             $"repos/{request.Owner}/{request.Repository}/pulls?head={request.Owner}:{request.Branch}&state=open",
             Json,
             cancellationToken);
         if (pulls.ValueKind != JsonValueKind.Array || pulls.GetArrayLength() == 0)
-            return new ForgeHostSnapshot(null, [], [], null);
+            return new ForgeHostSnapshot(null, [], [], null, account);
 
         var pull = pulls[0];
         var proposal = ReadProposal(pull);
         var sha = pull.GetProperty("head").GetProperty("sha").GetString() ?? "";
         var checks = await ReadChecksAsync(client, request, sha, cancellationToken);
         var threads = await ReadThreadsAsync(client, request, proposal.Number, cancellationToken);
+        var reviews = await ReadReviewsAsync(client, request, proposal.Number, cancellationToken);
         var mergeability = new ForgeMergeability(
             pull.TryGetProperty("mergeable", out var mergeable) && mergeable.ValueKind == JsonValueKind.True,
             pull.TryGetProperty("mergeable_state", out var state) ? state.GetString() ?? "unknown" : "unknown");
-        return new ForgeHostSnapshot(proposal, checks, threads, mergeability);
+        return new ForgeHostSnapshot(proposal, checks, threads, mergeability, account, reviews);
     }
 
-    public async Task<IReadOnlyList<ForgeAssignedIssue>> ListAssignedAsync(
+    /// <summary>
+    /// The verdicts left on the proposal, one per reviewer. A host keeps every review a reviewer
+    /// ever submitted, so only their latest decisive one counts: an approval after changes were
+    /// requested means the changes landed. A plain comment is not decisive — the host leaves an
+    /// approval or a change request standing when the same reviewer comments again afterwards —
+    /// so a reviewer who approved and then commented still reads as approved, and one who asked
+    /// for changes still blocks.
+    /// </summary>
+    private static async Task<IReadOnlyList<ForgeReview>> ReadReviewsAsync(
+        HttpClient client,
+        ForgeRequest request,
+        string proposalNumber,
+        CancellationToken cancellationToken)
+    {
+        var reviews = await client.GetFromJsonAsync<JsonElement>(
+            // One page is 30 by default, and a reviewer's newest review on page two would be lost
+            // from the per-reviewer verdict, so ask for the largest page the host serves.
+            $"repos/{request.Owner}/{request.Repository}/pulls/{proposalNumber}/reviews?per_page=100",
+            Json,
+            cancellationToken);
+        if (reviews.ValueKind != JsonValueKind.Array) return [];
+
+        return reviews.EnumerateArray()
+            .Select(ReadReview)
+            .OfType<ForgeReview>()
+            .GroupBy(review => review.Login, StringComparer.OrdinalIgnoreCase)
+            .Select(reviewer => Verdict([.. reviewer.OrderBy(review => review.SubmittedAt)]))
+            .ToArray();
+    }
+
+    /// <summary>
+    /// One reviewer's standing verdict: their latest decisive review, or their latest review of
+    /// any kind when they have only ever commented.
+    /// </summary>
+    private static ForgeReview Verdict(IReadOnlyList<ForgeReview> history)
+        => history.LastOrDefault(review => !IsComment(review)) ?? history[^1];
+
+    private static bool IsComment(ForgeReview review)
+        => string.Equals(review.State, "COMMENTED", StringComparison.OrdinalIgnoreCase);
+
+    private static ForgeReview? ReadReview(JsonElement review)
+    {
+        var login = review.TryGetProperty("user", out var user) && user.ValueKind == JsonValueKind.Object
+            ? user.TryGetProperty("login", out var name) ? name.GetString() : null
+            : null;
+        if (string.IsNullOrWhiteSpace(login)) return null;
+        var state = review.TryGetProperty("state", out var verdict) ? verdict.GetString() ?? "" : "";
+        var submitted = review.TryGetProperty("submitted_at", out var at) && at.ValueKind == JsonValueKind.String
+            ? at.GetDateTimeOffset()
+            : DateTimeOffset.MinValue;
+        return new ForgeReview(login, state, submitted);
+    }
+
+    /// <summary>
+    /// Who the credential acts as. The workspace has an account whether or not a proposal is open,
+    /// so this is read before the proposal and carried on every snapshot. A token the host will not
+    /// identify leaves the account null; it is not worth failing an otherwise good read over.
+    /// </summary>
+    private static async Task<ForgeAccount?> ReadAccountAsync(HttpClient client, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var user = await client.GetFromJsonAsync<JsonElement>("user", Json, cancellationToken);
+            if (user.ValueKind != JsonValueKind.Object) return null;
+            var login = user.TryGetProperty("login", out var name) ? name.GetString() : null;
+            if (string.IsNullOrWhiteSpace(login)) return null;
+            var display = user.TryGetProperty("name", out var full) ? full.GetString() : null;
+            var type = user.TryGetProperty("type", out var kind) ? kind.GetString() : null;
+            var url = user.TryGetProperty("html_url", out var link) ? link.GetString() : null;
+            return new ForgeAccount(
+                login,
+                string.IsNullOrWhiteSpace(display) ? login : display,
+                string.Equals(type, "Bot", StringComparison.OrdinalIgnoreCase),
+                url ?? $"https://github.com/{login}");
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
+    }
+
+    public async Task<IReadOnlyList<ForgeIssue>> ListAssignedAsync(
         ForgeRequest request,
         CancellationToken cancellationToken)
     {
@@ -44,11 +127,31 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
             "issues?filter=assigned&state=open&per_page=100",
             Json,
             cancellationToken);
+        return Issues(issues);
+    }
+
+    public async Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
+        ForgeRequest request,
+        CancellationToken cancellationToken)
+    {
+        using var client = CreateClient(request.Token);
+        var issues = await client.GetFromJsonAsync<JsonElement>(
+            $"repos/{request.Owner}/{request.Repository}/issues?state=open&sort=updated&direction=desc&per_page=100",
+            Json,
+            cancellationToken);
+        return Issues(issues);
+    }
+
+    private static IReadOnlyList<ForgeIssue> Issues(JsonElement issues)
+    {
         if (issues.ValueKind != JsonValueKind.Array)
             return [];
 
         return issues.EnumerateArray()
-            .Select(issue => new ForgeAssignedIssue(
+            // GitHub serves pull requests from the issues route as well, and a proposal is not a
+            // task to pick up. Only an entry without the pull_request member is a real issue.
+            .Where(issue => !issue.TryGetProperty("pull_request", out _))
+            .Select(issue => new ForgeIssue(
                 issue.GetProperty("id").GetRawText(),
                 issue.GetProperty("number").GetInt32(),
                 issue.GetProperty("title").GetString() ?? "",

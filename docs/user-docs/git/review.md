@@ -55,7 +55,7 @@ Changes to files you did not select stay in the worktree, so you can make severa
 
 <DocSurfaces>
 <DocSurface desktop>On Desktop the Git tab shows the change tree and commit box. Discard sits next to Push and appears only when files are selected. History is a separate page from the History button, not a log under the commit box.</DocSurface>
-<DocSurface mobile>On Mobile overview, Commit sits below the message box and shows added and deleted file counts for the selected files. Confirming a commit uses an in-app dialog.</DocSurface>
+<DocSurface mobile>On Mobile overview, the branch row, Fetch, Pull, Push, History, the change list, and the commit box scroll together. The commit box follows the changes. The tab bar stays. Commit sits below the message box and shows added and deleted file counts for the selected files. Confirming a commit uses an in-app dialog.</DocSurface>
 </DocSurfaces>
 
 New files that disappeared after they were staged are dropped from the commit instead of failing the whole operation. After a successful commit the message box clears, the short commit hash is reported, and the change list reloads.

@@ -18,15 +18,17 @@ timeline, pack the columns and clip at the bottom rather than leaving empty
 canvas. Those examples are the same
 `component.html` definitions as the catalog below, parameterised with
 `data-au-props`, so the intro stays in sync when the catalog changes. Assembled Desktop and Mobile screens follow, selected
-by a horizontal chip strip. Those views mount assembled screen HTML: `src/screens.html` layouts that
+by a horizontal chip strip under two spaces. Old UI selects assembled screens from `src/screens.html`. New UI selects screens from `src/new-ui/screens.html`: each chip is one screen, and that screen's desktop and mobile scenes are the two frames in the pair. A screen that exists on only one surface still uses that one chip. Old UI mounts assembled screen HTML: `src/screens.html` layouts that
 `data-au-use` catalog component ids. The heading, chip selection, and Desktop
 and Mobile pair share one centered max-content block so page zoom recedes them
 together. Each scene lays out at native pixels, then scales into one shared
 display height so Desktop and Mobile stay matched and the whole window stays
 visible. They do not embed persisted PNGs and they
-do not restate component markup. Below that, a vertical
-surface list sits in the left of the content column, and each selected surface
-shows the live components that surface uses.
+do not restate component markup. Under the selected screen's pair, the page lists
+the components that screen is built from: every component its scenes name, the
+components those name in turn, and any component whose class the scene draws. A
+component two screens share is listed under both; it is still one definition.
+Below the screens, Foundations shows the colour tokens and brand voice.
 
 ## Ownership and sources
 
@@ -73,14 +75,16 @@ shows the live components that surface uses.
   Unicode glyphs and Mobile hosts the same drawings as public SVGs today; those two surfaces adopting the
   emitted geometry is what makes a documented screen match a real one at the icon
   level.
+- The Old UI and the New UI have separate component sets and separate renderers. `src/catalog.html` (with `src/catalog-*.html`) is the Old UI's components and `scripts/lib/{css,avalonia,native}.mjs` render them into `AgentUpStyles.axaml` and `dist/native/index.js`. `src/new-ui/catalog.html` is the New UI's own components, including its copies of the product parts it draws as they are (the title bar, a workspace row, the Git pane, the chat), and `scripts/lib/new-ui/{css,avalonia,native}.mjs` render them into `AgentUpNewUiStyles.axaml` and `dist/native/new-ui.js`. The New UI build never reads the Old UI catalog, so changing either UI's components or renderer cannot change the other UI. Desktop loads the New UI styles inside the command-center view only.
+- `src/new-ui/catalog.html` and `src/new-ui/screens.html` own the New UI space. The catalog is the components, and each scene fills regions with `data-au-use` of those component ids, assembled by the same `assembleScreens` path as `src/screens.html`. Workspace names, the fleet, and the task queue are filled from `AgentUp.FakeServer/definition.json`, the document the Demo server serves, so the showcase does not keep a second copy of that sample. The Team scene is that fleet graph and nothing under it. An error stands in Error, an approval stands in Wait for approval, an active agent stands in Working, and anyone else stands idle. A lane with nobody in it is omitted. The phone stacks the same graph. Sidebar rows show that branch, or no branch line when none is assigned, and the row LED is the agent state. A host message sits in its own field under the host, at most three, each cut at 100 characters. Agent · Application keeps the validation rail on the right when that application has recorded checks, and omits the rail when it has none. The rail starts collapsed; its toggle expands it while an application is open. Each recorded flow is the catalog card: the name, the wrapping description, Play, and that flow's stages and checks. The open application tab is the one carrying the accent. Settings has a Chat section: a workspace tab chooses the workspace, and each agent property is its own field with its own control, greyed when that value cannot be changed. Nested rows are that property's own fields. The chat page keeps the transcript. The address bar is the catalog address field: back, forward, reload, and the live URL, and it stays while the browser surface is showing. Console, Diagnostics, Metrics, and Database select the existing panes when that application has them, and a validation row runs that recorded check. The title bar mark is the product logo. The phone application page has no tab bar: back is the chevron, and a 50px dock under the app plays from nothing selected, through the dropup, into the second flow, through each of that flow's checks, and then opens the overview. That playback demonstrates the catalog states. The command center reports a run through those states rather than playing the showcase timer. The build emits a slot manifest and a generated Avalonia and React Native scene from that assembly. The command center mounts that scene and binds standing, the task queue, settings, and the open workspace into its slots. A `data-au-screen` row pairs one desktop scene and one mobile scene under a single showcase chip. The `sidebar` component is the Desktop rail: Team, Tasks, and Settings, with workspace rows under Team. The phone bar is those same three tabs. Page titles use the catalog page title. Settings and Tasks share the same small section label for Forge connection, Capabilities, Chat, and the task groups. The `rail-session` component, the connected Server and Logout, closes the desktop rail and sits above the phone tab bar on Team, Tasks, and Settings, for the Demo and a real Server alike; Settings has no Login section. The desktop layout includes that rail plus the `chrome` title bar on every desktop scene. While the command center scene is the page, Desktop hides the host window chrome so that title bar is the only one, and its minimize, restore, and close actions drive the window. Sign-in keeps the host bar, because the scene is not on screen until a Server is chosen. Scene documents stay one file per surface under `dist/web/new-ui/`. This catalog stays out of the Old UI stylesheet, so it does not move the classic Avalonia or React Native bindings.
 - `src/screens.html` owns assembled screens: named layouts plus scenes that
   fill regions with `data-au-use` of catalog component ids, including the
   `screen*` layout shells. `scripts/lib/screens.mjs` inserts leaf catalog HTML
   and applies empty layout shells as wrappers. Persist writes the result into
-  `media/`. The `screen*` shells and the Demo fixtures are web-only
-  (`webOnly` in `scripts/lib/css.mjs`): a Border carries no flex model and
-  Desktop builds its shell from Grid, so emitting them produced bindings no
-  surface could use.
+  `media/`. The `screen*` shells and the Demo fixtures stay out of the classic
+  bindings (`webOnly` in `scripts/lib/css.mjs`). The New UI scene opts the
+  screen shells back in and lays them out with the generated page, because a
+  Border carries no flex model.
 - Scene documents link `../screenshots.css` rather than inlining it. Twenty-two
   copies of the same stylesheet made the committed output almost entirely one
   repeated file; Chromium resolves the sibling over `file://` exactly as it

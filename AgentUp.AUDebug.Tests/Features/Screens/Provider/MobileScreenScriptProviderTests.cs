@@ -8,7 +8,7 @@ public sealed class MobileScreenScriptProviderTests
     [Test]
     public void Navigate_routesInsideTheAppRatherThanReloadingIt()
     {
-        var script = MobileScreenScriptProvider.Navigate("/workspace/harbor-shop/git/review");
+        var script = MobileScreenScriptProvider.Navigate("/workspace/bob/git/review");
 
         Assert.Multiple(() =>
         {

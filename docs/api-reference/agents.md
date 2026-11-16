@@ -14,6 +14,12 @@ HTTP routes owned by the Agents slice.
 |---|---|---|
 | `GET` | `/api/autonomy` | Get |
 | `PUT` | `/api/autonomy` | Put |
+| `GET` | `/api/tasks` | Get |
+| `POST` | `/api/tasks` | Enqueue |
+| `DELETE` | `/api/tasks/{owner}/{repository}/{id}` | Remove |
+| `PUT` | `/api/tasks/{owner}/{repository}/{id}/position` | Move |
+| `POST` | `/api/tasks/{owner}/{repository}/{id}/release` | Release |
+| `PUT` | `/api/tasks/{owner}/{repository}/{id}/target` | Target |
 | `DELETE` | `/api/workspaces/{workspaceId}/agent` | Stop |
 | `GET` | `/api/workspaces/{workspaceId}/agent` | Get |
 | `POST` | `/api/workspaces/{workspaceId}/agent` | Schedule |

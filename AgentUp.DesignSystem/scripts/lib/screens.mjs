@@ -139,9 +139,7 @@ ${framedSceneHtml(scene)}
 }
 
 function assembleScene(scene, layouts, components) {
-  const layout = layouts.get(scene.layout);
-  if (!layout) throw new Error(`${scene.id} references unknown layout '${scene.layout}'.`);
-  const slotted = applySlots(layout, scene.regions);
+  const slotted = slottedScene(scene, layouts);
   const uses = [...slotted.matchAll(/data-au-use="([^"]+)"/g)].map(match => match[1]);
   // A component whose copy the scene replaced cannot be re-derived from the catalog, so the
   // resolved fragment is recorded and the screenshot contract compares against that instead.
@@ -186,12 +184,23 @@ function sceneStateModifiers(ids, components) {
   return [...modifiers].sort();
 }
 
+/**
+ * The layout with this scene's regions dropped into its slots, before catalog components are
+ * expanded. The native scene walks that same HTML so Desktop and Mobile mount one tree.
+ */
+export function slottedScene(scene, layouts) {
+  const layout = layouts.get(scene.layout);
+  if (!layout) throw new Error(`${scene.id} references unknown layout '${scene.layout}'.`);
+  return applySlots(layout, scene.regions);
+}
+
 function applySlots(layout, regions) {
   const slots = new Map();
   for (const region of regions) {
     const state = region.state ? ` data-au-state="${region.state}"` : '';
     const props = region.props ? ` data-au-props="${region.props}"` : '';
-    const marker = `<div data-au-use="${region.use}"${state}${props}></div>`;
+    const when = region.when ? ` data-au-when="${region.when}"` : '';
+    const marker = `<div data-au-use="${region.use}"${state}${props}${when}></div>`;
     slots.set(region.name, `${slots.get(region.name) ?? ''}${marker}`);
   }
   return layout.replace(slotPattern(), (full, tag, before, name, after) => {
@@ -294,6 +303,7 @@ function parseRegions(body) {
       use: match[2],
       state: attr(match[3] ?? '', 'state'),
       props: attr(match[3] ?? '', 'props'),
+      when: attr(match[3] ?? '', 'when'),
     });
   }
   return regions;

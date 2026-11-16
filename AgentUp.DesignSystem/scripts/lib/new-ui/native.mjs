@@ -1,0 +1,369 @@
+/**
+ * The New UI's React Native renderer. It writes dist/native/new-ui.js only; the classic
+ * bindings stay with scripts/lib/native.mjs, unchanged by the New UI.
+ */
+import { camel, formatNumber, layoutOnly, nativeLiteral, parseSelector, toPx, varName, webOnly } from './css.mjs';
+
+const boxKeys = new Set([
+  'backgroundColor', 'borderWidth', 'borderColor', 'borderRadius',
+  'borderTopWidth', 'borderTopColor', 'borderRightWidth', 'borderRightColor',
+  'borderBottomWidth', 'borderBottomColor', 'borderLeftWidth', 'borderLeftColor',
+  'width', 'height', 'minHeight', 'minWidth', 'maxWidth', 'marginLeft', 'paddingHorizontal', 'paddingVertical',
+  'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom',
+  'opacity', 'color',
+]);
+const textKeys = new Set(['color', 'fontSize', 'fontWeight', 'opacity', 'fontFamily', 'fontStyle', 'textTransform', 'letterSpacing']);
+
+/**
+ * `keep` is the set of classes the classic bindings skip (the screen shells) that a New UI
+ * scene still has to paint. `themeName` keeps that stylesheet off `agentUpTheme`.
+ */
+export function emitNative(tokens, rules, options = {}) {
+  const keep = options.keep ?? new Set();
+  const themeName = options.themeName ?? 'agentUpTheme';
+  const boxName = options.boxName ?? 'auBox';
+  const textName = options.textName ?? 'auText';
+  // The classic bindings keep their two-axis padding. A scene lays out real cards, so it needs each edge.
+  const edges = options.edges === true;
+  const groups = {
+    colors: Object.entries(tokens).filter(([name]) => name.startsWith('color-')),
+    spacing: Object.entries(tokens).filter(([name]) => name.startsWith('space-')),
+    radii: Object.entries(tokens).filter(([name]) => name.startsWith('radius-')),
+    typography: Object.entries(tokens).filter(([name]) => name.startsWith('font-size-') || name.startsWith('weight-') || name.startsWith('line-')),
+    controls: Object.entries(tokens).filter(([name]) => name.startsWith('control-height')),
+    fonts: Object.entries(tokens).filter(([name]) => name === 'font-sans' || name === 'font-mono'),
+  };
+  const components = {};
+  for (const rule of rules) {
+    for (const selector of rule.selectors) {
+      // `.parent--state .child` is how a scene colours a mark by its branch. The renderer
+      // looks up `parent__child` for each painted ancestor, so a scene keeps that rule.
+      const descendant = edges && selector.trim().match(/^\.([a-z0-9_-]+)\s+\.([a-z0-9_-]+)$/);
+      if (descendant) {
+        const name = `${bindingName(descendant[1])}__${bindingName(descendant[2])}`;
+        components[name] = { ...components[name], ...rnStyle(rule.declarations, tokens, edges) };
+        continue;
+      }
+      const parsed = parseSelector(selector);
+      if (!parsed || (layoutOnly.has(parsed.baseClass) && !keep.has(parsed.baseClass)) || skipped(parsed.baseClass, keep)) continue;
+      if (parsed.pseudo && parsed.pseudo !== 'disabled') continue;
+      if (parsed.selected) continue;
+      const named = parsed.modifierClass ?? parsed.baseClass;
+      const baseName = bindingName(named);
+      const name = camel(parsed.pseudo === 'disabled' ? `${baseName}-disabled` : baseName);
+      const style = rnStyle(rule.declarations, tokens, edges);
+      // Keep the catalog name even when every declaration is web-only. `.au-mono`
+      // is only a font-family stack; dropping it makes auText('mono') throw at
+      // Chat module load, which is a launch abort on iOS.
+      components[name] = { ...components[name], ...style };
+    }
+  }
+  for (const style of Object.values(components)) {
+    if (style.letterSpacingEm != null && style.fontSize != null) {
+      style.letterSpacing = formatNumber(style.letterSpacingEm * Number(style.fontSize));
+    }
+    delete style.letterSpacingEm;
+  }
+  const componentBlock = Object.entries(components).map(([name, style]) =>
+    `    ${name}: Object.freeze({\n${Object.entries(style).map(([key, value]) => `      ${key}: ${value},`).join('\n')}\n    }),`
+  ).join('\n');
+  const helpers = nativeHelpers();
+  const themeExpression = `Object.freeze({\n${Object.entries(groups).map(([group, values]) =>
+    `  ${group}: Object.freeze({\n${values.map(([name, value]) => `    ${nativeKey(group, name)}: ${nativeLiteral(value, tokens)},`).join('\n')}\n  }),`
+  ).join('\n')}\n  components: Object.freeze({\n${componentBlock}\n  }),\n})`;
+  const js = `// Generated from src/agent-up.css by scripts/build.mjs. Do not edit.\nexport const ${themeName} = ${themeExpression};\n${helpers.esm(themeName, boxName, textName)}\n`;
+  const cjs = `// Generated from src/agent-up.css by scripts/build.mjs. Do not edit.\nconst ${themeName} = ${themeExpression};\n${helpers.cjs(themeName, boxName, textName)}\nmodule.exports = { ${themeName}, ${boxName}, ${textName} };\n`;
+  const dts = `// Generated from src/agent-up.css. Do not edit.\nexport declare const agentUpTheme: {\n  readonly colors: Readonly<Record<string, string>>;\n  readonly spacing: Readonly<Record<string, number>>;\n  readonly radii: Readonly<Record<string, number>>;\n  readonly typography: {\n    readonly sizeXs: number;\n    readonly sizeSm: number;\n    readonly sizeMd: number;\n    readonly sizeLg: number;\n    readonly sizeXl: number;\n    readonly sizeDisplay: number;\n    readonly sizeUiXs: number;\n    readonly sizeUiSm: number;\n    readonly sizeUiMd: number;\n    readonly sizeUiLg: number;\n    readonly sizeUiXl: number;\n    readonly tight: number;\n    readonly normal: number;\n    readonly relaxed: number;\n    readonly regular: number;\n    readonly medium: number;\n    readonly semibold: number;\n    readonly bold: number;\n    readonly black: number;\n    readonly ui: number;\n    readonly uiStrong: number;\n  };\n  readonly controls: Readonly<Record<string, number>>;\n  readonly fonts: Readonly<Record<string, string>>;\n  readonly components: Readonly<Record<string, Readonly<Record<string, string | number>>>>;\n};\nexport declare function auBox(...names: Array<string | false | null | undefined>): {\n  backgroundColor?: string;\n  borderWidth?: number;\n  borderColor?: string;\n  borderRadius?: number;\n  borderTopWidth?: number;\n  borderTopColor?: string;\n  borderRightWidth?: number;\n  borderRightColor?: string;\n  borderBottomWidth?: number;\n  borderBottomColor?: string;\n  borderLeftWidth?: number;\n  borderLeftColor?: string;\n  width?: number;\n  height?: number;\n  minHeight?: number;\n  minWidth?: number;\n  maxWidth?: number | '80%';\n  marginLeft?: number;\n  paddingHorizontal?: number;\n  paddingVertical?: number;\n  opacity?: number;\n  color?: string;\n};\nexport declare function auText(...names: Array<string | false | null | undefined>): {\n  color?: string;\n  fontSize?: number;\n  fontWeight?: '400' | '500' | '600' | '700' | '800';\n  opacity?: number;\n  fontFamily?: string;\n  textTransform?: 'none' | 'capitalize' | 'uppercase' | 'lowercase';\n  letterSpacing?: number;\n  fontStyle?: 'normal' | 'italic';\n};\n`;
+  return { js, cjs, dts };
+}
+
+function nativeHelpers() {
+  return {
+    esm: (themeName, boxName, textName) => helperBody(themeName, boxName, textName, true),
+    cjs: (themeName, boxName, textName) => helperBody(themeName, boxName, textName, false),
+  };
+}
+
+function helperBody(themeName, boxName, textName, exported) {
+  const keyword = exported ? 'export function' : 'function';
+  return `const auBoxKeys = new Set(${JSON.stringify([...boxKeys])});
+const auTextKeys = new Set(${JSON.stringify([...textKeys])});
+function auPick(names, keys) {
+  const out = {};
+  for (const name of names) {
+    if (!name) continue;
+    const style = ${themeName}.components[name];
+    if (!style) throw new Error("Unknown Agent-Up component '" + name + "'.");
+    for (const [key, value] of Object.entries(style)) {
+      if (keys.has(key)) out[key] = value;
+    }
+  }
+  return out;
+}
+${keyword} ${boxName}(...names) { return auPick(names, auBoxKeys); }
+${keyword} ${textName}(...names) { return auPick(names, auTextKeys); }
+`;
+}
+
+function skipped(className, keep) {
+  return webOnly.has(className) && !keep.has(className);
+}
+
+/** React Native component key for a catalog class. `aun-*` is not the `au-` prefix. */
+export function bindingName(className) {
+  if (className.startsWith('aun-')) {
+    return camel(className.replaceAll('__', '-').replaceAll('--', '-'));
+  }
+  return camel(className.replace(/^au-/, '').replaceAll('--', '-'));
+}
+
+function nativeKey(group, name) {
+  if (group === 'colors') return camel(name.replace(/^color-/, ''));
+  if (group === 'spacing') return name.replace(/^space-/, '');
+  if (group === 'radii') return camel(name.replace(/^radius-/, ''));
+  if (group === 'controls') return camel(name.replace(/^control-/, ''));
+  if (group === 'fonts') return camel(name.replace(/^font-/, ''));
+  if (name.startsWith('font-size-')) return camel(`size-${name.replace(/^font-size-/, '')}`);
+  if (name.startsWith('weight-')) return camel(name.replace(/^weight-/, ''));
+  if (name.startsWith('line-')) return camel(name.replace(/^line-/, ''));
+  return camel(name);
+}
+
+function rnStyle(declarations, tokens, edges = false) {
+  const style = {};
+  let colorLiteral = null;
+  let backgroundIsCurrentColor = false;
+  for (const [property, value] of declarations) {
+    if (/color-mix\(|min\(|max\(|calc\(/i.test(value) && !value.startsWith('clamp(')) continue;
+    switch (property) {
+      case 'color':
+        colorLiteral = nativeLiteral(value, tokens);
+        style.color = colorLiteral;
+        break;
+      case 'background':
+      case 'background-color':
+        if (value === 'currentColor') backgroundIsCurrentColor = true;
+        else style.backgroundColor = nativeLiteral(value, tokens);
+        break;
+      case 'border-radius': {
+        const radius = radiusLiteral(value, tokens);
+        if (radius != null) style.borderRadius = radius;
+        break;
+      }
+      case 'min-height': {
+        const length = rnLengthLiteral(value, tokens);
+        if (length != null) style.minHeight = length;
+        break;
+      }
+      case 'min-width': {
+        const length = rnLengthLiteral(value, tokens);
+        if (length != null) style.minWidth = length;
+        break;
+      }
+      case 'margin-left': {
+        const length = rnLengthLiteral(value, tokens);
+        if (length != null) style.marginLeft = length;
+        break;
+      }
+      case 'max-width': {
+        const length = rnLengthLiteral(value, tokens);
+        if (length != null) style.maxWidth = length;
+        break;
+      }
+      case 'width': {
+        if (value.includes('%') || value.includes('min(') || /fit-content|max-content|min-content|auto/.test(value)) break;
+        const length = rnLengthLiteral(value, tokens);
+        if (length != null) style.width = length;
+        break;
+      }
+      case 'height': {
+        if (value.includes('%')) break;
+        const length = rnLengthLiteral(value, tokens);
+        if (length != null) style.height = length;
+        break;
+      }
+      case 'font-size':
+        style.fontSize = nativeLiteral(value, tokens);
+        break;
+      case 'font-family':
+        // CSS stacks ("Inter, ui-sans-serif, ...") are not React Native font
+        // names. Once Expo Font is linked, an unknown family is a production
+        // fatal rather than a fallback to the system face.
+        break;
+      case 'font-style':
+        style.fontStyle = value === 'italic' || value === 'oblique' ? "'italic'" : "'normal'";
+        break;
+      case 'font-weight': {
+        const resolved = String(value).includes('var(') ? nativeLiteral(value, tokens) : value;
+        style.fontWeight = /^[0-9]+$/.test(String(resolved)) ? `'${resolved}'` : nativeLiteral(value, tokens);
+        break;
+      }
+      case 'text-transform':
+        style.textTransform = `'${value}'`;
+        break;
+      case 'letter-spacing': {
+        const em = String(value).trim().match(/^(-?[0-9.]+)em$/);
+        if (em && style.fontSize != null) style.letterSpacing = formatNumber(Number(em[1]) * Number(style.fontSize));
+        else if (em) style.letterSpacingEm = Number(em[1]);
+        else {
+          const px = nativeLiteral(value, tokens);
+          if (px != null) style.letterSpacing = px;
+        }
+        break;
+      }
+      case 'opacity':
+        style.opacity = value;
+        break;
+      case 'padding': {
+        if (edges) {
+          const sides = edgeList(value, tokens);
+          if (!sides) break;
+          for (const key of ['paddingHorizontal', 'paddingVertical']) delete style[key];
+          Object.assign(style, sided('padding', sides));
+          break;
+        }
+        const parts = padding(value, tokens);
+        if (!parts) break;
+        style.paddingHorizontal = parts.horizontal;
+        style.paddingVertical = parts.vertical;
+        break;
+      }
+      case 'margin':
+      case 'margin-block':
+      case 'margin-inline':
+      case 'margin-top':
+      case 'margin-right':
+      case 'margin-bottom':
+      case 'padding-block':
+      case 'padding-inline':
+      case 'padding-top':
+      case 'padding-right':
+      case 'padding-bottom':
+      case 'padding-left': {
+        if (!edges) break;
+        const [kind, axis] = property.split('-');
+        if (axis === 'block' || axis === 'inline') {
+          const pair = edgeList(value, tokens, true);
+          if (!pair) break;
+          const [first, second] = [pair[0], pair[1] ?? pair[0]];
+          const names = axis === 'block' ? ['Top', 'Bottom'] : ['Left', 'Right'];
+          if (first != null) style[`${kind}${names[0]}`] = first;
+          if (second != null) style[`${kind}${names[1]}`] = second;
+          break;
+        }
+        if (!axis) {
+          const sides = edgeList(value, tokens, true);
+          if (sides) Object.assign(style, sided('margin', sides));
+          break;
+        }
+        const length = edgeLength(value, tokens);
+        if (length != null) style[`${kind}${axis[0].toUpperCase()}${axis.slice(1)}`] = length;
+        break;
+      }
+      case 'border':
+      case 'border-top':
+      case 'border-right':
+      case 'border-bottom':
+      case 'border-left': {
+        const parsed = parseBorder(value, tokens);
+        if (property === 'border') {
+          style.borderWidth = parsed.width;
+          if (parsed.color) style.borderColor = parsed.color;
+        } else {
+          const edge = property.slice('border-'.length);
+          const suffix = edge[0].toUpperCase() + edge.slice(1);
+          style[`border${suffix}Width`] = parsed.width;
+          if (parsed.color) style[`border${suffix}Color`] = parsed.color;
+        }
+        break;
+      }
+      case 'border-color':
+        style.borderColor = nativeLiteral(value, tokens);
+        break;
+      case 'box-shadow': {
+        const ring = edges && value.match(/^inset\s+0\s+0\s+0\s+([0-9.]+)px\s+(\S+)$/);
+        if (ring) {
+          style.borderWidth = ring[1];
+          style.borderColor = nativeLiteral(ring[2], tokens);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
+  if (backgroundIsCurrentColor && colorLiteral) style.backgroundColor = colorLiteral;
+  return style;
+}
+
+function radiusLiteral(value, tokens) {
+  const first = String(value).trim().split(/\s+/)[0];
+  if (!first) return null;
+  const token = varName(first);
+  if (token === 'radius-pill' || first === '50%') return '999';
+  return rnLengthLiteral(first, tokens);
+}
+
+function rnLengthLiteral(value, tokens) {
+  const literal = nativeLiteral(value, tokens);
+  if (literal == null) return null;
+  const text = String(literal);
+  if (/^-?[0-9.]+$/.test(text) || /^"\d+(\.\d+)?%"$/.test(text)) return literal;
+  return null;
+}
+
+function parseBorder(value, tokens) {
+  if (value === '0' || value === 'none') return { width: 0, color: nativeLiteral('var(--au-color-transparent)', tokens) };
+  const parts = value.split(/\s+/);
+  let width = 1;
+  let color = null;
+  for (const part of parts) {
+    if (part === 'solid' || part === 'none' || part === 'dashed' || part === 'dotted') continue;
+    const token = varName(part);
+    if (token === 'stroke' || token === 'stroke-strong' || toPx(part) != null || (token && toPx(tokens[token]) != null && !token.startsWith('color-'))) {
+      const px = token ? toPx(tokens[token]) : toPx(part);
+      if (px != null) width = px;
+    } else {
+      color = nativeLiteral(part, tokens);
+    }
+  }
+  return { width, color };
+}
+
+/** CSS one-to-four value edges as [top, right, bottom, left]. `auto` stays unset when allowed. */
+function edgeList(value, tokens, allowAuto = false) {
+  const parts = value.trim().split(/\s+/).map(part => (allowAuto && part === 'auto' ? undefined : edgeLength(part, tokens)));
+  if (parts.some(part => part === null) || !parts.length || parts.length > 4) return null;
+  const [top, right = top, bottom = top, left = right] = parts;
+  return [top, right, bottom, left];
+}
+
+function edgeLength(value, tokens) {
+  if (String(value).trim() === '0') return '0';
+  return rnLengthLiteral(String(value).trim(), tokens);
+}
+
+function sided(kind, [top, right, bottom, left]) {
+  const out = {};
+  const names = ['Top', 'Right', 'Bottom', 'Left'];
+  [top, right, bottom, left].forEach((length, index) => {
+    if (length != null) out[`${kind}${names[index]}`] = length;
+  });
+  return out;
+}
+
+function padding(value, tokens) {
+  const parts = value.trim().split(/\s+/).map(part => {
+    const px = toPx(part.includes('var(') ? nativeLiteral(part, tokens).replaceAll('"', '') : part);
+    if (part.includes('var(')) {
+      const token = part.match(/--au-([a-z0-9-]+)/);
+      if (token) return nativeLiteral(part, tokens);
+    }
+    return px == null ? null : String(px);
+  });
+  if (parts.some(part => part == null)) return null;
+  if (parts.length === 1) return { vertical: parts[0], horizontal: parts[0] };
+  if (parts.length === 2) return { vertical: parts[0], horizontal: parts[1] };
+  if (parts.length === 4) return { vertical: parts[0], horizontal: parts[1] };
+  return null;
+}

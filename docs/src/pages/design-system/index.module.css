@@ -146,3 +146,11 @@
 .stateExample {
   margin-block: var(--au-space-4) 0;
 }
+
+/* Components listed under the selected screen. */
+.screenComponents {
+  display: grid;
+  gap: var(--au-space-4);
+  min-width: 0;
+}
+.foundations { display: grid; gap: var(--au-space-6); }
