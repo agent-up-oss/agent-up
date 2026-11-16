@@ -242,13 +242,6 @@ function urgency(kind) {
   return kind === 'working' ? 2 : 3;
 }
 
-function stateLabel(kind) {
-  if (kind === 'waiting') return '◆ gate open';
-  if (kind === 'halted') return '▲ halted';
-  if (kind === 'working') return '● working';
-  return '○ idle';
-}
-
 function workspaceRows(workspaces, standings, selectFirst) {
   const kindById = new Map(standings.map(item => [item.id, item.kind]));
   return workspaces.map((workspace, index) => {

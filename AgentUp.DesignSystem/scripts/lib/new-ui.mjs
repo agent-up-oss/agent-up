@@ -15,18 +15,6 @@
  * only one surface is still one screen. Scene documents stay one file per surface.
  */
 
-/** Product catalog first, then New UI components. A repeated id is a build error. */
-export function withProductCatalog(product, extra) {
-  const ids = new Set();
-  const surfaces = [...product.surfaces, ...extra.surfaces];
-  for (const surface of surfaces) {
-    for (const component of surface.components) {
-      if (ids.has(component.id)) throw new Error(`Duplicate catalog component '${component.id}'.`);
-      ids.add(component.id);
-    }
-  }
-  return { surfaces };
-}
 
 export const newUiDesktopSize = { width: 1440, height: 900 };
 export const newUiMobileSize = { width: 390, height: 844 };

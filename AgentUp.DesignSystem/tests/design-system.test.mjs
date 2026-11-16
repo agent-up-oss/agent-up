@@ -19,7 +19,7 @@ import { emitNative } from '../scripts/lib/native.mjs';
 import { expandIcons, parseIcons } from '../scripts/lib/icons.mjs';
 import { parseCatalog } from '../scripts/lib/catalog.mjs';
 import { applyDemo, loadDemo } from '../scripts/lib/demo.mjs';
-import { applyNewUiSceneFiles, newUiFromAssembled, newUiManifest, parseNewUi, withProductCatalog, wrapNewUiScene } from '../scripts/lib/new-ui.mjs';
+import { applyNewUiSceneFiles, newUiFromAssembled, newUiManifest, parseNewUi, wrapNewUiScene } from '../scripts/lib/new-ui.mjs';
 import { assembleScreens } from '../scripts/lib/screens.mjs';
 import { applyDefaultParts, applyProps, hasContentSlots } from '../scripts/lib/slots.mjs';
 
