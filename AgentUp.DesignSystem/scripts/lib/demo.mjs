@@ -97,10 +97,7 @@ export function applyDemo(catalog, demo) {
   write('agent-state-map', 'total', String(demo.fleet.agents));
   write('agent-state-map', 'totalLabel', demo.fleet.agents === 1 ? 'AGENT' : 'AGENTS');
   write('agent-state-map', 'meta', fleetMeta(demo.fleet));
-  fill('bridge-task-table', 'reported', reportedTable(demo));
   fill('task-board', 'queue', taskBoard(demo));
-  fill('task-source', 'source', taskSource(demo));
-  fill('train-panel', 'decisions', decisions(demo));
   fill('member-overview', 'overview', memberOverview(demo));
   const open = demo.open;
   fill('mobile-agent-head', 'member', memberHead(open));
@@ -285,20 +282,6 @@ function agentCard(agent) {
   return `<div class="aun-state-map__host"><div class="aun-state-map__agent"><span class="aun-state-map__agent-name">${esc(agent.displayName)}</span><span class="aun-state-map__agent-task">${esc(task)}</span></div>${field}</div>`;
 }
 
-function reportedTable(demo) {
-  const rows = demo.tasks.map(task => `
-    <div class="aun-task-summary__row">
-      <span>${esc(task.label)}</span>
-      <span>${esc(stateLabel(task.kind))}</span>
-      <span>${task.agents.map(agent => esc(agent.role ? `${agent.displayName} · ${agent.role}` : agent.displayName)).join('<br>')}</span>
-    </div>`).join('');
-  return `
-    <p class="aun-rail__section">Tasks</p>
-    <div class="aun-task-summary">
-      <div class="aun-task-summary__head"><span>Task</span><span>State</span><span>Assigned to</span></div>
-      ${rows}
-    </div>`;
-}
 
 function taskBoard(demo) {
   const sections = [
@@ -334,15 +317,7 @@ function queuedRow(task, names, action, buttonClass, grip) {
     </div>`;
 }
 
-function taskSource(demo) {
-  const label = demo.source ? `${demo.source.owner}/${demo.source.repository}` : 'Not connected';
-  return `<p class="aun-rail__section">Task source</p><strong class="au-workspace-name">${esc(label)}</strong>`;
-}
 
-function decisions(demo) {
-  const rows = demo.decisions.map(decision => `<p class="aun-rail__agent"><strong>${esc(decision.headline)}</strong><span>${esc(decision.agent)}</span></p>`).join('');
-  return `<p class="aun-rail__section">Train</p>${rows}<button type="button" class="aun-btn">Export</button>`;
-}
 
 function memberOverview(demo) {
   const workspace = demo.open;

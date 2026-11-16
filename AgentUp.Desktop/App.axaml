@@ -12,6 +12,5 @@
     <Application.Styles>
         <FluentTheme />
         <StyleInclude Source="/DesignSystem/AgentUpStyles.axaml" />
-        <StyleInclude Source="/DesignSystem/AgentUpNewUiStyles.axaml" />
     </Application.Styles>
 </Application>

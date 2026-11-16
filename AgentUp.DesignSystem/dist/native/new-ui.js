@@ -931,16 +931,6 @@ export const newUiTheme = Object.freeze({
       paddingBottom: 6,
       paddingLeft: 0,
     }),
-    validationSidebarCollapsed__validationSidebarHead: Object.freeze({
-      paddingTop: 0,
-      paddingRight: 0,
-      paddingBottom: 0,
-      paddingLeft: 0,
-    }),
-    validationSidebarCollapsed__workspaceAdd: Object.freeze({
-      width: 32,
-      height: 32,
-    }),
     validationSidebarHead: Object.freeze({
       paddingTop: 10,
       paddingRight: 10,
@@ -3021,6 +3011,16 @@ export const newUiTheme = Object.freeze({
       height: 18,
       borderRadius: 999,
       backgroundColor: "#718077",
+    }),
+    validationSidebarCollapsed__validationSidebarHead: Object.freeze({
+      paddingTop: 0,
+      paddingRight: 0,
+      paddingBottom: 0,
+      paddingLeft: 0,
+    }),
+    validationSidebarCollapsed__workspaceAdd: Object.freeze({
+      width: 32,
+      height: 32,
     }),
   }),
 });

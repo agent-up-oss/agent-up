@@ -29,7 +29,7 @@ Product names that appear in more than one surface:
 
 - Desktop Git chrome is the **Git** tab; the heading inside it is **Git changes**. Mobile chrome is the **Git** tab, with inner **Review** and **History** pages. Do not call either tab "Commit".
 - The human Git slice is working-tree review. The agent queue is the **commit queue** (legacy local) or **proposal queue** when `commits.enabled` is true. Desktop Git and Mobile Review display that queue; they do not mutate it.
-- Desktop chrome for the live ACP session is the **Chat** tab. Mobile chrome for the picker is the **Agents** tab.
+- Desktop chrome for the live ACP session is the **Agent** tab. Mobile chrome for the picker is the **Agents** tab.
 - The installed CLI is `agent-up`. Do not document `agentup` or `agent-up register`.
 - Packaged Server URL is `http://localhost:5000`. The repository launch profile is `http://localhost:5001`.
 - MCP clients connect to named servers (`/mcp/orchestration`, `/mcp/browser`, `/mcp/audit`, `/mcp/commits`, `/mcp/verification`, `/mcp/training`), never a shared `/mcp`.
@@ -1401,7 +1401,7 @@ Read: `docs/user-docs/commits/index.md` and `docs/developer-guide/commits/index.
 
 ## Agents
 
-Each workspace has one active ACP agent session. Desktop chrome for that session is the **Chat** tab; it does not list or resume other sessions. Mobile chrome for the picker is the **Agents** tab. Agent descriptors carry why an agent is unavailable and the next step; both clients render that, and Enable the package from the row when that is the gap. A Development or Testing Server also lists `test-agent-scripted`. Subscription sign-in is Server-owned and branches on transport (`poll`, `code`, `redirect`), not vendor. A pasted-code sign-in that finishes without a subscription token stays on authentication rather than starting an unauthenticated session. ACP's `Authentication required` / `-32000` notice is a sign-in prompt, not a failed session. Public agent identity is the enabled module id; Server ACP session code stays generic.
+Each workspace has one active ACP agent session and a separate saved session history. Desktop chrome for the live session is the **Agent** tab; Mobile chrome for the picker is the **Agents** tab. The live row is labeled Current; every other saved session is Resume. Agent descriptors carry why an agent is unavailable and the next step; both clients render that, and Enable the package from the row when that is the gap. A Development or Testing Server also lists `test-agent-scripted`. Subscription sign-in is Server-owned and branches on transport (`poll`, `code`, `redirect`), not vendor. A pasted-code sign-in that finishes without a subscription token stays on authentication rather than starting an unauthenticated session. ACP's `Authentication required` / `-32000` notice is a sign-in prompt, not a failed session. Public agent identity is the enabled module id; Server ACP session code stays generic.
 
 A workspace may bind one agent module id. Unbound is interactive chat, not an error. Desktop and Mobile hide the picker while a bind is set. Live bind of a different module is refused with a typed error that names the session.
 
@@ -1602,7 +1602,9 @@ classes. Never add a raw product color to Desktop, Mobile, docs, or marketing
 when a semantic design-system role exists. Never restyle a catalog control from
 tokens when a component style already exists. Never edit
 generated files under `AgentUp.DesignSystem/dist/`; change the canonical CSS or
-HTML catalog and regenerate them.
+HTML catalog and regenerate them. The Old UI and the New UI (command center) keep
+separate component catalogs and separate renderers, so a New UI change never
+alters the classic Desktop or Mobile bindings.
 
 Desktop is the reference rendering. Use the near-black canvas, the raised surface ramp so cards and fields read as containers, alpha hairlines for structure, and off-white hierarchy. Interaction is neutral: hover and pressed use `state-hover` / `state-active`, never an accent fill. Green carries meaning only — primary action, selection, progress, healthy state — and selection is an accent tint plus a 2px accent rule, never a saturated fill. Emphasis follows the information hierarchy: the primary selection on a screen takes the accent, secondary selections stay neutral. Radius scales with the object (`lg` for panels, `xl` for panes and dialogs), and working regions are inset panes on the canvas rather than full-bleed panels butted at 1px lines. Product chrome uses the `ui` type tier and the `ui` weight roles; 700+ is for content and marketing, not 11-13px labels. Product screens use page-title and field-label, not marketing display type. Ambient neon glow, decorative green grids, green outlines around every
 surface, and accent-tinted hover states are retired. Public claims must follow the naming, positioning, and

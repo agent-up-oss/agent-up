@@ -903,3 +903,16 @@
 .aun-switch__knob { width: 1.125rem; height: 1.125rem; border-radius: var(--au-radius-pill); background: var(--au-color-text-faint); transition: transform var(--au-transition-fast); }
 .aun-switch[aria-checked='true'] { background: var(--au-color-accent-dark); border-color: var(--au-color-accent); }
 .aun-switch[aria-checked='true'] .aun-switch__knob { background: var(--au-color-text-primary); transform: translateX(1.25rem); }
+
+
+/* Command-center rules over shared classes. They live here so the classic product CSS stays as it was on main. */
+.au-workspace-branch { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.au-validation-sidebar--collapsed .au-validation-sidebar-head {
+  width: 100%;
+  padding: 0;
+  justify-content: center;
+}
+.au-validation-sidebar--collapsed .au-workspace-add {
+  width: 2rem;
+  height: 2rem;
+}

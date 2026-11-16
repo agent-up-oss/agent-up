@@ -16,6 +16,7 @@ import {
   varName,
 } from '../scripts/lib/css.mjs';
 import { emitNative } from '../scripts/lib/native.mjs';
+import { expandIcons, parseIcons } from '../scripts/lib/icons.mjs';
 import { parseCatalog } from '../scripts/lib/catalog.mjs';
 import { applyDemo, loadDemo } from '../scripts/lib/demo.mjs';
 import { applyNewUiSceneFiles, newUiFromAssembled, newUiManifest, parseNewUi, withProductCatalog, wrapNewUiScene } from '../scripts/lib/new-ui.mjs';
@@ -772,28 +773,20 @@ test('a screen must name a real scene of the surface it claims', () => {
   );
 });
 
+/** The New UI assembled the way the build does it: from its own catalog alone, never the Old UI's. */
 async function assembleNewUi() {
-  const directory = fileURLToPath(new URL('../src', import.meta.url));
-  const main = await readFile(new URL('../src/catalog.html', import.meta.url), 'utf8');
-  const extras = (await readdir(directory))
-    .filter(name => name.startsWith('catalog-') && name.endsWith('.html'))
-    .sort();
-  const fragments = await Promise.all(extras.map(name => readFile(new URL(`../src/${name}`, import.meta.url), 'utf8')));
-  const close = main.lastIndexOf('</body>');
-  const product = parseCatalog(`${main.slice(0, close)}\n${fragments.join('\n')}\n${main.slice(close)}`);
-  const extra = parseCatalog(await readFile(new URL('../src/new-ui/catalog.html', import.meta.url), 'utf8'));
+  const icons = parseIcons(await readFile(new URL('../src/icons.html', import.meta.url), 'utf8'));
+  const extra = parseCatalog(expandIcons(await readFile(new URL('../src/new-ui/catalog.html', import.meta.url), 'utf8'), icons));
   applyDemo(extra, await loadDemo());
   const screens = await readFile(new URL('../src/new-ui/screens.html', import.meta.url), 'utf8');
-  for (const value of [product, extra]) {
-    for (const surface of value.surfaces) {
-      for (const component of surface.components) {
-        if (!hasContentSlots(component)) continue;
-        component.source = component.html;
-        component.html = applyDefaultParts(component);
-      }
+  for (const surface of extra.surfaces) {
+    for (const component of surface.components) {
+      if (!hasContentSlots(component)) continue;
+      component.source = component.html;
+      component.html = applyDefaultParts(component);
     }
   }
-  return assembleScreens(withProductCatalog(product, extra), screens);
+  return assembleScreens(extra, screens);
 }
 
 test('new UI screens pair desktop and mobile instead of a chip per surface', async () => {
@@ -1120,4 +1113,54 @@ test('Server and Logout close the desktop rail and sit above the phone tab bar',
   }
   assert.match(screens, /data-au-slot="session"><\/div>\s*<div data-au-slot="nav">/);
   assert.doesNotMatch(catalog, /data-au-component="settings-logout"/);
+});
+
+test('the New UI catalog is self-contained: every component its scenes name is its own', async () => {
+  const { componentUses } = await import('../scripts/lib/showcase.mjs');
+  const catalog = await readFile(new URL('../src/new-ui/catalog.html', import.meta.url), 'utf8');
+  const screens = await readFile(new URL('../src/new-ui/screens.html', import.meta.url), 'utf8');
+  const own = componentUses(catalog);
+  const named = [...`${catalog}\n${screens}`.matchAll(/data-au-(?:use|repeat)="([^"]+)"/g)].map(match => match[1]);
+  assert.deepEqual([...new Set(named.filter(id => !own.has(id)))], []);
+});
+
+test('the Old UI bindings come from the classic renderer, which knows nothing of the New UI', async () => {
+  const build = await readFile(new URL('../scripts/build.mjs', import.meta.url), 'utf8');
+  assert.match(build, /\['dist\/avalonia\/AgentUpStyles\.axaml', emitStyles\(rules, tokens, index\)\]/);
+  assert.match(build, /emitNewUiStyles\(newUiRules, tokens, sceneIndex,/);
+  assert.match(build, /assembleScreens\(newUiCatalog, newUiScreens\)/);
+  for (const file of ['css', 'avalonia', 'native']) {
+    const classic = await readFile(new URL(`../scripts/lib/${file}.mjs`, import.meta.url), 'utf8');
+    assert.doesNotMatch(classic, /aun-|edges|sceneButtons|inheritText/, `scripts/lib/${file}.mjs carries New UI rendering`);
+  }
+});
+
+test('each showcase screen lists the components it is built from, nested ones included', async () => {
+  const { screenComponents } = await import('../scripts/lib/showcase.mjs');
+  const catalog = `
+    <article data-au-component="page" data-au-class="page"><div data-au-use="card"></div></article>
+    <article data-au-component="card" data-au-class="card"><div data-au-repeat="row"></div></article>
+    <article data-au-component="row" data-au-class="row"><span></span></article>
+    <article data-au-component="dot" data-au-class="dot"><span class="dot"></span></article>
+    <article data-au-component="unused" data-au-class="unused"><span></span></article>`;
+  const screens = `
+    <section data-au-layout="frame"><div data-au-slot="main"></div></section>
+    <section data-au-screen="home" data-au-title="Home" data-au-desktop="desktop-home"></section>
+    <section data-au-scene="desktop-home" data-au-layout="frame" data-au-title="Home" data-au-surface="desktop">
+      <div data-au-region="main" data-au-use="page"></div>
+    </section>`;
+  const listed = screenComponents(screens, catalog, {
+    renderedScenes: new Map([['desktop-home', '<div class="page"><span class="dot"></span></div>']]),
+    components: [{ id: 'dot', rootClass: 'dot' }, { id: 'unused', rootClass: 'unused' }],
+  });
+  assert.deepEqual(listed.get('home'), ['page', 'card', 'row', 'dot']);
+});
+
+test('the showcase manifests carry each screen\'s components, and the New UI its own records', async () => {
+  const oldUi = JSON.parse(await readFile(new URL('../dist/web/screenshots.json', import.meta.url), 'utf8'));
+  const newUi = JSON.parse(await readFile(new URL('../dist/web/new-ui.json', import.meta.url), 'utf8'));
+  const own = new Set(newUi.components.map(component => component.id));
+  assert.ok(oldUi.screens.every(screen => screen.components.length > 0));
+  assert.ok(newUi.screens.every(screen => screen.components.length > 0 && screen.components.every(id => own.has(id))));
+  assert.ok(newUi.components.every(component => newUi.screens.some(screen => screen.components.includes(component.id))));
 });

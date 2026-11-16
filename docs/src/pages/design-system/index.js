@@ -52,6 +52,21 @@ function Example({ component }) {
 }
 
 /**
+ * The components the selected screen is built from, listed under its previews. A component that
+ * several screens use is shown under each of them; it is still one definition in its catalog.
+ */
+function ScreenComponents({ ids, byId, label }) {
+  const components = ids.map(id => byId[id]).filter(Boolean);
+  if (!components.length) return null;
+  return <section className={styles.screenComponents} aria-label={label}>
+    <p className="au-eyebrow">Components on this screen · {components.length}</p>
+    <div className={styles.examples}>
+      {components.map(component => <Example key={component.id} component={component} />)}
+    </div>
+  </section>;
+}
+
+/**
  * A documented variation of the component above, generated from that one piece of markup rather
  * than authored as a second component. The declaration a screen would write is shown with it,
  * so a reader can see what produced the example.
@@ -321,19 +336,20 @@ function NewUiSpace({ screens, scenes, activeId, onSelect }) {
 }
 
 export default function DesignSystemPage() {
-  const surfaces = catalog.surfaces;
-  const ids = useMemo(() => surfaces.map(surface => surface.id), [surfaces]);
   const screens = screenshots.screens;
   const screenIds = useMemo(() => screens.map(item => item.id), [screens]);
   const scenes = useMemo(
     () => Object.fromEntries(screenshots.scenes.map(scene => [scene.id, scene])),
     [],
   );
-  const [active, setActive] = useState(ids[0]);
   const [activeScreen, setActiveScreen] = useState(screenIds.includes('applications') ? 'applications' : screenIds[0]);
   const newUiScreens = newUi.screens;
   const newUiScenes = useMemo(
     () => Object.fromEntries(newUi.scenes.map(scene => [scene.id, scene])),
+    [],
+  );
+  const newUiComponents = useMemo(
+    () => Object.fromEntries((newUi.components ?? []).map(component => [component.id, component])),
     [],
   );
   const [space, setSpace] = useState('old');
@@ -341,8 +357,6 @@ export default function DesignSystemPage() {
 
   useEffect(() => {
     const sync = () => {
-      const hash = window.location.hash.replace('#', '');
-      if (ids.includes(hash)) setActive(hash);
       const selected = new URLSearchParams(window.location.search).get('screen');
       if (selected && screenIds.includes(selected)) setActiveScreen(selected);
     };
@@ -353,12 +367,7 @@ export default function DesignSystemPage() {
       window.removeEventListener('hashchange', sync);
       window.removeEventListener('popstate', sync);
     };
-  }, [ids, screenIds]);
-
-  const select = id => {
-    setActive(id);
-    window.history.replaceState(null, '', `#${id}`);
-  };
+  }, [screenIds]);
 
   const selectScreen = id => {
     setActiveScreen(id);
@@ -367,8 +376,8 @@ export default function DesignSystemPage() {
     window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
   };
 
-  const surface = surfaces.find(item => item.id === active) ?? surfaces[0];
   const screen = screens.find(item => item.id === activeScreen) ?? screens[0];
+  const newUiScreen = newUiScreens.find(item => item.id === activeNewUi) ?? newUiScreens[0];
   const desktop = screen.desktopId ? scenes[screen.desktopId] : null;
   const mobile = screen.mobileId ? scenes[screen.mobileId] : null;
 
@@ -483,67 +492,36 @@ export default function DesignSystemPage() {
         </div>
       </section>
 
-      <div className={`au-section ${styles.shell}`} id="catalog">
-        <div className={`au-container ${styles.catalog}`}>
-          <nav className={styles.surfaceNav} aria-label="Design system surfaces">
-            <p className="au-eyebrow">Surfaces</p>
-            <div className={styles.surfaceList} role="tablist" aria-orientation="vertical">
-              {surfaces.map((item, index) => (
-                <button
-                  key={item.id}
-                  id={`tab-${item.id}`}
-                  className={`au-card${item.id === active ? ' au-card--selected' : ''} ${styles.surfaceTab}`}
-                  role="tab"
-                  aria-selected={item.id === active}
-                  aria-controls={`panel-${item.id}`}
-                  onClick={() => select(item.id)}
-                >
-                  <span className="au-mono au-muted">{String(index + 1).padStart(2, '0')}</span>
-                  <span className={styles.surfaceCopy}>
-                    <strong className="au-heading">{item.title}</strong>
-                    <small className="au-muted">{item.intro}</small>
-                    <em className="au-mono au-muted">{item.components.length} {item.components.length === 1 ? 'example' : 'examples'}</em>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </nav>
-
-          <section
-            id={`panel-${surface.id}`}
-            className={styles.panel}
-            role="tabpanel"
-            aria-labelledby={`tab-${surface.id}`}
-          >
-            <p className="au-eyebrow">{String(ids.indexOf(surface.id) + 1).padStart(2, '0')} · {surface.title}</p>
-            <h2 className="au-page-title">{surface.title}</h2>
-            <p className="au-muted">{surface.intro}</p>
-
-            {surface.id === 'foundations' ? <div className="au-grid">{extra.foundations.tokens.map(([name, token, value, description]) => (
-              <article className="au-card" key={token}>
-                <div className="au-swatch" style={{ background: `var(${token})` }} />
-                <h3 className="au-heading">{name}</h3>
-                <code>{token}</code>
-                <p className="au-mono au-muted">{value}</p>
-                <p className="au-muted">{description}</p>
-              </article>
-            ))}</div> : null}
-
-            {surface.id === 'voice' ? <>
-              <div className={styles.voiceGrid}>{extra.voice.cards.map(([label, copy]) => (
-                <article className="au-card" key={label}><p className="au-eyebrow">{label}</p><p className={`au-lede ${styles.voiceCopy}`}>{copy}</p></article>
-              ))}</div>
-              <div className="au-grid">{extra.voice.lifecycle.map(([label, description]) => (
-                <article className="au-card" key={label}><span className="au-badge">{label}</span><p className="au-muted">{description}</p></article>
-              ))}</div>
-            </> : null}
-
-            <div className={styles.examples}>
-              {surface.components.map(component => <Example key={component.id} component={component} />)}
-            </div>
-          </section>
+      <section className={`au-section ${styles.shell}`} id="components">
+        <div className="au-container">
+          {space === 'new'
+            ? <ScreenComponents ids={newUiScreen.components ?? []} byId={newUiComponents} label={`${newUiScreen.title} components`} />
+            : <ScreenComponents ids={screen.components ?? []} byId={catalogById} label={`${screen.title} components`} />}
         </div>
-      </div>
+      </section>
+
+      <section className={`au-section ${styles.shell}`} id="foundations">
+        <div className={`au-container ${styles.foundations}`}>
+          <p className="au-eyebrow">Foundations</p>
+          <h2 className="au-page-title">Tokens and voice</h2>
+          <p className="au-muted">The shared ground both interfaces stand on. Components are listed with the screens that use them, above.</p>
+          <div className="au-grid">{extra.foundations.tokens.map(([name, token, value, description]) => (
+            <article className="au-card" key={token}>
+              <div className="au-swatch" style={{ background: `var(${token})` }} />
+              <h3 className="au-heading">{name}</h3>
+              <code>{token}</code>
+              <p className="au-mono au-muted">{value}</p>
+              <p className="au-muted">{description}</p>
+            </article>
+          ))}</div>
+          <div className={styles.voiceGrid}>{extra.voice.cards.map(([label, copy]) => (
+            <article className="au-card" key={label}><p className="au-eyebrow">{label}</p><p className={`au-lede ${styles.voiceCopy}`}>{copy}</p></article>
+          ))}</div>
+          <div className="au-grid">{extra.voice.lifecycle.map(([label, description]) => (
+            <article className="au-card" key={label}><span className="au-badge">{label}</span><p className="au-muted">{description}</p></article>
+          ))}</div>
+        </div>
+      </section>
     </main>
   </Layout>;
 }

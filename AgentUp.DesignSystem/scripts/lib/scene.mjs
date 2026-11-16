@@ -7,7 +7,7 @@
  * Clients bind Server state into the holes. They do not draw the page again.
  */
 
-import { parseSelector, resolveVars, toPx } from './css.mjs';
+import { parseSelector, resolveVars, toPx } from './new-ui/css.mjs';
 import { pathData } from './icons.mjs';
 import { parseScreens, slottedScene } from './screens.mjs';
 import { parsePartDeclarations, parseProps } from './slots.mjs';
