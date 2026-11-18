@@ -58,13 +58,15 @@ public sealed class ForgejoLiveHost : IAsyncDisposable
 
     public static async Task<ForgejoLiveHost> SharedAsync(CancellationToken cancellationToken)
     {
-        if (SharedInstance is not null)
-            return SharedInstance;
-
         await Gate.WaitAsync(cancellationToken);
         try
         {
-            return SharedInstance ??= await StartAsync(cancellationToken);
+            if (SharedInstance is { } existing)
+                return existing;
+
+            var started = await StartAsync(cancellationToken);
+            SharedInstance = started;
+            return started;
         }
         finally
         {
