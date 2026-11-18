@@ -80,6 +80,15 @@ export function agentEventText(value: unknown): string {
   return contentText(value);
 }
 
+/** Caption on a message sent while a turn runs: it steers the next turn, it does not stop this one. */
+export const steeringStatus = 'Steering · next turn';
+
+/** The transcript row for a Server `user_message` event, marking steering sent mid-turn. */
+export function userMessageItem(sequence: number, payload: unknown): TranscriptItem {
+  const steering = typeof payload === 'object' && payload !== null && (payload as { steering?: unknown }).steering === true;
+  return { id: `${sequence}`, role: 'user', text: agentEventText(payload), ...(steering ? { status: steeringStatus } : {}) };
+}
+
 export function presentSessionUpdate(update: unknown): PresentedUpdate {
   const kind = sessionUpdateKind(update);
   if (!kind || kind.includes('user_message') || kind.includes('available_commands') || kind.includes('config_option')) {

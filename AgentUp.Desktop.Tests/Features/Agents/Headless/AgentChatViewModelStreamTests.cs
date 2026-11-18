@@ -232,6 +232,35 @@ public sealed class AgentChatViewModelStreamTests
         await view.LoadAsync(null);
     }
 
+    // A message sent mid-turn steers the next turn; the transcript says so instead of treating it as a new question.
+    [AvaloniaTest]
+    public async Task Stream_marksSteeringSentWhileATurnRuns()
+    {
+        var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fake = new StreamApiFake
+        {
+            EventsHang = hang,
+            Events =
+            [
+                Event(1, "user_message", """{"text":"list the workspaces"}"""),
+                Event(2, "user_message", """{"text":"only the running ones","steering":true}"""),
+            ]
+        };
+        var view = new AgentChatViewModel(new AgentsController(new AgentChatService(fake)));
+
+        await view.LoadAsync("ws-1");
+        await WaitUntilAsync(() => view.Messages.Any(item => item.Text == "only the running ones"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.Messages.Single(item => item.Text == "only the running ones").Status, Is.EqualTo(AgentChatViewModel.SteeringStatus));
+            Assert.That(view.Messages.Single(item => item.Text == "list the workspaces").Status, Is.Null);
+        });
+
+        hang.TrySetResult();
+        await view.LoadAsync(null);
+    }
+
     [AvaloniaTest]
     public async Task Stream_reconnectsAfterAnIdleHttpTimeout()
     {

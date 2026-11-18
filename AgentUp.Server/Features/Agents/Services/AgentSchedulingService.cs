@@ -28,6 +28,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     private readonly IAgentSessionRepository? sessionRepository;
     private readonly IAgentWorkspaceSettingsRepository? settings;
     private readonly IHostEnvironment? host;
+    private readonly AgentMcpServerProvider? mcp;
     private readonly ConcurrentDictionary<string, AgentSessionState> _sessions = new();
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _lifecycleGates = new();
     private IReadOnlyList<AgentDescriptor> _descriptors;
@@ -46,7 +47,8 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         IEnabledCapabilityPackages? packages = null,
         IAgentSessionRepository? sessionRepository = null,
         IAgentWorkspaceSettingsRepository? settings = null,
-        IHostEnvironment? host = null)
+        IHostEnvironment? host = null,
+        AgentMcpServerProvider? mcp = null)
     {
         this.workspaces = workspaces;
         this.processes = processes;
@@ -65,6 +67,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         this.sessionRepository = sessionRepository;
         this.settings = settings;
         this.host = host;
+        this.mcp = mcp;
         workspaces.WorkspaceRemoved += HandleWorkspaceRemoved;
     }
 
@@ -286,7 +289,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             {
                 await state.Process.StartAsync(saved.Agent, workspace.WorktreePath, environment.EnvironmentFor(saved.Agent), cancellationToken);
                 await InitializeAsync(workspaceId, state, cancellationToken);
-                var loaded = await state.Process.CallAsync("session/load", new { sessionId, cwd = workspace.WorktreePath, mcpServers = Array.Empty<object>() }, cancellationToken);
+                var loaded = await state.Process.CallAsync("session/load", new { sessionId, cwd = workspace.WorktreePath, mcpServers = McpServers(state) }, cancellationToken);
                 var loadedSessionId = ReadOptionalSessionId(loaded);
                 // The agent may hand back a different id than the one we asked to load, so the
                 // saved entry moves to that id rather than leaving a duplicate under the old one.
@@ -437,6 +440,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         }, cancellationToken);
         if (!initialized.TryGetProperty("protocolVersion", out var version) || version.GetInt32() != 1)
             throw new InvalidOperationException("The configured agent does not support ACP protocol version 1.");
+        state.SupportsHttpMcp = AgentMcpServerProvider.SupportsHttp(initialized);
         var advertised = payloads.AuthMethods(initialized);
         var subscription = auth.KeepSubscription(advertised);
         state.AuthMethods = subscription.Count > 0 ? subscription : advertised.Count > 0 ? auth.Defaults(state.Agent) : state.AuthMethods;
@@ -468,11 +472,15 @@ public sealed class AgentSchedulingService : IAsyncDisposable
 
     private async Task CreateSessionAsync(AgentSessionState state, CancellationToken cancellationToken)
     {
-        var session = await state.Process.CallAsync("session/new", new { cwd = state.WorkingDirectory, mcpServers = Array.Empty<object>() }, cancellationToken);
+        var session = await state.Process.CallAsync("session/new", new { cwd = state.WorkingDirectory, mcpServers = McpServers(state) }, cancellationToken);
         state.AcpSessionId = ReadSessionId(session);
         state.State = "ready";
         state.Error = null;
     }
+
+    /// <summary>Agent-Up's own MCP servers, offered to an agent that can reach them over HTTP.</summary>
+    private IReadOnlyList<object> McpServers(AgentSessionState state) =>
+        mcp?.Servers(state.SupportsHttpMcp) ?? [];
 
     private static string ReadSessionId(JsonElement session)
     {
@@ -501,23 +509,49 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             return AgentActionResult.Failed("The workspace agent is not ready for a prompt.");
         if (!await state.PromptGate.WaitAsync(TimeSpan.Zero, cancellationToken))
         {
-            if (state.PermissionPolicy is not null)
-            {
-                state.Steering.Enqueue(message);
-                events.Publish(workspaceId, "user_message", new { text = message, steering = true });
-                return AgentActionResult.Success();
-            }
-            return AgentActionResult.Failed("The workspace agent is already processing a prompt.");
+            // A message sent while a turn runs steers the next turn rather than being refused:
+            // the unattended loop folds it into its next prompt, and an interactive session sends
+            // it as soon as the running turn ends. Either way the running turn is not interrupted.
+            state.Steering.Enqueue(message);
+            events.Publish(workspaceId, "user_message", new { text = message, steering = true });
+            return AgentActionResult.Success();
         }
+        StartPrompt(workspaceId, state, message);
+        return AgentActionResult.Success();
+    }
+
+    /// <summary>Runs one turn; the caller already holds the prompt gate.</summary>
+    private void StartPrompt(string workspaceId, AgentSessionState state, string message, bool announce = true)
+    {
         state.State = "running";
         state.Error = null;
-        events.Publish(workspaceId, "user_message", new { text = message });
+        // Queued steering was already shown to every client when it arrived.
+        if (announce)
+            events.Publish(workspaceId, "user_message", new { text = message });
         events.Publish(workspaceId, "state", Get(workspaceId)!);
         var completion = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
         state.PromptCompletion = completion;
         state.LoopBlock = null;
         _ = RunPromptAsync(workspaceId, state, message, completion);
-        return AgentActionResult.Success();
+    }
+
+    /// <summary>
+    /// After an interactive turn, sends the steering that arrived while it ran. The loop drives
+    /// its own next turn and drains steering into it, so a session under a policy is left alone.
+    /// </summary>
+    private async Task ContinueWithSteeringAsync(string workspaceId, AgentSessionState state)
+    {
+        if (state.PermissionPolicy is not null || state.Lifetime.IsCancellationRequested || state.Steering.IsEmpty)
+            return;
+        if (!await state.PromptGate.WaitAsync(TimeSpan.Zero))
+            return;
+        if (!state.Steering.TryDequeue(out var next))
+        {
+            state.PromptGate.Release();
+            return;
+        }
+
+        StartPrompt(workspaceId, state, next, announce: false);
     }
 
     public async Task<AgentActionResult> PromptWaitAsync(string workspaceId, string message, CancellationToken cancellationToken)
@@ -610,7 +644,10 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         finally { state.PromptGate.Release(); }
 
         if (succeeded)
+        {
             completion.TrySetResult(result);
+            await ContinueWithSteeringAsync(workspaceId, state);
+        }
         else if (failure is not null)
             completion.TrySetException(failure);
         else

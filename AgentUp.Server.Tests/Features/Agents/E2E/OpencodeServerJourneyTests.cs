@@ -21,8 +21,8 @@ namespace AgentUp.Server.Tests.Features.Agents.E2E;
 /// </summary>
 [TestFixture]
 [Category("OpencodeInference")]
-[Timeout(900_000)]
-[CancelAfter(900_000)]
+[Timeout(1_200_000)]
+[CancelAfter(1_200_000)]
 public sealed class OpencodeServerJourneyTests
 {
     private const string Content = "written through agent-up";
@@ -33,6 +33,15 @@ public sealed class OpencodeServerJourneyTests
         $"Use the write tool now to create result.txt with the content: {Content}",
         $"Call the write tool with filePath result.txt and content {Content}. Do not use any other tool."
     ];
+    private static readonly string[] McpPrompts =
+    [
+        "Call the list_workspaces tool to show the Agent-Up workspaces.",
+        "Use the agent-up-orchestration_list_workspaces tool now.",
+        "Call agent-up-orchestration_list_workspaces with no arguments. Do not use any other tool."
+    ];
+
+    private const string Steering = "Then call get_workspace_status for this workspace.";
+
     private static readonly TimeSpan TurnBudget = TimeSpan.FromMinutes(6);
 
     [Test]
@@ -102,6 +111,63 @@ public sealed class OpencodeServerJourneyTests
         Assert.That(decide.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
         Assert.That(decision["optionId"]!.GetValue<string>(), Is.EqualTo("once"), "Every client sees the request close with the chosen option.");
         Assert.That(worktree.Read("result.txt"), Is.EqualTo(Content), "OpenCode did not write result.txt into the workspace.");
+    }
+
+    [Test]
+    public async Task OpenCode_calls_Agent_Up_mcp_tools_and_takes_steering_mid_turn()
+    {
+        var inputs = OpencodeJourneyInputs.Read();
+        await using var server = await AgentUpServerProcess.StartAsync(inputs);
+        using var worktree = new JourneyWorktree();
+        await server.EnableOpencodeAsync(inputs.Endpoint, inputs.ApiKey);
+        var workspaceId = await server.RegisterAsync(worktree.Path);
+        using var schedule = await server.Http.PostAsJsonAsync($"api/workspaces/{workspaceId}/agent", new { agent = "opencode" });
+        await using var events = await AgentEventStream.OpenAsync(server.Http, workspaceId);
+        await events.WaitForAsync("state", payload => payload["state"]?.GetValue<string>() == "ready", TurnBudget, server);
+
+        // Ask for an Agent-Up tool, and steer while that turn is still running, as a person
+        // typing a follow-up into the chat would.
+        using var prompt = await server.Http.PostAsJsonAsync($"api/workspaces/{workspaceId}/agent/messages", new { message = McpPrompts[0] });
+        await events.WaitForAsync("state", payload => payload["state"]?.GetValue<string>() == "running", TurnBudget, server);
+        using var steer = await server.Http.PostAsJsonAsync($"api/workspaces/{workspaceId}/agent/messages", new { message = Steering });
+
+        // Two turns follow: the asked one and the steered one. The weak model may still miss the
+        // tool, so it is asked again a bounded number of times; only the tool call is retried.
+        var turns = 0;
+        var asked = 1;
+        var steeringSeen = false;
+        var mcpCalls = new List<string>();
+        var titles = new Dictionary<string, string>(StringComparer.Ordinal);
+        while (turns < 2 || (mcpCalls.Count == 0 && asked < McpPrompts.Length))
+        {
+            if (turns >= 2)
+            {
+                using var again = await server.Http.PostAsJsonAsync($"api/workspaces/{workspaceId}/agent/messages", new { message = McpPrompts[asked++] });
+                turns--;
+            }
+
+            var next = await events.WaitForFirstAsync(["user_message", "session_update", "prompt_result"], TurnBudget, server);
+            steeringSeen |= next.Type == "user_message" && next.Payload["steering"]?.GetValue<bool>() == true;
+            if (next.Type == "prompt_result")
+                turns++;
+            // OpenCode names the tool on the first tool_call event and reports completion by id.
+            if (next.Payload["update"] is { } update && update["toolCallId"]?.GetValue<string>() is { } callId)
+            {
+                if (update["title"]?.GetValue<string>() is { } title)
+                    titles[callId] = title;
+                if (update["status"]?.GetValue<string>() == "completed"
+                    && titles.TryGetValue(callId, out var called)
+                    && called.StartsWith("agent-up-", StringComparison.Ordinal))
+                    mcpCalls.Add(called);
+            }
+        }
+
+        TestContext.Out.WriteLine($"opencode-mcp calls={string.Join(",", mcpCalls)} asked={asked}");
+        Assert.That(prompt.StatusCode, Is.EqualTo(HttpStatusCode.Accepted));
+        Assert.That(steer.StatusCode, Is.EqualTo(HttpStatusCode.Accepted), "A message sent mid-turn is steering, not a refusal.");
+        Assert.That(steeringSeen, Is.True, "Every client is told the message steers the next turn.");
+        Assert.That(turns, Is.GreaterThanOrEqualTo(2), "The steering ran as its own turn after the first one ended.");
+        Assert.That(mcpCalls, Is.Not.Empty, $"OpenCode never completed an Agent-Up MCP tool call. Seen: {string.Join(", ", events.Seen)}");
     }
 
     [Test]

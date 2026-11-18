@@ -21,8 +21,8 @@ Desktop chrome for the live session is the **Agent** tab. Mobile chrome for the 
 <DocContract label="Chrome">Desktop Chat · Mobile Agents</DocContract>
 
 <DocSurfaces>
-<DocSurface desktop>The Agent tab lists saved sessions and streams the selected workspace session. The live session is labeled Current; every other row is Resume. Once an agent is bound, the picker hides and the tab shows that agent. When a pasted-code sign-in is waiting, the tab collects the code and sends it to the Server. The agent picker, saved sessions, and the unattended loop checklist, Enable autonomy, Activate, Cancel, and typed terminal are on the workspace **Settings** tab; the Agent tab keeps one summary line with a **Settings** button. A prompt sent while the loop runs steers the next turn instead of stopping it.</DocSurface>
-<DocSurface mobile>Agents shows the workspace's bound agent and opens its chat as an inner page. An unbound workspace shows a + action whose creation page lists agent capabilities already enabled on the Server. The unattended loop checklist, Enable autonomy, Activate, Cancel, and typed terminal are on the workspace Settings tab; Agents shows one summary line that opens it. Chat scrolls as one column, and the message box follows the transcript. The tab bar stays.</DocSurface>
+<DocSurface desktop>The Agent tab lists saved sessions and streams the selected workspace session. The live session is labeled Current; every other row is Resume. Once an agent is bound, the picker hides and the tab shows that agent. When a pasted-code sign-in is waiting, the tab collects the code and sends it to the Server. The agent picker, saved sessions, and the unattended loop checklist, Enable autonomy, Activate, Cancel, and typed terminal are on the workspace **Settings** tab; the Agent tab keeps one summary line with a **Settings** button. A message sent while the agent is working steers its next turn instead of stopping it, and is marked **Steering · next turn**.</DocSurface>
+<DocSurface mobile>Agents shows the workspace's bound agent and opens its chat as an inner page. An unbound workspace shows a + action whose creation page lists agent capabilities already enabled on the Server. The unattended loop checklist, Enable autonomy, Activate, Cancel, and typed terminal are on the workspace Settings tab; Agents shows one summary line that opens it. Chat scrolls as one column, and the message box follows the transcript. While the agent is working, **Send** becomes **Steer**: the message is read on the next turn. The tab bar stays.</DocSurface>
 </DocSurfaces>
 
 <p><img src="/desktop-agents.png" alt="Desktop Agent tab showing the agent bound to Bob's workspace" /></p>
@@ -41,6 +41,8 @@ OpenCode runs against a model served by an Ollama-compatible API instead of a su
 - **Endpoint** — the API's base URL, such as `http://localhost:11434`. A bare host gets `/v1` added; an endpoint that already names a path is used as written.
 - **Token** — optional, for a hosted endpoint. It is stored on the Server and never shown again; leave the field empty to keep it.
 - **Model** — the model name the endpoint serves, such as `qwen2.5-coder:7b`.
+
+Agent-Up gives OpenCode its own tools - workspaces, commits, verification, the browser, diagnostics, and decisions - so it can start and inspect the workspace it works in.
 
 Until Endpoint and Model are set, the OpenCode row reads **Needs setup**. OpenCode asks before every edit and command, so it can be bound as an author or a reviewer and run unattended under a permission policy like the other agents.
 

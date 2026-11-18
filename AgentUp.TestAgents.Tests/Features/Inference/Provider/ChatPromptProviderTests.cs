@@ -49,6 +49,32 @@ public sealed class ChatPromptProviderTests
     }
 
     [Test]
+    public void Render_keeps_the_agent_tools_and_only_the_mcp_tools_the_conversation_names()
+    {
+        var prompt = new ChatPromptProvider().Render(Request("""
+            {"messages":[{"role":"user","content":"Call the list_workspaces tool"}],
+             "tools":[
+               {"type":"function","function":{"name":"write","description":"Writes a file.","parameters":{"type":"object","properties":{}}}},
+               {"type":"function","function":{"name":"agent-up-orchestration_list_workspaces","description":"Lists workspaces.","parameters":{"type":"object","properties":{}}}},
+               {"type":"function","function":{"name":"agent-up-commits_enqueue_commit","description":"Queues a commit.","parameters":{"type":"object","properties":{}}}}]}
+            """));
+
+        Assert.That(prompt, Does.Contain("\"name\":\"write\""));
+        Assert.That(prompt, Does.Contain("agent-up-orchestration_list_workspaces"));
+        Assert.That(prompt, Does.Not.Contain("enqueue_commit"));
+    }
+
+    [Test]
+    public void Offered_keeps_an_mcp_tool_the_assistant_already_called()
+    {
+        var tools = JsonNode.Parse("""[{"type":"function","function":{"name":"agent-up-orchestration_get_workspace_status"}}]""")!.AsArray();
+        var messages = JsonNode.Parse("""[{"role":"assistant","content":"","tool_calls":[{"function":{"name":"agent-up-orchestration_get_workspace_status","arguments":"{}"}}]}]""")!.AsArray();
+
+        Assert.That(ChatPromptProvider.Offered(tools, messages), Has.Count.EqualTo(1));
+        Assert.That(ChatPromptProvider.Offered(tools, new JsonArray()), Is.Empty);
+    }
+
+    [Test]
     public void Text_reads_only_the_text_parts_of_structured_content()
     {
         var content = JsonNode.Parse("""[{"type":"text","text":"one"},{"type":"image_url","image_url":{}},{"type":"text","text":"two"}]""");

@@ -123,7 +123,8 @@ fails the suite.
 capability against `test-model-server`. `run-opencode-inference.sh` supplies the binary,
 endpoint, per-run token, and a published Server. One layer runs the loop kernel in process. The
 other starts that Server as a process and drives it only over REST and the agent event stream,
-the way a client does. It is `slow` and `ciOnly`, and kept out of the same suites.
+the way a client does, including an Agent-Up MCP tool call and steering sent mid-turn. It is
+`slow` and `ciOnly`, and kept out of the same suites.
 
 Concurrency and restart for autonomous workspaces run in the normal E2E
 tier. `Category=LoopSoak` is hundreds of scripted tasks plus bounded-growth

@@ -382,7 +382,7 @@ jobs:
     permissions:
       contents: read
       checks: write
-    timeout-minutes: 50
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v7
 

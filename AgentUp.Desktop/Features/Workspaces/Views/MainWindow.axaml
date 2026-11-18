@@ -165,11 +165,16 @@
                     <ColumnDefinition Width="2*"/>
                     <ColumnDefinition Width="8*"/>
                 </Grid.ColumnDefinitions>
-                <Border Grid.Column="1"
-                        Classes="au-chat-user"
-                        HorizontalAlignment="Right">
-                    <TextBlock Text="{Binding VisibleText}" TextWrapping="Wrap"/>
-                </Border>
+                <StackPanel Grid.Column="1" Spacing="4" HorizontalAlignment="Right">
+                    <TextBlock Classes="au-muted"
+                               Text="{Binding Status}"
+                               IsVisible="{Binding Status, Converter={x:Static ObjectConverters.IsNotNull}}"
+                               HorizontalAlignment="Right"/>
+                    <Border Classes="au-chat-user"
+                            HorizontalAlignment="Right">
+                        <TextBlock Text="{Binding VisibleText}" TextWrapping="Wrap"/>
+                    </Border>
+                </StackPanel>
             </Grid>
         </DataTemplate>
 

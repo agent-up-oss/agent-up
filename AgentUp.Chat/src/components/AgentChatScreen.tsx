@@ -14,6 +14,7 @@ import {
   activityHint,
   afterPermissionDecision,
   agentEventText,
+  userMessageItem,
   applyPresentedUpdate,
   groupTranscript,
   liveRunId,
@@ -82,7 +83,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
     if (event.type === 'permission_request') { setPermission(parsePermission(event.payload)); return; }
     if (event.type === 'permission_decision') { setPermission(current => afterPermissionDecision(current, event.payload)); return; }
     if (event.type === 'user_message') {
-      setItems(current => [...current, { id: `${event.sequence}`, role: 'user', text: agentEventText(event.payload) }]);
+      setItems(current => [...current, userMessageItem(event.sequence, event.payload)]);
       return;
     }
     if (event.type !== 'session_update') return;
@@ -211,8 +212,11 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
     }
     catch (cause) { setError(readError(cause)); }
   };
+  // A running turn does not block sending: the Server queues the message as steering for the next turn.
+  const steering = session?.state === 'running' && !permission;
+  const sendBlocked = waiting && !steering;
   const send = async () => {
-    const text = message.trim(); if (!server || !text || waiting) return;
+    const text = message.trim(); if (!server || !text || sendBlocked) return;
     setMessage(''); setBusy(true); setError(null);
     try { await sendAgentMessage(server, workspace.id, text); }
     catch (cause) { setMessage(text); setError(readError(cause)); }
@@ -282,7 +286,10 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
           <ScrollView style={styles.messages} contentContainerStyle={styles.messageContent}>
             {blocks.map(block => {
               if (block.type === 'user') {
-                return <View key={block.item.id} style={styles.userBubble}><Text style={styles.userText}>{visibleText(block.item.text)}</Text></View>;
+                return <View key={block.item.id} style={styles.userBlock}>
+                  {block.item.status ? <Text style={styles.steering}>{block.item.status}</Text> : null}
+                  <View style={styles.userBubble}><Text style={styles.userText}>{visibleText(block.item.text)}</Text></View>
+                </View>;
               }
               if (block.type === 'reply') {
                 return <View key={block.item.id} style={styles.bubble}><Text style={styles.role}>{selectedAgentName}</Text><Text style={styles.body}>{visibleText(block.item.text)}</Text></View>;
@@ -312,7 +319,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
           {error && <Text style={styles.error}>{error}</Text>}
           {session?.sessionId && <View style={styles.composer}>
             <TextInput accessibilityLabel="Message the agent" multiline value={message} onChangeText={setMessage} editable={!waiting} placeholder={permission ? 'Choose an option to continue…' : 'Ask the agent…'} placeholderTextColor={agentUpTheme.colors.textFaint} style={styles.input}/>
-            <Pressable accessibilityRole="button" disabled={waiting || !message.trim()} onPress={() => void send()} style={[styles.send, (waiting || !message.trim()) && styles.disabled]}>{session?.state === 'running' && !permission ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.sendText}>Send</Text>}</Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={steering ? 'Steer' : 'Send'} disabled={sendBlocked || busy || !message.trim()} onPress={() => void send()} style={[styles.send, (sendBlocked || busy || !message.trim()) && styles.disabled]}>{busy ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.sendText}>{steering ? 'Steer' : 'Send'}</Text>}</Pressable>
           </View>}
         </View>}
     </View>
@@ -393,6 +400,8 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.4 },
   messages: { flex: 1 },
   messageContent: { gap: 10, paddingVertical: 10 },
+  userBlock: { alignSelf: 'flex-end', alignItems: 'flex-end', gap: 4 },
+  steering: auText('muted'),
   userBubble: { ...auBox('chatUser'), alignSelf: 'flex-end' },
   userText: { ...auText('workspaceName'), lineHeight: 20 },
   run: { gap: 8 },

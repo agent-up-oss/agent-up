@@ -30,7 +30,7 @@ public sealed class ChatPromptProvider
             .Select(message => Text(message?["content"])));
         builder.Append("<|im_start|>system\n")
             .Append(Cut(system.Length == 0 ? "You are a helpful coding assistant." : system, SystemPromptChars));
-        var tools = request["tools"] as JsonArray ?? [];
+        var tools = Offered(request["tools"] as JsonArray ?? [], messages);
         if (tools.Count > 0)
         {
             builder.Append("\n\n# Tools\n\nYou may call one or more functions to assist with the user query.\n\n")
@@ -45,6 +45,28 @@ public sealed class ChatPromptProvider
         foreach (var message in messages.Where(message => Role(message) != "system").TakeLast(MaxMessages))
             builder.Append(RenderMessage(message));
         return builder.Append("<|im_start|>assistant\n").ToString();
+    }
+
+    /// <summary>
+    /// The tools a 1.5B model can still choose between. The coding agent's own tools stay; a tool
+    /// an MCP server contributed (named <c>server_tool</c>) stays only once the conversation names
+    /// it, because dozens of them crowd out the agent's tools and the model stops calling any.
+    /// </summary>
+    internal static IReadOnlyList<JsonNode?> Offered(JsonArray tools, JsonArray messages)
+    {
+        var conversation = string.Join("\n", messages
+            .Where(message => Role(message) != "system")
+            .SelectMany(message => (message?["tool_calls"] as JsonArray ?? [])
+                .Select(call => call?["function"]?["name"]?.GetValue<string>() ?? "")
+                .Prepend(Text(message?["content"]))));
+        return tools.Where(tool =>
+        {
+            var name = tool?["function"]?["name"]?.GetValue<string>() ?? "";
+            var separator = name.IndexOf('_');
+            return separator < 0
+                   || conversation.Contains(name, StringComparison.Ordinal)
+                   || conversation.Contains(name[(separator + 1)..], StringComparison.Ordinal);
+        }).ToArray();
     }
 
     private static string RenderMessage(JsonNode? message)

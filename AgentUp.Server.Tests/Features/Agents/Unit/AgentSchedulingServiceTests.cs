@@ -26,6 +26,7 @@ public sealed class AgentSchedulingServiceTests
 {
     private AgentSchedulingService _service = null!;
     private FakeAgentProcessProvider _process = null!;
+    private AgentCommandProvider _commands = null!;
     private FakeSubscriptionLoginProvider _login = null!;
     private FakeClaudeCredentialStore _credentials = null!;
     private AgentEventFrameProvider _payloads = null!;
@@ -48,7 +49,7 @@ public sealed class AgentSchedulingServiceTests
         _process = new FakeAgentProcessProvider();
         _payloads = new AgentEventFrameProvider();
         var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
-        var commands = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(
+        var commands = _commands = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?>
             {
                 ["Agents:Codex:Command"] = command,
@@ -633,6 +634,43 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
+    public async Task PromptAsync_queuesAnInteractiveMessageAndSendsItWhenTheTurnEnds()
+    {
+        _process.HoldPrompt = true;
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        var first = _service.PromptAsync(_workspace.Id, "original", CancellationToken.None);
+        await WaitUntilAsync(() => _process.Prompts.Count == 1);
+
+        var steered = await _service.PromptAsync(_workspace.Id, "steer left", CancellationToken.None);
+        _process.CompletePrompt();
+        await first;
+        await WaitUntilAsync(() => _process.Prompts.Count == 2);
+        _process.CompletePrompt();
+        await WaitForStateAsync("ready");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(steered.Error, Is.Null, "A message sent mid-turn is steering, not a refusal.");
+            Assert.That(_process.Prompts[1], Does.Contain("steer left"));
+        });
+    }
+
+    [Test]
+    public async Task ScheduleAsync_offersAgentUpMcpServersToAnAgentThatSpeaksHttpMcp()
+    {
+        _process = new FakeAgentProcessProvider { AdvertiseHttpMcp = true };
+        await using var service = new AgentSchedulingService(
+            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process), _commands,
+            _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
+            _payloads, _events, NullLogger<AgentSchedulingService>.Instance, null, _sessions,
+            mcp: new AgentMcpServerProvider(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["urls"] = "http://0.0.0.0:5001" }).Build()));
+
+        await service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        Assert.That(_process.SessionNewParameters.Single(), Does.Contain("http://127.0.0.1:5001/mcp/orchestration").And.Contain("\"type\":\"http\""));
+    }
+
+    [Test]
     public async Task ResumeAsync_refusesASessionFromADifferentBoundAgent()
     {
         await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
@@ -734,15 +772,21 @@ public sealed class AgentSchedulingServiceTests
     ];
 
     [Test]
-    public async Task Prompt_isAcceptedImmediatelyAndConcurrentPromptIsRejected()
+    public async Task Prompt_isAcceptedImmediatelyAndAConcurrentPromptWaitsAsSteering()
     {
         await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         _process.HoldPrompt = true;
 
         var first = await _service.PromptAsync(_workspace.Id, "first", CancellationToken.None);
+        await WaitUntilAsync(() => _process.Prompts.Count == 1);
         var second = await _service.PromptAsync(_workspace.Id, "second", CancellationToken.None);
 
-        Assert.Multiple(() => { Assert.That(first.Error, Is.Null); Assert.That(second.Error, Does.Contain("already processing")); });
+        Assert.Multiple(() =>
+        {
+            Assert.That(first.Error, Is.Null);
+            Assert.That(second.Error, Is.Null);
+            Assert.That(_process.Prompts, Has.Count.EqualTo(1), "Only one turn runs at a time; the second waits for it.");
+        });
         _process.CompletePrompt();
     }
 
@@ -1315,6 +1359,8 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     public IReadOnlyDictionary<string, string>? Environment { get; private set; }
     public int StartCalls { get; private set; }
     public bool HoldPrompt { get; set; }
+    public bool AdvertiseHttpMcp { get; set; }
+    public List<string> SessionNewParameters { get; } = [];
     public bool HoldSessionLoad { get; set; }
     public TaskCompletionSource SessionLoadStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public bool RequireAuthentication { get; set; }
@@ -1372,6 +1418,10 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
             if (PromptResult is not null)
                 return PromptResult.Value;
         }
+        if (method == "initialize" && AdvertiseHttpMcp)
+            return JsonSerializer.SerializeToElement(new { protocolVersion = ProtocolVersion, agentCapabilities = new { mcpCapabilities = new { http = true } } });
+        if (method == "session/new")
+            SessionNewParameters.Add(JsonSerializer.Serialize(parameters));
         if (method == "session/new")
             return SessionNewResult ?? JsonSerializer.SerializeToElement(new { sessionId = "session-1" });
         if (method == "session/load")

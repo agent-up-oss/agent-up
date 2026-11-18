@@ -12,6 +12,8 @@ import {
   permissionOptionTone,
   presentSessionUpdate,
   resolveActivity,
+  steeringStatus,
+  userMessageItem,
   runSummary,
   unwrapSessionUpdate,
   visibleText,
@@ -227,4 +229,9 @@ test('a permission decision closes only the prompt for the request it decided', 
   assert.equal(afterPermissionDecision(open, { requestId: 'other', optionId: 'allow' }), open);
   assert.equal(afterPermissionDecision(open, { requestId: 'req-1', optionId: 'allow' }), null);
   assert.equal(afterPermissionDecision(null, { requestId: 'req-1' }), null);
+});
+
+test('userMessageItem marks a message sent mid-turn as steering for the next turn', () => {
+  assert.deepEqual(userMessageItem(7, { text: 'focus on tests', steering: true }), { id: '7', role: 'user', text: 'focus on tests', status: steeringStatus });
+  assert.equal(userMessageItem(8, { text: 'hello' }).status, undefined);
 });

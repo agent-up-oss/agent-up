@@ -343,7 +343,7 @@ public sealed class AgentChatViewModel : ReactiveObject
             return;
         _lastSequence = item.Sequence;
         if (item.Type == "state") { Apply(item.Payload.Deserialize<AgentSessionDto>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true })); return; }
-        if (item.Type == "user_message") { AddUser(Text(item.Payload)); return; }
+        if (item.Type == "user_message") { AddUser(Text(item.Payload), IsSteering(item.Payload)); return; }
         if (item.Type == "permission_request") { AddPermission(item.Payload); return; }
         if (item.Type == "permission_decision") { ClosePermission(item.Payload); return; }
         if (item.Type != "session_update") return;
@@ -490,11 +490,23 @@ public sealed class AgentChatViewModel : ReactiveObject
         }
     }
 
-    private void AddUser(string text)
+    /// <summary>
+    /// A message sent while a turn runs is steering for the next turn: the running turn keeps its
+    /// place in the transcript, and the message says when it will be read.
+    /// </summary>
+    private void AddUser(string text, bool steering = false)
     {
-        SealCurrentRun();
-        Transcript.Add(new AgentChatItemViewModel("You", text));
+        if (!steering)
+            SealCurrentRun();
+        Transcript.Add(new AgentChatItemViewModel("You", text, steering ? SteeringStatus : null));
     }
+
+    public const string SteeringStatus = "Steering · next turn";
+
+    private static bool IsSteering(JsonElement payload) =>
+        payload.ValueKind == JsonValueKind.Object
+        && payload.TryGetProperty("steering", out var steering)
+        && steering.ValueKind == JsonValueKind.True;
 
     private AgentRunViewModel CurrentRun()
     {

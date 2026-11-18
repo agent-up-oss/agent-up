@@ -23,6 +23,9 @@ public sealed class AgentSessionState
     public IReadOnlyList<AgentAuthMethodDto> AuthMethods { get; set; } = [];
     public AgentLoginChallengeDto? LoginChallenge { get; set; }
 
+    /// <summary>Whether the agent advertised HTTP MCP at <c>initialize</c>, so Agent-Up's MCP servers can be offered.</summary>
+    public bool SupportsHttpMcp { get; set; }
+
     /// <summary>
     /// Open while a sign-in is running, so a code or an intercepted redirect posted over HTTP
     /// reaches the CLI that is already waiting for it.

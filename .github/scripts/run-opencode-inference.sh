@@ -56,4 +56,4 @@ dotnet test "AgentUp.Server.Tests/AgentUp.Server.Tests.csproj" \
   --logger "console;verbosity=detailed" \
   --filter "Category=OpencodeInference" \
   --blame-hang \
-  --blame-hang-timeout 14m
+  --blame-hang-timeout 20m
