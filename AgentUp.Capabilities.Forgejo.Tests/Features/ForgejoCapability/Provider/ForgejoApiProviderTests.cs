@@ -90,6 +90,36 @@ public sealed class ForgejoApiProviderTests
     }
 
     [Test]
+    public async Task ListAssignedAsync_dropsIssuesWithoutAnAssigneesList()
+    {
+        const string mixed = """
+            [{"id":7,"number":3,"title":"Assigned","body":"do it","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://forgejo.example.test/acme/widgets/issues/3"},
+             {"id":8,"number":4,"title":"Object","body":"no","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://forgejo.example.test/acme/widgets/issues/4","assignees":{}},
+             {"id":9,"number":5,"title":"No login","body":"no","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://forgejo.example.test/acme/widgets/issues/5","assignees":[{"id":1}]}]
+            """;
+        var issues = await new ForgejoForgeCapability(Recorded(
+                ("GET /user", User),
+                ("GET /repos/acme/widgets/issues?state=open&assigned=true&type=issues&limit=100", mixed)))
+            .ListAssignedAsync(Request());
+
+        Assert.That(issues, Is.Empty);
+    }
+
+    [Test]
+    public async Task ListAssignedAsync_matchesAssigneeLoginWithoutRegardToCase()
+    {
+        const string mixed = """
+            [{"id":7,"number":3,"title":"Assigned","body":"do it","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://forgejo.example.test/acme/widgets/issues/3","assignees":[{"login":"AgentUp"}]}]
+            """;
+        var issues = await new ForgejoForgeCapability(Recorded(
+                ("GET /user", User),
+                ("GET /repos/acme/widgets/issues?state=open&assigned=true&type=issues&limit=100", mixed)))
+            .ListAssignedAsync(Request());
+
+        Assert.That(issues.Single().Number, Is.EqualTo(3));
+    }
+
+    [Test]
     public async Task ListIssuesAsync_readsTheRepositoryWithoutTheAssignedFilter()
     {
         var issues = await new ForgejoForgeCapability(Recorded(
@@ -236,6 +266,39 @@ public sealed class ForgejoApiProviderTests
     }
 
     [Test]
+    public async Task UpdateRefAsync_recreatesTheBranchWhenTheOldBranchIsAlreadyGone()
+    {
+        var handler = Recorded(
+            ("PATCH /repos/acme/widgets/git/refs/heads/topic", HttpStatusCode.MethodNotAllowed, ""),
+            ("DELETE /repos/acme/widgets/branches/topic", HttpStatusCode.NotFound, ""),
+            ("POST /repos/acme/widgets/branches", HttpStatusCode.Created, "{}"));
+
+        await new ForgejoForgeCapability(handler).UpdateRefAsync(Request(), new ForgeUpdateRefCommand("topic", "abc"));
+
+        Assert.That(handler.Requests, Does.Contain("POST /repos/acme/widgets/branches"));
+    }
+
+    [Test]
+    public void UpdateRefAsync_throwsWhenGitRefsPatchFailsForAReasonOtherThanMethodNotAllowed()
+    {
+        var handler = Recorded(("PATCH /repos/acme/widgets/git/refs/heads/topic", HttpStatusCode.BadRequest, ""));
+
+        Assert.ThrowsAsync<HttpRequestException>(() =>
+            new ForgejoForgeCapability(handler).UpdateRefAsync(Request(), new ForgeUpdateRefCommand("topic", "abc")));
+    }
+
+    [Test]
+    public void UpdateRefAsync_throwsWhenRecreatingTheBranchCannotDeleteTheOldRef()
+    {
+        var handler = Recorded(
+            ("PATCH /repos/acme/widgets/git/refs/heads/topic", HttpStatusCode.MethodNotAllowed, ""),
+            ("DELETE /repos/acme/widgets/branches/topic", HttpStatusCode.Conflict, ""));
+
+        Assert.ThrowsAsync<HttpRequestException>(() =>
+            new ForgejoForgeCapability(handler).UpdateRefAsync(Request(), new ForgeUpdateRefCommand("topic", "abc")));
+    }
+
+    [Test]
     public async Task ReadAsync_readsIssueConversationWhenPullCommentsAreNotImplemented()
     {
         var handler = Recorded(
@@ -266,6 +329,173 @@ public sealed class ForgejoApiProviderTests
         Assert.That(mapped, Has.Count.EqualTo(1));
         Assert.That(mapped[0].Login, Is.EqualTo("agentup"));
         Assert.That(mapped[0].State, Is.EqualTo("COMMENT"));
+    }
+
+    [Test]
+    public async Task ReadAsync_keepsOnlyEachReviewersLatestVerdict()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/statuses", "[]"),
+            ("GET /repos/acme/widgets/pulls/42/comments", "[]"),
+            ("GET /repos/acme/widgets/issues/42/comments", "[]"),
+            ("GET /repos/acme/widgets/pulls/42/reviews?limit=100", Reviews));
+        var snapshot = await new ForgejoForgeCapability(handler).ReadAsync(Request());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.Reviews!, Has.Count.EqualTo(2), "one verdict per reviewer, not one per review");
+            Assert.That(snapshot.Reviews!.Single(review => review.Login == "hector").State,
+                Is.EqualTo("APPROVED"), "the approval came after the changes were requested");
+            Assert.That(snapshot.Reviews!.Single(review => review.Login == "lucy").State,
+                Is.EqualTo("COMMENTED"));
+        });
+    }
+
+    [Test]
+    public async Task ReadAsync_aLaterCommentDoesNotUnseatADecisiveVerdict()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/statuses", "[]"),
+            ("GET /repos/acme/widgets/pulls/42/comments", "[]"),
+            ("GET /repos/acme/widgets/issues/42/comments", "[]"),
+            ("GET /repos/acme/widgets/pulls/42/reviews?limit=100", CommentedAfterVerdict));
+        var snapshot = await new ForgejoForgeCapability(handler).ReadAsync(Request());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.Reviews!.Single(review => review.Login == "hector").State,
+                Is.EqualTo("APPROVED"), "a comment after approving does not withdraw the approval");
+            Assert.That(snapshot.Reviews!.Single(review => review.Login == "lucy").State,
+                Is.EqualTo("REQUEST_CHANGES"), "a comment after requesting changes still blocks");
+        });
+    }
+
+    [Test]
+    public async Task ReadAsync_skipsAReviewWithNoReviewerAndToleratesMissingStateOrTime()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/statuses", "[]"),
+            ("GET /repos/acme/widgets/pulls/42/comments", "[]"),
+            ("GET /repos/acme/widgets/issues/42/comments", "[]"),
+            ("GET /repos/acme/widgets/pulls/42/reviews?limit=100", PartialReviews));
+        var snapshot = await new ForgejoForgeCapability(handler).ReadAsync(Request());
+        var reviews = snapshot.Reviews!.OrderBy(review => review.Login).ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reviews.Select(review => review.Login), Is.EqualTo(new[] { "mia", "ola" }),
+                "entries without a reviewer login are not verdicts");
+            Assert.That(reviews.Select(review => review.State), Is.EqualTo(new[] { "", "" }));
+            Assert.That(reviews.Select(review => review.SubmittedAt), Is.All.EqualTo(DateTimeOffset.MinValue));
+        });
+    }
+
+    [Test]
+    public async Task ReadAsync_readsNoVerdictsWhenTheReviewsPayloadIsNotAList()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/statuses", "[]"),
+            ("GET /repos/acme/widgets/pulls/42/comments", "[]"),
+            ("GET /repos/acme/widgets/issues/42/comments", "[]"),
+            ("GET /repos/acme/widgets/pulls/42/reviews?limit=100", """{"message":"Not Found"}"""));
+        var snapshot = await new ForgejoForgeCapability(handler).ReadAsync(Request());
+
+        Assert.That(snapshot.Reviews!, Is.Empty);
+    }
+
+    [TestCase("[]")]
+    [TestCase("""{"name":"No login"}""")]
+    [TestCase("""{"login":"  "}""")]
+    public async Task ReadAsync_leavesTheAccountUnsetWhenTheHostNamesNoLogin(string user)
+    {
+        var handler = Recorded(
+            ("GET /user", user),
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", "[]"));
+        var snapshot = await new ForgejoForgeCapability(handler).ReadAsync(Request());
+
+        Assert.That(snapshot.Account, Is.Null);
+    }
+
+    [Test]
+    public async Task ReadAsync_fallsBackToNameWhenFullNameIsBlank()
+    {
+        var handler = Recorded(
+            ("GET /user", """{"login":"dana","name":"Dana","html_url":"https://forgejo.example.test/dana"}"""),
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", "[]"));
+        var snapshot = await new ForgejoForgeCapability(handler).ReadAsync(Request());
+
+        Assert.That(snapshot.Account!.DisplayName, Is.EqualTo("Dana"));
+    }
+
+    [Test]
+    public async Task ReadAsync_usesTheLoginWhenTheDisplayNameIsBlank()
+    {
+        var handler = Recorded(
+            ("GET /user", """{"login":"dana"}"""),
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", "[]"));
+        var snapshot = await new ForgejoForgeCapability(handler).ReadAsync(Request());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.Account!.DisplayName, Is.EqualTo("dana"));
+            Assert.That(snapshot.Account.Url, Is.EqualTo(""));
+        });
+    }
+
+    [Test]
+    public async Task ReadAsync_treatsANullHeadShaAsMissing()
+    {
+        const string pulls = """
+            [{"id":1,"number":42,"title":"Topic","html_url":"https://forgejo.example.test/acme/widgets/pulls/42","state":"open","mergeable":true,"mergeable_state":null,"head":{"ref":"topic","sha":null},"base":{"ref":"main"}}]
+            """;
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", pulls),
+            ("GET /repos/acme/widgets/pulls/42/comments", "[]"));
+        var snapshot = await new ForgejoForgeCapability(handler).ReadAsync(Request());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.Checks, Is.Empty);
+            Assert.That(snapshot.Mergeability!.State, Is.EqualTo("unknown"));
+            Assert.That(handler.Requests, Has.None.Contains("statuses"));
+        });
+    }
+
+    [Test]
+    public async Task ReadAsync_readsMissingThreadTextAsEmpty()
+    {
+        const string comments = """
+            [{"id":99,"html_url":null,"body":null},
+             {"id":100}]
+            """;
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/statuses", "[]"),
+            ("GET /repos/acme/widgets/pulls/42/comments", comments),
+            ("GET /repos/acme/widgets/issues/42/comments", "[]"));
+        var snapshot = await new ForgejoForgeCapability(handler).ReadAsync(Request());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.Threads.Select(thread => thread.Id), Is.EqualTo(new[] { "99", "100" }));
+            Assert.That(snapshot.Threads.Select(thread => thread.Url), Is.All.EqualTo(""));
+            Assert.That(snapshot.Threads.Select(thread => thread.Summary), Is.All.EqualTo(""));
+        });
+    }
+
+    [Test]
+    public async Task ReadAsync_returnsEmptyWhenThePullsPayloadIsNotAnArray()
+    {
+        var snapshot = await new ForgejoForgeCapability(Recorded(
+                ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", "{}")))
+            .ReadAsync(Request());
+
+        Assert.That(snapshot.Proposal, Is.Null);
+        Assert.That(snapshot.Checks, Is.Empty);
     }
 
     [Test]
@@ -490,6 +720,30 @@ public sealed class ForgejoApiProviderTests
         """;
 
     private const string User = """{"login":"agentup","full_name":"Agent Up","html_url":"https://forgejo.example.test/agentup"}""";
+
+    private const string Reviews = """
+        [{"user":{"login":"hector"},"state":"REQUEST_CHANGES","submitted_at":"2026-09-22T06:00:00Z"},
+         {"user":{"login":"hector"},"state":"APPROVED","submitted_at":"2026-09-22T07:00:00Z"},
+         {"user":{"login":"lucy"},"state":"COMMENTED","submitted_at":"2026-09-22T07:30:00Z"}]
+        """;
+
+    /// <summary>Each reviewer leaves a decisive verdict and then comments again afterwards.</summary>
+    private const string CommentedAfterVerdict = """
+        [{"user":{"login":"hector"},"state":"APPROVED","submitted_at":"2026-09-22T06:00:00Z"},
+         {"user":{"login":"hector"},"state":"COMMENT","submitted_at":"2026-09-22T08:00:00Z"},
+         {"user":{"login":"lucy"},"state":"REQUEST_CHANGES","submitted_at":"2026-09-22T06:30:00Z"},
+         {"user":{"login":"lucy"},"state":"COMMENTED","submitted_at":"2026-09-22T08:30:00Z"}]
+        """;
+
+    /// <summary>Reviews with no user, a user that is not an object, a user with no login, and two reviewers with neither state nor a usable time.</summary>
+    private const string PartialReviews = """
+        [{"user":null,"state":"APPROVED","submitted_at":"2026-09-22T06:00:00Z"},
+         {"user":"ghost","state":"APPROVED"},
+         {"user":{"id":3},"state":"APPROVED"},
+         {"state":"APPROVED"},
+         {"user":{"login":"mia"},"state":null},
+         {"user":{"login":"ola"},"submitted_at":null}]
+        """;
 
     private const string Opened = """
         {"id":1,"number":42,"title":"Title","html_url":"https://forgejo.example.test/acme/widgets/pulls/42","state":"open","head":{"ref":"topic","sha":"abc123"},"base":{"ref":"main"}}
