@@ -989,6 +989,8 @@ Loop CPU-inference coverage (`Category=LoopInference`) drives the Server loop ke
 
 Loop soak (`Category=LoopSoak`) drains hundreds of scripted assigned-issue tasks and asserts bounded memory, handles, threads, and transcript size. It is `slow` and `ciOnly`, excluded from the same fast suites, and CI runs it through `./.github/scripts/run-loop-soak.sh`. Concurrency and restart for at least three autonomous workspaces on one Server stay in the normal E2E tier. `loop-scripted` is the fast check over `AgentUp.TestAgents.Tests` `Features/Scripted` plus Server `ScriptedLoop` Provider tests.
 
+Forgejo live-host coverage (`Category=ForgejoE2E`) starts a digest-pinned Forgejo container on the test runner and drives the first-party `forgejo` module plus the Server Forge slice against it. Repositories, issues, proposals, comments, reviews, statuses, and ref updates are created per test. Missing Docker fails the suite rather than skipping it. The check is `slow` and `ciOnly`, requires `docker`, and is excluded from the test-kind watchdog, `run-dotnet-tests.sh`, and the fast `server` / `capabilities-forgejo` suites. CI runs it through `./.github/scripts/run-forgejo-e2e.sh`. GitHub remains recorded-HTTP only.
+
 Changes to packaging, installers, CI payload staging, Desktop startup, browser/WebView hosting, or installed app layout that can affect the delivered Desktop or InstallerApp runtime must run the relevant project tests and `AgentUp.Tests` in the same verification pass. Do not claim completion for those changes after only running the package, installer, or app unit test projects.
 
 After every task that touches any production project, run the architecture tests before reporting completion:

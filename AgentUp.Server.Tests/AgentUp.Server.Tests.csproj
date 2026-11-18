@@ -23,6 +23,11 @@
   <ItemGroup>
     <ProjectReference Include="..\AgentUp.CommitPolicy\AgentUp.CommitPolicy.csproj" />
     <ProjectReference Include="..\AgentUp.Server\AgentUp.Server.csproj" />
+    <ProjectReference Include="..\AgentUp.Capabilities.Forgejo\AgentUp.Capabilities.Forgejo.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\AgentUp.Capabilities.Forgejo.Tests\Support\ForgejoLiveHost.cs" Link="Support/ForgejoLiveHost.cs" />
   </ItemGroup>
 
 </Project>

@@ -297,7 +297,7 @@
       },
       "capabilities-forgejo": {
         "requires": ["dotnet"],
-        "command": "dotnet test AgentUp.Capabilities.Forgejo.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-forgejo",
+        "command": "dotnet test AgentUp.Capabilities.Forgejo.Tests --filter Category!=ForgejoE2E --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-forgejo",
         "tier": "fast",
         "inputs": [
           "AgentUp.Capabilities.Forgejo",
@@ -310,7 +310,7 @@
       },
       "server": {
         "requires": ["dotnet"],
-        "command": "dotnet test AgentUp.Server.Tests --filter Category!=LoopInference&Category!=LoopSoak --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
+        "command": "dotnet test AgentUp.Server.Tests --filter Category!=LoopInference&Category!=LoopSoak&Category!=ForgejoE2E --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
         "tier": "fast",
         "inputs": [
           "AgentUp.Server",
@@ -446,6 +446,22 @@
         "inputs": [
           "AgentUp.Server",
           "AgentUp.Server.Tests"
+        ]
+      },
+      "forgejo-e2e": {
+        "requires": ["dotnet", "docker"],
+        "command": "./.github/scripts/run-forgejo-e2e.sh",
+        "tier": "slow",
+        "platforms": [
+          "linux"
+        ],
+        "ciOnly": true,
+        "inputs": [
+          "AgentUp.Capabilities.Forgejo",
+          "AgentUp.Capabilities.Forgejo.Tests",
+          "AgentUp.Server",
+          "AgentUp.Server.Tests",
+          "AgentUp.Sdk.Forge"
         ]
       },
       "mobile": {
@@ -770,6 +786,7 @@
           "sdk-forge",
           "capabilities-github",
           "server",
+          "forgejo-e2e",
           "patch-coverage"
         ]
       },
@@ -920,6 +937,7 @@
         "checks": [
           "capabilities-forgejo",
           "server",
+          "forgejo-e2e",
           "patch-coverage"
         ]
       },
@@ -927,6 +945,7 @@
         "match": "AgentUp.Capabilities.Forgejo.Tests/**",
         "checks": [
           "capabilities-forgejo",
+          "forgejo-e2e",
           "patch-coverage"
         ]
       },
@@ -939,6 +958,12 @@
           "loop-scripted",
           "loop-soak",
           "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Server/Features/Forge/**",
+        "checks": [
+          "forgejo-e2e"
         ]
       },
       {
@@ -955,6 +980,12 @@
           "loop-scripted",
           "loop-soak",
           "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Server.Tests/Features/Forge/**",
+        "checks": [
+          "forgejo-e2e"
         ]
       },
       {
@@ -1248,6 +1279,12 @@
         "match": ".github/scripts/run-loop-soak.sh",
         "checks": [
           "loop-soak"
+        ]
+      },
+      {
+        "match": ".github/scripts/run-forgejo-e2e.sh",
+        "checks": [
+          "forgejo-e2e"
         ]
       },
       {

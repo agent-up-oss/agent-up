@@ -44,6 +44,7 @@ Every tool on `/mcp/verification` names its target with exactly one of `workspac
 <DocFact label="Receipts">{'.git/agent-up/verification/receipts.json'}</DocFact>
 <DocFact label="Loop inference">slow ciOnly Category=LoopInference, excluded from the watchdog</DocFact>
 <DocFact label="Loop soak">slow ciOnly Category=LoopSoak, excluded from the watchdog</DocFact>
+<DocFact label="Forgejo E2E">slow ciOnly Category=ForgejoE2E, Docker-hosted Forgejo, excluded from the watchdog</DocFact>
 </DocFacts>
 
 ## Export
