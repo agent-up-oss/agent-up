@@ -41,12 +41,14 @@
     "@types/node": "^26.2.0",
     "@types/react": "~19.3.0",
     "mitata": "^1.0.34",
+    "picomatch": "file:../vendor/picomatch",
     "tsx": "^4.23.12",
     "typescript": "~6.0.3"
   },
   "overrides": {
     "minimatch": "11.0.8",
-    "glob": "14.0.6"
+    "glob": "14.0.6",
+    "picomatch": "$picomatch"
   },
   "expo": {
     "autolinking": {

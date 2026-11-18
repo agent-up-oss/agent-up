@@ -295,7 +295,7 @@ AgentUp.Tests/
   AgentUp.Tests.csproj
 ```
 
-Project directories live directly at the repository root and are included in the appropriate solution. Do not introduce `src/` or `tests/` wrapper directories unless the repository is intentionally reorganized everywhere. `agent-up.sln` references only Agent-Up product and test projects; Agent-Up projects consume LocalInstaller through `LocalInstaller.*` NuGet packages pinned by `$(LocalInstallerVersion)`. The LocalInstaller source, tests, samples, and `localinstaller.sln` live in the sibling LocalInstaller repository.
+Project directories live directly at the repository root and are included in the appropriate solution. Do not introduce `src/` or `tests/` wrapper directories unless the repository is intentionally reorganized everywhere. `agent-up.sln` references only Agent-Up product and test projects; Agent-Up projects consume LocalInstaller through `LocalInstaller.*` NuGet packages pinned by `$(LocalInstallerVersion)`. The LocalInstaller source, tests, samples, and `localinstaller.sln` live in the sibling LocalInstaller repository. Repository-root `vendor/` holds npm override leaves for Dependabot-flagged packages that have no compatible patched registry release. Clients resolve them through `file:` devDependencies and `$name` overrides. Prefer a registry pin when the parent can take a patched release.
 
 The exact project list may evolve, but ownership must not drift:
 

@@ -34,7 +34,7 @@ The Server is the single source of truth for runtime orchestration. Desktop, CLI
 
 ## Solution Layout
 
-Project directories live directly at the repository root and are included in the root solution. Agent-Up does not use `src/` or `tests/` wrapper directories.
+Project directories live directly at the repository root and are included in the root solution. Agent-Up does not use `src/` or `tests/` wrapper directories. Repository-root `vendor/` holds npm override leaves for Dependabot-flagged packages that have no compatible patched registry release. Clients resolve them through `file:` devDependencies and `$name` overrides. Prefer a registry pin when the parent can take a patched release.
 
 ```text
 agent-up.sln
