@@ -185,5 +185,6 @@ public sealed class TestAgentHostControllerTests
                     new WorktreeToolExecutor(),
                     new FixedLoopInferenceSettings(42))),
             new ScriptedAcpController(new ScriptedAcpService(new EnvironmentScriptedTurnScript())),
+            ModelServerComposition.Controller(new ScriptedTokenGenerator()),
             new TestAgentConsole(input, output, errors)));
 }

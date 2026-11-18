@@ -1,0 +1,60 @@
+using System.Text.Json.Nodes;
+using AgentUp.TestAgents.Features.Inference.Providers;
+
+namespace AgentUp.TestAgents.Tests.Features.Inference.Provider;
+
+[TestFixture]
+public sealed class ChatPromptProviderTests
+{
+    [Test]
+    public void Render_offers_tools_in_qwen_format_with_only_name_first_sentence_and_parameter_types()
+    {
+        var prompt = new ChatPromptProvider().Render(Request("""
+            {"messages":[{"role":"user","content":"write it"}],
+             "tools":[{"type":"function","function":{"name":"write","description":"Writes a file. Long detail follows.",
+               "parameters":{"type":"object","properties":{"filePath":{"type":"string","description":"verbose"}},"required":["filePath"]}}}]}
+            """));
+
+        Assert.That(prompt, Does.Contain("<tools>").And.Contain("\"name\":\"write\""));
+        Assert.That(prompt, Does.Contain("Writes a file.").And.Not.Contain("Long detail"));
+        Assert.That(prompt, Does.Not.Contain("verbose"));
+        Assert.That(prompt, Does.EndWith("<|im_start|>assistant\n"));
+    }
+
+    [Test]
+    public void Render_replays_a_tool_call_and_its_result_the_way_qwen_was_trained()
+    {
+        var prompt = new ChatPromptProvider().Render(Request("""
+            {"messages":[
+              {"role":"user","content":"go"},
+              {"role":"assistant","content":"","tool_calls":[{"id":"c1","type":"function","function":{"name":"read","arguments":"{\"filePath\":\"a.txt\"}"}}]},
+              {"role":"tool","tool_call_id":"c1","content":"hello"}]}
+            """));
+
+        Assert.That(prompt, Does.Contain("<tool_call>\n{\"name\": \"read\", \"arguments\": {\"filePath\":\"a.txt\"}}\n</tool_call>"));
+        Assert.That(prompt, Does.Contain("<tool_response>\nhello\n</tool_response>"));
+    }
+
+    [Test]
+    public void Render_cuts_a_long_system_prompt_and_keeps_only_the_latest_messages()
+    {
+        var messages = new JsonArray(new JsonObject { ["role"] = "system", ["content"] = new string('s', 5000) });
+        for (var index = 0; index < 20; index++)
+            messages.Add(new JsonObject { ["role"] = "user", ["content"] = $"message {index}" });
+
+        var prompt = new ChatPromptProvider().Render(new JsonObject { ["messages"] = messages });
+
+        Assert.That(prompt, Does.Not.Contain(new string('s', ChatPromptProvider.SystemPromptChars + 1)));
+        Assert.That(prompt, Does.Contain("message 19").And.Not.Contain("message 11"));
+    }
+
+    [Test]
+    public void Text_reads_only_the_text_parts_of_structured_content()
+    {
+        var content = JsonNode.Parse("""[{"type":"text","text":"one"},{"type":"image_url","image_url":{}},{"type":"text","text":"two"}]""");
+
+        Assert.That(ChatPromptProvider.Text(content), Is.EqualTo("one\ntwo"));
+    }
+
+    private static JsonNode Request(string json) => JsonNode.Parse(json)!;
+}

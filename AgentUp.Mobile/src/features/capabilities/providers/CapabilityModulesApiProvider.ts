@@ -18,13 +18,12 @@ export async function listCapabilityModules(
 export async function enableCapabilityModule(
   server: ServerSession,
   id: string,
-  version?: string,
   request: typeof fetch = fetch,
 ): Promise<CapabilityModule> {
   const module = await requestServerJson<CapabilityModule>(
     server,
     '/api/capabilities/enable',
-    jsonBody({ id, version }),
+    jsonBody({ id }),
     undefined,
     request,
   );
@@ -41,6 +40,24 @@ export async function disableCapabilityModule(
     server,
     `/api/capabilities/disable/${encodeURIComponent(id)}`,
     { method: 'POST' },
+    undefined,
+    request,
+  );
+  if (!module) throw new Error('The server returned an empty capability module.');
+  return module;
+}
+
+/** Changes only the given settings; a key left out keeps its stored value, which is how a secret survives a save. */
+export async function updateCapabilitySettings(
+  server: ServerSession,
+  id: string,
+  values: Record<string, string>,
+  request: typeof fetch = fetch,
+): Promise<CapabilityModule> {
+  const module = await requestServerJson<CapabilityModule>(
+    server,
+    `/api/capabilities/${encodeURIComponent(id)}/settings`,
+    { ...jsonBody({ values }), method: 'PUT' },
     undefined,
     request,
   );

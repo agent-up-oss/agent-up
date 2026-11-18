@@ -12,6 +12,7 @@ import { shouldShowLoopControls } from '../providers/LoopSurfaceProvider';
 import { AgentSignIn } from './AgentSignIn';
 import {
   activityHint,
+  afterPermissionDecision,
   agentEventText,
   applyPresentedUpdate,
   groupTranscript,
@@ -79,6 +80,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
       return;
     }
     if (event.type === 'permission_request') { setPermission(parsePermission(event.payload)); return; }
+    if (event.type === 'permission_decision') { setPermission(current => afterPermissionDecision(current, event.payload)); return; }
     if (event.type === 'user_message') {
       setItems(current => [...current, { id: `${event.sequence}`, role: 'user', text: agentEventText(event.payload) }]);
       return;
@@ -304,7 +306,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
             {permission.locations.map(path => <Text key={path} style={styles.location}>{path}</Text>)}
             <View style={styles.options}>{permission.options.map(option => {
               const tone = permissionOptionTone(option.kind);
-              return <Pressable key={option.optionId} style={[styles.option, tone === 'allow' && styles.allow, tone === 'reject' && styles.reject]} onPress={() => void decide(option.optionId)}><Text style={[styles.optionText, tone === 'allow' && styles.allowText, tone === 'reject' && styles.rejectText]}>{permissionOptionLabel(option)}</Text></Pressable>;
+              return <Pressable key={option.optionId} accessibilityRole="button" accessibilityLabel={permissionOptionLabel(option)} style={[styles.option, tone === 'allow' && styles.allow, tone === 'reject' && styles.reject]} onPress={() => void decide(option.optionId)}><Text style={[styles.optionText, tone === 'allow' && styles.allowText, tone === 'reject' && styles.rejectText]}>{permissionOptionLabel(option)}</Text></Pressable>;
             })}</View>
           </View>}
           {error && <Text style={styles.error}>{error}</Text>}

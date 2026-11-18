@@ -100,7 +100,7 @@ function CommandCenterBinder() {
     const module = modules.find(item => item.id === id);
     if (!activeServer || !module) return;
     const change = enable
-      ? enableCapabilityModule(activeServer, module.id, module.version)
+      ? enableCapabilityModule(activeServer, module.id)
       : disableCapabilityModule(activeServer, module.id);
     void change.catch(() => undefined).finally(() => setModulesNonce(current => current + 1));
   };

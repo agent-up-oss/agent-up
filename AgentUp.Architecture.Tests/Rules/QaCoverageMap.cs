@@ -29,6 +29,8 @@ public sealed class QaCoverageMap
         "Forge review / hosting",
         "Forge review / proposal",
         "Capabilities",
+        "Capabilities / unavailable",
+        "Capabilities / settings",
         "Validation panel",
         "Database explorer",
         "Browser isolation",

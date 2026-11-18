@@ -199,4 +199,13 @@ public sealed class DockerRuntimeCapabilityTests
             "agentup-db",
             environmentFilePaths,
             auditEndpoint);
+
+    [Test]
+    public void Nix_delivers_the_command_the_capability_provides()
+    {
+        var runtime = new DockerRuntimeCapability();
+
+        Assert.That(runtime.Provides, Is.EqualTo(new[] { "docker" }));
+        Assert.That(runtime.Software.Single(), Is.EqualTo(new AgentUp.Sdk.Common.CapabilitySoftware("docker", DeliveredByNix: true)));
+    }
 }

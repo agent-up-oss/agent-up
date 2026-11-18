@@ -14,12 +14,12 @@ public sealed class CapabilitiesServiceTests
     {
         var api = new FakeCapabilityModulesApi();
 
-        var result = await Service(api).RunAsync(["disable", CliDomain.UnknownCapabilityId], "/repo");
+        var result = await Service(api).RunAsync(["disable", CliDomain.UnknownCapabilityId]);
 
         Assert.Multiple(() =>
         {
             Assert.That(result.Succeeded, Is.False);
-            Assert.That(result.Message, Does.Contain("not in the local registry"));
+            Assert.That(result.Message, Does.Contain("not built into this Server"));
             Assert.That(api.DisabledId, Is.Null);
         });
     }
@@ -29,7 +29,7 @@ public sealed class CapabilitiesServiceTests
     {
         var api = new FakeCapabilityModulesApi { Modules = [CliDomain.Capability().Enabled().Build()] };
 
-        var result = await Service(api).RunAsync(["disable", CliDomain.CapabilityId], "/repo");
+        var result = await Service(api).RunAsync(["disable", CliDomain.CapabilityId]);
 
         Assert.Multiple(() =>
         {
@@ -37,6 +37,14 @@ public sealed class CapabilitiesServiceTests
             Assert.That(result.Message, Does.Contain($"Disabled {CliDomain.CapabilityId}."));
             Assert.That(api.DisabledId, Is.EqualTo(CliDomain.CapabilityId));
         });
+    }
+
+    [Test]
+    public void FormatList_saysWhetherTheSoftwareWasFound()
+    {
+        var listed = CapabilitiesOutputService.FormatList([CliDomain.Capability().Missing("nix").Build()]);
+
+        Assert.That(listed, Does.Contain("available=false"));
     }
 
     [Test]
@@ -65,7 +73,7 @@ public sealed class CapabilitiesServiceTests
     [Test]
     public async Task Enable_reportsAParseError()
     {
-        var result = await Service(new FakeCapabilityModulesApi()).RunAsync(["enable"], "/repo");
+        var result = await Service(new FakeCapabilityModulesApi()).RunAsync(["enable"]);
 
         Assert.Multiple(() =>
         {
@@ -80,7 +88,7 @@ public sealed class CapabilitiesServiceTests
     {
         var api = new FakeCapabilityModulesApi { ListError = new AuthenticationRequiredException() };
 
-        var result = await Service(api).RunAsync(["list"], "/repo");
+        var result = await Service(api).RunAsync(["list"]);
 
         Assert.Multiple(() =>
         {
@@ -94,7 +102,7 @@ public sealed class CapabilitiesServiceTests
     {
         var api = new FakeCapabilityModulesApi { ListError = new HttpRequestException("connection refused") };
 
-        var result = await Service(api).RunAsync(["list"], "/repo");
+        var result = await Service(api).RunAsync(["list"]);
 
         Assert.Multiple(() =>
         {
@@ -104,48 +112,16 @@ public sealed class CapabilitiesServiceTests
     }
 
     [Test]
-    public async Task Enable_with_version_enables_that_package_when_another_version_is_already_enabled()
+    public async Task Enable_refusesACapabilityWhoseSoftwareIsMissingWithoutCallingTheServer()
     {
-        var api = new FakeCapabilityModulesApi
-        {
-            Modules =
-            [
-                CliDomain.Capability().Versioned("1.0.0").Enabled().Build(),
-                CliDomain.Capability().Versioned("2.0.0").Build()
-            ]
-        };
+        var api = new FakeCapabilityModulesApi { Modules = [CliDomain.Capability().Missing("nix").Build()] };
 
-        var result = await Service(api).RunAsync(
-            ["enable", CliDomain.CapabilityId, "--version", "2.0.0"],
-            "/repo");
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(result.Succeeded, Is.True);
-            Assert.That(result.Message, Does.Contain("Enabled"));
-            Assert.That(result.Message, Does.Not.Contain("already enabled"));
-            Assert.That(api.EnabledId, Is.EqualTo(CliDomain.CapabilityId));
-            Assert.That(api.EnabledVersion, Is.EqualTo("2.0.0"));
-        });
-    }
-
-    [Test]
-    public async Task Enable_with_version_rejects_a_version_that_is_not_listed()
-    {
-        var api = new FakeCapabilityModulesApi
-        {
-            Modules = [CliDomain.Capability().Versioned("1.0.0").Enabled().Build()]
-        };
-
-        var result = await Service(api).RunAsync(
-            ["enable", CliDomain.CapabilityId, "--version", "9.9.9"],
-            "/repo");
+        var result = await Service(api).RunAsync(["enable", CliDomain.CapabilityId]);
 
         Assert.Multiple(() =>
         {
             Assert.That(result.Succeeded, Is.False);
-            Assert.That(result.Message, Does.Contain("version '9.9.9'"));
-            Assert.That(result.Message, Does.Contain("not in the local registry"));
+            Assert.That(result.Message, Does.Contain("nix not found"));
             Assert.That(api.EnabledId, Is.Null);
         });
     }
@@ -155,7 +131,7 @@ public sealed class CapabilitiesServiceTests
     {
         var api = new FakeCapabilityModulesApi { EnableError = new HttpRequestException("connection refused") };
 
-        var result = await Service(api).RunAsync(["enable", CliDomain.CapabilityId], "/repo");
+        var result = await Service(api).RunAsync(["enable", CliDomain.CapabilityId]);
 
         Assert.Multiple(() =>
         {
@@ -173,7 +149,7 @@ public sealed class CapabilitiesServiceTests
             DisableError = new HttpRequestException("connection refused")
         };
 
-        var result = await Service(api).RunAsync(["disable", CliDomain.CapabilityId], "/repo");
+        var result = await Service(api).RunAsync(["disable", CliDomain.CapabilityId]);
 
         Assert.Multiple(() =>
         {
@@ -199,7 +175,7 @@ public sealed class CapabilitiesServiceTests
             ]
         };
 
-        var result = await Service(api).RunAsync(["bootstrap"], "/repo");
+        var result = await Service(api).RunAsync(["bootstrap"]);
 
         Assert.Multiple(() =>
         {
@@ -214,30 +190,27 @@ public sealed class CapabilitiesServiceTests
     {
         Assert.That(
             CapabilitiesOutputService.FormatList([]),
-            Is.EqualTo("No capability modules in the Server registry."));
+            Is.EqualTo("The Server reports no capabilities."));
     }
 
     [Test]
-    public async Task Bootstrap_reportsAPackFailureWithoutEnabling()
+    public async Task Bootstrap_keepsWhatItEnabledWhenALaterEnableFails()
     {
-        var api = new FakeCapabilityModulesApi();
-        var packer = new FakeCapabilityPacker
+        var api = new FakeCapabilityModulesApi
         {
-            Succeeded = false,
-            Message = "Error: Packing first-party capabilities failed."
+            Modules = [CliDomain.Capability().Named("dotnet").Build()],
+            EnableError = new HttpRequestException("connection refused")
         };
 
-        var result = await new CapabilitiesService(api, packer, new CapabilitiesArgParser())
-            .RunAsync(["bootstrap"], "/repo");
+        var result = await Service(api).RunAsync(["bootstrap"]);
 
         Assert.Multiple(() =>
         {
             Assert.That(result.Succeeded, Is.False);
-            Assert.That(result.Message, Does.Contain("Packing first-party capabilities failed"));
-            Assert.That(api.EnabledId, Is.Null);
+            Assert.That(result.Message, Does.Contain("Failed to enable capabilities"));
         });
     }
 
     private static CapabilitiesService Service(FakeCapabilityModulesApi api)
-        => new(api, new FakeCapabilityPacker(), new CapabilitiesArgParser());
+        => new(api, new CapabilitiesArgParser());
 }

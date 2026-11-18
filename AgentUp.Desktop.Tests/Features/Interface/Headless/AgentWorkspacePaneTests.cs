@@ -1,3 +1,4 @@
+using Avalonia.LogicalTree;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Shared.Providers;
@@ -357,7 +358,7 @@ public sealed class AgentWorkspacePaneTests
         {
             Assert.That(Rail(driver).IsVisible, Is.True);
             Assert.That(CommandCenter(driver).IsVisible, Is.False);
-            Assert.That(driver.Window.FindControl<Control>("AgentChatPane")!.GetVisualDescendants().Contains(driver.Window.FindControl<Control>("ChatSettings")), Is.True);
+            Assert.That(driver.Window.FindControl<Control>("ChatSettings")!.GetLogicalAncestors().Contains(driver.Window.FindControl<Control>("WorkspaceSettingsPane")), Is.True);
             Assert.That(BackToTeam(driver).IsVisible, Is.False);
             Assert.That(Detail(driver).IsVisible, Is.True);
         });

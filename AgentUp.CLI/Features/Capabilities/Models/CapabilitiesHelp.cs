@@ -6,9 +6,9 @@ public static class CapabilitiesHelp
         """
         Usage: agent-up capabilities <command>
 
-          list                         Show id, version, enabled, canRun, and why it cannot run
-          enable <id> [--version <v>]  Enable a packed capability package on the Server
-          disable <id>                 Disable a capability package
-          bootstrap                    Pack first-party capabilities and enable them
+          list           Show every built-in capability: id, version, enabled, available, canRun, and why it cannot run
+          enable <id>    Enable a built-in capability on the Server (refused while its software is not found)
+          disable <id>   Disable a capability; it stays installed
+          bootstrap      Enable every built-in capability whose software the Server can find
         """;
 }

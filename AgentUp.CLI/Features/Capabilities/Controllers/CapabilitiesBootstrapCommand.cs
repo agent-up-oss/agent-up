@@ -2,8 +2,8 @@ using AgentUp.CLI.Features.Capabilities.Services;
 
 namespace AgentUp.CLI.Features.Capabilities.Controllers;
 
-public sealed class CapabilitiesBootstrapCommand(CapabilitiesService service, CapabilitiesOutputService output, string workingDirectory)
+public sealed class CapabilitiesBootstrapCommand(CapabilitiesService service, CapabilitiesOutputService output)
 {
     public Task<int> RunAsync(string[] args, CancellationToken cancellationToken = default)
-        => CapabilitiesListCommand.RunServiceAsync(service, output, args, workingDirectory, cancellationToken);
+        => CapabilitiesListCommand.RunServiceAsync(service, output, args, cancellationToken);
 }

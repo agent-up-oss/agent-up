@@ -480,22 +480,6 @@ public sealed class GithubApiProviderTests
         Assert.That(handler.Requests.Single(), Does.Contain("pulls/42/reviews"));
     }
 
-    [Test]
-    public void Write_creates_capability_json()
-    {
-        var directory = Directory.CreateDirectory(
-            Path.Join(Path.GetTempPath(), "agent-up-github-write-" + Guid.NewGuid().ToString("N"))).FullName;
-        try
-        {
-            var packer = new GithubCapabilityPacker();
-            new GithubCapabilityPackageWriter().Write(directory, packer.Manifest(), packer.DefaultNix());
-            Assert.That(File.ReadAllText(Path.Join(directory, "capability.json")), Does.Contain("forge"));
-        }
-        finally
-        {
-            Directory.Delete(directory, recursive: true);
-        }
-    }
 
     private static ForgeRequest Request() => new("token", "acme", "widgets", "topic");
 

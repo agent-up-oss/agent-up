@@ -98,10 +98,28 @@ test('capability modules list first-party packages and toggle', () => {
   const listed = json(service, 'GET', '/api/capabilities');
   const disabled = json(service, 'POST', '/api/capabilities/disable/dotnet');
   const enabled = json(service, 'POST', '/api/capabilities/enable', JSON.stringify({ id: 'dotnet' }));
-  assert.deepEqual(listed.map((item: { id: string }) => item.id), ['dotnet', 'docker', 'codex', 'cursor', 'claude']);
+  assert.deepEqual(listed.map((item: { id: string }) => item.id), ['dotnet', 'docker', 'codex', 'cursor', 'claude', 'opencode', 'github', 'forgejo']);
   assert.equal(disabled.enabled, false);
   assert.equal(enabled.enabled, true);
   assert.equal(enabled.canRun, true);
+});
+
+test('OpenCode needs setup once enabled and is ready after its settings are saved', () => {
+  const service = backend();
+  const enabled = json(service, 'POST', '/api/capabilities/enable', JSON.stringify({ id: 'opencode' }));
+  const blocked = json(service, 'GET', '/api/workspaces/bob/agent').agents.find((item: { agent: string }) => item.agent === 'opencode');
+  const saved = service.handle({
+    method: 'PUT',
+    path: '/api/capabilities/opencode/settings',
+    query: '',
+    body: JSON.stringify({ values: { endpoint: 'http://localhost:11434', model: 'qwen2.5-coder:7b', token: 'sk-demo' } }),
+  });
+  const module = JSON.parse(saved.body ?? '{}');
+  assert.equal(enabled.state, 'needsSetup');
+  assert.equal(blocked.unavailability, 'settingsRequired');
+  assert.equal(module.state, 'ready');
+  assert.equal(module.settings.find((item: { key: string }) => item.key === 'token').value, null);
+  assert.doesNotMatch(saved.body ?? '', /sk-demo/);
 });
 
 test('agent list follows enabled agent capabilities', () => {
@@ -117,7 +135,7 @@ test('agent list follows enabled agent capabilities', () => {
   });
   json(service, 'POST', '/api/capabilities/enable', JSON.stringify({ id: 'claude' }));
   const scheduled = json(service, 'POST', '/api/workspaces/bob/agent', JSON.stringify({ agent: 'claude' }));
-  assert.deepEqual(listed.agents.map((item: { agent: string }) => item.agent), ['codex', 'cursor', 'claude']);
+  assert.deepEqual(listed.agents.map((item: { agent: string }) => item.agent), ['codex', 'cursor', 'claude', 'opencode']);
   const disabled = afterDisable.agents.find((item: { agent: string }) => item.agent === 'claude');
   assert.equal(disabled.available, false);
   assert.equal(disabled.unavailability, 'capabilityNotEnabled');

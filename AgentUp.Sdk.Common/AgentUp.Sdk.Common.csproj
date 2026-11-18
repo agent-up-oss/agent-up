@@ -5,14 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>AgentUp.Sdk.Common</RootNamespace>
-    <Description>Shared identity, kind, Nix declaration, and registration contracts for Agent-Up capability SDKs.</Description>
-    <IsPackable>true</IsPackable>
-    <PackageId>AgentUp.Sdk.Common</PackageId>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Description>Shared identity, kind, required software, settings, and Nix declaration contracts for first-party Agent-Up capabilities.</Description>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
 
 </Project>

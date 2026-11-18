@@ -28,6 +28,9 @@ export type CommandCenterModuleSlot = {
   canRun: boolean;
   state: string;
   messages: string[];
+  /** Whether the Server found the software the capability runs; absent from older Servers, which means yes. */
+  available?: boolean;
+  missing?: string[];
 };
 
 export type CommandCenterSceneInput = {
@@ -171,13 +174,19 @@ function row(id: string, action: string, title: string, repo: string, agent: str
   return { id, action, parts: agent ? ['agent'] : [], text: { title, repo, agent } };
 }
 
+/** The short status a capability whose software is missing shows on its button. */
+function capabilityButtonLabel(module: CommandCenterModuleSlot): string {
+  return (module.missing ?? []).includes('nix') ? 'Needs Nix' : 'Not found';
+}
+
 /** Which state a capability module is in; the scene words it and picks the button's tone. */
 export function moduleRow(module: CommandCenterModuleSlot): SceneSlotItem {
-  const why = module.messages.join(' ').trim() || module.state;
-  const part = !module.enabled ? 'disabled' : module.canRun ? 'ready' : 'blocked';
+  const available = module.available !== false;
+  const why = available ? module.messages.join(' ').trim() || module.state : capabilityButtonLabel(module);
+  const part = !available || (module.enabled && !module.canRun) ? 'blocked' : module.enabled ? 'ready' : 'disabled';
   return {
     id: module.id,
-    action: module.enabled ? 'disable-module' : 'enable-module',
+    action: module.enabled ? 'disable-module' : available ? 'enable-module' : 'module-unavailable',
     parts: [part],
     text: { name: module.displayName, why },
   };

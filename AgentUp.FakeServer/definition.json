@@ -1793,8 +1793,11 @@
       "publisher": "agent-up",
       "kind": "runtime",
       "enabled": true,
+      "available": true,
       "state": "ready",
       "canRun": true,
+      "missing": [],
+      "settings": [],
       "messages": []
     },
     {
@@ -1804,8 +1807,11 @@
       "publisher": "agent-up",
       "kind": "runtime",
       "enabled": true,
+      "available": true,
       "state": "ready",
       "canRun": true,
+      "missing": [],
+      "settings": [],
       "messages": []
     },
     {
@@ -1815,8 +1821,11 @@
       "publisher": "agent-up",
       "kind": "agent",
       "enabled": true,
+      "available": true,
       "state": "ready",
       "canRun": true,
+      "missing": [],
+      "settings": [],
       "messages": []
     },
     {
@@ -1826,8 +1835,11 @@
       "publisher": "agent-up",
       "kind": "agent",
       "enabled": true,
+      "available": true,
       "state": "ready",
       "canRun": true,
+      "missing": [],
+      "settings": [],
       "messages": []
     },
     {
@@ -1837,8 +1849,81 @@
       "publisher": "agent-up",
       "kind": "agent",
       "enabled": true,
+      "available": true,
       "state": "ready",
       "canRun": true,
+      "missing": [],
+      "settings": [],
+      "messages": []
+    },
+    {
+      "id": "opencode",
+      "version": "1.0.0",
+      "displayName": "OpenCode",
+      "publisher": "agent-up",
+      "kind": "agent",
+      "enabled": false,
+      "available": true,
+      "state": "disabled",
+      "canRun": false,
+      "missing": [],
+      "settings": [
+        {
+          "key": "endpoint",
+          "label": "Endpoint",
+          "kind": "url",
+          "required": true,
+          "placeholder": "http://localhost:11434",
+          "value": null,
+          "hasValue": false
+        },
+        {
+          "key": "token",
+          "label": "Token",
+          "kind": "secret",
+          "required": false,
+          "placeholder": null,
+          "value": null,
+          "hasValue": false
+        },
+        {
+          "key": "model",
+          "label": "Model",
+          "kind": "text",
+          "required": true,
+          "placeholder": "qwen2.5-coder:7b",
+          "value": null,
+          "hasValue": false
+        }
+      ],
+      "messages": []
+    },
+    {
+      "id": "github",
+      "version": "1.0.0",
+      "displayName": "GitHub",
+      "publisher": "agent-up",
+      "kind": "forge",
+      "enabled": false,
+      "available": true,
+      "state": "disabled",
+      "canRun": false,
+      "missing": [],
+      "settings": [],
+      "messages": []
+    },
+    {
+      "id": "forgejo",
+      "version": "1.0.0",
+      "displayName": "Forgejo",
+      "publisher": "agent-up",
+      "kind": "forge",
+      "enabled": false,
+      "available": true,
+      "state": "disabled",
+      "canRun": false,
+      "missing": [],
+      "settings": [],
       "messages": []
     }
   ],

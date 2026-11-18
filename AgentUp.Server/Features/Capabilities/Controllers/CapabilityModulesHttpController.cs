@@ -10,10 +10,18 @@ public sealed class CapabilityModulesHttpController(CapabilityModulesController 
     [HttpGet]
     public IReadOnlyList<CapabilityModuleDto> List() => modules.List();
 
+    /// <summary>Enables a built-in capability. Refused with 409 while the software it runs cannot be found.</summary>
     [HttpPost("enable")]
-    public CapabilityModuleDto Enable([FromBody] EnableCapabilityModuleRequest request)
-        => modules.Enable(request.Id, request.Version);
+    public ObjectResult Enable([FromBody] EnableCapabilityModuleRequest request)
+        => ToResult(modules.Enable(request.Id));
 
     [HttpPost("disable/{id}")]
-    public CapabilityModuleDto Disable(string id) => modules.Disable(id);
+    public ObjectResult Disable(string id) => ToResult(modules.Disable(id));
+
+    /// <summary>Changes the listed settings and keeps the rest. Secrets are stored but never returned.</summary>
+    [HttpPut("{id}/settings")]
+    public ObjectResult UpdateSettings(string id, [FromBody] UpdateCapabilitySettingsRequest request)
+        => ToResult(modules.UpdateSettings(id, request.Values ?? new Dictionary<string, string?>()));
+
+    private ObjectResult ToResult(CapabilityChangeResult result) => StatusCode(result.StatusCode, result.Body);
 }

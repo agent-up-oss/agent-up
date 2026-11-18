@@ -83,7 +83,7 @@ public sealed class GitApiClientTests
     public async Task GetHostingAsync_requestsTheWorkspaceScopedForgeRoute()
     {
         using var handler = new RecordingGitHandler(HttpStatusCode.OK,
-            """{"availability":"notInstalled","moduleId":null,"proposal":null,"checks":[],"threads":[],"mergeability":null,"detail":"No forge capability package is enabled.","remedy":"Run: agent-up capabilities bootstrap"}""");
+            """{"availability":"notInstalled","moduleId":null,"proposal":null,"checks":[],"threads":[],"mergeability":null,"detail":"No forge capability is enabled.","remedy":"Run: agent-up capabilities bootstrap"}""");
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var client = new GitApiClient(http);
 

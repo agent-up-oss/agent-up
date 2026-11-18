@@ -79,7 +79,8 @@ public sealed record CommandCenterSceneInput(
 public sealed record CommandCenterApplicationSlot(string Name, bool Running);
 
 /// <summary>One capability module on the Server, as Settings lists it.</summary>
-public sealed record CommandCenterModuleSlot(string Id, string DisplayName, bool Enabled, bool CanRun, string State);
+/// <param name="Available">Whether the Server found the software the capability runs; one that is not offers no Enable.</param>
+public sealed record CommandCenterModuleSlot(string Id, string DisplayName, bool Enabled, bool CanRun, string State, bool Available = true);
 
 /// <summary>Text, repeated rows, and states for one scene. The view applies this and nothing else.</summary>
 public sealed class CommandCenterSceneBinding
@@ -362,8 +363,11 @@ public static class CommandCenterScene
     private static NewUiSlotItem Module(CommandCenterModuleSlot module) => new()
     {
         Id = module.Id,
-        Action = module.Enabled ? "disable-module" : "enable-module",
-        Parts = new HashSet<string>(StringComparer.Ordinal) { !module.Enabled ? "disabled" : module.CanRun ? "ready" : "blocked" },
+        Action = module.Enabled ? "disable-module" : module.Available ? "enable-module" : "module-unavailable",
+        Parts = new HashSet<string>(StringComparer.Ordinal)
+        {
+            !module.Available || (module.Enabled && !module.CanRun) ? "blocked" : module.Enabled ? "ready" : "disabled"
+        },
         Text = new Dictionary<string, string>(StringComparer.Ordinal) { ["name"] = module.DisplayName, ["why"] = module.State },
     };
 

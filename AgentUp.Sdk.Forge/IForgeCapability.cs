@@ -6,10 +6,8 @@ namespace AgentUp.Sdk.Forge;
 /// A repository-hosting module. Reads proposal state and performs the writes the
 /// autonomous loop needs. It must not merge, and it must not write a protected ref.
 /// </summary>
-public interface IForgeCapability
+public interface IForgeCapability : ICapability
 {
-    CapabilityIdentity Identity { get; }
-
     ForgeHostConfiguration Host { get; }
 
     Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken = default);

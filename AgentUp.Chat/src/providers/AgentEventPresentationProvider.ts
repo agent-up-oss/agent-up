@@ -249,6 +249,15 @@ export function resolveActivity(input: {
   return { kind: 'idle', label: input.state ?? 'Loading' };
 }
 
+/**
+ * The open prompt after a `permission_decision` event: closed when the Server decided that
+ * request, whichever client answered it, and left alone for any other request.
+ */
+export function afterPermissionDecision(open: AgentPermission | null, payload: unknown): AgentPermission | null {
+  const requestId = record(payload)?.requestId;
+  return open && typeof requestId === 'string' && requestId === open.requestId ? null : open;
+}
+
 export function parsePermission(payload: unknown): AgentPermission | null {
   const outer = record(payload);
   if (!outer) return null;

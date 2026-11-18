@@ -119,6 +119,12 @@ fails the suite.
 `test-agent-infer` ACP agent. It is `slow` and `ciOnly`. Keep it out of
 `run-dotnet-tests.sh`, the fast `server` check, and the test-kind watchdog.
 
+`Category=OpencodeInference` runs the real OpenCode binary through the built-in OpenCode
+capability against `test-model-server`. `run-opencode-inference.sh` supplies the binary,
+endpoint, per-run token, and a published Server. One layer runs the loop kernel in process. The
+other starts that Server as a process and drives it only over REST and the agent event stream,
+the way a client does. It is `slow` and `ciOnly`, and kept out of the same suites.
+
 Concurrency and restart for autonomous workspaces run in the normal E2E
 tier. `Category=LoopSoak` is hundreds of scripted tasks plus bounded-growth
 asserts. It is `slow` and `ciOnly`. Keep it out of those same suites.

@@ -10,13 +10,19 @@ public sealed class CodexAgentCapability : IAgentCapability
 
     public CapabilityIdentity Identity { get; } = new(PackageId, PackageVersion, "Codex", "agent-up");
 
-    public IReadOnlyList<NixPackageDeclaration> NixPackages { get; } = [new("nodejs_22")];
+    public string Kind => CapabilityKind.Agent;
 
-    public bool CanRun => true;
+    /// <summary>Nix delivers Node.js; the ACP adapter itself has to be on the Server's search path.</summary>
+    public IReadOnlyList<CapabilitySoftware> Software { get; } =
+        [new("node", DeliveredByNix: true), new("codex-acp", DeliveredByNix: false)];
+
+    public IReadOnlyList<CapabilitySettingSpec> Settings { get; } = [];
+
+    public IReadOnlyList<NixPackageDeclaration> NixPackages { get; } = [new("nodejs_22")];
 
     public bool SupportsPermissionRequests => true;
 
     public AgentLoginSpec? Login { get; } = new("codex", ["login", "--device-auth"], "device");
 
-    public AgentLaunchResult Launch() => new("codex-acp", [], "nodejs_22");
+    public AgentLaunchResult Launch(IReadOnlyDictionary<string, string> settings) => new("codex-acp", [], "nodejs_22");
 }

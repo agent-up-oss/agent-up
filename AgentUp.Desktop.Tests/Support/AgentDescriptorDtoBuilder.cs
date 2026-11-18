@@ -49,6 +49,24 @@ internal sealed class AgentDescriptorDtoBuilder
         return this;
     }
 
+    public AgentDescriptorDtoBuilder NeedsSetup()
+    {
+        _available = false;
+        _unavailability = AgentDescriptorDto.SettingsRequired;
+        _detail = $"{_displayName} needs Endpoint and Model before it can start.";
+        _remedy = $"Set them under {_displayName} in Settings.";
+        return this;
+    }
+
+    public AgentDescriptorDtoBuilder SoftwareMissing()
+    {
+        _available = false;
+        _unavailability = AgentDescriptorDto.SoftwareNotFound;
+        _detail = $"{_displayName} needs nix, which was not found on the Server host.";
+        _remedy = "Install Nix: https://nixos.org/download";
+        return this;
+    }
+
     public AgentDescriptorDto Build() =>
         new(_agent, _available, _displayName, _unavailability, _detail, _remedy);
 }

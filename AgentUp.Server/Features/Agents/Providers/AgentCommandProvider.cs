@@ -24,7 +24,7 @@ public sealed class AgentCommandProvider(
 
     public Task<AgentCommand?> ResolveAsync(string agent, CancellationToken cancellationToken)
     {
-        var configured = ReadConfigured(agent);
+        var configured = WithCapabilityLaunch(agent, ReadConfigured(agent));
         if (configured is not null && Path.IsPathRooted(configured.FileName))
             return Task.FromResult(IsExecutable(configured.FileName) ? configured : null);
 
@@ -46,6 +46,13 @@ public sealed class AgentCommandProvider(
         var configured = ReadConfigured(agent);
         if (configured is not null && Path.IsPathRooted(configured.FileName))
             return IsAvailableCommand(configured.FileName);
+        // An enabled built-in capability that still lacks software or a setting cannot start, and
+        // an executable its own Nix packages deliver need not be on the Server's PATH.
+        var readiness = packages?.Readiness(agent);
+        if (readiness is { Enabled: true, CanRun: false } && configured is null)
+            return false;
+        if (configured is null && DeliveredByNix(agent))
+            return true;
         if (ResolveCapability(agent) is null && configured is not null)
             return IsAvailableCommand(configured.FileName);
 
@@ -55,15 +62,20 @@ public sealed class AgentCommandProvider(
 
     private string? RawLaunchCommand(string agent)
     {
-        var launched = packages?.GetAgent(agent)?.Launch();
+        var launched = packages?.GetAgent(agent)?.Launch(new Dictionary<string, string>());
         if (launched is not null && !string.IsNullOrWhiteSpace(launched.FileName))
             return launched.FileName;
 
-        var command = packages?.GetEnabled(agent)?.Launch?.Command;
-        if (!string.IsNullOrWhiteSpace(command))
-            return command;
-
         return IsScriptedTestAgent(agent) ? AgentUnavailability.ScriptedTestAgent : null;
+    }
+
+    private bool DeliveredByNix(string agent)
+    {
+        var module = packages?.GetAgent(agent);
+        var fileName = RawLaunchCommand(agent);
+        return module is not null
+               && module.Software.Any(item => item.DeliveredByNix
+                                              && item.Executable.Equals(fileName, StringComparison.Ordinal));
     }
 
     private static bool IsScriptedTestAgent(string agent) =>
@@ -75,7 +87,26 @@ public sealed class AgentCommandProvider(
         if (plan is null || string.IsNullOrWhiteSpace(plan.Command))
             return null;
 
-        return new AgentCommand(plan.Command, plan.Arguments ?? []);
+        return new AgentCommand(plan.Command, plan.Arguments ?? [], plan.Environment);
+    }
+
+    /// <summary>
+    /// <c>Agents:{id}:Command</c> replaces only the executable. An enabled capability still supplies
+    /// its arguments when the override names none, and always its launch environment - OpenCode's
+    /// endpoint configuration travels there, and an agent started without it has no model.
+    /// </summary>
+    private AgentCommand? WithCapabilityLaunch(string agent, AgentCommand? configured)
+    {
+        if (configured is null)
+            return null;
+        var module = packages?.GetAgent(agent);
+        if (module is null)
+            return configured;
+        var plan = packages!.AgentLaunch(agent);
+        var arguments = configured.Arguments.Count > 0
+            ? configured.Arguments
+            : module.Launch(new Dictionary<string, string>()).Arguments;
+        return configured with { Arguments = arguments, Environment = plan?.Environment };
     }
 
     private AgentCommand? ReadConfigured(string agent)

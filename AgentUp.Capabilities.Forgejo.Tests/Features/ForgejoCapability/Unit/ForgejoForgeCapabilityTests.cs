@@ -33,4 +33,11 @@ public sealed class ForgejoForgeCapabilityTests
         Assert.That(ForgejoApiProvider.IsProtected("refs/heads/master"), Is.True);
         Assert.That(ForgejoApiProvider.IsProtected("agent-topic"), Is.False);
     }
+
+    [Test]
+    public void A_forge_needs_no_software_on_the_server_host()
+    {
+        Assert.That(new ForgejoForgeCapability().Software, Is.Empty);
+        Assert.That(new ForgejoForgeCapability().Kind, Is.EqualTo("forge"));
+    }
 }

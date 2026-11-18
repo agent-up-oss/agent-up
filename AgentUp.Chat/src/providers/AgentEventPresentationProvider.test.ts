@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   activityHint,
+  afterPermissionDecision,
   agentEventRole,
   applyPresentedUpdate,
   groupTranscript,
@@ -218,4 +219,12 @@ test('keeps the agent catalog when a later snapshot omits it', () => {
   assert.equal(stopped?.agent, null);
   assert.equal(stopped?.state, 'idle');
   assert.deepEqual(stopped?.agents, catalog);
+});
+
+test('a permission decision closes only the prompt for the request it decided', () => {
+  const open = parsePermission({ requestId: 'req-1', request: { title: 'Write?', options: [{ optionId: 'allow', name: 'Allow', kind: 'allow_once' }] } });
+
+  assert.equal(afterPermissionDecision(open, { requestId: 'other', optionId: 'allow' }), open);
+  assert.equal(afterPermissionDecision(open, { requestId: 'req-1', optionId: 'allow' }), null);
+  assert.equal(afterPermissionDecision(null, { requestId: 'req-1' }), null);
 });

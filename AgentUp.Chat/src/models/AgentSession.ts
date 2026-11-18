@@ -7,7 +7,7 @@ import type { AgentLoginChallenge, AgentLoginTransport } from '@agent-up/agent-a
 // The capability module id the Server lists an agent by. It was an enum of the three
 // first-party agents; 'kind' now means the capability kind, which this is not.
 export type AgentId = string;
-export type AgentUnavailability = 'capabilityNotEnabled' | 'executableNotFound';
+export type AgentUnavailability = 'capabilityNotEnabled' | 'executableNotFound' | 'softwareNotFound' | 'settingsRequired';
 export type AgentDescriptor = {
   agent: AgentId;
   available: boolean;

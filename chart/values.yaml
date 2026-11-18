@@ -27,12 +27,7 @@ server:
 capabilities:
   enabled:
     - id: dotnet
-      version: "1.0.0"
     - id: docker
-      version: "1.0.0"
     - id: codex
-      version: "1.0.0"
     - id: cursor
-      version: "1.0.0"
     - id: claude
-      version: "1.0.0"

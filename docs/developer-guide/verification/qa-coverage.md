@@ -26,11 +26,13 @@ The first suite runs from `au-debug validate --surface desktop` and `au-debug va
 | Git history | Commit history | gap | gap |
 | Commits | Commit queue / proposal queue | gap | gap |
 | Agents | Agent availability, remedies, start a session, transcript | covered | covered |
-| Autonomous loop / checklist | Precondition checklist | covered | covered |
+| Autonomous loop / checklist | Agent summary line opens Settings, where the precondition checklist is | covered | covered |
 | Autonomous loop / activate | Activate after a satisfied checklist, typed terminal | gap | gap |
 | Forge review / hosting | Hosting strip notInstalled with bootstrap remedy | covered | covered |
 | Forge review / proposal | Open a proposal, checks, review threads | gap | gap |
 | Capabilities | List modules, enable one | gap | gap |
+| Capabilities / unavailable | A capability whose software is missing shows it on its button and cannot be enabled | gap | gap |
+| Capabilities / settings | Enable OpenCode, set endpoint, token, and model, see it become ready | gap | gap |
 | Validation panel | List flows for an application, replay one | covered | covered |
 | Database explorer | Open a database application and inspect tables | covered | covered |
 | Browser isolation | Two workspaces, two profiles, no shared session | gap | n/a |

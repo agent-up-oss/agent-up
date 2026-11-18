@@ -1155,7 +1155,7 @@
     {
       "id": "settings-module",
       "title": "Capability module",
-      "note": "One capability module on the Server: its name, whether it can run, and the one change it offers. A module that cannot run says why.",
+      "note": "One capability built into the Server: its name, whether it can run, and the one change it offers. A module that cannot run says why; one whose software was not found says so on its button instead of offering Enable.",
       "avalonia": "Border",
       "desktopClass": "",
       "desktopHost": "",
@@ -1169,8 +1169,8 @@
         "au-status-dot",
         "au-status-dot--healthy"
       ],
-      "html": "<div class=\"aun-settings__row\" data-au-actions=\"enable-module\">\n        <span class=\"aun-settings__id\"><span class=\"aun-settings__name\">.NET</span><span class=\"aun-settings__state\"><span class=\"au-status-dot au-status-dot--healthy\"></span><span class=\"aun-settings__state-text\">Ready</span><span class=\"aun-settings__state-text\">Disabled</span><span class=\"aun-settings__state-text\"></span></span></span>\n        <button class=\"aun-btn\" type=\"button\" data-au-action=\"disable-module\" data-au-tone=\"enable-module:aun-btn--primary\" data-au-labels=\"enable-module:Enable; disable-module:Disable\">Disable</button>\n      </div>",
-      "source": "<div class=\"aun-settings__row\" data-au-actions=\"enable-module\">\n        <span class=\"aun-settings__id\"><span class=\"aun-settings__name\" data-au-text=\"name\">.NET</span><span class=\"aun-settings__state\"><span class=\"au-status-dot au-status-dot--healthy\" data-au-part=\"ready\"></span><span class=\"aun-settings__state-text\" data-au-part=\"ready\">Ready</span><span class=\"aun-settings__state-text\" data-au-part=\"disabled\">Disabled</span><span class=\"aun-settings__state-text\" data-au-part=\"blocked\" data-au-text=\"why\"></span></span></span>\n        <button class=\"aun-btn\" type=\"button\" data-au-action=\"disable-module\" data-au-tone=\"enable-module:aun-btn--primary\" data-au-labels=\"enable-module:Enable; disable-module:Disable\">Disable</button>\n      </div>"
+      "html": "<div class=\"aun-settings__row\" data-au-actions=\"enable-module\">\n        <span class=\"aun-settings__id\"><span class=\"aun-settings__name\">.NET</span><span class=\"aun-settings__state\"><span class=\"au-status-dot au-status-dot--healthy\"></span><span class=\"aun-settings__state-text\">Ready</span><span class=\"aun-settings__state-text\">Disabled</span><span class=\"aun-settings__state-text\"></span></span></span>\n        <button class=\"aun-btn\" type=\"button\" data-au-action=\"disable-module\" data-au-tone=\"enable-module:aun-btn--primary\" data-au-labels=\"enable-module:Enable; disable-module:Disable; module-unavailable:Not found\">Disable</button>\n      </div>",
+      "source": "<div class=\"aun-settings__row\" data-au-actions=\"enable-module\">\n        <span class=\"aun-settings__id\"><span class=\"aun-settings__name\" data-au-text=\"name\">.NET</span><span class=\"aun-settings__state\"><span class=\"au-status-dot au-status-dot--healthy\" data-au-part=\"ready\"></span><span class=\"aun-settings__state-text\" data-au-part=\"ready\">Ready</span><span class=\"aun-settings__state-text\" data-au-part=\"disabled\">Disabled</span><span class=\"aun-settings__state-text\" data-au-part=\"blocked\" data-au-text=\"why\"></span></span></span>\n        <button class=\"aun-btn\" type=\"button\" data-au-action=\"disable-module\" data-au-tone=\"enable-module:aun-btn--primary\" data-au-labels=\"enable-module:Enable; disable-module:Disable; module-unavailable:Not found\">Disable</button>\n      </div>"
     },
     {
       "id": "settings-workspace",

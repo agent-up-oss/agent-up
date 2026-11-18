@@ -5,18 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>AgentUp.Sdk.Agent</RootNamespace>
-    <Description>Custom MSBuild SDK for Agent-Up ACP agent capability modules.</Description>
-    <IsPackable>true</IsPackable>
-    <PackageId>AgentUp.Sdk.Agent</PackageId>
-    <IncludeBuildOutput>true</IncludeBuildOutput>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Description>Contract the first-party Agent-Up agent capabilities implement.</Description>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="Sdk\Sdk.props" Pack="true" PackagePath="Sdk\Sdk.props" />
-    <None Include="Sdk\Sdk.targets" Pack="true" PackagePath="Sdk\Sdk.targets" />
-    <None Include="README.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\AgentUp.Sdk.Common\AgentUp.Sdk.Common.csproj" />

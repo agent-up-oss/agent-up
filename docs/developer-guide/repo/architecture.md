@@ -78,14 +78,14 @@ AgentUp.Capabilities.Cursor/
 AgentUp.Capabilities.Claude/
   AgentUp.Capabilities.Claude.csproj
 
+AgentUp.Capabilities.Opencode/
+  AgentUp.Capabilities.Opencode.csproj
+
 AgentUp.Capabilities.Github/
   AgentUp.Capabilities.Github.csproj
 
 AgentUp.Capabilities.Forgejo/
   AgentUp.Capabilities.Forgejo.csproj
-
-AgentUp.Registry/
-  AgentUp.Registry.csproj
 
 AgentUp.Desktop/
   AgentUp.Desktop.csproj
@@ -186,14 +186,14 @@ AgentUp.Capabilities.Cursor.Tests/
 AgentUp.Capabilities.Claude.Tests/
   AgentUp.Capabilities.Claude.Tests.csproj
 
+AgentUp.Capabilities.Opencode.Tests/
+  AgentUp.Capabilities.Opencode.Tests.csproj
+
 AgentUp.Capabilities.Github.Tests/
   AgentUp.Capabilities.Github.Tests.csproj
 
 AgentUp.Capabilities.Forgejo.Tests/
   AgentUp.Capabilities.Forgejo.Tests.csproj
-
-AgentUp.Registry.Tests/
-  AgentUp.Registry.Tests.csproj
 
 AgentUp.Desktop.Tests/
   AgentUp.Desktop.Tests.csproj
@@ -303,9 +303,9 @@ Slices should not import another slice's internal `Services/`, `Models/`, `Provi
 
 ## Component Responsibilities
 
-`AgentUp.Sdk.Common` owns kind, identity, Nix declaration, and registration types. `AgentUp.Sdk.Runtime`, `AgentUp.Sdk.Agent`, and `AgentUp.Sdk.Forge` are MSBuild SDKs plus `IRuntimeCapability` / `IAgentCapability` / `IForgeCapability`. First-party `AgentUp.Capabilities.*` projects consume those SDKs and pack registry packages (`capability.json`, `default.nix`, and the module DLL). Forge modules have no Nix closure; host URLs live on `IForgeCapability.Host`. `AgentUp.Capabilities.Abstractions` is the `capability.json` contract, launch plans, and validation records. `AgentUp.Capabilities.Common` owns the generic Nix invocation and index merge. `AgentUp.Registry` owns the local directory store and remote HTTP catalog. Its registry root is whatever `AGENTUP_CAPABILITY_REGISTRY_PATH` names, resolved when the store is first used rather than while the host is being built, and packages and push staging both live under that root; nothing is written beside the running project. Server enablement persists `capabilities/enabled.json` (package id plus package version), loads enabled DLLs, and dispatches by kind. `agent-up.json` root arrays whose names match enabled runtime-kind module ids are bound through `IRuntimeCapability`; first-party `dotnet[]` and `docker[]` use that path. Technology versions such as `sdk` are inputs to `Deliver`. Desktop enables modules in overlay chrome. Mobile enables them in the workspace Settings tab. Clients never call the remote registry.
+`AgentUp.Sdk.Common` owns `ICapability`, kind, identity, required software, settings, and Nix declaration types. `AgentUp.Sdk.Runtime`, `AgentUp.Sdk.Agent`, and `AgentUp.Sdk.Forge` are plain contract libraries for `IRuntimeCapability` / `IAgentCapability` / `IForgeCapability`. First-party `AgentUp.Capabilities.*` projects are class libraries that `AgentUp.Server` references directly and lists in `FirstPartyCapabilityCatalog`; there is no packing, registry, or DLL loading, and a capability is always installed. Forge capabilities need no software; host URLs live on `IForgeCapability.Host`. `AgentUp.Capabilities.Abstractions` holds launch plans and validation records. `AgentUp.Capabilities.Common` owns the generic Nix invocation and the pinned first-party Nix expression.
 
-`LocalInstaller.App` is the product-neutral Avalonia installer dashboard. It presents independent component management cards. Agent-Up does not ship installer zip-modules; capability packages live in the Server registry and are enabled through Server APIs. The app owns its installer-facing catalog contracts and must not take compile-time dependencies on `AgentUp.Capabilities.*` projects. Product entrypoints such as `AgentUp.InstallerApp` register typed LocalInstaller manifests through the fluent API and should keep `Program.cs` limited to product and installer-option configuration.
+`LocalInstaller.App` is the product-neutral Avalonia installer dashboard. It presents independent component management cards. Agent-Up does not ship installer zip-modules; capabilities are built into the Server and enabled through Server APIs. The app owns its installer-facing catalog contracts and must not take compile-time dependencies on `AgentUp.Capabilities.*` projects. Product entrypoints such as `AgentUp.InstallerApp` register typed LocalInstaller manifests through the fluent API and should keep `Program.cs` limited to product and installer-option configuration.
 
 `AgentUp.Server` performs orchestration:
 

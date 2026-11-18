@@ -62,6 +62,9 @@ internal static class DesktopDomain
     /// <summary>Git hosting state; tests pick availability rather than restating the DTO.</summary>
     public static ForgeHostingDtoBuilder Hosting() => new();
 
+    /// <summary>A Server capability, .NET and disabled unless the test says otherwise.</summary>
+    public static CapabilityModuleDtoBuilder Capability() => new();
+
     /// <summary>A second workspace, so "two different workspaces" has one spelling.</summary>
     public static WorkspaceDtoBuilder SecondWorkspace()
         => new WorkspaceDtoBuilder()

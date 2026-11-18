@@ -3,9 +3,6 @@ using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.Capabilities.Common.Features.NixRuntime.Controllers;
 using AgentUp.Capabilities.Common.Features.NixRuntime.Providers;
 using AgentUp.Capabilities.Common.Features.NixRuntime.Services;
-using AgentUp.Registry.Composition;
-using AgentUp.Registry.Features.RemoteCatalog.Interfaces;
-using AgentUp.Registry.Features.RemoteCatalog.Providers;
 using AgentUp.Server.Features.Training.Controllers;
 using AgentUp.Server.Features.TaskSource.Interfaces;
 using AgentUp.Server.Features.TaskSource.Providers;
@@ -335,32 +332,23 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<ApplicationProxyFallbackController>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
-        var registryRoot = CapabilityRegistryRootResolver.Resolve(
-            builder.Configuration["AGENTUP_CAPABILITY_REGISTRY_PATH"]
-            ?? Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_REGISTRY_PATH"),
-            dataDir,
+        var devRoot = CapabilityRuntimePathProvider.Resolve(
+            builder.Configuration["AGENT_UP_DEV_ROOT"] ?? Environment.GetEnvironmentVariable("AGENT_UP_DEV_ROOT"),
             Environment.CurrentDirectory,
             AppContext.BaseDirectory);
-        RegistryServiceRegistration.Configure(builder, registryRoot);
-        var remoteRegistryUrl = builder.Configuration["AGENTUP_CAPABILITY_REGISTRY_URL"]
-            ?? Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_REGISTRY_URL");
-        if (!string.IsNullOrWhiteSpace(remoteRegistryUrl))
-        {
-            builder.Services.AddHttpClient<IRemoteRegistryClient, RemoteRegistryHttpClient>(client =>
-            {
-                client.BaseAddress = new Uri(remoteRegistryUrl.TrimEnd('/') + "/");
-            });
-        }
-
         builder.Services.AddSingleton<NixCapabilityCommandBuilder>();
         builder.Services.AddSingleton<CapabilityIndexMergeProvider>();
         builder.Services.AddSingleton<NixCapabilityEnvironmentService>();
         builder.Services.AddSingleton<NixCapabilityEnvironmentController>();
         builder.Services.AddSingleton<ICapabilityEnabledSetStore>(_ => new CapabilityEnabledSetStore(dataDir));
         builder.Services.AddSingleton<INixPresenceProvider, NixPresenceProvider>();
-        builder.Services.AddSingleton<CapabilityRuntimePathProvider>();
-        builder.Services.AddSingleton<CapabilityModuleLoadProvider>();
-        builder.Services.AddSingleton<ICapabilityModuleLoader>(sp => sp.GetRequiredService<CapabilityModuleLoadProvider>());
+        builder.Services.AddSingleton(_ => new CapabilityRuntimePathProvider(devRoot));
+        builder.Services.AddSingleton<ICapabilityCatalog, FirstPartyCapabilityCatalog>();
+        builder.Services.AddSingleton<ICapabilitySettingsStore>(_ => new CapabilitySettingsStore(dataDir));
+        builder.Services.AddSingleton<ICapabilityNixShellProvider>(_ => new CapabilityNixShellProvider(dataDir));
+        builder.Services.AddSingleton<ICapabilitySoftwareProbe>(sp => new CapabilitySoftwareProbe(
+            sp.GetRequiredService<INixPresenceProvider>(),
+            sp.GetRequiredService<CapabilityRuntimePathProvider>()));
         builder.Services.AddSingleton<CapabilityModuleService>();
         builder.Services.AddSingleton<IEnabledCapabilityPackages>(sp => sp.GetRequiredService<CapabilityModuleService>());
         builder.Services.AddSingleton<CapabilityModulesController>();

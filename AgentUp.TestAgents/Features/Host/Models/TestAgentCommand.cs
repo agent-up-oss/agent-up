@@ -39,7 +39,13 @@ public enum TestAgentSchema
     /// Deterministic ACP agent driven by a declared turn script. It does not sign in;
     /// session/new is allowed immediately.
     /// </summary>
-    Scripted
+    Scripted,
+
+    /// <summary>
+    /// Not an agent: the in-process model served as an Ollama/OpenAI-compatible HTTP API, so a
+    /// real agent that only speaks that API - OpenCode - can run against the pinned model.
+    /// </summary>
+    ModelServer
 }
 
 /// <summary>What the process was asked to do.</summary>
@@ -64,9 +70,14 @@ public enum TestAgentVerb
 /// the host as 10.0.2.2, not localhost, so links handed to a client have to be written with the
 /// origin that client can open rather than the one the provider bound.
 /// </param>
+/// <param name="ApiKey">
+/// The bearer token the model server requires on every request, so a harness can prove the token
+/// a user saves in Settings reaches the model backend. Null serves without one.
+/// </param>
 public sealed record TestAgentCommand(
     TestAgentSchema Schema,
     TestAgentVerb Verb,
     string? IdentityProviderUrl,
     int Port,
-    string? PublicOrigin);
+    string? PublicOrigin,
+    string? ApiKey = null);

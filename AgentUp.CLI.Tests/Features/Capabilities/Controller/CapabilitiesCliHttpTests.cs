@@ -72,6 +72,8 @@ public sealed class CapabilitiesCliHttpTests
             ["publisher"] = "agent-up",
             ["kind"] = "runtime",
             ["enabled"] = enabled,
+            ["available"] = true,
+            ["missing"] = new JsonArray(),
             ["state"] = enabled ? "ready" : "disabled",
             ["canRun"] = canRun,
             ["messages"] = new JsonArray(message)

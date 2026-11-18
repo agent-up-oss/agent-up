@@ -116,6 +116,26 @@ public sealed class AgentChatViewModel : ReactiveObject
         ? null
         : string.Join(" · ", new[] { Loop.Phase, Loop.TaskTitle, Loop.Terminal, Loop.StopReason }.Where(part => !string.IsNullOrWhiteSpace(part)));
     public bool HasLoop => !string.IsNullOrWhiteSpace(LoopLine);
+    /// <summary>
+    /// One line on the Agent tab standing in for what lives in Settings: which agent to run, the
+    /// saved sessions, and the unattended-loop checklist. The conversation keeps the rest of the tab.
+    /// </summary>
+    public string SettingsSummary
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (!HasAgent)
+                parts.Add(HasBoundAgent ? $"{BoundAgentDisplayName} is bound and not running" : "No agent running");
+            if (HasAutonomy)
+            {
+                var open = Preconditions.Count(item => !item.Satisfied);
+                parts.Add(open == 0 ? "Unattended loop ready" : $"Unattended loop · {open} of {Preconditions.Count} checks open");
+            }
+
+            return parts.Count == 0 ? "Agent, sessions, and unattended loop are in Settings" : string.Join(" · ", parts);
+        }
+    }
     public string StatusLine => HasAgent
         ? $"{SelectedAgentDisplayName} · {ActivityLabel}"
         : HasBoundAgent
@@ -194,13 +214,13 @@ public sealed class AgentChatViewModel : ReactiveObject
     {
         if (_modules is null)
         {
-            Error = "This Server cannot enable capability packages.";
+            Error = "This Server cannot enable capabilities.";
             return;
         }
 
         await RunAsync(async id =>
         {
-            await _modules.EnableAsync(agent, version: null);
+            await _modules.EnableAsync(agent);
             Apply(await _controller.GetAsync(id, CancellationToken.None));
         });
     }
@@ -325,6 +345,7 @@ public sealed class AgentChatViewModel : ReactiveObject
         if (item.Type == "state") { Apply(item.Payload.Deserialize<AgentSessionDto>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true })); return; }
         if (item.Type == "user_message") { AddUser(Text(item.Payload)); return; }
         if (item.Type == "permission_request") { AddPermission(item.Payload); return; }
+        if (item.Type == "permission_decision") { ClosePermission(item.Payload); return; }
         if (item.Type != "session_update") return;
         ApplyPresented(AgentEventPresentationProvider.Present(AgentEventPresentationProvider.Unwrap(item.Payload)));
     }
@@ -375,10 +396,27 @@ public sealed class AgentChatViewModel : ReactiveObject
             previous.Status = status;
         }
     }
+    /// <summary>
+    /// Closes the open prompt once the Server says its request was decided - by this window, another
+    /// client, or a turn that ended first - so a replayed stream never leaves a stale prompt.
+    /// </summary>
+    private void ClosePermission(JsonElement payload)
+    {
+        var requestId = payload.ValueKind == JsonValueKind.Object && payload.TryGetProperty("requestId", out var id) ? id.GetString() : null;
+        if (requestId is null || requestId != _permissionRequestId)
+            return;
+        _permissionRequestId = null;
+        PermissionOptions.Clear();
+        PermissionTitle = PermissionDetail = null;
+        this.RaisePropertyChanged(nameof(HasPermission));
+        NotifyComputedChatState();
+    }
+    private string? _permissionRequestId;
     private void AddPermission(JsonElement payload)
     {
         PermissionOptions.Clear();
         var prompt = AgentEventPresentationProvider.ParsePermission(payload);
+        _permissionRequestId = prompt?.RequestId;
         PermissionTitle = prompt?.Title;
         PermissionDetail = prompt?.Detail;
         if (prompt is null) { this.RaisePropertyChanged(nameof(HasPermission)); RefreshActivity(); return; }
@@ -569,6 +607,7 @@ public sealed class AgentChatViewModel : ReactiveObject
 
     private void NotifyLoopSurface()
     {
+        this.RaisePropertyChanged(nameof(SettingsSummary));
         this.RaisePropertyChanged(nameof(HasAutonomy));
         this.RaisePropertyChanged(nameof(CanEnableAutonomy));
         this.RaisePropertyChanged(nameof(CanActivateLoop));

@@ -148,8 +148,9 @@ pkgs.mkShell {
       fi
     done
 
-    # Workspace ACP adapters are capability packages. A runtime E2E that only
-    # enables docker/dotnet must not download Cursor/Codex/Claude as a shell side effect.
+    # The Codex, Claude and Cursor capabilities are built into the Server but look for their ACP
+    # adapters on the search path; this installs them under .agent-up-dev, which the Server adds.
+    # A runtime E2E that only enables docker/dotnet must not download them as a shell side effect.
     if [ -z "''${AGENTUP_SKIP_DEV_AGENT_BOOTSTRAP-}" ]; then
     devRoot="$PWD/.agent-up-dev"
     mkdir -p "$devRoot/bin" "$devRoot/npm" "$devRoot/cursor-agent"
@@ -204,17 +205,16 @@ pkgs.mkShell {
       const enabled = {
         schemaVersion: '1',
         modules: [
-          { id: 'dotnet', version: '1.0.0' },
-          { id: 'docker', version: '1.0.0' },
-          { id: 'codex', version: '1.0.0' },
-          { id: 'cursor', version: '1.0.0' },
-          { id: 'claude', version: '1.0.0' },
+          { id: 'dotnet' },
+          { id: 'docker' },
+          { id: 'codex' },
+          { id: 'cursor' },
+          { id: 'claude' },
         ],
       };
       fs.writeFileSync(path.join(root, 'enabled.json'), JSON.stringify(enabled, null, 2) + '\n');
     " || echo "warning: failed to write .agent-up-dev/enabled.json"
     export AGENTUP_CAPABILITY_ENABLED_PATH="$devRoot/enabled.json"
-    export AGENTUP_CAPABILITY_REGISTRY_PATH="$devRoot/capability-registry"
     fi
   '';
 }

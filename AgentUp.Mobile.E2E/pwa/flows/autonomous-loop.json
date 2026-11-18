@@ -2,7 +2,7 @@
   "id": "autonomous-loop",
   "application": "Mobile",
   "name": "Read the unattended loop checklist",
-  "description": "A person opens the Agents tab and reads the unattended-loop preconditions. Fixture: isolated Server with no forge module, so Forge capability is not ready. Enable and Activate are not clicked.",
+  "description": "A person opens the Agents tab, follows the one-line loop summary to the workspace Settings tab, and reads the unattended-loop preconditions there. Fixture: isolated Server with no forge module, so Forge capability is not ready. Enable and Activate are not clicked.",
   "surface": "Mobile",
   "initialPath": "/connect",
   "initialExpectations": [
@@ -30,9 +30,18 @@
     },
     {
       "id": "open-agents",
-      "description": "Open the Agents tab",
+      "description": "Open the Agents tab and read the loop summary",
       "action": "Click",
       "target": { "role": "tab", "name": "Agents" },
+      "expectations": [
+        { "kind": "Visible", "value": "true", "target": { "testId": "agent-loop-summary" } }
+      ]
+    },
+    {
+      "id": "open-settings",
+      "description": "Open Settings from the summary",
+      "action": "Click",
+      "target": { "testId": "agent-loop-summary" },
       "expectations": [
         { "kind": "Text", "value": "Unattended loop" },
         { "kind": "Text", "value": "Forge capability" },

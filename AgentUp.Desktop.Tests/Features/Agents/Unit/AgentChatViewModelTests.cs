@@ -522,6 +522,44 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
+    public async Task SettingsSummary_namesTheBoundAgentAndCountsOpenLoopChecks()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session().IdleWith(DesktopDomain.AvailableAgent()).BoundTo("Codex").Build(),
+            Autonomy = new(false, [
+                new("forgeCapabilityEnabled", false, "Enable a forge"),
+                new("agentAvailable", true),
+                new("autonomyEnabled", false, "Enable autonomy")
+            ])
+        };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+
+        Assert.That(view.SettingsSummary, Is.EqualTo("Codex is bound and not running · Unattended loop · 2 of 3 checks open"));
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task SettingsSummary_pointsAtSettingsWhenTheAgentRunsWithoutALoop()
+    {
+        var running = CreateView(new ChatApiFake { Session = DesktopDomain.Session().Ready("Codex", "demo-agent").Build(), Autonomy = new(false, []) });
+        var idle = CreateView(new ChatApiFake { Session = DesktopDomain.Session().IdleWith(DesktopDomain.AvailableAgent()).Build(), Autonomy = new(false, []) });
+
+        await running.LoadAsync("ws-1");
+        await idle.LoadAsync("ws-2");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(running.SettingsSummary, Is.EqualTo("Agent, sessions, and unattended loop are in Settings"));
+            Assert.That(idle.SettingsSummary, Is.EqualTo("No agent running"));
+        });
+        await running.LoadAsync(null);
+        await idle.LoadAsync(null);
+    }
+
+    [Test]
     public async Task LoadAsync_dropsAStaleAutonomyResponseAfterANewerLoad()
     {
         var hang = new TaskCompletionSource();
@@ -1162,14 +1200,20 @@ internal sealed class RecordingCapabilityModulesApi : ICapabilityModulesApiProvi
     public Task<IReadOnlyList<CapabilityModuleDto>> ListAsync(CancellationToken cancellationToken = default)
         => Task.FromResult<IReadOnlyList<CapabilityModuleDto>>([]);
 
-    public Task<CapabilityModuleDto> EnableAsync(string id, string? version, CancellationToken cancellationToken = default)
+    public Task<CapabilityModuleDto> EnableAsync(string id, CancellationToken cancellationToken = default)
     {
         if (EnableFailure is not null)
             return Task.FromException<CapabilityModuleDto>(EnableFailure);
         EnabledId = id;
-        return Task.FromResult(new CapabilityModuleDto(id, "1.0.0", id, "agent-up", "agent", true, "ready", true, []));
+        return Task.FromResult(DesktopDomain.Capability().Named(id, id, "agent").Enabled().Build());
     }
 
     public Task<CapabilityModuleDto> DisableAsync(string id, CancellationToken cancellationToken = default)
-        => Task.FromResult(new CapabilityModuleDto(id, "1.0.0", id, "agent-up", "agent", false, "disabled", false, []));
+        => Task.FromResult(DesktopDomain.Capability().Named(id, id, "agent").Build());
+
+    public Task<CapabilityModuleDto> UpdateSettingsAsync(
+        string id,
+        IReadOnlyDictionary<string, string> values,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(DesktopDomain.Capability().Named(id, id, "agent").Enabled().Build());
 }

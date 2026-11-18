@@ -73,6 +73,24 @@ public sealed class CommandCenterSceneTests
     }
 
     [Test]
+    public void A_capability_whose_software_was_not_found_offers_no_enable_and_says_why()
+    {
+        var binding = CommandCenterScene.Bind(Input([], "settings") with
+        {
+            Modules =
+            [
+                new CommandCenterModuleSlot("dotnet", ".NET", Enabled: false, CanRun: false, "Needs Nix", Available: false),
+                new CommandCenterModuleSlot("docker", "Docker", Enabled: false, CanRun: false, "Off")
+            ]
+        });
+
+        var modules = binding.Items["modules"];
+        Assert.That(modules.Select(item => item.Action), Is.EqualTo(new[] { "module-unavailable", "enable-module" }));
+        Assert.That(modules[0].Parts, Is.EquivalentTo(new[] { "blocked" }));
+        Assert.That(modules[0].Text["why"], Is.EqualTo("Needs Nix"));
+    }
+
+    [Test]
     public void The_application_tabs_are_the_open_workspaces_own_and_the_one_on_screen_is_selected()
     {
         var binding = CommandCenterScene.Bind(Input([], "application") with

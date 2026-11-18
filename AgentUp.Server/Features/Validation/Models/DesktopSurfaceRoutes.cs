@@ -8,6 +8,7 @@ public static class DesktopSurfaceRoutes
     public const string WorkspaceApplications = "workspace/applications";
     public const string WorkspaceGit = "workspace/git";
     public const string WorkspaceAgents = "workspace/agents";
+    public const string WorkspaceSettings = "workspace/settings";
 
     public static readonly IReadOnlyList<string> All =
     [
@@ -16,7 +17,8 @@ public static class DesktopSurfaceRoutes
         WorkspaceOverview,
         WorkspaceApplications,
         WorkspaceGit,
-        WorkspaceAgents
+        WorkspaceAgents,
+        WorkspaceSettings
     ];
 
     public static bool IsNamedRoute(string? path) =>

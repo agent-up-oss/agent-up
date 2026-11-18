@@ -634,22 +634,6 @@ public sealed class ForgejoApiProviderTests
         }
     }
 
-    [Test]
-    public void Write_creates_capability_json()
-    {
-        var directory = Directory.CreateDirectory(
-            Path.Join(Path.GetTempPath(), "agent-up-forgejo-write-" + Guid.NewGuid().ToString("N"))).FullName;
-        try
-        {
-            var packer = new ForgejoCapabilityPacker();
-            new ForgejoCapabilityPackageWriter().Write(directory, packer.Manifest(), packer.DefaultNix());
-            Assert.That(File.ReadAllText(Path.Join(directory, "capability.json")), Does.Contain("forgejo"));
-        }
-        finally
-        {
-            Directory.Delete(directory, recursive: true);
-        }
-    }
 
     private static ForgeRequest Request() => new("token", "acme", "widgets", "topic");
 

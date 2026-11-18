@@ -28,7 +28,7 @@ function fallbackTitle(availability: string): string {
   switch (availability) {
     case 'notInstalled':
     case 'none':
-      return 'No forge capability package is enabled.';
+      return 'No forge capability is enabled.';
     case 'needsCredential':
       return 'This workspace has no repository host credential.';
     case 'noRemote':

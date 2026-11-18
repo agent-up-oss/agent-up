@@ -119,6 +119,11 @@ public sealed class FakeBackendService
             return EnableCapability(request.Body);
         if (method == "POST" && path.StartsWith("/api/capabilities/disable/", StringComparison.Ordinal))
             return DisableCapability(Uri.UnescapeDataString(path["/api/capabilities/disable/".Length..]));
+        if (method == "PUT" && path.StartsWith("/api/capabilities/", StringComparison.Ordinal)
+            && path.EndsWith("/settings", StringComparison.Ordinal))
+            return UpdateCapabilitySettings(
+                Uri.UnescapeDataString(path["/api/capabilities/".Length..^"/settings".Length]),
+                request.Body);
         if (method == "GET" && path == "/api/tasks")
             return Json(TaskQueue());
         if (method == "POST" && path == "/api/tasks")
@@ -977,6 +982,8 @@ public sealed class FakeBackendService
             var module = FindCapability(ReadJsonString(body, "id"));
             if (module is null)
                 return NotFound();
+            if (module["available"]?.GetValue<bool>() == false)
+                return new FakeBackendResponseDto(409, "application/json", """{"title":"Capability software not found","detail":"The software this capability runs was not found on the Server host."}""");
             SetCapability(module, enabled: true);
             return Json(module);
         }
@@ -1399,7 +1406,7 @@ public sealed class FakeBackendService
                ["checks"] = new JsonArray(),
                ["threads"] = new JsonArray(),
                ["mergeability"] = null,
-               ["detail"] = "No forge capability package is enabled.",
+               ["detail"] = "No forge capability is enabled.",
                ["remedy"] = "Run: agent-up capabilities bootstrap"
            };
 
@@ -1414,11 +1421,50 @@ public sealed class FakeBackendService
                 .FirstOrDefault(module =>
                     string.Equals(module["id"]?.GetValue<string>(), id, StringComparison.Ordinal));
 
+    private FakeBackendResponseDto UpdateCapabilitySettings(string id, string? body)
+    {
+        lock (_gate)
+        {
+            var module = FindCapability(id);
+            if (module is null)
+                return NotFound();
+            JsonObject? values;
+            try
+            {
+                values = JsonNode.Parse(body ?? "{}")?["values"] as JsonObject;
+            }
+            catch (JsonException)
+            {
+                values = null;
+            }
+
+            foreach (var setting in (module["settings"] as JsonArray ?? []).OfType<JsonObject>())
+            {
+                var key = setting["key"]?.GetValue<string>() ?? "";
+                if (values is null || !values.TryGetPropertyValue(key, out var value))
+                    continue;
+                var text = value?.GetValue<string>()?.Trim() ?? "";
+                var secret = setting["kind"]?.GetValue<string>() == "secret";
+                setting["hasValue"] = text.Length > 0;
+                setting["value"] = secret || text.Length == 0 ? null : text;
+            }
+
+            SetCapability(module, module["enabled"]?.GetValue<bool>() == true);
+            return Json(module);
+        }
+    }
+
+    /// <summary>The Server's state rules: missing software first, then disabled, then a required setting with no value.</summary>
     private static void SetCapability(JsonObject module, bool enabled)
     {
+        var available = module["available"]?.GetValue<bool>() != false;
+        var needsSetup = (module["settings"] as JsonArray ?? [])
+            .OfType<JsonObject>()
+            .Any(setting => setting["required"]?.GetValue<bool>() == true && setting["hasValue"]?.GetValue<bool>() != true);
+        var state = !available ? "unavailable" : !enabled ? "disabled" : needsSetup ? "needsSetup" : "ready";
         module["enabled"] = enabled;
-        module["state"] = enabled ? "ready" : "disabled";
-        module["canRun"] = enabled;
+        module["state"] = state;
+        module["canRun"] = state == "ready";
         module["messages"] = new JsonArray();
     }
 
@@ -1471,6 +1517,20 @@ public sealed class FakeBackendService
             };
         }
 
+        if (module["available"]?.GetValue<bool>() == false)
+        {
+            var missing = string.Join(", ", (module["missing"] as JsonArray ?? []).Select(item => item?.GetValue<string>()));
+            return new JsonObject
+            {
+                ["agent"] = id,
+                ["available"] = false,
+                ["displayName"] = displayName,
+                ["unavailability"] = "softwareNotFound",
+                ["detail"] = $"{displayName} needs {missing}, which was not found on the Server host.",
+                ["remedy"] = $"Install {missing} and keep it on PATH."
+            };
+        }
+
         if (!enabled)
         {
             return new JsonObject
@@ -1481,6 +1541,19 @@ public sealed class FakeBackendService
                 ["unavailability"] = "capabilityNotEnabled",
                 ["detail"] = $"{displayName} is not enabled on this Server.",
                 ["remedy"] = $"Enable the {id} capability."
+            };
+        }
+
+        if (module["state"]?.GetValue<string>() == "needsSetup")
+        {
+            return new JsonObject
+            {
+                ["agent"] = id,
+                ["available"] = false,
+                ["displayName"] = displayName,
+                ["unavailability"] = "settingsRequired",
+                ["detail"] = $"{displayName} needs its endpoint and model before it can start.",
+                ["remedy"] = $"Set them under {displayName} in Settings."
             };
         }
 

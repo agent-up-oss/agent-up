@@ -115,4 +115,23 @@ public sealed class TestAgentCommandParserTests
             Assert.That(TestAgentCommandParser.ReadPort(["--port", "not-a-port"]), Is.Zero);
         });
     }
+
+    [Test]
+    public void Parse_reads_the_model_server_from_its_name()
+    {
+        var command = TestAgentCommandParser.Parse("test-model-server", ["--port", "18434"]);
+
+        Assert.That(command.Schema, Is.EqualTo(TestAgentSchema.ModelServer));
+        Assert.That(command.Port, Is.EqualTo(18434));
+        Assert.That(command.ApiKey, Is.Null);
+    }
+
+    [Test]
+    public void Parse_reads_the_model_server_api_key()
+    {
+        var command = TestAgentCommandParser.Parse("test-model-server", ["--port", "0", "--api-key", "secret-token"]);
+
+        Assert.That(command.ApiKey, Is.EqualTo("secret-token"));
+        Assert.That(TestAgentCommandParser.ReadApiKey(["--api-key=  "]), Is.Null);
+    }
 }

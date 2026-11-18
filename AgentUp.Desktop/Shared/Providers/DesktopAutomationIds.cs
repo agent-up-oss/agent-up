@@ -42,6 +42,10 @@ public static class DesktopAutomationIds
     public const string OverviewExportReport = "overview.export-report";
     public const string ShellTabAgent = "shell.tab.agent";
     public const string ShellTabGit = "shell.tab.git";
+    public const string ShellTabSettings = "shell.tab.settings";
+    public const string AgentSettingsSummary = "agent.settings-summary";
+    public const string AgentOpenSettings = "agent.open-settings";
+    public const string WorkspaceSettings = "workspace.settings";
     public const string ApplicationTabs = "app.tabs";
     public const string SubNav = "app.subnav";
 
@@ -176,6 +180,8 @@ public static class DesktopAutomationIds
     public static string ValidationPlay(string flowId) => $"validation.play.{flowId}";
     public static string CapabilityEnable(string moduleId) => $"capability.enable.{moduleId}";
     public static string CapabilityDisable(string moduleId) => $"capability.disable.{moduleId}";
+    public static string CapabilitySetting(string moduleId, string key) => $"capability.setting.{moduleId}.{key}";
+    public static string CapabilitySave(string moduleId) => $"capability.save.{moduleId}";
 
     public static string TrainRepository(string key) => $"train.repository.{key}";
 

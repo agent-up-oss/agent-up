@@ -100,7 +100,7 @@ public sealed class GitPanelViewModel : ReactiveObject, IGitChangeNodeHost
                 return Hosting.Detail;
             return Hosting.Availability switch
             {
-                "notInstalled" or "none" => "No forge capability package is enabled.",
+                "notInstalled" or "none" => "No forge capability is enabled.",
                 "needsCredential" => "This workspace has no repository host credential.",
                 "noRemote" => "No repository host origin is configured.",
                 "unreachable" => "Could not reach the host.",

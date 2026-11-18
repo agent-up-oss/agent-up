@@ -314,6 +314,19 @@
         }
       }
     },
+    "/api/capabilities/{id}/settings": {
+      "put": {
+        "tags": [
+          "Capabilities"
+        ],
+        "operationId": "CapabilityModulesHttpController_UpdateSettings",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/capabilities/disable/{id}": {
       "post": {
         "tags": [

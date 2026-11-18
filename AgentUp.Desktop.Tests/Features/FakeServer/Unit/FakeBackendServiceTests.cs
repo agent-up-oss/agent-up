@@ -332,10 +332,26 @@ public sealed class FakeBackendServiceTests
         var disabled = Json(backend, Post("/api/capabilities/disable/dotnet"));
         var enabled = Json(backend, Post("/api/capabilities/enable", """{"id":"dotnet"}"""));
 
-        Assert.That(listed.Select(item => item!["id"]!.GetValue<string>()), Is.EqualTo(new[] { "dotnet", "docker", "codex", "cursor", "claude" }));
+        Assert.That(listed.Select(item => item!["id"]!.GetValue<string>()), Is.EqualTo(new[] { "dotnet", "docker", "codex", "cursor", "claude", "opencode", "github", "forgejo" }));
         Assert.That(disabled["enabled"]!.GetValue<bool>(), Is.False);
         Assert.That(enabled["enabled"]!.GetValue<bool>(), Is.True);
         Assert.That(enabled["canRun"]!.GetValue<bool>(), Is.True);
+    }
+
+    [Test]
+    public void Handle_capabilitySettingsTakeOpenCodeFromNeedsSetupToReady()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var enabled = Json(backend, Post("/api/capabilities/enable", """{"id":"opencode"}"""));
+        var saved = Json(backend, Put(
+            "/api/capabilities/opencode/settings",
+            """{"values":{"endpoint":"http://localhost:11434","model":"qwen2.5-coder:7b","token":"sk-demo"}}"""));
+        var token = saved["settings"]!.AsArray().Single(item => item!["key"]!.GetValue<string>() == "token")!;
+
+        Assert.That(enabled["state"]!.GetValue<string>(), Is.EqualTo("needsSetup"));
+        Assert.That(saved["state"]!.GetValue<string>(), Is.EqualTo("ready"));
+        Assert.That(token["value"], Is.Null);
+        Assert.That(token["hasValue"]!.GetValue<bool>(), Is.True);
     }
 
     [Test]
@@ -349,7 +365,7 @@ public sealed class FakeBackendServiceTests
         Json(backend, Post("/api/capabilities/enable", """{"id":"claude"}"""));
         var scheduled = Json(backend, Post("/api/workspaces/bob/agent", """{"agent":"claude"}"""));
 
-        Assert.That(listed["agents"]!.AsArray().Select(item => item!["agent"]!.GetValue<string>()), Is.EqualTo(new[] { "codex", "cursor", "claude" }));
+        Assert.That(listed["agents"]!.AsArray().Select(item => item!["agent"]!.GetValue<string>()), Is.EqualTo(new[] { "codex", "cursor", "claude", "opencode" }));
         var available = listed["agents"]!.AsArray().Single(item => item!["agent"]!.GetValue<string>() == "codex")!;
         Assert.That(available["available"]!.GetValue<bool>(), Is.True);
         Assert.That(available["unavailability"], Is.Null);

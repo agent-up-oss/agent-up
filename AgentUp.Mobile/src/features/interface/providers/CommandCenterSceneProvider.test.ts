@@ -163,3 +163,11 @@ test('a capability row names its state and the one change it offers; the scene w
   assert.deepEqual([blocked.parts, blocked.text?.why], [['blocked'], 'Install Nix first.']);
   assert.deepEqual([off.action, off.parts], ['enable-module', ['disabled']]);
 });
+
+test('a capability whose software was not found offers no Enable and names what is missing', () => {
+  const noNix = moduleRow({ id: 'dotnet', displayName: '.NET', enabled: false, canRun: false, state: 'unavailable', messages: ['Install Nix.'], available: false, missing: ['nix'] });
+  const noCli = moduleRow({ id: 'cursor', displayName: 'Cursor', enabled: false, canRun: false, state: 'unavailable', messages: [], available: false, missing: ['agent'] });
+
+  assert.deepEqual([noNix.action, noNix.parts, noNix.text?.why], ['module-unavailable', ['blocked'], 'Needs Nix']);
+  assert.equal(noCli.text?.why, 'Not found');
+});

@@ -25,7 +25,7 @@ If the service starts and stops repeatedly or consumes CPU while failing to beco
 - Git.
 - Docker and Docker Compose when managed repositories declare Docker services.
 - Node.js and npm for the documentation site.
-- Nix on the host that runs the Server. Capability packages deliver toolchains through Nix. On Linux or macOS:
+- Nix on the host that runs the Server. The built-in capabilities deliver their toolchains through Nix. On Linux or macOS:
 
 ```bash
 sh <(curl -L https://nixos.org/nix/install) --daemon

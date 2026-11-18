@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { AgentLoopSettingsSection } from '@/features/agents/components/AgentLoopSettingsSection';
 import { CapabilityModulesSection } from '@/features/capabilities/components/CapabilitiesScreen';
 import { InterfaceToggleRow } from '@/features/interface/components/InterfaceToggleRow';
 import { WorkspaceTabs } from '@/features/shell/components/WorkspaceTabs';
@@ -25,6 +26,7 @@ export function WorkspaceSettingsScreen({ workspaceId }: { workspaceId: string }
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <InterfaceToggleRow />
+        <AgentLoopSettingsSection workspaceId={workspaceId} />
         <CapabilityModulesSection onReload={bindReload} />
       </ScrollView>
       <WorkspaceTabs workspaceId={workspaceId} active="settings" />

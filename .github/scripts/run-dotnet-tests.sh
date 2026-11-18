@@ -9,11 +9,6 @@ failed=0
 found_tests=false
 collect_coverage="${COLLECT_COVERAGE:-1}"
 
-if [ -z "${AGENTUP_CAPABILITY_REGISTRY_PATH:-}" ]; then
-  export AGENTUP_CAPABILITY_REGISTRY_PATH="$PWD/artifacts/capability-registry"
-fi
-./scripts/pack-first-party-capabilities.sh "$AGENTUP_CAPABILITY_REGISTRY_PATH"
-
 while IFS= read -r -d "" test_project; do
   test_project_name="$(basename "$(dirname "$test_project")")"
   if [ "$test_project_name" = "AgentUp.Tests" ]; then
@@ -24,7 +19,7 @@ while IFS= read -r -d "" test_project; do
   test_command=(
     dotnet test "$test_project"
     --configuration Release
-    --filter "Category!=LoopInference&Category!=LoopSoak&Category!=ForgejoE2E"
+    --filter "Category!=LoopInference&Category!=LoopSoak&Category!=OpencodeInference&Category!=ForgejoE2E"
     --results-directory "artifacts/test-results/$test_project_name"
     --logger "trx;LogFileName=test-results.trx"
   )

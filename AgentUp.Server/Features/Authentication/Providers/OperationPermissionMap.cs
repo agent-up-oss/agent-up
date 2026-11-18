@@ -157,6 +157,7 @@ public static class OperationPermissionMap
         // other server-administration actions rather than with any one workspace's permissions.
         [("CapabilityModulesHttp", "List")] = OperationPermissions.ServerRead,
         [("CapabilityModulesHttp", "Enable")] = OperationPermissions.ServerRead,
-        [("CapabilityModulesHttp", "Disable")] = OperationPermissions.ServerRead
+        [("CapabilityModulesHttp", "Disable")] = OperationPermissions.ServerRead,
+        [("CapabilityModulesHttp", "UpdateSettings")] = OperationPermissions.ServerRead
     };
 }

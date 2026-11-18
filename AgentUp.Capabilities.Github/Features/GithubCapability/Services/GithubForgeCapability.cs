@@ -36,6 +36,13 @@ public sealed class GithubForgeCapability : IForgeCapability
 
     public CapabilityIdentity Identity { get; } = new(PackageId, PackageVersion, "GitHub", "agent-up");
 
+    public string Kind => CapabilityKind.Forge;
+
+    /// <summary>A forge talks HTTP to its host and runs nothing on the Server host.</summary>
+    public IReadOnlyList<CapabilitySoftware> Software { get; } = [];
+
+    public IReadOnlyList<CapabilitySettingSpec> Settings { get; } = [];
+
     public ForgeHostConfiguration Host { get; }
 
     public Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken = default)

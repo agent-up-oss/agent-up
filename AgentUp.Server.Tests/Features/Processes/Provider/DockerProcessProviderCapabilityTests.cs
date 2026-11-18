@@ -17,8 +17,7 @@ public sealed class DockerProcessProviderCapabilityTests
         var runtime = new StubRuntimeCapability { Identity = new("docker", "1.0.0", "Docker", "agent-up") };
         var controller = new CapabilityModulesController(CapabilityModuleHarness.CreateService(
             enabled: true,
-            manifest: FakeEnabledCapabilityPackages.Docker(),
-            loader: new FixedCapabilityModuleLoader(new CapabilityLoadedModule(runtime, null))));
+            modules: [runtime]));
         var app = new ApplicationInstance
         {
             Name = "db",

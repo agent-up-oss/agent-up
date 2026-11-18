@@ -17,6 +17,7 @@ public sealed class TestAgentHostService(
     IdentityProviderController identityProvider,
     InferenceAcpController inference,
     ScriptedAcpController scripted,
+    InferenceHttpController modelServer,
     TestAgentConsole console,
     HttpClient? signInClient = null)
 {
@@ -25,6 +26,22 @@ public sealed class TestAgentHostService(
         if (command.Schema == TestAgentSchema.LocalInference)
         {
             await inference.ServeAsync(console.In, console.Out, console.Error, cancellationToken);
+            return 0;
+        }
+
+        if (command.Schema == TestAgentSchema.ModelServer)
+        {
+            // The base URL goes to stdout as the first line, the way the identity provider reports
+            // its port, so a harness that asked for an ephemeral port reads back the one it got.
+            await modelServer.ServeAsync(
+                command.Port,
+                command.ApiKey,
+                port =>
+                {
+                    console.Out.WriteLine($"http://127.0.0.1:{port}/v1");
+                    console.Out.Flush();
+                },
+                cancellationToken);
             return 0;
         }
 

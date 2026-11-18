@@ -196,6 +196,26 @@ public sealed class LoopPreconditionProviderTests
         });
     }
 
+    [Test]
+    public async Task StatusAsync_doesNotTreatTheRegisteredCommitOfAPlainFolderAsGitState()
+    {
+        // Git cannot read the folder, so the head falls back to the commit the workspace was
+        // registered with; that is display data, not a repository to read a queue from.
+        var host = await HostAsync();
+        await ReadyAsync(host);
+        host.Git.Failure = "fatal: not a git repository";
+        host.Queue.NotARepository = true;
+
+        var status = await host.Preconditions.StatusAsync(host.WorkspaceId, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(status.Single(item => item.Id == "gitBranch").Satisfied, Is.False);
+            Assert.That(status.Single(item => item.Id == "unpushedCommits").Satisfied, Is.False);
+            Assert.That(status.Single(item => item.Id == "commitQueueEdit").Satisfied, Is.True);
+        });
+    }
+
     private static async Task ReadyAsync(Host host)
     {
         await host.Workspaces.UpdateBoundAgentAsync(host.WorkspaceId, "codex");

@@ -27,6 +27,8 @@ public sealed class DesktopSurfaceNavigator
                 return SelectShell(viewModel, WorkspaceShellTab.Git);
             case DesktopNamedRoutes.WorkspaceAgents:
                 return SelectShell(viewModel, WorkspaceShellTab.Agent);
+            case DesktopNamedRoutes.WorkspaceSettings:
+                return SelectShell(viewModel, WorkspaceShellTab.Settings);
             default:
                 return $"Unknown Desktop surface route '{route}'.";
         }

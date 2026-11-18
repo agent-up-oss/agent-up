@@ -144,7 +144,7 @@ public partial class CommandCenterView : UserControl
             main.Sidebar.SelectedWorkspace?.Id ?? center.Agent?.WorkspaceId,
             ChatSettingsOf(main.Agent),
             main.Applications.SelectedApplication?.Name,
-            main.Modules?.Modules.Select(module => new CommandCenterModuleSlot(module.Id, module.DisplayName, module.Enabled, module.CanRun, module.StatusLabel)).ToArray(),
+            main.Modules?.Modules.Select(module => new CommandCenterModuleSlot(module.Id, module.DisplayName, module.Enabled, module.CanRun, module.Available ? module.StatusLabel : module.EnableLabel, module.Available)).ToArray(),
             main.Applications.Applications.Select(application => new CommandCenterApplicationSlot(
                 application.Name,
                 string.Equals(application.State, "Running", StringComparison.OrdinalIgnoreCase))).ToArray()));

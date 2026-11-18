@@ -30,9 +30,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     private readonly IHostEnvironment? host;
     private readonly ConcurrentDictionary<string, AgentSessionState> _sessions = new();
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _lifecycleGates = new();
-    private IReadOnlyList<AgentDescriptor> _descriptors = FirstPartyAgents
-        .Select(agent => new AgentDescriptor(agent, false, DisplayName(agent)))
-        .ToArray();
+    private IReadOnlyList<AgentDescriptor> _descriptors;
 
     public AgentSchedulingService(
         WorkspaceQueryController workspaces,
@@ -61,6 +59,9 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         this.events = events;
         this.logger = logger;
         this.packages = packages;
+        _descriptors = (packages?.AllAgents() ?? [])
+            .Select(agent => new AgentDescriptor(agent.Identity.Id, false, agent.Identity.DisplayName))
+            .ToArray();
         this.sessionRepository = sessionRepository;
         this.settings = settings;
         this.host = host;
@@ -720,12 +721,19 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         var completion = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (!state.Permissions.TryAdd(requestId, new PendingAgentPermission(optionIds, completion))) throw new InvalidOperationException("Could not register permission request.");
         events.Publish(workspaceId, "permission_request", new { requestId, request = payload });
+        string? decided = null;
         try
         {
-            var optionId = await completion.Task.WaitAsync(cancellationToken);
-            return payloads.Payload(new { outcome = new { outcome = "selected", optionId } });
+            decided = await completion.Task.WaitAsync(cancellationToken);
+            return payloads.Payload(new { outcome = new { outcome = "selected", optionId = decided } });
         }
-        finally { state.Permissions.TryRemove(requestId, out _); }
+        finally
+        {
+            state.Permissions.TryRemove(requestId, out _);
+            // Every client replaying the stream needs to see the request close, not only the one
+            // that answered it; a null option means the turn ended before anyone decided.
+            events.Publish(workspaceId, "permission_decision", new { requestId, blocked = false, ruleId = (string?)null, optionId = decided });
+        }
     }
 
     private JsonElement ResolvePolicy(
@@ -804,38 +812,50 @@ public sealed class AgentSchedulingService : IAsyncDisposable
 
     private async Task<IReadOnlyList<AgentDescriptor>> DescriptorsAsync(CancellationToken cancellationToken)
     {
-        var enabledAgents = packages?.ListAgents() ?? [];
-        var listed = FirstPartyAgents
-            .Concat(enabledAgents.Select(agent => agent.Identity.Id))
+        var builtIn = packages?.AllAgents() ?? [];
+        var listed = builtIn.Select(agent => agent.Identity.Id)
             .Concat(IncludeDevelopmentAgents ? [AgentUnavailability.ScriptedTestAgent] : [])
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         var descriptors = new AgentDescriptor[listed.Count];
         for (var index = 0; index < listed.Count; index++)
-            descriptors[index] = await DescribeAsync(listed[index], enabledAgents, cancellationToken);
+            descriptors[index] = await DescribeAsync(listed[index], builtIn, cancellationToken);
         return descriptors;
     }
 
+    /// <summary>
+    /// One agent row, with the first gap that keeps it from starting: missing software before a
+    /// disabled capability, because enabling is refused until the software is found, and a
+    /// disabled capability before missing settings, because settings appear once it is enabled.
+    /// </summary>
     private async Task<AgentDescriptor> DescribeAsync(
         string agentId,
-        IReadOnlyList<IAgentCapability> enabledAgents,
+        IReadOnlyList<IAgentCapability> builtIn,
         CancellationToken cancellationToken)
     {
-        var module = enabledAgents.FirstOrDefault(agent =>
+        var module = builtIn.FirstOrDefault(agent =>
             agent.Identity.Id.Equals(agentId, StringComparison.OrdinalIgnoreCase));
-        var packageEnabled = module is not null || packages?.GetEnabled(agentId) is not null;
+        var readiness = packages?.Readiness(agentId);
         var developmentAgent = agentId.Equals(AgentUnavailability.ScriptedTestAgent, StringComparison.OrdinalIgnoreCase);
-        var displayName = module?.Identity.DisplayName
-            ?? packages?.GetEnabled(agentId)?.DisplayName
-            ?? DisplayName(agentId);
+        var displayName = module?.Identity.DisplayName ?? DisplayName(agentId);
         var supportsPermissionRequests = module?.SupportsPermissionRequests ?? true;
-        var canRun = module?.CanRun ?? true;
-        var available = canRun && await commands.IsAvailableAsync(agentId, cancellationToken);
-        if (available)
+        if (await commands.IsAvailableAsync(agentId, cancellationToken))
             return new AgentDescriptor(agentId, true, displayName, supportsPermissionRequests);
 
-        if (!packageEnabled && !developmentAgent)
+        if (readiness is { Available: false })
+        {
+            return new AgentDescriptor(
+                agentId,
+                false,
+                displayName,
+                supportsPermissionRequests,
+                AgentUnavailability.SoftwareNotFound,
+                AgentUnavailability.SoftwareNotFoundDetail(displayName, readiness.MissingSoftware),
+                AgentUnavailability.SoftwareNotFoundRemedy(readiness.MissingSoftware));
+        }
+
+        if (readiness is { Enabled: false } || (readiness is null && !developmentAgent))
         {
             return new AgentDescriptor(
                 agentId,
@@ -845,6 +865,18 @@ public sealed class AgentSchedulingService : IAsyncDisposable
                 AgentUnavailability.CapabilityNotEnabled,
                 AgentUnavailability.CapabilityNotEnabledDetail(displayName),
                 AgentUnavailability.CapabilityNotEnabledRemedy(agentId));
+        }
+
+        if (readiness is { MissingSettings.Count: > 0 })
+        {
+            return new AgentDescriptor(
+                agentId,
+                false,
+                displayName,
+                supportsPermissionRequests,
+                AgentUnavailability.SettingsRequired,
+                AgentUnavailability.SettingsRequiredDetail(displayName, readiness.MissingSettings),
+                AgentUnavailability.SettingsRequiredRemedy(displayName));
         }
 
         return new AgentDescriptor(
@@ -866,20 +898,19 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             descriptor.Agent.Equals(agent, StringComparison.OrdinalIgnoreCase));
         if (listed is not null)
             return listed.Agent;
-        return packages?.GetAgent(agent)?.Identity.Id
-               ?? FirstPartyAgents.FirstOrDefault(id => id.Equals(agent, StringComparison.OrdinalIgnoreCase))
+        return packages?.AllAgents()
+                   .FirstOrDefault(module => module.Identity.Id.Equals(agent, StringComparison.OrdinalIgnoreCase))?.Identity.Id
                ?? agent;
     }
 
     private const string MissingSessionId = "The ACP agent did not return a session ID.";
-
-    private static readonly string[] FirstPartyAgents = ["codex", "cursor", "claude"];
 
     private static string DisplayName(string agent) => agent.ToLowerInvariant() switch
     {
         "codex" => "Codex",
         "cursor" => "Cursor",
         "claude" => "Claude",
+        "opencode" => "OpenCode",
         AgentUnavailability.ScriptedTestAgent => AgentUnavailability.ScriptedTestAgentDisplayName,
         _ => agent
     };

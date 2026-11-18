@@ -14,7 +14,7 @@ internal sealed class ForgeHostingDtoBuilder
     private IReadOnlyList<ForgeCheckDto> _checks = [];
     private IReadOnlyList<ForgeReviewThreadDto> _threads = [];
     private ForgeMergeabilityDto? _mergeability;
-    private string? _detail = "No forge capability package is enabled.";
+    private string? _detail = "No forge capability is enabled.";
     private string? _remedy = "Run: agent-up capabilities bootstrap";
 
     public ForgeHostingDtoBuilder NotInstalled()
@@ -25,7 +25,7 @@ internal sealed class ForgeHostingDtoBuilder
         _checks = [];
         _threads = [];
         _mergeability = null;
-        _detail = "No forge capability package is enabled.";
+        _detail = "No forge capability is enabled.";
         _remedy = "Run: agent-up capabilities bootstrap";
         return this;
     }

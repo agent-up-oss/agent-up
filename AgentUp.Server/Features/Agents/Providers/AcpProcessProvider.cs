@@ -37,6 +37,7 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
         };
         foreach (var argument in command.Arguments) start.ArgumentList.Add(argument);
         foreach (var pair in environment) start.Environment[pair.Key] = pair.Value;
+        foreach (var pair in command.Environment ?? new Dictionary<string, string>()) start.Environment[pair.Key] = pair.Value;
         var process = new Process { StartInfo = start, EnableRaisingEvents = true };
         try
         {

@@ -6,10 +6,12 @@ using AgentUp.Server.Features.Capabilities.DTOs;
 
 namespace AgentUp.Server.Features.Capabilities.Interfaces;
 
+/// <summary>
+/// The capabilities other slices consume. <c>Get*</c> and <c>List*</c> return enabled
+/// capabilities only; <see cref="Readiness"/> says whether an enabled one can actually run.
+/// </summary>
 public interface IEnabledCapabilityPackages
 {
-    CapabilityPackageManifest? GetEnabled(string id);
-
     CapabilityLaunchPlan? AgentLaunch(string id);
 
     CapabilityLaunchWrapDto WrapLaunch(string fileName, IReadOnlyList<string> arguments);
@@ -24,7 +26,13 @@ public interface IEnabledCapabilityPackages
 
     IReadOnlyList<IAgentCapability> ListAgents();
 
+    /// <summary>Every agent capability compiled into the Server, enabled or not.</summary>
+    IReadOnlyList<IAgentCapability> AllAgents();
+
     IForgeCapability? GetForge(string id);
 
     IReadOnlyList<IForgeCapability> ListForges();
+
+    /// <summary>Whether a capability is enabled, and what it still lacks; null for an unknown id.</summary>
+    CapabilityReadinessDto? Readiness(string id);
 }

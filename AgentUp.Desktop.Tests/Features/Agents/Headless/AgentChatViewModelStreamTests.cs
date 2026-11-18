@@ -203,6 +203,35 @@ public sealed class AgentChatViewModelStreamTests
         await view.LoadAsync(null);
     }
 
+    // Replaying the stream after another client answered must not leave a prompt nobody can answer.
+    [AvaloniaTest]
+    public async Task Stream_closesAPromptThatWasDecidedElsewhereAndKeepsAnUndecidedOne()
+    {
+        var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fake = new StreamApiFake
+        {
+            EventsHang = hang,
+            Events =
+            [
+                Event(1, "permission_request", """{"requestId":"req-1","request":{"title":"Write?","options":[{"optionId":"allow","name":"Allow","kind":"allow_once"}]}}"""),
+                Event(2, "permission_decision", """{"requestId":"other","optionId":"allow"}"""),
+                Event(3, "user_message", """{"text":"after unrelated decision"}"""),
+                Event(4, "permission_decision", """{"requestId":"req-1","optionId":"allow"}"""),
+                Event(5, "user_message", """{"text":"after own decision"}"""),
+            ]
+        };
+        var view = new AgentChatViewModel(new AgentsController(new AgentChatService(fake)));
+
+        await view.LoadAsync("ws-1");
+        await WaitUntilAsync(() => view.Messages.Any(item => item.Text == "after own decision"));
+
+        Assert.That(view.HasPermission, Is.False);
+        Assert.That(view.PermissionOptions, Is.Empty);
+
+        hang.TrySetResult();
+        await view.LoadAsync(null);
+    }
+
     [AvaloniaTest]
     public async Task Stream_reconnectsAfterAnIdleHttpTimeout()
     {

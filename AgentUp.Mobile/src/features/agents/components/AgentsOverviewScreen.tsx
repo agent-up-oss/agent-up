@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
-  AgentLoopControls,
   getAgent,
   getAutonomy,
   getLoop,
-  putAutonomy,
-  putLoopActivation,
   type AgentSession,
   type ServerAutonomy,
 } from '@agent-up/chat';
-import { boundAgentActionLabel, formatLoopLine } from '@/features/agents/providers/LoopLineProvider';
+import { boundAgentActionLabel, formatLoopLine, loopSettingsSummary } from '@/features/agents/providers/LoopLineProvider';
 import { WorkspaceTabs } from '@/features/shell/components/WorkspaceTabs';
 import { useWorkspaceHost } from '@/features/workspaces/controllers/WorkspaceHostContext';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
@@ -26,7 +23,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
   const [session, setSession] = useState<AgentSession | null>(null);
   const [autonomy, setAutonomy] = useState<ServerAutonomy | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const loopSummary = loopSettingsSummary(autonomy);
   const agents = session?.agents ?? [];
   const boundAgent = agents.find(item => item.agent.toLowerCase() === session?.boundAgent?.toLowerCase());
   const hasCreatedBoundAgent = Boolean(boundAgent && session?.agent
@@ -68,45 +65,23 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
     return () => { cancelled = true; clearInterval(timer); };
   }, [server, workspaceId, session?.loop?.active]);
 
-  const runLoop = async (work: () => Promise<void>, failed: string) => {
-    if (!server || busy) return;
-    setBusy(true); setError(null);
-    try { await work(); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : failed); }
-    finally { setBusy(false); }
-  };
-
   const openChat = () => host.open({ kind: 'agent' });
 
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
-        {busy && <ActivityIndicator color={agentUpTheme.colors.accent} />}
-        <AgentLoopControls
-          autonomy={autonomy}
-          loop={session?.loop}
-          busy={busy}
-          onEnable={() => void runLoop(async () => {
-            if (!server) return;
-            await putAutonomy(server, true);
-            setAutonomy(await getAutonomy(server, workspaceId));
-          }, 'Could not enable autonomy.')}
-          onActivate={() => void runLoop(async () => {
-            if (!server) return;
-            await putLoopActivation(server, workspaceId, true);
-            const loop = await getLoop(server, workspaceId);
-            setSession(current => current ? { ...current, loop } : current);
-            setAutonomy(await getAutonomy(server, workspaceId));
-          }, 'Could not activate the loop.')}
-          onCancel={() => void runLoop(async () => {
-            if (!server) return;
-            await putLoopActivation(server, workspaceId, false);
-            const loop = await getLoop(server, workspaceId);
-            setSession(current => current ? { ...current, loop } : current);
-          }, 'Could not cancel the loop.')}
-          onConfigurePolicy={() => host.open({ kind: 'agentPolicy' })}
-        />
+        {loopSummary && (
+          <Pressable
+            testID="agent-loop-summary"
+            accessibilityRole="button"
+            accessibilityLabel={`${loopSummary}. Open Settings`}
+            onPress={() => host.open({ kind: 'settings' })}
+            style={styles.summary}>
+            <Text style={styles.detail}>{loopSummary}</Text>
+            <Text style={styles.summaryAction}>Settings</Text>
+          </Pressable>
+        )}
 
         {session?.boundAgent && hasCreatedBoundAgent ? (
           <View style={styles.section}>
@@ -115,7 +90,6 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
               testID={`agent-bound-${session.boundAgent}`}
               accessibilityRole="button"
               accessibilityLabel={boundAgentActionLabel(session.boundAgent, session.agent, agents) ?? `Open ${session.boundAgent}`}
-              disabled={busy}
               onPress={openChat}
               style={styles.card}>
               <Text style={styles.title}>{boundAgent?.displayName ?? session.boundAgent}</Text>
@@ -127,7 +101,6 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
             testID="agent-create"
             accessibilityRole="button"
             accessibilityLabel="Create bound agent"
-            disabled={busy}
             onPress={() => host.open({ kind: 'agentCreate' })}
             style={styles.createButton}>
             <Text style={styles.createIcon}>+</Text>
@@ -145,6 +118,8 @@ const styles = StyleSheet.create({
   section: { gap: 10 },
   sectionTitle: auText('fieldLabel'),
   card: { ...auBox('choice'), gap: 2 },
+  summary: { ...auBox('choice'), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  summaryAction: auText('accent'),
   createButton: { ...auBox('titleTool'), alignItems: 'center', justifyContent: 'center' },
   createIcon: { ...auText('accent'), fontSize: 20, fontWeight: '700', lineHeight: 22 },
   title: auText('workspaceName'),

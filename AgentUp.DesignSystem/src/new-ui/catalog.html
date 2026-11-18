@@ -133,10 +133,10 @@
       <button class="au-app-tab" type="button" data-au-action="select-application" data-au-selection="app:@id:au-app-tab--selected" data-au-text="name"><span class="au-status-dot au-status-dot--healthy" data-au-part="running"></span><span class="au-status-dot au-status-dot--idle" data-au-part="stopped"></span></button>
     </article>
 
-    <article data-au-component="settings-module" data-au-title="Capability module" data-au-note="One capability module on the Server: its name, whether it can run, and the one change it offers. A module that cannot run says why." data-au-avalonia="Border" data-au-class="aun-settings__row" data-au-parts="ready disabled blocked" data-au-actions="enable-module disable-module">
+    <article data-au-component="settings-module" data-au-title="Capability module" data-au-note="One capability built into the Server: its name, whether it can run, and the one change it offers. A module that cannot run says why; one whose software was not found says so on its button instead of offering Enable." data-au-avalonia="Border" data-au-class="aun-settings__row" data-au-parts="ready disabled blocked" data-au-actions="enable-module disable-module module-unavailable">
       <div class="aun-settings__row" data-au-actions="enable-module">
         <span class="aun-settings__id"><span class="aun-settings__name" data-au-text="name">.NET</span><span class="aun-settings__state"><span class="au-status-dot au-status-dot--healthy" data-au-part="ready"></span><span class="aun-settings__state-text" data-au-part="ready">Ready</span><span class="aun-settings__state-text" data-au-part="disabled">Disabled</span><span class="aun-settings__state-text" data-au-part="blocked" data-au-text="why"></span></span></span>
-        <button class="aun-btn" type="button" data-au-action="disable-module" data-au-tone="enable-module:aun-btn--primary" data-au-labels="enable-module:Enable; disable-module:Disable">Disable</button>
+        <button class="aun-btn" type="button" data-au-action="disable-module" data-au-tone="enable-module:aun-btn--primary" data-au-labels="enable-module:Enable; disable-module:Disable; module-unavailable:Not found">Disable</button>
       </div>
     </article>
 

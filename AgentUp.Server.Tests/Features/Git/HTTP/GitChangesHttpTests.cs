@@ -100,6 +100,35 @@ public sealed class GitChangesHttpTests
     }
 
     [Test]
+    public async Task CommitQueue_isEmptyForAFolderThatIsNotARepository()
+    {
+        // Non-Git project paths are valid workspaces; they have nothing queued rather than a 500.
+        // The test work directory sits inside this repository, so the folder lives under the system temp root.
+        using var client = _factory.CreateClient();
+        var folder = Directory.CreateTempSubdirectory("agent-up-plain-folder").FullName;
+        HttpResponseMessage response;
+        AgentUp.Server.Features.Commits.DTOs.CommitsStatusResult? queue;
+        try
+        {
+            using var registered = await client.PostAsJsonAsync("/api/workspaces", ServerDomain.Workspace().Named("plain").At(folder).AtCommit("0000000").Build());
+            var workspace = await registered.Content.ReadFromJsonAsync<Workspace>(Json);
+            response = await client.GetAsync($"/api/workspaces/{workspace!.Id}/commit-queue");
+            queue = await response.Content.ReadFromJsonAsync<AgentUp.Server.Features.Commits.DTOs.CommitsStatusResult>(Json);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+
+        using (response)
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(queue!.Entries, Is.Empty);
+            Assert.That(queue.UnassignedFiles, Is.Empty);
+        }
+    }
+
+    [Test]
     public async Task Changes_returnsTheDirectoryTreeForTheWorkspaceWorktree()
     {
         using var client = _factory.CreateClient();
