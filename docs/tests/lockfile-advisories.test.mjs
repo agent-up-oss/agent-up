@@ -12,11 +12,21 @@ const pins = {
 };
 
 function isAtLeast(version, min) {
-  const [major, minor, patch] = version.split('-')[0].split('.').map(Number);
+  const dash = version.indexOf('-');
+  const core = dash === -1 ? version : version.slice(0, dash);
+  const prerelease = dash === -1 ? '' : version.slice(dash + 1);
+  const [major, minor, patch] = core.split('.').map(Number);
   const [minMajor, minMinor, minPatch] = min;
-  return major > minMajor
+  const coreGreater = major > minMajor
     || (major === minMajor && minor > minMinor)
-    || (major === minMajor && minor === minMinor && patch >= minPatch);
+    || (major === minMajor && minor === minMinor && patch > minPatch);
+  if (coreGreater) {
+    return true;
+  }
+  if (major !== minMajor || minor !== minMinor || patch !== minPatch) {
+    return false;
+  }
+  return prerelease === '' || prerelease.startsWith('agentup.');
 }
 
 function resolvedVersions(lockfile, packageName) {

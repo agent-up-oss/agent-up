@@ -32,7 +32,8 @@ class JsonlParser extends Transform {
   }
 
   _consume(text, callback) {
-    const lines = (this._rest + text).split('\n');
+    const lines = text.split('\n');
+    lines[0] = this._rest + lines[0];
     this._rest = lines.pop();
     for (const line of lines) {
       if (!line) {

@@ -10,11 +10,21 @@ const pins = {
 };
 
 function isAtLeast(version, min) {
-  const [major, minor, patch] = version.split('-')[0].split('.').map(Number);
+  const dash = version.indexOf('-');
+  const core = dash === -1 ? version : version.slice(0, dash);
+  const prerelease = dash === -1 ? '' : version.slice(dash + 1);
+  const [major, minor, patch] = core.split('.').map(Number);
   const [minMajor, minMinor, minPatch] = min;
-  return major > minMajor
+  const coreGreater = major > minMajor
     || (major === minMajor && minor > minMinor)
-    || (major === minMajor && minor === minMinor && patch >= minPatch);
+    || (major === minMajor && minor === minMinor && patch > minPatch);
+  if (coreGreater) {
+    return true;
+  }
+  if (major !== minMajor || minor !== minMinor || patch !== minPatch) {
+    return false;
+  }
+  return prerelease === '' || prerelease.startsWith('agentup.');
 }
 
 function resolvedVersions(lockfile, packageName) {
@@ -86,7 +96,9 @@ test('Mobile lockfile pins patched minimatch and glob over Expo 58 and Sentry 8'
   assert.equal(utils.removeBackslashes(openBrackets), openBrackets);
   assert.ok(Date.now() - scanStarted < 1000, 'removeBackslashes still backtracks on open brackets');
 
-  for (const version of resolvedVersions(chatLockfile, 'picomatch')) {
+  const chatPicomatch = resolvedVersions(chatLockfile, 'picomatch');
+  assert.ok(chatPicomatch.length > 0, 'picomatch must remain in the Chat lockfile');
+  for (const version of chatPicomatch) {
     assert.ok(
       isAtLeast(version, pins.picomatch.min),
       `Chat picomatch@${version} is still in the advisory range; need >= ${pins.picomatch.min.join('.')}`,

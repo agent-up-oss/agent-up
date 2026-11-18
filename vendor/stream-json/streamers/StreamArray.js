@@ -1,6 +1,7 @@
 'use strict';
 
 const { Transform } = require('node:stream');
+const { StringDecoder } = require('node:string_decoder');
 
 class StreamArray extends Transform {
   static make() {
@@ -13,18 +14,20 @@ class StreamArray extends Transform {
 
   constructor() {
     super({ writableObjectMode: false, readableObjectMode: true });
+    this._decoder = new StringDecoder('utf8');
     this._buffer = '';
   }
 
   _transform(chunk, encoding, callback) {
-    this._buffer += typeof chunk === 'string' ? chunk : chunk.toString();
+    this._buffer += typeof chunk === 'string' ? chunk : this._decoder.write(chunk);
     callback(null);
   }
 
   _flush(callback) {
+    const text = this._buffer + this._decoder.end();
     let parsed;
     try {
-      parsed = this._buffer.trim() ? JSON.parse(this._buffer) : [];
+      parsed = JSON.parse(text);
     } catch (error) {
       callback(error);
       return;
