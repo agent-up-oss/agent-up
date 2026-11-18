@@ -14,6 +14,7 @@ public sealed class ForgejoApiProviderTests
     public async Task ReadAsync_returns_proposal_commit_statuses_threads_and_mergeability()
     {
         var handler = Recorded(
+            ("GET /user", User),
             ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
             ("GET /repos/acme/widgets/commits/abc123/statuses", Statuses),
             ("GET /repos/acme/widgets/pulls/42/comments", Comments));
@@ -26,6 +27,7 @@ public sealed class ForgejoApiProviderTests
             Assert.That(snapshot.Checks.Single().Conclusion, Is.EqualTo("success"));
             Assert.That(snapshot.Threads.Single().Id, Is.EqualTo("99"));
             Assert.That(snapshot.Mergeability!.Mergeable, Is.True);
+            Assert.That(snapshot.Account!.Login, Is.EqualTo("agentup"));
         });
     }
 
@@ -43,6 +45,7 @@ public sealed class ForgejoApiProviderTests
     public async Task ListAssignedAsync_maps_stable_ids()
     {
         var issues = await new ForgejoForgeCapability(Recorded(
+                ("GET /user", User),
                 ("GET /repos/acme/widgets/issues?state=open&assigned=true&type=issues&limit=100", Assigned)))
             .ListAssignedAsync(Request());
 
@@ -54,7 +57,33 @@ public sealed class ForgejoApiProviderTests
     public async Task ListAssignedAsync_returnsEmptyWhenThePayloadIsNotAnArray()
     {
         var issues = await new ForgejoForgeCapability(Recorded(
+                ("GET /user", User),
                 ("GET /repos/acme/widgets/issues?state=open&assigned=true&type=issues&limit=100", "{}")))
+            .ListAssignedAsync(Request());
+
+        Assert.That(issues, Is.Empty);
+    }
+
+    [Test]
+    public async Task ListAssignedAsync_dropsIssuesNotAssignedToTheTokenOwner()
+    {
+        const string mixed = """
+            [{"id":7,"number":3,"title":"Assigned","body":"do it","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://forgejo.example.test/acme/widgets/issues/3","assignees":[{"login":"agentup"}]},
+             {"id":8,"number":4,"title":"Other","body":"no","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://forgejo.example.test/acme/widgets/issues/4","assignees":[]}]
+            """;
+        var issues = await new ForgejoForgeCapability(Recorded(
+                ("GET /user", User),
+                ("GET /repos/acme/widgets/issues?state=open&assigned=true&type=issues&limit=100", mixed)))
+            .ListAssignedAsync(Request());
+
+        Assert.That(issues.Single().Number, Is.EqualTo(3));
+    }
+
+    [Test]
+    public async Task ListAssignedAsync_returnsEmptyWhenTheTokenOwnerCannotBeRead()
+    {
+        var issues = await new ForgejoForgeCapability(Recorded(
+                ("GET /repos/acme/widgets/issues?state=open&assigned=true&type=issues&limit=100", Assigned)))
             .ListAssignedAsync(Request());
 
         Assert.That(issues, Is.Empty);
@@ -189,6 +218,57 @@ public sealed class ForgejoApiProviderTests
     }
 
     [Test]
+    public async Task UpdateRefAsync_recreatesTheBranchWhenGitRefsPatchIsNotImplemented()
+    {
+        var handler = Recorded(
+            ("PATCH /repos/acme/widgets/git/refs/heads/topic", HttpStatusCode.MethodNotAllowed, ""),
+            ("DELETE /repos/acme/widgets/branches/topic", HttpStatusCode.NoContent, ""),
+            ("POST /repos/acme/widgets/branches", HttpStatusCode.Created, "{}"));
+
+        await new ForgejoForgeCapability(handler).UpdateRefAsync(Request(), new ForgeUpdateRefCommand("topic", "abc"));
+
+        Assert.That(handler.Requests, Is.EqualTo(new[]
+        {
+            "PATCH /repos/acme/widgets/git/refs/heads/topic",
+            "DELETE /repos/acme/widgets/branches/topic",
+            "POST /repos/acme/widgets/branches"
+        }));
+    }
+
+    [Test]
+    public async Task ReadAsync_readsIssueConversationWhenPullCommentsAreNotImplemented()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/statuses", "[]"),
+            ("GET /repos/acme/widgets/issues/42/comments", Comments));
+        var snapshot = await new ForgejoForgeCapability(handler).ReadAsync(Request());
+
+        Assert.That(snapshot.Threads.Single().Id, Is.EqualTo("99"));
+        Assert.That(snapshot.Threads.Single().Summary, Is.EqualTo("please fix"));
+    }
+
+    [Test]
+    public async Task ReadAsync_mapsReviewsFromThePullReviewsRoute()
+    {
+        const string reviews = """
+            [{"id":1,"user":{"login":"agentup"},"state":"COMMENT","submitted_at":"2026-01-01T00:00:00Z"}]
+            """;
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/statuses", "[]"),
+            ("GET /repos/acme/widgets/pulls/42/comments", "[]"),
+            ("GET /repos/acme/widgets/issues/42/comments", "[]"),
+            ("GET /repos/acme/widgets/pulls/42/reviews?limit=100", reviews));
+        var snapshot = await new ForgejoForgeCapability(handler).ReadAsync(Request());
+
+        var mapped = snapshot.Reviews ?? [];
+        Assert.That(mapped, Has.Count.EqualTo(1));
+        Assert.That(mapped[0].Login, Is.EqualTo("agentup"));
+        Assert.That(mapped[0].State, Is.EqualTo("COMMENT"));
+    }
+
+    [Test]
     public async Task CommentAsync_posts_to_the_issue()
     {
         var handler = Recorded(("POST /repos/acme/widgets/issues/42/comments", "{}"));
@@ -206,7 +286,8 @@ public sealed class ForgejoApiProviderTests
 
         await new ForgejoForgeCapability(handler, host).ReadAsync(Request());
 
-        Assert.That(handler.Uris.Single(), Does.StartWith("https://forgejo.example.test/api/v1/repos/"));
+        Assert.That(handler.Uris, Has.All.StartsWith("https://forgejo.example.test/api/v1/"));
+        Assert.That(handler.Uris, Has.Some.Contains("/repos/acme/widgets/pulls"));
     }
 
     [Test]
@@ -342,10 +423,20 @@ public sealed class ForgejoApiProviderTests
 
     private static ForgeRequest Request() => new("token", "acme", "widgets", "topic");
 
-    private static RecordedHandler Recorded(params (string Key, string Body)[] responses)
-        => new(responses.ToDictionary(pair => pair.Key, pair => pair.Body, StringComparer.Ordinal));
+    private static RecordedHandler Recorded()
+        => Recorded(Array.Empty<(string Key, HttpStatusCode Status, string Body)>());
 
-    private sealed class RecordedHandler(IReadOnlyDictionary<string, string> responses) : HttpMessageHandler
+    private static RecordedHandler Recorded(params (string Key, string Body)[] responses)
+        => Recorded(responses.Select(pair => (pair.Key, HttpStatusCode.OK, pair.Body)).ToArray());
+
+    private static RecordedHandler Recorded(params (string Key, HttpStatusCode Status, string Body)[] responses)
+        => new(responses.ToDictionary(
+            pair => pair.Key,
+            pair => (pair.Status, pair.Body),
+            StringComparer.Ordinal));
+
+    private sealed class RecordedHandler(IReadOnlyDictionary<string, (HttpStatusCode Status, string Body)> responses)
+        : HttpMessageHandler
     {
         public List<string> Requests { get; } = [];
         public List<string> Uris { get; } = [];
@@ -360,10 +451,10 @@ public sealed class ForgejoApiProviderTests
             Requests.Add(key);
             if (request.RequestUri is not null)
                 Uris.Add(request.RequestUri.ToString());
-            if (!responses.TryGetValue(key, out var body))
+            if (!responses.TryGetValue(key, out var recorded))
                 return Task.FromResult(CreateResponse(HttpStatusCode.NotFound));
 
-            return Task.FromResult(CreateResponse(HttpStatusCode.OK, body));
+            return Task.FromResult(CreateResponse(recorded.Status, recorded.Body));
         }
 
         [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]
@@ -395,8 +486,10 @@ public sealed class ForgejoApiProviderTests
         """;
 
     private const string Assigned = """
-        [{"id":7,"number":3,"title":"Assigned","body":"do it","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://forgejo.example.test/acme/widgets/issues/3"}]
+        [{"id":7,"number":3,"title":"Assigned","body":"do it","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://forgejo.example.test/acme/widgets/issues/3","assignees":[{"login":"agentup"}]}]
         """;
+
+    private const string User = """{"login":"agentup","full_name":"Agent Up","html_url":"https://forgejo.example.test/agentup"}""";
 
     private const string Opened = """
         {"id":1,"number":42,"title":"Title","html_url":"https://forgejo.example.test/acme/widgets/pulls/42","state":"open","head":{"ref":"topic","sha":"abc123"},"base":{"ref":"main"}}

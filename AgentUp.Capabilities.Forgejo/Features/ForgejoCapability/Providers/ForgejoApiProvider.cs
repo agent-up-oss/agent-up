@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -17,22 +18,24 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
     public async Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken)
     {
         using var client = CreateClient(request.Token);
+        var account = await ReadAccountAsync(client, cancellationToken);
         var pulls = await client.GetFromJsonAsync<JsonElement>(
             $"repos/{request.Owner}/{request.Repository}/pulls?head={request.Owner}:{request.Branch}&state=open",
             Json,
             cancellationToken);
         if (pulls.ValueKind != JsonValueKind.Array || pulls.GetArrayLength() == 0)
-            return new ForgeHostSnapshot(null, [], [], null);
+            return new ForgeHostSnapshot(null, [], [], null, account);
 
         var pull = pulls[0];
         var proposal = ReadProposal(pull);
         var sha = pull.GetProperty("head").GetProperty("sha").GetString() ?? "";
         var checks = await ReadChecksAsync(client, request, sha, cancellationToken);
         var threads = await ReadThreadsAsync(client, request, proposal.Number, cancellationToken);
+        var reviews = await ReadReviewsAsync(client, request, proposal.Number, cancellationToken);
         var mergeability = new ForgeMergeability(
             pull.TryGetProperty("mergeable", out var mergeable) && mergeable.ValueKind == JsonValueKind.True,
             pull.TryGetProperty("mergeable_state", out var state) ? state.GetString() ?? "unknown" : "unknown");
-        return new ForgeHostSnapshot(proposal, checks, threads, mergeability);
+        return new ForgeHostSnapshot(proposal, checks, threads, mergeability, account, reviews);
     }
 
     public async Task<IReadOnlyList<ForgeIssue>> ListAssignedAsync(
@@ -40,11 +43,15 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         CancellationToken cancellationToken)
     {
         using var client = CreateClient(request.Token);
+        var login = await ReadLoginAsync(client, cancellationToken);
+        if (string.IsNullOrWhiteSpace(login))
+            return [];
+
         var issues = await client.GetFromJsonAsync<JsonElement>(
             $"repos/{request.Owner}/{request.Repository}/issues?state=open&assigned=true&type=issues&limit=100",
             Json,
             cancellationToken);
-        return Issues(issues);
+        return Issues(issues, login);
     }
 
     public async Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
@@ -60,12 +67,15 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
     }
 
     // type=issues already keeps pull requests out, so both queries map the same payload.
-    private static IReadOnlyList<ForgeIssue> Issues(JsonElement issues)
+    // assigned=true is advisory: hosts that ignore it still return the full list, so the
+    // token owner's login is applied here rather than trusted from the query string.
+    private static IReadOnlyList<ForgeIssue> Issues(JsonElement issues, string? assignedTo = null)
     {
         if (issues.ValueKind != JsonValueKind.Array)
             return [];
 
         return issues.EnumerateArray()
+            .Where(issue => assignedTo is null || HasAssignee(issue, assignedTo))
             .Select(issue => new ForgeIssue(
                 issue.GetProperty("id").GetRawText(),
                 issue.GetProperty("number").GetInt32(),
@@ -75,6 +85,16 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
                 issue.GetProperty("updated_at").GetDateTimeOffset(),
                 issue.GetProperty("html_url").GetString() ?? ""))
             .ToArray();
+    }
+
+    private static bool HasAssignee(JsonElement issue, string login)
+    {
+        if (!issue.TryGetProperty("assignees", out var assignees) || assignees.ValueKind != JsonValueKind.Array)
+            return false;
+
+        return assignees.EnumerateArray().Any(user =>
+            user.TryGetProperty("login", out var name)
+            && string.Equals(name.GetString(), login, StringComparison.OrdinalIgnoreCase));
     }
 
     public async Task<ForgeProposal> OpenProposalAsync(
@@ -101,11 +121,17 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
             throw new ForgeProtectedRefException(command.Ref);
 
         using var client = CreateClient(request.Token);
-        using var response = await client.PatchAsJsonAsync(
-            $"repos/{request.Owner}/{request.Repository}/git/refs/heads/{TrimHeads(command.Ref)}",
+        var name = TrimHeads(command.Ref);
+        using var patch = await client.PatchAsJsonAsync(
+            $"repos/{request.Owner}/{request.Repository}/git/refs/heads/{name}",
             new { sha = command.Sha, force = false },
             cancellationToken);
-        response.EnsureSuccessStatusCode();
+        if (patch.IsSuccessStatusCode)
+            return;
+        if (patch.StatusCode != HttpStatusCode.MethodNotAllowed)
+            patch.EnsureSuccessStatusCode();
+
+        await RecreateBranchAsync(client, request, name, command.Sha, cancellationToken);
     }
 
     public async Task CommentAsync(
@@ -179,10 +205,19 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         string number,
         CancellationToken cancellationToken)
     {
-        var comments = await client.GetFromJsonAsync<JsonElement>(
+        var inline = await ReadJsonAsync(
+            client,
             $"repos/{request.Owner}/{request.Repository}/pulls/{number}/comments",
-            Json,
             cancellationToken);
+        var conversation = await ReadJsonAsync(
+            client,
+            $"repos/{request.Owner}/{request.Repository}/issues/{number}/comments",
+            cancellationToken);
+        return Threads(inline).Concat(Threads(conversation)).ToArray();
+    }
+
+    private static IEnumerable<ForgeReviewThread> Threads(JsonElement comments)
+    {
         if (comments.ValueKind != JsonValueKind.Array)
             return [];
 
@@ -191,8 +226,107 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
                 comment.GetProperty("id").GetRawText(),
                 comment.TryGetProperty("html_url", out var url) ? url.GetString() ?? "" : "",
                 comment.TryGetProperty("body", out var body) ? body.GetString() ?? "" : "",
-                false))
+                false));
+    }
+
+    private async Task<IReadOnlyList<ForgeReview>> ReadReviewsAsync(
+        HttpClient client,
+        ForgeRequest request,
+        string proposalNumber,
+        CancellationToken cancellationToken)
+    {
+        var reviews = await ReadJsonAsync(
+            client,
+            $"repos/{request.Owner}/{request.Repository}/pulls/{proposalNumber}/reviews?limit=100",
+            cancellationToken);
+        if (reviews.ValueKind != JsonValueKind.Array)
+            return [];
+
+        return reviews.EnumerateArray()
+            .Select(ReadReview)
+            .OfType<ForgeReview>()
+            .GroupBy(review => review.Login, StringComparer.OrdinalIgnoreCase)
+            .Select(reviewer => Verdict([.. reviewer.OrderBy(review => review.SubmittedAt)]))
             .ToArray();
+    }
+
+    private static ForgeReview Verdict(IReadOnlyList<ForgeReview> history)
+        => history.LastOrDefault(review => !IsComment(review)) ?? history[^1];
+
+    private static bool IsComment(ForgeReview review)
+        => review.State.Equals("COMMENTED", StringComparison.OrdinalIgnoreCase)
+           || review.State.Equals("COMMENT", StringComparison.OrdinalIgnoreCase);
+
+    private static ForgeReview? ReadReview(JsonElement review)
+    {
+        var login = review.TryGetProperty("user", out var user) && user.ValueKind == JsonValueKind.Object
+            ? user.TryGetProperty("login", out var name) ? name.GetString() : null
+            : null;
+        if (string.IsNullOrWhiteSpace(login))
+            return null;
+        var state = review.TryGetProperty("state", out var verdict) ? verdict.GetString() ?? "" : "";
+        var submitted = review.TryGetProperty("submitted_at", out var at) && at.ValueKind == JsonValueKind.String
+            ? at.GetDateTimeOffset()
+            : DateTimeOffset.MinValue;
+        return new ForgeReview(login, state, submitted);
+    }
+
+    private static async Task<ForgeAccount?> ReadAccountAsync(HttpClient client, CancellationToken cancellationToken)
+    {
+        var user = await ReadJsonAsync(client, "user", cancellationToken);
+        var login = ReadLogin(user);
+        if (string.IsNullOrWhiteSpace(login))
+            return null;
+
+        var display = user.TryGetProperty("full_name", out var full) ? full.GetString() : null;
+        if (string.IsNullOrWhiteSpace(display))
+            display = user.TryGetProperty("name", out var name) ? name.GetString() : null;
+        var url = user.TryGetProperty("html_url", out var link) ? link.GetString() : null;
+        return new ForgeAccount(
+            login,
+            string.IsNullOrWhiteSpace(display) ? login : display,
+            false,
+            url ?? "");
+    }
+
+    private static async Task<string?> ReadLoginAsync(HttpClient client, CancellationToken cancellationToken)
+        => ReadLogin(await ReadJsonAsync(client, "user", cancellationToken));
+
+    private static string? ReadLogin(JsonElement user)
+        => user.ValueKind == JsonValueKind.Object && user.TryGetProperty("login", out var name)
+            ? name.GetString()
+            : null;
+
+    private static async Task RecreateBranchAsync(
+        HttpClient client,
+        ForgeRequest request,
+        string name,
+        string sha,
+        CancellationToken cancellationToken)
+    {
+        using var delete = await client.DeleteAsync(
+            $"repos/{request.Owner}/{request.Repository}/branches/{name}",
+            cancellationToken);
+        if (!delete.IsSuccessStatusCode && delete.StatusCode != HttpStatusCode.NotFound)
+            delete.EnsureSuccessStatusCode();
+
+        using var create = await client.PostAsJsonAsync(
+            $"repos/{request.Owner}/{request.Repository}/branches",
+            new { new_branch_name = name, old_ref_name = sha },
+            cancellationToken);
+        create.EnsureSuccessStatusCode();
+    }
+
+    private static async Task<JsonElement> ReadJsonAsync(
+        HttpClient client,
+        string uri,
+        CancellationToken cancellationToken)
+    {
+        using var response = await client.GetAsync(uri, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            return default;
+
+        return await response.Content.ReadFromJsonAsync<JsonElement>(Json, cancellationToken);
     }
 
     private static ForgeProposal ReadProposal(JsonElement pull)

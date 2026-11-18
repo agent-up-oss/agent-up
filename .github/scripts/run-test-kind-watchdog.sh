@@ -47,6 +47,6 @@ run_tier() {
   echo "$tier tier completed in $((SECONDS - start))s"
 }
 
-run_tier unit 60 'FullyQualifiedName~.Unit.&Category!=LoopInference&Category!=LoopSoak' none AgentUp.Server.Tests AgentUp.Desktop.Tests
-run_tier provider 90 'FullyQualifiedName~.Provider.&Category!=LoopInference&Category!=LoopSoak' xvfb AgentUp.Server.Tests AgentUp.Desktop.Tests
-run_tier e2e 180 'FullyQualifiedName~.E2E.&Category!=RuntimeCapabilityE2E&Category!=LoopInference&Category!=LoopSoak' xvfb AgentUp.Tests
+run_tier unit 60 'FullyQualifiedName~.Unit.&Category!=LoopInference&Category!=LoopSoak&Category!=ForgejoE2E' none AgentUp.Server.Tests AgentUp.Desktop.Tests
+run_tier provider 90 'FullyQualifiedName~.Provider.&Category!=LoopInference&Category!=LoopSoak&Category!=ForgejoE2E' xvfb AgentUp.Server.Tests AgentUp.Desktop.Tests
+run_tier e2e 180 'FullyQualifiedName~.E2E.&Category!=RuntimeCapabilityE2E&Category!=LoopInference&Category!=LoopSoak&Category!=ForgejoE2E' xvfb AgentUp.Tests
