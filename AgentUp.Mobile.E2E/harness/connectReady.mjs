@@ -18,3 +18,12 @@ export function connectStep({ pickerVisible, formVisible, promptVisible }) {
 export function connectStepPending(step) {
   return step === 'wait-agents' || step === 'relaunch';
 }
+
+// After that wait, a prompt with no picker buttons is a failed first getAgent (iOS showed
+// "Agent event stream returned 404" and never listed Codex), not a blank frame. Re-deliver
+// the connect URL so Chat remounts. A blank frame is still a missed launch URL.
+export function connectRecovery(step) {
+  if (step === 'connected') return 'none';
+  if (step === 'fill-form') return 'form';
+  return 'relaunch';
+}

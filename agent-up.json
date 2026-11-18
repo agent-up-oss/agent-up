@@ -471,7 +471,8 @@
         "tier": "fast",
         "inputs": [
           "AgentUp.Mobile",
-          "AgentUp.DesignSystem"
+          "AgentUp.DesignSystem",
+          "vendor"
         ]
       },
       "mobile-benchmarks": {
@@ -593,7 +594,8 @@
         "tier": "fast",
         "inputs": [
           "AgentUp.Mobile.E2E",
-          "AgentUp.Mobile.E2E.App"
+          "AgentUp.Mobile.E2E.App",
+          "vendor"
         ]
       }
     },
@@ -1409,6 +1411,13 @@
       {
         "match": "AgentUp.Mobile.E2E.App/**",
         "checks": [
+          "mobile-e2e-harness"
+        ]
+      },
+      {
+        "match": "vendor/**",
+        "checks": [
+          "mobile",
           "mobile-e2e-harness"
         ]
       }

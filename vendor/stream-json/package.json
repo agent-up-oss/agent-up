@@ -1,0 +1,12 @@
+{
+  "name": "stream-json",
+  "version": "3.9.0-agentup.0",
+  "description": "CJS-compatible stream-json overlay for Detox 20 / bunyamin 1.6. Implements jsonl/Parser and StreamArray.withParser without the 1.9.1 Assembler, JSONC, or O(depth²) filters. Replace with registry stream-json once bunyamin and Detox consume 3.6+.",
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "jsonl",
+    "streamers"
+  ]
+}

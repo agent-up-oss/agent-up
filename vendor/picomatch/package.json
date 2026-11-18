@@ -1,0 +1,28 @@
+{
+  "name": "picomatch",
+  "description": "picomatch 4.0.7 plus GHSA-fc5q-39xc-vjpf: collapse single-branch repeated wildcard extglobs. Replace with registry picomatch once 4.0.8+ is published and the advisory lists that release as patched.",
+  "version": "4.0.8-agentup.0",
+  "homepage": "https://github.com/micromatch/picomatch",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "funding": "https://github.com/sponsors/jonschlinkert",
+  "repository": "micromatch/picomatch",
+  "bugs": {
+    "url": "https://github.com/micromatch/picomatch/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "posix.js",
+    "lib"
+  ],
+  "sideEffects": false,
+  "main": "index.js",
+  "engines": {
+    "node": ">=12"
+  },
+  "keywords": [
+    "glob",
+    "match",
+    "picomatch"
+  ]
+}

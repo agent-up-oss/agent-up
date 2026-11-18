@@ -31,12 +31,16 @@
     "@config-plugins/detox": "^11.0.0",
     "@types/react": "~19.3.0",
     "detox": "20.42.0",
+    "picomatch": "file:../vendor/picomatch",
+    "stream-json": "file:../vendor/stream-json",
     "typescript": "~6.0.3"
   },
   "overrides": {
     "@expo/fingerprint": {
       "minimatch": "11.0.8"
-    }
+    },
+    "picomatch": "$picomatch",
+    "stream-json": "$stream-json"
   },
   "expo": {
     "autolinking": {
