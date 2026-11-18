@@ -10,7 +10,7 @@ import type {
 
 export type PresentedUpdate =
   | { kind: 'message'; role: 'agent' | 'thought'; text: string }
-  | { kind: 'tool'; toolCallId: string; title?: string; status?: string; locations?: string[]; detail?: string }
+  | { kind: 'tool'; toolCallId: string; title?: string; status?: string; locations?: string[]; detail?: string; toolKind?: string; rawInput?: string }
   | { kind: 'plan'; entries: { content: string; status: string }[] }
   | { kind: 'context'; context: Partial<SessionContext> }
   | { kind: 'ignore' };
@@ -193,6 +193,9 @@ export function applyPresentedUpdate(items: TranscriptItem[], id: string, presen
     const locations = presented.locations ?? previous?.locations ?? [];
     const body = presented.detail ?? toolBody(previous);
     const detail = [locations.join(', '), body].filter(Boolean).join('\n');
+    const toolKind = presented.toolKind ?? previous?.toolKind;
+    const rawInput = presented.rawInput ?? previous?.rawInput;
+    const output = presented.detail ?? previous?.output;
     const item: TranscriptItem = {
       id: previous?.id ?? id,
       role: 'tool',
@@ -201,6 +204,9 @@ export function applyPresentedUpdate(items: TranscriptItem[], id: string, presen
       status,
       locations,
       text: detail ? `${title}\n${detail}` : title,
+      ...(toolKind ? { toolKind } : {}),
+      ...(rawInput ? { rawInput } : {}),
+      ...(output ? { output } : {}),
     };
     if (existing < 0) return [...items, item];
     const next = [...items];
@@ -324,7 +330,14 @@ function presentTool(update: unknown): PresentedUpdate {
     status: stringField(update, 'status') ?? undefined,
     locations: rec && 'locations' in rec ? locationsOf(update) : undefined,
     detail: rec && 'content' in rec ? contentText(rec.content) : undefined,
+    toolKind: stringField(update, 'kind') ?? undefined,
+    rawInput: rawInputOf(rec),
   };
+}
+
+function rawInputOf(rec: Record<string, unknown> | null | undefined): string | undefined {
+  const input = rec?.rawInput;
+  return input && typeof input === 'object' && !Array.isArray(input) && Object.keys(input).length ? JSON.stringify(input) : undefined;
 }
 
 function toolBody(item: TranscriptItem | undefined): string {

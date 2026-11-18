@@ -94,6 +94,10 @@ export type TranscriptItem = {
   status?: string;
   locations?: string[];
   entries?: { content: string; status: string }[];
+  /** The ACP tool kind, the call's input as JSON, and its latest output, for a tool row. */
+  toolKind?: string;
+  rawInput?: string;
+  output?: string;
 };
 export type SessionContext = { title?: string; mode?: string; usage?: string; compacting?: boolean };
 export type AgentActivityKind = 'idle' | 'ready' | 'thinking' | 'writing' | 'tool' | 'plan' | 'permission' | 'auth' | 'running' | 'compacting' | 'stopped' | 'error';

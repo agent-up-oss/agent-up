@@ -11,6 +11,12 @@ public sealed class AgentChatItemViewModel : ReactiveObject
     private string? _status;
     private bool? _expanded;
     private bool _live;
+    private bool _toolOpen;
+    private bool _showAllOutput;
+    private string? _toolTitle;
+    private string? _toolKind;
+    private string? _rawInput;
+    private string? _toolOutput;
 
     public AgentChatItemViewModel(string role, string text, string? status = null, string? toolCallId = null, string? displayRole = null)
     {
@@ -20,6 +26,55 @@ public sealed class AgentChatItemViewModel : ReactiveObject
         ToolCallId = toolCallId;
         DisplayRole = displayRole;
         ToggleCommand = ReactiveCommand.Create(Toggle);
+        ToggleToolCommand = ReactiveCommand.Create(() => { _toolOpen = !_toolOpen; NotifyTool(); });
+        ShowAllOutputCommand = ReactiveCommand.Create(() => { _showAllOutput = true; NotifyTool(); });
+    }
+
+    public ReactiveCommand<Unit, Unit> ToggleToolCommand { get; }
+    public ReactiveCommand<Unit, Unit> ShowAllOutputCommand { get; }
+    public bool IsTool => Role == "Tool";
+
+    /// <summary>The agent's own prose: the reply, and anything it said between steps.</summary>
+    public bool IsAgentText => Role == "Agent";
+
+    /// <summary>Plan and other steps that are neither a tool call, a thought, nor prose.</summary>
+    public bool IsOtherWork => IsWork && !IsTool && !IsAgentText;
+
+    public AgentToolCallView Tool => AgentToolCallProvider.Present(_toolTitle, _toolKind, _rawInput, _toolOutput, Status);
+    public string ToolGlyph => Tool.State switch { "done" => "✓", "failed" => "✕", _ => "◐" };
+    public bool IsToolRunning => Tool.State == "running";
+    public bool IsToolFailed => Tool.State == "failed";
+    public bool HasToolSource => Tool.Source is not null;
+    public bool HasToolSummary => Tool.Summary is not null;
+    public bool IsToolOpen => _toolOpen;
+    public string ToolChevron => _toolOpen ? "⌄" : "›";
+    public bool HasToolInput => _toolOpen && Tool.Input is not null;
+    public bool HasToolOutput => _toolOpen && Tool.Output is not null;
+    public string? ToolOutputText => _showAllOutput ? Tool.FullOutput : Tool.Output;
+    public bool CanShowAllOutput => _toolOpen && !_showAllOutput && Tool.HiddenLines > 0;
+    public string ShowAllOutputLabel => Tool.HiddenLines == 1 ? "Show 1 more line" : $"Show {Tool.HiddenLines} more lines";
+    public string ToolAutomationId => DesktopAutomationIds.AgentToolCall(ToolCallId ?? "tool");
+
+    /// <summary>Takes the latest tool fields; an update that omits one keeps what came before.</summary>
+    public void SetTool(string? title, string? kind, string? rawInput, string? output, string? status)
+    {
+        _toolTitle = title ?? _toolTitle;
+        _toolKind = kind ?? _toolKind;
+        _rawInput = rawInput ?? _rawInput;
+        _toolOutput = output ?? _toolOutput;
+        if (status is not null) Status = status;
+        NotifyTool();
+    }
+
+    private void NotifyTool()
+    {
+        foreach (var name in new[]
+                 {
+                     nameof(Tool), nameof(ToolGlyph), nameof(IsToolRunning), nameof(IsToolFailed), nameof(HasToolSource),
+                     nameof(HasToolSummary), nameof(IsToolOpen), nameof(ToolChevron), nameof(HasToolInput), nameof(HasToolOutput),
+                     nameof(ToolOutputText), nameof(CanShowAllOutput), nameof(ShowAllOutputLabel)
+                 })
+            this.RaisePropertyChanged(name);
     }
 
     public string Role { get; }

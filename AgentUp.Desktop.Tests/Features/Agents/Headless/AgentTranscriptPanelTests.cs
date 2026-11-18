@@ -26,16 +26,14 @@ public sealed class AgentTranscriptPanelTests
         });
     }
 
-    // A live run has no "Worked" header of its own: its reply is shown as a card, and the
+    // A live run has no "Worked" header of its own: its reply is prose on the canvas, and the
     // thought sits above it as its own collapsed surface.
     [AvaloniaTest]
-    public async Task Transcript_showsALiveRunAsAThoughtAndACardWithoutAHeader()
+    public async Task Transcript_showsALiveRunAsAThoughtAndAReplyWithoutAHeader()
     {
         var (_, transcript) = await OpenTranscriptWithAThoughtAsync();
 
-        var cards = transcript.GetVisualDescendants().OfType<Border>()
-            .Where(border => border.Classes.Contains("au-card") && border.IsVisible)
-            .ToList();
+        var cards = Replies(transcript);
         var thought = Thought(transcript);
 
         Assert.Multiple(() =>
@@ -110,12 +108,20 @@ public sealed class AgentTranscriptPanelTests
         var transcript = app.Window.FindControl<ItemsControl>("AgentTranscript")!;
         var header = transcript.GetVisualDescendants().OfType<Button>().Single(button => button.Classes.Contains("au-chat-run") && button.IsVisible);
         Assert.That(header.GetVisualDescendants().OfType<TextBlock>().Select(block => block.Text), Does.Contain("Worked · 1 tool"));
-        Assert.That(transcript.GetVisualDescendants().OfType<Border>().Count(border => border.Classes.Contains("au-card") && border.IsVisible), Is.EqualTo(1));
-        Assert.That(transcript.GetVisualDescendants().OfType<Border>().Any(border => border.Classes.Contains("au-chat-work") && border.IsVisible), Is.False);
+        Assert.That(Replies(transcript), Has.Count.EqualTo(1));
+        Assert.That(ToolRows(transcript), Is.Zero, "A sealed run hides its tool calls behind the header.");
 
         await app.Window.ClickControlAsync(header);
         Assert.That(run.IsExpanded, Is.True);
-        Assert.That(transcript.GetVisualDescendants().OfType<Border>().Count(border => border.Classes.Contains("au-card") && border.IsVisible), Is.EqualTo(1));
-        Assert.That(transcript.GetVisualDescendants().OfType<Border>().Count(border => border.Classes.Contains("au-chat-work") && border.IsVisible), Is.EqualTo(1));
+        Assert.That(Replies(transcript), Has.Count.EqualTo(1));
+        Assert.That(ToolRows(transcript), Is.EqualTo(1));
     }
+
+    // The reply container is a plain StackPanel; the markdown view inside derives from one, so the type is exact.
+    private static List<StackPanel> Replies(Control transcript) => transcript.GetVisualDescendants().OfType<StackPanel>()
+        .Where(panel => panel.GetType() == typeof(StackPanel) && panel.Classes.Contains("au-chat-reply") && panel.IsVisible)
+        .ToList();
+
+    private static int ToolRows(Control transcript) => transcript.GetVisualDescendants().OfType<Button>()
+        .Count(button => button.Classes.Contains("au-tool-call") && button.IsVisible);
 }

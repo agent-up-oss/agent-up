@@ -86,15 +86,45 @@
     <article data-au-component="chat-work" data-au-title="Work row" data-au-note="Tools, searches, edits, and other in-run steps sit on the quieter surface, not the raised result card. They live inside the work log." data-au-avalonia="Border" data-au-class="au-chat-work">
       <div class="au-chat-work"><span class="au-field-label">Tool</span> Web search: TX 1320 M3</div>
     </article>
+    <article data-au-component="tool-call" data-au-title="Tool call" data-au-note="One quiet row per call: status glyph, the tool's readable name, where it came from, and the one argument that matters. It opens to the input and a formatted output that stays bounded. Failure is the only colour that shouts. Never dump raw protocol names or JSON on the row." data-au-avalonia="Button" data-au-class="au-tool-call">
+      <div class="au-stack">
+        <button class="au-tool-call" type="button"><span class="au-tool-call-glyph">✓</span> <span class="au-tool-call-title">List workspaces</span> <span class="au-tool-call-source">Agent-Up</span> <span class="au-tool-call-summary">orchestration</span></button>
+        <button class="au-tool-call" type="button"><span class="au-tool-call-glyph au-tool-call-glyph--running">◐</span> <span class="au-tool-call-title">Read</span> <span class="au-tool-call-summary">apps/storefront/PromoBanner.tsx</span></button>
+        <button class="au-tool-call" type="button"><span class="au-tool-call-glyph au-tool-call-glyph--failed">✕</span> <span class="au-tool-call-title">Run</span> <span class="au-tool-call-summary">npm test</span></button>
+        <div class="au-tool-call-detail">
+          <span class="au-tool-call-label">Output</span>
+          <div class="au-tool-call-output"><pre class="au-tool-call-output-text">{
+  "displayName": "Harbor Shop",
+  "state": "Running"
+}</pre></div>
+          <span class="au-tool-call-more">12 more lines</span>
+          <div class="au-tool-call-output au-tool-call-output--failed"><pre class="au-tool-call-output-text au-tool-call-output-text--failed">Error: 2 tests failed</pre></div>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="chat-reply" data-au-title="Agent reply" data-au-note="The reply is prose on the canvas, rendered from the agent's markdown: headings, paragraphs, lists, quotes, inline code chips and mono code blocks. No card around it and no raw markdown symbols." data-au-avalonia="StackPanel" data-au-class="au-chat-reply">
+      <div class="au-chat-reply">
+        <span class="au-chat-reply-agent">OpenCode</span>
+        <p class="au-md-heading">Storefront banner</p>
+        <p class="au-md-paragraph">I added <code class="au-md-inline-code">PromoBanner.tsx</code> and wired it into the <strong>home page</strong>.</p>
+        <div class="au-md-list-item"><span class="au-md-marker">•</span> <span class="au-md-paragraph">The banner reads its text from the CMS.</span></div>
+        <div class="au-md-list-item"><span class="au-md-marker">2.</span> <span class="au-md-paragraph">See the <a class="au-md-link" href="#">design note</a>.</span></div>
+        <div class="au-md-quote"><p class="au-md-paragraph">Uncommitted in the working tree.</p></div>
+        <span class="au-md-code-label">tsx</span>
+        <div class="au-md-code-block"><pre class="au-md-code-text">export function PromoBanner() {
+  return &lt;Banner tone="info" /&gt;;
+}</pre></div>
+      </div>
+    </article>
     <article data-au-component="chat-run" data-au-title="Work log" data-au-note="A finished run collapses to this disclosure after the next question. The live run stays open. Nested thoughts stay au-chat-thought. The trailing agent reply is not inside this collapse." data-au-avalonia="Button" data-au-class="au-chat-run">
       <button class="au-chat-run" type="button">Worked · 2 tools · Thought ▸</button>
     </article>
-    <article data-au-component="chat-transcript" data-au-title="Transcript" data-au-note="User bubble, then the raised agent reply. Desktop and Mobile share this stack. Collapse the work log only after the next question; the result stays visible. A render names the turns it keeps." data-au-avalonia="Border" data-au-class="au-chat-transcript" data-au-parts="prompt result follow-up reply" data-au-props-examples="parts=follow-up reply|Follow-up turn|The second prompt and reply are the live pair.">
+    <article data-au-component="chat-transcript" data-au-title="Transcript" data-au-note="User bubble, then the agent reply as prose on the canvas. Desktop and Mobile share this stack. Collapse the work log only after the next question; the result stays visible. A render names the turns it keeps." data-au-avalonia="Border" data-au-class="au-chat-transcript" data-au-parts="prompt result follow-up reply" data-au-props-examples="parts=follow-up reply|Follow-up turn|The second prompt and reply are the live pair.">
       <div class="au-chat-transcript">
         <div class="au-chat-user" data-au-part="prompt" data-au-text="prompt">What is running in this workspace?</div>
-        <div class="au-card" data-au-part="result"><span class="au-muted" data-au-text="agent">Codex</span><p data-au-text="result">I added apps/storefront/PromoBanner.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>
+        <div class="au-chat-reply" data-au-part="result"><span class="au-chat-reply-agent" data-au-text="agent">Codex</span><p class="au-md-paragraph" data-au-text="result">I added apps/storefront/PromoBanner.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>
         <div class="au-chat-user" data-au-part="follow-up" data-au-text="follow-up">Add a promo banner to the storefront.</div>
-        <div class="au-card" data-au-part="reply"><span class="au-muted" data-au-text="reply-agent">Codex</span><p data-au-text="reply">I added apps/storefront/PromoBanner2.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>
+        <div class="au-chat-reply" data-au-part="reply"><span class="au-chat-reply-agent" data-au-text="reply-agent">Codex</span><p class="au-md-paragraph" data-au-text="reply">I added apps/storefront/PromoBanner2.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>
       </div>
     </article>
     <article data-au-component="agent-header" data-au-title="Agent header" data-au-note="The live session names the agent and idle/running state. Stop is danger. Do not paint the header in accent green." data-au-avalonia="Border" data-au-class="au-agent-header">

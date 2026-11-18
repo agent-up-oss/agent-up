@@ -264,6 +264,67 @@
           "html": "<div class=\"au-chat-work\"><span class=\"au-field-label\">Tool</span> Web search: TX 1320 M3</div>"
         },
         {
+          "id": "tool-call",
+          "title": "Tool call",
+          "note": "One quiet row per call: status glyph, the tool's readable name, where it came from, and the one argument that matters. It opens to the input and a formatted output that stays bounded. Failure is the only colour that shouts. Never dump raw protocol names or JSON on the row.",
+          "avalonia": "Button",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-tool-call",
+          "classes": [
+            "au-stack",
+            "au-tool-call",
+            "au-tool-call-glyph",
+            "au-tool-call-title",
+            "au-tool-call-source",
+            "au-tool-call-summary",
+            "au-tool-call-glyph--running",
+            "au-tool-call-glyph--failed",
+            "au-tool-call-detail",
+            "au-tool-call-label",
+            "au-tool-call-output",
+            "au-tool-call-output-text",
+            "au-tool-call-more",
+            "au-tool-call-output--failed",
+            "au-tool-call-output-text--failed"
+          ],
+          "html": "<div class=\"au-stack\">\n        <button class=\"au-tool-call\" type=\"button\"><span class=\"au-tool-call-glyph\">✓</span> <span class=\"au-tool-call-title\">List workspaces</span> <span class=\"au-tool-call-source\">Agent-Up</span> <span class=\"au-tool-call-summary\">orchestration</span></button>\n        <button class=\"au-tool-call\" type=\"button\"><span class=\"au-tool-call-glyph au-tool-call-glyph--running\">◐</span> <span class=\"au-tool-call-title\">Read</span> <span class=\"au-tool-call-summary\">apps/storefront/PromoBanner.tsx</span></button>\n        <button class=\"au-tool-call\" type=\"button\"><span class=\"au-tool-call-glyph au-tool-call-glyph--failed\">✕</span> <span class=\"au-tool-call-title\">Run</span> <span class=\"au-tool-call-summary\">npm test</span></button>\n        <div class=\"au-tool-call-detail\">\n          <span class=\"au-tool-call-label\">Output</span>\n          <div class=\"au-tool-call-output\"><pre class=\"au-tool-call-output-text\">{\n  \"displayName\": \"Harbor Shop\",\n  \"state\": \"Running\"\n}</pre></div>\n          <span class=\"au-tool-call-more\">12 more lines</span>\n          <div class=\"au-tool-call-output au-tool-call-output--failed\"><pre class=\"au-tool-call-output-text au-tool-call-output-text--failed\">Error: 2 tests failed</pre></div>\n        </div>\n      </div>"
+        },
+        {
+          "id": "chat-reply",
+          "title": "Agent reply",
+          "note": "The reply is prose on the canvas, rendered from the agent's markdown: headings, paragraphs, lists, quotes, inline code chips and mono code blocks. No card around it and no raw markdown symbols.",
+          "avalonia": "StackPanel",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-chat-reply",
+          "classes": [
+            "au-chat-reply",
+            "au-chat-reply-agent",
+            "au-md-heading",
+            "au-md-paragraph",
+            "au-md-inline-code",
+            "au-md-list-item",
+            "au-md-marker",
+            "au-md-link",
+            "au-md-quote",
+            "au-md-code-label",
+            "au-md-code-block",
+            "au-md-code-text"
+          ],
+          "html": "<div class=\"au-chat-reply\">\n        <span class=\"au-chat-reply-agent\">OpenCode</span>\n        <p class=\"au-md-heading\">Storefront banner</p>\n        <p class=\"au-md-paragraph\">I added <code class=\"au-md-inline-code\">PromoBanner.tsx</code> and wired it into the <strong>home page</strong>.</p>\n        <div class=\"au-md-list-item\"><span class=\"au-md-marker\">•</span> <span class=\"au-md-paragraph\">The banner reads its text from the CMS.</span></div>\n        <div class=\"au-md-list-item\"><span class=\"au-md-marker\">2.</span> <span class=\"au-md-paragraph\">See the <a class=\"au-md-link\" href=\"#\">design note</a>.</span></div>\n        <div class=\"au-md-quote\"><p class=\"au-md-paragraph\">Uncommitted in the working tree.</p></div>\n        <span class=\"au-md-code-label\">tsx</span>\n        <div class=\"au-md-code-block\"><pre class=\"au-md-code-text\">export function PromoBanner() {\n  return &lt;Banner tone=\"info\" /&gt;;\n}</pre></div>\n      </div>"
+        },
+        {
           "id": "chat-run",
           "title": "Work log",
           "note": "A finished run collapses to this disclosure after the next question. The live run stays open. Nested thoughts stay au-chat-thought. The trailing agent reply is not inside this collapse.",
@@ -284,7 +345,7 @@
         {
           "id": "chat-transcript",
           "title": "Transcript",
-          "note": "User bubble, then the raised agent reply. Desktop and Mobile share this stack. Collapse the work log only after the next question; the result stays visible. A render names the turns it keeps.",
+          "note": "User bubble, then the agent reply as prose on the canvas. Desktop and Mobile share this stack. Collapse the work log only after the next question; the result stays visible. A render names the turns it keeps.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -295,7 +356,7 @@
               "props": "parts=follow-up reply",
               "title": "Follow-up turn",
               "note": "The second prompt and reply are the live pair.",
-              "html": "<div class=\"au-chat-transcript\">\n        <div class=\"au-chat-user\">Add a promo banner to the storefront.</div>\n        <div class=\"au-card\"><span class=\"au-muted\">Codex</span><p>I added apps/storefront/PromoBanner2.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>\n      </div>"
+              "html": "<div class=\"au-chat-transcript\">\n        <div class=\"au-chat-user\">Add a promo banner to the storefront.</div>\n        <div class=\"au-chat-reply\"><span class=\"au-chat-reply-agent\">Codex</span><p class=\"au-md-paragraph\">I added apps/storefront/PromoBanner2.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>\n      </div>"
             }
           ],
           "modifierClasses": "",
@@ -304,11 +365,12 @@
           "classes": [
             "au-chat-transcript",
             "au-chat-user",
-            "au-card",
-            "au-muted"
+            "au-chat-reply",
+            "au-chat-reply-agent",
+            "au-md-paragraph"
           ],
-          "html": "<div class=\"au-chat-transcript\">\n        <div class=\"au-chat-user\">What is running in this workspace?</div>\n        <div class=\"au-card\"><span class=\"au-muted\">Codex</span><p>I added apps/storefront/PromoBanner.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>\n        <div class=\"au-chat-user\">Add a promo banner to the storefront.</div>\n        <div class=\"au-card\"><span class=\"au-muted\">Codex</span><p>I added apps/storefront/PromoBanner2.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>\n      </div>",
-          "source": "<div class=\"au-chat-transcript\">\n        <div class=\"au-chat-user\" data-au-part=\"prompt\" data-au-text=\"prompt\">What is running in this workspace?</div>\n        <div class=\"au-card\" data-au-part=\"result\"><span class=\"au-muted\" data-au-text=\"agent\">Codex</span><p data-au-text=\"result\">I added apps/storefront/PromoBanner.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>\n        <div class=\"au-chat-user\" data-au-part=\"follow-up\" data-au-text=\"follow-up\">Add a promo banner to the storefront.</div>\n        <div class=\"au-card\" data-au-part=\"reply\"><span class=\"au-muted\" data-au-text=\"reply-agent\">Codex</span><p data-au-text=\"reply\">I added apps/storefront/PromoBanner2.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>\n      </div>"
+          "html": "<div class=\"au-chat-transcript\">\n        <div class=\"au-chat-user\">What is running in this workspace?</div>\n        <div class=\"au-chat-reply\"><span class=\"au-chat-reply-agent\">Codex</span><p class=\"au-md-paragraph\">I added apps/storefront/PromoBanner.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>\n        <div class=\"au-chat-user\">Add a promo banner to the storefront.</div>\n        <div class=\"au-chat-reply\"><span class=\"au-chat-reply-agent\">Codex</span><p class=\"au-md-paragraph\">I added apps/storefront/PromoBanner2.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>\n      </div>",
+          "source": "<div class=\"au-chat-transcript\">\n        <div class=\"au-chat-user\" data-au-part=\"prompt\" data-au-text=\"prompt\">What is running in this workspace?</div>\n        <div class=\"au-chat-reply\" data-au-part=\"result\"><span class=\"au-chat-reply-agent\" data-au-text=\"agent\">Codex</span><p class=\"au-md-paragraph\" data-au-text=\"result\">I added apps/storefront/PromoBanner.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>\n        <div class=\"au-chat-user\" data-au-part=\"follow-up\" data-au-text=\"follow-up\">Add a promo banner to the storefront.</div>\n        <div class=\"au-chat-reply\" data-au-part=\"reply\"><span class=\"au-chat-reply-agent\" data-au-text=\"reply-agent\">Codex</span><p class=\"au-md-paragraph\" data-au-text=\"reply\">I added apps/storefront/PromoBanner2.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>\n      </div>"
         },
         {
           "id": "agent-header",

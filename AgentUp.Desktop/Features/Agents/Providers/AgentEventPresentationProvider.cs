@@ -15,7 +15,9 @@ public sealed record PresentedAgentUpdate(
     string? Mode = null,
     string? Usage = null,
     bool? Compacting = null,
-    IReadOnlyList<AgentPlanEntry>? Entries = null);
+    IReadOnlyList<AgentPlanEntry>? Entries = null,
+    string? ToolKind = null,
+    string? RawInput = null);
 
 public sealed record AgentPlanEntry(string Content, string Status);
 public sealed record AgentPermissionPrompt(string RequestId, string Title, string? Detail, IReadOnlyList<string> Locations, IReadOnlyList<AgentPermissionChoice> Options);
@@ -146,7 +148,11 @@ public static class AgentEventPresentationProvider
             Title: StringField(update, "title"),
             Status: StringField(update, "status"),
             Locations: rec.ValueKind == JsonValueKind.Object && rec.TryGetProperty("locations", out _) ? LocationsOf(update) : null,
-            Text: rec.ValueKind == JsonValueKind.Object && rec.TryGetProperty("content", out var content) ? ContentText(content) : null);
+            Text: rec.ValueKind == JsonValueKind.Object && rec.TryGetProperty("content", out var content) ? ContentText(content) : null,
+            ToolKind: StringField(update, "kind"),
+            RawInput: rec.ValueKind == JsonValueKind.Object && rec.TryGetProperty("rawInput", out var input) && input.ValueKind == JsonValueKind.Object && input.EnumerateObject().Any()
+                ? input.GetRawText()
+                : null);
     }
 
     private static IReadOnlyList<AgentPlanEntry> PlanEntries(JsonElement update)

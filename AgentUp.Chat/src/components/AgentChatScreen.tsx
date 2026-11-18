@@ -10,6 +10,8 @@ import { AgentLoopControls } from './AgentLoopControls';
 import { presentAgentRow } from '../providers/AgentAvailabilityProvider';
 import { shouldShowLoopControls } from '../providers/LoopSurfaceProvider';
 import { AgentSignIn } from './AgentSignIn';
+import { MarkdownView } from './MarkdownView';
+import { ToolCallRow } from './ToolCallRow';
 import {
   activityHint,
   afterPermissionDecision,
@@ -292,7 +294,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
                 </View>;
               }
               if (block.type === 'reply') {
-                return <View key={block.item.id} style={styles.bubble}><Text style={styles.role}>{selectedAgentName}</Text><Text style={styles.body}>{visibleText(block.item.text)}</Text></View>;
+                return <View key={block.item.id} style={styles.reply} testID="agent-reply"><Text style={styles.replyAgent}>{selectedAgentName}</Text><MarkdownView markdown={block.item.text} /></View>;
               }
               const live = block.id === openRunId;
               const open = live || Boolean(expandedRuns[block.id]);
@@ -334,13 +336,12 @@ function TranscriptRow({ item, expanded, live, onToggle }: { item: TranscriptIte
       {expanded ? <Text style={styles.thoughtBody}>{visibleText(item.text)}</Text> : null}
     </Pressable>;
   }
-  if (item.role === 'tool') {
-    return <View style={styles.work}><View style={styles.toolHeader}><Text style={styles.role}>Tool</Text><Text style={styles.toolStatus}>{item.status ?? 'pending'}</Text></View><Text style={styles.workBody}>{item.title ?? item.text}</Text>{toolDetail(item) ? <Text style={styles.meta}>{toolDetail(item)}</Text> : null}</View>;
-  }
+  if (item.role === 'tool') return <ToolCallRow item={item} />;
   if (item.role === 'plan') {
     return <View style={styles.work}><Text style={styles.role}>Plan</Text>{item.entries?.map(entry => <Text key={entry.content} style={styles.planEntry}>{statusMark(entry.status)} {entry.content}</Text>) ?? <Text style={styles.workBody}>{item.text}</Text>}</View>;
   }
-  return <View style={styles.work}><Text style={styles.role}>Agent</Text><Text style={styles.workBody}>{visibleText(item.text)}</Text></View>;
+  // What the agent says between steps reads as prose, like the reply.
+  return <MarkdownView markdown={item.text} />;
 }
 
 function isExpanded(item: TranscriptItem, live: boolean, expanded: Record<string, boolean>) {
@@ -348,7 +349,6 @@ function isExpanded(item: TranscriptItem, live: boolean, expanded: Record<string
   return expanded[item.id] ?? live;
 }
 function hasContext(context: SessionContext) { return Boolean(context.title || context.mode || context.usage || context.compacting); }
-function toolDetail(item: TranscriptItem) { const separator = item.text.indexOf('\n'); return separator < 0 ? '' : item.text.slice(separator + 1); }
 function statusMark(status: string) { return status === 'completed' ? '✓' : status === 'in_progress' ? '●' : '○'; }
 function readError(value: unknown) { return value instanceof Error ? value.message : String(value); }
 function delay(ms: number) { return new Promise(resolve => setTimeout(resolve, ms)); }
@@ -400,6 +400,8 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.4 },
   messages: { flex: 1 },
   messageContent: { gap: 10, paddingVertical: 10 },
+  reply: { ...auBox('chatReply'), gap: 6 },
+  replyAgent: auText('chatReplyAgent'),
   userBlock: { alignSelf: 'flex-end', alignItems: 'flex-end', gap: 4 },
   steering: auText('muted'),
   userBubble: { ...auBox('chatUser'), alignSelf: 'flex-end' },
@@ -407,16 +409,12 @@ const styles = StyleSheet.create({
   run: { gap: 8 },
   runHeader: { ...auBox('chatRun'), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   runSummary: auText('muted'),
-  bubble: auBox('card'),
   thought: auBox('chatThought'),
   thoughtBody: auText('chatThoughtBody'),
   work: { ...auBox('chatWork'), gap: 2 },
-  toolHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-  toolStatus: { ...auText('fieldLabel'), color: agentUpTheme.colors.textWarning },
   planEntry: { ...auText('muted'), lineHeight: 20 },
   workBody: { ...auText('muted'), lineHeight: 20 },
   role: { ...auText('fieldLabel') },
-  body: { ...auText('workspaceName'), lineHeight: 20 },
   meta: { ...auText('muted'), marginTop: 4 },
   permission: { ...auBox('card'), borderColor: agentUpTheme.colors.borderDanger, gap: 8 },
   auth: { ...auBox('card'), gap: 8 },

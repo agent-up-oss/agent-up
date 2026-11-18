@@ -9,6 +9,7 @@
         xmlns:gitVm="using:AgentUp.Desktop.Features.Git.ViewModels"
         xmlns:gitViews="using:AgentUp.Desktop.Features.Git.Views"
         xmlns:agentVm="using:AgentUp.Desktop.Features.Agents.ViewModels"
+        xmlns:agentViews="using:AgentUp.Desktop.Features.Agents.Views"
         xmlns:validationVm="using:AgentUp.Desktop.Features.Validation.ViewModels"
         xmlns:capVm="using:AgentUp.Desktop.Features.Capabilities.ViewModels"
         xmlns:metricsViews="using:AgentUp.Desktop.Features.Metrics.Views"
@@ -218,16 +219,67 @@
                                                    IsVisible="{Binding IsThoughtExpanded}"/>
                                     </StackPanel>
                                 </Button>
-                                <Border Classes="au-chat-work" IsVisible="{Binding IsWork}">
-                                    <StackPanel Spacing="2">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <TextBlock Classes="au-field-label" Text="{Binding Label}"/>
-                                            <TextBlock Grid.Column="1"
-                                                       Classes="au-field-label"
-                                                       Text="{Binding Status}"
-                                                       Foreground="{DynamicResource AgentUpColorTextWarningBrush}"
-                                                       IsVisible="{Binding Status, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                                <!-- A tool call is one quiet row: status, readable name, source, and
+                                     the argument that matters. It opens to its input and output. -->
+                                <StackPanel Spacing="4" IsVisible="{Binding IsTool}">
+                                    <Button Classes="au-tool-call"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Stretch"
+                                            Focusable="False"
+                                            AutomationProperties.AutomationId="{Binding ToolAutomationId}"
+                                            Command="{Binding ToggleToolCommand}">
+                                        <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="8">
+                                            <TextBlock Classes="au-tool-call-glyph"
+                                                       Classes.au-tool-call-glyph--running="{Binding IsToolRunning}"
+                                                       Classes.au-tool-call-glyph--failed="{Binding IsToolFailed}"
+                                                       Text="{Binding ToolGlyph}"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Classes="au-tool-call-title" Text="{Binding Tool.Title}" VerticalAlignment="Center"/>
+                                            <Border Grid.Column="2" Classes="au-tool-call-source" IsVisible="{Binding HasToolSource}" VerticalAlignment="Center">
+                                                <TextBlock Classes="au-tool-call-source" Text="{Binding Tool.Source}"/>
+                                            </Border>
+                                            <TextBlock Grid.Column="3"
+                                                       Classes="au-tool-call-summary"
+                                                       Text="{Binding Tool.Summary}"
+                                                       IsVisible="{Binding HasToolSummary}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="4" Classes="au-tool-call-summary" Text="{Binding ToolChevron}" VerticalAlignment="Center"/>
                                         </Grid>
+                                    </Button>
+                                    <Border Classes="au-tool-call-detail" IsVisible="{Binding IsToolOpen}">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Classes="au-tool-call-label" Text="Input" IsVisible="{Binding HasToolInput}"/>
+                                            <Border Classes="au-tool-call-output" IsVisible="{Binding HasToolInput}">
+                                                <TextBlock Classes="au-tool-call-output-text" Text="{Binding Tool.Input}" TextWrapping="Wrap"/>
+                                            </Border>
+                                            <TextBlock Classes="au-tool-call-label" Text="Output" IsVisible="{Binding HasToolOutput}"/>
+                                            <Border Classes="au-tool-call-output"
+                                                    Classes.au-tool-call-output--failed="{Binding IsToolFailed}"
+                                                    IsVisible="{Binding HasToolOutput}">
+                                                <ScrollViewer MaxHeight="420" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                                    <TextBlock Classes="au-tool-call-output-text"
+                                                               Classes.au-tool-call-output-text--failed="{Binding IsToolFailed}"
+                                                               Text="{Binding ToolOutputText}"
+                                                               TextWrapping="Wrap"/>
+                                                </ScrollViewer>
+                                            </Border>
+                                            <Button Classes="au-button au-button--secondary au-button--compact"
+                                                    HorizontalAlignment="Left"
+                                                    IsVisible="{Binding CanShowAllOutput}"
+                                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentToolShowAll}"
+                                                    Command="{Binding ShowAllOutputCommand}"
+                                                    Content="{Binding ShowAllOutputLabel}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                                <!-- What the agent said between steps reads as prose, like the reply. -->
+                                <agentViews:AgentMarkdownView Classes="au-chat-reply"
+                                                              IsVisible="{Binding IsAgentText}"
+                                                              Markdown="{Binding Text}"/>
+                                <Border Classes="au-chat-work" IsVisible="{Binding IsOtherWork}">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Classes="au-field-label" Text="{Binding Label}"/>
                                         <TextBlock Classes="au-muted"
                                                    Text="{Binding VisibleText}"
                                                    TextWrapping="Wrap"/>
@@ -240,12 +292,12 @@
                 <ContentControl Content="{Binding Reply}" IsVisible="{Binding HasReply}">
                     <ContentControl.ContentTemplate>
                         <DataTemplate DataType="agentVm:AgentChatItemViewModel">
-                            <Border Classes="au-card">
-                                <StackPanel Spacing="4">
-                                    <TextBlock Classes="au-field-label" Text="{Binding Label}"/>
-                                    <TextBlock Text="{Binding VisibleText}" TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Border>
+                            <!-- The reply is prose on the canvas, rendered from the agent's markdown. -->
+                            <StackPanel Classes="au-chat-reply" Spacing="6">
+                                <TextBlock Classes="au-chat-reply-agent" Text="{Binding $parent[Window].DataContext.Agent.SelectedAgentDisplayName}"/>
+                                <agentViews:AgentMarkdownView Markdown="{Binding Text}"
+                                                              AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentReply}"/>
+                            </StackPanel>
                         </DataTemplate>
                     </ContentControl.ContentTemplate>
                 </ContentControl>

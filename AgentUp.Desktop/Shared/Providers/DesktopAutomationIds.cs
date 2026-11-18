@@ -169,6 +169,10 @@ public static class DesktopAutomationIds
     public static string AgentEnable(string agent) => $"agent.enable.{agent}";
     public static string AgentSession(string sessionId) => $"agent.session.{sessionId}";
     public static string AgentOption(string optionId) => $"agent.option.{optionId}";
+    public const string AgentToolShowAll = "agent.tool.show-all";
+    public const string AgentReply = "agent.reply";
+    public const string AgentCodeCopy = "agent.code.copy";
+    public static string AgentToolCall(string toolCallId) => $"agent.tool.{toolCallId}";
     public static string AgentThought(string id) => $"agent.thought.{id}";
     public static string AuditPage(int page) => $"audit.page.{page}";
     public static string AuditFilter(string kind) => $"audit.filter.{kind}";

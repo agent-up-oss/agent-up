@@ -389,12 +389,17 @@ public sealed class AgentChatViewModel : ReactiveObject
         var body = presented.Text ?? (previous is null ? "" : string.Join('\n', previous.Text.Split('\n').Skip(1)));
         var text = string.IsNullOrWhiteSpace(body) ? title : $"{title}\n{body}";
         if (previous is null)
-            run.Items.Add(new("Tool", text, status, presented.ToolCallId));
+        {
+            previous = new("Tool", text, status, presented.ToolCallId);
+            run.Items.Add(previous);
+        }
         else
         {
             previous.Text = text;
             previous.Status = status;
         }
+
+        previous.SetTool(presented.Title, presented.ToolKind, presented.RawInput, presented.Text, presented.Status);
     }
     /// <summary>
     /// Closes the open prompt once the Server says its request was decided - by this window, another
