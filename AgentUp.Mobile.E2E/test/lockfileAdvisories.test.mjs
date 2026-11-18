@@ -79,6 +79,8 @@ test('stream-json overlay keeps bunyamin StreamArray.withParser and Detox jsonl 
   const StreamArray = requireOverlay('stream-json/streamers/StreamArray.js');
   const JsonlParser = requireOverlay('stream-json/jsonl/Parser');
   assert.equal(typeof StreamArray.withParser, 'function');
+  assert.equal(typeof StreamArray.make, 'function');
+  assert.equal(StreamArray.make().constructor, StreamArray);
   assert.equal(typeof JsonlParser.make, 'function');
 });
 

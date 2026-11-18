@@ -3,8 +3,8 @@
 const { Transform } = require('node:stream');
 
 class StreamArray extends Transform {
-  static make(options) {
-    return new StreamArray(options);
+  static make() {
+    return new StreamArray();
   }
 
   static withParser() {

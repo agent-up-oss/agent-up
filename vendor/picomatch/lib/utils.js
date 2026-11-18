@@ -3,7 +3,6 @@
 
 const {
   REGEX_BACKSLASH,
-  REGEX_REMOVE_BACKSLASH,
   REGEX_SPECIAL_CHARS,
   REGEX_SPECIAL_CHARS_GLOBAL
 } = require('./constants');
@@ -28,9 +27,43 @@ exports.isWindows = () => {
 };
 
 exports.removeBackslashes = str => {
-  return str.replace(REGEX_REMOVE_BACKSLASH, match => {
-    return match === '\\' ? '' : match;
-  });
+  let out = '';
+  let i = 0;
+  const n = str.length;
+  let classesPossible = true;
+
+  while (i < n) {
+    const code = str.charCodeAt(i);
+    if (classesPossible && code === 91) {
+      let j = i + 1;
+      let closed = false;
+      while (j < n) {
+        if (j > i + 1 && str.charCodeAt(j) === 93 && str.charCodeAt(j - 1) !== 92) {
+          out += str.slice(i, j + 1);
+          i = j + 1;
+          closed = true;
+          break;
+        }
+        j += 1;
+      }
+      if (!closed) {
+        classesPossible = false;
+        out += str[i];
+        i += 1;
+      }
+      continue;
+    }
+
+    if (code === 92 && i + 1 < n) {
+      i += 1;
+      continue;
+    }
+
+    out += str[i];
+    i += 1;
+  }
+
+  return out;
 };
 
 exports.escapeLast = (input, char, lastIdx) => {

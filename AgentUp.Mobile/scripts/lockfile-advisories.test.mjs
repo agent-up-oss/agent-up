@@ -69,6 +69,7 @@ test('Mobile lockfile pins patched minimatch and glob over Expo 58 and Sentry 8'
   const glob = require('glob');
   const minimatch = require('minimatch');
   const picomatch = require('picomatch');
+  const utils = require('picomatch/lib/utils.js');
   // Sentry bundler plugins call glob.glob(); Expo fingerprint constructs Minimatch.
   assert.equal(typeof glob.glob, 'function');
   assert.equal(typeof minimatch.Minimatch, 'function');
@@ -77,6 +78,13 @@ test('Mobile lockfile pins patched minimatch and glob over Expo 58 and Sentry 8'
   const started = Date.now();
   assert.equal(picomatch('+(*a)')(attack), false);
   assert.ok(Date.now() - started < 1000, 'single-branch repeated extglob still backtracks');
+  assert.equal(utils.removeBackslashes('\\foo'), 'foo');
+  assert.equal(utils.removeBackslashes('[]'), '[]');
+  assert.equal(utils.removeBackslashes('[ab\\]c]'), '[ab\\]c]');
+  const openBrackets = '['.repeat(8000);
+  const scanStarted = Date.now();
+  assert.equal(utils.removeBackslashes(openBrackets), openBrackets);
+  assert.ok(Date.now() - scanStarted < 1000, 'removeBackslashes still backtracks on open brackets');
 
   for (const version of resolvedVersions(chatLockfile, 'picomatch')) {
     assert.ok(

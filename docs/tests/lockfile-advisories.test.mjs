@@ -60,10 +60,19 @@ test('docs lockfile pins patched leaves npm audit cannot reach through Docusauru
   const uuid = createRequire(import.meta.url)('uuid');
   assert.equal(typeof uuid.v4, 'function');
 
-  const picomatch = createRequire(import.meta.url)('picomatch');
+  const require = createRequire(import.meta.url);
+  const picomatch = require('picomatch');
+  const utils = require('picomatch/lib/utils.js');
   assert.equal(typeof picomatch, 'function');
   const attack = 'a'.repeat(28) + '/';
   const started = Date.now();
   assert.equal(picomatch('+(*a)')(attack), false);
   assert.ok(Date.now() - started < 1000, 'single-branch repeated extglob still backtracks');
+  assert.equal(utils.removeBackslashes('\\foo'), 'foo');
+  assert.equal(utils.removeBackslashes('[]'), '[]');
+  assert.equal(utils.removeBackslashes('[ab\\]c]'), '[ab\\]c]');
+  const openBrackets = '['.repeat(8000);
+  const scanStarted = Date.now();
+  assert.equal(utils.removeBackslashes(openBrackets), openBrackets);
+  assert.ok(Date.now() - scanStarted < 1000, 'removeBackslashes still backtracks on open brackets');
 });
