@@ -115,7 +115,11 @@ prompt as a condition: a 500ms peek at the form skipped Connect when the deep li
 then waited a minute for a picker the chat never mounted. A blank frame stays in that wait
 until the deadline. Relaunching on the first empty snapshot interrupted a deep link that had
 already connected, and Detox then waited on the connect form while the event stream kept the
-app busy. A launcher Application Not Responding
+app busy. A picker prompt with no agent buttons after that wait is a failed first `getAgent`
+(iOS showed `Agent event stream returned 404` and never listed Codex): re-deliver the connect
+URL so Chat remounts. The following picker wait polls short visibility checks with
+synchronization off; iOS first `launchApp` can ignore `detoxEnableSynchronization: 0`, and a
+single 60s `waitFor` then waits for idle while the chat stays busy. A launcher Application Not Responding
 dialog is force-stopped without sending Home, because Home relaunches that same dialog over the
 app.
 

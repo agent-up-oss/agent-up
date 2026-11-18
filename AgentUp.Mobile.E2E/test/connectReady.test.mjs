@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { connectStep, connectStepPending } from '../harness/connectReady.mjs';
+import { connectRecovery, connectStep, connectStepPending } from '../harness/connectReady.mjs';
 
 test('a visible picker means the chat already connected', () => {
   assert.equal(connectStep({ pickerVisible: true, formVisible: true, promptVisible: true }), 'connected');
@@ -26,6 +26,13 @@ test('a blank frame or a picker prompt keeps waiting until the deadline', () => 
   assert.equal(connectStepPending('fill-form'), false);
 });
 
+test('a picker prompt without buttons after that wait re-delivers the connect URL', () => {
+  assert.equal(connectRecovery('wait-agents'), 'relaunch');
+  assert.equal(connectRecovery('relaunch'), 'relaunch');
+  assert.equal(connectRecovery('fill-form'), 'form');
+  assert.equal(connectRecovery('connected'), 'none');
+});
+
 test('Detox connect helpers take connectStep as an argument rather than closing over harness', async () => {
   const { readFile } = await import('node:fs/promises');
   const source = await readFile(new URL('../detox/signIn.test.js', import.meta.url), 'utf8');
@@ -35,4 +42,6 @@ test('Detox connect helpers take connectStep as an argument rather than closing 
     false,
     'waitForConnectStep lives outside describe, so a harness. lookup is a ReferenceError on every native scenario.',
   );
+  assert.match(helpers, /ready\.connectRecovery\(step\)/);
+  assert.match(helpers, /async function waitForPicker/);
 });

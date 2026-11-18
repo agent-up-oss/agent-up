@@ -171,19 +171,20 @@ async function ensureConnected(serverUrl, workspaceId, agentId, ready) {
   // the describe-scoped harness (that is a ReferenceError, and every native scenario died on it).
   const picker = pickerFor(agentId, 'ensureConnected');
   const step = await waitForConnectStep(picker, 20_000, ready.connectStep, ready.connectStepPending);
-  if (step === 'connected') return;
-  if (step === 'fill-form') {
+  const recovery = ready.connectRecovery(step);
+  if (recovery === 'none') return;
+  if (recovery === 'form') {
     await connectTo(serverUrl, workspaceId);
-  } else if (step !== 'wait-agents') {
-    // Deep link missed and neither the form nor the chat is in front: an ANR or a dropped
-    // launch URL. Deliver the URL again after dismissing a focused ANR, then fill the form
-    // if that is what came to the front.
+  } else {
+    // Prompt with no buttons: first getAgent died (event stream 404). Blank frame: dropped
+    // launch URL. Re-deliver the URL so Chat remounts, then fill the form if that is what
+    // came to the front.
     await recoverLaunch(serverUrl, workspaceId, ready.adbDismissAnrArgs);
     if (await appears('server-url-input', 15_000)) {
       await connectTo(serverUrl, workspaceId);
     }
   }
-  await waitFor(element(by.id(picker))).toBeVisible().withTimeout(60_000);
+  await waitForPicker(picker, 60_000);
 }
 
 async function waitForConnectStep(picker, timeoutMs, decide, pending) {
@@ -203,6 +204,20 @@ async function waitForConnectStep(picker, timeoutMs, decide, pending) {
     if (!pending(last)) return last;
   }
   return last;
+}
+
+// iOS first launchApp can ignore detoxEnableSynchronization: 0. A single 60s waitFor then
+// waits for idle while the chat's event stream and timers keep the app busy, and the picker
+// buttons never match. Short visibility polls with sync off are the same contract as the
+// connect-step wait.
+async function waitForPicker(picker, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await device.disableSynchronization();
+    if (await appears(picker, 400)) return;
+  }
+  await device.disableSynchronization();
+  await waitFor(element(by.id(picker))).toBeVisible().withTimeout(1_000);
 }
 
 async function reverseHostPorts(ports) {
