@@ -98,6 +98,18 @@ export type TranscriptItem = {
   toolKind?: string;
   rawInput?: string;
   output?: string;
+  /** The tool's name from its first update; later updates may retitle the call with a path. */
+  name?: string;
+  rawOutput?: string;
+  unifiedDiff?: string;
+  diffPath?: string;
+  diffOldText?: string;
+  diffNewText?: string;
+  /** When the Server recorded the item's first and last event, as ISO timestamps. */
+  startedAt?: string;
+  endedAt?: string;
+  /** The last item of a turn: what follows belongs to the next turn, even with no prompt between. */
+  turnEnd?: boolean;
 };
 export type SessionContext = { title?: string; mode?: string; usage?: string; compacting?: boolean };
 export type AgentActivityKind = 'idle' | 'ready' | 'thinking' | 'writing' | 'tool' | 'plan' | 'permission' | 'auth' | 'running' | 'compacting' | 'stopped' | 'error';

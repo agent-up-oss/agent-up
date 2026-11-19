@@ -5,6 +5,8 @@
  * ACP kind, the summary is the one argument that says what the call was about, and output is
  * shown indented when it is JSON and folded behind a count when it is long.
  */
+import { diffFromTexts, diffFromUnified, diffNewFile, type Diff } from './DiffProvider';
+
 export type ToolCallState = 'running' | 'done' | 'failed';
 export type ToolCallView = {
   title: string;
@@ -15,6 +17,30 @@ export type ToolCallView = {
   output?: string;
   fullOutput?: string;
   hiddenLines: number;
+  /** What an edit or a new file changed, when the agent said. */
+  diff?: Diff;
+  /** How long the call took, once that was long enough to be worth saying. */
+  duration?: string;
+};
+
+/**
+ * Everything the agent reported about one call, merged across its updates. `name` is the first
+ * title, which is the tool's name; the completed update often retitles the call with a path.
+ */
+export type ToolCallFacts = {
+  name?: string;
+  title?: string;
+  kind?: string;
+  rawInput?: string;
+  output?: string;
+  status?: string;
+  rawOutput?: string;
+  unifiedDiff?: string;
+  diffPath?: string;
+  diffOldText?: string;
+  diffNewText?: string;
+  startedAt?: string;
+  endedAt?: string;
 };
 
 export const previewLines = 14;
@@ -31,10 +57,19 @@ const kindTitles: Record<string, string> = {
 const summaryKeys = ['command', 'filePath', 'file_path', 'path', 'pattern', 'query', 'url', 'description', 'workspaceId', 'worktreePath', 'name', 'id'];
 
 export function presentToolCall(title?: string, kind?: string, rawInput?: string, output?: string, status?: string): ToolCallView {
-  const input = parseObject(rawInput);
-  const named = toolName(title, kind);
-  const summary = summaryOf(input) ?? pathLikeTitle(title, kind) ?? named.server;
-  const formatted = formatOutput(output);
+  return presentToolFacts({ name: title, title, kind, rawInput, output, status });
+}
+
+export function presentToolFacts(facts: ToolCallFacts): ToolCallView {
+  const { title, kind, status } = facts;
+  const input = parseObject(facts.rawInput);
+  const named = toolName(facts.name ?? title, kind);
+  if (named.name === 'Edit' && isWrite(input)) named.name = 'Write';
+  const summary = summaryOf(input) ?? pathLikeTitle(title, kind) ?? fileLikeTitle(title, facts.name) ?? named.server;
+  // Some tools put what they read in their raw output and leave the visible content empty.
+  const formatted = formatOutput(facts.output?.trim() ? facts.output : facts.rawOutput);
+  const diff = diffOf(facts, input);
+  const duration = durationBetween(facts.startedAt, facts.endedAt);
   const lines = formatted ? formatted.split('\n') : [];
   const folds = lines.length - previewLines >= minimumFold;
   const preview = folds ? lines.slice(0, previewLines).join('\n') : formatted;
@@ -47,7 +82,40 @@ export function presentToolCall(title?: string, kind?: string, rawInput?: string
     ...(preview ? { output: preview } : {}),
     ...(formatted ? { fullOutput: formatted } : {}),
     hiddenLines: folds ? lines.length - previewLines : 0,
+    ...(diff ? { diff } : {}),
+    ...(duration ? { duration } : {}),
   };
+}
+
+/** The richest diff the agent gave: a unified diff, then old and new text, then a new file. */
+export function diffOf(facts: ToolCallFacts, input = parseObject(facts.rawInput)): Diff | undefined {
+  if (facts.unifiedDiff?.trim()) {
+    const unified = diffFromUnified(facts.unifiedDiff, facts.diffPath);
+    const path = facts.diffPath ?? summaryOf(input) ?? unified.path;
+    if (unified.lines.length) return { ...unified, ...(path ? { path } : {}) };
+  }
+  if (facts.diffNewText !== undefined) return diffFromTexts(facts.diffOldText, facts.diffNewText, facts.diffPath);
+  if (isWrite(input) && typeof input?.content === 'string') return diffNewFile(input.content, summaryOf(input));
+  return undefined;
+}
+
+/** A step is only worth timing once it took a second; quick tools say nothing. */
+export function durationBetween(startedAt?: string, endedAt?: string): string | undefined {
+  if (!startedAt || !endedAt) return undefined;
+  const seconds = (Date.parse(endedAt) - Date.parse(startedAt)) / 1000;
+  if (!Number.isFinite(seconds) || seconds < 1) return undefined;
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const whole = Math.round(seconds);
+  return `${Math.floor(whole / 60)}m ${whole % 60}s`;
+}
+
+function isWrite(input: Record<string, unknown> | undefined): boolean {
+  return typeof input?.content === 'string' && !('oldString' in input) && !('old_string' in input);
+}
+
+/** A completed call is often retitled with the file it touched, when the tool name was something else. */
+function fileLikeTitle(title?: string, name?: string): string | undefined {
+  return title && name && title !== name && title.includes('.') && !title.includes(' ') ? title : undefined;
 }
 
 export function toolName(title?: string, kind?: string): { name: string; source?: string; server?: string } {
@@ -89,11 +157,7 @@ export function shorten(value: string): string {
 
 function summaryOf(input: Record<string, unknown> | undefined): string | undefined {
   if (!input) return undefined;
-  for (const key of summaryKeys) {
-    const value = scalar(input[key]);
-    if (value) return value;
-  }
-  return Object.values(input).map(scalar).find(Boolean);
+  return summaryKeys.map(key => scalar(input[key])).find(Boolean) ?? Object.values(input).map(scalar).find(Boolean);
 }
 
 function pathLikeTitle(title?: string, kind?: string) {

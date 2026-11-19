@@ -11,7 +11,7 @@ import { presentAgentRow } from '../providers/AgentAvailabilityProvider';
 import { shouldShowLoopControls } from '../providers/LoopSurfaceProvider';
 import { AgentSignIn } from './AgentSignIn';
 import { MarkdownView } from './MarkdownView';
-import { ToolCallRow } from './ToolCallRow';
+import { presentToolItem, ToolCallRow, ToolGroupRow } from './ToolCallRow';
 import {
   activityHint,
   afterPermissionDecision,
@@ -19,6 +19,9 @@ import {
   userMessageItem,
   applyPresentedUpdate,
   groupTranscript,
+  groupWork,
+  endTurn,
+  thoughtLabel,
   liveRunId,
   mergeAgentSession,
   mergeContext,
@@ -82,10 +85,11 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
       if (next.state !== 'running') setHint(null);
       return;
     }
+    if (event.type === 'prompt_result') { setItems(current => endTurn(current, event.timestamp)); return; }
     if (event.type === 'permission_request') { setPermission(parsePermission(event.payload)); return; }
     if (event.type === 'permission_decision') { setPermission(current => afterPermissionDecision(current, event.payload)); return; }
     if (event.type === 'user_message') {
-      setItems(current => [...current, userMessageItem(event.sequence, event.payload)]);
+      setItems(current => [...current, userMessageItem(event.sequence, event.payload, event.timestamp)]);
       return;
     }
     if (event.type !== 'session_update') return;
@@ -94,7 +98,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
     if (presented.kind === 'ignore') return;
     const nextHint = activityHint(presented);
     if (nextHint) setHint(current => nextHint.kind === 'tool' && !nextHint.toolTitle ? { ...nextHint, toolTitle: current?.toolTitle } : nextHint);
-    setItems(current => applyPresentedUpdate(current, `${event.sequence}`, presented));
+    setItems(current => applyPresentedUpdate(current, `${event.sequence}`, presented, event.timestamp));
   }, []);
 
   useEffect(() => {
@@ -299,9 +303,11 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
               const live = block.id === openRunId;
               const open = live || Boolean(expandedRuns[block.id]);
               return <View key={block.id} style={styles.run}>
-                {!live && <Pressable onPress={() => setExpandedRuns(current => ({ ...current, [block.id]: !open }))} style={styles.runHeader}><Text style={styles.runSummary}>{runSummary(block.items)}</Text><Text style={styles.runSummary}>{open ? '▾' : '▸'}</Text></Pressable>}
-                {open && block.items.map((item, index) => {
-                  const liveThought = live && item.role === 'thought' && index === block.items.length - 1 && activity.kind === 'thinking';
+                {!live && <Pressable onPress={() => setExpandedRuns(current => ({ ...current, [block.id]: !open }))} style={styles.runHeader}><Text style={styles.runSummary}>{runSummary(block.items, block.duration)}</Text><Text style={styles.runSummary}>{open ? '▾' : '▸'}</Text></Pressable>}
+                {open && groupWork(block.items, item => presentToolItem(item).summary).map(entry => {
+                  if (entry.type === 'group') return <ToolGroupRow key={entry.id} entry={entry} />;
+                  const item = entry.item;
+                  const liveThought = live && item.role === 'thought' && item === block.items.at(-1) && activity.kind === 'thinking';
                   const thoughtOpen = isExpanded(item, liveThought, expanded);
                   return <TranscriptRow key={item.id} item={item} expanded={thoughtOpen} live={liveThought} onToggle={() => setExpanded(current => ({ ...current, [item.id]: !isExpanded(item, liveThought, current) }))} />;
                 })}
@@ -332,7 +338,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
 function TranscriptRow({ item, expanded, live, onToggle }: { item: TranscriptItem; expanded: boolean; live: boolean; onToggle: () => void }) {
   if (item.role === 'thought') {
     return <Pressable onPress={onToggle} style={styles.thought}>
-      <Text style={styles.role}>{live ? 'Thinking' : 'Thought'}</Text>
+      <Text style={styles.role}>{thoughtLabel(item, live)}</Text>
       {expanded ? <Text style={styles.thoughtBody}>{visibleText(item.text)}</Text> : null}
     </Pressable>;
   }

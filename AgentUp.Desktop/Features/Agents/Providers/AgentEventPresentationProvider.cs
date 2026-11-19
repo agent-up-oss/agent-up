@@ -17,7 +17,12 @@ public sealed record PresentedAgentUpdate(
     bool? Compacting = null,
     IReadOnlyList<AgentPlanEntry>? Entries = null,
     string? ToolKind = null,
-    string? RawInput = null);
+    string? RawInput = null,
+    string? RawOutput = null,
+    string? UnifiedDiff = null,
+    string? DiffPath = null,
+    string? DiffOldText = null,
+    string? DiffNewText = null);
 
 public sealed record AgentPlanEntry(string Content, string Status);
 public sealed record AgentPermissionPrompt(string RequestId, string Title, string? Detail, IReadOnlyList<string> Locations, IReadOnlyList<AgentPermissionChoice> Options);
@@ -108,11 +113,14 @@ public static class AgentEventPresentationProvider
         return state is "ready" or "idle" or null ? "Idle" : state;
     }
 
-    public static string RunSummary(IEnumerable<string> roles)
+    public static string RunSummary(IEnumerable<string> roles) => RunSummary(roles, null);
+
+    /// <summary>"Worked for 21s · 2 tools · Thought": how long a finished run took and what it did.</summary>
+    public static string RunSummary(IEnumerable<string> roles, string? duration)
     {
         var list = roles.ToArray();
         var tools = list.Count(role => role == "Tool");
-        var parts = new List<string> { "Worked" };
+        var parts = new List<string> { duration is null ? "Worked" : $"Worked for {duration}" };
         if (tools == 1) parts.Add("1 tool");
         else if (tools > 1) parts.Add($"{tools} tools");
         if (list.Contains("Thought")) parts.Add("Thought");
@@ -152,7 +160,36 @@ public static class AgentEventPresentationProvider
             ToolKind: StringField(update, "kind"),
             RawInput: rec.ValueKind == JsonValueKind.Object && rec.TryGetProperty("rawInput", out var input) && input.ValueKind == JsonValueKind.Object && input.EnumerateObject().Any()
                 ? input.GetRawText()
-                : null);
+                : null,
+            RawOutput: RawOutputText(rec),
+            UnifiedDiff: StringField(ObjectProperty(ObjectProperty(rec, "rawOutput"), "metadata"), "diff"),
+            DiffPath: StringField(DiffContent(rec), "path"),
+            DiffOldText: DiffContent(rec) is { } oldDiff && oldDiff.TryGetProperty("oldText", out var oldText) && oldText.ValueKind == JsonValueKind.String ? oldText.GetString() : null,
+            DiffNewText: DiffContent(rec) is { } newDiff && newDiff.TryGetProperty("newText", out var newText) && newText.ValueKind == JsonValueKind.String ? newText.GetString() : null);
+    }
+
+    /// <summary>What the tool printed, as OpenCode reports it beside the visible content.</summary>
+    private static string? RawOutputText(JsonElement update)
+    {
+        if (update.ValueKind != JsonValueKind.Object || !update.TryGetProperty("rawOutput", out var output))
+            return null;
+        return output.ValueKind switch
+        {
+            JsonValueKind.String => output.GetString(),
+            JsonValueKind.Object when output.TryGetProperty("output", out var text) && text.ValueKind == JsonValueKind.String => text.GetString(),
+            _ => null
+        };
+    }
+
+    /// <summary>The ACP diff content item of a tool update, when it carries one.</summary>
+    private static JsonElement? DiffContent(JsonElement update)
+    {
+        if (update.ValueKind != JsonValueKind.Object || !update.TryGetProperty("content", out var content) || content.ValueKind != JsonValueKind.Array)
+            return null;
+        return content.EnumerateArray()
+            .Where(item => item.ValueKind == JsonValueKind.Object && StringField(item, "type") == "diff")
+            .Select(item => (JsonElement?)item)
+            .FirstOrDefault();
     }
 
     private static IReadOnlyList<AgentPlanEntry> PlanEntries(JsonElement update)

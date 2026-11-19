@@ -1,7 +1,7 @@
 /**
  * Reads the markdown an agent writes into blocks and inline runs the transcript can draw. It
  * mirrors Desktop's AgentMarkdownProvider rule for rule: headings, paragraphs, bullet and
- * numbered lists, quotes, rules, fenced code, inline code, emphasis and links. It tolerates a
+ * numbered lists, quotes, rules, tables, fenced code, inline code, emphasis and links. It tolerates a
  * reply that is still streaming: an unclosed fence is code so far, and unmatched emphasis
  * markers stay literal text.
  */
@@ -13,18 +13,43 @@ export type MarkdownBlock =
   | { kind: 'listItem'; depth: number; marker: string; inlines: MarkdownInline[] }
   | { kind: 'quote'; inlines: MarkdownInline[] }
   | { kind: 'code'; code: string; language?: string }
-  | { kind: 'rule' };
+  | { kind: 'rule' }
+  | { kind: 'table'; rows: MarkdownInline[][][]; alignments: MarkdownAlignment[] };
+export type MarkdownAlignment = 'left' | 'center' | 'right';
 
 const fencePattern = /^(`{3,}|~{3,})([^`]*)$/;
 const rulePattern = /^(?:-{3,}|\*{3,}|_{3,})$/;
 const headingPattern = /^(#{1,6})\s+(.*)$/;
 const listPattern = /^([ \t]*)([-*+]|\d{1,3}[.)])\s+(.*)$/;
+const tableSeparatorPattern = /^\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)*\|?$/;
+const wrapperPattern = /^(`{3,}|~{3,})[ \t]*(?:markdown|md)[ \t]*\n/i;
 const linkPattern = /^\[([^\]]+)\]\(([^)\s]+)\)/;
+
+/**
+ * A reply that is nothing but one `markdown` or `md` fence is markdown the model wrapped by
+ * habit, not a code sample: it is drawn as the markdown inside. While it is still streaming the
+ * closing fence has not arrived, so an open wrapper is unwrapped too.
+ */
+export function unwrapMarkdown(markdown: string): string {
+  const trimmed = markdown.trim();
+  const open = wrapperPattern.exec(trimmed);
+  if (!open) return markdown;
+  const body = trimmed.slice(open[0].length);
+  const marker = open[1]!;
+  const close = body.lastIndexOf(`\n${marker}`);
+  if (close < 0) return body.includes(`\n${marker[0]}`) ? markdown : body;
+  return !body.slice(close + 1 + marker.length).trim() && !body.slice(0, close).includes(`\n${marker}`) ? body.slice(0, close) : markdown;
+}
+
+/** What a block draws, as text: a streaming reply keeps every block whose key a chunk did not change. */
+export function blockKey(block: MarkdownBlock): string {
+  return JSON.stringify(block);
+}
 
 export function parseMarkdown(markdown: string | null | undefined): MarkdownBlock[] {
   const blocks: MarkdownBlock[] = [];
   if (!markdown || !markdown.trim()) return blocks;
-  const lines = markdown.replace(/\r\n/g, '\n').split('\n');
+  const lines = unwrapMarkdown(markdown.replace(/\r\n/g, '\n')).split('\n');
   let paragraph: string[] = [];
   const flush = () => {
     if (!paragraph.length) return;
@@ -46,6 +71,19 @@ export function parseMarkdown(markdown: string | null | undefined): MarkdownBloc
       continue;
     }
     if (!trimmed) { flush(); continue; }
+    if (trimmed.includes('|') && index + 1 < lines.length && tableSeparatorPattern.test(lines[index + 1]!.trim())) {
+      flush();
+      const header = tableCells(trimmed);
+      const alignments = tableCells(lines[index + 1]!.trim()).map(alignmentOf);
+      const rows: MarkdownInline[][][] = [header.map(parseInlines)];
+      for (index += 2; index < lines.length && lines[index]!.includes('|') && lines[index]!.trim(); index++) {
+        const cells = tableCells(lines[index]!.trim());
+        rows.push(header.map((_, column) => parseInlines(cells[column] ?? '')));
+      }
+      index--;
+      blocks.push({ kind: 'table', rows, alignments: header.map((_, column) => alignments[column] ?? 'left') });
+      continue;
+    }
     if (rulePattern.test(trimmed)) { flush(); blocks.push({ kind: 'rule' }); continue; }
     const heading = headingPattern.exec(trimmed);
     if (heading) {
@@ -145,4 +183,26 @@ function emphasisClose(text: string, position: number, marker: string): number |
 
 function isWordBoundary(text: string, position: number) {
   return position === 0 || !/[\p{L}\p{N}]/u.test(text[position - 1]);
+}
+
+/** A table row's cells, without the optional outer pipes; `\|` stays a literal pipe. */
+function tableCells(row: string): string[] {
+  let trimmed = row.trim();
+  if (trimmed.startsWith('|')) trimmed = trimmed.slice(1);
+  if (trimmed.endsWith('|') && !trimmed.endsWith('\\|')) trimmed = trimmed.slice(0, -1);
+  const cells: string[] = [];
+  let current = '';
+  for (let position = 0; position < trimmed.length; position++) {
+    if (trimmed[position] === '\\' && trimmed[position + 1] === '|') { current += '|'; position++; continue; }
+    if (trimmed[position] === '|') { cells.push(current.trim()); current = ''; continue; }
+    current += trimmed[position];
+  }
+  cells.push(current.trim());
+  return cells;
+}
+
+function alignmentOf(separator: string): MarkdownAlignment {
+  if (separator.startsWith(':') && separator.endsWith(':')) return 'center';
+  if (separator.endsWith(':')) return 'right';
+  return 'left';
 }

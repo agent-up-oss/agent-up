@@ -1137,6 +1137,33 @@ const agentUpTheme = Object.freeze({
     mdLink: Object.freeze({
       color: "#8bb7ff",
     }),
+    mdTable: Object.freeze({
+      backgroundColor: "#00000000",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 8,
+    }),
+    mdTableRow: Object.freeze({
+      backgroundColor: "#00000000",
+      borderTopWidth: 1,
+      borderTopColor: "#ffffff14",
+    }),
+    mdTableHead: Object.freeze({
+      backgroundColor: "#121416",
+    }),
+    mdTableHeaderCell: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#f5fbf7",
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    mdTableCell: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#c2d2ca",
+      fontSize: 13,
+    }),
     toolCall: Object.freeze({
       paddingHorizontal: 8,
       paddingVertical: 4,

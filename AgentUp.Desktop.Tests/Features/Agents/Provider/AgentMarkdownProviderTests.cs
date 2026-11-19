@@ -88,5 +88,41 @@ public sealed class AgentMarkdownProviderTests
         Assert.That(AgentMarkdownProvider.Parse(null), Is.Empty);
     }
 
+    [Test]
+    public void A_table_keeps_its_header_rows_alignments_and_escaped_pipes()
+    {
+        var blocks = AgentMarkdownProvider.Parse("Ports:\n| Name | Port | Note |\n|:---|---:|:---:|\n| web | 3000 | a \\| b |\n| api |\n\nAfter.");
+
+        var table = blocks[1];
+        Assert.That(blocks.Select(block => block.Kind), Is.EqualTo(new[] { AgentMarkdownBlockKind.Paragraph, AgentMarkdownBlockKind.Table, AgentMarkdownBlockKind.Paragraph }));
+        Assert.That(table.Alignments, Is.EqualTo(new[] { "left", "right", "center" }));
+        Assert.That(table.Rows!.Select(row => row.Count), Is.All.EqualTo(3), "A short row is padded to the header.");
+        Assert.That(string.Concat(table.Rows![1][2].Select(inline => inline.Text)), Is.EqualTo("a | b"));
+    }
+
+    [Test]
+    public void A_reply_wrapped_whole_in_a_markdown_fence_is_drawn_as_its_markdown()
+    {
+        var closed = AgentMarkdownProvider.Parse("```markdown\n# Title\n\n| A | B |\n|---|---|\n| 1 | 2 |\n```");
+        var streaming = AgentMarkdownProvider.Parse("```md\n# Title\n\nStill wri");
+        var sample = AgentMarkdownProvider.Parse("Here is markdown:\n```markdown\n# Title\n```");
+        var two = AgentMarkdownProvider.Parse("```markdown\n# A\n```\n\n```markdown\n# B\n```");
+
+        Assert.That(closed.Select(block => block.Kind), Is.EqualTo(new[] { AgentMarkdownBlockKind.Heading, AgentMarkdownBlockKind.Table }));
+        Assert.That(streaming.Select(block => block.Kind), Is.EqualTo(new[] { AgentMarkdownBlockKind.Heading, AgentMarkdownBlockKind.Paragraph }));
+        Assert.That(sample[1].Kind, Is.EqualTo(AgentMarkdownBlockKind.Code), "A fence inside prose is a code sample.");
+        Assert.That(two.Select(block => block.Kind), Is.All.EqualTo(AgentMarkdownBlockKind.Code), "Two fences are two samples, not one wrapper.");
+    }
+
+    [Test]
+    public void Block_keys_change_only_when_what_the_block_draws_changes()
+    {
+        var before = AgentMarkdownProvider.Parse("# T\n\nOne");
+        var after = AgentMarkdownProvider.Parse("# T\n\nOne two");
+
+        Assert.That(after[0].Key, Is.EqualTo(before[0].Key));
+        Assert.That(after[1].Key, Is.Not.EqualTo(before[1].Key));
+    }
+
     private static string Plain(AgentMarkdownBlock block) => string.Concat(block.Inlines.Select(inline => inline.Text));
 }

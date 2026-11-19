@@ -123,8 +123,14 @@ fails the suite.
 capability against `test-model-server`. `run-opencode-inference.sh` supplies the binary,
 endpoint, per-run token, and a published Server. One layer runs the loop kernel in process. The
 other starts that Server as a process and drives it only over REST and the agent event stream,
-the way a client does, including an Agent-Up MCP tool call and steering sent mid-turn. It is
-`slow` and `ciOnly`, and kept out of the same suites.
+the way a client does, including an Agent-Up MCP tool call and steering sent mid-turn. The write
+journey also requires OpenCode to report the written content in a form the transcript can draw as
+a diff. It is `slow` and `ciOnly`, and kept out of the same suites.
+
+A recorded session is the fast regression for that live path.
+`AgentUp.Chat/fixtures/opencode-cpu-session.jsonl` is a real OpenCode session against the CPU
+model. Desktop's `AgentGoldenTranscriptTests` and Chat's `GoldenTranscript.test.ts` replay it
+through each client's own reducers, so both clients are held to the same transcript.
 
 Concurrency and restart for autonomous workspaces run in the normal E2E
 tier. `Category=LoopSoak` is hundreds of scripted tasks plus bounded-growth

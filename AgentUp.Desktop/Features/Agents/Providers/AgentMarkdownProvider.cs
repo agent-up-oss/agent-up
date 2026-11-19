@@ -19,7 +19,7 @@ public static partial class AgentMarkdownProvider
         if (string.IsNullOrWhiteSpace(markdown))
             return blocks;
 
-        var lines = markdown.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        var lines = Unwrapped(markdown.Replace("\r\n", "\n", StringComparison.Ordinal)).Split('\n');
         var paragraph = new List<string>();
         void FlushParagraph()
         {
@@ -48,6 +48,23 @@ public static partial class AgentMarkdownProvider
             if (trimmed.Length == 0)
             {
                 FlushParagraph();
+                continue;
+            }
+
+            if (trimmed.Contains('|') && index + 1 < lines.Length && TableSeparatorRegex().IsMatch(lines[index + 1].Trim()))
+            {
+                FlushParagraph();
+                var header = Cells(trimmed);
+                var alignments = Cells(lines[index + 1].Trim()).Select(Alignment).ToArray();
+                var rows = new List<IReadOnlyList<IReadOnlyList<AgentMarkdownInline>>> { header.Select(Inlines).ToArray() };
+                for (index += 2; index < lines.Length && lines[index].Contains('|') && lines[index].Trim().Length > 0; index++)
+                {
+                    var cells = Cells(lines[index].Trim());
+                    rows.Add(Enumerable.Range(0, header.Count).Select(column => Inlines(column < cells.Count ? cells[column] : "")).ToArray());
+                }
+
+                index--;
+                blocks.Add(new(AgentMarkdownBlockKind.Table, [], Rows: rows, Alignments: alignments.Concat(Enumerable.Repeat("left", Math.Max(0, header.Count - alignments.Length))).Take(header.Count).ToArray()));
                 continue;
             }
 
@@ -101,6 +118,66 @@ public static partial class AgentMarkdownProvider
         FlushParagraph();
         return blocks;
     }
+
+    /// <summary>
+    /// A reply that is nothing but one <c>markdown</c> or <c>md</c> fence is markdown the model
+    /// wrapped by habit, not a code sample: it is drawn as the markdown inside. While it is still
+    /// streaming the closing fence has not arrived yet, so an open wrapper is unwrapped too.
+    /// </summary>
+    public static string Unwrapped(string markdown)
+    {
+        var trimmed = markdown.Trim();
+        var open = WrapperRegex().Match(trimmed);
+        if (!open.Success)
+            return markdown;
+        var body = trimmed[open.Length..];
+        var marker = open.Groups["fence"].Value;
+        var close = body.LastIndexOf("\n" + marker, StringComparison.Ordinal);
+        if (close < 0)
+            return body.Contains("\n" + marker[0], StringComparison.Ordinal) ? markdown : body;
+        // Only a closing fence at the very end makes the whole reply one wrapper.
+        return body[(close + 1 + marker.Length)..].Trim().Length == 0 && !body[..close].Contains("\n" + marker, StringComparison.Ordinal)
+            ? body[..close]
+            : markdown;
+    }
+
+    /// <summary>A table row's cells, without the optional outer pipes; <c>\|</c> stays a literal pipe.</summary>
+    private static IReadOnlyList<string> Cells(string row)
+    {
+        var trimmed = row.Trim();
+        if (trimmed.StartsWith('|')) trimmed = trimmed[1..];
+        if (trimmed.EndsWith('|') && !trimmed.EndsWith("\\|", StringComparison.Ordinal)) trimmed = trimmed[..^1];
+        var cells = new List<string>();
+        var current = new StringBuilder();
+        for (var position = 0; position < trimmed.Length; position++)
+        {
+            if (trimmed[position] == '\\' && position + 1 < trimmed.Length && trimmed[position + 1] == '|')
+            {
+                current.Append('|');
+                position++;
+                continue;
+            }
+
+            if (trimmed[position] == '|')
+            {
+                cells.Add(current.ToString().Trim());
+                current.Clear();
+                continue;
+            }
+
+            current.Append(trimmed[position]);
+        }
+
+        cells.Add(current.ToString().Trim());
+        return cells;
+    }
+
+    private static string Alignment(string separator) => separator switch
+    {
+        _ when separator.StartsWith(':') && separator.EndsWith(':') => "center",
+        _ when separator.EndsWith(':') => "right",
+        _ => "left"
+    };
 
     /// <summary>Splits one block of text into plain, bold, italic, code and link runs.</summary>
     public static IReadOnlyList<AgentMarkdownInline> Inlines(string text)
@@ -203,6 +280,12 @@ public static partial class AgentMarkdownProvider
 
     [GeneratedRegex(@"^(?<fence>`{3,}|~{3,})(?<lang>[^`]*)$")]
     private static partial Regex FenceRegex();
+
+    [GeneratedRegex(@"^(?<fence>`{3,}|~{3,})[ \t]*(?:markdown|md)[ \t]*\n", RegexOptions.IgnoreCase)]
+    private static partial Regex WrapperRegex();
+
+    [GeneratedRegex(@"^\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)*\|?$")]
+    private static partial Regex TableSeparatorRegex();
 
     [GeneratedRegex(@"^(?:-{3,}|\*{3,}|_{3,})$")]
     private static partial Regex RuleRegex();

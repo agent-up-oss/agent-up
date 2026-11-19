@@ -7,10 +7,14 @@ import type {
   SessionContext,
   TranscriptItem,
 } from '../models/AgentSession';
+import { durationBetween } from './ToolCallProvider';
 
 export type PresentedUpdate =
   | { kind: 'message'; role: 'agent' | 'thought'; text: string }
-  | { kind: 'tool'; toolCallId: string; title?: string; status?: string; locations?: string[]; detail?: string; toolKind?: string; rawInput?: string }
+  | {
+    kind: 'tool'; toolCallId: string; title?: string; status?: string; locations?: string[]; detail?: string; toolKind?: string; rawInput?: string;
+    rawOutput?: string; unifiedDiff?: string; diffPath?: string; diffOldText?: string; diffNewText?: string;
+  }
   | { kind: 'plan'; entries: { content: string; status: string }[] }
   | { kind: 'context'; context: Partial<SessionContext> }
   | { kind: 'ignore' };
@@ -84,9 +88,9 @@ export function agentEventText(value: unknown): string {
 export const steeringStatus = 'Steering · next turn';
 
 /** The transcript row for a Server `user_message` event, marking steering sent mid-turn. */
-export function userMessageItem(sequence: number, payload: unknown): TranscriptItem {
+export function userMessageItem(sequence: number, payload: unknown, timestamp?: string): TranscriptItem {
   const steering = typeof payload === 'object' && payload !== null && (payload as { steering?: unknown }).steering === true;
-  return { id: `${sequence}`, role: 'user', text: agentEventText(payload), ...(steering ? { status: steeringStatus } : {}) };
+  return { id: `${sequence}`, role: 'user', text: agentEventText(payload), ...(steering ? { status: steeringStatus } : {}), ...(timestamp ? { startedAt: timestamp } : {}) };
 }
 
 export function presentSessionUpdate(update: unknown): PresentedUpdate {
@@ -127,9 +131,9 @@ export function presentSessionUpdate(update: unknown): PresentedUpdate {
   return { kind: 'ignore' };
 }
 
-export function runSummary(items: TranscriptItem[]): string {
+export function runSummary(items: TranscriptItem[], duration?: string): string {
   const tools = items.filter(item => item.role === 'tool').length;
-  const parts = ['Worked'];
+  const parts = [duration ? `Worked for ${duration}` : 'Worked'];
   if (tools === 1) parts.push('1 tool');
   else if (tools > 1) parts.push(`${tools} tools`);
   if (items.some(item => item.role === 'thought')) parts.push('Thought');
@@ -138,7 +142,7 @@ export function runSummary(items: TranscriptItem[]): string {
 
 export type TranscriptBlock =
   | { type: 'user'; item: TranscriptItem }
-  | { type: 'run'; id: string; items: TranscriptItem[] }
+  | { type: 'run'; id: string; items: TranscriptItem[]; duration?: string }
   | { type: 'reply'; item: TranscriptItem };
 
 export function liveRunId(blocks: TranscriptBlock[]): string | undefined {
@@ -153,6 +157,7 @@ export function liveRunId(blocks: TranscriptBlock[]): string | undefined {
 export function groupTranscript(items: TranscriptItem[]): TranscriptBlock[] {
   const blocks: TranscriptBlock[] = [];
   let run: TranscriptItem[] = [];
+  let promptedAt: string | undefined;
   const flush = () => {
     if (run.length === 0) return;
     let result: TranscriptItem | undefined;
@@ -163,27 +168,87 @@ export function groupTranscript(items: TranscriptItem[]): TranscriptBlock[] {
       work = run.filter((_, index) => index !== i);
       break;
     }
-    if (work.length > 0) blocks.push({ type: 'run', id: work[0]!.id, items: work });
+    // A turn's time runs from the prompt, so the model's thinking before its first step counts.
+    const startedAt = promptedAt ?? run[0]!.startedAt;
+    const endedAt = run.map(item => item.endedAt).filter((value): value is string => Boolean(value)).sort().at(-1);
+    const duration = durationBetween(startedAt, endedAt);
+    if (work.length > 0) blocks.push({ type: 'run', id: work[0]!.id, items: work, ...(duration ? { duration } : {}) });
     if (result) blocks.push({ type: 'reply', item: result });
     run = [];
   };
   for (const item of items) {
     if (item.role === 'user') {
       flush();
+      if (!item.status) promptedAt = item.startedAt;
       blocks.push({ type: 'user', item });
-    } else {
-      run.push(item);
+      continue;
+    }
+    run.push(item);
+    if (item.turnEnd) {
+      // Steering queued during this turn runs next with no prompt of its own, so it starts its
+      // own run and reply, timed from when this turn ended.
+      const endedAt = item.endedAt;
+      flush();
+      promptedAt = endedAt;
     }
   }
   flush();
   return blocks;
 }
 
-export function applyPresentedUpdate(items: TranscriptItem[], id: string, presented: PresentedUpdate): TranscriptItem[] {
+/** A run's work rows: consecutive finished reads, or searches, fold into one "Read 3 files" row. */
+export type WorkEntry =
+  | { type: 'item'; item: TranscriptItem }
+  | { type: 'group'; id: string; kind: 'read' | 'search'; title: string; summary: string; items: TranscriptItem[] };
+
+export function groupWork(items: TranscriptItem[], summaryOf: (item: TranscriptItem) => string | undefined): WorkEntry[] {
+  const entries: WorkEntry[] = [];
+  let index = 0;
+  while (index < items.length) {
+    const kind = groupable(items[index]!);
+    let end = index;
+    while (kind && end + 1 < items.length && groupable(items[end + 1]!) === kind) end++;
+    if (kind && end > index) {
+      const group = items.slice(index, end + 1);
+      entries.push({
+        type: 'group',
+        id: group[0]!.toolCallId ?? group[0]!.id,
+        kind,
+        title: kind === 'read' ? `Read ${group.length} files` : `Searched ${group.length} times`,
+        summary: [...new Set(group.map(summaryOf).filter((value): value is string => Boolean(value)))].join(', '),
+        items: group,
+      });
+    } else {
+      entries.push({ type: 'item', item: items[index]! });
+    }
+    index = end + 1;
+  }
+  return entries;
+}
+
+function groupable(item: TranscriptItem): 'read' | 'search' | undefined {
+  return item.role === 'tool' && item.status === 'completed' && (item.toolKind === 'read' || item.toolKind === 'search') ? item.toolKind : undefined;
+}
+
+/** "Thinking" while it streams, then "Thought for 4s" once it took long enough to say. */
+export function thoughtLabel(item: TranscriptItem, live: boolean): string {
+  if (live) return 'Thinking';
+  const duration = durationBetween(item.startedAt, item.endedAt);
+  return duration ? `Thought for ${duration}` : 'Thought';
+}
+
+/** Marks the turn that just ended, so the next turn's text starts a new run and reply. */
+export function endTurn(items: TranscriptItem[], at?: string): TranscriptItem[] {
+  const last = items.at(-1);
+  if (!last || last.role === 'user' || last.turnEnd) return items;
+  return [...items.slice(0, -1), { ...last, turnEnd: true, endedAt: last.endedAt ?? at }];
+}
+
+export function applyPresentedUpdate(items: TranscriptItem[], id: string, presented: PresentedUpdate, at?: string): TranscriptItem[] {
   if (presented.kind === 'message') {
     const last = items.at(-1);
-    if (last?.role === presented.role) return [...items.slice(0, -1), { ...last, text: last.text + presented.text }];
-    return [...items, { id, role: presented.role, text: presented.text }];
+    if (last?.role === presented.role && !last.turnEnd) return [...items.slice(0, -1), { ...last, text: last.text + presented.text, ...(at ? { endedAt: at } : {}) }];
+    return [...items, { id, role: presented.role, text: presented.text, ...(at ? { startedAt: at, endedAt: at } : {}) }];
   }
   if (presented.kind === 'tool') {
     const existing = items.findIndex(entry => entry.role === 'tool' && entry.toolCallId === presented.toolCallId);
@@ -196,6 +261,17 @@ export function applyPresentedUpdate(items: TranscriptItem[], id: string, presen
     const toolKind = presented.toolKind ?? previous?.toolKind;
     const rawInput = presented.rawInput ?? previous?.rawInput;
     const output = presented.detail ?? previous?.output;
+    const name = previous?.name ?? presented.title;
+    const startedAt = previous?.startedAt ?? at;
+    const finished = status === 'completed' || status === 'failed';
+    const endedAt = finished ? previous?.endedAt && previous.status === status ? previous.endedAt : at : undefined;
+    const carried = {
+      rawOutput: presented.rawOutput ?? previous?.rawOutput,
+      unifiedDiff: presented.unifiedDiff ?? previous?.unifiedDiff,
+      diffPath: presented.diffPath ?? previous?.diffPath,
+      diffOldText: presented.diffOldText ?? previous?.diffOldText,
+      diffNewText: presented.diffNewText ?? previous?.diffNewText,
+    };
     const item: TranscriptItem = {
       id: previous?.id ?? id,
       role: 'tool',
@@ -207,6 +283,10 @@ export function applyPresentedUpdate(items: TranscriptItem[], id: string, presen
       ...(toolKind ? { toolKind } : {}),
       ...(rawInput ? { rawInput } : {}),
       ...(output ? { output } : {}),
+      ...(name ? { name } : {}),
+      ...Object.fromEntries(Object.entries(carried).filter(([, value]) => value !== undefined)),
+      ...(startedAt ? { startedAt } : {}),
+      ...(endedAt ? { endedAt } : {}),
     };
     if (existing < 0) return [...items, item];
     const next = [...items];
@@ -214,7 +294,7 @@ export function applyPresentedUpdate(items: TranscriptItem[], id: string, presen
     return next;
   }
   if (presented.kind === 'plan') {
-    const item: TranscriptItem = { id, role: 'plan', text: presented.entries.map(entry => `${statusMark(entry.status)} ${entry.content}`).join('\n'), entries: presented.entries };
+    const item: TranscriptItem = { ...(at ? { startedAt: at, endedAt: at } : {}), id, role: 'plan', text: presented.entries.map(entry => `${statusMark(entry.status)} ${entry.content}`).join('\n'), entries: presented.entries };
     const existing = items.findIndex(entry => entry.role === 'plan');
     if (existing < 0) return [...items, item];
     const next = [...items];
@@ -332,7 +412,28 @@ function presentTool(update: unknown): PresentedUpdate {
     detail: rec && 'content' in rec ? contentText(rec.content) : undefined,
     toolKind: stringField(update, 'kind') ?? undefined,
     rawInput: rawInputOf(rec),
+    ...toolOutputOf(rec),
   };
+}
+
+/**
+ * What a finished call returned beyond its visible content: the raw output text (a read's file
+ * text lives there), a unified diff from the tool's metadata, and ACP's diff content item.
+ */
+function toolOutputOf(rec: Record<string, unknown> | null | undefined) {
+  const raw = rec?.rawOutput;
+  const rawRecord = record(raw);
+  const rawOutput = typeof raw === 'string' ? raw : typeof rawRecord?.output === 'string' ? rawRecord.output : undefined;
+  const metadataDiff = record(rawRecord?.metadata)?.diff;
+  const diffItem = Array.isArray(rec?.content) ? rec.content.map(record).find(entry => entry?.type === 'diff') : undefined;
+  const values = {
+    rawOutput: rawOutput?.trim() ? rawOutput : undefined,
+    unifiedDiff: typeof metadataDiff === 'string' && metadataDiff.trim() ? metadataDiff : undefined,
+    diffPath: stringField(diffItem, 'path') ?? undefined,
+    diffOldText: typeof diffItem?.oldText === 'string' ? diffItem.oldText : undefined,
+    diffNewText: typeof diffItem?.newText === 'string' ? diffItem.newText : undefined,
+  };
+  return Object.fromEntries(Object.entries(values).filter(([, value]) => value !== undefined)) as Partial<typeof values>;
 }
 
 function rawInputOf(rec: Record<string, unknown> | null | undefined): string | undefined {

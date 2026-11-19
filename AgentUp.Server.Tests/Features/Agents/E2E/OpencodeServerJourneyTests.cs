@@ -111,7 +111,17 @@ public sealed class OpencodeServerJourneyTests
         Assert.That(decide.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
         Assert.That(decision["optionId"]!.GetValue<string>(), Is.EqualTo("once"), "Every client sees the request close with the chosen option.");
         Assert.That(worktree.Read("result.txt"), Is.EqualTo(Content), "OpenCode did not write result.txt into the workspace.");
+        Assert.That(events.ToolUpdates.Any(WritesTheContent), Is.True, "The transcript draws a write as a diff from the content the tool reported; OpenCode must report it.");
     }
+
+    /// <summary>
+    /// What Desktop and Chat draw an edit's diff from: the written content in the input, ACP's diff
+    /// content item, or the unified diff in the tool's metadata.
+    /// </summary>
+    private static bool WritesTheContent(JsonNode update) =>
+        update["rawInput"]?["content"]?.GetValue<string>()?.Contains(Content, StringComparison.Ordinal) == true
+        || update["content"]?.AsArray().Any(item => item?["type"]?.GetValue<string>() == "diff" && item["newText"]?.GetValue<string>()?.Contains(Content, StringComparison.Ordinal) == true) == true
+        || update["rawOutput"]?["metadata"]?["diff"]?.GetValue<string>()?.Contains(Content, StringComparison.Ordinal) == true;
 
     [Test]
     public async Task OpenCode_calls_Agent_Up_mcp_tools_and_takes_steering_mid_turn()
@@ -384,6 +394,7 @@ internal sealed class AgentEventStream : IAsyncDisposable
     private readonly HttpResponseMessage _response;
     private readonly StreamReader _reader;
     private readonly List<string> _seen = [];
+    private readonly List<(string Type, JsonNode Payload)> _frames = [];
 
     private AgentEventStream(HttpResponseMessage response, StreamReader reader)
     {
@@ -392,6 +403,15 @@ internal sealed class AgentEventStream : IAsyncDisposable
     }
 
     public IReadOnlyList<string> Seen => _seen;
+
+    /// <summary>Every frame read so far, including the ones a wait passed over.</summary>
+    public IReadOnlyList<(string Type, JsonNode Payload)> Frames => _frames;
+
+    /// <summary>The ACP tool updates read so far, unwrapped from their session envelope.</summary>
+    public IEnumerable<JsonNode> ToolUpdates => _frames
+        .Where(frame => frame.Type == "session_update")
+        .Select(frame => frame.Payload["update"] ?? frame.Payload)
+        .Where(update => update["sessionUpdate"]?.GetValue<string>() is "tool_call" or "tool_call_update");
 
     public static async Task<AgentEventStream> OpenAsync(HttpClient http, string workspaceId)
     {
@@ -450,7 +470,9 @@ internal sealed class AgentEventStream : IAsyncDisposable
             {
                 _seen.Add(type);
                 TestContext.Out.WriteLine($"event {type}: {(data.Length > 1500 ? data[..1500] + "..." : data)}");
-                return (type, JsonNode.Parse(data)!["payload"]!);
+                var payload = JsonNode.Parse(data)!["payload"]!;
+                _frames.Add((type, payload));
+                return (type, payload);
             }
         }
 

@@ -6,21 +6,26 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using AgentUp.Desktop.Features.Agents.Models;
 using AgentUp.Desktop.Features.Agents.Providers;
+using AgentUp.Desktop.Shared.Providers;
 
 namespace AgentUp.Desktop.Features.Agents.Views;
 
 /// <summary>
 /// Draws an agent's markdown with the design system's transcript classes: headings,
-/// paragraphs, lists, quotes, rules and code blocks. Inline runs cannot carry style classes in
-/// Avalonia, so inline code and links take the same tokens the catalog's inline classes use.
-/// The blocks are rebuilt whenever the text changes, which is also how a streaming reply grows.
+/// paragraphs, lists, quotes, rules, tables and highlighted code. Inline runs cannot carry
+/// style classes in Avalonia, so inline code and links take the same tokens the catalog's
+/// inline classes use. A streaming reply only redraws from the first block that changed, so
+/// the blocks a new chunk did not touch keep their controls and do not flicker.
 /// </summary>
 public sealed class AgentMarkdownView : StackPanel
 {
     public static readonly StyledProperty<string?> MarkdownProperty =
         AvaloniaProperty.Register<AgentMarkdownView, string?>(nameof(Markdown));
 
-    private string? _rendered;
+    /// <summary>Longer code is drawn as plain text: highlighting it costs more than it shows.</summary>
+    public const int HighlightLineLimit = 400;
+
+    private readonly List<string> _keys = [];
 
     public AgentMarkdownView()
     {
@@ -33,6 +38,9 @@ public sealed class AgentMarkdownView : StackPanel
         set => SetValue(MarkdownProperty, value);
     }
 
+    /// <summary>How many block controls the last render rebuilt; the rest were kept.</summary>
+    public int LastRebuilt { get; private set; }
+
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
@@ -42,12 +50,22 @@ public sealed class AgentMarkdownView : StackPanel
 
     private void Render()
     {
-        if (string.Equals(_rendered, Markdown, StringComparison.Ordinal) && Children.Count > 0)
-            return;
-        _rendered = Markdown;
-        Children.Clear();
-        foreach (var block in AgentMarkdownProvider.Parse(Markdown))
-            Children.Add(Block(block));
+        var blocks = AgentMarkdownProvider.Parse(Markdown);
+        var keys = blocks.Select(block => block.Key).ToArray();
+        var kept = 0;
+        while (kept < keys.Length && kept < _keys.Count && string.Equals(keys[kept], _keys[kept], StringComparison.Ordinal))
+            kept++;
+
+        while (Children.Count > kept)
+            Children.RemoveAt(Children.Count - 1);
+        _keys.RemoveRange(kept, _keys.Count - kept);
+        for (var index = kept; index < blocks.Count; index++)
+        {
+            Children.Add(Block(blocks[index]));
+            _keys.Add(keys[index]);
+        }
+
+        LastRebuilt = blocks.Count - kept;
     }
 
     private static Control Block(AgentMarkdownBlock block) => block.Kind switch
@@ -56,6 +74,7 @@ public sealed class AgentMarkdownView : StackPanel
         AgentMarkdownBlockKind.ListItem => ListItem(block),
         AgentMarkdownBlockKind.Quote => new Border { Classes = { "au-md-quote" }, Child = Text(block.Inlines, ["au-md-paragraph"]) },
         AgentMarkdownBlockKind.Code => CodeBlock(block),
+        AgentMarkdownBlockKind.Table => Table(block),
         AgentMarkdownBlockKind.Rule => new Border { Classes = { "au-md-rule" }, Height = 1, Background = Brush("AgentUpColorBorderSubtleBrush"), Margin = new Thickness(0, 4) },
         _ => Text(block.Inlines, ["au-md-paragraph"])
     };
@@ -82,7 +101,7 @@ public sealed class AgentMarkdownView : StackPanel
             Content = "Copy",
             [Grid.ColumnProperty] = 1,
         };
-        Avalonia.Automation.AutomationProperties.SetAutomationId(copy, AgentUp.Desktop.Shared.Providers.DesktopAutomationIds.AgentCodeCopy);
+        Avalonia.Automation.AutomationProperties.SetAutomationId(copy, DesktopAutomationIds.AgentCodeCopy);
         copy.Click += async (_, _) =>
         {
             if (TopLevel.GetTopLevel(copy)?.Clipboard is { } clipboard)
@@ -98,10 +117,69 @@ public sealed class AgentMarkdownView : StackPanel
             {
                 HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
                 VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
-                Content = new TextBlock { Classes = { "au-md-code-text" }, Text = block.Code, TextWrapping = TextWrapping.NoWrap }
+                Content = CodeLines(block.Code ?? "", SyntaxHighlightProvider.LanguageForFence(block.Language))
             }
         });
         return stack;
+    }
+
+    /// <summary>One row of highlighted tokens per line, using the same syntax classes as the Git viewer.</summary>
+    private static Control CodeLines(string code, string language)
+    {
+        var lines = code.Split('\n');
+        if (language == "plaintext" || lines.Length > HighlightLineLimit)
+            return new TextBlock { Classes = { "au-md-code-text" }, Text = code, TextWrapping = TextWrapping.NoWrap };
+
+        var stack = new StackPanel { Classes = { "au-md-code-lines" } };
+        foreach (var line in lines)
+        {
+            stack.Children.Add(new AgentSyntaxLineView { MinHeight = 18, Tokens = SyntaxHighlightProvider.Tokenize(line, language) });
+        }
+
+        return stack;
+    }
+
+    private static Control Table(AgentMarkdownBlock block)
+    {
+        var rows = block.Rows ?? [];
+        var columns = rows.Count == 0 ? 0 : rows[0].Count;
+        var grid = new Grid();
+        for (var column = 0; column < columns; column++)
+            grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+        for (var row = 0; row < rows.Count; row++)
+        {
+            grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            // Each row is one band across every column, so the header shading and row rules read whole.
+            var band = new Border { Classes = { row == 0 ? "au-md-table-head" : "au-md-table-row" } };
+            Grid.SetRow(band, row);
+            Grid.SetColumnSpan(band, Math.Max(1, columns));
+            grid.Children.Add(band);
+            for (var column = 0; column < columns; column++)
+            {
+                var cell = Text(rows[row][column], [row == 0 ? "au-md-table-header-cell" : "au-md-table-cell"]);
+                cell.TextAlignment = block.Alignments?.ElementAtOrDefault(column) switch
+                {
+                    "center" => TextAlignment.Center,
+                    "right" => TextAlignment.Right,
+                    _ => TextAlignment.Left
+                };
+                Grid.SetRow(cell, row);
+                Grid.SetColumn(cell, column);
+                grid.Children.Add(cell);
+            }
+        }
+
+        return new Border
+        {
+            Classes = { "au-md-table" },
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Child = new ScrollViewer
+            {
+                HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+                VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+                Content = grid
+            }
+        };
     }
 
     private static TextBlock Text(IReadOnlyList<AgentMarkdownInline> inlines, string[] classes)

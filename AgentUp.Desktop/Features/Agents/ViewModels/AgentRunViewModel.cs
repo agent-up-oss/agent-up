@@ -11,6 +11,8 @@ public sealed class AgentRunViewModel : ReactiveObject
 {
     private bool _live = true;
     private bool? _expanded;
+    private DateTimeOffset? _startedAt;
+    private DateTimeOffset? _endedAt;
 
     public AgentRunViewModel()
     {
@@ -28,8 +30,24 @@ public sealed class AgentRunViewModel : ReactiveObject
     public bool ShowHeader => !_live && HasWork;
     public string Chevron => IsExpanded ? "▾" : "▸";
     public IReadOnlyList<AgentChatItemViewModel> WorkItems => Split().Work;
+
+    /// <summary>
+    /// The work log as drawn: each item, except that two or more finished reads, or searches, in a
+    /// row become one group row that opens to the individual calls.
+    /// </summary>
+    public IReadOnlyList<object> WorkEntries => AgentToolGroupViewModel.Group(WorkItems);
+
+    /// <summary>Records that an event for this run arrived at <paramref name="at"/>.</summary>
+    public void Touch(DateTimeOffset? at)
+    {
+        if (at is not { } time)
+            return;
+        _startedAt ??= time;
+        _endedAt = time;
+        this.RaisePropertyChanged(nameof(Summary));
+    }
     public AgentChatItemViewModel? Reply => Split().Reply;
-    public string Summary => AgentEventPresentationProvider.RunSummary(WorkItems.Select(item => item.Role));
+    public string Summary => AgentEventPresentationProvider.RunSummary(WorkItems.Select(item => item.Role), AgentToolCallProvider.Duration(_startedAt, _endedAt));
 
     public void Seal()
     {
@@ -82,6 +100,7 @@ public sealed class AgentRunViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(ShowHeader));
         this.RaisePropertyChanged(nameof(Chevron));
         this.RaisePropertyChanged(nameof(WorkItems));
+        this.RaisePropertyChanged(nameof(WorkEntries));
         this.RaisePropertyChanged(nameof(Reply));
         this.RaisePropertyChanged(nameof(Summary));
     }

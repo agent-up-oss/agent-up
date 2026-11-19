@@ -173,6 +173,8 @@ public static class DesktopAutomationIds
     public const string AgentReply = "agent.reply";
     public const string AgentCodeCopy = "agent.code.copy";
     public static string AgentToolCall(string toolCallId) => $"agent.tool.{toolCallId}";
+    public static string AgentToolGroup(string firstToolCallId) => $"agent.tool-group.{firstToolCallId}";
+    public const string AgentDiffShowAll = "agent.diff.show-all";
     public static string AgentThought(string id) => $"agent.thought.{id}";
     public static string AuditPage(int page) => $"audit.page.{page}";
     public static string AuditFilter(string kind) => $"audit.filter.{kind}";

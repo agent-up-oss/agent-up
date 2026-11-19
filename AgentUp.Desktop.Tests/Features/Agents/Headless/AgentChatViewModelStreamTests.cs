@@ -322,6 +322,34 @@ public sealed class AgentChatViewModelStreamTests
     }
 
     [AvaloniaTest]
+    public async Task Stream_givesASteeringTurnItsOwnReplyAfterTheTurnBeforeEnds()
+    {
+        var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fake = new StreamApiFake
+        {
+            EventsHang = hang,
+            Events =
+            [
+                Event(1, "user_message", """{"text":"Edit it"}"""),
+                Event(2, "user_message", """{"text":"Then show code","steering":true}"""),
+                Event(3, "session_update", """{"sessionUpdate":"agent_message_chunk","content":{"text":"Edited."}}"""),
+                Event(4, "prompt_result", """{"stopReason":"end_turn"}"""),
+                Event(5, "session_update", """{"sessionUpdate":"agent_message_chunk","content":{"text":"```ts\nconst port = 4000;\n```"}}"""),
+            ]
+        };
+        var view = new AgentChatViewModel(new AgentsController(new AgentChatService(fake)));
+
+        await view.LoadAsync("ws-1");
+        await WaitUntilAsync(() => view.Transcript.OfType<AgentRunViewModel>().Count() == 2);
+
+        var replies = view.Transcript.OfType<AgentRunViewModel>().Select(run => run.Reply?.Text).ToArray();
+        Assert.That(replies, Is.EqualTo(new[] { "Edited.", "```ts\nconst port = 4000;\n```" }));
+
+        hang.TrySetResult();
+        await view.LoadAsync(null);
+    }
+
+    [AvaloniaTest]
     public async Task Stream_reportsHttpFailuresWithoutStoppingTheLoopImmediately()
     {
         var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

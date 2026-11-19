@@ -279,7 +279,7 @@ public sealed class AgentChatViewModel : ReactiveObject
             Sessions.Clear();
             foreach (var saved in session.Sessions ?? [])
                 Sessions.Add(new AgentSessionRowViewModel(saved, IsCurrentSession(saved, session), session.State));
-            if (session.Agents.Count > 0)
+            if (session.Agents is { Count: > 0 })
             {
                 Agents.Clear();
                 foreach (var agent in session.Agents)
@@ -343,14 +343,31 @@ public sealed class AgentChatViewModel : ReactiveObject
             return;
         _lastSequence = item.Sequence;
         if (item.Type == "state") { Apply(item.Payload.Deserialize<AgentSessionDto>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true })); return; }
-        if (item.Type == "user_message") { AddUser(Text(item.Payload), IsSteering(item.Payload)); return; }
+        if (item.Type == "user_message")
+        {
+            var steering = IsSteering(item.Payload);
+            AddUser(Text(item.Payload), steering);
+            // A turn's time runs from the prompt, so the model's thinking before its first step counts.
+            if (!steering) _turnStartedAt = item.Timestamp;
+            return;
+        }
+        if (item.Type == "prompt_result")
+        {
+            // A finished turn closes its run. Steering that was queued meanwhile runs as the next
+            // turn with no prompt of its own, so it starts its own run, reply and timing here.
+            SealCurrentRun();
+            _turnStartedAt = item.Timestamp;
+            return;
+        }
         if (item.Type == "permission_request") { AddPermission(item.Payload); return; }
         if (item.Type == "permission_decision") { ClosePermission(item.Payload); return; }
         if (item.Type != "session_update") return;
-        ApplyPresented(AgentEventPresentationProvider.Present(AgentEventPresentationProvider.Unwrap(item.Payload)));
+        ApplyPresented(AgentEventPresentationProvider.Present(AgentEventPresentationProvider.Unwrap(item.Payload)), item.Timestamp);
     }
-    private void ApplyPresented(PresentedAgentUpdate presented)
+    private void ApplyPresented(PresentedAgentUpdate presented, DateTimeOffset? at = null)
     {
+        if (presented.Kind is "tool" or "message" or "plan")
+            CurrentRun().Touch(at);
         if (presented.Kind == "ignore") return;
         if (presented.Kind == "context")
         {
@@ -363,7 +380,7 @@ public sealed class AgentChatViewModel : ReactiveObject
             else if (presented.Compacting == false && _hintKind == "Compacting") { _hintKind = null; RefreshActivity(); }
             return;
         }
-        if (presented.Kind == "tool") { UpsertTool(presented); _hintKind = "Tool"; _hintTool = presented.Title ?? _hintTool; RefreshActivity(); return; }
+        if (presented.Kind == "tool") { UpsertTool(presented, at); _hintKind = "Tool"; _hintTool = presented.Title ?? _hintTool; RefreshActivity(); return; }
         if (presented.Kind == "plan")
         {
             var text = presented.Text ?? "";
@@ -374,12 +391,12 @@ public sealed class AgentChatViewModel : ReactiveObject
         }
         if (presented.Kind == "message" && !string.IsNullOrWhiteSpace(presented.Text) && presented.Role is not null)
         {
-            Append(presented.Role, presented.Text);
+            Append(presented.Role, presented.Text, at);
             _hintKind = presented.Role;
             RefreshActivity();
         }
     }
-    private void UpsertTool(PresentedAgentUpdate presented)
+    private void UpsertTool(PresentedAgentUpdate presented, DateTimeOffset? at = null)
     {
         var run = CurrentRun();
         var existing = run.Items.ToList().FindIndex(item => item.Role == "Tool" && item.ToolCallId == presented.ToolCallId);
@@ -399,7 +416,7 @@ public sealed class AgentChatViewModel : ReactiveObject
             previous.Status = status;
         }
 
-        previous.SetTool(presented.Title, presented.ToolKind, presented.RawInput, presented.Text, presented.Status);
+        previous.SetTool(presented, at);
     }
     /// <summary>
     /// Closes the open prompt once the Server says its request was decided - by this window, another
@@ -464,15 +481,22 @@ public sealed class AgentChatViewModel : ReactiveObject
             || error.Contains("Authentication required", StringComparison.OrdinalIgnoreCase)
             || error.Contains("-32000", StringComparison.Ordinal);
     }
-    private void Append(string role, string text)
+    private void Append(string role, string text, DateTimeOffset? at = null)
     {
         if (string.IsNullOrWhiteSpace(text)) return;
         var run = CurrentRun();
         var last = run.Items.LastOrDefault();
         if (last is { } item && item.Role == role && role is "Agent" or "Thought")
+        {
             item.Text += text;
+            item.Touch(at);
+        }
         else
-            run.Items.Add(new(role, text, displayRole: role == "Agent" ? SelectedAgentDisplayName : null));
+        {
+            var added = new AgentChatItemViewModel(role, text, displayRole: role == "Agent" ? SelectedAgentDisplayName : null);
+            added.Touch(at);
+            run.Items.Add(added);
+        }
     }
     private void RefreshActivity()
     {
@@ -513,11 +537,15 @@ public sealed class AgentChatViewModel : ReactiveObject
         && payload.TryGetProperty("steering", out var steering)
         && steering.ValueKind == JsonValueKind.True;
 
+    private DateTimeOffset? _turnStartedAt;
+
     private AgentRunViewModel CurrentRun()
     {
         if (_currentRun is not null)
             return _currentRun;
         _currentRun = new AgentRunViewModel();
+        _currentRun.Touch(_turnStartedAt);
+        _turnStartedAt = null;
         Transcript.Add(_currentRun);
         return _currentRun;
     }

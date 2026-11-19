@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { formatOutput, minimumFold, presentToolCall, previewLines, shorten } from './ToolCallProvider';
+import { durationBetween, formatOutput, minimumFold, presentToolCall, presentToolFacts, previewLines, shorten } from './ToolCallProvider';
 
 test('an Agent-Up MCP tool reads as its action with the Agent-Up source', () => {
   const view = presentToolCall('agent-up-orchestration_list_workspaces', 'other', undefined, undefined, 'pending');
@@ -44,4 +44,32 @@ test('a few lines of overflow are shown rather than folded', () => {
   const view = presentToolCall('x-y_z', undefined, undefined, lines, 'completed');
   assert.equal(view.hiddenLines, 0);
   assert.equal(view.output, lines);
+});
+
+test('durations under a second are not worth showing', () => {
+  const start = '2026-01-01T00:00:00.000Z';
+  assert.equal(durationBetween(start, '2026-01-01T00:00:00.400Z'), undefined);
+  assert.equal(durationBetween(start, '2026-01-01T00:00:04.600Z'), '5s');
+  assert.equal(durationBetween(start, '2026-01-01T00:02:05.000Z'), '2m 5s');
+  assert.equal(durationBetween(undefined, start), undefined);
+});
+
+test('a write is named a write and shows its content as a new file', () => {
+  const view = presentToolFacts({ name: 'write', title: 'notes.md', kind: 'edit', rawInput: '{"filePath":"/repo/notes.md","content":"a\\nb"}', output: 'Wrote file successfully.', status: 'completed' });
+  assert.equal(view.title, 'Write');
+  assert.equal(view.summary, '/repo/notes.md');
+  assert.deepEqual([view.diff?.added, view.diff?.removed], [2, 0]);
+});
+
+test('an edit prefers the unified diff over the replaced snippet', () => {
+  const unified = presentToolFacts({ name: 'edit', kind: 'edit', status: 'completed', unifiedDiff: '@@ -1,1 +1,1 @@\n-listen(3000)\n+listen(3001)', diffOldText: '3000', diffNewText: '3001' });
+  const snippet = presentToolFacts({ name: 'edit', kind: 'edit', status: 'completed', diffPath: '/repo/server.ts', diffOldText: '3000', diffNewText: '3001' });
+  assert.equal(unified.diff?.lines.find(line => line.kind === 'added')?.text, 'listen(3001)');
+  assert.equal(snippet.diff?.path, '/repo/server.ts');
+  assert.deepEqual(snippet.diff?.lines.map(line => line.text), ['3000', '3001']);
+});
+
+test('a read with empty visible content shows its raw output', () => {
+  const view = presentToolFacts({ name: 'read', kind: 'read', status: 'completed', output: '', rawOutput: 'file text' });
+  assert.equal(view.output, 'file text');
 });

@@ -1,16 +1,25 @@
+import { memo, useMemo } from 'react';
 import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { auBox, auText } from '@agent-up/design-system/native';
 import { monoFont } from './monoFont';
-import { parseMarkdown, type MarkdownBlock, type MarkdownInline } from '../providers/MarkdownProvider';
+import { blockKey, parseMarkdown, type MarkdownBlock, type MarkdownInline } from '../providers/MarkdownProvider';
+import { highlightLines, languageForFence } from '../providers/SyntaxProvider';
+import { SyntaxLine } from './SyntaxLine';
 
 /**
  * An agent's markdown drawn with the design system's transcript styles. Nested Text cannot take
  * padding in React Native, so inline code carries the catalog's text style and surface colour.
- * A link opens only when the person taps it.
+ * A link opens only when the person taps it. A streaming reply re-renders only the blocks a
+ * chunk changed: each block is memoised on its key, so the ones above the cursor stay put.
  */
 export function MarkdownView({ markdown }: { markdown: string }) {
-  return <View style={styles.stack}>{parseMarkdown(markdown).map((block, index) => <Block key={index} block={block} />)}</View>;
+  const blocks = useMemo(() => parseMarkdown(markdown).map(block => ({ block, key: blockKey(block) })), [markdown]);
+  return <View style={styles.stack}>{blocks.map((entry, index) => <MemoBlock key={index} blockKey={entry.key} block={entry.block} />)}</View>;
 }
+
+const MemoBlock = memo(function MemoBlock({ block }: { block: MarkdownBlock; blockKey: string }) {
+  return <Block block={block} />;
+}, (previous, next) => previous.blockKey === next.blockKey);
 
 function Block({ block }: { block: MarkdownBlock }) {
   switch (block.kind) {
@@ -27,14 +36,32 @@ function Block({ block }: { block: MarkdownBlock }) {
       return <View style={styles.codeStack}>
         {block.language ? <Text style={styles.codeLabel}>{block.language}</Text> : null}
         <ScrollView horizontal style={styles.codeBlock} contentContainerStyle={styles.codeContent}>
-          <Text style={styles.codeText} selectable>{block.code}</Text>
+          <Code code={block.code} language={block.language} />
         </ScrollView>
       </View>;
+    case 'table':
+      // React Native has no table layout, so the table is drawn a column at a time: every cell of
+      // a column shares that column's width, and one-line cells keep each row the same height.
+      return <ScrollView horizontal style={styles.table} testID="agent-md-table">
+        <View style={styles.tableColumns}>{block.rows[0]!.map((_, column) => <View key={column}>
+          {block.rows.map((row, rowIndex) => <View key={rowIndex} style={rowIndex === 0 ? styles.tableHead : styles.tableBody}>
+            <Text numberOfLines={1} style={[rowIndex === 0 ? styles.tableHeaderCell : styles.tableCell, { textAlign: block.alignments[column] ?? 'left' }]}>
+              <Inlines inlines={row[column] ?? []} />
+            </Text>
+          </View>)}
+        </View>)}</View>
+      </ScrollView>;
     case 'rule':
       return <View style={styles.rule} />;
     default:
       return <Text style={styles.paragraph} selectable><Inlines inlines={block.inlines} /></Text>;
   }
+}
+
+function Code({ code, language }: { code: string; language?: string }) {
+  const lines = highlightLines(code, languageForFence(language));
+  if (!lines) return <Text style={styles.codeText} selectable>{code}</Text>;
+  return <View>{lines.map((tokens, index) => <SyntaxLine key={index} tokens={tokens} textClass="mdCodeText" />)}</View>;
 }
 
 function Inlines({ inlines }: { inlines: MarkdownInline[] }) {
@@ -67,5 +94,17 @@ const styles = StyleSheet.create({
   italic: { fontStyle: 'italic' },
   inlineCode: { ...auText('mdInlineCode'), fontFamily: monoFont, backgroundColor: auBox('mdInlineCode').backgroundColor },
   link: { ...auText('mdLink'), textDecorationLine: 'underline' },
+  table: { ...auBox('mdTable'), flexGrow: 0, alignSelf: 'flex-start' },
+  tableColumns: { flexDirection: 'row' },
+  tableHead: auBox('mdTableHead'),
+  tableBody: auBox('mdTableRow'),
+  tableHeaderCell: { ...auText('mdTableHeaderCell'), ...cellBox('mdTableHeaderCell') },
+  tableCell: { ...auText('mdTableCell'), ...cellBox('mdTableCell') },
   rule: { height: StyleSheet.hairlineWidth, backgroundColor: auBox('mdQuote').borderLeftColor ?? undefined, marginVertical: 4 },
 });
+
+/** A cell's padding from its catalog box; Text takes padding, not borders or backgrounds. */
+function cellBox(name: 'mdTableHeaderCell' | 'mdTableCell') {
+  const box = auBox(name) as Record<string, unknown>;
+  return Object.fromEntries(Object.entries(box).filter(([key]) => key.startsWith('padding')));
+}

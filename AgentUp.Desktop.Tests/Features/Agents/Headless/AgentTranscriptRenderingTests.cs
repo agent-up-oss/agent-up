@@ -20,7 +20,8 @@ public sealed class AgentTranscriptRenderingTests
         var paragraph = (TextBlock)view.Children[1];
         var item = (Border)view.Children[2];
         var code = (StackPanel)view.Children[3];
-        var codeText = (TextBlock)((ScrollViewer)((Border)code.Children[1]).Child!).Content!;
+        var codeLines = (StackPanel)((ScrollViewer)((Border)code.Children[1]).Child!).Content!;
+        var tokens = ((AgentSyntaxLineView)codeLines.Children[0]).Children.OfType<TextBlock>().ToArray();
 
         Assert.That(heading.Classes, Does.Contain("au-md-heading"));
         Assert.That(paragraph.Inlines!.OfType<Run>().Select(run => run.Text), Is.EqualTo(new[] { "Run ", " npm test ", " on ", "main", "." }));
@@ -29,8 +30,8 @@ public sealed class AgentTranscriptRenderingTests
         var header = (Grid)code.Children[0];
         Assert.That(((TextBlock)header.Children[0]).Text, Is.EqualTo("bash"));
         Assert.That(((Button)header.Children[1]).Content, Is.EqualTo("Copy"));
-        Assert.That(codeText.TextWrapping, Is.EqualTo(TextWrapping.NoWrap));
-        Assert.That(codeText.Text, Is.EqualTo("npm test --watch=false"));
+        Assert.That(string.Concat(tokens.Select(token => token.Text)), Is.EqualTo("npm test --watch=false"));
+        Assert.That(tokens.All(token => token.Classes.Contains("au-md-code-text") && token.TextWrapping == TextWrapping.NoWrap), Is.True);
     }
 
     [AvaloniaTest]

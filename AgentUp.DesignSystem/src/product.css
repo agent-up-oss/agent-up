@@ -874,6 +874,29 @@
 .au-md-link {
   color: var(--au-color-text-info);
 }
+.au-md-table {
+  background: var(--au-color-transparent);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-md);
+}
+.au-md-table-row {
+  background: var(--au-color-transparent);
+  border-top: 1px solid var(--au-color-border-subtle);
+}
+.au-md-table-head {
+  background: var(--au-color-surface);
+}
+.au-md-table-header-cell {
+  padding: var(--au-space-2) var(--au-space-3);
+  color: var(--au-color-text-primary);
+  font-size: var(--au-font-size-ui-md);
+  font-weight: var(--au-weight-ui-strong);
+}
+.au-md-table-cell {
+  padding: var(--au-space-2) var(--au-space-3);
+  color: var(--au-color-text-secondary);
+  font-size: var(--au-font-size-ui-md);
+}
 
 /* Tool call: one quiet row per call - status, readable name, where the tool came from, and
  * the argument that matters. It opens to the input and a formatted, bounded output. */

@@ -1435,6 +1435,12 @@
         ]
       },
       {
+        "match": "AgentUp.Chat/fixtures/**",
+        "checks": [
+          "desktop"
+        ]
+      },
+      {
         "match": "AgentUp.Mobile.E2E/**",
         "checks": [
           "mobile-e2e-harness"

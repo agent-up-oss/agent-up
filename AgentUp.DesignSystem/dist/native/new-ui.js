@@ -1334,6 +1334,37 @@ export const newUiTheme = Object.freeze({
     mdLink: Object.freeze({
       color: "#8bb7ff",
     }),
+    mdTable: Object.freeze({
+      backgroundColor: "#00000000",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 8,
+    }),
+    mdTableRow: Object.freeze({
+      backgroundColor: "#00000000",
+      borderTopWidth: 1,
+      borderTopColor: "#ffffff14",
+    }),
+    mdTableHead: Object.freeze({
+      backgroundColor: "#121416",
+    }),
+    mdTableHeaderCell: Object.freeze({
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
+      color: "#f5fbf7",
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    mdTableCell: Object.freeze({
+      paddingTop: 8,
+      paddingRight: 12,
+      paddingBottom: 8,
+      paddingLeft: 12,
+      color: "#c2d2ca",
+      fontSize: 13,
+    }),
     toolCall: Object.freeze({
       paddingTop: 4,
       paddingRight: 8,

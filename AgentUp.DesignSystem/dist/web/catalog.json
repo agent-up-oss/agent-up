@@ -318,11 +318,16 @@
             "au-md-marker",
             "au-md-link",
             "au-md-quote",
+            "au-md-table",
+            "au-md-table-head",
+            "au-md-table-header-cell",
+            "au-md-table-row",
+            "au-md-table-cell",
             "au-md-code-label",
             "au-md-code-block",
             "au-md-code-text"
           ],
-          "html": "<div class=\"au-chat-reply\">\n        <span class=\"au-chat-reply-agent\">OpenCode</span>\n        <p class=\"au-md-heading\">Storefront banner</p>\n        <p class=\"au-md-paragraph\">I added <code class=\"au-md-inline-code\">PromoBanner.tsx</code> and wired it into the <strong>home page</strong>.</p>\n        <div class=\"au-md-list-item\"><span class=\"au-md-marker\">•</span> <span class=\"au-md-paragraph\">The banner reads its text from the CMS.</span></div>\n        <div class=\"au-md-list-item\"><span class=\"au-md-marker\">2.</span> <span class=\"au-md-paragraph\">See the <a class=\"au-md-link\" href=\"#\">design note</a>.</span></div>\n        <div class=\"au-md-quote\"><p class=\"au-md-paragraph\">Uncommitted in the working tree.</p></div>\n        <span class=\"au-md-code-label\">tsx</span>\n        <div class=\"au-md-code-block\"><pre class=\"au-md-code-text\">export function PromoBanner() {\n  return &lt;Banner tone=\"info\" /&gt;;\n}</pre></div>\n      </div>"
+          "html": "<div class=\"au-chat-reply\">\n        <span class=\"au-chat-reply-agent\">OpenCode</span>\n        <p class=\"au-md-heading\">Storefront banner</p>\n        <p class=\"au-md-paragraph\">I added <code class=\"au-md-inline-code\">PromoBanner.tsx</code> and wired it into the <strong>home page</strong>.</p>\n        <div class=\"au-md-list-item\"><span class=\"au-md-marker\">•</span> <span class=\"au-md-paragraph\">The banner reads its text from the CMS.</span></div>\n        <div class=\"au-md-list-item\"><span class=\"au-md-marker\">2.</span> <span class=\"au-md-paragraph\">See the <a class=\"au-md-link\" href=\"#\">design note</a>.</span></div>\n        <div class=\"au-md-quote\"><p class=\"au-md-paragraph\">Uncommitted in the working tree.</p></div>\n        <div class=\"au-md-table\">\n          <div class=\"au-md-table-head\"><span class=\"au-md-table-header-cell\">File</span><span class=\"au-md-table-header-cell\">Purpose</span></div>\n          <div class=\"au-md-table-row\"><span class=\"au-md-table-cell\">PromoBanner.tsx</span><span class=\"au-md-table-cell\">The banner component</span></div>\n        </div>\n        <span class=\"au-md-code-label\">tsx</span>\n        <div class=\"au-md-code-block\"><pre class=\"au-md-code-text\">export function PromoBanner() {\n  return &lt;Banner tone=\"info\" /&gt;;\n}</pre></div>\n      </div>"
         },
         {
           "id": "chat-run",

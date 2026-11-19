@@ -18,6 +18,9 @@ import {
   unwrapSessionUpdate,
   visibleText,
   mergeAgentSession,
+  groupWork,
+  thoughtLabel,
+  endTurn,
 } from './AgentEventPresentationProvider';
 import type { TranscriptItem, AgentSession } from '../models/AgentSession';
 
@@ -234,4 +237,31 @@ test('a permission decision closes only the prompt for the request it decided', 
 test('userMessageItem marks a message sent mid-turn as steering for the next turn', () => {
   assert.deepEqual(userMessageItem(7, { text: 'focus on tests', steering: true }), { id: '7', role: 'user', text: 'focus on tests', status: steeringStatus });
   assert.equal(userMessageItem(8, { text: 'hello' }).status, undefined);
+});
+
+test('consecutive finished reads fold into one row and a turn is timed from its prompt', () => {
+  const tool = (id: string, toolKind: string, path: string): TranscriptItem => ({ id, role: 'tool', toolCallId: id, toolKind, status: 'completed', text: path, rawInput: JSON.stringify({ filePath: path }) });
+  const entries = groupWork([tool('r1', 'read', 'a.ts'), tool('r2', 'read', 'b.ts'), tool('b', 'execute', 'x'), tool('r3', 'read', 'c.ts')], item => item.text);
+  assert.deepEqual(entries.map(entry => entry.type), ['group', 'item', 'item']);
+  assert.equal(entries[0]?.type === 'group' && entries[0].title, 'Read 2 files');
+  assert.equal(entries[0]?.type === 'group' && entries[0].summary, 'a.ts, b.ts');
+
+  let items = [userMessageItem(1, { text: 'Go' }, '2026-01-01T00:00:00Z')];
+  items = applyPresentedUpdate(items, '2', { kind: 'message', role: 'thought', text: 'Hm' }, '2026-01-01T00:00:10Z');
+  items = applyPresentedUpdate(items, '3', { kind: 'message', role: 'thought', text: 'm' }, '2026-01-01T00:00:14Z');
+  items = applyPresentedUpdate(items, '4', { kind: 'message', role: 'agent', text: 'Done' }, '2026-01-01T00:00:20Z');
+  const run = groupTranscript(items).find(block => block.type === 'run');
+  assert.equal(run?.type === 'run' && run.duration, '20s');
+  assert.equal(thoughtLabel(items[1]!, false), 'Thought for 4s');
+  assert.equal(thoughtLabel(items[1]!, true), 'Thinking');
+});
+
+test('a steering turn that follows with no prompt gets its own reply instead of joining the last one', () => {
+  let items = [userMessageItem(1, { text: 'Edit it' }, '2026-01-01T00:00:00Z'), userMessageItem(2, { text: 'Then show code', steering: true }, '2026-01-01T00:00:01Z')];
+  items = applyPresentedUpdate(items, '3', { kind: 'message', role: 'agent', text: 'Edited.' }, '2026-01-01T00:00:10Z');
+  items = endTurn(items, '2026-01-01T00:00:11Z');
+  items = applyPresentedUpdate(items, '5', { kind: 'message', role: 'agent', text: '```ts\nconst port = 4000;\n```' }, '2026-01-01T00:00:20Z');
+  const replies = groupTranscript(items).flatMap(block => block.type === 'reply' ? [block.item.text] : []);
+  assert.deepEqual(replies, ['Edited.', '```ts\nconst port = 4000;\n```']);
+  assert.deepEqual(endTurn([], 'x'), []);
 });

@@ -2240,6 +2240,46 @@
   <Style Selector="TextBlock.au-md-link">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextInfoBrush}"/>
   </Style>
+  <Style Selector="Border.au-md-table">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusMd}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-md-table">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="Border.au-md-table-row">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="BorderThickness" Value="0,1,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-md-table-row">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="Border.au-md-table-head">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-md-table-head">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+  </Style>
+  <Style Selector="Border.au-md-table-header-cell">
+    <Setter Property="Padding" Value="12,8"/>
+  </Style>
+  <Style Selector="TextBlock.au-md-table-header-cell">
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="Border.au-md-table-cell">
+    <Setter Property="Padding" Value="12,8"/>
+  </Style>
+  <Style Selector="TextBlock.au-md-table-cell">
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+  </Style>
   <Style Selector="Button.au-tool-call">
     <Setter Property="Padding" Value="8,4"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>

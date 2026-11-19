@@ -1,8 +1,29 @@
 using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using AgentUp.Desktop.Features.Agents.Models;
 
 namespace AgentUp.Desktop.Features.Agents.Providers;
+
+/// <summary>
+/// Everything an agent reported about one tool call, accumulated across its updates.
+/// <see cref="Name"/> is the first title the call carried, which is the tool's own name; later
+/// updates often retitle the call with the path it touched, which <see cref="Title"/> keeps.
+/// </summary>
+public sealed record AgentToolCallFacts(
+    string? Name,
+    string? Title,
+    string? Kind,
+    string? RawInput,
+    string? Output,
+    string? Status,
+    string? RawOutput = null,
+    string? UnifiedDiff = null,
+    string? DiffPath = null,
+    string? DiffOldText = null,
+    string? DiffNewText = null,
+    DateTimeOffset? StartedAt = null,
+    DateTimeOffset? EndedAt = null);
 
 /// <summary>How a tool call reads in the transcript, derived from what the agent reported.</summary>
 /// <param name="Title">The tool's readable name: "List workspaces", "Read", "Run".</param>
@@ -12,6 +33,8 @@ namespace AgentUp.Desktop.Features.Agents.Providers;
 /// <param name="Input">The full input, formatted, or null when there was none.</param>
 /// <param name="Output">The output's first lines, formatted, or null before there is any.</param>
 /// <param name="HiddenLines">How many output lines the preview leaves out.</param>
+/// <param name="Diff">What an edit or a new file changed, when the agent said.</param>
+/// <param name="Duration">How long the call took, once it took long enough to be worth saying.</param>
 public sealed record AgentToolCallView(
     string Title,
     string? Source,
@@ -20,7 +43,9 @@ public sealed record AgentToolCallView(
     string? Input,
     string? Output,
     int HiddenLines,
-    string? FullOutput);
+    string? FullOutput,
+    AgentDiff? Diff = null,
+    string? Duration = null);
 
 public static class AgentToolCallProvider
 {
@@ -62,12 +87,18 @@ public static class AgentToolCallProvider
     // Agent-Up's own MCP servers announce themselves under this prefix.
     private const string AgentUpPrefix = "agent-up-";
 
-    public static AgentToolCallView Present(string? title, string? kind, string? rawInput, string? output, string? status)
+    public static AgentToolCallView Present(string? title, string? kind, string? rawInput, string? output, string? status) =>
+        Present(new AgentToolCallFacts(title, title, kind, rawInput, output, status));
+
+    public static AgentToolCallView Present(AgentToolCallFacts facts)
     {
-        var input = ParseObject(rawInput);
-        var (name, source, server) = Name(title, kind);
-        var summary = Summary(input) ?? PathLikeTitle(title, kind) ?? server;
-        var formatted = Format(output);
+        var input = ParseObject(facts.RawInput);
+        var (name, source, server) = Name(facts.Name ?? facts.Title, facts.Kind);
+        if (name == "Edit" && IsWrite(input))
+            name = "Write";
+        var summary = Summary(input) ?? PathLikeTitle(facts.Title, facts.Kind) ?? FileLikeTitle(facts.Title, facts.Name) ?? server;
+        // Some tools put what they read in their raw output and leave the visible content empty.
+        var formatted = Format(string.IsNullOrWhiteSpace(facts.Output) ? facts.RawOutput : facts.Output);
         var lines = formatted?.Split('\n') ?? [];
         var folds = lines.Length - PreviewLines >= MinimumFold;
         var preview = folds ? string.Join('\n', lines.Take(PreviewLines)) : formatted;
@@ -75,12 +106,59 @@ public static class AgentToolCallProvider
             name,
             source,
             summary is null ? null : Shorten(summary),
-            State(status),
+            State(facts.Status),
             input is { } value && value.EnumerateObject().Any() ? JsonSerializer.Serialize(value, Pretty) : null,
             string.IsNullOrWhiteSpace(preview) ? null : preview,
             folds ? lines.Length - PreviewLines : 0,
-            string.IsNullOrWhiteSpace(formatted) ? null : formatted);
+            string.IsNullOrWhiteSpace(formatted) ? null : formatted,
+            Diff(facts, input),
+            Duration(facts.StartedAt, facts.EndedAt));
     }
+
+    /// <summary>
+    /// The edit's diff from the richest source the agent gave: a unified diff, then the old and
+    /// new text, then a new file's content.
+    /// </summary>
+    public static AgentDiff? Diff(AgentToolCallFacts facts, JsonElement? input)
+    {
+        if (!string.IsNullOrWhiteSpace(facts.UnifiedDiff))
+        {
+            var unified = AgentDiffProvider.FromUnified(facts.UnifiedDiff, facts.DiffPath);
+            if (unified.Lines.Count > 0)
+                return unified with { Path = facts.DiffPath ?? Summary(input) ?? unified.Path };
+        }
+
+        if (facts.DiffNewText is not null)
+            return AgentDiffProvider.FromTexts(facts.DiffOldText, facts.DiffNewText, facts.DiffPath);
+        if (IsWrite(input) && input!.Value.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.String)
+            return AgentDiffProvider.NewFile(content.GetString() ?? "", Summary(input));
+        return null;
+    }
+
+    /// <summary>A step is only worth timing once it took a second; quick tools say nothing.</summary>
+    public static string? Duration(DateTimeOffset? startedAt, DateTimeOffset? endedAt)
+    {
+        if (startedAt is not { } start || endedAt is not { } end)
+            return null;
+        var elapsed = end - start;
+        if (elapsed < TimeSpan.FromSeconds(1))
+            return null;
+        return elapsed < TimeSpan.FromMinutes(1)
+            ? $"{elapsed.TotalSeconds.ToString("0", CultureInfo.InvariantCulture)}s"
+            : $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
+    }
+
+    // A write carries the whole new content and no text to replace.
+    private static bool IsWrite(JsonElement? input) =>
+        input is { } value
+        && value.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.String
+        && !value.TryGetProperty("oldString", out _) && !value.TryGetProperty("old_string", out _);
+
+    // A completed call is often retitled with the file it touched, when the tool name was something else.
+    private static string? FileLikeTitle(string? title, string? name) =>
+        title is not null && name is not null && !string.Equals(title, name, StringComparison.Ordinal) && title.Contains('.') && !title.Contains(' ')
+            ? title
+            : null;
 
     /// <summary>
     /// The tool's readable name and its source. An MCP tool arrives as

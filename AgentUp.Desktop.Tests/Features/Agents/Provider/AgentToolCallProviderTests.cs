@@ -75,6 +75,40 @@ public sealed class AgentToolCallProviderTests
     }
 
     [Test]
+    public void Durations_under_a_second_are_not_worth_showing()
+    {
+        var start = DateTimeOffset.UnixEpoch;
+
+        Assert.That(AgentToolCallProvider.Duration(start, start.AddMilliseconds(400)), Is.Null);
+        Assert.That(AgentToolCallProvider.Duration(start, start.AddSeconds(4.6)), Is.EqualTo("5s"));
+        Assert.That(AgentToolCallProvider.Duration(start, start.AddSeconds(125)), Is.EqualTo("2m 5s"));
+        Assert.That(AgentToolCallProvider.Duration(null, start), Is.Null);
+    }
+
+    [Test]
+    public void A_write_is_named_a_write_and_shows_its_content_as_a_new_file()
+    {
+        var view = AgentToolCallProvider.Present(new AgentToolCallFacts("write", "notes.md", "edit", """{"filePath":"/repo/notes.md","content":"a\nb"}""", "Wrote file successfully.", "completed"));
+
+        Assert.That(view.Title, Is.EqualTo("Write"));
+        Assert.That(view.Summary, Is.EqualTo("/repo/notes.md"));
+        Assert.That(view.Diff!.Added, Is.EqualTo(2));
+        Assert.That(view.Diff.Removed, Is.Zero);
+    }
+
+    [Test]
+    public void An_edit_prefers_the_unified_diff_over_the_replaced_snippet()
+    {
+        var unified = "@@ -1,1 +1,1 @@\n-listen(3000)\n+listen(3001)";
+        var withUnified = AgentToolCallProvider.Present(new AgentToolCallFacts("edit", "server.ts", "edit", null, "ok", "completed", UnifiedDiff: unified, DiffOldText: "3000", DiffNewText: "3001"));
+        var snippetOnly = AgentToolCallProvider.Present(new AgentToolCallFacts("edit", "server.ts", "edit", null, "ok", "completed", DiffPath: "/repo/server.ts", DiffOldText: "3000", DiffNewText: "3001"));
+
+        Assert.That(withUnified.Diff!.Lines.Single(line => line.Kind == "added").Text, Is.EqualTo("listen(3001)"));
+        Assert.That(snippetOnly.Diff!.Path, Is.EqualTo("/repo/server.ts"));
+        Assert.That(snippetOnly.Diff.Lines.Select(line => line.Text), Is.EqualTo(new[] { "3000", "3001" }));
+    }
+
+    [Test]
     public void Output_that_is_not_json_is_kept_as_written()
     {
         Assert.That(AgentToolCallProvider.Format("{not json"), Is.EqualTo("{not json"));
