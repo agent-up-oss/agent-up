@@ -9,7 +9,7 @@ RUN chmod +x /tmp/install-runtime-tools.sh \
     && rm /tmp/install-runtime-tools.sh \
     && rm -rf /tmp/runtime-tools \
     && apt-get update \
-    && apt-get install -y --no-install-recommends xvfb libx11-6 libxtst6 xfonts-base xz-utils \
+    && apt-get install -y --no-install-recommends xvfb libx11-6 libxtst6 xfonts-base xz-utils bubblewrap \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /var/lib/agent-up /nix /home/app/.config/nix \
     && chown -R $APP_UID:$APP_UID /var/lib/agent-up /nix /home/app

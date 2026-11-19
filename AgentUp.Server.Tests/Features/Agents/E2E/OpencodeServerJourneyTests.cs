@@ -115,6 +115,48 @@ public sealed class OpencodeServerJourneyTests
     }
 
     /// <summary>
+    /// The same request from a dev reviewer, approved the same way, writes nothing: the Server
+    /// starts the reviewer's OpenCode with its clone mounted read-only, so the kernel refuses the
+    /// write whatever the agent or the person answering the prompt decides.
+    /// </summary>
+    [Test]
+    public async Task A_dev_reviewers_OpenCode_cannot_write_its_clone_even_when_allowed()
+    {
+        var inputs = OpencodeJourneyInputs.Read();
+        await using var server = await AgentUpServerProcess.StartAsync(inputs);
+        using var worktree = new JourneyWorktree();
+        await server.EnableOpencodeAsync(inputs.Endpoint, inputs.ApiKey);
+        var workspaceId = await server.RegisterAsync(worktree.Path);
+        using var member = await server.Http.PutAsJsonAsync($"api/workspaces/{workspaceId}/agent/member", new { kind = "DevReviewer" });
+
+        using var schedule = await server.Http.PostAsJsonAsync($"api/workspaces/{workspaceId}/agent", new { agent = "opencode" });
+        Assert.That(schedule.StatusCode, Is.EqualTo(HttpStatusCode.OK), await schedule.Content.ReadAsStringAsync());
+        await using var events = await AgentEventStream.OpenAsync(server.Http, workspaceId);
+        await events.WaitForAsync("state", payload => payload["state"]?.GetValue<string>() == "ready", TurnBudget, server);
+        var allowed = 0;
+        for (var attempt = 0; attempt < Prompts.Length && allowed == 0; attempt++)
+        {
+            using var prompt = await server.Http.PostAsJsonAsync(
+                $"api/workspaces/{workspaceId}/agent/messages",
+                new { message = Prompts[attempt] });
+            var next = await events.WaitForFirstAsync(["permission_request", "prompt_result"], TurnBudget, server);
+            if (next.Type != "permission_request")
+                continue;
+            using var decide = await server.Http.PostAsJsonAsync(
+                $"api/workspaces/{workspaceId}/agent/permissions",
+                new { requestId = next.Payload["requestId"]!.GetValue<string>(), optionId = "once" });
+            allowed++;
+            await events.WaitForAsync("prompt_result", _ => true, TurnBudget, server);
+        }
+
+        Assert.That(member.StatusCode, Is.EqualTo(HttpStatusCode.OK), await member.Content.ReadAsStringAsync());
+        Assert.That(allowed, Is.EqualTo(1), $"OpenCode never asked to write in {Prompts.Length} prompts. Seen: {string.Join(", ", events.Seen)}");
+        Assert.That(File.Exists(System.IO.Path.Join(worktree.Path, "result.txt")), Is.False, "A dev reviewer's clone is read-only.");
+        Assert.That(events.ToolUpdates.Any(update => update["status"]?.GetValue<string>() == "failed"), Is.True,
+            "OpenCode reports the refused write as a failed tool call.");
+    }
+
+    /// <summary>
     /// What Desktop and Chat draw an edit's diff from: the written content in the input, ACP's diff
     /// content item, or the unified diff in the tool's metadata.
     /// </summary>

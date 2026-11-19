@@ -63,8 +63,10 @@ Autonomy is experimental and off by default. Enablement persists on the Server; 
 Every workspace on a Server is one team member, and each has its own checkout and its own running applications.
 
 - **Author** writes code with Claude, Codex, or Cursor. It can read and change the repository and use the browser.
-- **Dev reviewer** reviews code with the same coding agents. It can read the repository but cannot change it or use the browser.
+- **Dev reviewer** reviews code with the same coding agents. It can read the repository but cannot change it or use the browser. Its checkout is read-only to the agent, so a change fails even if someone allows it.
 - **PM reviewer** reviews the product. It never sees the code: it uses the running application through the browser, takes screenshots, and reports what a user would notice.
+
+Coding agents run in a sandbox. They see their own checkout and their tools, never the Server's settings or another workspace. The Server needs bubblewrap for this. It is included when the Server runs from its Nix shell, the NixOS module, or the container image. On other Linux hosts, install the `bubblewrap` package.
 
 Only reviewers submit reviews, so only their comments become threads an author must address. A PM reviewer runs on a local Ollama-compatible model the Server talks to directly. Set `AGENTUP_OLLAMA_MODEL` on the Server, and `AGENTUP_OLLAMA_URL` when the model is not at `http://127.0.0.1:11434`, then choose **Ollama (in-process)** for that workspace.
 

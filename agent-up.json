@@ -311,7 +311,7 @@
       },
       "server": {
         "requires": ["dotnet"],
-        "command": "dotnet test AgentUp.Server.Tests --filter Category!=LoopInference&Category!=LoopSoak&Category!=OpencodeInference&Category!=ForgejoE2E --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
+        "command": "dotnet test AgentUp.Server.Tests --filter Category!=LoopInference&Category!=LoopSoak&Category!=OpencodeInference&Category!=AgentSandboxE2E&Category!=ForgejoE2E --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
         "tier": "fast",
         "inputs": [
           "AgentUp.Server",
@@ -430,6 +430,18 @@
           "AgentUp.Server.Tests",
           "AgentUp.TestAgents",
           "AgentUp.TestAgents.Tests"
+        ]
+      },
+      "agent-sandbox": {
+        "requires": ["dotnet", "nix"],
+        "command": "./.github/scripts/run-agent-sandbox-e2e.sh",
+        "tier": "slow",
+        "platforms": [
+          "linux"
+        ],
+        "inputs": [
+          "AgentUp.Server",
+          "AgentUp.Server.Tests"
         ]
       },
       "opencode-inference": {
@@ -981,6 +993,7 @@
           "cross-product-e2e",
           "loop-inference",
           "opencode-inference",
+          "agent-sandbox",
           "loop-scripted",
           "loop-soak",
           "patch-coverage"
@@ -1004,6 +1017,7 @@
           "server",
           "loop-inference",
           "opencode-inference",
+          "agent-sandbox",
           "loop-scripted",
           "loop-soak",
           "patch-coverage"
@@ -1408,6 +1422,7 @@
           "test-agents",
           "loop-inference",
           "opencode-inference",
+          "agent-sandbox",
           "loop-scripted",
           "patch-coverage"
         ]

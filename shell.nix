@@ -9,6 +9,8 @@ pkgs.mkShell {
   # zip and unzip are used by mobile IPA artifact verification.
   buildInputs = with pkgs; [
     nodejs_22
+    # The Server confines every ACP agent with bubblewrap; it refuses to start one without it.
+    bubblewrap
     zip
     unzip
     alsa-lib

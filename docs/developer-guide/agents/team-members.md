@@ -36,6 +36,25 @@ Every enforcement point reads `TeamMemberGrants`; none restates the rule.
 - **Forge reviews.** `ForgeService.SubmitReviewAsync` refuses an `Author` workspace; `POST .../forge/reviews` answers `403`. REST, an in-process agent, and any later caller meet the same check.
 - **MCP.** A session pinned to a workspace by a `workspace` claim is narrowed to the member's operation permissions after the token, workspace, and role narrowings. Each narrowing only removes.
 - **Changing kind.** Refused while autonomy is active, while the bound agent is the wrong fixture, or while a stored policy rule exceeds the new grant.
+- **Linux.** Every ACP agent starts inside bubblewrap through `IAgentSandbox`, so the grant holds even for an agent that never asks permission. See below.
+
+## Agent sandbox
+
+The Server runs inside its Nix shell, which supplies bubblewrap. `BubblewrapAgentSandboxProvider` wraps each ACP launch, and `AgentSandboxLayout` decides the view from the member's grant. The view is an allowlist; anything not listed is absent.
+
+| Path | Author | Dev reviewer |
+|---|---|---|
+| `/usr`, `/etc`, `/lib*`, `/bin`, `/opt` | read-only | read-only |
+| `/nix` | read-only, daemon socket writable | read-only, daemon socket writable |
+| Server PATH entries, capability shells, `DOTNET_ROOT`, the agent's package | read-only | read-only |
+| Agent CLI home under the data directory | writable | writable |
+| Its clone | writable | read-only |
+| Its `.git` (both directories of a linked worktree) | read-only | read-only |
+| The rest of the data directory, other clones, the service account's home | absent | absent |
+
+A single-user Nix install has no daemon, so there `/nix` is writable for `nix shell`. The agent also gets a private `/tmp`, its own PID, IPC, and UTS namespaces, and no capabilities. Its environment is cleared to a short allowlist (locale, proxy, certificate, and Nix variables, `PATH`, `DOTNET_ROOT`) plus what the Server sets for it, so `AGENTUP_ADMIN_PASSWORD` and other Server secrets never reach it.
+
+A host without bubblewrap fails the session start with that cause. Running the agent with the Server's own permissions instead would let a reviewer write the clone. In a container, bubblewrap needs unprivileged user namespaces; Ubuntu 24.04 hosts may need `kernel.apparmor_restrict_unprivileged_userns=0`.
 
 ## In-process agent
 

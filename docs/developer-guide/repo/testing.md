@@ -127,6 +127,12 @@ the way a client does, including an Agent-Up MCP tool call and steering sent mid
 journey also requires OpenCode to report the written content in a form the transcript can draw as
 a diff. It is `slow` and `ciOnly`, and kept out of the same suites.
 
+`Category=AgentSandboxE2E` starts a shell through the agent sandbox with real bubblewrap and
+requires the kernel to refuse what the member may not do. `run-agent-sandbox-e2e.sh` supplies
+bubblewrap from Nix. It is `slow`, needs `nix`, and is kept out of the same suites. The OpenCode
+journeys put bubblewrap on the published Server's PATH, and one requires a dev reviewer's OpenCode
+to fail a write a person allowed.
+
 A recorded session is the fast regression for that live path.
 `AgentUp.Chat/fixtures/opencode-cpu-session.jsonl` is a real OpenCode session against the CPU
 model. Desktop's `AgentGoldenTranscriptTests` and Chat's `GoldenTranscript.test.ts` replay it

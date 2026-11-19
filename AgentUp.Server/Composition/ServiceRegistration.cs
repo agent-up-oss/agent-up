@@ -214,6 +214,10 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<TeamMemberService>();
         builder.Services.AddSingleton<TeamMemberController>();
         builder.Services.AddSingleton<IInProcessToolHost, InProcessAgentToolService>();
+        builder.Services.AddSingleton<IAgentSandbox>(provider => new BubblewrapAgentSandboxProvider(
+            provider.GetRequiredService<AgentCliHomeProvider>(),
+            dataDir,
+            provider.GetService<IAgentRuntimePathProvider>()));
         builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
         builder.Services.AddSingleton<AgentEventFrameProvider>();
         builder.Services.AddSingleton<AgentEventService>();
