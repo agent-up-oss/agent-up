@@ -28,6 +28,10 @@ public sealed class DeclaredPermissionPolicy(IReadOnlyList<PermissionRule> rules
     {
         var title = ReadTitle(request);
         var kind = ReadToolKind(request);
+        // ACP's fetch kind is reaching something over the network. An in-process agent sends
+        // every host tool call as fetch, so it must win over a tool title that mentions reading.
+        if (kind.Equals("fetch", StringComparison.OrdinalIgnoreCase))
+            return PermissionRuleKind.Network;
         if (kind.Contains("read", StringComparison.OrdinalIgnoreCase)
             || title.Contains("read", StringComparison.OrdinalIgnoreCase))
             return PermissionRuleKind.WorktreeRead;

@@ -89,6 +89,10 @@ An agent writes down a product decision with `train_record_decision` on `/mcp/tr
 
 Verdicts come back through the same space. `train_list_decisions` and `train_get_decision` carry the product owner's verdict and note as soon as they give it, so read the decisions recorded for the area before deciding in it again: `good` is how the owner wants this product built, `bad` is a call not to repeat. The Server serves the same backlog to Desktop's command center and Mobile's **Train** tab over `api/training/*`, and exports the judged decisions as JSONL for post-training.
 
+## Team members
+
+Each workspace is one team member: `Author`, `DevReviewer`, or `PmReviewer`. The kind fixes repository read and write, browser control, and who may submit reviews. Authors and dev reviewers run ACP coding CLIs; PM reviewers run the in-process `ollama` agent, which reaches the workspace only through pinned Agent-Up MCP tools. The contract is on Team members.
+
 ## Loop coverage
 
 CI runs the Server loop kernel against a locally-inferring ACP test agent on CPU llama.cpp. Hard invariants fail the run. Pooled task-completion outcomes are compared to a versioned baseline. Scenario files under `loop-coverage/` do not name an agent, so the same prompts can drive CPU inference and `test-agent-scripted`. Concurrency and restart for at least three autonomous workspaces stay in the normal E2E tier. A separate soak check drains hundreds of scripted tasks.
