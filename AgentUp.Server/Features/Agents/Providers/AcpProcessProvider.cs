@@ -128,13 +128,29 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
         }
     }
 
+    /// <summary>
+    /// A JSON-RPC error as the person reads it: the agent's own message, with the code kept at
+    /// the end because sign-in detection matches on it. An error with no message stays raw.
+    /// </summary>
+    public static string ErrorText(JsonElement error)
+    {
+        if (error.ValueKind != JsonValueKind.Object
+            || !error.TryGetProperty("message", out var message)
+            || message.ValueKind != JsonValueKind.String
+            || string.IsNullOrWhiteSpace(message.GetString()))
+            return error.ToString();
+        return error.TryGetProperty("code", out var code) && code.ValueKind == JsonValueKind.Number
+            ? $"{message.GetString()} (ACP error {code.GetRawText()})"
+            : message.GetString()!;
+    }
+
     private async Task DispatchAsync(JsonElement message, CancellationToken cancellationToken)
     {
         if (message.TryGetProperty("id", out var idElement) && !message.TryGetProperty("method", out _))
         {
             var id = idElement.GetInt64();
             if (!_pending.TryGetValue(id, out var completion)) return;
-            if (message.TryGetProperty("error", out var error)) completion.TrySetException(new InvalidOperationException(error.ToString()));
+            if (message.TryGetProperty("error", out var error)) completion.TrySetException(new InvalidOperationException(ErrorText(error)));
             else if (message.TryGetProperty("result", out var result)) completion.TrySetResult(result.Clone());
             else completion.TrySetException(new InvalidOperationException("The ACP agent returned a response without a result."));
             return;

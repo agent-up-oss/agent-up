@@ -340,11 +340,36 @@ public sealed class AgentSchedulingServiceTests
         Assert.That(codex.DisplayName, Is.EqualTo("Codex"));
     }
 
-    private async Task<AgentDescriptor> DescribeAsync(FakeEnabledCapabilityPackages packages, string agent)
+    [Test]
+    public async Task GetAsync_reportsTheCapabilityGapEvenWhenACommandOverrideResolves()
     {
+        // A configured executable is not a reason to offer an agent whose capability is off or
+        // unconfigured: the override replaces only the binary, and the Server would refuse to start it.
+        var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
+        var disabled = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
+            .WithReadiness(new CapabilityReadinessDto("codex", "Codex", false, [], []));
+        var unconfigured = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
+            .WithReadiness(new CapabilityReadinessDto("codex", "Codex", true, [], ["Endpoint"]));
+        var ready = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
+            .WithReadiness(new CapabilityReadinessDto("codex", "Codex", true, [], []));
+
+        var off = await DescribeAsync(disabled, "codex", ("Agents:Codex:Command", command));
+        var needsSettings = await DescribeAsync(unconfigured, "codex", ("Agents:Codex:Command", command));
+        var runnable = await DescribeAsync(ready, "codex", ("Agents:Codex:Command", command));
+
+        Assert.That((off.Available, off.Unavailability), Is.EqualTo((false, AgentUnavailability.CapabilityNotEnabled)));
+        Assert.That((needsSettings.Available, needsSettings.Unavailability), Is.EqualTo((false, AgentUnavailability.SettingsRequired)));
+        Assert.That(runnable.Available, Is.True);
+    }
+
+    private async Task<AgentDescriptor> DescribeAsync(FakeEnabledCapabilityPackages packages, string agent, params (string Key, string Value)[] settings)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(settings.Select(setting => new KeyValuePair<string, string?>(setting.Key, setting.Value)))
+            .Build();
         var service = new AgentSchedulingService(
             new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
-            new AgentCommandProvider(new ConfigurationBuilder().Build(), packages),
+            new AgentCommandProvider(configuration, packages),
             _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
             _payloads, _events, NullLogger<AgentSchedulingService>.Instance, packages);
         try

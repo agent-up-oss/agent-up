@@ -877,7 +877,10 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         var developmentAgent = agentId.Equals(AgentUnavailability.ScriptedTestAgent, StringComparison.OrdinalIgnoreCase);
         var displayName = module?.Identity.DisplayName ?? DisplayName(agentId);
         var supportsPermissionRequests = module?.SupportsPermissionRequests ?? true;
-        if (await commands.IsAvailableAsync(agentId, cancellationToken))
+        // An agent with no capability behind it is offered whenever its command resolves. One
+        // that has a capability is offered only once that capability can run: a configured
+        // command override replaces the binary, not the capability's own gate.
+        if (readiness is null && await commands.IsAvailableAsync(agentId, cancellationToken))
             return new AgentDescriptor(agentId, true, displayName, supportsPermissionRequests);
 
         if (readiness is { Available: false })
@@ -915,6 +918,9 @@ public sealed class AgentSchedulingService : IAsyncDisposable
                 AgentUnavailability.SettingsRequiredDetail(displayName, readiness.MissingSettings),
                 AgentUnavailability.SettingsRequiredRemedy(displayName));
         }
+
+        if (readiness is not null && await commands.IsAvailableAsync(agentId, cancellationToken))
+            return new AgentDescriptor(agentId, true, displayName, supportsPermissionRequests);
 
         return new AgentDescriptor(
             agentId,
