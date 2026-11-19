@@ -35,11 +35,12 @@ public sealed class ChatCompletionReader
     {
         try
         {
-            var node = JsonNode.Parse(json);
-            var name = node?["name"]?.GetValue<string>();
+            // The tag pattern only captures an object, so a parse that succeeds is never null.
+            var node = JsonNode.Parse(json)!;
+            var name = node["name"]?.GetValue<string>();
             if (string.IsNullOrWhiteSpace(name) || !offeredTools.Contains(name))
                 return null;
-            var arguments = node?["arguments"] switch
+            var arguments = node["arguments"] switch
             {
                 JsonObject value => value.ToJsonString(),
                 JsonValue value when value.TryGetValue<string>(out var text) => text,
