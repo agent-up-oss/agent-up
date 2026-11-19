@@ -142,6 +142,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<SelfHostedEntitlementsProvider>();
         builder.Services.AddSingleton<EntitlementsService>();
         builder.Services.AddTransient<IMcpNetworkRestrictionMiddleware, McpNetworkRestrictionMiddleware>();
+        builder.Services.AddTransient<IAgentMcpSessionMiddleware, AgentMcpSessionMiddleware>();
         var mcpRemoteAccess = new McpRemoteAccessProvider(builder.Configuration);
         var mcpResourceMetadata = new McpProtectedResourceMetadataProvider(builder.Configuration);
         builder.Services.AddSingleton(mcpRemoteAccess);
@@ -223,6 +224,8 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<AgentEventService>();
         builder.Services.AddSingleton<IAgentSessionRepository>(_ => new AgentSessionRepository(dataDir));
         builder.Services.AddSingleton<AgentMcpServerProvider>();
+        builder.Services.AddSingleton<AgentMcpSessionService>();
+        builder.Services.AddSingleton<AgentMcpSessionController>();
         builder.Services.AddSingleton<AgentSchedulingService>();
         builder.Services.AddSingleton<AgentsController>();
         builder.Services.AddSingleton<LoopInvariantGuard>();

@@ -29,6 +29,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     private readonly IAgentWorkspaceSettingsRepository? settings;
     private readonly IHostEnvironment? host;
     private readonly AgentMcpServerProvider? mcp;
+    private readonly AgentMcpSessionService? mcpSessions;
     private readonly ConcurrentDictionary<string, AgentSessionState> _sessions = new();
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _lifecycleGates = new();
     private IReadOnlyList<AgentDescriptor> _descriptors;
@@ -48,7 +49,8 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         IAgentSessionRepository? sessionRepository = null,
         IAgentWorkspaceSettingsRepository? settings = null,
         IHostEnvironment? host = null,
-        AgentMcpServerProvider? mcp = null)
+        AgentMcpServerProvider? mcp = null,
+        AgentMcpSessionService? mcpSessions = null)
     {
         this.workspaces = workspaces;
         this.processes = processes;
@@ -68,6 +70,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         this.settings = settings;
         this.host = host;
         this.mcp = mcp;
+        this.mcpSessions = mcpSessions;
         workspaces.WorkspaceRemoved += HandleWorkspaceRemoved;
     }
 
@@ -450,6 +453,8 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         if (!initialized.TryGetProperty("protocolVersion", out var version) || version.GetInt32() != 1)
             throw new InvalidOperationException("The configured agent does not support ACP protocol version 1.");
         state.SupportsHttpMcp = AgentMcpServerProvider.SupportsHttp(initialized);
+        if (state.SupportsHttpMcp)
+            state.McpSessionToken = mcpSessions?.Issue(workspaceId);
         var advertised = payloads.AuthMethods(initialized);
         var subscription = auth.KeepSubscription(advertised);
         state.AuthMethods = subscription.Count > 0 ? subscription : advertised.Count > 0 ? auth.Defaults(state.Agent) : state.AuthMethods;
@@ -489,7 +494,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
 
     /// <summary>Agent-Up's own MCP servers, offered to an agent that can reach them over HTTP.</summary>
     private IReadOnlyList<object> McpServers(AgentSessionState state) =>
-        mcp?.Servers(state.SupportsHttpMcp) ?? [];
+        mcp?.Servers(state.SupportsHttpMcp, state.McpSessionToken) ?? [];
 
     private static string ReadSessionId(JsonElement session)
     {
@@ -704,6 +709,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     private async Task<AgentActionResult> StopCoreAsync(string workspaceId, CancellationToken cancellationToken)
     {
         if (!_sessions.TryRemove(workspaceId, out var state)) return AgentActionResult.NotFound();
+        mcpSessions?.Revoke(workspaceId);
         state.Lifetime.Cancel();
         foreach (var permission in state.Permissions.Values) permission.Completion.TrySetCanceled(cancellationToken);
         string? error = null;

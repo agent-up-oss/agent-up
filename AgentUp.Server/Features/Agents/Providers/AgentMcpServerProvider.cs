@@ -27,11 +27,25 @@ public sealed class AgentMcpServerProvider(IConfiguration configuration, IServer
         && mcp.TryGetProperty("http", out var http)
         && http.ValueKind == JsonValueKind.True;
 
-    /// <summary>The <c>mcpServers</c> value for <c>session/new</c> and <c>session/load</c>.</summary>
-    public IReadOnlyList<object> Servers(bool httpSupported)
+    /// <summary>
+    /// The header that carries an agent session's credential. Spelled here rather than read from
+    /// the Authentication slice so the Agents slice does not depend on its internals; the two are
+    /// held equal by a test.
+    /// </summary>
+    public const string SessionHeader = "X-Agent-Up-Agent-Session";
+
+    /// <summary>
+    /// The <c>mcpServers</c> value for <c>session/new</c> and <c>session/load</c>. With a session
+    /// credential every server carries it, so the endpoints pin the agent to its own workspace and
+    /// narrow it to that workspace's team member grant.
+    /// </summary>
+    public IReadOnlyList<object> Servers(bool httpSupported, string? sessionToken = null)
     {
         if (!httpSupported)
             return [];
+        object[] headers = string.IsNullOrEmpty(sessionToken)
+            ? []
+            : [new { name = SessionHeader, value = sessionToken }];
         var baseUrl = LoopbackBaseUrl();
         return Endpoints
             .Select(name => (object)new
@@ -39,7 +53,7 @@ public sealed class AgentMcpServerProvider(IConfiguration configuration, IServer
                 type = "http",
                 name = $"agent-up-{name}",
                 url = $"{baseUrl}/mcp/{name}",
-                headers = Array.Empty<object>()
+                headers
             })
             .ToArray();
     }

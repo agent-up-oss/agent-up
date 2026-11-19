@@ -49,7 +49,7 @@ export AGENTUP_OPENCODE_INFERENCE_API_KEY="$api_key"
 export AGENTUP_OPENCODE_INFERENCE_SERVER="$server/AgentUp.Server.dll"
 
 # The published Server confines OpenCode with bubblewrap, so it has to be on its PATH, exactly as
-# it is in the Server's own Nix shell. See run-agent-sandbox-e2e.sh for the AppArmor note.
+# it is in the Server's own Nix shell. See run-agent-e2e.sh for the AppArmor note.
 if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ] && command -v sudo >/dev/null; then
   sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 fi

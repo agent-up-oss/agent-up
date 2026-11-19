@@ -34,7 +34,7 @@ Every enforcement point reads `TeamMemberGrants`; none restates the rule.
 - **Binding.** Binding, scheduling, or resuming an agent of the other fixture is refused with a typed error naming the member kind.
 - **Permission policy.** `PUT .../agent/policy` refuses an allow rule outside the grant. A member that cannot write may allow only named `Execute` commands, because an unscoped command can write the worktree. A PM may allow only `Network`.
 - **Forge reviews.** `ForgeService.SubmitReviewAsync` refuses an `Author` workspace; `POST .../forge/reviews` answers `403`. REST, an in-process agent, and any later caller meet the same check.
-- **MCP.** A session pinned to a workspace by a `workspace` claim is narrowed to the member's operation permissions after the token, workspace, and role narrowings. Each narrowing only removes.
+- **MCP.** A session pinned to a workspace by a `workspace` claim is narrowed to the member's operation permissions after the token, workspace, and role narrowings. Each narrowing only removes. An ACP agent is pinned the same way through the session credential its offered MCP servers carry, which also carries the member's permissions for the endpoint floors.
 - **Changing kind.** Refused while autonomy is active, while the bound agent is the wrong fixture, or while a stored policy rule exceeds the new grant.
 - **Linux.** Every ACP agent starts inside bubblewrap through `IAgentSandbox`, so the grant holds even for an agent that never asks permission. See below.
 

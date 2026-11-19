@@ -8,7 +8,7 @@ namespace AgentUp.Server.Tests.Features.Agents.E2E;
 /// Real bubblewrap, real Linux mounts: a shell started exactly the way the Server starts an ACP
 /// agent tries what a member must not do, and the kernel refuses it. Requires <c>bwrap</c> on
 /// PATH, which the Server's Nix shell provides; a host without it fails rather than skips.
-/// CI runs this through <c>.github/scripts/run-agent-sandbox-e2e.sh</c>.
+/// CI runs this through <c>.github/scripts/run-agent-e2e.sh</c>.
 /// </summary>
 [TestFixture]
 [Category("AgentSandboxE2E")]

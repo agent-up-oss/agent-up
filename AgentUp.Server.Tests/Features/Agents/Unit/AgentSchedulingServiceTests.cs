@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using AgentUp.Server.Features.Capabilities.DTOs;
 using System.Text.Json;
 using AgentUp.Sdk.Common;
@@ -693,6 +694,32 @@ public sealed class AgentSchedulingServiceTests
         await service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
 
         Assert.That(_process.SessionNewParameters.Single(), Does.Contain("http://127.0.0.1:5001/mcp/orchestration").And.Contain("\"type\":\"http\""));
+    }
+
+    [Test]
+    public async Task ScheduleAsync_givesTheAgentAnMcpCredentialForItsOwnWorkspaceAndStopRevokesIt()
+    {
+        _process = new FakeAgentProcessProvider { AdvertiseHttpMcp = true };
+        var credentials = new AgentMcpSessionService();
+        await using var service = new AgentSchedulingService(
+            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process), _commands,
+            _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
+            _payloads, _events, NullLogger<AgentSchedulingService>.Instance, null, _sessions,
+            mcp: new AgentMcpServerProvider(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["urls"] = "http://0.0.0.0:5001" }).Build()),
+            mcpSessions: credentials);
+
+        await service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        var offered = JsonNode.Parse(_process.SessionNewParameters.Single())!["mcpServers"]![0]!["headers"]![0]!;
+        var token = offered["value"]!.GetValue<string>();
+        var before = credentials.WorkspaceFor(token);
+        await service.StopAsync(_workspace.Id, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(offered["name"]!.GetValue<string>(), Is.EqualTo(AgentMcpServerProvider.SessionHeader));
+            Assert.That(before, Is.EqualTo(_workspace.Id));
+            Assert.That(credentials.WorkspaceFor(token), Is.Null, "A stopped agent's credential stops working.");
+        });
     }
 
     [Test]

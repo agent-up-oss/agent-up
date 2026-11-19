@@ -23,6 +23,16 @@ public sealed class AgentMcpServerProviderTests
     }
 
     [Test]
+    public void Servers_carry_the_agent_sessions_credential_on_every_endpoint()
+    {
+        var servers = JsonSerializer.SerializeToElement(Provider("http://localhost:5001").Servers(httpSupported: true, sessionToken: "token-1"));
+
+        Assert.That(
+            servers.EnumerateArray().Select(server => server.GetProperty("headers")[0].GetProperty("value").GetString()),
+            Has.All.EqualTo("token-1"));
+    }
+
+    [Test]
     public void Servers_offers_nothing_to_an_agent_without_http_mcp()
     {
         Assert.That(Provider("http://localhost:5001").Servers(httpSupported: false), Is.Empty);

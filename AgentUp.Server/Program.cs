@@ -29,6 +29,8 @@ app.UseSwaggerUI();
 app.UseWebSockets();
 app.UseCors(AgentUp.Server.Shared.Providers.WebClientOriginProvider.PolicyName);
 app.UseAuthentication();
+// An ACP agent's session credential binds it to its own workspace before the MCP decisions run.
+app.UseMiddleware<IAgentMcpSessionMiddleware>();
 // The MCP network restriction runs after authentication so an opted-in remote caller has
 // already been identified when the 404-or-continue decision is made.
 app.UseMiddleware<IMcpNetworkRestrictionMiddleware>();

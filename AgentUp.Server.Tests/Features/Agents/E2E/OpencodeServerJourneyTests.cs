@@ -165,6 +165,109 @@ public sealed class OpencodeServerJourneyTests
         || update["content"]?.AsArray().Any(item => item?["type"]?.GetValue<string>() == "diff" && item["newText"]?.GetValue<string>()?.Contains(Content, StringComparison.Ordinal) == true) == true
         || update["rawOutput"]?["metadata"]?["diff"]?.GetValue<string>()?.Contains(Content, StringComparison.Ordinal) == true;
 
+    /// <summary>
+    /// The live counterpart of <c>AgentMcpE2ETests</c>: the CPU model, through OpenCode, uses
+    /// orchestration to run the workspace's app and the browser tools to open it. The weak model
+    /// is asked a bounded number of times per step; what is asserted is that the calls happened,
+    /// completed through the pinned MCP session, and had their effect.
+    /// </summary>
+    [Test]
+    public async Task OpenCode_starts_the_app_and_opens_it_in_the_browser_through_mcp()
+    {
+        var inputs = OpencodeJourneyInputs.Read();
+        var environment = new Dictionary<string, string> { ["Agents__opencode__Command"] = inputs.Opencode };
+        if (Environment.GetEnvironmentVariable("AGENTUP_AGENT_E2E_CHROMIUM") is { Length: > 0 } chromium)
+            environment["Browser__ExecutablePath"] = chromium;
+        await using var server = await AgentUpServerProcess.StartAsync(inputs.ServerAssembly, environment);
+        using var app = new McpJourneyApp();
+        await server.EnableOpencodeAsync(inputs.Endpoint, inputs.ApiKey);
+        var workspaceId = await server.RegisterAsync(app.Path, "MCP journey");
+        using var schedule = await server.Http.PostAsJsonAsync($"api/workspaces/{workspaceId}/agent", new { agent = "opencode" });
+        await using var events = await AgentEventStream.OpenAsync(server.Http, workspaceId);
+        await events.WaitForAsync("state", payload => payload["state"]?.GetValue<string>() == "ready", TurnBudget, server);
+
+        var started = await AskForToolAsync(server, workspaceId, events, "start_workspace",
+        [
+            "Start this workspace's app with the start_workspace tool.",
+            "Call the agent-up-orchestration_start_workspace tool now with no arguments.",
+            "Use agent-up-orchestration_start_workspace. Do not use any other tool."
+        ]);
+        var port = await AllocatedPortAsync(server, workspaceId);
+        var url = $"http://127.0.0.1:{port}/";
+        var opened = await AskForToolAsync(server, workspaceId, events, "browser_navigate",
+        [
+            $"Open {url} in the browser with the browser_navigate tool.",
+            $"Call agent-up-browser_browser_navigate with url {url}.",
+            $"Use agent-up-browser_browser_navigate with the url argument set to {url}. Do not use any other tool."
+        ]);
+
+        Assert.That(started, Is.True, $"OpenCode never completed start_workspace. Seen: {string.Join(", ", events.Seen)}");
+        Assert.That(port, Is.GreaterThan(0), "The app OpenCode started is running on its allocated port.");
+        Assert.That(opened, Is.True, $"OpenCode never completed browser_navigate. Seen: {string.Join(", ", events.Seen)}");
+    }
+
+    /// <summary>
+    /// Asks until a completed <c>agent-up-*</c> call to <paramref name="tool"/> is seen or the
+    /// prompts run out, allowing every permission request once as a person would.
+    /// </summary>
+    private static async Task<bool> AskForToolAsync(
+        AgentUpServerProcess server,
+        string workspaceId,
+        AgentEventStream events,
+        string tool,
+        IReadOnlyList<string> prompts)
+    {
+        var titles = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var message in prompts)
+        {
+            using var prompt = await server.Http.PostAsJsonAsync($"api/workspaces/{workspaceId}/agent/messages", new { message });
+            var completed = false;
+            while (true)
+            {
+                var next = await events.WaitForFirstAsync(["permission_request", "session_update", "prompt_result"], TurnBudget, server);
+                if (next.Type == "prompt_result")
+                    break;
+                if (next.Type == "permission_request")
+                {
+                    using var allow = await server.Http.PostAsJsonAsync(
+                        $"api/workspaces/{workspaceId}/agent/permissions",
+                        new { requestId = next.Payload["requestId"]!.GetValue<string>(), optionId = "once" });
+                    continue;
+                }
+                if (next.Payload["update"] is not { } update || update["toolCallId"]?.GetValue<string>() is not { } callId)
+                    continue;
+                if (update["title"]?.GetValue<string>() is { } title && title.StartsWith("agent-up-", StringComparison.Ordinal))
+                    titles[callId] = title;
+                completed |= update["status"]?.GetValue<string>() == "completed"
+                             && titles.TryGetValue(callId, out var called)
+                             && called.EndsWith(tool, StringComparison.Ordinal);
+            }
+            if (completed)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>The app's allocated HTTP port once the workspace reports it running, else zero.</summary>
+    private static async Task<int> AllocatedPortAsync(AgentUpServerProcess server, string workspaceId)
+    {
+        var deadline = DateTime.UtcNow + TurnBudget;
+        while (DateTime.UtcNow < deadline)
+        {
+            var workspace = await server.Http.GetFromJsonAsync<JsonNode>($"api/workspaces/{workspaceId}");
+            var state = workspace?["state"]?.GetValue<string>();
+            if (state == "Running")
+                return workspace!["applications"]!.AsArray()
+                    .SelectMany(application => application?["allocatedPorts"]?.AsArray() ?? [])
+                    .Select(entry => entry?["allocatedPort"]?.GetValue<int>() ?? 0)
+                    .FirstOrDefault(port => port > 0);
+            if (state is "Failed" or "Stopped" or null)
+                return 0;
+            await Task.Delay(TimeSpan.FromMilliseconds(500));
+        }
+        return 0;
+    }
+
     [Test]
     public async Task OpenCode_calls_Agent_Up_mcp_tools_and_takes_steering_mid_turn()
     {
@@ -295,26 +398,34 @@ internal sealed class AgentUpServerProcess : IAsyncDisposable
         }
     }
 
-    public static async Task<AgentUpServerProcess> StartAsync(OpencodeJourneyInputs inputs)
+    // The installed OpenCode, not a Nix shell: the capability still supplies `acp` and the
+    // generated provider configuration, which is the part under test.
+    public static Task<AgentUpServerProcess> StartAsync(OpencodeJourneyInputs inputs) =>
+        StartAsync(inputs.ServerAssembly, new Dictionary<string, string> { ["Agents__opencode__Command"] = inputs.Opencode });
+
+    /// <summary>A Server from <paramref name="serverAssembly"/> with the given extra environment.</summary>
+    public static async Task<AgentUpServerProcess> StartAsync(
+        string serverAssembly,
+        IReadOnlyDictionary<string, string> environment,
+        string environmentName = "Production")
     {
-        var dataDirectory = Directory.CreateTempSubdirectory("agent-up-opencode-journey-data").FullName;
+        var dataDirectory = Directory.CreateTempSubdirectory("agent-up-journey-data").FullName;
         var port = FreePort();
         var start = new ProcessStartInfo("dotnet")
         {
-            ArgumentList = { inputs.ServerAssembly },
-            WorkingDirectory = Path.GetDirectoryName(inputs.ServerAssembly)!,
+            ArgumentList = { serverAssembly },
+            WorkingDirectory = Path.GetDirectoryName(serverAssembly)!,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false
         };
         start.Environment["ASPNETCORE_URLS"] = $"http://127.0.0.1:{port}";
-        start.Environment["ASPNETCORE_ENVIRONMENT"] = "Production";
+        start.Environment["ASPNETCORE_ENVIRONMENT"] = environmentName;
         start.Environment["Storage__DataDirectory"] = dataDirectory;
         start.Environment["AGENTUP_AUTH_DISABLED"] = "true";
         start.Environment["AGENTUP_CAPABILITY_ENABLED_PATH"] = Path.Join(dataDirectory, "seed-enabled.json");
-        // The installed OpenCode, not a Nix shell: the capability still supplies `acp` and the
-        // generated provider configuration, which is the part under test.
-        start.Environment["Agents__opencode__Command"] = inputs.Opencode;
+        foreach (var pair in environment)
+            start.Environment[pair.Key] = pair.Value;
         var process = Process.Start(start) ?? throw new InvalidOperationException("The Server process did not start.");
         var server = new AgentUpServerProcess(process, dataDirectory, port);
         process.OutputDataReceived += (_, line) => server.Append(line.Data);
@@ -352,11 +463,11 @@ internal sealed class AgentUpServerProcess : IAsyncDisposable
             throw new InvalidOperationException($"Saving OpenCode settings failed: {await saved.Content.ReadAsStringAsync()}");
     }
 
-    public async Task<string> RegisterAsync(string worktree)
+    public async Task<string> RegisterAsync(string worktree, string displayName = "OpenCode journey")
     {
         using var response = await Http.PostAsJsonAsync("api/workspaces", new
         {
-            displayName = "OpenCode journey",
+            displayName,
             repositoryPath = worktree,
             worktreePath = worktree,
             branch = "main",

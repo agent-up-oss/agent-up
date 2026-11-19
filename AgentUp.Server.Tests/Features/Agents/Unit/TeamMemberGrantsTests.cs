@@ -20,6 +20,17 @@ public sealed class TeamMemberGrantsTests
     }
 
     [Test]
+    public void For_codingMembersMayRecordProductDecisionsButAPmReviewerMayNot()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(TeamMemberGrants.Author.OperationPermissions, Does.Contain("agent.prompt").And.Contain("agent.read"));
+            Assert.That(TeamMemberGrants.DevReviewer.OperationPermissions, Does.Contain("agent.prompt").And.Contain("agent.read"));
+            Assert.That(TeamMemberGrants.PmReviewer.OperationPermissions, Does.Not.Contain("agent.prompt"));
+        });
+    }
+
+    [Test]
     public void For_devReviewerReadsButNeitherWritesNorDrivesTheBrowser()
     {
         var grants = TeamMemberGrants.For(TeamMemberKind.DevReviewer);

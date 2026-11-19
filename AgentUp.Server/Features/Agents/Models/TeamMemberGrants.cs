@@ -26,6 +26,9 @@ public sealed record TeamMemberGrants(
     private const string GitWrite = "git.write";
     private const string DiagnosticsRead = "diagnostics.read";
     private const string BrowserControl = "browser.control";
+    // Recording a product decision and reading the verdicts on earlier ones.
+    private const string AgentPrompt = "agent.prompt";
+    private const string AgentRead = "agent.read";
 
     public static TeamMemberGrants Author { get; } = new(
         TeamMemberKind.Author,
@@ -35,7 +38,7 @@ public sealed record TeamMemberGrants(
         SubmitsReviews: false,
         AgentFixtureKind.CodingAgent,
         Set(WorkspaceRead, WorkspaceStart, WorkspaceStop, ApplicationRead, ApplicationOperate,
-            GitRead, GitWrite, DiagnosticsRead, BrowserControl));
+            GitRead, GitWrite, DiagnosticsRead, BrowserControl, AgentPrompt, AgentRead));
 
     public static TeamMemberGrants DevReviewer { get; } = new(
         TeamMemberKind.DevReviewer,
@@ -44,7 +47,7 @@ public sealed record TeamMemberGrants(
         ControlsBrowser: false,
         SubmitsReviews: true,
         AgentFixtureKind.CodingAgent,
-        Set(WorkspaceRead, ApplicationRead, GitRead, DiagnosticsRead));
+        Set(WorkspaceRead, ApplicationRead, GitRead, DiagnosticsRead, AgentPrompt, AgentRead));
 
     public static TeamMemberGrants PmReviewer { get; } = new(
         TeamMemberKind.PmReviewer,

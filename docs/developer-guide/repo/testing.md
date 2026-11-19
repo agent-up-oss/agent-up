@@ -127,8 +127,14 @@ the way a client does, including an Agent-Up MCP tool call and steering sent mid
 journey also requires OpenCode to report the written content in a form the transcript can draw as
 a diff. It is `slow` and `ciOnly`, and kept out of the same suites.
 
+`Category=AgentMcpE2E` drives a Server from the test output with the sandboxed
+`test-agent-scripted`, whose prompts are MCP directives: it starts a real app through orchestration
+and drives it in the real headless browser, its session reaches only its own workspace, and a dev
+reviewer is refused orchestration writes, the browser, and the commit queue. `run-agent-e2e.sh`
+runs it beside the sandbox category. The OpenCode journeys hold the live CPU-model counterpart.
+
 `Category=AgentSandboxE2E` starts a shell through the agent sandbox with real bubblewrap and
-requires the kernel to refuse what the member may not do. `run-agent-sandbox-e2e.sh` supplies
+requires the kernel to refuse what the member may not do. `run-agent-e2e.sh` supplies
 bubblewrap from Nix. It is `slow`, needs `nix`, and is kept out of the same suites. The OpenCode
 journeys put bubblewrap on the published Server's PATH, and one requires a dev reviewer's OpenCode
 to fail a write a person allowed.

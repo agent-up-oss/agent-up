@@ -404,10 +404,11 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@v23
 
       # Real bubblewrap and real mounts: reviewers cannot write their clone, no agent sees the
-      # Server's data, another workspace, or the Server's secrets.
-      - name: Run the agent sandbox against real bubblewrap
+      # Server's data, another workspace, or the Server's secrets. Then a sandboxed agent drives
+      # a real app in the real browser through the MCP servers it is offered.
+      - name: Run agents against the real sandbox, MCP servers, app and browser
         shell: bash
-        run: ./.github/scripts/run-agent-sandbox-e2e.sh
+        run: ./.github/scripts/run-agent-e2e.sh
 
       # Real OpenCode through the built-in OpenCode capability, against the same pinned model
       # served by test-model-server. It reuses this job's GGUF cache and .NET toolchain.
@@ -420,7 +421,7 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: Loop CPU Inference (Agent-Up)
-          path: artifacts/test-results/loop-inference/*.trx,artifacts/test-results/agent-sandbox/*.trx,artifacts/test-results/opencode-inference/*.trx
+          path: artifacts/test-results/loop-inference/*.trx,artifacts/test-results/agent-e2e/*.trx,artifacts/test-results/opencode-inference/*.trx
           reporter: dotnet-trx
 
       - uses: actions/upload-artifact@v7
