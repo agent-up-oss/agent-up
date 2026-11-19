@@ -91,9 +91,7 @@ public sealed class OpencodeServerJourneyTests
                 $"api/workspaces/{workspaceId}/agent/messages",
                 new { message = Prompts[attempt] });
             prompts.Add(prompt.StatusCode);
-            var next = await events.WaitForFirstAsync(["permission_request", "prompt_result"], TurnBudget, server);
-            if (next.Type == "permission_request")
-                request = next.Payload;
+            request = await AwaitEditRequestAsync(server, workspaceId, events);
         }
 
         var asked = request ?? throw new AssertionException($"OpenCode never asked to write in {Prompts.Length} prompts. Seen: {string.Join(", ", events.Seen)}");
@@ -139,12 +137,12 @@ public sealed class OpencodeServerJourneyTests
             using var prompt = await server.Http.PostAsJsonAsync(
                 $"api/workspaces/{workspaceId}/agent/messages",
                 new { message = Prompts[attempt] });
-            var next = await events.WaitForFirstAsync(["permission_request", "prompt_result"], TurnBudget, server);
-            if (next.Type != "permission_request")
+            var edit = await AwaitEditRequestAsync(server, workspaceId, events);
+            if (edit is null)
                 continue;
             using var decide = await server.Http.PostAsJsonAsync(
                 $"api/workspaces/{workspaceId}/agent/permissions",
-                new { requestId = next.Payload["requestId"]!.GetValue<string>(), optionId = "once" });
+                new { requestId = edit["requestId"]!.GetValue<string>(), optionId = "once" });
             allowed++;
             await events.WaitForAsync("prompt_result", _ => true, TurnBudget, server);
         }
@@ -154,6 +152,26 @@ public sealed class OpencodeServerJourneyTests
         Assert.That(File.Exists(System.IO.Path.Join(worktree.Path, "result.txt")), Is.False, "A dev reviewer's clone is read-only.");
         Assert.That(events.ToolUpdates.Any(update => update["status"]?.GetValue<string>() == "failed"), Is.True,
             "OpenCode reports the refused write as a failed tool call.");
+    }
+
+    /// <summary>
+    /// The edit request this turn makes, or null when the turn ends without one. The weak model
+    /// sometimes reaches for another tool first - a web fetch, say - and approving that is not
+    /// what the journey proves, so any other request is rejected and the wait goes on.
+    /// </summary>
+    private static async Task<JsonNode?> AwaitEditRequestAsync(AgentUpServerProcess server, string workspaceId, AgentEventStream events)
+    {
+        while (true)
+        {
+            var next = await events.WaitForFirstAsync(["permission_request", "prompt_result"], TurnBudget, server);
+            if (next.Type == "prompt_result")
+                return null;
+            if (next.Payload["request"]?["toolCall"]?["kind"]?.GetValue<string>() == "edit")
+                return next.Payload;
+            using var reject = await server.Http.PostAsJsonAsync(
+                $"api/workspaces/{workspaceId}/agent/permissions",
+                new { requestId = next.Payload["requestId"]!.GetValue<string>(), optionId = "reject" });
+        }
     }
 
     /// <summary>
