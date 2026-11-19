@@ -37,8 +37,10 @@ by_id = {entry["id"]: entry for entry in modules}
 expected = {"dotnet", "docker", "codex", "cursor", "claude"}
 if set(by_id) != expected:
     raise SystemExit(f"default enabled ids {sorted(by_id)} != {sorted(expected)}")
-for capability_id in expected:
-    if not by_id[capability_id].get("version"):
-        raise SystemExit(f"{capability_id} is missing a version")
-print("Helm default enabled.json seeds first-party capability packages.")
+# Capabilities are compiled into the Server, so an entry names only the id: there is no
+# package version to pin.
+unexpected = sorted({key for entry in modules for key in entry} - {"id"})
+if unexpected:
+    raise SystemExit(f"enabled.json entries carry {unexpected}; only an id is read")
+print("Helm default enabled.json seeds the first-party capability ids.")
 PY

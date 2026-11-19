@@ -399,6 +399,10 @@ jobs:
         shell: bash
         run: ./.github/scripts/run-loop-inference.sh
 
+      # The OpenCode capability delivers OpenCode through Nix, so the Server refuses to enable it
+      # on a host without Nix: the journeys need it the way a real Server host does.
+      - uses: DeterminateSystems/nix-installer-action@v23
+
       # Real OpenCode through the built-in OpenCode capability, against the same pinned model
       # served by test-model-server. It reuses this job's GGUF cache and .NET toolchain.
       - name: Run OpenCode against the in-process model
